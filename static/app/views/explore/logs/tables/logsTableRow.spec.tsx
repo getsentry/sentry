@@ -16,6 +16,7 @@ import {
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import * as analytics from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {
   LOGS_FIELDS_KEY,
@@ -845,5 +846,93 @@ describe('logsTableRow', () => {
         /\[Replace\] \[MAC addresses\] with \[ITS_GONE\] from \[not_zzz_not_exact_match\]/
       )
     ).toBeInTheDocument();
+  });
+
+  describe('selection checkboxes', () => {
+    it('does not render a selection checkbox when toggleSelectedRow is not provided', () => {
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+      );
+
+      expect(
+        screen.queryByRole('checkbox', {name: 'Select log row'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the selection checkbox without hovering when toggleSelectedRow is provided', () => {
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+          toggleSelectedRow={jest.fn()}
+        />,
+        {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+      );
+
+      expect(screen.getByRole('checkbox', {name: 'Select log row'})).toBeInTheDocument();
+    });
+
+    it('calls toggleSelectedRow with the row id when the checkbox is clicked', async () => {
+      const toggleSelectedRow = jest.fn();
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+          toggleSelectedRow={toggleSelectedRow}
+        />,
+        {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select log row'}));
+
+      expect(toggleSelectedRow).toHaveBeenCalledWith('1');
+    });
+
+    it('renders a checked checkbox with a deselect label when isSelected is true', () => {
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+          isSelected
+          toggleSelectedRow={jest.fn()}
+        />,
+        {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+      );
+
+      expect(screen.getByRole('checkbox', {name: 'Deselect log row'})).toBeChecked();
+    });
+
+    it('does not expand the row when the checkbox is clicked', async () => {
+      const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+          toggleSelectedRow={jest.fn()}
+        />,
+        {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select log row'}));
+
+      expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+        'logs.table.row_expanded',
+        expect.anything()
+      );
+    });
   });
 });

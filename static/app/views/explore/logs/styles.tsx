@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {HighlightComponent} from 'sentry/components/highlight';
@@ -269,6 +270,11 @@ export const DetailsBody = styled('div')`
 
 export const StyledChevronButton = styled(Button)`
   margin-right: ${p => p.theme.space.xs};
+`;
+
+export const LogSelectionCheckbox = styled(Checkbox)`
+  margin-right: ${p => p.theme.space.xs};
+  flex-shrink: 0;
 `;
 
 const DEFAULT_SIZE = '8px';

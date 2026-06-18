@@ -50,12 +50,14 @@ import {getDisplayTotalPayloadBytes} from 'sentry/views/explore/logs/getDisplayT
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
 import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
+import {useLogsSelection} from 'sentry/views/explore/logs/selection/useLogsSelection';
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
   FloatingBottomContainer,
   HoveringRowLoadingRendererContainer,
   LOGS_GRID_BODY_ROW_HEIGHT,
+  LogSelectionCheckbox,
   LogTable,
   LogTableBody,
   LogTableHeadCell,
@@ -450,6 +452,7 @@ export function LogsInfiniteTable({
   }, []);
 
   const logsPinning = useLogsPinning();
+  const logsSelection = useLogsSelection();
   const pinnedLogsQuery = usePinnedLogsQuery({allRows: data, logsPinning});
 
   const renderRow = useCallback(
@@ -471,9 +474,11 @@ export function LogsInfiniteTable({
           logStart={logStart}
           logEnd={logEnd}
           isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+          isSelected={logsSelection?.isRowSelected?.(rowId)}
           isHoverLinked={hoveredRowId === rowId}
           setHoveredRowId={setHoveredRowId}
           togglePinnedRow={logsPinning?.togglePinnedRow}
+          toggleSelectedRow={logsSelection?.toggleSelectedRow}
         />
       );
     },
@@ -487,6 +492,7 @@ export function LogsInfiniteTable({
       logEnd,
       logStart,
       logsPinning,
+      logsSelection,
       meta,
     ]
   );
@@ -536,6 +542,7 @@ export function LogsInfiniteTable({
             stringAttributes={stringAttributes}
             booleanAttributes={booleanAttributes}
             onResizeMouseDown={onResizeMouseDown}
+            logsSelection={logsSelection}
           />
         )}
         {!isPending && logsPinning && (
@@ -614,9 +621,11 @@ export function LogsInfiniteTable({
                   showCellActions={showCellActions}
                   showExploreSimilarSpansLink={showExploreSimilarSpansLink}
                   isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+                  isSelected={logsSelection?.isRowSelected?.(rowId)}
                   isHoverLinked={hoveredRowId === rowId}
                   setHoveredRowId={setHoveredRowId}
                   togglePinnedRow={logsPinning?.togglePinnedRow}
+                  toggleSelectedRow={logsSelection?.toggleSelectedRow}
                 />
               </Fragment>
             );
@@ -667,8 +676,10 @@ function LogsTableHeader({
   numberAttributes,
   stringAttributes,
   onResizeMouseDown,
+  logsSelection,
 }: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes' | 'booleanAttributes'> & {
   isFrozen: boolean;
+  logsSelection: ReturnType<typeof useLogsSelection>;
   onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
   const fields = useQueryParamsFields();
@@ -677,11 +688,40 @@ function LogsTableHeader({
 
   const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
   const pinningEnabled = !!useLogsPinning();
+
+  const selectableRowIds = useMemo(
+    () =>
+      (data ?? [])
+        .filter(isRegularLogResponseItem)
+        .map(row => row[OurLogKnownFieldKey.ID]),
+    [data]
+  );
+  const selectedCount = logsSelection
+    ? selectableRowIds.filter(id => logsSelection.isRowSelected(id)).length
+    : 0;
+  const allSelected = selectableRowIds.length > 0 && selectedCount === selectableRowIds.length;
+  const selectAllChecked = allSelected
+    ? true
+    : selectedCount > 0
+      ? ('indeterminate' as const)
+      : false;
+
   return (
     <TableHead>
       <LogTableRow>
         <FirstTableHeadCell isFirst align="left">
-          <TableHeadCellContent isFrozen />
+          {logsSelection ? (
+            <LogSelectionCheckbox
+              checked={selectAllChecked}
+              disabled={selectableRowIds.length === 0}
+              aria-label={allSelected ? t('Deselect all logs') : t('Select all logs')}
+              onChange={() =>
+                logsSelection.setSelectedRows(allSelected ? [] : selectableRowIds)
+              }
+            />
+          ) : (
+            <TableHeadCellContent isFrozen />
+          )}
         </FirstTableHeadCell>
         {fields.map((field, index) => {
           const direction = sortBys.find(s => s.field === field)?.kind;

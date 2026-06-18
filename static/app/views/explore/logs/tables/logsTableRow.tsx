@@ -84,6 +84,7 @@ import {
   LogDetailTableActionsCell,
   LogDetailTableBodyCell,
   LogFirstCellContent,
+  LogSelectionCheckbox,
   LogsTableBodyFirstCell,
   LogTableBodyCell,
   LogTableRow,
@@ -131,6 +132,7 @@ type LogsRowProps = {
   isExpanded?: boolean;
   isHoverLinked?: boolean;
   isPinned?: boolean;
+  isSelected?: boolean;
   logEnd?: string;
   logStart?: string;
   onCollapse?: (logItemId: string) => void;
@@ -141,6 +143,7 @@ type LogsRowProps = {
   showCellActions?: boolean;
   showExploreSimilarSpansLink?: boolean;
   togglePinnedRow?: (logItemId: string) => void;
+  toggleSelectedRow?: (logItemId: string) => void;
 };
 
 const ALLOWED_CELL_ACTIONS: Actions[] = [
@@ -228,9 +231,11 @@ export const LogRowContent = memo(function LogRowContent({
   logStart,
   logEnd,
   isPinned,
+  isSelected,
   isHoverLinked,
   setHoveredRowId,
   togglePinnedRow,
+  toggleSelectedRow,
   showCellActions,
   showExploreSimilarSpansLink,
 }: LogsRowProps) {
@@ -443,6 +448,16 @@ export const LogRowContent = memo(function LogRowContent({
       >
         <LogsTableBodyFirstCell key="first">
           <LogFirstCellContent>
+            {toggleSelectedRow && !isPseudoRow ? (
+              <LogSelectionCheckbox
+                checked={isSelected}
+                aria-label={isSelected ? t('Deselect log row') : t('Select log row')}
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                onPointerUp={(e: React.PointerEvent) => e.stopPropagation()}
+                onTouchEnd={(e: React.TouchEvent) => e.stopPropagation()}
+                onChange={() => toggleSelectedRow(rowId)}
+              />
+            ) : null}
             {isPseudoRow ? (
               <span className="log-table-row-pseudo-row-chevron-replacement" />
             ) : blockRowExpanding ? null : shouldRenderHoverElements ? (

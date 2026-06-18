@@ -649,4 +649,79 @@ describe('LogsInfiniteTable', () => {
     await userEvent.click(severityHeader);
     expect(router.location.query[LOGS_SORT_BYS_KEY]).toBe('-timestamp');
   });
+
+  describe('selection checkboxes', () => {
+    const selectionRouterConfig = {
+      location: {
+        pathname: `/organizations/${organization.slug}/explore/logs/`,
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: '-timestamp',
+          [LOGS_QUERY_KEY]: 'severity:error',
+          logsSelection: 'true',
+        },
+      },
+    };
+
+    it('renders a selection checkbox on each row without hovering when ourlogs-selection is enabled', async () => {
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {initialRouterConfig: selectionRouterConfig}
+      );
+
+      const rows = await screen.findAllByTestId('log-table-row');
+      for (const row of rows) {
+        expect(
+          within(row).getByRole('checkbox', {name: 'Select log row'})
+        ).toBeInTheDocument();
+      }
+    });
+
+    it('does not render selection checkboxes when ourlogs-selection is disabled', async () => {
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+      );
+
+      const [firstRow] = await screen.findAllByTestId('log-table-row');
+
+      expect(
+        within(firstRow!).queryByRole('checkbox', {name: 'Select log row'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('checks the row when its selection checkbox is clicked', async () => {
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {initialRouterConfig: selectionRouterConfig}
+      );
+
+      const [firstRow] = await screen.findAllByTestId('log-table-row');
+      const checkbox = within(firstRow!).getByRole('checkbox', {name: 'Select log row'});
+      await userEvent.click(checkbox);
+
+      expect(
+        within(firstRow!).getByRole('checkbox', {name: 'Deselect log row'})
+      ).toBeChecked();
+    });
+
+    it('selects every row when the header select-all checkbox is clicked', async () => {
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {initialRouterConfig: selectionRouterConfig}
+      );
+
+      await screen.findAllByTestId('log-table-row');
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select all logs'}));
+
+      const rows = screen.getAllByTestId('log-table-row');
+      for (const row of rows) {
+        expect(
+          within(row).getByRole('checkbox', {name: 'Deselect log row'})
+        ).toBeChecked();
+      }
+      expect(
+        screen.getByRole('checkbox', {name: 'Deselect all logs'})
+      ).toBeChecked();
+    });
+  });
 });
