@@ -153,6 +153,13 @@ export type PullRequest = {
   author?: CommitAuthor;
 };
 
+export type PullRequestStatus = 'merged' | 'open' | 'closed' | 'draft' | 'unknown';
+
+export type LinkedPullRequest = PullRequest & {
+  dateLinked: string;
+  status: PullRequestStatus;
+};
+
 /**
  * Sentry Apps
  */

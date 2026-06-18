@@ -75,8 +75,8 @@ describe('LinkedPullRequests', () => {
     expect(linkedPullRequest.querySelectorAll('svg')).toHaveLength(2);
     expect(within(list).getByText('Merged')).toBeInTheDocument();
     expect(within(list).getByText('Closed')).toBeInTheDocument();
-    const mergedStatus = within(list).getByTestId('linked-pull-request-status-merged');
-    const closedStatus = within(list).getByTestId('linked-pull-request-status-closed');
+    const mergedStatus = within(list).getByLabelText('Pull request status: Merged');
+    const closedStatus = within(list).getByLabelText('Pull request status: Closed');
     expect(mergedStatus).toBeInTheDocument();
     expect(closedStatus).toBeInTheDocument();
     expect(mergedStatus.querySelector('svg')).toBeInTheDocument();
