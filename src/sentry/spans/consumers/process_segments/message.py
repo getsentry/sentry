@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import Any
 
 import sentry_sdk
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
@@ -41,6 +40,7 @@ from sentry.utils.last_seen import LAST_SEEN_INTERVAL_SECONDS
 from sentry.utils.local_cache import LRUCache, SizedKeyCache, ThreadSafeCache
 from sentry.utils.outcomes import Outcome, OutcomeAggregator
 from sentry.utils.projectflags import set_project_flag_and_signal
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -51,16 +51,7 @@ outcome_aggregator = OutcomeAggregator()
 def process_segment(
     unprocessed_spans: list[SpanEvent], skip_produce: bool = False, skip_enrichment: bool = False
 ) -> list[CompatibleSpan]:
-    sample_rate = (
-        settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
-        * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
-    )
-    with sentry_sdk.start_transaction(
-        name="spans.consumers.process_segments.process_segment",
-        custom_sampling_context={
-            "sample_rate": sample_rate,
-        },
-    ):
+    with start_span(name="spans.consumers.process_segments.process_segment", transaction=True):
         return _process_segment(unprocessed_spans, skip_produce, skip_enrichment)
 
 
