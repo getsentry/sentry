@@ -72,7 +72,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
         organization,
         project,
         queryClient,
-        knownAgents: knownAgents ?? [],
+        knownAgents,
       })
     );
     const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
