@@ -28,11 +28,15 @@ type Row = {
   delta_cents: number;
   delta_pct: number | null;
   legacy_amount: number | null;
+  // guid is present only when the side has exactly one invoice in the window
+  // (otherwise there's no single invoice to deep-link to).
   legacy_invoice_count: number;
+  legacy_invoice_guid: string | null;
   organization_id: number;
   organization_slug: string | null;
   platform_amount: number | null;
   platform_invoice_count: number;
+  platform_invoice_guid: string | null;
   status: RowStatus;
 };
 
@@ -61,6 +65,8 @@ type UnmatchedSide = 'legacy_only' | 'platform_only';
 type UnmatchedRow = {
   amount: number;
   invoice_count: number;
+  // Present only when the org has exactly one invoice on its one side.
+  invoice_guid: string | null;
   organization_id: number;
   organization_slug: string | null;
   side: UnmatchedSide;
@@ -93,6 +99,28 @@ function formatPercent(pct: number | null) {
     return <em>∞</em>;
   }
   return `${(pct * 100).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
+}
+
+// Render a dollar amount, deep-linking to the org-scoped invoice detail page
+// when we have both the org slug and a single invoice's guid. The receipts
+// page (CustomerInvoiceDetailsEndpoint) resolves legacy and platform invoices
+// alike by guid. This is a plain anchor — not a router Link — because gsAdmin
+// is a separate app bundle from the org-facing settings UI, so navigating
+// there is a full page load (see the cross-app links in dataRequests.tsx).
+function InvoiceAmount({
+  cents,
+  guid,
+  orgSlug,
+}: {
+  cents: number | null;
+  guid: string | null;
+  orgSlug: string | null;
+}) {
+  const amount = formatDollars(cents);
+  if (!guid || !orgSlug) {
+    return amount;
+  }
+  return <a href={`/settings/${orgSlug}/billing/receipts/${guid}/`}>{amount}</a>;
 }
 
 // `datetime-local` inputs use the user's local timezone with no offset
@@ -522,13 +550,21 @@ export function InvoiceComparison() {
                         )}
                       </td>
                       <RightCell>
-                        {formatDollars(row.legacy_amount)}{' '}
+                        <InvoiceAmount
+                          cents={row.legacy_amount}
+                          guid={row.legacy_invoice_guid}
+                          orgSlug={row.organization_slug}
+                        />{' '}
                         <Text size="sm" variant="muted">
                           ({row.legacy_invoice_count})
                         </Text>
                       </RightCell>
                       <RightCell>
-                        {formatDollars(row.platform_amount)}{' '}
+                        <InvoiceAmount
+                          cents={row.platform_amount}
+                          guid={row.platform_invoice_guid}
+                          orgSlug={row.organization_slug}
+                        />{' '}
                         <Text size="sm" variant="muted">
                           ({row.platform_invoice_count})
                         </Text>
@@ -586,7 +622,13 @@ export function InvoiceComparison() {
                       <td>
                         <Tag variant="danger">{row.side}</Tag>
                       </td>
-                      <RightCell>{formatDollars(row.amount)}</RightCell>
+                      <RightCell>
+                        <InvoiceAmount
+                          cents={row.amount}
+                          guid={row.invoice_guid}
+                          orgSlug={row.organization_slug}
+                        />
+                      </RightCell>
                       <RightCell>{row.invoice_count}</RightCell>
                     </tr>
                   ))}
