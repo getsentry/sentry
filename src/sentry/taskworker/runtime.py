@@ -27,8 +27,8 @@ def _extract_metrics_config() -> tuple[str | None, int | None]:
             metric_options = settings.SENTRY_METRICS_OPTIONS["primary_backend_args"]
 
         # Some backends use `host` and others use `statsd_host`
-        host = metric_options.get("host", None) or metric_options.get("statsd_host", None)
-        port = metric_options.get("port", None) or metric_options.get("statsd_port", None)
+        host = metric_options.get("statsd_host", None) or metric_options.get("host", None)
+        port = metric_options.get("statsd_port", None) or metric_options.get("port", None)
     except Exception as e:
         logger.warning("Could not extract metrics settings", extra={"error": str(e)})
     return host, port
