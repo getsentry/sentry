@@ -253,7 +253,6 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
           )
         }
       >
-        {null}
         {props.children}
       </NavigationButton>
     </Tooltip>
