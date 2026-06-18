@@ -225,7 +225,6 @@ def enqueue_seer_run(
     viewer_context: SeerViewerContext | None,
     user_id: int | None = None,
     flush: bool = True,
-    error_type: str,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the SEER_RUN_CREATE outbox that
     dispatches it to Seer. build_body runs inside the transaction with the new
@@ -256,14 +255,14 @@ def enqueue_seer_run(
                 },
             ).save()
     except (OutboxFlushError, OutboxDatabaseError):
-        metrics.incr("seer.outbox_flush_error", tags={"type": error_type})
+        metrics.incr("seer.outbox_flush_error", tags={"type": run_type.value})
         logger.exception(
             "seer.run_create.outbox_flush_error",
             extra={
                 "organization_id": organization.id,
                 "seer_run_id": run.id,
                 "seer_run_uuid": str(run.uuid),
-                "type": error_type,
+                "type": run_type.value,
             },
         )
         run.mirror_status = SeerRunMirrorStatus.FAILED

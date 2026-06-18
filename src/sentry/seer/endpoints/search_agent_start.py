@@ -94,7 +94,6 @@ def send_search_agent_start_request(
         build_body=lambda run: body,
         viewer_context=viewer_context,
         user_id=user_id,
-        error_type="assisted_query",
     )
 
 

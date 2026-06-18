@@ -486,7 +486,6 @@ class SeerAgentClient:
             viewer_context=self.viewer_context,
             user_id=user_id,
             flush=True,
-            error_type="explorer",
         )
 
     def start_feature_run(
@@ -519,7 +518,6 @@ class SeerAgentClient:
             viewer_context=self.viewer_context,
             user_id=user_id,
             flush=flush,
-            error_type="feature_run",
         )
 
     def continue_run(
