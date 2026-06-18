@@ -277,7 +277,7 @@ class UnlinkPlatformExternalIssueAction(GroupAction):
 
 class AutofixPrCreatedAction(GroupAction):
     run_id: str | None = None
-    pull_requests: list[dict[str, object]] = []
+    pull_requests: list[dict[str, object]]
 
     @classmethod
     def get_type(cls) -> GroupActionType:

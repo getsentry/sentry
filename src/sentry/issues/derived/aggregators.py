@@ -122,7 +122,7 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
     if min_progress is None:
         return None
 
-    current_rank = _PROGRESS_RANK.get(current, 0)
+    current_rank = _PROGRESS_RANK[current]
     target_rank = _PROGRESS_RANK[min_progress]
     if target_rank > current_rank:
         return emit(PROGRESS.value(min_progress), LAST_PROGRESSED_AT.value(ts))
