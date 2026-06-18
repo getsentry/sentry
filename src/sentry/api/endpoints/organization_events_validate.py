@@ -35,8 +35,12 @@ class Validation:
 
 
 @dataclass(kw_only=True)
-class AttributeValidation(Validation):
+class NamedValidation(Validation):
     name: str
+
+
+@dataclass(kw_only=True)
+class AttributeValidation(NamedValidation):
     # None when its an error
     attrType: str | None
 
@@ -44,7 +48,7 @@ class AttributeValidation(Validation):
 @dataclass(kw_only=True)
 class ValidationResponse:
     valid: bool
-    dataset: list[Validation] = dataclass_field(default_factory=list)
+    dataset: list[NamedValidation] = dataclass_field(default_factory=list)
     environment: list[Validation] = dataclass_field(default_factory=list)
     field: list[AttributeValidation] = dataclass_field(default_factory=list)
     orderby: list[AttributeValidation] = dataclass_field(default_factory=list)
@@ -205,12 +209,17 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             dataset = self.get_dataset(request, organization)
         except ParseError as error:
             response.valid = False
-            response.dataset.append(Validation(valid=False, error=str(error)))
+            response.dataset.append(
+                NamedValidation(
+                    name=request.GET.get("dataset", "discover"), valid=False, error=str(error)
+                )
+            )
             return self.serialize_response(response)
 
         if dataset not in RPC_DATASETS:
             response.dataset.append(
-                Validation(
+                NamedValidation(
+                    name=request.GET.get("dataset", "discover"),
                     valid=True,
                     error="This dataset is not compatible with the validate endpoint, your request may still be valid",
                 )

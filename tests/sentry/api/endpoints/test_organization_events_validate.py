@@ -39,8 +39,26 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
         assert not response.data["valid"]
         assert len(response.data["dataset"]) == 1
         dataset_error = response.data["dataset"][0]
+        assert dataset_error["name"] == "foobar"
         assert "dataset must be one of" in dataset_error["error"]
-        assert dataset_error["valid"] is False
+        assert not dataset_error["valid"]
+
+    def test_default_dataset_error(self) -> None:
+        """Validate matches the behaviour of /events/ where the default dataset is discover, but this is not a RPC
+        dataset so the validate endpoint will fail"""
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["valid"]
+        assert len(response.data["dataset"]) == 1
+        dataset_error = response.data["dataset"][0]
+        assert dataset_error["name"] == "discover"
+        assert "This dataset is not compatible with the validate endpoint" in dataset_error["error"]
+        assert dataset_error["valid"]
 
     def test_invalid_attributes(self) -> None:
         response = self.do_request(

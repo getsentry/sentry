@@ -28,7 +28,6 @@ from taskbroker_client.retry import Retry
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
-from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import (
@@ -64,7 +63,7 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import ingest_profiling_passthrough_tasks
+from sentry.taskworker.namespaces import ingest_profiling_passthrough_tasks, ingest_profiling_tasks
 from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
@@ -161,29 +160,19 @@ def process_profile_from_kafka(
     headers: dict[str, str],
 ) -> None:
     """Process a profile from raw Kafka message bytes (taskbroker passthrough mode)."""
-    if _should_drop(headers):
-        return
+    from sentry.profiles.consumers.process.factory import _process_profile_message
 
-    sampled = _is_sampled(headers)
-
-    if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
-        return
-
-    process_profile_task(payload=message_bytes, sampled=sampled)
+    _process_profile_message(message_bytes, headers, inline=True)
 
 
-def _is_sampled(headers: dict[str, str]) -> bool:
-    return headers.get("sampled", "true") == "true"
-
-
-def _should_drop(headers: dict[str, str]) -> bool:
-    context = {"project_id": headers["project_id"]} if "project_id" in headers else {}
-
-    return bool(context) and killswitch_matches_context(
-        "profiling.killswitch.ingest-profiles", context
-    )
-
-
+@instrumented_task(
+    name="sentry.profiles.task.process_profile",
+    namespace=ingest_profiling_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(times=2, delay=5),
+    compression_type=CompressionType.ZSTD,
+    silo_mode=SiloMode.CELL,
+)
 def process_profile_task(
     profile: Profile | None = None,
     payload: bytes | str | None = None,
