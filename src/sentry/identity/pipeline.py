@@ -10,12 +10,6 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from sentry.identity.base import Provider
-from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.types import IntegrationProviderSlug
-from sentry.integrations.utils.metrics import (
-    IntegrationPipelineViewEvent,
-    IntegrationPipelineViewType,
-)
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.store import PipelineSessionStore
@@ -35,6 +29,8 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
     provider_model_cls = IdentityProvider
 
     def _get_provider(self, provider_key: str, organization: RpcOrganization | None) -> Provider:
+        from sentry.integrations.types import IntegrationProviderSlug
+
         if provider_key == IntegrationProviderSlug.AZURE_DEVOPS.value:
             provider_key = "vsts_new"
 
@@ -53,6 +49,12 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
         return self.provider.get_pipeline_views()
 
     def finish_pipeline(self) -> HttpResponseBase:
+        from sentry.integrations.base import IntegrationDomain
+        from sentry.integrations.utils.metrics import (
+            IntegrationPipelineViewEvent,
+            IntegrationPipelineViewType,
+        )
+
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.IDENTITY_LINK,
             IntegrationDomain.IDENTITY,
