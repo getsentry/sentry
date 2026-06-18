@@ -185,7 +185,7 @@ export function MetricPanel({
     query: userQuery,
     interval: heatMapBucketDimensions?.interval,
     yBuckets: heatMapBucketDimensions?.yBuckets,
-    enabled: areHeatMapsEnabled && isHeatmap,
+    enabled: areHeatMapsEnabled && isHeatmap && !isMetricOptionsEmpty,
   });
 
   const heatmapResult = useQuery({
