@@ -33,6 +33,7 @@ from sentry.seer.models.night_shift import (
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import SeerRun
 from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
+from sentry.seer.night_shift.models import NightShiftPayload, TriageCandidate, TriageTweaks
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy, priority_label
@@ -494,25 +495,25 @@ def _dispatch_to_seer_feature(
         logger.info("night_shift.no_candidates", extra=log_extra)
         return
 
-    payload = {
-        "candidates": [
-            {
-                "group_id": c.group.id,
-                "title": c.group.title,
-                "culprit": c.group.culprit,
-                "fixability": c.fixability,
-                "times_seen": c.group.times_seen,
-                "first_seen": c.group.first_seen.isoformat(),
-                "priority": priority_label(c.group.priority),
-            }
+    payload = NightShiftPayload(
+        candidates=[
+            TriageCandidate(
+                group_id=c.group.id,
+                title=c.group.title,
+                culprit=c.group.culprit,
+                fixability=c.fixability,
+                times_seen=c.group.times_seen,
+                first_seen=c.group.first_seen.isoformat(),
+                priority=priority_label(c.group.priority),
+            )
             for c in scored
         ],
-        "tweaks": {
-            "intelligence_level": resolved_options["intelligence_level"],
-            "reasoning_effort": resolved_options["reasoning_effort"],
-            "extra_triage_instructions": resolved_options["extra_triage_instructions"],
-        },
-    }
+        tweaks=TriageTweaks(
+            intelligence_level=resolved_options["intelligence_level"],
+            reasoning_effort=resolved_options["reasoning_effort"],
+            extra_triage_instructions=resolved_options["extra_triage_instructions"],
+        ),
+    )
     try:
         client = SeerAgentClient(organization)
     except SeerPermissionError:
@@ -520,7 +521,9 @@ def _dispatch_to_seer_feature(
         _record_run_error(run, "Organization does not have Seer access")
         return
 
-    seer_run = client.start_feature_run(feature_id="night_shift", payload=payload, flush=False)
+    seer_run = client.start_feature_run(
+        feature_id="night_shift", payload=payload.dict(), flush=False
+    )
     run.update(seer_run=seer_run)
 
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
