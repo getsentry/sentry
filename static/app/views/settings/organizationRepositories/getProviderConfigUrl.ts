@@ -31,3 +31,13 @@ export function getProviderConfigUrl(
 
   return null;
 }
+
+export function getProviderPermissionsUrl(
+  integration: OrganizationIntegration
+): string | null {
+  const url = getProviderConfigUrl(integration);
+  if (!url) {
+    return null;
+  }
+  return `${url}/permissions/update`;
+}
