@@ -96,8 +96,9 @@ def run_eap_spans_table_query_in_chunks(
 def get_eap_organization_volume(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
-    end_time = datetime.now(UTC)
+    end_time = end or datetime.now(UTC)
     start_time = end_time - time_interval
     result = Spans.run_table_query(
         params=SnubaParams(
@@ -138,8 +139,9 @@ def get_eap_organization_volume(
 def get_outcomes_organization_volume(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
-    end_time = datetime.now(UTC)
+    end_time = end or datetime.now(UTC)
     start_time = end_time - time_interval
 
     query = QueryDefinition(

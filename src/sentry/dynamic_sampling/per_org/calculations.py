@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 from dataclasses import replace
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, cast
 
 import orjson
@@ -61,10 +61,11 @@ logger = logging.getLogger(__name__)
 
 def compare_organization_sliding_window_sample_rates(
     config: AutomaticDynamicSamplingConfiguration,
+    window: timedelta = timedelta(hours=24),
 ) -> None:
-    window = timedelta(hours=FALLBACK_SLIDING_WINDOW_SIZE)
-    eap_volume = get_eap_organization_volume(config, time_interval=window)
-    outcomes_volume = get_outcomes_organization_volume(config, time_interval=window)
+    end = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
+    eap_volume = get_eap_organization_volume(config, time_interval=window, end=end)
+    outcomes_volume = get_outcomes_organization_volume(config, time_interval=window, end=end)
 
     def sample_rate_for(volume: OrganizationDataVolume | None) -> float | None:
         if volume is None:
