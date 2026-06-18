@@ -143,6 +143,50 @@ class OrganizationAIConversationsColumnsEndpointTest(BaseAIConversationsTestCase
         assert row["firstInput"] == "Hello"
         assert row["lastOutput"] == "Hi there"
 
+    def test_user_consistent_across_multi_span_conversation(self) -> None:
+        # User identity lives on one span; the other spans carry no user data.
+        # any() must still return the full, correct user for the conversation.
+        now = before_now(days=22).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=3),
+            op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
+            agent_name="Agent",
+            trace_id=trace_id,
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            tokens=LLM_TOKENS,
+            trace_id=trace_id,
+            messages=[{"role": "user", "content": "Hi"}],
+            response_text="Hello",
+            user_id="u-42",
+            user_email="person@example.com",
+            user_username="person",
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="search",
+            trace_id=trace_id,
+        )
+
+        query = {**self._time_window(now), "field": [CONVERSATION_ID, "user"]}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        user = response.data[0]["user"]
+        assert user["id"] == "u-42"
+        assert user["email"] == "person@example.com"
+        assert user["username"] == "person"
+
     def test_duration_and_timestamps(self) -> None:
         now = before_now(days=14).replace(microsecond=0)
         conversation_id = uuid4().hex

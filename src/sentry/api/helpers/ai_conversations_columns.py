@@ -175,6 +175,9 @@ DEFAULT_FIELDS: tuple[str, ...] = (
 
 DEFAULT_SORT = f"-{END_TIMESTAMP}"
 
+# Legacy sort tokens accepted for backwards compatibility with the old serializer.
+_SORT_ALIASES = {"timestamp": END_TIMESTAMP}
+
 SORTABLE_FIELDS: dict[str, str] = {
     name: spec.sort_expr for name, spec in FIELD_REGISTRY.items() if spec.sort_expr
 }
@@ -214,6 +217,8 @@ def resolve_sort(orderby: list[str] | None) -> tuple[str, bool]:
     raw = orderby[0] if orderby else DEFAULT_SORT
     descending = raw.startswith("-")
     field = raw[1:] if descending else raw
+    # Accept the legacy `timestamp` sort token as an alias for endTimestamp.
+    field = _SORT_ALIASES.get(field, field)
     if field not in SORTABLE_FIELDS:
         raise ParseError(detail=f"Cannot sort by: {field}")
     return field, descending
@@ -435,6 +440,10 @@ def _extract_aggregate_value(field: str, row: dict[str, Any]) -> Any:
         model = row.get(_ANY_MODEL)
         return [model] if model else []
     if field == USER:
+        # A conversation is a single user session, so every span carries the same
+        # identity (or none). any() ignores nulls, so each field resolves to that
+        # user. We use any() rather than the earliest-span identity (legacy path)
+        # to avoid forcing the enrichment scan, since user is a default field.
         return build_user_response(
             user_id=row.get(_ANY_USER_ID),
             user_email=row.get(_ANY_USER_EMAIL),

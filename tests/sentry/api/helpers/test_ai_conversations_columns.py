@@ -41,6 +41,10 @@ class TestResolveSort:
     def test_descending(self) -> None:
         assert resolve_sort([f"-{LLM_CALLS}"]) == (LLM_CALLS, True)
 
+    def test_legacy_timestamp_alias(self) -> None:
+        assert resolve_sort(["timestamp"]) == (END_TIMESTAMP, False)
+        assert resolve_sort(["-timestamp"]) == (END_TIMESTAMP, True)
+
     def test_rejects_unsortable(self) -> None:
         with pytest.raises(ParseError):
             resolve_sort([CONVERSATION_ID])
