@@ -49,17 +49,11 @@ class RetryProcessing(Exception):
 
 def should_process(data: Mapping[str, Any]) -> bool:
     """Quick check if processing is needed at all."""
-    from sentry.plugins.base import plugins
-
     if data.get("type") == "transaction":
         return False
 
     if get_event_preprocessors(data):
         return True
-    for plugin in plugins.all(version=2):
-        processors = safe_execute(plugin.get_event_preprocessors, data=data)
-        if processors:
-            return True
 
     if should_process_for_stacktraces(data):
         return True
@@ -322,8 +316,6 @@ def do_process_event(
     from_symbolicate: bool = False,
     has_attachments: bool = False,
 ) -> None:
-    from sentry.plugins.base import plugins
-
     if data is None:
         data = processing.event_processing_store.get(cache_key)
 
@@ -408,8 +400,6 @@ def do_process_event(
 
     # Default event processors.
     preprocessors = get_event_preprocessors(data)
-    for plugin in plugins.all(version=2):
-        preprocessors.extend(safe_execute(plugin.get_event_preprocessors, data=data) or ())
 
     with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
         span.set_data("from_symbolicate", from_symbolicate)
