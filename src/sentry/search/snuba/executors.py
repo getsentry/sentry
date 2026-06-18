@@ -989,10 +989,10 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
 
 # Numeric rank for the "progress" sort: higher means further along the fix cycle, so it
 # sorts towards the top. Every state has a rank so issues without seer activity (the
-# identified/triaged base states) still order correctly relative to progressed issues.
+# identified/assigned base states) still order correctly relative to progressed issues.
 PROGRESS_STATE_SORT_RANK: dict[IssueProgressState, int] = {
     IssueProgressState.IDENTIFIED: 1,
-    IssueProgressState.TRIAGED: 2,
+    IssueProgressState.ASSIGNED: 2,
     IssueProgressState.DIAGNOSED: 3,
     IssueProgressState.FIX_PROPOSED: 4,
     IssueProgressState.FIX_APPLIED: 5,
@@ -1018,7 +1018,7 @@ def resolve_progress_signal(
 
 def progress_strategy() -> PostgresSortStrategy:
     """Progress sort: primary by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
-    triaged > identified), secondary by last_seen. The secondary key stands in for
+    assigned > identified), secondary by last_seen. The secondary key stands in for
     ``issue.last_progressed_at`` until that field exists; for now most-recently-active issues
     rank highest within a tier."""
 

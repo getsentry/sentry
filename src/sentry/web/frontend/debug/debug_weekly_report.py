@@ -5,11 +5,19 @@ from random import Random
 from django.utils.decorators import method_decorator
 from django.utils.text import slugify
 
-from sentry.models.group import Group
+from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues.grouptype import (
+    GroupType,
+    PerformanceNPlusOneGroupType,
+    PerformanceP95EndpointRegressionGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
+from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
 from sentry.tasks.summaries.weekly_reports import render_template_context
+from sentry.types.group import GroupSubStatus
 from sentry.utils import loremipsum
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.web.decorators import login_required
@@ -21,6 +29,38 @@ from .mail import MailPreviewView
 def get_random(request):
     seed = request.GET.get("seed", str(time.time()))
     return Random(seed)
+
+
+def make_debug_group(
+    *,
+    group_id: int,
+    project: Project,
+    title: str,
+    message: str,
+    group_type: type[GroupType],
+    event_type: str,
+    status: int = GroupStatus.UNRESOLVED,
+    substatus: int = GroupSubStatus.ONGOING,
+) -> Group:
+    group = Group(
+        id=group_id,
+        project=project,
+        project_id=project.id,
+        message=message,
+        status=status,
+        substatus=substatus,
+        type=group_type.type_id,
+        data={"type": event_type, "metadata": {"title": title, "value": message}},
+    )
+    return group
+
+
+def make_debug_issue_message(random: Random) -> str:
+    return f"{' '.join(random.sample(loremipsum.words, 18))}"
+
+
+def make_debug_issue_title(random: Random, prefix: str) -> str:
+    return f"{prefix}"
 
 
 @internal_cell_silo_view
@@ -80,8 +120,31 @@ class DebugWeeklyReportView(MailPreviewView):
             project_context.prev_week_accepted_transaction_count = int(
                 project_context.accepted_transaction_count * random.uniform(0.5, 1.5)
             )
+            substatuses = [
+                (GroupStatus.UNRESOLVED, GroupSubStatus.NEW),
+                (GroupStatus.UNRESOLVED, GroupSubStatus.ESCALATING),
+                (GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED),
+                (GroupStatus.RESOLVED, GroupSubStatus.NEW),
+                (GroupStatus.UNRESOLVED, GroupSubStatus.ONGOING),
+            ]
             project_context.key_errors_by_group = [
-                (g, random.randint(0, 1000)) for g in Group.objects.all()[:3]
+                (
+                    make_debug_group(
+                        group_id=10000 + (project.id * 100) + group_index,
+                        project=project,
+                        title=make_debug_issue_title(
+                            random,
+                            random.choice(["TypeError", "ValueError", "RuntimeError"]),
+                        ),
+                        message=make_debug_issue_message(random),
+                        group_type=ErrorGroupType,
+                        event_type="error",
+                        status=status,
+                        substatus=substatus,
+                    ),
+                    random.randint(100, 1000),
+                )
+                for group_index, (status, substatus) in enumerate(substatuses)
             ]
 
             project_context.new_substatus_count = random.randint(5, 200)
@@ -106,9 +169,27 @@ class DebugWeeklyReportView(MailPreviewView):
                 )
                 for _ in range(0, 3)
             ]
+            performance_issue_types = [
+                PerformanceSlowDBQueryGroupType,
+                PerformanceNPlusOneGroupType,
+                PerformanceP95EndpointRegressionGroupType,
+            ]
             project_context.key_performance_issues = [
-                (g, None, random.randint(0, 1000))
-                for g in Group.objects.filter(type__gte=1000, type__lt=2000).all()[:3]
+                (
+                    make_debug_group(
+                        group_id=20000 + (project.id * 100) + group_index,
+                        project=project,
+                        title=make_debug_issue_title(random, performance_issue_type.description),
+                        message=make_debug_issue_message(random),
+                        group_type=performance_issue_type,
+                        event_type="transaction",
+                        status=substatuses[group_index][0],
+                        substatus=substatuses[group_index][1],
+                    ),
+                    None,
+                    random.randint(100, 1000),
+                )
+                for group_index, performance_issue_type in enumerate(performance_issue_types)
             ]
 
             ctx.projects_context_map[project.id] = project_context

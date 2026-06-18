@@ -209,9 +209,7 @@ export function formatFilterValue({
         return content;
       }
 
-      return unescapeAsteriskSearchValue(
-        token.quoted ? unescapeTagValue(content) : content
-      );
+      return token.quoted ? unescapeTagValue(content) : content;
     }
     case Token.VALUE_RELATIVE_DATE:
       return t('%s', `${token.value}${token.unit} ago`);

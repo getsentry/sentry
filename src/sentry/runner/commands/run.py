@@ -544,9 +544,9 @@ def basic_consumer(
 
     Example:
 
-        sentry run consumer ingest-occurrences --consumer-group ingest-occurrences
+        sentry run consumer ingest-profiles --consumer-group ingest-profiles
 
-    runs the ingest-occurrences consumer with the consumer group ingest-occurrences.
+    runs the ingest-profiles consumer with the consumer group ingest-profiles.
 
     Consumers are defined in 'sentry.consumers'. Each consumer can take
     additional CLI options. Those can be passed after '--':

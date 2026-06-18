@@ -74,6 +74,7 @@ class AgentChatRequest(TypedDict):
     max_iterations: NotRequired[int]
     proxy_headers: NotRequired[dict[str, str] | None]
     ui_tools: NotRequired[str | None]
+    monitoring_providers: NotRequired[list[dict[str, Any]]]
 
 
 class AgentRunsRequest(TypedDict):

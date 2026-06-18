@@ -15,13 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES = [
-    ActivityType.SEER_RCA_STARTED,
-    ActivityType.SEER_RCA_COMPLETED,
-    ActivityType.SEER_SOLUTION_STARTED,
-    ActivityType.SEER_SOLUTION_COMPLETED,
-    ActivityType.SEER_CODING_STARTED,
-    ActivityType.SEER_CODING_COMPLETED,
-    ActivityType.SEER_PR_CREATED,
+    ActivityType(value) for value in ACTIVITY_TYPE_TO_SOURCE
 ]
 
 

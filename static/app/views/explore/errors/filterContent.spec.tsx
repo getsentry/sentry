@@ -4,14 +4,6 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 
 import {ErrorsFilterSection} from './filterContent';
 
-const mockUseExploreSchemaHintsRemoval = jest.fn();
-
-jest.mock('sentry/views/explore/useExploreSchemaHintsRemoval', () => ({
-  get useExploreSchemaHintsRemoval() {
-    return mockUseExploreSchemaHintsRemoval;
-  },
-}));
-
 describe('ErrorsFilterSection', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -35,17 +27,7 @@ describe('ErrorsFilterSection', () => {
     });
   });
 
-  it('renders schema hints when useExploreSchemaHintsRemoval returns false', async () => {
-    mockUseExploreSchemaHintsRemoval.mockReturnValue(false);
-
-    render(<ErrorsFilterSection />);
-
-    expect(await screen.findByText('See full list')).toBeInTheDocument();
-  });
-
-  it('does not render schema hints when useExploreSchemaHintsRemoval returns true', async () => {
-    mockUseExploreSchemaHintsRemoval.mockReturnValue(true);
-
+  it('does not render schema hints', async () => {
     render(<ErrorsFilterSection />);
 
     await screen.findByRole('combobox');
