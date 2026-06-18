@@ -2,6 +2,7 @@ import logging
 from collections.abc import Callable, Mapping
 
 from arroyo.types import Message
+from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 
@@ -73,8 +74,13 @@ class MessageProcessor:
         ).validate
 
     def process_messages(self, outer_message: Message[MessageBatch]) -> IndexerOutputMessageBatch:
+        sample_rate = (
+            settings.SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE
+            * settings.SENTRY_BACKEND_APM_SAMPLING
+        )
         with start_span(
             name="sentry.sentry_metrics.consumers.indexer.processing.process_messages",
+            custom_sampling_context={"sample_rate": sample_rate},
             transaction=True,
         ):
             return self._process_messages_impl(outer_message)
