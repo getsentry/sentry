@@ -32,6 +32,22 @@ from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 
+def _make_scm_mock(*, get_repository=None, get_branch=None):
+    """Build an SCM mock that satisfies the runtime_checkable Get*Protocol checks.
+
+    MagicMock attributes are invisible to ``inspect.getattr_static``, which Python 3.12's
+    ``runtime_checkable`` ``isinstance()`` uses, so the methods must be real class attributes.
+    """
+    return type(
+        "FakeSCM",
+        (),
+        {
+            "get_repository": MagicMock(return_value=get_repository),
+            "get_branch": MagicMock(return_value=get_branch),
+        },
+    )()
+
+
 class TestGenerateAutofixHandoffPrompt(TestCase):
     """Tests for generate_autofix_handoff_prompt function."""
 
@@ -738,9 +754,10 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
         self._make_repo_and_projectrepo()
 
-        mock_scm = MagicMock()
-        mock_scm.get_repository.return_value = {"data": {"default_branch": "main"}}
-        mock_scm.get_branch.return_value = {"data": {"sha": "abc123"}}
+        mock_scm = _make_scm_mock(
+            get_repository={"data": {"default_branch": "main"}},
+            get_branch={"data": {"sha": "abc123"}},
+        )
         mock_scm_new.return_value = mock_scm
 
         with self.feature("organizations:autofix-pr-iteration"):
@@ -837,25 +854,27 @@ class TestBuildBaseShasMetadata(TestCase):
     @patch("sentry.scm.factory.new")
     def test_builds_base_shas_using_default_branch(self, mock_scm_new):
         self._make_repo_and_projectrepo()
-        mock_scm = MagicMock()
-        mock_scm.get_repository.return_value = {"data": {"default_branch": "main"}}
-        mock_scm.get_branch.return_value = {"data": {"sha": "deadbeef"}}
+        mock_scm = _make_scm_mock(
+            get_repository={"data": {"default_branch": "main"}},
+            get_branch={"data": {"sha": "deadbeef"}},
+        )
         mock_scm_new.return_value = mock_scm
 
         result = _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN)
 
+        assert result is not None
         assert json.loads(result) == {"owner/repo": {"base_sha": "deadbeef", "base_branch": "main"}}
         mock_scm.get_branch.assert_called_once_with("main")
 
     @patch("sentry.scm.factory.new")
     def test_uses_branch_name_override(self, mock_scm_new):
         self._make_repo_and_projectrepo(branch_name="release/v2")
-        mock_scm = MagicMock()
-        mock_scm.get_branch.return_value = {"data": {"sha": "abc"}}
+        mock_scm = _make_scm_mock(get_branch={"data": {"sha": "abc"}})
         mock_scm_new.return_value = mock_scm
 
         result = _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN)
 
+        assert result is not None
         assert json.loads(result) == {
             "owner/repo": {"base_sha": "abc", "base_branch": "release/v2"}
         }
@@ -874,8 +893,7 @@ class TestBuildBaseShasMetadata(TestCase):
     @patch("sentry.scm.factory.new")
     def test_skips_repo_without_resolvable_branch(self, mock_scm_new):
         self._make_repo_and_projectrepo()
-        mock_scm = MagicMock()
-        mock_scm.get_repository.return_value = {"data": {"default_branch": None}}
+        mock_scm = _make_scm_mock(get_repository={"data": {"default_branch": None}})
         mock_scm_new.return_value = mock_scm
 
         assert _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN) is None
@@ -886,16 +904,19 @@ class TestBuildBaseShasMetadata(TestCase):
         self._make_repo_and_projectrepo(name="repo-ok", external_id="1")
         self._make_repo_and_projectrepo(name="repo-bad", external_id="2")
 
-        ok_scm = MagicMock()
-        ok_scm.get_repository.return_value = {"data": {"default_branch": "main"}}
-        ok_scm.get_branch.return_value = {"data": {"sha": "sha-ok"}}
-        bad_scm = MagicMock()
-        bad_scm.get_repository.return_value = {"data": {"default_branch": "main"}}
-        bad_scm.get_branch.return_value = {"data": {"sha": ""}}
+        ok_scm = _make_scm_mock(
+            get_repository={"data": {"default_branch": "main"}},
+            get_branch={"data": {"sha": "sha-ok"}},
+        )
+        bad_scm = _make_scm_mock(
+            get_repository={"data": {"default_branch": "main"}},
+            get_branch={"data": {"sha": ""}},
+        )
         mock_scm_new.side_effect = [ok_scm, bad_scm]
 
         result = _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN)
 
+        assert result is not None
         assert json.loads(result) == {
             "owner/repo-ok": {"base_sha": "sha-ok", "base_branch": "main"}
         }

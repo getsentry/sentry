@@ -51,6 +51,8 @@ from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
+from scm.types import GetBranchProtocol, GetRepositoryProtocol
+
 from sentry.utils import json, metrics
 
 if TYPE_CHECKING:
@@ -346,8 +348,15 @@ def _build_base_shas_metadata(group: Group, referrer: AutofixReferrer) -> str | 
         full_name = f"{repo.owner}/{repo.name}"
         try:
             scm = scm_factory.new(group.organization.id, repo.repository_id, referrer.value)
-            base_branch = repo.branch_name or scm.get_repository()["data"]["default_branch"]
+            if repo.branch_name:
+                base_branch: str | None = repo.branch_name
+            elif isinstance(scm, GetRepositoryProtocol):
+                base_branch = scm.get_repository()["data"]["default_branch"]
+            else:
+                continue
             if not base_branch:
+                continue
+            if not isinstance(scm, GetBranchProtocol):
                 continue
             base_sha = scm.get_branch(base_branch)["data"]["sha"]
         except Exception:
