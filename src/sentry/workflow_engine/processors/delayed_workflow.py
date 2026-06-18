@@ -26,6 +26,7 @@ from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import RateLimitExceeded, SnubaError
+from sentry.utils.tracing import start_span
 from sentry.workflow_engine.buffer.batch_client import (
     DelayedWorkflowClient,
     ProjectDelayedWorkflowClient,
@@ -897,7 +898,7 @@ def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[
 
 def _process_workflows_for_project(project: Project, event_data: EventRedisData) -> None:
     """Process workflows for a project - evaluate conditions and fire actions."""
-    with sentry_sdk.start_span(op="delayed_workflow.prepare_data"):
+    with start_span(op="delayed_workflow.prepare_data", name="delayed_workflow.prepare_data"):
         if features.has(
             "organizations:workflow-engine-process-workflows-logs", project.organization
         ):
