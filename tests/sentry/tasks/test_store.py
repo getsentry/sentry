@@ -15,7 +15,6 @@ from sentry.tasks.store import (
     save_event_transaction,
     should_process,
 )
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -455,7 +454,6 @@ def test_store_consumer_type(
 
 
 @django_db_all
-@with_feature("organizations:event-preprocessors-without-plugins")
 def test_should_process_new_path_js(default_project):
     data = {
         "project": default_project.id,
@@ -466,7 +464,6 @@ def test_should_process_new_path_js(default_project):
 
 
 @django_db_all
-@with_feature("organizations:event-preprocessors-without-plugins")
 def test_should_process_new_path_java_proguard(default_project):
     data = {
         "project": default_project.id,
@@ -478,7 +475,6 @@ def test_should_process_new_path_java_proguard(default_project):
 
 
 @django_db_all
-@with_feature("organizations:event-preprocessors-without-plugins")
 def test_should_process_new_path_no_preprocessor(default_project):
     data = {
         "project": default_project.id,
@@ -489,7 +485,6 @@ def test_should_process_new_path_no_preprocessor(default_project):
 
 
 @django_db_all
-@with_feature("organizations:event-preprocessors-without-plugins")
 def test_should_process_new_path_still_runs_non_language_plugins(default_project, register_plugin):
     register_plugin(globals(), BasicPreprocessorPlugin)
     data = {
@@ -501,7 +496,6 @@ def test_should_process_new_path_still_runs_non_language_plugins(default_project
 
 
 @django_db_all
-@with_feature("organizations:event-preprocessors-without-plugins")
 def test_process_event_new_path_js(default_project, mock_event_processing_store, mock_save_event):
     data = {
         "project": default_project.id,
@@ -519,7 +513,6 @@ def test_process_event_new_path_js(default_project, mock_event_processing_store,
 
 
 @django_db_all
-@with_feature("organizations:event-preprocessors-without-plugins")
 def test_preprocess_routes_to_save_new_path_python(
     default_project, mock_process_event, mock_save_event, mock_symbolicate_event
 ):
