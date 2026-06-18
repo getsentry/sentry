@@ -1226,6 +1226,91 @@ class WeeklyReportsTest(
         assert performance_issue["status_url"] == "https://github.com/example/example/pull/1"
         assert performance_issue["group_substatus"] is None
 
+    def test_key_performance_issue_resolved_in_commit_status_links_commit(self) -> None:
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+        group = self.create_group(
+            project=self.project,
+            message="performance message",
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            type=PerformanceNPlusOneGroupType.type_id,
+            data={
+                "type": "transaction",
+                "metadata": {"title": "N+1 Query", "value": "performance message"},
+            },
+        )
+        repo = self.create_repo(project=self.project, url="https://github.com/example/example")
+        commit = self.create_commit(repo=repo, key="abc123def456")
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+            relationship=GroupLink.Relationship.resolves,
+        )
+        group_history = self.create_group_history(
+            group=group,
+            status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+        )
+        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
+        project_context = ProjectContext(self.project)
+        project_context.key_performance_issues = [(group, group_history, 10)]
+        ctx.projects_context_map = {self.project.id: project_context}
+        ctx.project_ownership[user.id] = {self.project.id}
+
+        rendered_context = render_template_context(ctx, user.id)
+
+        assert rendered_context is not None
+        performance_issue = rendered_context["key_performance_issues"][0]
+        assert performance_issue["status"] == "Resolved in Commit"
+        assert (
+            performance_issue["status_url"]
+            == "https://github.com/example/example/commit/abc123def456"
+        )
+        assert performance_issue["group_substatus"] is None
+
+    def test_key_performance_issue_resolved_in_release_status_links_release(self) -> None:
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+        group = self.create_group(
+            project=self.project,
+            message="performance message",
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            type=PerformanceNPlusOneGroupType.type_id,
+            data={
+                "type": "transaction",
+                "metadata": {"title": "N+1 Query", "value": "performance message"},
+            },
+        )
+        release = self.create_release(
+            project=self.project,
+            version="1.0.0",
+        )
+        group_history = self.create_group_history(
+            group=group,
+            status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
+            release=release,
+        )
+        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
+        project_context = ProjectContext(self.project)
+        project_context.key_performance_issues = [(group, group_history, 10)]
+        ctx.projects_context_map = {self.project.id: project_context}
+        ctx.project_ownership[user.id] = {self.project.id}
+
+        rendered_context = render_template_context(ctx, user.id)
+
+        assert rendered_context is not None
+        performance_issue = rendered_context["key_performance_issues"][0]
+        assert performance_issue["status"] == "Resolved in Release"
+        assert performance_issue["status_url"] is not None
+        assert (
+            f"/organizations/{self.organization.slug}/releases/1.0.0/"
+            in performance_issue["status_url"]
+        )
+        assert performance_issue["group_substatus"] is None
+
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_email_override_simple(

@@ -601,6 +601,7 @@ def fetch_key_performance_issue_groups(ctx: OrganizationReportContext):
         GroupHistory.objects.filter(
             group_id__in=group_id_to_group.keys(), organization_id=ctx.organization.id
         )
+        .select_related("release")
         .order_by("group_id", "-date_added")
         .distinct("group_id")
         .all()

@@ -453,9 +453,9 @@
       <span style="background-color: {{a.group_substatus_color}}; color: {{a.group_substatus_text_color}}; border-radius: 8px; display: inline-block; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center; width: 96px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{a.group_substatus}}</span>
       {% else %}
         {% if a.status_url %}
-        <a href="{{a.status_url}}" style="background-color: {{a.status_color}}; border-radius: 8px; color: #2f2936; display: inline-block; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; line-height: 1.2; text-align: center; text-decoration: none; width: 96px; white-space: normal; overflow-wrap: break-word;">{{a.status}}</a>
+        <a href="{{a.status_url}}" style="background-color: {{a.status_color}}; color: {{a.status_text_color}}; border-radius: 8px; display: inline-block; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; line-height: 1.2; text-align: center; text-decoration: none; width: 96px; white-space: normal; overflow-wrap: break-word;">{{a.status}}</a>
         {% else %}
-        <span style="background-color: {{a.status_color}}; border-radius: 8px; display: inline-block; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; line-height: 1.2; text-align: center; width: 96px; white-space: normal; overflow-wrap: break-word;">{{a.status}}</span>
+        <span style="background-color: {{a.status_color}}; color: {{a.status_text_color}}; border-radius: 8px; display: inline-block; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; line-height: 1.2; text-align: center; width: 96px; white-space: normal; overflow-wrap: break-word;">{{a.status}}</span>
         {% endif %}
       {% endif %}
       </div>
@@ -480,9 +480,9 @@
       <span style="background-color: {{a.group_substatus_color}}; color: {{a.group_substatus_text_color}}; border-radius: 8px; display: inline-block; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center; width: 96px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{a.group_substatus}}</span>
       {% else %}
         {% if a.status_url %}
-        <a href="{{a.status_url}}" style="background-color: {{a.status_color}}; border-radius: 8px; color: #2f2936; display: inline-block; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; line-height: 1.2; text-align: center; text-decoration: none; width: 96px; white-space: normal; overflow-wrap: break-word;">{{a.status}}</a>
+        <a href="{{a.status_url}}" style="background-color: {{a.status_color}}; color: {{a.status_text_color}}; border-radius: 8px; display: inline-block; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; line-height: 1.2; text-align: center; text-decoration: none; width: 96px; white-space: normal; overflow-wrap: break-word;">{{a.status}}</a>
         {% else %}
-        <span style="background-color: {{a.status_color}}; border-radius: 8px; display: inline-block; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; line-height: 1.2; text-align: center; width: 96px; white-space: normal; overflow-wrap: break-word;">{{a.status}}</span>
+        <span style="background-color: {{a.status_color}}; color: {{a.status_text_color}}; border-radius: 8px; display: inline-block; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; line-height: 1.2; text-align: center; width: 96px; white-space: normal; overflow-wrap: break-word;">{{a.status}}</span>
         {% endif %}
       {% endif %}
     </div>

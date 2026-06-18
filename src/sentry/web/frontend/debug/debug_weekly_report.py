@@ -17,6 +17,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
 from sentry.tasks.summaries.weekly_reports import get_group_display, render_template_context
 from sentry.types.group import GroupSubStatus
@@ -165,14 +166,18 @@ class DebugWeeklyReportView(MailPreviewView):
                 PerformanceSlowDBQueryGroupType,
                 PerformanceNPlusOneGroupType,
                 PerformanceP95EndpointRegressionGroupType,
+                PerformanceSlowDBQueryGroupType,
             ]
+            debug_release = Release(organization_id=organization.id, version="1.0.0")
             performance_issue_statuses = [
                 None,
                 GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
                 GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+                GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
             ]
             project_context.key_performance_issues = []
             for group_index, performance_issue_type in enumerate(performance_issue_types):
+                sub_index = group_index % len(substatuses)
                 group = make_debug_group(
                     group_id=20000 + (project.id * 100) + group_index,
                     project=project,
@@ -180,20 +185,27 @@ class DebugWeeklyReportView(MailPreviewView):
                     message=make_debug_issue_message(random),
                     group_type=performance_issue_type,
                     event_type="transaction",
-                    status=substatuses[group_index][0],
-                    substatus=substatuses[group_index][1],
+                    status=substatuses[sub_index][0],
+                    substatus=substatuses[sub_index][1],
                 )
                 status = performance_issue_statuses[group_index]
-                group_history = (
-                    GroupHistory(
+                if status == GroupHistoryStatus.SET_RESOLVED_IN_RELEASE:
+                    group_history = GroupHistory(
+                        group=group,
+                        project=project,
+                        organization=organization,
+                        status=status,
+                        release=debug_release,
+                    )
+                elif status is not None:
+                    group_history = GroupHistory(
                         group=group,
                         project=project,
                         organization=organization,
                         status=status,
                     )
-                    if status is not None
-                    else None
-                )
+                else:
+                    group_history = None
                 project_context.key_performance_issues.append(
                     (group, group_history, random.randint(100, 1000))
                 )

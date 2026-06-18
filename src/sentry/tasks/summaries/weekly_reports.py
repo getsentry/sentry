@@ -21,12 +21,14 @@ from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import analytics, features
 from sentry.analytics.events.weekly_report import WeeklyReportSent
+from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -48,6 +50,7 @@ from sentry.utils import json, metrics, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.sanitize import sanitize_outbound_name
+from sentry.utils.http import absolute_uri
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.tracing import start_span
 
@@ -560,11 +563,51 @@ def get_group_pull_request_url(group: Group) -> str | None:
     return pull_request.get_external_url()
 
 
-def get_group_history_status(group: Group, status: int) -> tuple[str, str | None]:
+def get_group_commit_url(group: Group) -> str | None:
+    group_link = (
+        GroupLink.objects.filter(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+        )
+        .order_by("-datetime")
+        .first()
+    )
+    if group_link is None:
+        return None
+
+    commit = Commit.objects.filter(id=group_link.linked_id).first()
+    if commit is None:
+        return None
+
+    repo = Repository.objects.filter(id=commit.repository_id).first()
+    if repo is None or not repo.url:
+        return None
+
+    return f"{repo.url}/commit/{commit.key}"
+
+
+def get_group_release_url(group: Group, group_history: GroupHistory) -> str | None:
+    release = group_history.release
+    if release is None:
+        return None
+    return absolute_uri(
+        f"/organizations/{group.project.organization.slug}/releases/{release.version}/?project={group.project_id}"
+    )
+
+
+def get_group_history_status(group: Group, group_history: GroupHistory) -> tuple[str, str | None]:
+    status = group_history.status
     if status == GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST:
         return "Resolved in PR", get_group_pull_request_url(group)
+    if status == GroupHistoryStatus.SET_RESOLVED_IN_COMMIT:
+        return "Resolved in Commit", get_group_commit_url(group)
+    if status == GroupHistoryStatus.SET_RESOLVED_IN_RELEASE:
+        return "Resolved in Release", get_group_release_url(group, group_history)
 
-    return str(dict(GroupHistory._meta.get_field("status").choices).get(status, status)), None
+    choices = GroupHistory._meta.get_field("status").choices
+    label = dict(choices).get(status, status) if choices else status
+    return str(label), None
 
 
 def get_group_display(group: Group) -> dict[str, str]:
@@ -781,28 +824,38 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                         substatus_text_color,
                     ) = get_group_status_badge(group)
                     status, status_url = (
-                        get_group_history_status(group, group_history.status)
+                        get_group_history_status(group, group_history)
                         if group_history
                         else ("Unresolved", None)
                     )
-                    yield {
-                        "count": count,
-                        "group": group,
-                        "title": display["title"],
-                        "message": display["message"],
-                        "status": status,
-                        "status_url": status_url,
-                        "status_color": (
-                            group_status_to_color[group_history.status]
-                            if group_history
-                            else group_status_to_color[GroupHistoryStatus.NEW]
-                        ),
-                        "group_substatus": None if group_history else substatus,
-                        "group_substatus_color": None if group_history else substatus_color,
-                        "group_substatus_text_color": (
-                            None if group_history else substatus_text_color
-                        ),
-                    }
+                    if group_history:
+                        resolved_badge = get_group_status_badge(Group(status=GroupStatus.RESOLVED))
+                        yield {
+                            "count": count,
+                            "group": group,
+                            "title": display["title"],
+                            "message": display["message"],
+                            "status": status,
+                            "status_url": status_url,
+                            "status_color": resolved_badge[1],
+                            "status_text_color": resolved_badge[2],
+                            "group_substatus": None,
+                            "group_substatus_color": None,
+                            "group_substatus_text_color": None,
+                        }
+                    else:
+                        yield {
+                            "count": count,
+                            "group": group,
+                            "title": display["title"],
+                            "message": display["message"],
+                            "status": "Unresolved",
+                            "status_url": None,
+                            "status_color": group_status_to_color[GroupHistoryStatus.NEW],
+                            "group_substatus": substatus,
+                            "group_substatus_color": substatus_color,
+                            "group_substatus_text_color": substatus_text_color,
+                        }
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
 
