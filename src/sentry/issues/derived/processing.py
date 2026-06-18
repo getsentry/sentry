@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # we may want to change it in place and correlate that to existing derived data
 # for invalidation purposes.
 # TODO: Shouldn't it be versioned by a feature set hash? To be sorted out later.
-PIPELINE = Pipeline(AGGREGATORS, version=1)
+PIPELINE: Pipeline[GroupActionLogEntry] = Pipeline(AGGREGATORS, version=1)
 
 DEFAULT_BATCH_SIZE = 1000
 INLINE_BATCH_SIZE = 100
@@ -69,7 +69,7 @@ def _cursor_lte(cursor_date: datetime, cursor_id: int) -> Q:
 
 
 def _process_batch(
-    p: Pipeline,
+    p: Pipeline[GroupActionLogEntry],
     derived: GroupDerivedData,
     group_id: int,
     batch_size: int,
@@ -144,7 +144,7 @@ def _process_batch(
 def process_group_log_batch(
     group_id: int,
     batch_size: int = INLINE_BATCH_SIZE,
-    target_pipeline: Pipeline | None = None,
+    target_pipeline: Pipeline[GroupActionLogEntry] | None = None,
 ) -> ProcessResult:
     """Process a single batch of pending entries. Schedules a task if not caught up.
 
@@ -161,7 +161,7 @@ def process_group_log_batch(
 def process_group_log(
     group_id: int,
     batch_size: int = DEFAULT_BATCH_SIZE,
-    target_pipeline: Pipeline | None = None,
+    target_pipeline: Pipeline[GroupActionLogEntry] | None = None,
 ) -> GroupDerivedData:
     """Fully drain all pending entries for a group, processing in batches.
 

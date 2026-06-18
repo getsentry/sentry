@@ -130,7 +130,7 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
     return None
 
 
-AGGREGATORS: list[Aggregator] = [
+AGGREGATORS: list[Aggregator[GroupActionLogEntry]] = [
     track_views,
     track_status,
     track_progress,

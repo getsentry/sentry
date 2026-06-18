@@ -6,7 +6,7 @@ No Django dependencies — pure Python, fully testable in isolation.
 import copy
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
-from enum import Enum, StrEnum
+from enum import IntEnum, StrEnum
 from typing import Any, Protocol, runtime_checkable
 
 _MISSING = object()
@@ -200,7 +200,7 @@ class HasType(Protocol):
 AggregatorResult = StateUpdate | None
 """The return type of an aggregator: a StateUpdate if features changed, None otherwise."""
 
-AggregatorFn = Callable[[StateView, Any], AggregatorResult]
+type AggregatorFn[E: HasType] = Callable[[StateView, E], AggregatorResult]
 
 
 def emit(*entries: FeatureEntry) -> AggregatorResult:
@@ -212,28 +212,28 @@ def emit(*entries: FeatureEntry) -> AggregatorResult:
 
 
 @dataclass(frozen=True)
-class Aggregator:
+class Aggregator[E: HasType]:
     """A named function that reads from dep features and writes to output features."""
 
     name: str
     deps: tuple[Feature[Any], ...]
     outputs: tuple[Feature[Any], ...]
-    fn: AggregatorFn
+    fn: AggregatorFn[E]
     scope: tuple[int, ...] | None = None
 
 
-def aggregator(
+def aggregator[E: HasType, S: IntEnum](
     outputs: tuple[Feature[Any], ...],
     *,
     deps: tuple[Feature[Any], ...] = (),
-    scope: tuple[Enum, ...] | None = None,
-) -> Callable[[AggregatorFn], Aggregator]:
+    scope: tuple[S, ...] | None = None,
+) -> Callable[[AggregatorFn[E]], Aggregator[E]]:
     """Decorator to create an Aggregator. `scope` accepts enum members directly."""
     if not outputs:
         raise ValueError("aggregator must declare at least one output")
     raw_scope = tuple(s.value for s in scope) if scope is not None else None
 
-    def decorator(fn: AggregatorFn) -> Aggregator:
+    def decorator(fn: AggregatorFn[E]) -> Aggregator[E]:
         return Aggregator(name=fn.__name__, deps=deps, outputs=outputs, fn=fn, scope=raw_scope)
 
     return decorator
@@ -244,12 +244,12 @@ def aggregator(
 # ---------------------------------------------------------------------------
 
 
-class Pipeline:
+class Pipeline[E: HasType]:
     """Applies a set of Aggregators to a State for each event in a sequence, producing a new State."""
 
     def __init__(
         self,
-        aggregators: Iterable[Aggregator],
+        aggregators: Iterable[Aggregator[E]],
         *,
         version: int,
         check_mutations: bool = False,
@@ -268,7 +268,7 @@ class Pipeline:
         return self._version
 
     @property
-    def aggregators(self) -> tuple[Aggregator, ...]:
+    def aggregators(self) -> tuple[Aggregator[E], ...]:
         return self._aggregators
 
     @property
@@ -278,7 +278,7 @@ class Pipeline:
     def initial_state(self) -> State:
         return State({f: f.initial_value() for f in self._features})
 
-    def step(self, state: State, entry: HasType) -> State:
+    def step(self, state: State, entry: E) -> State:
         entry_type = entry.type
         for agg, view_fields, output_fields in self._steps:
             if agg.scope is not None and entry_type not in agg.scope:
@@ -302,7 +302,7 @@ class Pipeline:
                 state.merge(result)
         return state
 
-    def run(self, entries: Iterable[HasType], state: State | None = None) -> State:
+    def run(self, entries: Iterable[E], state: State | None = None) -> State:
         if state is None:
             state = self.initial_state()
         for entry in entries:
@@ -310,12 +310,12 @@ class Pipeline:
         return state
 
 
-def resolve(
+def resolve[E: HasType](
     targets: Iterable[Feature[Any]],
-    registry: Iterable[Aggregator],
-) -> list[Aggregator]:
+    registry: Iterable[Aggregator[E]],
+) -> list[Aggregator[E]]:
     """Given desired output features, return the minimal set of aggregators needed."""
-    by_output: dict[Feature[Any], Aggregator] = {}
+    by_output: dict[Feature[Any], Aggregator[E]] = {}
     all_aggs = list(registry)
     for agg in all_aggs:
         for feature in agg.outputs:
@@ -335,10 +335,10 @@ def resolve(
     return [agg for agg in all_aggs if agg.name in needed]
 
 
-def _validate_and_sort(
-    aggregators: tuple[Aggregator, ...],
-) -> tuple[tuple[Aggregator, ...], tuple[Feature[Any], ...]]:
-    output_owners: dict[str, Aggregator] = {}
+def _validate_and_sort[E: HasType](
+    aggregators: tuple[Aggregator[E], ...],
+) -> tuple[tuple[Aggregator[E], ...], tuple[Feature[Any], ...]]:
+    output_owners: dict[str, Aggregator[E]] = {}
     for agg in aggregators:
         for feature in agg.outputs:
             if feature.name in output_owners:
@@ -356,7 +356,7 @@ def _validate_and_sort(
                     f"which is not output by any aggregator in the pipeline"
                 )
 
-    agg_by_name: dict[str, Aggregator] = {a.name: a for a in aggregators}
+    agg_by_name: dict[str, Aggregator[E]] = {a.name: a for a in aggregators}
     predecessors: dict[str, set[str]] = {a.name: set() for a in aggregators}
     successors: dict[str, set[str]] = {a.name: set() for a in aggregators}
 
@@ -368,7 +368,7 @@ def _validate_and_sort(
                 successors[producer.name].add(agg.name)
 
     queue: list[str] = [name for name, preds in predecessors.items() if not preds]
-    order: list[Aggregator] = []
+    order: list[Aggregator[E]] = []
 
     while queue:
         queue.sort()

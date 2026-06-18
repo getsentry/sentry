@@ -35,10 +35,10 @@ from sentry.issues.progress_state import IssueProgressState
 
 
 def _pipeline(
-    aggregators: list[Aggregator] | None = None,
+    aggregators: list[Aggregator[Any]] | None = None,
     *,
     targets: tuple[Feature[Any], ...] | None = None,
-) -> Pipeline:
+) -> Pipeline[Any]:
     aggs = aggregators if aggregators is not None else AGGREGATORS
     if targets is not None:
         aggs = resolve(targets, aggs)

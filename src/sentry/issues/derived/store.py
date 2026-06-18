@@ -31,7 +31,7 @@ class GroupDerivedDataStore:
     """
 
     @staticmethod
-    def load(pipeline: Pipeline, derived: GroupDerivedData) -> State:
+    def load(pipeline: Pipeline[Any], derived: GroupDerivedData) -> State:
         data: dict[str, Any] = derived.data
         result: dict[Feature[Any], Any] = {}
         for f in pipeline.features:
@@ -45,7 +45,7 @@ class GroupDerivedDataStore:
         return State(result)
 
     @staticmethod
-    def build_update(pipeline: Pipeline, state: State) -> dict[str, Any]:
+    def build_update(pipeline: Pipeline[Any], state: State) -> dict[str, Any]:
         fields_by_name = {f.name: f for f in pipeline.features}
         json_data: dict[str, Any] = {}
         update: dict[str, Any] = {}
