@@ -562,13 +562,7 @@ function useFilterSuggestions({
   };
 }
 
-function ItemCheckbox({
-  disabled,
-  value,
-}: {
-  disabled: boolean;
-  value: string;
-}) {
+function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
   const {selectedValueMap, token} = useValueComboboxContext();
   const {dispatch} = useSearchQueryBuilderState();
   const selected = selectedValueMap.get(value) ?? false;
