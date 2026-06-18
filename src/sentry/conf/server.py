@@ -3343,7 +3343,6 @@ if SILO_DEVSERVER:
         }
     ]
 
-    SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
     SENTRY_FALLBACK_CELL = SENTRY_CELLS[0]["name"]
 
     # Cross region RPC authentication
