@@ -878,9 +878,9 @@ class AvatarPhotoView(View):
         if size_s:
             try:
                 size = int(size_s)
+                photo_file = avatar.get_cached_photo(size)
             except ValueError:
                 return HttpResponseBadRequest()
-            photo_file = avatar.get_cached_photo(size)
         else:
             photo_file = photo.getfile()
 
