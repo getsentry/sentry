@@ -284,6 +284,9 @@ class RedisBuffer(Buffer):
         elif isinstance(value, date):
             type_ = "d"
             value = value.strftime("%s.%f")
+        elif isinstance(value, bool):
+            type_ = "b"
+            value = int(value)
         elif isinstance(value, int):
             type_ = "i"
         elif isinstance(value, float):
@@ -317,6 +320,8 @@ class RedisBuffer(Buffer):
             return datetime.fromtimestamp(float(value)).replace(tzinfo=timezone.utc)
         elif type_ == "d":
             return date.fromtimestamp(float(value))
+        elif type_ == "b":
+            return bool(int(value))  # Stored as "0" or "1" during serialization
         elif type_ == "i":
             return int(value)
         elif type_ == "f":

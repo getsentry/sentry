@@ -41,7 +41,12 @@ from sentry.seer.agent.tools import (
     rpc_get_profile_flamegraph,
 )
 from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
-from sentry.seer.sentry_data_models import EAPTrace
+from sentry.seer.sentry_data_models import (
+    EAPTrace,
+    ExecuteTimeseriesQueryErrorResponse,
+    ExecuteTimeseriesQuerySuccessResponse,
+    IssueDetailsResponse,
+)
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import (
     APITestCase,
@@ -565,7 +570,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             group_by=["span.op"],
         )
 
-        assert result is not None
+        assert isinstance(result, ExecuteTimeseriesQuerySuccessResponse)
         # Grouped results have group values as top-level keys
         # Should have different span.op values like "db", "http.client", etc.
         assert len(result) > 0
@@ -1315,7 +1320,9 @@ class TestGetIssueAndEventDetailsV2(
     @patch("sentry.seer.agent.tools.execute_timeseries_query")
     def test_issue_event_timeseries_returns_none_on_query_error(self, mock_execute: Mock) -> None:
         """A _seer_error_detail payload from execute_timeseries_query is treated as no data."""
-        mock_execute.return_value = {"_seer_error_detail": "Invalid query: bad field"}
+        mock_execute.return_value = ExecuteTimeseriesQueryErrorResponse(
+            seer_error_detail="Invalid query: bad field"
+        )
         group = self.create_group(project=self.project)
 
         result = _get_issue_event_timeseries(group=group, organization=self.organization)
@@ -1336,14 +1343,14 @@ class TestGetIssueAndEventDetailsV2(
     def test_issue_event_timeseries_returns_data_on_success(self, mock_execute: Mock) -> None:
         """A normal timeseries payload flows through with the selected period and interval."""
         data: dict[str, Any] = {"count()": {"data": []}}
-        mock_execute.return_value = data
+        mock_execute.return_value = ExecuteTimeseriesQuerySuccessResponse(__root__=data)
         group = self.create_group(project=self.project)
 
         result = _get_issue_event_timeseries(group=group, organization=self.organization)
 
         assert result is not None
         returned_data, period, interval = result
-        assert returned_data is data
+        assert returned_data == data
         assert period
         assert interval
 
@@ -1708,7 +1715,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
         return self.store_event(data=data, project_id=self.project.id)
 
-    def _assert_issue_response_shape(self, result: dict):
+    def _assert_issue_response_shape(self, result: IssueDetailsResponse):
         assert isinstance(result["issue"], dict)
         _IssueMetadata.parse_obj(result["issue"])
         assert isinstance(result["event_timeseries"], dict | None)
@@ -1737,7 +1744,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
             issue_id=str(group.id),
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
         assert result["issue"]["issueTypeDescription"] == group.issue_type.description
@@ -1760,7 +1767,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
             issue_id=group.qualified_short_id,
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
         assert result["project_id"] == group.project_id
@@ -1800,7 +1807,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
             issue_id=str(group.id),
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         assert result["event_timeseries"] == {"count()": {"data": [[1000, [{"count": 3}]]]}}
         assert result["timeseries_stats_period"] == "24h"
         assert result["timeseries_interval"] == "1h"
@@ -3128,7 +3135,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # With dashes
             result = get_replay_metadata(
@@ -3140,7 +3147,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Invalid
             result = get_replay_metadata(
@@ -3160,7 +3167,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay2_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # No project slug
             result = get_replay_metadata(
@@ -3171,7 +3178,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Different project slug
             result = get_replay_metadata(
@@ -3214,7 +3221,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Replay 2
             result = get_replay_metadata(
@@ -3225,7 +3232,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay2_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Upper (supported but not expected)
             result = get_replay_metadata(
@@ -3236,7 +3243,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Short ID < 8 characters or not hex - returns None
             assert (

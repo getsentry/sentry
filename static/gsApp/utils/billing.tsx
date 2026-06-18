@@ -15,7 +15,6 @@ import {
   GIGABYTE,
   MILLION,
   RESERVED_BUDGET_QUOTA,
-  TRIAL_PLANS,
   UNLIMITED,
   UNLIMITED_RESERVED,
 } from 'getsentry/constants';
@@ -314,8 +313,6 @@ function displayNumber(n: number, fractionDigits = 0) {
   return n.toFixed(fractionDigits).toLocaleString();
 }
 
-export const isTrialPlan = (plan: string) => TRIAL_PLANS.includes(plan);
-
 export const hasPerformance = (plan?: Plan) => {
   return (
     // Older plans will have Transactions
@@ -418,7 +415,7 @@ export const isNewPayingCustomer = (
   organization: Organization
 ) =>
   subscription.isFree ||
-  isTrialPlan(subscription.plan) ||
+  subscription.onTrialPlan ||
   hasPartnerMigrationFeature(organization);
 
 /**

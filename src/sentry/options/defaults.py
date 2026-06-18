@@ -246,7 +246,6 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
-
 # User Settings
 register(
     "user-settings.signed-url-confirmation-emails-salt",
@@ -1134,6 +1133,17 @@ register(
 register(
     "seer.night_shift.issues_per_org",
     default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Per-org overrides for night shift run options. Keyed by stringified
+# organization id; each value is a partial set of run-option overrides (e.g.
+# {"max_candidates": 20}) that layer on top of the global defaults but below
+# any explicit caller-provided options. See
+# sentry.tasks.seer.night_shift.tweaks.get_night_shift_org_tweaks.
+register(
+    "seer.night_shift.org_tweaks",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

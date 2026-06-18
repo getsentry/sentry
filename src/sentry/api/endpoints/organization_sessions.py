@@ -39,7 +39,8 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     @extend_schema(
-        operation_id="Retrieve Release Health Session Statistics",
+        operation_id="getOrganizationSessions",
+        summary="Retrieve Release Health Session Statistics",
         parameters=[
             GlobalParams.START,
             GlobalParams.END,

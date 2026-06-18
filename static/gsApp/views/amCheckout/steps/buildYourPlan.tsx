@@ -13,7 +13,6 @@ import {
   isBizPlanFamily,
   isDeveloperPlan,
   isNewPayingCustomer,
-  isTrialPlan,
 } from 'getsentry/utils/billing';
 import {PlanFeatures} from 'getsentry/views/amCheckout/components/planFeatures';
 import {PlanSelectCard} from 'getsentry/views/amCheckout/components/planSelectCard';
@@ -66,7 +65,7 @@ function PlanSubstep({
       plan.id === subscription.plan ||
       // If Developer is surfaced in checkout and the current plan is a trial plan, we should show the `Current` badge
       // on the Developer plan
-      (isTrialPlan(subscription.plan) && isDeveloperPlan(plan))
+      (subscription.onTrialPlan && isDeveloperPlan(plan))
     ) {
       const copy = t('Current');
       return <Tag variant="muted">{copy}</Tag>;
