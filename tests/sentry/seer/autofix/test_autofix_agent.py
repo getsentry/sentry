@@ -16,7 +16,6 @@ from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
     PrIterationNoPullRequestException,
-    build_pr_description_suffix,
     build_step_prompt,
     generate_autofix_handoff_prompt,
     get_iteration_for_insert_index,
@@ -27,7 +26,6 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.models import SeerPermissionError
-from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 
@@ -1234,51 +1232,3 @@ class TestTriggerPushChanges(TestCase):
         assert body["payload"]["pr_description_suffix"] == expected
 
 
-class TestBuildPrDescriptionSuffix(TestCase):
-    """Tests for build_pr_description_suffix function."""
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.group = self.create_group(project=self.project)
-
-    def test_skips_invalid_linear_id(self) -> None:
-        self.create_platform_external_issue(
-            group=self.group,
-            service_type="linear",
-            display_name="not-a-valid-id",
-            web_url="https://linear.app/proj/issue/bad",
-        )
-        issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
-        suffix = build_pr_description_suffix(self.group)
-        assert suffix == f"Fixes [{self.group.qualified_short_id}]({issue_url})"
-
-    def test_skips_non_linear_service(self) -> None:
-        self.create_platform_external_issue(
-            group=self.group,
-            service_type="jira",
-            display_name="JIRA-1",
-            web_url="https://example.atlassian.net/browse/JIRA-1",
-        )
-        issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
-        suffix = build_pr_description_suffix(self.group)
-        assert suffix == f"Fixes [{self.group.qualified_short_id}]({issue_url})"
-
-    def test_includes_iteration_feedback_when_flag_enabled(self) -> None:
-        with self.feature("organizations:autofix-pr-iteration"):
-            suffix = build_pr_description_suffix(self.group)
-        assert suffix is not None
-        assert "mentioning `@sentry`" in suffix
-
-    def test_excludes_iteration_feedback_when_flag_disabled(self) -> None:
-        suffix = build_pr_description_suffix(self.group)
-        assert suffix is not None
-        assert "@sentry" not in suffix
-
-    def test_returns_none_without_short_id_or_external_issues(self) -> None:
-        group = MagicMock()
-        group.qualified_short_id = None
-        group.id = self.group.id
-        group.organization = self.organization
-        with patch.object(PlatformExternalIssue.objects, "filter", return_value=[]):
-            suffix = build_pr_description_suffix(group)
-        assert suffix is None

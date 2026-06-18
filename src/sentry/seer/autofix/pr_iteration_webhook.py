@@ -59,8 +59,7 @@ def parse_iterate_command(comment_body: str | None) -> str | None:
     lowered = comment_body.lower()
 
     # Skip @sentry review comments as it is handled in other webhook handlers
-    code_review_found = lowered.find(SENTRY_REVIEW_COMMAND)
-    if code_review_found != -1:
+    if lowered.strip() == SENTRY_REVIEW_COMMAND:
         return None
 
     index = lowered.find(ITERATE_COMMAND)
@@ -209,6 +208,30 @@ def trigger_pr_iteration_from_comment(
     PR to recover its GitHub id, looks up the agent run state keyed on that id,
     and triggers the iteration with the comment as feedback.
     """
+    comment_user = comment.get("user", {})
+    github_username = comment_user.get("login")
+    if not github_username:
+        logger.info(
+            "autofix.pr_iteration.comment_trigger.no_github_username",
+            extra={"organization_id": organization_id},
+        )
+        return None
+
+    if not _github_commenter_has_repo_write_access(
+        organization_id=organization_id,
+        repo_id=repo_id,
+        github_username=github_username,
+    ):
+        metrics.incr("autofix.pr_iteration.comment_trigger.unauthorized")
+        logger.info(
+            "autofix.pr_iteration.comment_trigger.unauthorized",
+            extra={
+                "organization_id": organization_id,
+                "github_username": github_username,
+            },
+        )
+        return None
+
     repo = Repository.objects.get(id=repo_id, organization_id=organization_id)
 
     integration = integration_service.get_integration(integration_id=integration_id)
@@ -239,31 +262,6 @@ def trigger_pr_iteration_from_comment(
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
     group = Group.objects.get(id=group_id, project__organization_id=organization_id)
-
-    comment_user = comment.get("user", {})
-    github_username = comment_user.get("login")
-    if not github_username:
-        logger.info(
-            "autofix.pr_iteration.comment_trigger.no_github_username",
-            extra={"organization_id": organization_id, "pr_id": pr_id},
-        )
-        return None
-
-    if not _github_commenter_has_repo_write_access(
-        organization_id=organization_id,
-        repo_id=repo_id,
-        github_username=github_username,
-    ):
-        metrics.incr("autofix.pr_iteration.comment_trigger.unauthorized")
-        logger.info(
-            "autofix.pr_iteration.comment_trigger.unauthorized",
-            extra={
-                "organization_id": organization_id,
-                "pr_id": pr_id,
-                "github_username": github_username,
-            },
-        )
-        return None
 
     feedback_obj = Feedback(
         message=feedback,
