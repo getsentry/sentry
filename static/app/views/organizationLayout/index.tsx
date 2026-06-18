@@ -8,7 +8,6 @@ import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
-import {Footer} from 'sentry/components/footer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Override} from 'sentry/components/override';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -124,7 +123,6 @@ function AppLayout({organization}: LayoutProps) {
                   <TopBar />
                   <Layout.Page>
                     <Outlet />
-                    <Footer />
                   </Layout.Page>
                 </TopBar.Slot.Provider>
               </OrganizationDetailsBody>

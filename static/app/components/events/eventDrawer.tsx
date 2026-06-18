@@ -1,4 +1,3 @@
-import type {ComponentPropsWithoutRef} from 'react';
 import styled from '@emotion/styled';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
@@ -41,7 +40,7 @@ export const ShortId = styled('div')`
   line-height: 1;
 `;
 
-const EventDrawerContainerRoot = styled('div')`
+export const EventDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
   grid-template-rows: max-content max-content auto;
@@ -55,10 +54,6 @@ const EventDrawerContainerRoot = styled('div')`
     --event-drawer-header-height: ${PRIMARY_HEADER_HEIGHT}px;
   }
 `;
-
-export function EventDrawerContainer(props: ComponentPropsWithoutRef<'div'>) {
-  return <EventDrawerContainerRoot {...props} />;
-}
 
 export const EventDrawerHeader = styled(DrawerHeader)`
   position: unset;

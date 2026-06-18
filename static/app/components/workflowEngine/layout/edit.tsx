@@ -152,13 +152,8 @@ function Footer({children, label, maxWidth}: FooterProps) {
 }
 
 export const EditLayout = Object.assign(EditLayoutComponent, {
-  Header,
-  HeaderContent,
-  Actions,
-  HeaderFields,
   Body,
   Footer,
-  Title,
 });
 
 /**

@@ -15,10 +15,8 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 /**
  * Main container for a page.
  */
-export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
-  const {withPadding: _withPadding, ...rest} = props;
-
-  return <Stack as="main" flex="1" background="primary" {...rest} />;
+export function Page(props: FlexProps<'main'>) {
+  return <Stack as="main" flex="1" background="primary" {...props} />;
 }
 
 /**
