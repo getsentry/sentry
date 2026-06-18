@@ -3,7 +3,6 @@ from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
 
-import sentry_sdk
 from django.db.models import Count
 from snuba_sdk import Request
 from snuba_sdk.column import Column
@@ -33,6 +32,7 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
+from sentry.utils.tracing import start_span
 
 ONE_DAY = int(timedelta(days=1).total_seconds())
 logger = logging.getLogger(__name__)
@@ -135,7 +135,7 @@ def project_key_errors(
     # Take the 3 most frequently occuring events
     op = "weekly_reports.project_key_errors"
 
-    with sentry_sdk.start_span(op=op):
+    with start_span(op=op, name=op):
         snuba_rows = _project_key_errors_snuba(ctx=ctx, project=project, referrer=referrer)
         query_result = snuba_rows
 
@@ -317,7 +317,7 @@ def org_key_errors(
     referrer: str,
 ) -> dict[int, list[dict[str, Any]]]:
     op = "weekly_reports.org_key_errors"
-    with sentry_sdk.start_span(op=op):
+    with start_span(op=op, name=op):
         if not project_ids:
             return {}
 
@@ -405,7 +405,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
 
     op = "weekly_reports.project_key_performance_issues"
 
-    with sentry_sdk.start_span(op=op):
+    with start_span(op=op, name=op):
         # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
         # Then, we use this to join with snuba, hoping that the top 3 issue by volume counted in snuba would be within this list.
         # We do this to limit the number of group_ids snuba has to join with.
@@ -558,7 +558,9 @@ def _project_key_performance_issues_eap(
 def project_key_transactions_this_week(ctx, project):
     if not project.flags.has_transactions:
         return
-    with sentry_sdk.start_span(op="weekly_reports.project_key_transactions"):
+    with start_span(
+        op="weekly_reports.project_key_transactions", name="weekly_reports.project_key_transactions"
+    ):
         # Take the 3 most frequently occuring transactions this week
         query = Query(
             match=Entity("transactions"),
