@@ -2761,9 +2761,7 @@ describe('SearchQueryBuilder', () => {
       });
 
       it('renders a wildcard asterisk without an escape in the filter chip', async () => {
-        render(
-          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:foo*" />
-        );
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:foo*" />);
 
         expect(
           await within(
