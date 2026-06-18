@@ -3,8 +3,18 @@ import {createContext, useContext, type RefObject} from 'react';
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
+import type {Organization} from 'sentry/types/organization';
+import type {SearchEventParameters} from 'sentry/utils/analytics/searchAnalyticsEvents';
+
+type MultiValueSelectedAnalyticsData = Omit<
+  SearchEventParameters['search.multi_value_selected'],
+  'filter_value' | 'selected' | 'selected_count'
+> & {
+  organization: Organization;
+};
 
 type ValueComboboxContextValue = {
+  analyticsData: MultiValueSelectedAnalyticsData;
   ctrlKeyPressed: boolean;
   selectedValueMap: ReadonlyMap<string, boolean>;
   token: TokenResult<Token.FILTER>;
