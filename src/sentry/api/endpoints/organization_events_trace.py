@@ -1046,6 +1046,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
                 break
         if len(roots) > 1:
             sentry_sdk.set_tag("discover.trace-view.warning", "root.extra-found")
+            sentry_sdk.set_attribute("discover.trace-view.warning", "root.extra-found")
             logger.warning(
                 "discover.trace-view.root.extra-found",
                 extra={"extra_roots": len(roots), **warning_extra},
@@ -1262,6 +1263,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 iteration += 1
                 if iteration > limit:
                     sentry_sdk.set_tag("discover.trace-view.warning", "surpassed-trace-limit")
+                    sentry_sdk.set_attribute("discover.trace-view.warning", "surpassed-trace-limit")
                     logger.warning(
                         "discover.trace-view.surpassed-trace-limit",
                         extra=warning_extra,
@@ -1297,6 +1299,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
         if len(orphans) > 0:
             sentry_sdk.set_tag("discover.trace-view.contains-orphans", "yes")
+            sentry_sdk.set_attribute("discover.trace-view.contains-orphans", "yes")
             logger.warning("discover.trace-view.contains-orphans", extra=warning_extra)
 
         serialized_transactions = []

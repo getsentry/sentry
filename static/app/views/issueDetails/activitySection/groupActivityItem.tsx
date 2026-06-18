@@ -26,14 +26,31 @@ import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
+function getAuthorName(item: GroupActivity) {
+  if (item.sentry_app) {
+    return item.sentry_app.name;
+  }
+  if (item.user) {
+    return item.user.name;
+  }
+  if (
+    item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
+    item.data.pullRequest?.author?.name &&
+    !item.data.pullRequest.author.email?.endsWith('@localhost')
+  ) {
+    return item.data.pullRequest.author.name;
+  }
+  return 'Sentry';
+}
+
 export function getGroupActivityItem(
   activity: GroupActivity,
   organization: Organization,
   project: Project,
   issueCategory: IssueCategory,
-  author: React.ReactNode,
   teams: Team[]
 ) {
+  const author = <strong>{getAuthorName(activity)}</strong>;
   const issuesLink = `/organizations/${organization.slug}/issues/`;
   const isFeedback = issueCategory === IssueCategoryEnum.FEEDBACK;
 

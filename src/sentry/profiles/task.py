@@ -28,6 +28,7 @@ from taskbroker_client.retry import Retry
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
+from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import (
@@ -63,7 +64,7 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import ingest_profiling_passthrough_tasks, ingest_profiling_tasks
+from sentry.taskworker.namespaces import ingest_profiling_passthrough_tasks
 from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
@@ -160,19 +161,29 @@ def process_profile_from_kafka(
     headers: dict[str, str],
 ) -> None:
     """Process a profile from raw Kafka message bytes (taskbroker passthrough mode)."""
-    from sentry.profiles.consumers.process.factory import _process_profile_message
+    if _should_drop(headers):
+        return
 
-    _process_profile_message(message_bytes, headers, inline=True)
+    sampled = _is_sampled(headers)
+
+    if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
+        return
+
+    process_profile_task(payload=message_bytes, sampled=sampled)
 
 
-@instrumented_task(
-    name="sentry.profiles.task.process_profile",
-    namespace=ingest_profiling_tasks,
-    processing_deadline_duration=60,
-    retry=Retry(times=2, delay=5),
-    compression_type=CompressionType.ZSTD,
-    silo_mode=SiloMode.CELL,
-)
+def _is_sampled(headers: dict[str, str]) -> bool:
+    return headers.get("sampled", "true") == "true"
+
+
+def _should_drop(headers: dict[str, str]) -> bool:
+    context = {"project_id": headers["project_id"]} if "project_id" in headers else {}
+
+    return bool(context) and killswitch_matches_context(
+        "profiling.killswitch.ingest-profiles", context
+    )
+
+
 def process_profile_task(
     profile: Profile | None = None,
     payload: bytes | str | None = None,
@@ -212,12 +223,16 @@ def process_profile_task(
     organization = Organization.objects.get_from_cache(id=profile["organization_id"])
 
     sentry_sdk.set_tag("organization", organization.id)
+    sentry_sdk.set_attribute("organization", organization.id)
     sentry_sdk.set_tag("organization.slug", organization.slug)
+    sentry_sdk.set_attribute("organization.slug", organization.slug)
 
     project = Project.objects.get_from_cache(id=profile["project_id"])
 
     sentry_sdk.set_tag("project", project.id)
+    sentry_sdk.set_attribute("project", project.id)
     sentry_sdk.set_tag("project.slug", project.slug)
+    sentry_sdk.set_attribute("project.slug", project.slug)
 
     if sampled and _is_deprecated(profile, project, organization):
         return
@@ -239,19 +254,25 @@ def process_profile_task(
         "profile",
         profile_context,
     )
+    sentry_sdk.set_attribute("profile.organization_id", profile_context["organization_id"])
+    sentry_sdk.set_attribute("profile.project_id", profile_context["project_id"])
 
     sentry_sdk.set_tag("platform", profile["platform"])
+    sentry_sdk.set_attribute("platform", profile["platform"])
 
     if "version" in profile:
         version = profile["version"]
         sentry_sdk.set_tag("format", f"sample_v{version}")
+        sentry_sdk.set_attribute("format", f"sample_v{version}")
         set_span_attribute("profile.samples", len(profile["profile"]["samples"]))
         set_span_attribute("profile.stacks", len(profile["profile"]["stacks"]))
         set_span_attribute("profile.frames", len(profile["profile"]["frames"]))
     elif "profiler_id" in profile and profile["platform"] == "android":
         sentry_sdk.set_tag("format", "android_chunk")
+        sentry_sdk.set_attribute("format", "android_chunk")
     else:
         sentry_sdk.set_tag("format", "legacy")
+        sentry_sdk.set_attribute("format", "legacy")
 
     if not _symbolicate_profile(profile, project):
         return
@@ -999,8 +1020,13 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 if response["status"] == "failed":
                     deobfuscation_context["status"] = response["status"]
                     deobfuscation_context["message"] = response["message"]
+                    sentry_sdk.set_attribute("profile_deobfuscation.status", response["status"])
+                    sentry_sdk.set_attribute("profile_deobfuscation.message", response["message"])
                 if "errors" in response:
                     deobfuscation_context["errors"] = response["errors"]
+                    sentry_sdk.set_attribute(
+                        "profile_deobfuscation.errors", json.dumps(response["errors"])
+                    )
                 sentry_sdk.set_context("profile deobfuscation", deobfuscation_context)
                 if "stacktraces" in response:
                     merge_jvm_frames_with_android_methods(
@@ -1047,6 +1073,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 debug_file_id=debug_file_id,
             )
             sentry_sdk.set_tag("deobfuscated_with_symbolicator_with_success", success)
+            sentry_sdk.set_attribute("deobfuscated_with_symbolicator_with_success", success)
             if success:
                 return
     except Exception as e:
@@ -1207,6 +1234,9 @@ def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
                 "duration_ms": duration_ms,
             },
         )
+        sentry_sdk.set_attribute("profile_duration_calculation.min_timestamp", min_timestamp)
+        sentry_sdk.set_attribute("profile_duration_calculation.max_timestamp", max_timestamp)
+        sentry_sdk.set_attribute("profile_duration_calculation.duration_ms", duration_ms)
         sentry_sdk.capture_message("Calculated duration is above the limit")
         return MAX_DURATION_SAMPLE_V2
     return duration_ms

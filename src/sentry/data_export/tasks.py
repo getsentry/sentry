@@ -40,7 +40,7 @@ from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, Assemble
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import export_tasks
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger(__name__)
@@ -867,9 +867,11 @@ def _set_data_on_scope(data_export: ExportedData) -> None:
     sentry_sdk.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
     sentry_sdk.set_attribute("export.type", ExportQueryType.as_str(data_export.query_type))
     sentry_sdk.set_tag("export.format", data_export.export_format)
-    sentry_sdk.set_attribute("export.format", data_export.export_format)
+    if data_export.export_format is not None:
+        sentry_sdk.set_attribute("export.format", data_export.export_format)
     qi = data_export.query_info
     if qi.get("dataset") is not None:
         sentry_sdk.set_tag("export.dataset", str(qi.get("dataset")))
         sentry_sdk.set_attribute("export.dataset", str(qi.get("dataset")))
     sentry_sdk.set_extra("export.query", data_export.query_info)
+    sentry_sdk.set_attribute("export.query", json.dumps(data_export.query_info))

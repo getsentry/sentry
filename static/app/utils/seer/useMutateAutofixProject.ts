@@ -12,7 +12,10 @@ import {
   knownAgentIntegrationsQueryOptions,
   parseAgentOption,
 } from 'sentry/utils/seer/preferredAgent';
-import {getSeerProjectSettingsQueryOptions} from 'sentry/utils/seer/seerProjectSettings';
+import {
+  getInfiniteSeerProjectsSettingsQueryOptions,
+  getSeerProjectSettingsQueryOptions,
+} from 'sentry/utils/seer/seerProjectSettings';
 import {
   getTuningFromStoppingPoint,
   resolveStoppingPoint,
@@ -162,6 +165,15 @@ export function useMutateAutofixProject() {
           orgSlug: organization.slug,
           projectSlug: project.slug,
         }),
+      });
+      // Invalidate the org-level infinite seer projects list so the
+      // /settings/seer/projects/ table reflects the newly added project
+      // without waiting for its 60s staleTime to expire.
+      const {queryKey: infiniteProjectsQueryKey} =
+        getInfiniteSeerProjectsSettingsQueryOptions({organization, query: {}});
+      queryClient.invalidateQueries({
+        queryKey: [infiniteProjectsQueryKey[0]],
+        exact: false,
       });
     },
   });

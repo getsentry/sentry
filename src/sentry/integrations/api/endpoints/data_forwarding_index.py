@@ -42,7 +42,8 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDataForwardingDetailsPermission,)
 
     @extend_schema(
-        operation_id="Retrieve Data Forwarders for an Organization",
+        operation_id="listOrganizationForwarding",
+        summary="Retrieve Data Forwarders for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         responses={
             200: inline_sentry_response_serializer(
@@ -67,7 +68,8 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Data Forwarder for an Organization",
+        operation_id="createOrganizationForwarding",
+        summary="Create a Data Forwarder for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=DataForwarderSerializer,
         responses={

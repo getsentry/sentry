@@ -1033,14 +1033,24 @@ class DiscoverDatasetConfig(DatasetConfig):
 
             num_project_thresholds = project_threshold_configs.count()
             sentry_sdk.set_tag("project_threshold.count", num_project_thresholds)
+            sentry_sdk.set_attribute("project_threshold.count", num_project_thresholds)
             sentry_sdk.set_tag(
+                "project_threshold.count.grouped",
+                format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
+            )
+            sentry_sdk.set_attribute(
                 "project_threshold.count.grouped",
                 format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
             )
 
             num_transaction_thresholds = transaction_threshold_configs.count()
             sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
+            sentry_sdk.set_attribute("txn_threshold.count", num_transaction_thresholds)
             sentry_sdk.set_tag(
+                "txn_threshold.count.grouped",
+                format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
+            )
+            sentry_sdk.set_attribute(
                 "txn_threshold.count.grouped",
                 format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
             )

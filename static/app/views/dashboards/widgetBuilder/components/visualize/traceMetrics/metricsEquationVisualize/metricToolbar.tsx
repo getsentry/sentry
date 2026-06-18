@@ -88,7 +88,11 @@ export function MetricToolbar({
         {isFunction ? (
           <Fragment>
             <Flex flex="2" minWidth="0">
-              <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
+              <MetricSelector
+                traceMetric={traceMetric}
+                onChange={setTraceMetric}
+                usePortal
+              />
             </Flex>
             <Flex flex="1" minWidth="0">
               <AggregateDropdown traceMetric={traceMetric} singleSelect />
@@ -102,7 +106,11 @@ export function MetricToolbar({
           />
         ) : null}
         <Flex flex="1 1 100%" minWidth="0">
-          <Filter traceMetric={traceMetric} skipTraceMetricFilter={isEquation} />
+          <Filter
+            traceMetric={traceMetric}
+            skipTraceMetricFilter={isEquation}
+            portalTarget={document.body}
+          />
         </Flex>
       </Flex>
 

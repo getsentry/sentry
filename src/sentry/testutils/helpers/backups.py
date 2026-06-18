@@ -45,6 +45,9 @@ from sentry.explore.models import (
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
+    TraceItemAttributeContext,
+    TraceItemAttributeTypes,
+    TraceItemTypes,
 )
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentActivity
@@ -63,6 +66,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStatus
 from sentry.models.counter import Counter
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -499,6 +503,11 @@ class ExhaustiveFixtures(Fixtures):
             sdk_version="2.41.0",
         )
         self.create_notification_action(organization=org, projects=[project])
+        CustomInboundFilter.objects.create(
+            project=project,
+            name=f"custom-inbound-filter-{slug}",
+            conditions=[{"op": "eq", "name": "event.release", "value": ["1.0.0"]}],
+        )
 
         # Auth*
         self.create_exhaustive_organization_auth(owner, org, project)
@@ -785,6 +794,18 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             explore_saved_query=explore_saved_query,
             last_visited=timezone.now(),
+        )
+
+        TraceItemAttributeContext.objects.create(
+            organization=org,
+            project=project,
+            attribute_key="http.method",
+            item_type=TraceItemTypes.SPANS,
+            attribute_type=TraceItemAttributeTypes.STRING,
+            brief="The HTTP method of the request",
+            examples=["GET", "POST"],
+            created_by_id=owner_id,
+            updated_by_id=owner_id,
         )
 
         InsightsStarredSegment.objects.create(

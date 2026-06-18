@@ -69,7 +69,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="List a Project's Issues",
+        operation_id="listProjectIssues",
+        summary="List a Project's Issues",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -77,6 +78,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             GlobalParams.STATS_PERIOD,
             CursorQueryParam,
             VisibilityParams.PER_PAGE,
+            IssueParams.VIEW_SORT,
+            IssueParams.LIMIT,
             IssueParams.DEFAULT_QUERY,
             IssueParams.GROUP_INDEX_COLLAPSE,
             IssueParams.SHORT_ID_LOOKUP,
