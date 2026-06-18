@@ -10,6 +10,7 @@ from sentry.options.manager import (
     FLAG_AUTOMATOR_MODIFIABLE,
     FLAG_IMMUTABLE,
     FLAG_PRIORITIZE_DISK,
+    READ_HOOK_FALLBACK,
     UpdateChannel,
 )
 from sentry.runner.commands.configoptions import configoptions
@@ -198,6 +199,32 @@ class ConfigOptionsTest(CliTestCase):
         assert options.get("drifted_option") == [1, 2, 3]
 
         assert not options.isset("to_unset_option")
+
+    def test_sync_ignores_read_hook(self) -> None:
+        # During the options dual-read cutover a read hook can already serve the
+        # target value for an FLAG_AUTOMATOR_MODIFIABLE option. The automator
+        # maintains the *legacy* store, so it must judge its update against the
+        # stored value, not the hook value. Here str_option is stored as
+        # "old value" but the hook serves "new value" (the yaml target). If the
+        # automator read the hook it would see db_value == value and skip the
+        # write, silently leaving the legacy store stale.
+        options.default_manager.set_read_hook(
+            lambda key, opt: "new value" if key == "str_option" else READ_HOOK_FALLBACK
+        )
+        try:
+            rv = self.invoke(
+                "-f",
+                "tests/sentry/runner/commands/valid_patch.yaml",
+                "sync",
+            )
+            assert rv.exit_code == 2, rv.output
+            assert (
+                ConsolePresenter.UPDATE_MSG % ("str_option", "old value", "new value") in rv.output
+            )
+            # The legacy store was actually updated, not skipped.
+            assert options.get("str_option", use_read_hook=False) == "new value"
+        finally:
+            options.default_manager.set_read_hook(None)
 
     def test_bad_sync(self) -> None:
         rv = self.invoke(

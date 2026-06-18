@@ -309,7 +309,7 @@ class OptionsManager:
         """
         return key in settings.SENTRY_OPTIONS
 
-    def get(self, key: str, silent=False):
+    def get(self, key: str, silent=False, *, use_read_hook: bool = True):
         """
         Get the value of an option, falling back to the local configuration.
 
@@ -317,6 +317,11 @@ class OptionsManager:
 
         >>> from sentry import options
         >>> options.get('option')
+
+        Pass ``use_read_hook=False`` to skip the read hook and resolve only the
+        legacy store/disk/default chain. The options automator uses this so its
+        update decisions are judged against what is actually in the legacy store,
+        not a dual-read override (the same reasoning as ``can_update``).
         """
         # TODO(mattrobenolt): Perform validation on key returned for type Justin Case
         # values change. This case is unlikely, but good to cover our bases.
@@ -333,7 +338,7 @@ class OptionsManager:
         ) as tags:
             opt = self.lookup_key(key)
 
-            if self._read_hook is not None:
+            if use_read_hook and self._read_hook is not None:
                 result = self._read_hook(key, opt)
                 if result is not READ_HOOK_FALLBACK:
                     tags["source"] = "hook"
@@ -552,6 +557,13 @@ class OptionsManager:
         if not include_drift:
             return None
 
+        # isset() consults the read hook, so it can report True while the legacy
+        # store is empty (a dual-read value is being served). That is benign for
+        # drift: an empty store falls through to store.get() and
+        # get_last_update_channel() below, both of which read the legacy store
+        # directly and funnel an unstored key back to "writable" — the same
+        # verdict this early return gives. Drift is always judged against the
+        # legacy store, never the hook value.
         if not self.isset(key):
             # If the option is not readonly and it is not stored in the
             # option store it means we are relying on default. So we can

@@ -449,6 +449,25 @@ class OptionsManagerTest(TestCase):
             self.manager.set_read_hook(None)
             self.manager.unregister("hooked")
 
+    def test_get_use_read_hook_false_bypasses_hook(self) -> None:
+        # use_read_hook=False resolves the legacy store/disk/default chain only,
+        # ignoring the hook — the write path relies on this to see the real
+        # stored value. A bypassed read of an unset key still returns the
+        # registered default, not None (unlike a raw store.get).
+        self.manager.register("hooked", type=String, flags=FLAG_AUTOMATOR_MODIFIABLE)
+        self.manager.set("hooked", "stored", channel=UpdateChannel.CLI)
+        self.manager.set_read_hook(
+            lambda key, opt: "hook-value" if key == "hooked" else READ_HOOK_FALLBACK
+        )
+        try:
+            assert self.manager.get("hooked") == "hook-value"
+            assert self.manager.get("hooked", use_read_hook=False) == "stored"
+            self.manager.delete("hooked")
+            assert self.manager.get("hooked", use_read_hook=False) == ""
+        finally:
+            self.manager.set_read_hook(None)
+            self.manager.unregister("hooked")
+
     def test_read_hook_fallback_uses_legacy(self) -> None:
         self.manager.set_read_hook(lambda key, opt: READ_HOOK_FALLBACK)
         try:

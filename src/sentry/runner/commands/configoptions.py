@@ -27,7 +27,10 @@ def _attempt_update(
 
     opt = options.lookup_key(key)
 
-    db_value = options.get(key)
+    # Read the legacy stored value, never a dual-read override: the automator
+    # maintains the legacy store, so its update/no-op decision and the "old
+    # value" it reports must reflect what is actually stored there.
+    db_value = options.get(key, use_read_hook=False)
     db_value_to_print = "[REDACTED]" if opt.has_any_flag({options.FLAG_CREDENTIAL}) else db_value
     if key in drifted_options:
         if hide_drift:
@@ -344,10 +347,10 @@ def sync(ctx: click.Context) -> None:
                             raise
                     presenter_delegator.unset(opt.name)
                 elif last_updated == options.UpdateChannel.CLI:
-                    presenter_delegator.drift(opt.name, options.get(opt.name))
+                    presenter_delegator.drift(opt.name, options.get(opt.name, use_read_hook=False))
                     drift_found = True
                 elif last_updated == options.UpdateChannel.UNKNOWN:
-                    presenter_delegator.drift(opt.name, options.get(opt.name))
+                    presenter_delegator.drift(opt.name, options.get(opt.name, use_read_hook=False))
                     drift_found = True
                 else:
                     continue
