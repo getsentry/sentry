@@ -39,10 +39,6 @@ export type AttributeDistribution = Array<{
 export function AttributeDistribution() {
   const [searchQuery, setSearchQuery] = useQueryState('attributeBreakdownsSearch');
 
-  // The /trace-items/stats/ endpoint is cursor-paginated. We keep the current page's
-  // cursor in the URL and drive the prev/next buttons off the Link header it returns.
-  const [cursor, setCursor] = useQueryState('attributeBreakdownsCursor');
-
   const query = useQueryParamsQuery();
   const onAction = useAttributeBreakdownsTooltipAction();
 
@@ -87,8 +83,7 @@ export function AttributeDistribution() {
 
   const cohortCount = cohortCountResponse?.data?.[0]?.['count()'] ?? 0;
 
-  // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
+  // Debouncing the search query here ensures smooth typing by delaying re-mounts a little as the user types.
   const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 200);
 
   const {
@@ -96,8 +91,8 @@ export function AttributeDistribution() {
     pageLinks: attributeBreakdownsPageLinks,
     isLoading: isAttributeBreakdownsLoading,
     error: attributeBreakdownsError,
+    setCursor,
   } = useAttributeBreakdowns({
-    cursor: cursor ?? undefined,
     substringMatch: debouncedSearchQuery,
   });
 
@@ -147,9 +142,7 @@ export function AttributeDistribution() {
             placeholder={t('Search keys')}
             onChange={q => {
               setSearchQuery(q);
-              if (cursor !== null) {
-                setCursor(null);
-              }
+              setCursor(null);
             }}
             query={debouncedSearchQuery}
             size="sm"
