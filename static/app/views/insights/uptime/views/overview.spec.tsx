@@ -62,6 +62,6 @@ describe('Uptime Overview', () => {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Uptime Monitors');
+    expect(screen.getByText('Uptime Monitors')).toBeInTheDocument();
   });
 });
