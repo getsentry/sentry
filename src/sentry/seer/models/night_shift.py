@@ -67,8 +67,9 @@ class SeerNightShiftRunResult(DefaultFieldsModel):
 
 @cell_silo_model
 class SeerNightShiftRunShard(DefaultFieldsModel):
-    """One triage shard of a night shift run, owning the SeerRun for its chunk
-    of candidates."""
+    """One shard of a night shift run, owning the SeerRun for a single
+    dispatched Seer feature run. A run fans out its work into one or more shards
+    dispatched as independent feature runs."""
 
     __relocation_scope__ = RelocationScope.Excluded
 
