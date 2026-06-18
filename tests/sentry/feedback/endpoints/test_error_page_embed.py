@@ -26,7 +26,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, get_cell_by_name, get_local_locality
+from sentry.types.cell import Cell, get_cell_by_name
 from sentry.utils import json
 
 
@@ -91,19 +91,28 @@ class ErrorPageEmbedTest(TestCase):
         assert resp["Access-Control-Allow-Origin"] == "*"
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
 
-    def test_endpoint_reflects_region_url(self) -> None:
-        resp = self.client.get(
-            self.path_with_qs,
-            HTTP_REFERER="http://example.com",
-            HTTP_ACCEPT="text/html, text/javascript",
-        )
-        assert resp.status_code == 200, resp.content
-        assert resp["Access-Control-Allow-Origin"] == "*"
-        self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
+    def test_endpoint_reflects_control_silo_url(self) -> None:
+        with mock.patch(
+            "sentry.feedback.endpoints.error_page_embed.sentry_options.get",
+            side_effect=lambda key: "http://controlsilo.testserver"
+            if key == "system.url-prefix"
+            else options.get(key),
+        ):
+            resp = self.client.get(
+                self.path_with_qs,
+                HTTP_REFERER="http://example.com",
+                HTTP_ACCEPT="text/html, text/javascript",
+            )
+            assert resp.status_code == 200, resp.content
+            assert resp["Access-Control-Allow-Origin"] == "*"
+            self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
 
-        region_url = get_local_locality().to_url(self.path_with_qs)
-        body = resp.content.decode("utf8")
-        assert f'endpoint = /**/"{region_url}";/**/' in body
+            from urllib.parse import urljoin
+
+            control_url = urljoin("http://controlsilo.testserver", self.path_with_qs)
+            body = resp.content.decode("utf8")
+            # Endpoint should use the base control silo URL, not a locality-specific one
+            assert f'endpoint = /**/"{control_url}";/**/' in body
 
     def test_uses_locale_from_header(self) -> None:
         resp = self.client.get(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Callable
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from django import forms
 from django.conf import settings
@@ -14,7 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import options as sentry_options
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
@@ -24,7 +24,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.userreport import UserReport
 from sentry.services import eventstore
 from sentry.signals import user_feedback_received
-from sentry.types.cell import Cell, get_cell_by_name, get_local_locality
+from sentry.types.cell import Cell, get_cell_by_name
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.http import is_valid_origin, origin_from_request
@@ -102,7 +102,7 @@ class ErrorEmbedResolver(CellRequestResolver):
         host = parsed.hostname
         if not host:
             return None
-        app_host = urlparse(options.get("system.url-prefix")).hostname
+        app_host = urlparse(sentry_options.get("system.url-prefix")).hostname
         if not app_host or not host.endswith(app_host):
             # Don't further parse URLs that aren't for us.
             return None
@@ -265,7 +265,7 @@ class ErrorPageEmbedView(View):
         elif request.method == "POST":
             return self._smart_response(request, {"errors": dict(form.errors)}, status=400)
 
-        endpoint = get_local_locality().to_url(request.get_full_path())
+        endpoint = urljoin(sentry_options.get("system.url-prefix"), request.get_full_path())
         show_branding = (
             ProjectOption.objects.get_value(
                 project=key.project, key="feedback:branding", default="1"
