@@ -282,7 +282,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 f'attachment; filename="{posixpath.basename(debug_file.debug_id)}{debug_file.file_extension}"'
             )
             return response
-        except (OSError, RequestError):
+        except (OSError, RequestError, Project.DoesNotExist):
             raise Http404
 
     @extend_schema(
