@@ -48,9 +48,10 @@ def start_span(
                     parent_span=None,
                 )
             finally:
-                scope = sentry_sdk.get_current_scope()
-                propagation_context = scope.get_active_propagation_context()
-                propagation_context.custom_sampling_context = previous_custom_sampling_context
+                if custom_sampling_context is not None:
+                    scope = sentry_sdk.get_current_scope()
+                    propagation_context = scope.get_active_propagation_context()
+                    propagation_context.custom_sampling_context = previous_custom_sampling_context
 
         return sentry_sdk.traces.start_span(
             name=name,
