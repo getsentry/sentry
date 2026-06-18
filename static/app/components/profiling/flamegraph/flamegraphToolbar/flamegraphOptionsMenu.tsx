@@ -78,10 +78,6 @@ function FlamegraphOptionsMenu({
       <Button size="xs" onClick={onResetZoom}>
         {t('Reset Zoom')}
       </Button>
-      {profileType === 'continuous profile' &&
-      organization.features.includes('continuous-profiling-perfetto') ? (
-        <ProfileChunkAttachmentsButton />
-      ) : null}
       <CompactSelect
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps} icon={<IconSliders />} size="xs">
@@ -94,6 +90,10 @@ function FlamegraphOptionsMenu({
         closeOnSelect={false}
         onChange={onColorChange}
       />
+      {profileType === 'continuous profile' &&
+      organization.features.includes('continuous-profiling-perfetto') ? (
+        <ProfileChunkAttachmentsButton />
+      ) : null}
       {continuousLocationDescriptor ? (
         <LinkButton
           to={{
