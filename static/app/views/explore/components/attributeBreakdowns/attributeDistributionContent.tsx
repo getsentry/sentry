@@ -113,11 +113,6 @@ export function AttributeDistribution() {
     }
   }, [attributeBreakdownsData, isAttributeBreakdownsLoading, refetchCohortCount]);
 
-  // Reset the cursor back to the first page on any query change
-  useEffect(() => {
-    setCursor(null);
-  }, [debouncedSearchQuery, selection, query, setCursor]);
-
   const parsedLinks = parseLinkHeader(attributeBreakdownsPageLinks);
 
   const uniqueAttributeDistribution = useMemo(() => {
@@ -155,6 +150,9 @@ export function AttributeDistribution() {
             placeholder={t('Search keys')}
             onChange={q => {
               setSearchQuery(q);
+              if (cursor !== null) {
+                setCursor(null);
+              }
             }}
             query={debouncedSearchQuery}
             size="sm"
