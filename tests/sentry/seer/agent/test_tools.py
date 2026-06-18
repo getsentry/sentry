@@ -2128,6 +2128,23 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         assert commit["id"] == "a" * 40
         assert commit["score"] is not None
 
+    def test_returns_recent_commits_in_window(self):
+        group = self._make_blame_event(self.user.email)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+            start=before_now(days=30).isoformat(),
+            end=(before_now(minutes=0) + timedelta(days=1)).isoformat(),
+        )
+
+        assert isinstance(result, dict)
+        recent = result["recent_commits"]
+        commit = next(c for c in recent if c["id"] == "a" * 40)
+        assert commit["files_changed_count"] == 1
+        assert commit["is_merge_commit"] is False
+        assert result["issue_first_seen"] is not None
+
     def test_no_commit_data_returns_empty_lists(self):
         event = self._make_error_event()
         group = event.group
@@ -2141,6 +2158,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         assert isinstance(result, dict)
         assert result["committers"] == []
         assert result["suspect_commits"] == []
+        assert result["recent_commits"] == []
 
     def test_returns_none_when_project_slug_does_not_match(self):
         event = self._make_error_event()

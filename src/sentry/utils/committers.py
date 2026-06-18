@@ -3,6 +3,7 @@ from __future__ import annotations
 import operator
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, MutableMapping, Sequence
+from datetime import datetime
 from enum import Enum
 from functools import reduce
 from typing import Any, TypedDict
@@ -401,6 +402,44 @@ def get_event_file_committers(
     ]
 
     return _get_committers(annotated_frames, relevant_commits)
+
+
+def get_release_commit_candidates(
+    project: Project,
+    group_id: int,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    limit: int = 30,
+) -> Sequence[Commit]:
+    """Candidate commits shipped around when the group first appeared.
+
+    Returns the commits from the group's first-seen release and the few releases
+    before it (the same pool the release-based suspect-commit scoring runs over),
+    newest-first, optionally restricted to a ``[since, until]`` window and capped to
+    ``limit``. Unlike the suspect commit, these are NOT filtered to the stacktrace
+    frames, so they surface regressions in code that does not appear in the trace.
+    Returns ``[]`` when the group has no associated releases/commits.
+    """
+    group = Group.objects.get_from_cache(id=group_id)
+
+    first_release_version = group.get_first_release()
+    if not first_release_version:
+        return []
+
+    releases = get_previous_releases(project, first_release_version)
+    if not releases:
+        return []
+
+    commits = _get_commits(releases)
+    if not commits:
+        return []
+
+    if since is not None:
+        commits = [c for c in commits if c.date_added >= since]
+    if until is not None:
+        commits = [c for c in commits if c.date_added <= until]
+
+    return sorted(commits, key=lambda c: c.date_added, reverse=True)[:limit]
 
 
 def get_serialized_committers(project: Project, group_id: int) -> Sequence[AuthorCommitsSerialized]:

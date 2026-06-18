@@ -31,6 +31,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import EventOrdering, Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -96,6 +97,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.committers import (
     get_event_file_committers,
     get_frame_paths,
+    get_release_commit_candidates,
     get_serialized_committers,
 )
 from sentry.utils.dates import parse_stats_period
@@ -1492,18 +1494,27 @@ def get_issue_committers(
       available far more often than a single precomputed suspect commit.
     - ``suspect_commits``: the precomputed suspect commit(s) from ``GroupOwner``, if
       any (the same "Suspect Commit" shown in the Sentry UI).
+    - ``recent_commits``: a broader pool of commits shipped around when the issue
+      first appeared, NOT limited to the stacktrace frames (catches regressions in
+      code that does not appear in the trace), each enriched with PR title/body,
+      file-change count, and a merge-commit flag so the caller can prune.
+
+    The time window for ``recent_commits`` (and which event's stacktrace is sampled)
+    defaults to ~6 weeks before the issue first appeared; pass ``start``/``end`` to
+    override it.
 
     Args:
         organization_id: The ID of the organization.
         issue_id: The issue ID (numeric) or qualified short ID (e.g. PROJECT-123).
-        start: ISO timestamp for the start of the time range to get the event from (optional).
-        end: ISO timestamp for the end of the time range to get the event from (optional).
+        start: ISO timestamp for the start of the time range (optional).
+        end: ISO timestamp for the end of the time range (optional).
         project_slug: The slug of the project (optional, used to improve numeric ID lookups).
 
     Returns:
-        Dict with ``committers``, ``suspect_commits``, ``project_id``, ``project_slug``.
-        Both lists may be empty (e.g. no release/commit data linked to the issue).
-        Returns None if the project/issue cannot be resolved.
+        Dict with ``committers``, ``suspect_commits``, ``recent_commits``,
+        ``issue_first_seen``, ``project_id``, ``project_slug``. The lists may be empty
+        (e.g. no release/commit data linked to the issue). Returns None if the
+        project/issue cannot be resolved.
     """
     start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
 
@@ -1527,7 +1538,7 @@ def get_issue_committers(
             organization_id, issue_id, project_ids=project_ids
         )
 
-    # Precomputed suspect commit(s) from GroupOwner (often empty).
+    # Precomputed author+commit (one or none) from suspect-commit feature.
     try:
         suspect_commits = get_serialized_committers(group.project, group.id)
     except Exception:
@@ -1580,9 +1591,46 @@ def get_issue_committers(
         )
         committers = []
 
+    # Broader candidate pool: commits shipped around when the issue first appeared,
+    # NOT limited to the stacktrace frames. Window defaults to ~6 weeks before
+    # first_seen; an explicit start/end overrides it.
+    recent_commits: list[dict[str, Any]] = []
+    try:
+        window_end = end_dt or group.first_seen
+        window_start = start_dt or (window_end - timedelta(weeks=6))
+        candidates = get_release_commit_candidates(
+            group.project, group.id, since=window_start, until=window_end
+        )
+        if candidates:
+            file_change_counts = dict(
+                CommitFileChange.objects.filter(commit_id__in=[c.id for c in candidates])
+                .values_list("commit_id")
+                .annotate(n=models.Count("id"))
+            )
+            serialized_candidates = serialize(
+                candidates, serializer=CommitSerializer(exclude=["repository"])
+            )
+            for commit, serialized in zip(candidates, serialized_candidates):
+                message = (commit.message or "").strip()
+                recent_commits.append(
+                    {
+                        **serialized,
+                        "files_changed_count": file_change_counts.get(commit.id),
+                        "is_merge_commit": message.startswith("Merge "),
+                    }
+                )
+    except Exception:
+        logger.exception(
+            "get_issue_committers: Failed to fetch recent commits",
+            extra={"organization_id": organization_id, "issue_id": issue_id},
+        )
+        recent_commits = []
+
     return {
         "committers": committers,
         "suspect_commits": suspect_commits,
+        "recent_commits": recent_commits,
+        "issue_first_seen": group.first_seen.isoformat() if group.first_seen else None,
         "project_id": group.project_id,
         "project_slug": group.project.slug,
     }
