@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("explore", "0007_update_numeric_attrs_to_bools"),
+        ("explore", "0008_add_trace_item_attribute_context"),
         ("sentry", "1117_drop_organizationmapping_codecov_access_delete"),
     ]
 

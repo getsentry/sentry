@@ -45,6 +45,8 @@ from sentry.explore.models import (
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
+    TraceItemAttributeContext,
+    TraceItemAttributeTypes,
     TraceItemAttributeValueContext,
     TraceItemTypes,
     TraceMetricTypes,
@@ -794,6 +796,18 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             explore_saved_query=explore_saved_query,
             last_visited=timezone.now(),
+        )
+
+        TraceItemAttributeContext.objects.create(
+            organization=org,
+            project=project,
+            attribute_key="http.method",
+            item_type=TraceItemTypes.SPANS,
+            attribute_type=TraceItemAttributeTypes.STRING,
+            brief="The HTTP method of the request",
+            examples=["GET", "POST"],
+            created_by_id=owner_id,
+            updated_by_id=owner_id,
         )
 
         TraceItemAttributeValueContext.objects.create(

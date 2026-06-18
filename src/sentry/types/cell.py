@@ -226,7 +226,7 @@ class CellDirectory:
                     f"which is not in its cells={set(loc.cells)!r}"
                 )
 
-        # SENTRY_MONOLITH_REGION is resolved as a live cell at runtime
+        # SENTRY_FALLBACK_CELL is resolved as a live cell at runtime
         # (historic monolith region lookups), so a dangling name should fail
         # here rather than at request time.
         if settings.SENTRY_FALLBACK_CELL not in defined_cells:
@@ -495,14 +495,6 @@ def find_cells_for_sentry_app(sentry_app: SentryApp) -> set[str]:
 
 def find_all_cell_names() -> Iterable[str]:
     return get_global_directory().get_cell_names()
-
-
-def find_all_multitenant_cell_names() -> list[str]:
-    """
-    Return all visible multi_tenant cells.
-    """
-    cells = get_global_directory().get_cells(RegionCategory.MULTI_TENANT)
-    return list([c.name for c in cells if c.visible])
 
 
 def find_all_multitenant_locality_names() -> list[str]:

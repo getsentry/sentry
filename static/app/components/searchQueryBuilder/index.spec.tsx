@@ -2748,10 +2748,20 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
-      it('renders escaped asterisks as a bare asterisk in the filter chip', async () => {
+      it('renders an escaped asterisk with the escape visible in the filter chip', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery={'browser.name:foo\\*'} />
         );
+
+        expect(
+          await within(
+            screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+          ).findByText('foo\\*')
+        ).toBeInTheDocument();
+      });
+
+      it('renders a wildcard asterisk without an escape in the filter chip', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:foo*" />);
 
         expect(
           await within(
@@ -5621,7 +5631,7 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
-    it('escapes * for is op but not contains op', async () => {
+    it('renders the escaped asterisk for the contains suggestion but a wildcard for the is suggestion', async () => {
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -5635,7 +5645,7 @@ describe('SearchQueryBuilder', () => {
       const options = within(screen.getByRole('listbox')).getAllByRole('option');
       expect(options).toHaveLength(2);
 
-      expect(options[0]).toHaveTextContent('span.description contains test*');
+      expect(options[0]).toHaveTextContent('span.description contains test\\*');
       expect(options[1]).toHaveTextContent('span.description is test*');
     });
 
