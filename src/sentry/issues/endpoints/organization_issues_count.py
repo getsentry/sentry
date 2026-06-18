@@ -17,6 +17,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba import discover
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.tracing import set_span_data
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -68,7 +69,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
 
             query_kwargs["actor"] = request.user
         with start_span(op="start_search") as span:
-            span.set_data("query_kwargs", query_kwargs)
+            set_span_data(span, "query_kwargs", query_kwargs)
             result = search.backend.query(**query_kwargs)
             return result.hits
 
