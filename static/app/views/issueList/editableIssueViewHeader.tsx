@@ -115,8 +115,6 @@ function EditingViewTitle({
     value: title,
   });
 
-  const GrowingInput = PageFrameGrowingInput;
-
   return (
     <GrowingInput
       value={title}
@@ -164,22 +162,20 @@ const ViewTitle = styled('div')`
   text-overflow: ellipsis;
 `;
 
-const StyledGrowingInput = styled(Input)`
+const GrowingInput = styled(Input)`
   position: relative;
   border: none;
   margin: 0;
   padding: 0;
   background: transparent;
   min-height: 0px;
-  height: 40px;
+  height: auto;
   border-radius: 0px;
   text-overflow: ellipsis;
   cursor: text;
-
-  /* <Layout.Title /> styles */
-  font-size: 1.625rem;
-  font-weight: 600;
-  line-height: 40px;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
 
   &,
   &:focus,
@@ -187,11 +183,4 @@ const StyledGrowingInput = styled(Input)`
   &:hover {
     box-shadow: none;
   }
-`;
-
-const PageFrameGrowingInput = styled(StyledGrowingInput)`
-  height: auto;
-  line-height: inherit;
-  font-size: inherit;
-  font-weight: inherit;
 `;
