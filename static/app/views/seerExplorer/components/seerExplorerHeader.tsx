@@ -27,6 +27,7 @@ import {t} from 'sentry/locale';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
+import {useSeerExplorerSidebarOrientation} from 'sentry/views/seerExplorer/utils';
 
 /**
  * The shared inner header content (title + action cluster) for Seer Explorer.
@@ -72,6 +73,8 @@ export function SeerExplorerHeader({
   onSidebarPositionChange,
   disableNewChatButton = false,
 }: SeerExplorerHeaderProps) {
+  const dockOrientation = useSeerExplorerSidebarOrientation(sidebarPosition);
+
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -273,7 +276,7 @@ export function SeerExplorerHeader({
                 'aria-label': t('Dock position'),
                 icon: (
                   <IconPanel
-                    direction={sidebarPosition === 'bottom' ? 'down' : 'right'}
+                    direction={dockOrientation === 'bottom' ? 'down' : 'right'}
                   />
                 ),
                 showChevron: false,
