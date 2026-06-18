@@ -156,6 +156,19 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument();
   });
 
+  it('renders the app content before the container is measured', async () => {
+    // jsdom reports 0×0 until measured; the routed app must still be in the tree.
+    jest
+      .spyOn(useDimensionsModule, 'useDimensions')
+      .mockReturnValue({width: 0, height: 0});
+
+    renderSidebar(orgWithSidebar);
+
+    expect(await screen.findByText('main app content')).toBeInTheDocument();
+    // No split until measured.
+    expect(dividerDirection()).toBeUndefined();
+  });
+
   it('docks Seer to the bottom on a narrow viewport (auto)', async () => {
     mockWideScreen(false);
     renderSidebar(orgWithSidebar);

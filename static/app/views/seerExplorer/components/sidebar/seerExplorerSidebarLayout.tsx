@@ -33,8 +33,9 @@ const DEFAULT_SEER_HEIGHT = 360;
  * In sidebar mode the area is constrained to the viewport (`overflow: hidden`)
  * and the content scrolls inside its own pane — this gives Seer's pane a bounded
  * height so its header/input position correctly, and lets the bottom dock render
- * within the viewport. The `SplitPanel` is rendered only once the container has
- * been measured so its initial size is computed from real dimensions.
+ * within the viewport. The `SplitPanel` (and therefore the routed app) always
+ * renders; only Seer's pane waits for the container to be measured, so its size
+ * is computed from real dimensions while the app stays visible meanwhile.
  */
 export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode}) {
   const {isSidebarMode, isOpen, sidebarPosition, sidebarContainerRef} =
@@ -72,19 +73,22 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
   // written while closed — e.g. by resizing the popped-out window — is adopted).
   const splitPanelRef = useRef<SplitPanelHandle>(null);
   useLayoutEffect(() => {
-    if (!isSidebarMode || !isOpen) {
+    if (!isSidebarMode || !isOpen || available <= 0) {
       return;
     }
     splitPanelRef.current?.setSize(contentSize);
-  }, [isSidebarMode, isOpen, orientation, contentSize]);
+  }, [isSidebarMode, isOpen, available, orientation, contentSize]);
 
   if (!isSidebarMode) {
     return children;
   }
 
+  // Gate only the Seer pane on measurement (not the content): the routed app
+  // must always be in the tree. Before the container is measured the second
+  // pane is null, so the SplitPanel collapses to content-at-100%.
   const hasSize = width > 0 && height > 0;
 
-  const seerPanel = isOpen ? <SeerExplorerPanel /> : null;
+  const seerPanel = isOpen && hasSize ? <SeerExplorerPanel /> : null;
   // Let the routed app content scroll within its own pane instead of growing the
   // split (which would push Seer's pane out of the viewport).
   const contentPane = (
@@ -94,7 +98,12 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
   );
 
   // Persist Seer's size from a divider drag (content shrinks → Seer grows).
+  // Ignore pre-measure callbacks (the mount-time `onResize` fires before the
+  // container is measured) so we don't persist a size derived from a 0 width.
   const onContentResize = (contentPx: number) => {
+    if (available <= 0) {
+      return;
+    }
     const seer = Math.max(
       minSeer,
       Math.min(available - contentPx, available - minContent)
@@ -127,13 +136,11 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
       contain="size"
       overflow="hidden"
     >
-      {hasSize ? (
-        <SplitPanel
-          ref={splitPanelRef}
-          {...splitProps}
-          SplitDivider={SidebarSplitDivider}
-        />
-      ) : null}
+      <SplitPanel
+        ref={splitPanelRef}
+        {...splitProps}
+        SplitDivider={SidebarSplitDivider}
+      />
     </Flex>
   );
 }
