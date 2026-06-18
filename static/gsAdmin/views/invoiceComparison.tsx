@@ -29,19 +29,21 @@ type Row = {
   delta_pct: number | null;
   legacy_amount: number | null;
   legacy_invoice_count: number;
+  legacy_invoice_guids: string[];
   organization_id: number;
   organization_slug: string | null;
   platform_amount: number | null;
   platform_invoice_count: number;
+  platform_invoice_guids: string[];
   status: RowStatus;
 };
 
 type Summary = {
   end: string;
   legacy_count: number;
-  legacy_total_cents: number;
+  over_threshold_count: number;
+  over_threshold_pct: number;
   platform_count: number;
-  platform_total_cents: number;
   queried_at: string;
   row_count: number;
   rows_page: number;
@@ -85,6 +87,22 @@ function formatDollars(cents: number | null) {
   }
   const dollars = cents / 100;
   return `$${dollars.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+}
+
+function receiptUrl(orgSlug: string, guid: string) {
+  return `/settings/${orgSlug}/billing/receipts/${guid}/`;
+}
+
+// Render the $ amount as a link to the receipt details page when we can
+// pick a single invoice to point at. Multiple-invoice rows fall back to
+// plain text — the count badge next to the cell already signals there's
+// more than one, and per-invoice drill-down isn't a common workflow.
+function renderAmountCell(cents: number | null, guids: string[], orgSlug: string | null) {
+  const dollars = formatDollars(cents);
+  if (!orgSlug || guids.length !== 1) {
+    return dollars;
+  }
+  return <Link to={receiptUrl(orgSlug, guids[0]!)}>{dollars}</Link>;
 }
 
 function formatPercent(pct: number | null) {
@@ -405,11 +423,11 @@ export function InvoiceComparison() {
             <PanelHeader>Summary</PanelHeader>
             <PanelBody withPadding>
               <Grid
-                columns="repeat(7, 1fr)"
+                columns="repeat(4, 1fr)"
                 gap="xl"
                 css={css`
                   @media (max-width: 900px) {
-                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-columns: repeat(2, 1fr);
                   }
                 `}
               >
@@ -431,36 +449,13 @@ export function InvoiceComparison() {
                 </Flex>
                 <Flex direction="column">
                   <Text size="sm" variant="muted">
-                    Legacy total
+                    {'>1% diff'}
                   </Text>
                   <Text size="lg" bold>
-                    {formatDollars(data.summary.legacy_total_cents)}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Platform total
-                  </Text>
-                  <Text size="lg" bold>
-                    {formatDollars(data.summary.platform_total_cents)}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Total delta
-                  </Text>
-                  <Text size="lg" bold>
-                    {formatDollars(
-                      data.summary.legacy_total_cents - data.summary.platform_total_cents
-                    )}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Rows
-                  </Text>
-                  <Text size="lg" bold>
-                    {data.summary.row_count}
+                    {formatPercent(data.summary.over_threshold_pct)}
+                    <TruncatedNote size="sm" variant="muted">
+                      ({data.summary.over_threshold_count} of {data.summary.row_count})
+                    </TruncatedNote>
                   </Text>
                 </Flex>
                 <Flex direction="column">
@@ -522,13 +517,21 @@ export function InvoiceComparison() {
                         )}
                       </td>
                       <RightCell>
-                        {formatDollars(row.legacy_amount)}{' '}
+                        {renderAmountCell(
+                          row.legacy_amount,
+                          row.legacy_invoice_guids,
+                          row.organization_slug
+                        )}{' '}
                         <Text size="sm" variant="muted">
                           ({row.legacy_invoice_count})
                         </Text>
                       </RightCell>
                       <RightCell>
-                        {formatDollars(row.platform_amount)}{' '}
+                        {renderAmountCell(
+                          row.platform_amount,
+                          row.platform_invoice_guids,
+                          row.organization_slug
+                        )}{' '}
                         <Text size="sm" variant="muted">
                           ({row.platform_invoice_count})
                         </Text>
