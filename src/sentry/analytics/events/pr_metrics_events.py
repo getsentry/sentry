@@ -54,6 +54,31 @@ class PrCloseMetricsEvent(analytics.Event):
     # The Seer judge verdict (one of ``PullRequestVerdict``). Null on the no-judge
     # path and until the judge callback lands a result for a forwarded PR.
     verdict: str | None = None
+    # Close-reason labels behind the verdict (e.g. out_of_scope_or_unwanted) — the
+    # "why", a vocabulary shared across judges, not specific to any one. Repeated
+    # free-string column; null off the judge path. BigQuery-only.
+    diagnosis_labels: list[str] | None = None
+
+    # --- Conversation judge (set only on a judged close/merge row) ---
+    # One of several judges' outputs; a future judge lands its own columns
+    # alongside. Semantic outputs are promoted to columns so dashboards can
+    # group/filter directly; all are null off the judge path and BigQuery-only.
+    # Enum-like values are free strings so a Seer vocabulary change can't break it.
+    #
+    # positive | neutral | negative | mixed. Null when the judge was skipped (no
+    # comments), so there's no separate ``analyzed`` flag.
+    sentiment: str | None = None
+    # "did bots/humans comment?"
+    bot_comment_count: int | None = None
+    human_comment_count: int | None = None
+    # comments_truncated > 0 means a chatty PR was capped before judging.
+    comments_total: int | None = None
+    comments_judged: int | None = None
+    comments_truncated: int | None = None
+    # The judge's drill-down detail (per-comment intents, reasoning, version
+    # markers), JSON-encoded like ``attributions`` and stored verbatim. A future
+    # judge gets its own ``*_metadata``.
+    conversation_metadata: str | None = None
 
 
 analytics.register(PrCloseMetricsEvent)

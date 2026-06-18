@@ -8,7 +8,10 @@ production). A PR is "tracked" once it has at least one valid
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from typing import Any, Final, Literal
+
+from pydantic import BaseModel
 
 from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
@@ -36,6 +39,30 @@ CLOSE_ACTION_MERGED: Final = "merged"
 CloseAction = Literal["closed", "merged"]
 
 
+class PrConversationAnalysis(BaseModel):
+    """The conversation judge's analysis of a closed/merged PR — one of several
+    judges, each with its own result type and columns.
+
+    Mirrors the ``conversation_analysis`` Seer sends to ``update_pr_metrics`` (keep
+    in sync with getsentry/seer:src/seer/pr_metrics/models.py). BigQuery-only: it
+    shapes the emitted ``PrCloseMetricsEvent`` and is never persisted. Enum-like
+    values stay free strings, so a Seer vocabulary change can't fail validation.
+    """
+
+    # positive | neutral | negative | mixed. Null when the judge was skipped (no
+    # comments), so there's no separate ``analyzed`` flag.
+    sentiment: str | None = None
+    bot_comment_count: int | None = None
+    human_comment_count: int | None = None
+    # comments_truncated > 0 means a chatty PR was capped before judging.
+    comments_total: int | None = None
+    comments_judged: int | None = None
+    comments_truncated: int | None = None
+    # Opaque drill-down stored verbatim: per-comment intents, reasoning, version
+    # markers, intent counts.
+    metadata: dict[str, Any] | None = None
+
+
 def select_verdict(
     pull_request: PullRequest, organization: Organization
 ) -> PullRequestVerdict | None:
@@ -51,7 +78,7 @@ def select_verdict(
       diff-similarity judge.
     - Closed with no engagement — no later commits, comments, or review comments →
       ``closed_unmerged``: an abandoned PR with nothing to analyze. A close with any
-      engagement needs the comment judge to decide why it was closed.
+      engagement needs the conversation judge to decide why it was closed.
 
     The commits-after-open signal is a ``SYNCHRONIZED`` activity row, one per push
     to the PR branch after it opened. Those rows are only written under
@@ -141,12 +168,38 @@ def _merge_commit_id(pull_request: PullRequest) -> int | None:
     )
 
 
+def _conversation_analysis_fields(
+    conversation_analysis: PrConversationAnalysis | None,
+) -> dict[str, Any]:
+    """The ``PrCloseMetricsEvent`` columns from the conversation judge, or ``{}``
+    (every column keeps its ``None`` default) when no analysis was supplied. Only
+    ``metadata`` is JSON-encoded; the semantic outputs get their own columns.
+    """
+    if conversation_analysis is None:
+        return {}
+    return {
+        "sentiment": conversation_analysis.sentiment,
+        "bot_comment_count": conversation_analysis.bot_comment_count,
+        "human_comment_count": conversation_analysis.human_comment_count,
+        "comments_total": conversation_analysis.comments_total,
+        "comments_judged": conversation_analysis.comments_judged,
+        "comments_truncated": conversation_analysis.comments_truncated,
+        "conversation_metadata": (
+            json.dumps(conversation_analysis.metadata)
+            if conversation_analysis.metadata is not None
+            else None
+        ),
+    }
+
+
 def build_pr_metrics_row(
     *,
     pull_request: PullRequest,
     close_action: CloseAction,
     attributions: list[dict[str, Any]],
     group_ids: list[int],
+    conversation_analysis: PrConversationAnalysis | None = None,
+    diagnosis_labels: Sequence[str] | None = None,
 ) -> PrCloseMetricsEvent:
     """Assemble the close/merge analytics row.
 
@@ -155,6 +208,11 @@ def build_pr_metrics_row(
     reuse this. ``attributions`` is passed in so the tracking gate and the
     emitted row read the same query. A missing metrics row (a PR Sentry never saw
     active) coalesces every counter to its default.
+
+    The judge enrichment is set on the judge path only: ``conversation_analysis``
+    is the conversation judge's result (semantic outputs become columns, its
+    ``metadata`` is JSON-encoded), and ``diagnosis_labels`` is the cross-judge
+    close-reason "why".
     """
     head_commit_sha = pull_request.head_commit_sha
     closed_at = pull_request.closed_at
@@ -192,12 +250,16 @@ def build_pr_metrics_row(
         is_assigned=metrics.is_assigned,
         attributions=json.dumps(attributions),
         verdict=metrics.verdict,
+        diagnosis_labels=list(diagnosis_labels) if diagnosis_labels is not None else None,
+        **_conversation_analysis_fields(conversation_analysis),
     )
 
 
 def emit_pr_metrics_row(
     *,
     pull_request: PullRequest,
+    conversation_analysis: PrConversationAnalysis | None = None,
+    diagnosis_labels: Sequence[str] | None = None,
 ) -> bool:
     """Emit one BigQuery row for a tracked PR's terminal event.
 
@@ -206,7 +268,8 @@ def emit_pr_metrics_row(
     attributed to. Returns whether a row was emitted, for callers/tests.
 
     Takes only the canonical ``PullRequest`` — no webhook payload — so Seer's
-    judge can call it directly via RPC callback.
+    judge can call it directly via RPC callback. ``conversation_analysis`` and
+    ``diagnosis_labels`` are set only on that judge path.
     """
     # Fetch the attribution snapshot once: it both gates emission (≥1 valid row)
     # and rides along on the emitted row, so the two can't diverge.
@@ -223,6 +286,8 @@ def emit_pr_metrics_row(
         close_action=close_action,
         attributions=attributions,
         group_ids=resolved_group_ids(pull_request),
+        conversation_analysis=conversation_analysis,
+        diagnosis_labels=diagnosis_labels,
     )
     analytics.record(row)
     metrics.incr("pr_metrics.emit.recorded", tags={"close_action": close_action})
