@@ -658,7 +658,7 @@ class DatadogIdentityProviderTest(TestCase):
         self.provider.config = {"site": "evil.example.com"}
 
         with pytest.raises(ValueError, match="Invalid Datadog site"):
-            self.provider._get_mcp_base_url()
+            self.provider._build_mcp_base_url()
 
     def test_build_mcp_url(self) -> None:
         assert (
