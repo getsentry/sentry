@@ -376,7 +376,7 @@ class GroupDerivedDataStoreTest(TestCase):
         derived = process_group_log(group.id)
 
         state = GroupDerivedDataStore.load(PIPELINE, derived)
-        assert state[PROGRESS] == IssueProgressState.REGRESSED
+        assert state[PROGRESS] == IssueProgressState.IDENTIFIED
         assert state[LAST_PROGRESSED_AT] is not None
 
 

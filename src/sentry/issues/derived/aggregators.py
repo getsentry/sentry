@@ -29,6 +29,7 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
         GroupActionType.UNRESOLVE,
         GroupActionType.RESOLVED_IN_PULL_REQUEST,
         GroupActionType.ARCHIVE,
+        GroupActionType.SET_REGRESSED,
     ),
 )
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
@@ -38,20 +39,24 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
         GroupActionType.RESOLVED_IN_PULL_REQUEST.value,
         GroupActionType.ARCHIVE.value,
     )
+    reopens = (
+        GroupActionType.UNRESOLVE.value,
+        GroupActionType.SET_REGRESSED.value,
+    )
     if entry.type in resolves and current == IssueStatus.OPEN:
         return emit(STATUS.value(IssueStatus.CLOSED))
-    if entry.type == GroupActionType.UNRESOLVE.value and current == IssueStatus.CLOSED:
+    if entry.type in reopens and current == IssueStatus.CLOSED:
         return emit(STATUS.value(IssueStatus.OPEN))
     return None
 
 
 # Progress state machine for open issues (None when closed).
 #
-# Forward-only ordering (later value never reverts to an earlier one,
-# except via REGRESSED which restarts the cycle):
+# Forward-only ordering (later value never reverts to an earlier one;
+# reopening resets to IDENTIFIED):
 #
-#   IDENTIFIED → TRIAGED → DIAGNOSED → FIX_PROPOSED → FIX_APPLIED
-#       │            │          │            │               │
+#   IDENTIFIED → ASSIGNED → DIAGNOSED → FIX_PROPOSED → FIX_APPLIED
+#       ↑            │          │            │               │
 #       └────────────┴──────────┴────────────┴───────────────┘
 #                                   │
 #                               (RESOLVE / RESOLVED_IN_PULL_REQUEST)
@@ -60,27 +65,22 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
 #                                   │
 #                               (UNRESOLVE)
 #                                   ↓
-#                               REGRESSED → TRIAGED → ...
-#
-# Rank order: IDENTIFIED < REGRESSED < TRIAGED < ... < FIX_APPLIED
-# REGRESSED is ranked just above IDENTIFIED so any triage action
-# (ASSIGN, SET_PRIORITY, etc.) advances it forward to TRIAGED.
+#                               IDENTIFIED → ASSIGNED → ...
 #
 # Action type → minimum Progress level:
 #   ASSIGN, SET_PRIORITY, MARK_REVIEWED,
-#   TRIGGER_AUTOFIX                        →  TRIAGED
+#   TRIGGER_AUTOFIX                        →  ASSIGNED
 #   ROOT_CAUSE_IDENTIFIED                  →  DIAGNOSED
 #   AUTOFIX_CODING_COMPLETE                →  FIX_PROPOSED
 #   AUTOFIX_PR_CREATED                     →  FIX_PROPOSED
 #   (PR merged — no action type yet)       →  FIX_APPLIED
 #   RESOLVE, RESOLVED_IN_PULL_REQUEST      →  None (closed)
-#   UNRESOLVE                              →  REGRESSED
+#   UNRESOLVE, SET_REGRESSED               →  IDENTIFIED
 
 # Ordered from earliest to latest so we can compare with index.
 _PROGRESS_ORDER = [
     IssueProgressState.IDENTIFIED,
-    IssueProgressState.REGRESSED,
-    IssueProgressState.TRIAGED,
+    IssueProgressState.ASSIGNED,
     IssueProgressState.DIAGNOSED,
     IssueProgressState.FIX_PROPOSED,
     IssueProgressState.FIX_APPLIED,
@@ -89,10 +89,10 @@ _PROGRESS_RANK = {p: i for i, p in enumerate(_PROGRESS_ORDER)}
 
 # Actions that advance progress to at least this level.
 _ACTION_TO_MIN_PROGRESS: dict[int, IssueProgressState] = {
-    GroupActionType.ASSIGN: IssueProgressState.TRIAGED,
-    GroupActionType.SET_PRIORITY: IssueProgressState.TRIAGED,
-    GroupActionType.MARK_REVIEWED: IssueProgressState.TRIAGED,
-    GroupActionType.TRIGGER_AUTOFIX: IssueProgressState.TRIAGED,
+    GroupActionType.ASSIGN: IssueProgressState.ASSIGNED,
+    GroupActionType.SET_PRIORITY: IssueProgressState.ASSIGNED,
+    GroupActionType.MARK_REVIEWED: IssueProgressState.ASSIGNED,
+    GroupActionType.TRIGGER_AUTOFIX: IssueProgressState.ASSIGNED,
     GroupActionType.ROOT_CAUSE_IDENTIFIED: IssueProgressState.DIAGNOSED,
     GroupActionType.AUTOFIX_CODING_COMPLETE: IssueProgressState.FIX_PROPOSED,
     GroupActionType.AUTOFIX_PR_CREATED: IssueProgressState.FIX_PROPOSED,
@@ -113,9 +113,9 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
             return emit(PROGRESS.value(None), LAST_PROGRESSED_AT.value(ts))
         return None
 
-    # Reopened: if progress was None (just transitioned from closed), mark regressed.
+    # Reopened: reset to IDENTIFIED.
     if current is None:
-        return emit(PROGRESS.value(IssueProgressState.REGRESSED), LAST_PROGRESSED_AT.value(ts))
+        return emit(PROGRESS.value(IssueProgressState.IDENTIFIED), LAST_PROGRESSED_AT.value(ts))
 
     # Check if this action advances progress forward.
     min_progress = _ACTION_TO_MIN_PROGRESS.get(entry.type)

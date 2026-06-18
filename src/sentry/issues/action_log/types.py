@@ -84,6 +84,7 @@ class GroupActionType(IntEnum):
     RESOLVED_IN_PULL_REQUEST = 25
     ROOT_CAUSE_IDENTIFIED = 26
     AUTOFIX_CODING_COMPLETE = 27
+    SET_REGRESSED = 28
 
 
 class GroupAction(BaseModel, abc.ABC):
@@ -310,3 +311,9 @@ class AutofixCodingCompleteAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.AUTOFIX_CODING_COMPLETE
+
+
+class SetRegressedAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SET_REGRESSED

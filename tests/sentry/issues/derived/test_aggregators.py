@@ -161,6 +161,33 @@ def test_status_toggle() -> None:
     )
 
 
+def test_regression_reopens() -> None:
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=GroupActionType.SET_REGRESSED),
+            ],
+        )
+        == IssueStatus.OPEN
+    )
+
+
+def test_regression_resets_progress() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=GroupActionType.SET_REGRESSED),
+            ],
+        )
+        == IssueProgressState.IDENTIFIED
+    )
+
+
 def test_archive_closes() -> None:
     assert (
         _run_for_feature(
@@ -223,7 +250,7 @@ def test_view_does_not_advance_progress() -> None:
     )
 
 
-def test_assign_advances_to_triaged() -> None:
+def test_assign_advances_to_assigned() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
@@ -231,7 +258,7 @@ def test_assign_advances_to_triaged() -> None:
                 FakeEntry(type=GroupActionType.ASSIGN),
             ],
         )
-        == IssueProgressState.TRIAGED
+        == IssueProgressState.ASSIGNED
     )
 
 
@@ -288,12 +315,12 @@ def test_progress_none_when_closed() -> None:
     p = _pipeline(targets=(PROGRESS,))
     state = p.initial_state()
     state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
-    assert state[PROGRESS] == IssueProgressState.TRIAGED
+    assert state[PROGRESS] == IssueProgressState.ASSIGNED
     state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
     assert state[PROGRESS] is None
 
 
-def test_progress_regressed_on_reopen() -> None:
+def test_progress_resets_on_reopen() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
@@ -302,11 +329,11 @@ def test_progress_regressed_on_reopen() -> None:
                 FakeEntry(type=GroupActionType.UNRESOLVE),
             ],
         )
-        == IssueProgressState.REGRESSED
+        == IssueProgressState.IDENTIFIED
     )
 
 
-def test_progress_advances_from_regressed() -> None:
+def test_progress_advances_after_reopen() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
@@ -316,11 +343,11 @@ def test_progress_advances_from_regressed() -> None:
                 FakeEntry(type=GroupActionType.ASSIGN),
             ],
         )
-        == IssueProgressState.TRIAGED
+        == IssueProgressState.ASSIGNED
     )
 
 
-def test_progress_advances_from_regressed_to_diagnosed() -> None:
+def test_progress_advances_after_reopen_to_diagnosed() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
@@ -347,7 +374,7 @@ def test_assign_does_not_regress_fix_proposed() -> None:
     )
 
 
-def test_set_priority_advances_to_triaged() -> None:
+def test_set_priority_advances_to_assigned() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
@@ -355,11 +382,11 @@ def test_set_priority_advances_to_triaged() -> None:
                 FakeEntry(type=GroupActionType.SET_PRIORITY),
             ],
         )
-        == IssueProgressState.TRIAGED
+        == IssueProgressState.ASSIGNED
     )
 
 
-def test_mark_reviewed_advances_to_triaged() -> None:
+def test_mark_reviewed_advances_to_assigned() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
@@ -367,11 +394,11 @@ def test_mark_reviewed_advances_to_triaged() -> None:
                 FakeEntry(type=GroupActionType.MARK_REVIEWED),
             ],
         )
-        == IssueProgressState.TRIAGED
+        == IssueProgressState.ASSIGNED
     )
 
 
-def test_trigger_autofix_advances_to_triaged() -> None:
+def test_trigger_autofix_advances_to_assigned() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
@@ -379,7 +406,7 @@ def test_trigger_autofix_advances_to_triaged() -> None:
                 FakeEntry(type=GroupActionType.TRIGGER_AUTOFIX),
             ],
         )
-        == IssueProgressState.TRIAGED
+        == IssueProgressState.ASSIGNED
     )
 
 
@@ -389,7 +416,7 @@ def test_progress_full_lifecycle() -> None:
     assert state[PROGRESS] == IssueProgressState.IDENTIFIED
 
     state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
-    assert state[PROGRESS] == IssueProgressState.TRIAGED
+    assert state[PROGRESS] == IssueProgressState.ASSIGNED
 
     state = p.step(state, FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED))
     assert state[PROGRESS] == IssueProgressState.DIAGNOSED
@@ -413,11 +440,11 @@ def test_progress_full_lifecycle() -> None:
 
     # Reopen
     state = p.step(state, FakeEntry(type=GroupActionType.UNRESOLVE))
-    assert state[PROGRESS] == IssueProgressState.REGRESSED
+    assert state[PROGRESS] == IssueProgressState.IDENTIFIED
 
     # New investigation
     state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
-    assert state[PROGRESS] == IssueProgressState.TRIAGED
+    assert state[PROGRESS] == IssueProgressState.ASSIGNED
 
 
 # ---------------------------------------------------------------------------
