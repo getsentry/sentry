@@ -1,8 +1,9 @@
 """Selectable/filterable columns for the AI Conversations table.
 
-The id query runs over the full org volume and owns the sort and filtering; the
-detail queries are bounded to the resulting page of ids and only run when one of
-their fields was requested. Gated behind ``organizations:gen-ai-conversations-columns``.
+The id query runs over the full org volume and owns the filtering; it always
+orders by most recent last message. The detail queries are bounded to the
+resulting page of ids and only run when one of their fields was requested. Gated
+behind ``organizations:gen-ai-conversations-columns``.
 """
 
 from __future__ import annotations
