@@ -1,9 +1,13 @@
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {Token, WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {TermOperator, Token, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {FieldKind, type FieldDefinition} from 'sentry/utils/fields';
 
-import {multiSelectTokenValue, replaceFreeTextTokens} from './useQueryBuilderState';
+import {
+  modifyFilterOperatorQuery,
+  multiSelectTokenValue,
+  replaceFreeTextTokens,
+} from './useQueryBuilderState';
 
 describe('replaceFreeTextTokens', () => {
   describe('when there are free text tokens', () => {
@@ -329,5 +333,69 @@ describe('multiSelectTokenValue', () => {
 
     const thirdToggle = runToggle(secondToggle.query, '"1.0.0+build 1"');
     expect(thirdToggle.query).toBe('release:[2.0.0,"1.0.0+build 1"]');
+  });
+});
+
+describe('modifyFilterOperatorQuery', () => {
+  const filterKeys = {
+    message: {
+      key: 'message',
+      name: 'message',
+      kind: FieldKind.FIELD,
+    },
+  };
+
+  function parseFilterToken(query: string) {
+    const parsed = parseQueryBuilderValue(query, () => null, {filterKeys});
+    const token = parsed?.find(t => t.type === Token.FILTER);
+    if (!token) {
+      throw new Error(`No filter token found in query: ${query}`);
+    }
+    return token;
+  }
+
+  it('escapes a literal asterisk when switching from contains to is', () => {
+    const query = `message:${WildcardOperators.CONTAINS}foo*bar`;
+    const token = parseFilterToken(query);
+
+    const result = modifyFilterOperatorQuery(query, token, TermOperator.DEFAULT);
+
+    expect(result).toBe('message:foo\\*bar');
+  });
+
+  it('escapes every literal asterisk in a list value when switching from contains to is', () => {
+    const query = `message:${WildcardOperators.CONTAINS}[foo*,*bar]`;
+    const token = parseFilterToken(query);
+
+    const result = modifyFilterOperatorQuery(query, token, TermOperator.DEFAULT);
+
+    expect(result).toBe('message:[foo\\*,\\*bar]');
+  });
+
+  it('does not double escape an already escaped asterisk when switching from contains to is', () => {
+    const query = `message:${WildcardOperators.CONTAINS}foo\\*bar`;
+    const token = parseFilterToken(query);
+
+    const result = modifyFilterOperatorQuery(query, token, TermOperator.DEFAULT);
+
+    expect(result).toBe('message:foo\\*bar');
+  });
+
+  it('leaves a value without asterisks unchanged when switching from contains to is', () => {
+    const query = `message:${WildcardOperators.CONTAINS}foobar`;
+    const token = parseFilterToken(query);
+
+    const result = modifyFilterOperatorQuery(query, token, TermOperator.DEFAULT);
+
+    expect(result).toBe('message:foobar');
+  });
+
+  it('does not escape asterisks when switching to contains', () => {
+    const query = 'message:foo*bar';
+    const token = parseFilterToken(query);
+
+    const result = modifyFilterOperatorQuery(query, token, TermOperator.CONTAINS);
+
+    expect(result).toBe(`message:${WildcardOperators.CONTAINS}foo*bar`);
   });
 });

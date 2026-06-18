@@ -4,6 +4,7 @@ import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fiel
 
 import {
   areWildcardOperatorsAllowed,
+  escapeAsterisksInValue,
   escapeTagValueForSearch,
   formatFilterValue,
   getValidOpsForFilter,
@@ -152,6 +153,24 @@ describe('getValidOpsForFilter', () => {
         fieldDefinition,
       })
     ).not.toEqual(expect.arrayContaining([TermOperator.CONTAINS]));
+  });
+});
+
+describe('escapeAsterisksInValue', () => {
+  it('escapes an unescaped asterisk', () => {
+    expect(escapeAsterisksInValue('foo*bar')).toBe('foo\\*bar');
+  });
+
+  it('does not double escape an already escaped asterisk', () => {
+    expect(escapeAsterisksInValue('foo\\*bar')).toBe('foo\\*bar');
+  });
+
+  it('escapes an asterisk preceded by an even number of backslashes', () => {
+    expect(escapeAsterisksInValue('foo\\\\*bar')).toBe('foo\\\\\\*bar');
+  });
+
+  it('leaves a value without asterisks unchanged', () => {
+    expect(escapeAsterisksInValue('foobar')).toBe('foobar');
   });
 });
 

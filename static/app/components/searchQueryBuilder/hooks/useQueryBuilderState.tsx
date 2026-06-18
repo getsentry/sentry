@@ -3,6 +3,7 @@ import {useCallback, useEffect, useReducer, type Reducer} from 'react';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {
   convertTokenTypeToValueType,
+  escapeAsterisksInValue,
   escapeTagValue,
   escapeTagValueForSearch,
   getArgsToken,
@@ -324,7 +325,38 @@ export function modifyFilterOperatorQuery(
   newToken.negated = negated;
   newToken.operator = internalOp;
 
+  // Switching from `contains` (implicit wildcard matching) to `is` (exact
+  // match) means any literal `*` in the value should be escaped so it is
+  // matched literally rather than treated as a wildcard.
+  if (token.operator === TermOperator.CONTAINS && internalOp === TermOperator.DEFAULT) {
+    newToken.value = escapeAsterisksInTokenValue(newToken.value);
+  }
+
   return replaceQueryToken(query, token, stringifyToken(newToken));
+}
+
+function escapeAsterisksInTokenValue(
+  value: TokenResult<Token.FILTER>['value']
+): TokenResult<Token.FILTER>['value'] {
+  if (value.type === Token.VALUE_TEXT) {
+    return {...value, value: escapeAsterisksInValue(value.value)};
+  }
+
+  if (value.type === Token.VALUE_TEXT_LIST) {
+    return {
+      ...value,
+      items: value.items.map(item =>
+        item.value
+          ? {
+              ...item,
+              value: {...item.value, value: escapeAsterisksInValue(item.value.value)},
+            }
+          : item
+      ),
+    };
+  }
+
+  return value;
 }
 
 function modifyFilterOperator(

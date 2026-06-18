@@ -138,14 +138,10 @@ export function escapeTagValue(
   return shouldEscape ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 
-export function escapeTagValueForSearch(
-  value: string,
-  options: EscapeTagValueOptions = {}
-): string {
-  if (!value) {
-    return '';
-  }
-
+// Escapes any literal `*` in a value so it is matched literally rather than as
+// a wildcard. Already-escaped asterisks (preceded by an odd number of
+// backslashes) are left untouched.
+export function escapeAsterisksInValue(value: string): string {
   let escapedValue = '';
   let consecutiveBackslashes = 0;
 
@@ -163,6 +159,19 @@ export function escapeTagValueForSearch(
     escapedValue += char;
     consecutiveBackslashes = 0;
   }
+
+  return escapedValue;
+}
+
+export function escapeTagValueForSearch(
+  value: string,
+  options: EscapeTagValueOptions = {}
+): string {
+  if (!value) {
+    return '';
+  }
+
+  const escapedValue = escapeAsterisksInValue(value);
 
   const shouldEscape = shouldEscapeTagValue(escapedValue, options);
 
