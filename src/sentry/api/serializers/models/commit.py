@@ -14,6 +14,12 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 
 
+class EmptyAuthor(TypedDict):
+    """The commit serializer emits ``{}`` for ``author`` when the commit has no
+    mapped author, so the published schema must allow an empty object alongside a
+    populated ``Author``."""
+
+
 class CommitSerializerResponse(TypedDict):
     id: str
     message: str | None
@@ -22,7 +28,7 @@ class CommitSerializerResponse(TypedDict):
     suspectCommitType: str
 
     repository: NotRequired[RepositorySerializerResponse]
-    author: NotRequired[Author]
+    author: NotRequired[Author | EmptyAuthor]
 
 
 class CommitReleaseSerializerResponse(TypedDict):
