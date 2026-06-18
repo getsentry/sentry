@@ -25,6 +25,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
+import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Group} from 'sentry/types/group';
@@ -335,8 +336,9 @@ function CodeChangesNextStepWithoutWritePermissions({
             variant="primary"
             disabled={isPolling}
             to={permissionsUrl}
+            icon={<IconOpen />}
           >
-            {t('Yes, grant permissions to draft a PR')}
+            {t('Yes, grant permissions to draft a PR on %s', integration.provider.name)}
           </LinkButton>
         </Tooltip>
       }
@@ -353,8 +355,12 @@ function CodeChangesNextStepWithoutWritePermissions({
             variant="primary"
             disabled={isPolling}
             to={permissionsUrl}
+            icon={<IconOpen />}
           >
-            {t('Nevermind, grant permissions to draft a PR')}
+            {t(
+              'Nevermind, grant permissions to draft a PR on %s',
+              integration.provider.name
+            )}
           </LinkButton>
         </Tooltip>
       }
