@@ -320,11 +320,13 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
                             response.query.fields.append(validity)
 
         response.field.extend(column_validity)
-        for field in response.query.fields:
-            if not field.valid:
-                response.query.valid = False
-                response.query.error = field.error
-                break
+        # If the response is still valid check if there's a field validity we wanna use
+        if response.query.valid:
+            for field in response.query.fields:
+                if not field.valid:
+                    response.query.valid = False
+                    response.query.error = field.error
+                    break
 
         # Validate orderby
         orderby_validity = []
