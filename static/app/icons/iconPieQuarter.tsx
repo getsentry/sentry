@@ -1,7 +1,7 @@
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-export function IconTriaged(props: SVGIconProps) {
+export function IconPieQuarter(props: SVGIconProps) {
   return (
     <SvgIcon {...props}>
       <path d="M8 3C10.76 3 13 5.24 13 8H8V3Z" />
