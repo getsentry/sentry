@@ -246,7 +246,6 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
-
 # User Settings
 register(
     "user-settings.signed-url-confirmation-emails-salt",

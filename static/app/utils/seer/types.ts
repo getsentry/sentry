@@ -38,10 +38,11 @@ export type AutofixAgentSelectOption = 'seer' | `${CodingAgentProvider}::${strin
 // Mirrors python serializer: ProjectSettingsUpdateSerializer
 export type SeerProjectSettingUpdatePayload = {
   agentOption?: AutofixAgentSelectOption;
+  autoCreatePr?: boolean;
   automationTuning?: UserFacingAutomationTuning;
   integrationId?: string;
   scannerAutomation?: boolean;
-  stoppingPoint?: SeerAutofixStoppingPoint; // SeerAutofixStoppingPoint;
+  stoppingPoint?: SeerAutofixStoppingPoint;
 };
 
 // Mirrors python serializer: BulkProjectSettingsUpdateSerializer
