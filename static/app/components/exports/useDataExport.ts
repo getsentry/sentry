@@ -33,8 +33,6 @@ interface IssuesByTagQueryInfo {
 type DiscoverQueryInfo = EventQuery & LocationQuery;
 
 type EventsQuerySamplingMode =
-  | 'BEST_EFFORT'
-  | 'PREFLIGHT'
   | 'NORMAL'
   | 'HIGHEST_ACCURACY'
   | 'HIGHEST_ACCURACY_FLEX_TIME';
