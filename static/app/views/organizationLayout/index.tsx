@@ -22,7 +22,6 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import {useInitSentryToolbar} from 'sentry/utils/useInitSentryToolbar';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
@@ -116,17 +115,15 @@ function AppLayout({organization}: LayoutProps) {
             background="secondary"
           >
             <DemoHeader />
-            <AppBodyContent>
-              {organization && <OrganizationHeader organization={organization} />}
-              <OrganizationDetailsBody>
-                <TopBar.Slot.Provider>
-                  <TopBar />
-                  <Layout.Page>
-                    <Outlet />
-                  </Layout.Page>
-                </TopBar.Slot.Provider>
-              </OrganizationDetailsBody>
-            </AppBodyContent>
+            {organization && <OrganizationHeader organization={organization} />}
+            <OrganizationDetailsBody>
+              <TopBar.Slot.Provider>
+                <TopBar />
+                <Layout.Page>
+                  <Outlet />
+                </Layout.Page>
+              </TopBar.Slot.Provider>
+            </OrganizationDetailsBody>
           </ContentStack>
         </Flex>
       </Stack>
