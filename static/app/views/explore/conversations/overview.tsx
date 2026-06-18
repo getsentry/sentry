@@ -17,8 +17,6 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
-import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   ExploreBodyContent,
   ExploreBodySearch,
@@ -28,13 +26,9 @@ import {ConversationsTable} from 'sentry/views/explore/conversations/components/
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
-import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
-import {useExploreSchemaHintsRemoval} from 'sentry/views/explore/useExploreSchemaHintsRemoval';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-
-const DISABLE_AGGREGATES: never[] = [];
 
 function ConversationsOverviewPage() {
   const organization = useOrganization();
@@ -60,19 +54,6 @@ function ConversationsOverviewPage() {
     });
   }, [organization]);
 
-  const {attributes: numberTags, isLoading: numberTagsLoading} = useSpanItemAttributes(
-    {},
-    'number'
-  );
-  const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
-    {},
-    'string'
-  );
-  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useSpanItemAttributes(
-    {},
-    'boolean'
-  );
-
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
@@ -91,8 +72,6 @@ function ConversationsOverviewPage() {
     }),
     [searchQuery, setSearchQuery, unsetCursor]
   );
-
-  const schemaHintsRemoval = useExploreSchemaHintsRemoval();
 
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
     useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
@@ -123,17 +102,6 @@ function ConversationsOverviewPage() {
                 </Flex>
               )}
             </Flex>
-            {!showOnboarding && !schemaHintsRemoval && !isOnboardingLoading && (
-              <SchemaHintsList
-                supportedAggregates={DISABLE_AGGREGATES}
-                booleanTags={booleanTags}
-                numberTags={numberTags}
-                stringTags={stringTags}
-                isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
-                exploreQuery={searchQuery ?? ''}
-                source={SchemaHintsSources.CONVERSATIONS}
-              />
-            )}
           </Stack>
         </Layout.Main>
       </ExploreBodySearch>
