@@ -12,7 +12,7 @@ import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/command
 import {t} from 'sentry/locale';
 import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {MobilePageFrameNavigation} from 'sentry/views/navigation/mobileNavigation';
+import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
 import {
   NavigationTourProvider,
@@ -74,7 +74,7 @@ function UserAndOrganizationNavigation() {
       <GlobalCommandPaletteActions />
       {layout === 'mobile' ? (
         <MobileSecondaryNavigationContextProvider>
-          <MobilePageFrameNavigation />
+          <MobileNavigation />
         </MobileSecondaryNavigationContextProvider>
       ) : (
         <DesktopNavigation />

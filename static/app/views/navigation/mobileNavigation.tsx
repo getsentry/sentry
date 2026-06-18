@@ -70,7 +70,7 @@ function MobilePrimaryNavigation() {
   );
 }
 
-export function MobilePageFrameNavigation() {
+export function MobileNavigation() {
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const navPanelRef = useRef<HTMLDivElement>(null);
