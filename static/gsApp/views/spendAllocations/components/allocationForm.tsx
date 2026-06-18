@@ -20,9 +20,10 @@ import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {AllocationTargetTypes, getBilledDataCategoryInfo} from 'getsentry/constants';
+import {AllocationTargetTypes} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
 import {
+  getBilledDataCategoryInfo,
   getCategoryInfoFromPlural,
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';

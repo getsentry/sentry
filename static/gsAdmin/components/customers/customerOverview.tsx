@@ -28,7 +28,7 @@ import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {ExtendProductTrialAction} from 'admin/components/extendProductTrialAction';
 import {getLogQuery} from 'admin/utils';
-import {getBilledDataCategoryInfo, UNLIMITED} from 'getsentry/constants';
+import {UNLIMITED} from 'getsentry/constants';
 import type {
   Plan,
   ReservedBudget,
@@ -46,6 +46,7 @@ import {
   RETENTION_SETTINGS_CATEGORIES,
 } from 'getsentry/utils/billing';
 import {
+  getBilledDataCategoryInfo,
   getPlanCategoryName,
   getReservedBudgetDisplayName,
   sortCategories,

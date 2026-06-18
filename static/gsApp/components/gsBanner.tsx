@@ -44,7 +44,6 @@ import {ProductTrialAlert} from 'getsentry/components/productTrial/productTrialA
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import {withSubscription} from 'getsentry/components/withSubscription';
-import {getBilledDataCategoryInfo} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
   type BilledDataCategoryInfo,
@@ -62,7 +61,10 @@ import {
   partnerPlanEndingModalIsDismissed,
   trialPromptIsDismissed,
 } from 'getsentry/utils/billing';
-import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
+import {
+  getBilledDataCategoryInfo,
+  getCategoryInfoFromPlural,
+} from 'getsentry/utils/dataCategory';
 import {getPendoAccountFields} from 'getsentry/utils/pendo';
 import {claimAvailablePromotion} from 'getsentry/utils/promotionUtils';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';

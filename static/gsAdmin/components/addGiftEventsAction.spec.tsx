@@ -7,8 +7,10 @@ import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import {getBilledDataCategoryInfo} from 'getsentry/constants';
-import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
+import {
+  getBilledDataCategoryInfo,
+  getCategoryInfoFromPlural,
+} from 'getsentry/utils/dataCategory';
 
 describe('AddGiftEventsAction', () => {
   const mockOrg = OrganizationFixture();

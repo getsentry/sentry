@@ -6,7 +6,7 @@ import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {getBilledDataCategoryInfo, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {BILLED_DATA_CATEGORY_INFO, UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {
   BilledDataCategoryInfo,
   BillingMetricHistory,
@@ -20,6 +20,17 @@ import type {
 import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 
 /**
+ * Returns billing-enriched data category info for all categories.
+ * This wraps the static constant so it can later be replaced with a backend call.
+ */
+export function getBilledDataCategoryInfo(): Record<
+  DataCategoryExact,
+  BilledDataCategoryInfo
+> {
+  return BILLED_DATA_CATEGORY_INFO;
+}
+
+/**
  * Returns the data category info defined in DATA_CATEGORY_INFO for the given category,
  * with billing context defined in BILLED_DATA_CATEGORY_INFO.
  *
@@ -28,9 +39,7 @@ import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 export function getCategoryInfoFromPlural(
   category: DataCategory
 ): BilledDataCategoryInfo | null {
-  const info = Object.values(getBilledDataCategoryInfo()).find(
-    c => c.plural === category
-  );
+  const info = Object.values(BILLED_DATA_CATEGORY_INFO).find(c => c.plural === category);
   if (!info) {
     return null;
   }

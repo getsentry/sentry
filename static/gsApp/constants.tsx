@@ -77,7 +77,7 @@ Object.entries(DEFAULT_BILLED_DATA_CATEGORY_INFO).forEach(
  * All categories with isBilledCategory: true, should be explicitly
  * added to this object with billing info.
  */
-const BILLED_DATA_CATEGORY_INFO = {
+export const BILLED_DATA_CATEGORY_INFO = {
   ...DEFAULT_BILLED_DATA_CATEGORY_INFO,
   [DataCategoryExact.ERROR]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ERROR],
@@ -234,14 +234,3 @@ const BILLED_DATA_CATEGORY_INFO = {
     adminOnlyProductTrialFeature: 'expose-category-installable-build',
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;
-
-/**
- * Returns billing-enriched data category info for all categories.
- * This wraps the static constant so it can later be replaced with a backend call.
- */
-export function getBilledDataCategoryInfo(): Record<
-  DataCategoryExact,
-  BilledDataCategoryInfo
-> {
-  return BILLED_DATA_CATEGORY_INFO;
-}
