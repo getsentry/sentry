@@ -380,6 +380,7 @@ def get_legacy_webhook_service(organization: Organization) -> PluginService | No
     """
     has_webhooks = ProjectOption.objects.filter(
         project__organization_id=organization.id,
+        project__status=ObjectStatus.ACTIVE,
         key="webhooks:enabled",
         value=True,
     ).exists()
