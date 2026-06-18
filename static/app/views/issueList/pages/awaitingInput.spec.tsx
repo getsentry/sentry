@@ -108,10 +108,9 @@ describe('AwaitingInputPage', () => {
     render(<AwaitingInputPage />);
 
     expect(await screen.findByText('RequestError')).toBeInTheDocument();
-    const issueHeader = screen.getByText('Issue');
-    const actionsBar = within(issueHeader.parentElement!.parentElement!);
-    expect(actionsBar.getByText('Progress')).toBeInTheDocument();
-    expect(actionsBar.queryByText('Priority')).not.toBeInTheDocument();
+    const issueList = within(screen.getByTestId('issue-list'));
+    expect(issueList.getByText('Progress')).toBeInTheDocument();
+    expect(issueList.queryByText('Priority')).not.toBeInTheDocument();
     expect(await screen.findByText('Diagnosed')).toBeInTheDocument();
   });
 
