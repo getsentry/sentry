@@ -19,6 +19,7 @@ from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_totals
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
@@ -95,8 +96,9 @@ def run_eap_spans_table_query_in_chunks(
 def get_eap_organization_volume(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
-    end_time = datetime.now(UTC)
+    end_time = end or datetime.now(UTC)
     start_time = end_time - time_interval
     result = Spans.run_table_query(
         params=SnubaParams(
@@ -132,6 +134,34 @@ def get_eap_organization_volume(
     indexed = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
 
     return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=indexed)
+
+
+def get_outcomes_organization_volume(
+    config: OrganizationVolumeConfig,
+    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    end: datetime | None = None,
+) -> OrganizationDataVolume | None:
+    end_time = end or datetime.now(UTC)
+    start_time = end_time - time_interval
+
+    query = QueryDefinition(
+        fields=["sum(quantity)"],
+        start=start_time.isoformat(),
+        end=end_time.isoformat(),
+        organization_id=config.organization.id,
+        project_ids=[project.id for project in config.projects],
+        outcome=["accepted"],
+        category=["transaction"],
+    )
+    rows = run_outcomes_query_totals(query, tenant_ids={"organization_id": config.organization.id})
+    if not rows:
+        return None
+
+    total = _get_aggregate_int(rows[0], "quantity")
+    if total <= 0:
+        return None
+
+    return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=None)
 
 
 def get_eap_project_volumes(
