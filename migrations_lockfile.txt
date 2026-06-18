@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0020_backfill_night_shift_run_shards
 
-sentry: 1121_add_organizationcontributoraction
+sentry: 1122_profilechunkattachment
 
 social_auth: 0003_social_auth_json_field
 

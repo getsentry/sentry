@@ -771,6 +771,7 @@ from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskE
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
+    OrganizationProfilingChunkAttachmentsEndpoint,
     OrganizationProfilingChunksEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
     OrganizationProfilingHasChunksEndpoint,
@@ -810,6 +811,7 @@ from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
 )
 from .endpoints.project_profiling_profile import (
+    ProjectProfilingChunkAttachmentEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawChunkEndpoint,
     ProjectProfilingRawProfileEndpoint,
@@ -2593,6 +2595,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
                     name="sentry-api-0-organization-profiling-chunks",
                 ),
                 re_path(
+                    r"^chunk-attachments/$",
+                    OrganizationProfilingChunkAttachmentsEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-chunk-attachments",
+                ),
+                re_path(
                     r"^has-chunks/$",
                     OrganizationProfilingHasChunksEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-has-chunks",
@@ -3204,6 +3211,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/profiling/raw_chunks/(?P<profiler_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/(?P<chunk_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingRawChunkEndpoint.as_view(),
         name="sentry-api-0-project-profiling-raw-chunk",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/profiling/chunks/(?P<profiler_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/(?P<chunk_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/attachments/(?P<attachment_id>\d+)/$",
+        ProjectProfilingChunkAttachmentEndpoint.as_view(),
+        name="sentry-api-0-project-profiling-chunk-attachment",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/statistical-detector/$",
