@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import logging
-
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import logger as sentry_logger
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -20,8 +19,6 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiConflictError, ApiError
-
-logger = logging.getLogger(__name__)
 
 
 @cell_silo_endpoint
@@ -71,21 +68,23 @@ class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint
 
         client = GitHubApiClient(integration=integration, org_integration_id=org_integration.id)
 
-        extra = {"repo_id": repo.id, "repo_name": repo.name}
+        attributes = {"repo_id": repo.id, "repo_name": repo.name}
         try:
             result = detect_platforms_multi(client, repo.name)
         except ApiConflictError:
             # Empty / unprocessable repo (e.g. empty git tree). Benign: the FE
             # falls back to the manual picker on []. Still capture for visibility.
-            logger.warning("github.platform_detection.multi.empty_repo", extra=extra)
+            sentry_logger.warning(
+                "github.platform_detection.multi.empty_repo", attributes=attributes
+            )
             with sentry_sdk.new_scope() as scope:
                 scope.set_tag("scm_platform_detection", "empty_repo")
                 sentry_sdk.capture_exception()
             return Response({"platforms": []})
         except (ApiError, ValueError):
-            # logger.exception attaches the stacktrace to the log record;
-            # capture_exception files the Sentry issue with the original error.
-            logger.exception("github.platform_detection.multi.failed", extra=extra)
+            # The structured log is the searchable record; capture_exception files
+            # the Sentry issue with the original error + stacktrace.
+            sentry_logger.error("github.platform_detection.multi.failed", attributes=attributes)
             with sentry_sdk.new_scope() as scope:
                 scope.set_tag("scm_platform_detection", "failed")
                 sentry_sdk.capture_exception()
