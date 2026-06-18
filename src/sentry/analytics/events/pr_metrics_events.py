@@ -60,21 +60,23 @@ class PrCloseMetricsEvent(analytics.Event):
     diagnosis_labels: list[str] | None = None
 
     # --- Conversation judge (set only on a judged close/merge row) ---
-    # One of several judges' outputs; a future judge lands its own columns
-    # alongside. Semantic outputs are promoted to columns so dashboards can
-    # group/filter directly; all are null off the judge path and BigQuery-only.
-    # Enum-like values are free strings so a Seer vocabulary change can't break it.
+    # One of several judges' outputs. Columns are prefixed ``conversation_`` so a
+    # future judge's columns sit alongside without collision, and to disambiguate
+    # the judge's comment counts from the webhook ``comments_count`` above. Semantic
+    # outputs are promoted to columns so dashboards group/filter directly; all are
+    # null off the judge path and BigQuery-only. Enum-like values are free strings
+    # so a Seer vocabulary change can't break the schema.
     #
     # positive | neutral | negative | mixed. Null when the judge was skipped (no
     # comments), so there's no separate ``analyzed`` flag.
-    sentiment: str | None = None
-    # "did bots/humans comment?"
-    bot_comment_count: int | None = None
-    human_comment_count: int | None = None
-    # comments_truncated > 0 means a chatty PR was capped before judging.
-    comments_total: int | None = None
-    comments_judged: int | None = None
-    comments_truncated: int | None = None
+    conversation_sentiment: str | None = None
+    # Comments split by author class — "did bots/humans comment?"
+    conversation_comments_bot: int | None = None
+    conversation_comments_human: int | None = None
+    # conversation_comments_truncated > 0 means a chatty PR was capped before judging.
+    conversation_comments_total: int | None = None
+    conversation_comments_judged: int | None = None
+    conversation_comments_truncated: int | None = None
     # The judge's drill-down detail (per-comment intents, reasoning, version
     # markers), JSON-encoded like ``attributions`` and stored verbatim. A future
     # judge gets its own ``*_metadata``.

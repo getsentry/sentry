@@ -45,7 +45,7 @@ from sentry.seer.sentry_data_models import (
     UpdatePrMetricsSuccessResponse,
 )
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +69,7 @@ RESULT_VERDICTS = frozenset(PullRequestVerdict.values) - {PullRequestVerdict.JUD
 # package or codegen; both sides validate with pydantic, so drift surfaces as a
 # ValidationError here or a 4xx from Seer rather than silent corruption.
 # https://github.com/getsentry/seer/blob/main/src/seer/pr_metrics/models.py
+# TODO move this to a new file "contracts.py" and PrConversationAnalysis there as well
 class PrActivityEvent(BaseModel):
     """One captured ``PullRequestActivity`` row, projected for the judge.
 
@@ -255,7 +256,15 @@ def _parse_conversation_analysis(
     if raw is None:
         return None
     try:
-        return PrConversationAnalysis.parse_obj(raw)
+        analysis = PrConversationAnalysis.parse_obj(raw)
+        # ``metadata`` is an Any-typed bag emitted verbatim as JSON later, outside
+        # this guard and after the verdict is committed. Round-trip it now so a
+        # non-serializable value is dropped here (honoring the graceful-drop
+        # contract) rather than raising mid-emit. Real RPC payloads are JSON-derived
+        # and so always serializable; this guards direct/synthetic callers.
+        if analysis.metadata is not None:
+            json.dumps(analysis.metadata)
+        return analysis
     except (ValidationError, TypeError, ValueError):
         logger.warning("pr_metrics.update.invalid_conversation_analysis", extra=dict(log_extra))
         metrics.incr("pr_metrics.update.invalid_conversation_analysis")
@@ -266,9 +275,11 @@ def _clean_diagnosis_labels(raw: Any, log_extra: Mapping[str, Any]) -> list[str]
     """Sanitize ``diagnosis_labels`` (a list of free-string labels) at the boundary.
 
     Like ``conversation_analysis`` it's BigQuery-only enrichment, so a wrong-typed
-    value (not a list of strings) is dropped gracefully — log + metric, emit without
-    it — rather than 422-ing the callback. Only the shape is checked, never the
-    label values, so the shared diagnosis vocabulary can iterate freely.
+    value (not a list of strings, e.g. a bare string or a mixed-type list) is
+    dropped gracefully — log + metric, emit without it — rather than 422-ing the
+    callback. Only the shape is checked, never the label values, so the shared
+    diagnosis vocabulary can iterate freely. An empty list is valid and returns
+    ``[]`` (the judge ran, found no labels), distinct from ``None`` (none supplied).
     """
     if raw is None:
         return None

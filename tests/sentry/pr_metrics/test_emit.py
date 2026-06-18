@@ -48,8 +48,8 @@ CONVERSATION_METADATA = {
 }
 CONVERSATION_ANALYSIS = PrConversationAnalysis(
     sentiment="positive",
-    bot_comment_count=0,
-    human_comment_count=1,
+    comments_bot=0,
+    comments_human=1,
     comments_total=3,
     comments_judged=2,
     comments_truncated=1,
@@ -388,8 +388,8 @@ class PrMetricsEmissionTest(TestCase):
         assert row.group_ids == [7, 9]
 
     def test_build_row_carries_conversation_analysis(self) -> None:
-        # The conversation judge's semantic outputs land on their own columns; only the
-        # metadata bundle is JSON-encoded (same convention as attributions).
+        # The conversation judge's semantic outputs land on their own prefixed
+        # columns; only the metadata bundle is JSON-encoded (as attributions is).
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="merged",
@@ -397,17 +397,17 @@ class PrMetricsEmissionTest(TestCase):
             group_ids=[],
             conversation_analysis=CONVERSATION_ANALYSIS,
         )
-        assert row.sentiment == "positive"
-        assert row.bot_comment_count == 0
-        assert row.human_comment_count == 1
-        assert row.comments_total == 3
-        assert row.comments_judged == 2
-        assert row.comments_truncated == 1
+        assert row.conversation_sentiment == "positive"
+        assert row.conversation_comments_bot == 0
+        assert row.conversation_comments_human == 1
+        assert row.conversation_comments_total == 3
+        assert row.conversation_comments_judged == 2
+        assert row.conversation_comments_truncated == 1
         assert json.loads(row.conversation_metadata) == CONVERSATION_METADATA
 
     def test_build_row_carries_diagnosis_labels(self) -> None:
         # The cross-judge close-reason "why" is threaded independently of the
-        # conversation analysis, onto its own repeated column.
+        # conversation analysis, onto its own unprefixed repeated column.
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="closed",
@@ -416,6 +416,17 @@ class PrMetricsEmissionTest(TestCase):
             diagnosis_labels=DIAGNOSIS_LABELS,
         )
         assert row.diagnosis_labels == ["trivial"]
+
+    def test_build_row_empty_diagnosis_labels_stays_empty(self) -> None:
+        # An empty list is a valid value (judge ran, no labels) and emits [], not null.
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="closed",
+            attributions=[],
+            group_ids=[],
+            diagnosis_labels=[],
+        )
+        assert row.diagnosis_labels == []
 
     def test_build_row_without_judge_enrichment_leaves_fields_null(self) -> None:
         # The no-judge path / old Seer pods supply nothing — every judge column
@@ -426,8 +437,8 @@ class PrMetricsEmissionTest(TestCase):
             attributions=[],
             group_ids=[],
         )
-        assert row.sentiment is None
-        assert row.bot_comment_count is None
+        assert row.conversation_sentiment is None
+        assert row.conversation_comments_bot is None
         assert row.diagnosis_labels is None
         assert row.conversation_metadata is None
 
@@ -442,7 +453,7 @@ class PrMetricsEmissionTest(TestCase):
             group_ids=[],
             conversation_analysis=conversation_analysis,
         )
-        assert row.sentiment == "neutral"
+        assert row.conversation_sentiment == "neutral"
         assert row.conversation_metadata is None
 
     @patch("sentry.analytics.record")
@@ -454,8 +465,8 @@ class PrMetricsEmissionTest(TestCase):
             diagnosis_labels=DIAGNOSIS_LABELS,
         )
         row = mock_record.call_args[0][0]
-        assert row.sentiment == "positive"
-        assert row.human_comment_count == 1
+        assert row.conversation_sentiment == "positive"
+        assert row.conversation_comments_human == 1
         assert row.diagnosis_labels == ["trivial"]
         assert json.loads(row.conversation_metadata) == CONVERSATION_METADATA
 

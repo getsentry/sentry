@@ -36,8 +36,8 @@ CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 # semantic outputs alongside the opaque metadata drill-down bundle.
 CONVERSATION_ANALYSIS = {
     "sentiment": "negative",
-    "bot_comment_count": 0,
-    "human_comment_count": 1,
+    "comments_bot": 0,
+    "comments_human": 1,
     "comments_total": 1,
     "comments_judged": 1,
     "comments_truncated": 0,
@@ -114,9 +114,9 @@ class UpdatePrMetricsTest(TestCase):
         assert result.dict() == {"success": True}
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
         row = _last_row(mock_record)
-        assert row.sentiment == "negative"
-        assert row.bot_comment_count == 0
-        assert row.human_comment_count == 1
+        assert row.conversation_sentiment == "negative"
+        assert row.conversation_comments_bot == 0
+        assert row.conversation_comments_human == 1
         # diagnosis_labels is a cross-judge top-level arg, not part of the analysis.
         assert row.diagnosis_labels == ["out_of_scope_or_unwanted"]
         # The metadata bundle rides through verbatim as the opaque drill-down blob.
@@ -136,7 +136,7 @@ class UpdatePrMetricsTest(TestCase):
 
         assert result.dict() == {"success": True}
         row = _last_row(mock_record)
-        assert row.sentiment == "ambivalent"
+        assert row.conversation_sentiment == "ambivalent"
         assert row.diagnosis_labels == ["brand_new_label"]
 
     @patch("sentry.pr_metrics.judge.metrics")
@@ -159,8 +159,29 @@ class UpdatePrMetricsTest(TestCase):
         )
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
         row = _last_row(mock_record)
-        assert row.sentiment is None
-        assert row.comments_total is None
+        assert row.conversation_sentiment is None
+        assert row.conversation_comments_total is None
+        assert row.conversation_metadata is None
+        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_conversation_analysis")
+
+    @patch("sentry.pr_metrics.judge.metrics")
+    @patch("sentry.analytics.record")
+    def test_non_serializable_metadata_dropped_but_row_still_emits(
+        self, mock_record: Any, mock_metrics: Any
+    ) -> None:
+        # metadata is emitted as JSON outside the parse guard and after the verdict
+        # commits; a structurally-valid but non-serializable value (a bare object)
+        # must still be dropped gracefully, not raise mid-emit and 500 the callback.
+        self._track()
+        result = self._call(
+            verdict="closed_unmerged",
+            conversation_analysis={"sentiment": "negative", "metadata": {"obj": object()}},
+        )
+
+        assert result.dict() == {"success": True}
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        row = _last_row(mock_record)
+        assert row.conversation_sentiment is None
         assert row.conversation_metadata is None
         mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_conversation_analysis")
 
@@ -169,13 +190,24 @@ class UpdatePrMetricsTest(TestCase):
     def test_malformed_diagnosis_labels_dropped_but_row_still_emits(
         self, mock_record: Any, mock_metrics: Any
     ) -> None:
-        # diagnosis_labels must be a list of strings; a wrong-typed value is dropped
+        # diagnosis_labels must be a list of strings; a bare string is dropped
         # gracefully (BigQuery-only enrichment) while the row still emits.
         self._track()
         result = self._call(verdict="closed_unmerged", diagnosis_labels="out_of_scope")
 
         assert result.dict() == {"success": True}
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert _last_row(mock_record).diagnosis_labels is None
+        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_diagnosis_labels")
+
+    @patch("sentry.pr_metrics.judge.metrics")
+    @patch("sentry.analytics.record")
+    def test_mixed_type_diagnosis_labels_dropped(self, mock_record: Any, mock_metrics: Any) -> None:
+        # A list with a non-string element is not a valid label list — dropped whole.
+        self._track()
+        result = self._call(verdict="closed_unmerged", diagnosis_labels=["valid", 2])
+
+        assert result.dict() == {"success": True}
         assert _last_row(mock_record).diagnosis_labels is None
         mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_diagnosis_labels")
 
@@ -188,7 +220,7 @@ class UpdatePrMetricsTest(TestCase):
 
         assert result.dict() == {"success": True}
         row = _last_row(mock_record)
-        assert row.sentiment is None
+        assert row.conversation_sentiment is None
         assert row.diagnosis_labels is None
         assert row.conversation_metadata is None
 

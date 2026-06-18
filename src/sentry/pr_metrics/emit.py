@@ -43,17 +43,27 @@ class PrConversationAnalysis(BaseModel):
     """The conversation judge's analysis of a closed/merged PR — one of several
     judges, each with its own result type and columns.
 
-    Mirrors the ``conversation_analysis`` Seer sends to ``update_pr_metrics`` (keep
-    in sync with getsentry/seer:src/seer/pr_metrics/models.py). BigQuery-only: it
-    shapes the emitted ``PrCloseMetricsEvent`` and is never persisted. Enum-like
-    values stay free strings, so a Seer vocabulary change can't fail validation.
+    Mirrors the ``conversation_analysis`` Seer sends to ``update_pr_metrics`` — the
+    inbound-callback half of the contract, so it lives here beside the row it
+    shapes, separate from the outbound request mirrors in ``judge.py``; keep both in
+    sync with getsentry/seer:src/seer/pr_metrics/models.py. BigQuery-only: it shapes
+    the emitted ``PrCloseMetricsEvent`` and is never persisted. Enum-like values
+    stay free strings, so a Seer vocabulary change can't fail validation.
+
+    Extra keys are ignored (pydantic v1's default), deliberately: it keeps old
+    Sentry pods forward-compatible with fields a newer Seer adds. The flip side — a
+    near-miss payload that matches some field names populates those and silently
+    leaves the rest null — is owned by the Seer-side builder + a shared contract
+    test, not tightened here: ``extra="forbid"`` would fight both that forward-compat
+    and the graceful-drop behavior (it'd drop the whole analysis on any new field).
     """
 
     # positive | neutral | negative | mixed. Null when the judge was skipped (no
     # comments), so there's no separate ``analyzed`` flag.
     sentiment: str | None = None
-    bot_comment_count: int | None = None
-    human_comment_count: int | None = None
+    # Comments split by author class.
+    comments_bot: int | None = None
+    comments_human: int | None = None
     # comments_truncated > 0 means a chatty PR was capped before judging.
     comments_total: int | None = None
     comments_judged: int | None = None
@@ -178,12 +188,12 @@ def _conversation_analysis_fields(
     if conversation_analysis is None:
         return {}
     return {
-        "sentiment": conversation_analysis.sentiment,
-        "bot_comment_count": conversation_analysis.bot_comment_count,
-        "human_comment_count": conversation_analysis.human_comment_count,
-        "comments_total": conversation_analysis.comments_total,
-        "comments_judged": conversation_analysis.comments_judged,
-        "comments_truncated": conversation_analysis.comments_truncated,
+        "conversation_sentiment": conversation_analysis.sentiment,
+        "conversation_comments_bot": conversation_analysis.comments_bot,
+        "conversation_comments_human": conversation_analysis.comments_human,
+        "conversation_comments_total": conversation_analysis.comments_total,
+        "conversation_comments_judged": conversation_analysis.comments_judged,
+        "conversation_comments_truncated": conversation_analysis.comments_truncated,
         "conversation_metadata": (
             json.dumps(conversation_analysis.metadata)
             if conversation_analysis.metadata is not None
