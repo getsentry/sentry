@@ -99,11 +99,7 @@ export function SuperuserWarning({organization}: Props) {
     if (!isExcludedOrg) {
       addAlert({
         id: 'superuser-warning',
-        message: (
-          <Fragment>
-            {null} {WARNING_MESSAGE}
-          </Fragment>
-        ),
+        message: WARNING_MESSAGE,
         variant: 'danger',
         opaque: true,
         neverExpire: true,
