@@ -114,6 +114,8 @@ class Feature[T]:
 
 
 class _FeatureStore:
+    """Type-safe mapping from Features to their values."""
+
     __slots__ = ("_data",)
 
     def __init__(self, data: dict[Feature[Any], Any] | None = None) -> None:
@@ -196,11 +198,16 @@ class HasType(Protocol):
 # ---------------------------------------------------------------------------
 
 AggregatorResult = StateUpdate | None
+"""The return type of an aggregator: a StateUpdate if features changed, None otherwise."""
 
 AggregatorFn = Callable[[StateView, Any], AggregatorResult]
 
 
 def emit(*entries: FeatureEntry) -> AggregatorResult:
+    """Build a StateUpdate from one or more feature assignments.
+
+    >>> return emit(VIEW_COUNT.value(5), STATUS.value(IssueStatus.CLOSED))
+    """
     return StateUpdate(dict(entries))
 
 
@@ -238,6 +245,8 @@ def aggregator(
 
 
 class Pipeline:
+    """Applies a set of Aggregators to a State for each event in a sequence, producing a new State."""
+
     def __init__(
         self,
         aggregators: Iterable[Aggregator],
@@ -248,7 +257,7 @@ class Pipeline:
         self._version = version
         self._check_mutations = check_mutations
         aggregators = tuple(aggregators)
-        self._aggregators, self._fields = _validate_and_sort(aggregators)
+        self._aggregators, self._features = _validate_and_sort(aggregators)
         self._steps = tuple(
             (agg, frozenset({*agg.deps, *agg.outputs}), frozenset(agg.outputs))
             for agg in self._aggregators
@@ -263,11 +272,11 @@ class Pipeline:
         return self._aggregators
 
     @property
-    def fields(self) -> tuple[Feature[Any], ...]:
-        return self._fields
+    def features(self) -> tuple[Feature[Any], ...]:
+        return self._features
 
     def initial_state(self) -> State:
-        return State({f: f.initial_value() for f in self._fields})
+        return State({f: f.initial_value() for f in self._features})
 
     def step(self, state: State, entry: HasType) -> State:
         entry_type = entry.type
@@ -305,20 +314,20 @@ def resolve(
     targets: Iterable[Feature[Any]],
     registry: Iterable[Aggregator],
 ) -> list[Aggregator]:
-    """Given desired output fields, return the minimal set of aggregators needed."""
+    """Given desired output features, return the minimal set of aggregators needed."""
     by_output: dict[Feature[Any], Aggregator] = {}
     all_aggs = list(registry)
     for agg in all_aggs:
-        for field in agg.outputs:
-            by_output[field] = agg
+        for feature in agg.outputs:
+            by_output[feature] = agg
 
     needed: set[str] = set()
     stack = list(targets)
     while stack:
-        field = stack.pop()
-        if field not in by_output:
-            raise ValueError(f"No aggregator produces {field.name!r}")
-        agg = by_output[field]
+        feature = stack.pop()
+        if feature not in by_output:
+            raise ValueError(f"No aggregator produces {feature.name!r}")
+        agg = by_output[feature]
         if agg.name not in needed:
             needed.add(agg.name)
             stack.extend(agg.deps)
@@ -331,13 +340,13 @@ def _validate_and_sort(
 ) -> tuple[tuple[Aggregator, ...], tuple[Feature[Any], ...]]:
     output_owners: dict[str, Aggregator] = {}
     for agg in aggregators:
-        for field in agg.outputs:
-            if field.name in output_owners:
-                other = output_owners[field.name]
+        for feature in agg.outputs:
+            if feature.name in output_owners:
+                other = output_owners[feature.name]
                 raise ValueError(
-                    f"Feature {field.name!r} is output by both {other.name!r} and {agg.name!r}"
+                    f"Feature {feature.name!r} is output by both {other.name!r} and {agg.name!r}"
                 )
-            output_owners[field.name] = agg
+            output_owners[feature.name] = agg
 
     for agg in aggregators:
         for dep in agg.deps:
@@ -374,9 +383,9 @@ def _validate_and_sort(
         remaining = {a.name for a in aggregators} - {a.name for a in order}
         raise ValueError(f"Cycle detected among aggregators: {remaining}")
 
-    all_fields: dict[str, Feature[Any]] = {}
+    all_features: dict[str, Feature[Any]] = {}
     for agg in aggregators:
         for f in (*agg.deps, *agg.outputs):
-            all_fields[f.name] = f
+            all_features[f.name] = f
 
-    return tuple(order), tuple(all_fields.values())
+    return tuple(order), tuple(all_features.values())

@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+import pytest
+
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
@@ -20,7 +22,15 @@ from sentry.issues.derived.features import (
     VIEW_COUNT,
     IssueStatus,
 )
-from sentry.issues.derived.framework import Aggregator, Feature, Pipeline, resolve
+from sentry.issues.derived.framework import (
+    Aggregator,
+    AggregatorResult,
+    Feature,
+    Pipeline,
+    StateView,
+    aggregator,
+    resolve,
+)
 from sentry.issues.progress_state import IssueProgressState
 
 
@@ -509,6 +519,54 @@ def test_last_progressed_at_set_on_reopen() -> None:
 # ---------------------------------------------------------------------------
 # Full pipeline
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Pipeline validation
+# ---------------------------------------------------------------------------
+
+
+def test_duplicate_output_rejected() -> None:
+    A = Feature[int]("x", default=0)
+
+    @aggregator((A,))
+    def agg1(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((A,))
+    def agg2(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    with pytest.raises(ValueError, match="output by both"):
+        Pipeline([agg1, agg2], version=1)
+
+
+def test_missing_dependency_rejected() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,), deps=(B,))
+    def agg(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    with pytest.raises(ValueError, match="not output by any aggregator"):
+        Pipeline([agg], version=1)
+
+
+def test_cycle_rejected() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,), deps=(B,))
+    def agg1(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,), deps=(A,))
+    def agg2(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    with pytest.raises(ValueError, match="Cycle detected"):
+        Pipeline([agg1, agg2], version=1)
 
 
 def test_full_pipeline_constructs() -> None:
