@@ -31,12 +31,16 @@ def maybe_renew_debug_files(debug_files: Sequence[ProjectDebugFile]) -> None:
     ids = []
     # For Objectstore-backed files, issue a HEAD request to bump the TTI.
     for dif in debug_files:
+        bump_db = True
         if dif.storage_path is not None and dif.date_accessed <= threshold_date:
             try:
                 dif._get_objectstore_session().head(dif.storage_path)
-                ids.append(dif.id)
             except Exception:
                 logger.exception("Failed to bump TTI for Debug File")
+                # Don't bump in the DB, so that we try bumping again on next access
+                bump_db = False
+        if bump_db:
+            ids.append(dif.id)
 
     if not ids:
         return
