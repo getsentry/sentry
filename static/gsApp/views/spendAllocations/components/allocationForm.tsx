@@ -20,7 +20,7 @@ import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {AllocationTargetTypes, BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
+import {AllocationTargetTypes, getBilledDataCategoryInfo} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
 import {
   getCategoryInfoFromPlural,
@@ -541,10 +541,10 @@ const Select = styled(SelectField)`
   }
 `;
 
-// Normalizes singular billingMetric values to match DataCategory enum using BILLED_DATA_CATEGORY_INFO
+// Normalizes singular billingMetric values to match DataCategory enum using getBilledDataCategoryInfo()
 function normalizeBillingMetric(metric: string): DataCategory {
   return (
-    Object.values(BILLED_DATA_CATEGORY_INFO)
+    Object.values(getBilledDataCategoryInfo())
       .filter(info => info.canAllocate)
       .find(c => c.name === metric)?.plural ?? (metric as DataCategory)
   );

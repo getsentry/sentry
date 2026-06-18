@@ -28,7 +28,7 @@ import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {ExtendProductTrialAction} from 'admin/components/extendProductTrialAction';
 import {getLogQuery} from 'admin/utils';
-import {BILLED_DATA_CATEGORY_INFO, UNLIMITED} from 'getsentry/constants';
+import {getBilledDataCategoryInfo, UNLIMITED} from 'getsentry/constants';
 import type {
   Plan,
   ReservedBudget,
@@ -482,7 +482,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
   // TODO(cells) We also should show the customer's cell.
   const locality = localityMap[organization.links.regionUrl] ?? '??';
 
-  const productTrialCategories = Object.values(BILLED_DATA_CATEGORY_INFO).filter(
+  const productTrialCategories = Object.values(getBilledDataCategoryInfo()).filter(
     categoryInfo => {
       // Category must be in the plan's categories
       if (!customer.planDetails?.categories.includes(categoryInfo.plural)) {

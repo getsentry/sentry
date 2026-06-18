@@ -6,7 +6,7 @@ import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {BILLED_DATA_CATEGORY_INFO, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {getBilledDataCategoryInfo, UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {
   BilledDataCategoryInfo,
   BillingMetricHistory,
@@ -28,7 +28,9 @@ import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 export function getCategoryInfoFromPlural(
   category: DataCategory
 ): BilledDataCategoryInfo | null {
-  const info = Object.values(BILLED_DATA_CATEGORY_INFO).find(c => c.plural === category);
+  const info = Object.values(getBilledDataCategoryInfo()).find(
+    c => c.plural === category
+  );
   if (!info) {
     return null;
   }

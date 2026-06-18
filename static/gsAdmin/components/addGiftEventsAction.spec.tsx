@@ -7,7 +7,7 @@ import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
+import {getBilledDataCategoryInfo} from 'getsentry/constants';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 
 describe('AddGiftEventsAction', () => {
@@ -18,7 +18,7 @@ describe('AddGiftEventsAction', () => {
   const triggerGiftModal = () => {
     const billedCategoryInfo = categoryOverride
       ? getCategoryInfoFromPlural(categoryOverride)
-      : BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN];
+      : getBilledDataCategoryInfo()[DataCategoryExact.SPAN];
     openAdminConfirmModal({
       renderModalSpecificContent: deps => (
         <AddGiftEventsAction

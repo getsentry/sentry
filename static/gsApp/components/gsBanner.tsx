@@ -44,7 +44,7 @@ import {ProductTrialAlert} from 'getsentry/components/productTrial/productTrialA
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import {withSubscription} from 'getsentry/components/withSubscription';
-import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
+import {getBilledDataCategoryInfo} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
   type BilledDataCategoryInfo,
@@ -80,7 +80,7 @@ enum ModalType {
 const TRIAL_ENDING_DAY_WINDOW = 3;
 
 function objectFromBilledCategories(callback: (c: BilledDataCategoryInfo) => any) {
-  return Object.values(BILLED_DATA_CATEGORY_INFO).reduce(
+  return Object.values(getBilledDataCategoryInfo()).reduce(
     (acc, c) => {
       if (c.isBilledCategory) {
         acc[c.singular as EventType] = callback(c);
@@ -634,7 +634,7 @@ class GSBanner extends Component<Props, State> {
     const category_warning_prompts: string[] = [];
     const category_product_trial_prompts: string[] = [];
 
-    Object.values(BILLED_DATA_CATEGORY_INFO)
+    Object.values(getBilledDataCategoryInfo())
       .filter(
         categoryInfo =>
           categoryInfo.isBilledCategory &&
