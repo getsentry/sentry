@@ -338,7 +338,7 @@ function CodeChangesNextStepWithoutWritePermissions({
             to={permissionsUrl}
             icon={<IconOpen />}
           >
-            {t('Yes, grant permissions to draft a PR on %s', integration.provider.name)}
+            {t('Yes, view %s permissions', integration.provider.name)}
           </LinkButton>
         </Tooltip>
       }
@@ -357,10 +357,7 @@ function CodeChangesNextStepWithoutWritePermissions({
             to={permissionsUrl}
             icon={<IconOpen />}
           >
-            {t(
-              'Nevermind, grant permissions to draft a PR on %s',
-              integration.provider.name
-            )}
+            {t('Nevermind, view %s permissions', integration.provider.name)}
           </LinkButton>
         </Tooltip>
       }
