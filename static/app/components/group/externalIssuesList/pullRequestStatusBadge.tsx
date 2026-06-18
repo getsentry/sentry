@@ -35,7 +35,7 @@ const STATUS_CONFIG = {
   },
   unknown: {
     icon: IconPullRequest,
-    label: () => t('Unknown status'),
+    label: () => t('Unknown'),
     variant: 'muted',
   },
 } satisfies Record<PullRequestStatus, PullRequestStatusConfig>;
