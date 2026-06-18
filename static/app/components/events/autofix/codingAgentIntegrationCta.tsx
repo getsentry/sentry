@@ -5,7 +5,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {SeerAutomationHandoffConfiguration} from 'sentry/components/events/autofix/types';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
@@ -15,7 +14,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {knownAgentIntegrationsQueryOptions} from 'sentry/utils/seer/preferredAgent';
-import {getMutateSeerProjectSettingsOptions} from 'sentry/utils/seer/seerProjectSettings';
+import {
+  getMutateSeerProjectSettingsOptions,
+  getSeerProjectSettingsQueryOptions,
+} from 'sentry/utils/seer/seerProjectSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -51,8 +53,9 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       },
       {enabled: hasFeatureFlag}
     );
-    const {data, isFetching: isLoadingPreferences} = useProjectSeerPreferences(project);
-    const preference = data?.preference;
+    const {data: seerSettings, isPending: isLoadingSettings} = useQuery(
+      getSeerProjectSettingsQueryOptions({organization, project})
+    );
     const {data: knownAgents, isLoading: isLoadingIntegrations} = useQuery(
       knownAgentIntegrationsQueryOptions({organization})
     );
@@ -72,8 +75,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     const isAutomationEnabled =
       projectDetails?.seerScannerAutomation !== false &&
       projectDetails?.autofixAutomationTuning !== 'off';
-    const isConfigured =
-      preference?.automation_handoff?.target === config.target && isAutomationEnabled;
+    const isConfigured = seerSettings?.agent === config.target && isAutomationEnabled;
 
     const handleInstallClick = () => {
       trackAnalytics('coding_integration.install_clicked', {
@@ -122,7 +124,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
 
     if (
       isLoadingProject ||
-      isLoadingPreferences ||
+      isLoadingSettings ||
       isLoadingIntegrations ||
       isUpdatingSettings
     ) {
