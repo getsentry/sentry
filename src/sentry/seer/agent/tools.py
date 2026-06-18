@@ -1485,21 +1485,21 @@ def get_issue_committers(
     """
     Get the likely code authors for an issue from Sentry's ingested commit data.
 
-    Combines two signals, both computed from ingested commits with NO SCM/GitHub call
+    Combines three signals, all computed from ingested commits with NO SCM/GitHub call
     (so it works without SCM credentials):
 
-    - ``committers``: recent commit authors that touched the files in the issue's
+    - ``stack_commits``: commit authors that touched the files in the issue's
       stacktrace, scored by frame relevance. This is the *input* to Sentry's
       suspect-commit feature (release-based blame of the failing frames) and is
       available far more often than a single precomputed suspect commit.
     - ``suspect_commits``: the precomputed suspect commit(s) from ``GroupOwner``, if
       any (the same "Suspect Commit" shown in the Sentry UI).
-    - ``recent_commits``: a broader pool of commits shipped around when the issue
+    - ``release_commits``: a broader pool of commits shipped around when the issue
       first appeared, NOT limited to the stacktrace frames (catches regressions in
       code that does not appear in the trace), each enriched with PR title/body,
       file-change count, and a merge-commit flag so the caller can prune.
 
-    The time window for ``recent_commits`` (and which event's stacktrace is sampled)
+    The time window for ``release_commits`` (and which event's stacktrace is sampled)
     defaults to ~6 weeks before the issue first appeared; pass ``start``/``end`` to
     override it.
 
@@ -1511,10 +1511,10 @@ def get_issue_committers(
         project_slug: The slug of the project (optional, used to improve numeric ID lookups).
 
     Returns:
-        Dict with ``committers``, ``suspect_commits``, ``recent_commits``,
-        ``issue_first_seen``, ``project_id``, ``project_slug``. The lists may be empty
-        (e.g. no release/commit data linked to the issue). Returns None if the
-        project/issue cannot be resolved.
+        Dict with ``stack_commits``, ``suspect_commits``, ``release_commits``,
+        ``project_id``, ``project_slug``. The lists may be empty (e.g. no
+        release/commit data linked to the issue). Returns None if the project/issue
+        cannot be resolved.
     """
     start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
 
@@ -1548,9 +1548,9 @@ def get_issue_committers(
         )
         suspect_commits = []
 
-    # Frame-based blame: recent authors of the files in the stacktrace. This is the
-    # input to the suspect-commit feature and is available far more often.
-    committers: list[dict[str, Any]] = []
+    # Frame-based blame: authors of the files in the stacktrace. This is the input to
+    # the suspect-commit feature and is available far more often.
+    stack_commits: list[dict[str, Any]] = []
     try:
         event = _get_recommended_event(group, organization, start_dt, end_dt)
         if isinstance(event, Event):
@@ -1567,7 +1567,7 @@ def get_issue_committers(
             # get_event_file_committers serializes the author but leaves commits as
             # (Commit, score) tuples ordered weakest-first; serialize the commits and
             # reverse so the strongest blame is first.
-            committers = [
+            stack_commits = [
                 {
                     "author": entry.get("author"),
                     "commits": [
@@ -1580,21 +1580,21 @@ def get_issue_committers(
                 }
                 for entry in author_commits
             ]
-            committers.reverse()
+            stack_commits.reverse()
     except (Release.DoesNotExist, Commit.DoesNotExist):
         # No release/commit data linked to this issue; frame blame isn't available.
-        committers = []
+        stack_commits = []
     except Exception:
         logger.exception(
-            "get_issue_committers: Failed to compute file committers",
+            "get_issue_committers: Failed to compute stack commits",
             extra={"organization_id": organization_id, "issue_id": issue_id},
         )
-        committers = []
+        stack_commits = []
 
     # Broader candidate pool: commits shipped around when the issue first appeared,
     # NOT limited to the stacktrace frames. Window defaults to ~6 weeks before
     # first_seen; an explicit start/end overrides it.
-    recent_commits: list[dict[str, Any]] = []
+    release_commits: list[dict[str, Any]] = []
     try:
         window_end = end_dt or group.first_seen
         window_start = start_dt or (window_end - timedelta(weeks=6))
@@ -1612,7 +1612,7 @@ def get_issue_committers(
             )
             for commit, serialized in zip(candidates, serialized_candidates):
                 message = (commit.message or "").strip()
-                recent_commits.append(
+                release_commits.append(
                     {
                         **serialized,
                         "files_changed_count": file_change_counts.get(commit.id),
@@ -1621,16 +1621,15 @@ def get_issue_committers(
                 )
     except Exception:
         logger.exception(
-            "get_issue_committers: Failed to fetch recent commits",
+            "get_issue_committers: Failed to fetch release commits",
             extra={"organization_id": organization_id, "issue_id": issue_id},
         )
-        recent_commits = []
+        release_commits = []
 
     return {
-        "committers": committers,
+        "stack_commits": stack_commits,
         "suspect_commits": suspect_commits,
-        "recent_commits": recent_commits,
-        "issue_first_seen": group.first_seen.isoformat() if group.first_seen else None,
+        "release_commits": release_commits,
         "project_id": group.project_id,
         "project_slug": group.project.slug,
     }

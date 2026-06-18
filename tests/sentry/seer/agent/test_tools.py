@@ -2013,8 +2013,9 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
     """Tests for get_issue_committers — likely code authors from ingested commit data.
 
-    Returns two signals: ``committers`` (frame-based blame of the failing files) and
-    ``suspect_commits`` (precomputed GroupOwner suspect commit).
+    Returns three signals: ``stack_commits`` (frame-based blame of the failing files),
+    ``suspect_commits`` (precomputed GroupOwner suspect commit), and ``release_commits``
+    (broader pool shipped around first-seen).
     """
 
     def _make_error_event(self):
@@ -2091,7 +2092,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         assert isinstance(result, dict)
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
-        assert "committers" in result
+        assert "stack_commits" in result
         suspect = result["suspect_commits"]
         assert len(suspect) == 1
         assert suspect[0]["author"]["email"] == self.user.email
@@ -2121,14 +2122,14 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         )
 
         assert isinstance(result, dict)
-        committers = result["committers"]
-        assert len(committers) >= 1
-        assert committers[0]["author"]["email"] == self.user.email
-        commit = committers[0]["commits"][0]
+        stack_commits = result["stack_commits"]
+        assert len(stack_commits) >= 1
+        assert stack_commits[0]["author"]["email"] == self.user.email
+        commit = stack_commits[0]["commits"][0]
         assert commit["id"] == "a" * 40
         assert commit["score"] is not None
 
-    def test_returns_recent_commits_in_window(self):
+    def test_returns_release_commits_in_window(self):
         group = self._make_blame_event(self.user.email)
 
         result = get_issue_committers(
@@ -2139,11 +2140,10 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         )
 
         assert isinstance(result, dict)
-        recent = result["recent_commits"]
-        commit = next(c for c in recent if c["id"] == "a" * 40)
+        release = result["release_commits"]
+        commit = next(c for c in release if c["id"] == "a" * 40)
         assert commit["files_changed_count"] == 1
         assert commit["is_merge_commit"] is False
-        assert result["issue_first_seen"] is not None
 
     def test_no_commit_data_returns_empty_lists(self):
         event = self._make_error_event()
@@ -2156,9 +2156,9 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         )
 
         assert isinstance(result, dict)
-        assert result["committers"] == []
+        assert result["stack_commits"] == []
         assert result["suspect_commits"] == []
-        assert result["recent_commits"] == []
+        assert result["release_commits"] == []
 
     def test_returns_none_when_project_slug_does_not_match(self):
         event = self._make_error_event()
