@@ -35,4 +35,4 @@ class SdkConfig(TypedDict):
 
 
 class ServerSdkConfig(SdkConfig):
-    sentry_mirror_dsn: NotRequired[str]
+    dsn: NotRequired[str]
