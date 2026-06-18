@@ -1,7 +1,7 @@
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.models.options.project_option import ProjectOption
 from sentry.plugins.base import plugins
-from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
@@ -11,8 +11,8 @@ from sentry_plugins.trello.plugin import TrelloPlugin
 class TestWebhookActionValidator(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.webhooks_plugin = plugins.get(WebHooksPlugin.slug)
-        self.webhooks_plugin.enable(self.project)
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
+        ProjectOption.objects.set_value(self.project, "webhooks:urls", "http://example.com")
 
         # non notification plugin
         self.trello_plugin = plugins.get(TrelloPlugin.slug)
@@ -74,7 +74,7 @@ class TestWebhookActionValidator(TestCase):
 
     def test_validate__plugin(self) -> None:
         validator = BaseActionValidator(
-            data={**self.valid_data, "config": {"targetIdentifier": self.webhooks_plugin.slug}},
+            data={**self.valid_data, "config": {"targetIdentifier": "webhooks"}},
             context={"organization": self.organization},
         )
 

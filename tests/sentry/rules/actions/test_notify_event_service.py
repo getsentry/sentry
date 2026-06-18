@@ -15,8 +15,8 @@ from sentry.incidents.typings.metric_detector import (
     MetricIssueContext,
     NotificationContext,
 )
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.rule import Rule
-from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.rules.actions.notify_event_service import (
     NotifyEventServiceAction,
     send_incident_alert_notification,
@@ -63,11 +63,10 @@ class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
 class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
     def setUp(self) -> None:
         self.event = self.get_event()
-        self.webhook = WebHooksPlugin()
-        self.webhook.set_option(
-            project=self.event.project, key="urls", value="http://my-fake-webhook.io"
+        ProjectOption.objects.set_value(
+            self.event.project, "webhooks:urls", "http://my-fake-webhook.io"
         )
-        self.webhook.set_option(project=self.event.project, key="enabled", value=True)
+        ProjectOption.objects.set_value(self.event.project, "webhooks:enabled", True)
 
         self.rule_webhook_data = {
             "conditions": [

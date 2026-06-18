@@ -14,6 +14,7 @@ from sentry.integrations.manager import default_manager as integrations_manager
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.plugins.base import plugins
@@ -344,6 +345,13 @@ def get_available_action_integrations_for_org(organization: Organization) -> lis
     )
 
 
+class _LegacyWebhookStub:
+    slug = "webhooks"
+
+    def get_title(self) -> str:
+        return "WebHooks"
+
+
 def get_notification_plugins_for_org(organization: Organization) -> list[PluginService]:
     """
     Get all plugins for an organization.
@@ -361,6 +369,15 @@ def get_notification_plugins_for_org(organization: Organization) -> list[PluginS
                 continue
 
             plugin_map[plugin.slug] = PluginService(plugin)
+
+    if "webhooks" not in plugin_map:
+        has_webhooks = ProjectOption.objects.filter(
+            project__organization_id=organization.id,
+            key="webhooks:enabled",
+            value=True,
+        ).exists()
+        if has_webhooks:
+            plugin_map["webhooks"] = PluginService(_LegacyWebhookStub())
 
     return list(plugin_map.values())
 

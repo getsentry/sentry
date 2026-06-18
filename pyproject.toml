@@ -1225,7 +1225,6 @@ module = [
     "sentry.plugins.sentry_interface_types.*",
     "sentry.plugins.sentry_urls.*",
     "sentry.plugins.sentry_useragents.*",
-    "sentry.plugins.sentry_webhooks.*",
     "sentry.plugins.utils",
     "sentry.processing.*",
     "sentry.processing_errors.*",

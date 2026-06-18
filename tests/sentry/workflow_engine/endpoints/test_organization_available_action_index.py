@@ -5,11 +5,11 @@ from sentry.constants import SentryAppStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.options.project_option import ProjectOption
 from sentry.notifications.notification_action.action_handler_registry.base import (
     IntegrationActionHandler,
 )
 from sentry.plugins.base.manager import PluginManager
-from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -247,9 +247,8 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             config_schema = {}
             data_schema = {}
 
-        self.plugin_registry.register(WebHooksPlugin)
-        self.webhooks_plugin = self.plugin_registry.get(WebHooksPlugin.slug)
-        self.webhooks_plugin.enable(self.project)
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
+        ProjectOption.objects.set_value(self.project, "webhooks:urls", "http://example.com")
 
         self.plugin_registry.register(SlackPlugin)
         self.slack_plugin = self.plugin_registry.get(SlackPlugin.slug)

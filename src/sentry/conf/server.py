@@ -488,7 +488,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.plugins.sentry_interface_types.apps.Config",
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
-    "sentry.plugins.sentry_webhooks.apps.Config",
     "social_auth",
     "sudo",
     "sentry.eventstream",
