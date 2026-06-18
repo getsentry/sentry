@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import random
 import time
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Literal, overload
 
@@ -551,10 +552,15 @@ class SeerAgentClient:
         feature_id: str,
         payload: dict[str, Any],
         flush: bool = True,
+        on_run_created: Callable[[SeerRun], None] | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
         `payload`; the result is pushed back via deliver_feature_result.
+
+        on_run_created(run), if given, runs in the same transaction as the
+        SeerRun + outbox — use it to link associated rows atomically (e.g. a
+        caller's record that the result delivery correlates back to).
 
         flush=True (default): drain inline; dispatch failure surfaces
         synchronously (mirror -> FAILED, raises SeerApiError, no retry).
@@ -570,6 +576,7 @@ class SeerAgentClient:
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
+            on_run_created=on_run_created,
             body=SeerFeatureRunRequest(feature_id=feature_id, payload=payload),
             viewer_context=self.viewer_context,
             user_id=user_id,

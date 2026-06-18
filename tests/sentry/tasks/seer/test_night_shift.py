@@ -558,6 +558,27 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         assert run.extras["error_message"] == "Organization does not have Seer access"
         assert not SeerRun.objects.filter(organization=org).exists()
 
+    def test_dispatch_failure_records_error(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+        self._store_event_and_update_group(
+            project, "fixable", seer_fixability_score=0.9, times_seen=5
+        )
+
+        with (
+            self.feature("organizations:gen-ai-features"),
+            patch(
+                "sentry.seer.agent.client.SeerAgentClient.start_feature_run",
+                side_effect=RuntimeError("boom"),
+            ),
+        ):
+            run_night_shift_for_org(org.id)
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        assert run.seer_run is None
+        assert run.extras["error_message"] == "Night shift dispatch failed"
+
     def test_outbox_drain_mirrors_run_against_seer(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)

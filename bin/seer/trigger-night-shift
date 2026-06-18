@@ -14,6 +14,7 @@ from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.tasks.deliver_from_outbox import drain_outbox_shards
 from sentry.models.organization import Organization
 from sentry.seer.models.night_shift import SeerNightShiftRun
+from sentry.seer.models.run import SeerRunMirrorStatus
 from sentry.tasks.seer.night_shift.cron import (
     SeerNightShiftRunOptionsPartial,
     run_night_shift_for_org,
@@ -66,16 +67,24 @@ def main(org_id: int, max_candidates: int | None, drain: bool) -> None:
         sys.stdout.write("> Draining outbox to dispatch the run to Seer...\n")
         _drain_outbox()
 
-    seer_run = SeerNightShiftRun.objects.select_related("seer_run").get(id=run_id).seer_run
+    nsr = SeerNightShiftRun.objects.select_related("seer_run").get(id=run_id)
+    seer_run = nsr.seer_run
     if seer_run is None:
-        sys.stdout.write("> No candidates were dispatched.\n")
+        error_message = (nsr.extras or {}).get("error_message")
+        if error_message:
+            sys.stdout.write(f"> Not dispatched: {error_message}\n")
+        else:
+            sys.stdout.write("> No candidates were dispatched.\n")
         return
 
     if seer_run.seer_run_state_id is None:
-        sys.stdout.write(
-            f"> SeerRun {seer_run.uuid} is {seer_run.mirror_status}; "
-            "it dispatches to Seer once the outbox drains.\n"
-        )
+        if seer_run.mirror_status == SeerRunMirrorStatus.FAILED:
+            sys.stdout.write(f"> SeerRun {seer_run.uuid} failed to dispatch to Seer.\n")
+        else:
+            sys.stdout.write(
+                f"> SeerRun {seer_run.uuid} is {seer_run.mirror_status}; "
+                "it dispatches to Seer once the outbox drains.\n"
+            )
         return
 
     explorer_url = _get_explorer_url(org_id, seer_run.seer_run_state_id)

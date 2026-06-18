@@ -521,10 +521,27 @@ def _dispatch_to_seer_feature(
         _record_run_error(run, "Organization does not have Seer access")
         return
 
-    seer_run = client.start_feature_run(
-        feature_id="night_shift", payload=payload.dict(), flush=False
-    )
-    run.update(seer_run=seer_run)
+    def _link_run(created: SeerRun) -> None:
+        # Link inside the dispatch transaction so the row exists before the outbox
+        # drains and Seer's result correlates back to this night shift run.
+        run.update(seer_run=created)
+
+    try:
+        seer_run = client.start_feature_run(
+            feature_id="night_shift",
+            payload=payload.dict(),
+            flush=False,
+            on_run_created=_link_run,
+        )
+    except Exception:
+        sentry_sdk.metrics.count("night_shift.run_error", 1)
+        _fail_run(
+            run,
+            message="Night shift dispatch failed",
+            event="night_shift.dispatch_failed",
+            extra=log_extra,
+        )
+        return
 
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
     logger.info(
