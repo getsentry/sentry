@@ -97,14 +97,12 @@ def _process_batch(
     if not entries:
         return False
 
-    state = GroupDerivedDataStore.load(p, derived)
-    for entry in entries:
-        state = p.step(state, entry)
+    result = p.run(entries, state=GroupDerivedDataStore.load(p, derived))
 
     last = entries[-1]
     last_date = last.date_added
     last_id = last.id
-    state_update = GroupDerivedDataStore.build_update(p, state)
+    state_update = GroupDerivedDataStore.build_update(p, result)
 
     updated = GroupDerivedData.objects.filter(
         Q(group_id=group_id) & _cursor_lte(last_date, last_id)
