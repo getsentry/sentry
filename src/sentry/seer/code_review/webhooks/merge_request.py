@@ -573,7 +573,7 @@ def _normalize_trigger_at(raw: str | None) -> str:
                     "code_review_trigger_at",
                     {"raw": raw},
                 )
-                sentry_sdk.capture_exception(e)
+                sentry_sdk.capture_exception(e, level="warning")
     return datetime.now(timezone.utc).isoformat()
 
 
