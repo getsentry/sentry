@@ -137,6 +137,21 @@ function formatPercentOrNA(pct: number | null | undefined) {
   return `${(pct * 100).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
 }
 
+// Same deploy-window-race rationale as `formatPercentOrNA`: the type
+// declares these as `number` but a stale-cached response or any future
+// shape drift could leave them runtime-`undefined`, which would render
+// the literal string "undefined" in the UI. NaN is also caught — it
+// shows up when arithmetic propagates an undefined operand (e.g.
+// `legacy_count + platform_count` for the Unmatched denominator).
+// Falling back to an em dash matches the missing-value affordance
+// `formatDollars` already uses.
+function formatCountOrNA(n: number | null | undefined) {
+  if (n === null || n === undefined || Number.isNaN(n)) {
+    return <em>—</em>;
+  }
+  return n.toLocaleString();
+}
+
 // `datetime-local` inputs use the user's local timezone with no offset
 // in the string (e.g. "2026-05-26T22:30"). Format a Date for that field.
 function toDatetimeLocalValue(d: Date): string {
@@ -460,7 +475,7 @@ export function InvoiceComparison() {
                     Legacy invoices
                   </Text>
                   <Text size="lg" bold>
-                    {data.summary.legacy_count}
+                    {formatCountOrNA(data.summary.legacy_count)}
                   </Text>
                 </Flex>
                 <Flex direction="column">
@@ -468,7 +483,7 @@ export function InvoiceComparison() {
                     Platform invoices
                   </Text>
                   <Text size="lg" bold>
-                    {data.summary.platform_count}
+                    {formatCountOrNA(data.summary.platform_count)}
                   </Text>
                 </Flex>
                 <Flex direction="column">
@@ -478,7 +493,8 @@ export function InvoiceComparison() {
                   <Text size="lg" bold>
                     {formatPercentOrNA(data.summary.over_threshold_pct)}
                     <TruncatedNote size="sm" variant="muted">
-                      ({data.summary.over_threshold_count} of {data.summary.row_count})
+                      ({formatCountOrNA(data.summary.over_threshold_count)} of{' '}
+                      {formatCountOrNA(data.summary.row_count)})
                     </TruncatedNote>
                   </Text>
                 </Flex>
@@ -489,8 +505,11 @@ export function InvoiceComparison() {
                   <Text size="lg" bold>
                     {formatPercentOrNA(data.summary.unmatched_invoice_pct)}
                     <TruncatedNote size="sm" variant="muted">
-                      ({data.summary.unmatched_invoice_count} of{' '}
-                      {data.summary.legacy_count + data.summary.platform_count})
+                      ({formatCountOrNA(data.summary.unmatched_invoice_count)} of{' '}
+                      {formatCountOrNA(
+                        data.summary.legacy_count + data.summary.platform_count
+                      )}
+                      )
                     </TruncatedNote>
                   </Text>
                 </Flex>
