@@ -76,7 +76,9 @@ class SeerNightShiftRunShard(DefaultFieldsModel):
     run = FlexibleForeignKey(
         "seer.SeerNightShiftRun", on_delete=models.CASCADE, related_name="shards"
     )
-    seer_run = FlexibleForeignKey("seer.SeerRun", on_delete=models.SET_NULL, null=True)
+    seer_run = models.OneToOneField(
+        "seer.SeerRun", on_delete=models.SET_NULL, null=True, related_name="night_shift_shard"
+    )
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
