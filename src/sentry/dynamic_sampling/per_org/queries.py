@@ -8,9 +8,7 @@ from enum import StrEnum
 from typing import Any, Literal, Protocol
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Op, Query, Request
 
-from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
@@ -21,11 +19,9 @@ from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_totals
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils.outcomes import Outcome
-from sentry.utils.snuba import raw_snql_query
 
 
 class OrganizationVolumeConfig(Protocol):
@@ -140,59 +136,30 @@ def get_eap_organization_volume(
 
 
 def get_outcomes_organization_volume(
-    org_id: int,
+    config: OrganizationVolumeConfig,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
 ) -> OrganizationDataVolume | None:
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
 
-    accepted_outcome = Function("equals", [Column("outcome"), Outcome.ACCEPTED])
-    sampled_outcome = Function(
-        "and",
-        [
-            Function("equals", [Column("outcome"), Outcome.FILTERED]),
-            Function("startsWith", [Column("reason"), "Sampled:"]),
-        ],
+    query = QueryDefinition(
+        fields=["sum(quantity)"],
+        start=start_time.isoformat(),
+        end=end_time.isoformat(),
+        organization_id=config.organization.id,
+        project_ids=[project.id for project in config.projects],
+        outcome=["accepted"],
+        category=["transaction"],
     )
-    result = raw_snql_query(
-        Request(
-            dataset=Dataset.OutcomesRaw.value,
-            app_id="dynamic_sampling",
-            query=Query(
-                match=Entity("outcomes_raw"),
-                select=[
-                    Function(
-                        "sumIf",
-                        [Column("quantity"), Function("or", [accepted_outcome, sampled_outcome])],
-                        "total",
-                    ),
-                    Function("sumIf", [Column("quantity"), accepted_outcome], "indexed"),
-                ],
-                where=[
-                    Condition(Column("timestamp"), Op.GTE, start_time),
-                    Condition(Column("timestamp"), Op.LT, end_time),
-                    Condition(Column("org_id"), Op.EQ, org_id),
-                    Condition(Column("category"), Op.EQ, DataCategory.TRANSACTION),
-                ],
-                granularity=Granularity(60),
-                limit=Limit(1),
-            ),
-            tenant_ids={"organization_id": org_id},
-        ),
-        referrer=Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_OUTCOMES_ORG_VOLUME.value,
-    )
-
-    data = result.get("data")
-    if not data:
+    rows = run_outcomes_query_totals(query, tenant_ids={"organization_id": config.organization.id})
+    if not rows:
         return None
 
-    row = data[0]
-    total = _get_aggregate_int(row, "total")
+    total = _get_aggregate_int(rows[0], "quantity")
     if total <= 0:
         return None
-    indexed = _get_aggregate_int(row, "indexed")
 
-    return OrganizationDataVolume(org_id=org_id, total=total, indexed=indexed)
+    return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=None)
 
 
 def get_eap_project_volumes(

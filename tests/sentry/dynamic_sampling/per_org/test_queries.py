@@ -290,32 +290,28 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         organization = self.create_organization()
 
         with patch(
-            "sentry.dynamic_sampling.per_org.queries.raw_snql_query",
-            return_value={"data": [{"total": 10, "indexed": 4}]},
-        ) as raw_snql_query:
+            "sentry.dynamic_sampling.per_org.queries.run_outcomes_query_totals",
+            return_value=[{"quantity": 10}],
+        ) as run_outcomes_query_totals:
             org_volume = get_outcomes_organization_volume(
-                organization.id, time_interval=timedelta(hours=24)
+                self.get_config(organization), time_interval=timedelta(hours=24)
             )
 
-        assert org_volume == OrganizationDataVolume(org_id=organization.id, total=10, indexed=4)
-        raw_snql_query.assert_called_once()
-        request = raw_snql_query.call_args.args[0]
-        assert request.dataset == "outcomes_raw"
-        assert request.tenant_ids == {"organization_id": organization.id}
-        assert (
-            raw_snql_query.call_args.kwargs["referrer"]
-            == Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_OUTCOMES_ORG_VOLUME.value
-        )
+        assert org_volume == OrganizationDataVolume(org_id=organization.id, total=10, indexed=None)
+        run_outcomes_query_totals.assert_called_once()
+        assert run_outcomes_query_totals.call_args.kwargs["tenant_ids"] == {
+            "organization_id": organization.id
+        }
 
     def test_get_outcomes_organization_volume_without_traffic(self) -> None:
         organization = self.create_organization()
 
         with patch(
-            "sentry.dynamic_sampling.per_org.queries.raw_snql_query",
-            return_value={"data": [{"total": 0, "indexed": 0}]},
+            "sentry.dynamic_sampling.per_org.queries.run_outcomes_query_totals",
+            return_value=[],
         ):
             org_volume = get_outcomes_organization_volume(
-                organization.id, time_interval=timedelta(hours=24)
+                self.get_config(organization), time_interval=timedelta(hours=24)
             )
 
         assert org_volume is None

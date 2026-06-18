@@ -64,7 +64,7 @@ def compare_organization_sliding_window_sample_rates(
 ) -> None:
     window = timedelta(hours=FALLBACK_SLIDING_WINDOW_SIZE)
     eap_volume = get_eap_organization_volume(config, time_interval=window)
-    outcomes_volume = get_outcomes_organization_volume(config.organization.id, time_interval=window)
+    outcomes_volume = get_outcomes_organization_volume(config, time_interval=window)
 
     def sample_rate_for(volume: OrganizationDataVolume | None) -> float | None:
         if volume is None:
