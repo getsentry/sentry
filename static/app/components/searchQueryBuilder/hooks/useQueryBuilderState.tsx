@@ -896,9 +896,11 @@ export function replaceFreeTextTokens(
     // and attempt to track them.
     if (value.includes(' ')) {
       const valueWithNoQuotes = value.slice(1, -1);
+      const wordCount = countWords(valueWithNoQuotes);
 
       Sentry.logger.info(Sentry.logger.fmt`Found potential natural language query`, {
         source: searchSource,
+        wordCount,
       });
 
       Sentry.metrics.count('search_query_builder.potential_natural_language_query', 1, {
@@ -907,7 +909,7 @@ export function replaceFreeTextTokens(
 
       Sentry.metrics.gauge(
         'search_query_builder.potential_natural_language_query_word_count',
-        countWords(valueWithNoQuotes),
+        wordCount,
         {attributes: {source: searchSource}}
       );
     }
