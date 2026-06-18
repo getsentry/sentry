@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.core.exceptions import SuspiciousOperation
 from rest_framework.exceptions import ParseError
 
@@ -61,9 +63,8 @@ class ApiTokenLimitError(Exception):
 
 
 class InvalidSearchQuery(Exception):
-    def __init__(self, text, extra=None):
-        super().__init__(text)
-        self.extra = extra
+    extra: dict[str, Any] | None = None
+    pass
 
 
 class IncompatibleMetricsQuery(Exception):
