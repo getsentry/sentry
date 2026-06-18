@@ -659,14 +659,7 @@ def _schedule_task(
         serialized_payload = json.loads(validated.json())
     except ValidationError as e:
         with sentry_sdk.new_scope() as scope:
-            scope.set_context(
-                "code_review_validation",
-                {
-                    **(log_context or {}),
-                    "seer_path": seer_path,
-                    "validation_errors": e.errors(),
-                },
-            )
+            scope.set_context("code_review_validation", {"seer_path": seer_path})
             # Capture at warning level: a dropped review is worth surfacing, but
             # should not count toward the error rate that gates a canary deploy.
             sentry_sdk.capture_exception(e, level="warning")
@@ -793,13 +786,7 @@ def _schedule_note_task(
         serialized_payload = json.loads(validated.json())
     except ValidationError as e:
         with sentry_sdk.new_scope() as scope:
-            scope.set_context(
-                "code_review_validation",
-                {
-                    "mr_iid": mr_iid,
-                    "validation_errors": e.errors(),
-                },
-            )
+            scope.set_context("code_review_validation", {"mr_iid": mr_iid})
             # Capture at warning level: a dropped review is worth surfacing, but
             # should not count toward the error rate that gates a canary deploy.
             sentry_sdk.capture_exception(e, level="warning")
