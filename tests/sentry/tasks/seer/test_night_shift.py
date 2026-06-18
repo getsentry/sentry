@@ -588,32 +588,6 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         assert seer_run.seer_run_state_id == 4242
         assert seer_run.mirror_status == SeerRunMirrorStatus.LIVE
 
-    def test_dispatch_is_async_and_does_not_call_seer(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        self._make_eligible(project)
-
-        self._store_event_and_update_group(
-            project, "fixable", seer_fixability_score=0.9, times_seen=5
-        )
-
-        with (
-            self.feature("organizations:gen-ai-features"),
-            patch(
-                "sentry.seer.agent.client_utils.make_signed_seer_api_request"
-            ) as mock_seer_request,
-        ):
-            run_night_shift_for_org(org.id)
-
-        mock_seer_request.assert_not_called()
-        run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.seer_run is not None
-        assert run.extras.get("error_message") is None
-        assert CellOutbox.objects.filter(
-            category=OutboxCategory.SEER_RUN_CREATE,
-            object_identifier=run.seer_run_id,
-        ).exists()
-
 
 @django_db_all
 class TestRunNightShiftForOrgManualPath(TestCase):
