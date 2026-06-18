@@ -246,18 +246,17 @@ class TestWorkflowValidatorActivityTrigger(TestCase):
     def test_unsupported_action_type_update_without_triggers_in_payload(
         self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
     ) -> None:
-        when_condition_group = DataConditionGroup.objects.create(
-            logic_type=DataConditionGroup.Type.ANY,
+        when_condition_group = self.create_data_condition_group(
             organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY,
         )
-        DataCondition.objects.create(
+        self.create_data_condition(
             condition_group=when_condition_group,
             type=Condition.SEER_ACTIVITY_TRIGGER,
             comparison=["rca_started"],
             condition_result=True,
         )
-        workflow = Workflow.objects.create(
-            name="existing",
+        workflow = self.create_workflow(
             organization=self.organization,
             when_condition_group=when_condition_group,
             config={"frequency": 30},
@@ -295,18 +294,17 @@ class TestWorkflowValidatorActivityTrigger(TestCase):
     def test_supported_action_type_update_without_triggers_in_payload(
         self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
     ) -> None:
-        when_condition_group = DataConditionGroup.objects.create(
-            logic_type=DataConditionGroup.Type.ANY,
+        when_condition_group = self.create_data_condition_group(
             organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY,
         )
-        DataCondition.objects.create(
+        self.create_data_condition(
             condition_group=when_condition_group,
             type=Condition.SEER_ACTIVITY_TRIGGER,
             comparison=["rca_started"],
             condition_result=True,
         )
-        workflow = Workflow.objects.create(
-            name="existing",
+        workflow = self.create_workflow(
             organization=self.organization,
             when_condition_group=when_condition_group,
             config={"frequency": 30},

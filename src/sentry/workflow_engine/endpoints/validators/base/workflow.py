@@ -130,16 +130,16 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
         return value
 
-    def _has_seer_activity_trigger(self, triggers: InputData | None) -> bool:
-        if triggers is None:
-            return False
-        return any(
-            c.get("type") == Condition.SEER_ACTIVITY_TRIGGER for c in triggers.get("conditions", [])
-        )
-
-    def _existing_workflow_has_seer_activity_trigger(self) -> bool:
+    def has_seer_activity_trigger(self, triggers: InputData | None) -> bool:
         from sentry.workflow_engine.models import DataCondition
 
+        # If this mutation affects triggers, check the incoming payload for activity triggers...
+        if triggers:
+            return any(
+                c.get("type") == Condition.SEER_ACTIVITY_TRIGGER
+                for c in triggers.get("conditions", [])
+            )
+        # ...otherwise, check if the existing workflow being modified has activity triggers
         workflow: Workflow | None = self.context.get("workflow")
         if workflow is None or workflow.when_condition_group_id is None:
             return False
@@ -153,10 +153,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             get_supported_action_types,
         )
 
-        has_activity_trigger = self._has_seer_activity_trigger(attrs.get("triggers"))
-        if not has_activity_trigger and "triggers" not in attrs:
-            has_activity_trigger = self._existing_workflow_has_seer_activity_trigger()
-
+        has_activity_trigger = self.has_seer_activity_trigger(triggers=attrs.get("triggers"))
         if not has_activity_trigger:
             return attrs
 
