@@ -825,6 +825,11 @@ function updateFilterKey(
   };
 }
 
+function countWords(text: string): number {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
 /**
  * This function is used to replace free text tokens with the specified
  * `replaceRawSearchKeys` prop from `SearchQueryBuilder`. This function also handles
@@ -892,14 +897,19 @@ export function replaceFreeTextTokens(
     if (value.includes(' ')) {
       const valueWithNoQuotes = value.slice(1, -1);
 
-      Sentry.logger.info(
-        Sentry.logger.fmt`Found potential natural language query: ${valueWithNoQuotes}`,
-        {query: valueWithNoQuotes, source: searchSource}
-      );
-
-      Sentry.metrics.count('search_query_builder.replace_free_text_tokens', 1, {
-        attributes: {query: valueWithNoQuotes, source: searchSource},
+      Sentry.logger.info(Sentry.logger.fmt`Found potential natural language query`, {
+        source: searchSource,
       });
+
+      Sentry.metrics.count('search_query_builder.potential_natural_language_query', 1, {
+        attributes: {source: searchSource},
+      });
+
+      Sentry.metrics.gauge(
+        'search_query_builder.potential_natural_language_query_word_count',
+        countWords(valueWithNoQuotes),
+        {attributes: {source: searchSource}}
+      );
     }
 
     // We don't want to break user flows, so if they include an asterisk in their free
