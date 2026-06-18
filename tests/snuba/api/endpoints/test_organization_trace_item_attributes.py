@@ -497,13 +497,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             self.project.id,
             uuid4().hex,
             uuid4().hex,
-            span_id=uuid4().hex[:16],
             organization_id=self.organization.id,
-            parent_span_id=None,
             timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-            transaction="foo",
-            duration=100,
-            exclusive_time=100,
             # `gen_ai.request.model` is a sentry convention name, but as a
             # user-supplied tag it resolves to a `user` source. It must not pick
             # up convention metadata.
