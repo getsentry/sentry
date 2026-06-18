@@ -56,7 +56,9 @@ function makePrIterationBlock(
         feedback: JSON.stringify({
           text: feedback.text,
           timestamp: feedback.timestamp,
-          source: feedback.user ? {user: feedback.user} : undefined,
+          source: feedback.user
+            ? {type: 'user-ui', user: feedback.user}
+            : {type: 'user-ui'},
         }),
       },
     },
@@ -660,6 +662,36 @@ describe('ArtifactCard', () => {
       expect(
         screen.queryByText("Seer proposed a fix but couldn't apply it automatically")
       ).not.toBeInTheDocument();
+    });
+
+    it('silently ignores pr_iteration blocks with an unrecognized source type', () => {
+      const block: AutofixSection['blocks'][number] = {
+        id: 'block-unknown',
+        timestamp: '2026-01-01T00:00:00Z',
+        message: {
+          role: 'user',
+          content: null,
+          metadata: {
+            step: 'pr_iteration',
+            iteration_index: '0',
+            feedback: JSON.stringify({text: 'ignored', source: {type: 'mystery'}}),
+          },
+        },
+      };
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [block]
+          )}
+        />
+      );
+
+      expect(screen.queryByText('Feedback')).not.toBeInTheDocument();
     });
 
     it('renders feedback from pr_iteration blocks', () => {
