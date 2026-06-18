@@ -22,6 +22,8 @@ export function ResolveActionsContainer({
   confirm,
   label,
 }: Props) {
+  'use memo';
+
   const {initiallyLoaded, projects, fetchError} = useProjects({
     slugs: selectedProjectSlug ? [selectedProjectSlug] : [],
   });

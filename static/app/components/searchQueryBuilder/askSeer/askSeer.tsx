@@ -15,6 +15,8 @@ import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/cont
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
+  'use memo';
+
   const organization = useOrganization();
 
   const {displayAskSeerFeedback} = useSearchQueryBuilderAI();

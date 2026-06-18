@@ -17,6 +17,8 @@ interface PopoverProps extends Omit<AriaPopoverProps, 'popoverRef'> {
 }
 
 export function AskSeerSearchPopover(props: PopoverProps) {
+  'use memo';
+
   const ref = useRef<HTMLDivElement>(null);
   const {popoverRef = ref, state, children, overlayProps} = props;
 

@@ -31,6 +31,8 @@ type AggregateKeyProps = {
 };
 
 export function AggregateKeyVisual({token}: {token: AggregateFilter}) {
+  'use memo';
+
   const fnName = getKeyName(token.key);
   const fnParams = useAggregateParamVisual({token});
 
@@ -51,6 +53,8 @@ export function AggregateKey({
   onActiveChange,
   filterRef,
 }: AggregateKeyProps) {
+  'use memo';
+
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch, focusOverride} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();

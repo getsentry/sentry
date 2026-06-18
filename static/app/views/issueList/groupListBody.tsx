@@ -74,6 +74,8 @@ function LoadingSkeleton({
   displayReprocessingLayout: boolean;
   pageSize: number;
 }) {
+  'use memo';
+
   return (
     <PanelBody>
       {Array.from({length: pageSize}).map((_, index) => (
@@ -103,6 +105,8 @@ export function GroupListBody({
   supergroupLookup,
   withColumns,
 }: GroupListBodyProps) {
+  'use memo';
+
   const organization = useOrganization();
   const columns = withColumns ?? DEFAULT_COLUMNS;
 
@@ -188,6 +192,8 @@ function GroupList({
   supergroupLookup,
   withColumns = DEFAULT_COLUMNS,
 }: GroupListProps) {
+  'use memo';
+
   const theme = useTheme();
   const organization = useOrganization();
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(

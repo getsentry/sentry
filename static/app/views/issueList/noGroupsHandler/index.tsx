@@ -76,6 +76,8 @@ export function NoGroupsHandler({
   query,
   selectedProjectIds,
 }: NoGroupsHandlerProps) {
+  'use memo';
+
   // If no projects are selected, then we must check every project the user is a
   // member of and make sure there are no first events for all of the projects.
   // Set project to -1 for all projects. Do not pass a project id for "my projects".
@@ -142,6 +144,8 @@ interface AwaitingEventsProps {
 }
 
 function AwaitingEvents({groupIds, organization, projects}: AwaitingEventsProps) {
+  'use memo';
+
   const project = projects?.[0];
   const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
 
@@ -163,6 +167,8 @@ function AwaitingEvents({groupIds, organization, projects}: AwaitingEventsProps)
 }
 
 function EmptyResult({emptyMessage, query}: EmptyResultProps) {
+  'use memo';
+
   if (query === DEFAULT_QUERY) {
     return (
       <NoUnresolvedIssues

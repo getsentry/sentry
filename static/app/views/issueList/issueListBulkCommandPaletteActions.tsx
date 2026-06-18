@@ -64,6 +64,8 @@ function AssignActionItems({
   onBulkUpdate: (data: Record<string, unknown>) => void;
   onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
 }) {
+  'use memo';
+
   const user = useUser();
   const {teams} = useTeams({provideUserTeams: true});
   const {data: members = []} = useOrgMembers();
@@ -163,6 +165,8 @@ function AssignActions({
   label?: string;
   onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
 }) {
+  'use memo';
+
   return (
     <CMDKAction
       display={{label, icon: <IconUser />}}
@@ -182,6 +186,8 @@ function PriorityActions({
 }: {
   onConfirmUpdate: (actionLabel: string, data: IssueUpdateData) => void;
 }) {
+  'use memo';
+
   return (
     <CMDKAction
       display={{label: t('Set Priority'), icon: <IconCellSignal bars={2} />}}
@@ -354,6 +360,8 @@ function useIssueListBulkCommandPaletteActions({
 export function IssueListMarkAllCommandPaletteAction(
   props: IssueListMarkAllCommandPaletteActionProps
 ) {
+  'use memo';
+
   const {anySelected, confirmBulkAction, handleBulkUpdate, handleUpdate} =
     useIssueListBulkCommandPaletteActions(props);
 
@@ -424,6 +432,8 @@ export function IssueListMarkAllCommandPaletteAction(
 export function IssueListBulkCommandPaletteActions(
   props: IssueListBulkCommandPaletteActionsProps
 ) {
+  'use memo';
+
   const {
     anySelected,
     canArchive,

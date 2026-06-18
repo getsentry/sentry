@@ -4,6 +4,8 @@ export function UnstyledButton({
   children,
   ...props
 }: React.ComponentPropsWithRef<'button'>) {
+  'use memo';
+
   return (
     <RemovedStylesButton type="button" {...props}>
       {children}

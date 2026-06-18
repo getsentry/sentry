@@ -15,6 +15,8 @@ interface SupergroupFeedbackProps {
 }
 
 export function SupergroupFeedback({supergroupId}: SupergroupFeedbackProps) {
+  'use memo';
+
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const organization = useOrganization();
   const user = useUser();

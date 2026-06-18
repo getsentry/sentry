@@ -69,6 +69,8 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
 }
 
 function StreamWrapper({children}: Props) {
+  'use memo';
+
   const organization = useOrganization();
   useRouteAnalyticsHookSetup();
   const {viewId} = useParams<{orgId?: string; viewId?: string}>();
@@ -86,6 +88,8 @@ function StreamWrapper({children}: Props) {
 }
 
 function IssueViewWrapper({children}: Props) {
+  'use memo';
+
   const organization = useOrganization();
   const {data: groupSearchView, isLoading, isError} = useSelectedGroupSearchView();
   useUpdateViewLastVisited({view: groupSearchView});
@@ -111,6 +115,8 @@ function IssueViewWrapper({children}: Props) {
 }
 
 export function IssueListContainer({children, title = t('Issues')}: Props) {
+  'use memo';
+
   const organization = useOrganization();
 
   return (

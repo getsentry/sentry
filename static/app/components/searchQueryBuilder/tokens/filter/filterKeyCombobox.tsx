@@ -40,6 +40,8 @@ type KeyComboboxProps = {
 };
 
 export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
+  'use memo';
+
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState(getKeyLabel(token.key) ?? '');
 

@@ -90,6 +90,8 @@ function FilterActions({
   query,
   onQueryChange,
 }: Pick<IssueListCommandPaletteActionsProps, 'query' | 'onQueryChange'>) {
+  'use memo';
+
   const api = useApi();
   const organization = useOrganization();
   const user = useUser();
@@ -278,6 +280,8 @@ function SortActions({
   query,
   onSortChange,
 }: Pick<IssueListCommandPaletteActionsProps, 'sort' | 'query' | 'onSortChange'>) {
+  'use memo';
+
   const sortKeys = [
     ...(FOR_REVIEW_QUERIES.includes(query) ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
@@ -310,6 +314,8 @@ function SaveViewActions({
   query,
   sort,
 }: Pick<IssueListCommandPaletteActionsProps, 'query' | 'sort'>) {
+  'use memo';
+
   const {openModal} = useModal();
 
   const organization = useOrganization();
@@ -391,6 +397,8 @@ export function IssueListCommandPaletteActions({
   onSortChange,
   onQueryChange,
 }: IssueListCommandPaletteActionsProps) {
+  'use memo';
+
   return (
     <CommandPaletteSlot name="page">
       <CMDKAction display={{label: t('Issues Feed'), icon: <IconIssues />}}>

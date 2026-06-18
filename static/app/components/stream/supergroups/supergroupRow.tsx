@@ -24,6 +24,8 @@ interface SupergroupRowProps {
 }
 
 export function SupergroupRow({supergroup, aggregatedStats}: SupergroupRowProps) {
+  'use memo';
+
   const location = useLocation();
   const navigate = useNavigate();
   const supergroupId = String(supergroup.id);

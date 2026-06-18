@@ -1,5 +1,13 @@
 import type {ReactNode} from 'react';
-import {createContext, useCallback, useContext, useMemo, useReducer, useRef} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+} from 'react';
 import isEqual from 'lodash/isEqual';
 
 interface IssueSelectionState {
@@ -219,6 +227,8 @@ export function IssueSelectionProvider({
   children,
   visibleGroupIds,
 }: IssueSelectionProviderProps) {
+  'use memo';
+
   const [state, dispatch] = useReducer(
     issueSelectionReducer,
     visibleGroupIds,
@@ -226,10 +236,12 @@ export function IssueSelectionProvider({
   );
   const previousVisibleGroupIdsRef = useRef(visibleGroupIds);
 
-  if (!isEqual(previousVisibleGroupIdsRef.current, visibleGroupIds)) {
-    previousVisibleGroupIdsRef.current = visibleGroupIds;
-    dispatch({type: 'RECONCILE_VISIBLE_GROUP_IDS', groupIds: visibleGroupIds});
-  }
+  useLayoutEffect(() => {
+    if (!isEqual(previousVisibleGroupIdsRef.current, visibleGroupIds)) {
+      previousVisibleGroupIdsRef.current = visibleGroupIds;
+      dispatch({type: 'RECONCILE_VISIBLE_GROUP_IDS', groupIds: visibleGroupIds});
+    }
+  }, [visibleGroupIds]);
 
   const reconcileVisibleGroupIds = useCallback((groupIds: string[]) => {
     dispatch({type: 'RECONCILE_VISIBLE_GROUP_IDS', groupIds});

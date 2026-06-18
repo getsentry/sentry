@@ -6,5 +6,7 @@ const DataConsentBanner = OverrideOrDefault({
 });
 
 export function IssuesDataConsentBanner({source}: {source: string}) {
+  'use memo';
+
   return <DataConsentBanner source={source} />;
 }

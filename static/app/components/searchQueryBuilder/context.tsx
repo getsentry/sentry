@@ -207,6 +207,8 @@ export function SearchQueryBuilderProvider({
   invalidFilterKeys,
   asyncFilterKeyRegistryQueryKey,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
+  'use memo';
+
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const fallbackRegistryId = useId();

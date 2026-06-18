@@ -17,6 +17,8 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
+  'use memo';
+
   // TODO(msun): Add tests for this component
   const organization = useOrganization();
   const [isEditing, setIsEditing] = useState(false);
@@ -114,6 +116,8 @@ function EditingViewTitle({
   onSave: (title: string) => void;
   stopEditing: () => void;
 }) {
+  'use memo';
+
   const inputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(initialTitle);
   const hasPageFrame = useHasPageFrameFeature();

@@ -9,6 +9,8 @@ type Props = {
 };
 
 export function ExtraDescription({all, query, queryCount}: Props) {
+  'use memo';
+
   if (!all) {
     return null;
   }

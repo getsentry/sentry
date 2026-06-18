@@ -69,6 +69,8 @@ function useApplyFocusOverride(state: ListState<ParseResultToken>) {
 }
 
 function Grid(props: GridProps) {
+  'use memo';
+
   const ref = useRef<HTMLDivElement>(null);
   const selectionKeyHandlerRef = useRef<HTMLInputElement>(null);
   const {dispatch} = useSearchQueryBuilderState();
@@ -172,6 +174,8 @@ export function TokenizedQueryGrid({
   label,
   actionBarWidth,
 }: TokenizedQueryGridProps) {
+  'use memo';
+
   const {parsedQuery} = useSearchQueryBuilderState();
 
   // Shouldn't ever get here since we will render the plain text input instead

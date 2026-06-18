@@ -21,6 +21,8 @@ interface Props {
 const RESET_PARAMS_ON_CHANGE = ['page', 'cursor'];
 
 export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
+  'use memo';
+
   return (
     <FiltersContainer>
       <StyledPageFilterBar>

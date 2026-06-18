@@ -50,6 +50,8 @@ export function InvalidTokenTooltip({
   warning,
   ...tooltipProps
 }: InvalidTokenTooltipProps) {
+  'use memo';
+
   const invalid = 'invalid' in token ? token.invalid : null;
   const tokenWarning = 'warning' in token ? token.warning : null;
 
@@ -88,6 +90,8 @@ export function GridInvalidTokenTooltip({
   columnCount,
   ...props
 }: GridInvalidTokenTooltipProps) {
+  'use memo';
+
   return (
     <Grid align="stretch" height="22px" columns={`repeat(${columnCount}, auto)`}>
       {styleProps => (

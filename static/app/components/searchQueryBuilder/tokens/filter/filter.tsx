@@ -55,6 +55,8 @@ interface FilterValueProps extends SearchQueryTokenProps {
 }
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
+  'use memo';
+
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {size} = useSearchQueryBuilderLayout();
   const valueType = getFilterValueType(token, getFieldDefinition(getKeyName(token.key)));
@@ -187,6 +189,8 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
 }
 
 function FilterDelete({token, state, item}: SearchQueryTokenProps) {
+  'use memo';
+
   const {dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
   const filterButtonProps = useFilterButtonProps({state, item});

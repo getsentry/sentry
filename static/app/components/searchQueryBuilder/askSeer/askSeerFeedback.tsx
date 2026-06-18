@@ -12,6 +12,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function AskSeerFeedback() {
+  'use memo';
+
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
   const {setDisplayAskSeerFeedback, askSeerNLQueryRef, askSeerSuggestedQueryRef} =

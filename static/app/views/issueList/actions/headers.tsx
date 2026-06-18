@@ -26,6 +26,8 @@ export function Headers({
   isReprocessingQuery,
   withColumns,
 }: Props) {
+  'use memo';
+
   return (
     <Fragment>
       {isReprocessingQuery ? (

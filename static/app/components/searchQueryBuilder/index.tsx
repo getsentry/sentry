@@ -232,6 +232,8 @@ function ActionButtons({
   ref?: React.Ref<HTMLDivElement>;
   trailingItems?: React.ReactNode;
 }) {
+  'use memo';
+
   const {clearSearchQuery, query} = useSearchQueryBuilderState();
   const {disabled, caseInsensitive, onCaseInsensitiveClick} =
     useSearchQueryBuilderConfig();
@@ -285,6 +287,8 @@ function SearchQueryBuilderUI({
   trailingItems,
   onChange,
 }: SearchQueryBuilderProps) {
+  'use memo';
+
   const {parsedQuery, query, dispatch} = useSearchQueryBuilderState();
   const {wrapperRef, actionBarRef, size} = useSearchQueryBuilderLayout();
 
@@ -327,6 +331,8 @@ function SearchQueryBuilderUI({
 }
 
 export function SearchQueryBuilder({...props}: SearchQueryBuilderProps) {
+  'use memo';
+
   const hasProvider = useHasSearchQueryBuilderProvider();
 
   if (hasProvider) {

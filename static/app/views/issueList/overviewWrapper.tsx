@@ -6,6 +6,8 @@ import {IssueListContainer} from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
 
 export function OverviewWrapper() {
+  'use memo';
+
   const location = useLocation();
   const shouldFetchOnMount = !defined(location.query.new);
 

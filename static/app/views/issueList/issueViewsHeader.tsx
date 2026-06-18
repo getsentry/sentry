@@ -39,6 +39,8 @@ type IssueViewsHeaderProps = {
 };
 
 function PageTitle({title, description}: {title: ReactNode; description?: ReactNode}) {
+  'use memo';
+
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
@@ -65,6 +67,8 @@ function PageTitle({title, description}: {title: ReactNode; description?: ReactN
 }
 
 function IssueViewStarButton() {
+  'use memo';
+
   const organization = useOrganization();
   const user = useUser();
   const queryClient = useQueryClient();
@@ -138,6 +142,8 @@ function IssueViewStarButton() {
 }
 
 function IssueViewEditMenu() {
+  'use memo';
+
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
@@ -210,6 +216,8 @@ export function IssueViewsHeader({
   onRealtimeChange,
   headerActions,
 }: IssueViewsHeaderProps) {
+  'use memo';
+
   const {viewId} = useParams<{viewId?: string}>();
   const hasPageFrameFeature = useHasPageFrameFeature();
 

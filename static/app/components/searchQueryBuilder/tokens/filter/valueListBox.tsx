@@ -61,6 +61,8 @@ function WildcardFooter({
   canUseWildcard: boolean;
   token: TokenResult<Token.FILTER>;
 }) {
+  'use memo';
+
   if (isWildcardOperator(token.operator)) {
     return <Label>{t('Switch to "is" operator to use wildcard (*) matching')}</Label>;
   }
@@ -91,6 +93,8 @@ function Footer({
   isMultiSelect: boolean;
   token: TokenResult<Token.FILTER>;
 }) {
+  'use memo';
+
   if (!isMultiSelect && !canUseWildcard) {
     return null;
   }
@@ -123,6 +127,8 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   token,
   wrapperRef,
 }: ValueListBoxProps<T>) {
+  'use memo';
+
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
     0

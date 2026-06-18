@@ -106,6 +106,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   initialQuery,
   ...props
 }: AskSeerComboBoxProps<T>) {
+  'use memo';
+
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);

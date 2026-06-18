@@ -25,6 +25,8 @@ export function RenameIssueViewModal({
   analyticsSurface,
   onRename,
 }: RenameIssueViewModalProps) {
+  'use memo';
+
   const organization = useOrganization();
   const user = useUser();
 

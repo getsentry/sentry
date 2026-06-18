@@ -76,6 +76,8 @@ export function IssueListTable({
   supergroupLookup,
   withColumns,
 }: IssueListTableProps) {
+  'use memo';
+
   const location = useLocation();
 
   const isNewViewEmptyStateActive =

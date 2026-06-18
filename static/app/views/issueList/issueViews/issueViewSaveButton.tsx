@@ -37,6 +37,8 @@ function SegmentedIssueViewSaveButton({
 }: {
   openCreateIssueViewModal: () => void;
 }) {
+  'use memo';
+
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -154,6 +156,8 @@ function SegmentedIssueViewSaveButton({
 }
 
 export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
+  'use memo';
+
   const {openModal} = useModal();
 
   const {viewId} = useParams();

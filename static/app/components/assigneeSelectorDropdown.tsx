@@ -119,6 +119,8 @@ function AssigneeAvatar({
   assignedTo?: Actor | null;
   suggestedActors?: SuggestedAssignee[];
 }) {
+  'use memo';
+
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
     suspectCommit: tct('Based on [commit:commit data]', {
       commit: (
@@ -215,6 +217,8 @@ export function AssigneeSelectorDropdown({
   trigger,
   additionalMenuFooterItems,
 }: AssigneeSelectorDropdownProps) {
+  'use memo';
+
   const sessionUser = useUser();
 
   const currentMemberList = memberList ?? [];

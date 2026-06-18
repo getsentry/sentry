@@ -16,6 +16,8 @@ function generateThreeUniqueNumbers(): number[] {
 }
 
 export function AskSeerSearchSkeleton() {
+  'use memo';
+
   const numbers = useMemo(() => generateThreeUniqueNumbers(), []);
 
   return (

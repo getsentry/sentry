@@ -42,6 +42,8 @@ const defaultFieldDefinitionGetter: FieldDefinitionGetter = key =>
   defaultGetFieldDefinition(key);
 
 function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
+  'use memo';
+
   if (token.filter === FilterType.IS || token.filter === FilterType.HAS) {
     return null;
   }
@@ -56,6 +58,8 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 }
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
+  'use memo';
+
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const label = useMemo(
     () =>
@@ -77,6 +81,8 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
 }
 
 function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
+  'use memo';
+
   const label = token.text.toUpperCase();
   return (
     <FilterWrapper aria-label={label}>
@@ -86,6 +92,8 @@ function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
 }
 
 function QueryToken({token}: TokenProps) {
+  'use memo';
+
   switch (token.type) {
     case Token.FILTER:
       return <Filter token={token} />;
@@ -122,6 +130,8 @@ export function FormattedQuery({
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
+  'use memo';
+
   const parsedQuery = useMemo(() => {
     return parseQueryBuilderValue(query, fieldDefinitionGetter, {
       filterKeys,
@@ -159,6 +169,8 @@ export function ProvidedFormattedQuery({
   filterKeyAliases = EMPTY_FILTER_KEYS,
   getFilterTokenWarning,
 }: FormattedQueryProps) {
+  'use memo';
+
   return (
     <SearchQueryBuilderProvider
       filterKeys={filterKeys}

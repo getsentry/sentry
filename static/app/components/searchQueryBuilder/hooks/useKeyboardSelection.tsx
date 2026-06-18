@@ -116,6 +116,8 @@ const KeyboardSelectionContext = createContext<KeyboardSelectionData>({
  * to keep track of the latest cursor position.
  */
 export function KeyboardSelection({children}: {children: ReactNode}) {
+  'use memo';
+
   const state = useKeyboardSelectionState();
 
   return <KeyboardSelectionContext value={state}>{children}</KeyboardSelectionContext>;

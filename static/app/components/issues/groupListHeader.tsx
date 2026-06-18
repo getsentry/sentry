@@ -16,6 +16,8 @@ export function GroupListHeader({
   withChart,
   withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
 }: Props) {
+  'use memo';
+
   return (
     <PanelHeader disablePadding>
       <IssueWrapper hideDivider>{t('Issue')}</IssueWrapper>

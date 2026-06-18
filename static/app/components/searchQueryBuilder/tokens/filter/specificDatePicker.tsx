@@ -70,6 +70,8 @@ export function SpecificDatePicker({
   isOpen,
   overlayProps,
 }: SearchBarDatePickerProps) {
+  'use memo';
+
   const parsedToken = useMemo(() => {
     if (!dateString) {
       return null;
@@ -212,6 +214,8 @@ export function SpecificDatePicker({
  * until the user is done making changes.
  */
 function TimeInput({ref, disabled, time, setTime}: TimeInputProps) {
+  'use memo';
+
   const [localTime, setLocalTime] = useState(time);
   const [isFocused, setIsFocused] = useState(false);
   const timeInputRef = useRef<HTMLInputElement | null>(null);

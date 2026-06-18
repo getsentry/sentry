@@ -229,6 +229,8 @@ function HiddenText({
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FREE_TEXT>;
 }) {
+  'use memo';
+
   return (
     <PositionedTooltip
       state={state}
@@ -252,6 +254,8 @@ function SearchQueryBuilderInputInternal({
   state,
   rowRef,
 }: SearchQueryBuilderInputInternalProps) {
+  'use memo';
+
   const inputRef = useRef<HTMLInputElement>(null);
   const trimmedTokenValue = token.text.trim();
   const [isOpen, setIsOpen] = useState(false);
@@ -728,6 +732,8 @@ export function SearchQueryBuilderFreeText({
   state,
   item,
 }: SearchQueryBuilderInputProps) {
+  'use memo';
+
   const ref = useRef<HTMLDivElement>(null);
 
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);

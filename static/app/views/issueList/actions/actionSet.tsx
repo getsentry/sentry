@@ -51,6 +51,8 @@ export function ActionSet({
   onMerge,
   selectedProjectSlug,
 }: Props) {
+  'use memo';
+
   const organization = useOrganization();
   const area = useAnalyticsArea();
 

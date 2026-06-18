@@ -21,20 +21,18 @@ const AiQueryContext = createContext<AiQueryContextValue>({
 });
 
 export function AiQueryProvider({children}: {children: ReactNode}) {
+  'use memo';
+
   const [runId, setRunId] = useState<number | string | null>(null);
   const lastTrackedRunId = useRef<number | string | null>(null);
 
-  const getRunIdForAnalyticsBox = useRef<() => number | string | null>(() => null);
-  getRunIdForAnalyticsBox.current = () => {
+  const getRunIdForAnalytics = useCallback(() => {
     if (runId === lastTrackedRunId.current) {
       return null;
     }
     lastTrackedRunId.current = runId;
     return runId;
-  };
-
-  // Stable callback that dispatches to the latest closure via ref.
-  const getRunIdForAnalytics = useCallback(() => getRunIdForAnalyticsBox.current(), []);
+  }, [runId]);
 
   const value = useMemo(() => ({getRunIdForAnalytics, setRunId}), [getRunIdForAnalytics]);
 

@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import zeroInboxIssuesImg from 'sentry-images/spot/zero-inbox-issues.svg';
 
 function Message({title, subtitle}: {subtitle: React.ReactNode; title: React.ReactNode}) {
+  'use memo';
+
   return (
     <Fragment>
       <EmptyMessage>{title}</EmptyMessage>
@@ -18,6 +20,8 @@ type Props = {
 };
 
 export function NoUnresolvedIssues({title, subtitle}: Props) {
+  'use memo';
+
   return (
     <Wrapper>
       <img src={zeroInboxIssuesImg} alt="No issues found spot illustration" />

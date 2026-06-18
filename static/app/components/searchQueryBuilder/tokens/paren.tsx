@@ -18,6 +18,8 @@ type SearchQueryBuilderParenProps = {
 export function SearchQueryBuilderParenIcon({
   token,
 }: Pick<SearchQueryBuilderParenProps, 'token'>) {
+  'use memo';
+
   return (
     <IconParenthesis side={token.type === Token.L_PAREN ? 'left' : 'right'} height={26} />
   );
@@ -28,6 +30,8 @@ export function SearchQueryBuilderParen({
   state,
   token,
 }: SearchQueryBuilderParenProps) {
+  'use memo';
+
   return (
     <DeletableToken
       item={item}

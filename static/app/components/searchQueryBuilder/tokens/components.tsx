@@ -12,6 +12,8 @@ import type {
 type BaseGridCellProps = FlexProps & DOMAttributes<FocusableElement>;
 
 export function BaseGridCell({children, ...props}: BaseGridCellProps) {
+  'use memo';
+
   return (
     <Flex align="stretch" position="relative" {...props}>
       {children}
@@ -24,6 +26,8 @@ type FilterWrapperProps = (ContainerPropsWithRenderFunction | ContainerProps) & 
 };
 
 export function FilterWrapper({children, ...props}: FilterWrapperProps) {
+  'use memo';
+
   return (
     <StyledFilterWrapper
       border="muted"

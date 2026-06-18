@@ -34,6 +34,8 @@ export function AssigneeBadge({
   chevronDirection = 'down',
   loading = false,
 }: AssigneeBadgeProps) {
+  'use memo';
+
   const theme = useTheme();
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
     suspectCommit: tct('Based on [commit:commit data]', {

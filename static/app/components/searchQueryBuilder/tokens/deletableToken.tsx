@@ -38,6 +38,8 @@ export function DeletableToken({
   children,
   invalid,
 }: DeletableTokenProps) {
+  'use memo';
+
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch} = useSearchQueryBuilderState();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);

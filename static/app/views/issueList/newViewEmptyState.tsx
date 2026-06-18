@@ -36,6 +36,8 @@ const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
 ];
 
 function Query({label, query}: SearchSuggestion) {
+  'use memo';
+
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -70,6 +72,8 @@ function Query({label, query}: SearchSuggestion) {
 }
 
 export function NewViewEmptyState() {
+  'use memo';
+
   const organization = useOrganization();
   const {data: savedSearches = [], isPending} = useFetchSavedSearchesForOrg({
     orgSlug: organization.slug,

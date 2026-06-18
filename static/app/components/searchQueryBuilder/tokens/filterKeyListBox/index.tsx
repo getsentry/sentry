@@ -65,6 +65,8 @@ function ListBoxSectionButton({
   onClick: () => void;
   selected: boolean;
 }) {
+  'use memo';
+
   return (
     <SectionButton
       size="zero"
@@ -79,6 +81,8 @@ function ListBoxSectionButton({
 }
 
 function FeedbackFooter() {
+  'use memo';
+
   const {searchSource} = useSearchQueryBuilderConfig();
 
   return (
@@ -105,6 +109,8 @@ function RecentSearchFilterOption<T>({
   filter: TokenResult<Token.FILTER>;
   state: ComboBoxState<T>;
 }) {
+  'use memo';
+
   const ref = useRef<HTMLLIElement>(null);
   const key = getKeyName(filter.key);
   const {optionProps, labelProps, isFocused, isPressed} = useOption(
@@ -209,6 +215,8 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   fullWidth,
   sections,
 }: FilterKeyMenuContentProps<T>) {
+  'use memo';
+
   const {filterKeys} = useSearchQueryBuilderConfig();
   const {enableAISearch} = useSearchQueryBuilderAI();
   const focusedItem = state.selectionManager.focusedKey

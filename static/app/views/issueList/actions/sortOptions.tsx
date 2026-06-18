@@ -50,6 +50,8 @@ export function IssueListSortOptions({
   triggerSize = 'xs',
   showIcon = true,
 }: Props) {
+  'use memo';
+
   const organization = useOrganization();
   const hasRecommendedSort =
     organization.features.includes('issue-stream-recommended-sort') ||

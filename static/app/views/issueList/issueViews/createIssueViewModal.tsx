@@ -91,6 +91,8 @@ export function CreateIssueViewModal({
   name: incomingName,
   analyticsSurface,
 }: CreateIssueViewModalProps) {
+  'use memo';
+
   const [formModel] = useState(() => new FormModel());
   const initialName = incomingName ?? '';
   const initialQuery = incomingQuery ?? 'is:unresolved';

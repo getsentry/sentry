@@ -114,6 +114,8 @@ export function GroupList({
   useFilteredStats = true,
   useTintRow = true,
 }: Props) {
+  'use memo';
+
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();

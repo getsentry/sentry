@@ -24,6 +24,8 @@ function getParameterLabel(param: AggregateParameter) {
 }
 
 export function FunctionDescription({token, parameterIndex}: FunctionDescriptionProps) {
+  'use memo';
+
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const fnName = getKeyName(token.key);
   const fieldDefinition = getFieldDefinition(fnName);

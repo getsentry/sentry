@@ -11,6 +11,8 @@ interface SeerSearchHeaderProps {
 }
 
 export function AskSeerSearchHeader({title, loading = false}: SeerSearchHeaderProps) {
+  'use memo';
+
   return (
     <Flex align="center" padding="lg xl" gap="md" width="100%">
       <StyledIconSeer animation={loading ? 'loading' : undefined} />

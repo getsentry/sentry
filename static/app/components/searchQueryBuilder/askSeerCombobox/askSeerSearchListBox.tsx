@@ -10,6 +10,8 @@ interface SeerSearchListBoxProps extends AriaListBoxOptions<unknown> {
 }
 
 export function AskSeerSearchListBox(props: SeerSearchListBoxProps) {
+  'use memo';
+
   const ref = useRef<HTMLUListElement>(null);
   const {listBoxRef = ref, state} = props;
   const {listBoxProps} = useListBox(props, state, listBoxRef);
@@ -37,6 +39,8 @@ interface SeerSearchOptionProps {
 }
 
 function SeerSearchOption({item, state, label}: SeerSearchOptionProps) {
+  'use memo';
+
   const ref = useRef<HTMLLIElement>(null);
   const {optionProps, isFocused} = useOption({key: item.key}, state, ref);
 

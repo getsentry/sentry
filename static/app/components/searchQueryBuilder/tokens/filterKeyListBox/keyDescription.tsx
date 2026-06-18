@@ -19,6 +19,8 @@ export function ValueType({
   fieldDefinition: FieldDefinition | null;
   fieldKind?: FieldKind;
 }) {
+  'use memo';
+
   const defaultType =
     fieldKind === FieldKind.FEATURE_FLAG ? FieldValueType.BOOLEAN : FieldValueType.STRING;
   if (!fieldDefinition) {
@@ -33,6 +35,8 @@ export function ValueType({
 }
 
 export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
+  'use memo';
+
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
 
   const fieldDefinition = getFieldDefinition(tag.key);

@@ -37,6 +37,8 @@ type SearchQueryBuilderBooleanProps = {
 };
 
 function FilterDelete({token, state, item}: SearchQueryBuilderBooleanProps) {
+  'use memo';
+
   const {dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
   const filterButtonProps = useFilterButtonProps({state, item});

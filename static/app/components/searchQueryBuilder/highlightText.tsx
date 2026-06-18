@@ -8,6 +8,8 @@ type HighlightTextProps = {
 };
 
 export function HighlightText({query, text}: HighlightTextProps) {
+  'use memo';
+
   const trimmedQuery = query.trim();
   if (!trimmedQuery || !text) {
     return text;

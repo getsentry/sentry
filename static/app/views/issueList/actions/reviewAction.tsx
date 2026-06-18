@@ -13,6 +13,8 @@ type Props = {
 };
 
 export function ReviewAction({disabled, onUpdate, tooltipProps, tooltip}: Props) {
+  'use memo';
+
   return (
     <ActionLink
       type="button"

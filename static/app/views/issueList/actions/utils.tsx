@@ -62,6 +62,8 @@ function PerformanceIssueAlert({
   allInQuerySelected: boolean;
   children: string;
 }) {
+  'use memo';
+
   if (!allInQuerySelected) {
     return null;
   }

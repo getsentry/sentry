@@ -72,6 +72,8 @@ export function SupergroupDetailDrawer({
   memberList,
   filterWithCurrentSearch,
 }: SupergroupDetailDrawerProps) {
+  'use memo';
+
   const organization = useOrganization();
 
   useEffect(() => {
@@ -170,6 +172,8 @@ function SupergroupIssueList({
   memberList: IndexedMembersByProject | undefined;
   filterWithCurrentSearch?: boolean;
 }) {
+  'use memo';
+
   const organization = useOrganization();
   const location = useLocation();
   const [page, setPage] = useState(0);
@@ -348,6 +352,8 @@ function SupergroupIssueList({
 }
 
 function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
+  'use memo';
+
   const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -496,6 +502,8 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
 }
 
 function DrawerColumnHeaders() {
+  'use memo';
+
   return (
     <Fragment>
       {DRAWER_COLUMNS.includes('lastSeen') && (

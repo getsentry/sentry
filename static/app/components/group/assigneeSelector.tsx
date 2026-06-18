@@ -104,6 +104,8 @@ export function AssigneeSelector({
   additionalMenuFooterItems,
   showLabel = false,
 }: AssigneeSelectorProps) {
+  'use memo';
+
   const {data: defaultMemberList = [], isPending: defaultMemberListLoading} = useQuery({
     ...useProjectMembersQueryOptions([group.project.id]),
     select: resp => selectUsersFromMembers(resp.json),

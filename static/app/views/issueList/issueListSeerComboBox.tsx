@@ -26,6 +26,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function IssueListSeerComboBox() {
+  'use memo';
+
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();

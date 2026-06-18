@@ -20,26 +20,31 @@ interface PlainTextQueryInputProps {
 }
 
 export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
+  'use memo';
+
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const {query, parsedQuery, dispatch, handleSearch} = useSearchQueryBuilderState();
   const {placeholder, disabled} = useSearchQueryBuilderConfig();
   const {size} = useSearchQueryBuilderLayout();
   const [cursorPosition, setCursorPosition] = useState(0);
 
-  const setCursorPositionOnEvent = (event: SyntheticEvent<HTMLTextAreaElement>) => {
-    if (event.currentTarget === document.activeElement) {
-      setCursorPosition(event.currentTarget.selectionStart);
-    } else {
-      setCursorPosition(-1);
-    }
-  };
+  const setCursorPositionOnEvent = useCallback(
+    (event: SyntheticEvent<HTMLTextAreaElement>) => {
+      if (event.currentTarget === document.activeElement) {
+        setCursorPosition(event.currentTarget.selectionStart);
+      } else {
+        setCursorPosition(-1);
+      }
+    },
+    []
+  );
 
   const onChange = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
       setCursorPositionOnEvent(e);
       dispatch({type: 'UPDATE_QUERY', query: e.target.value});
     },
-    [dispatch]
+    [dispatch, setCursorPositionOnEvent]
   );
 
   const onKeyDown = useCallback(
@@ -51,7 +56,7 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
         handleSearch(query);
       }
     },
-    [handleSearch, query]
+    [handleSearch, query, setCursorPositionOnEvent]
   );
 
   return (

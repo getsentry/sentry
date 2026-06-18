@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -108,6 +108,8 @@ function GroupCheckbox({
   group: Group;
   displayReprocessingLayout?: boolean;
 }) {
+  'use memo';
+
   const issueSelectionSummary = useOptionalIssueSelectionSummary();
   const issueSelectionActions = useOptionalIssueSelectionActions();
   const isSelected = issueSelectionSummary?.records.get(group.id);
@@ -159,6 +161,8 @@ function GroupCheckbox({
 }
 
 function GroupLastSeen({group}: {group: Group}) {
+  'use memo';
+
   if (!group.lifetime) {
     return <Placeholder height="18px" width="70px" />;
   }
@@ -179,6 +183,8 @@ function GroupLastSeen({group}: {group: Group}) {
 }
 
 function GroupFirstSeen({group}: {group: Group}) {
+  'use memo';
+
   if (!group.lifetime) {
     return <Placeholder height="18px" width="30px" />;
   }
@@ -209,6 +215,8 @@ export function LoadingStreamGroup({
   withColumns = COLUMNS,
   showLastTriggered = false,
 }: LoadingSteamGroupProps) {
+  'use memo';
+
   return (
     <Wrapper data-test-id="group" useTintRow={false} reviewed={false}>
       <GroupSummary canSelect={false}>
@@ -300,6 +308,8 @@ export function StreamGroup({
   onGroupClick,
   progressState,
 }: Props) {
+  'use memo';
+
   const issueSelectionSummary = useOptionalIssueSelectionSummary();
   const issueSelectionActions = useOptionalIssueSelectionActions();
   const groupId = group.id;
@@ -310,7 +320,7 @@ export function StreamGroup({
   const area = useAnalyticsArea();
   const selectionEnabled =
     canSelect && !!issueSelectionSummary && !!issueSelectionActions;
-  const originalInboxState = useRef(group.inbox as InboxDetails | null);
+  const [originalInboxState] = useState(() => group.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
 
   const referrer = source ? `${source}-issue-stream` : 'issue-stream';
@@ -499,7 +509,7 @@ export function StreamGroup({
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const reviewed =
     // Original state had an inbox reason
-    originalInboxState.current?.reason !== undefined &&
+    originalInboxState?.reason !== undefined &&
     // Updated state has been removed from inbox
     !group.inbox &&
     // Only apply reviewed on the "for review" tab
@@ -563,7 +573,7 @@ export function StreamGroup({
   const groupUsersCount = (
     <Tooltip
       isHoverable
-      disabled={!usePageFilters}
+      disabled={!useFilteredStats}
       title={
         <CountTooltipContent>
           <h4>{t('Affected Users')}</h4>

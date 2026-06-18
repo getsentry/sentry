@@ -33,6 +33,8 @@ export function SelectionKeyHandler({
   undo,
   gridRef,
 }: SelectionKeyHandlerProps) {
+  'use memo';
+
   const {dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
   const {currentInputValueRef} = useSearchQueryBuilderLayout();

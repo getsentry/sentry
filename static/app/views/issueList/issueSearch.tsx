@@ -17,6 +17,8 @@ type IssueSearchProps = {
 };
 
 function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
+  'use memo';
+
   const organization = useOrganization();
   const {displayAskSeer} = useSearchQueryBuilderAI();
 
@@ -37,6 +39,8 @@ function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
 }
 
 export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
+  'use memo';
+
   const {selection: pageFilters} = usePageFilters();
   const {getFilterKeys, getFilterKeySections, getTagValues} =
     useIssueListSearchBarDataProvider({pageFilters});

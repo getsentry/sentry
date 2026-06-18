@@ -20,6 +20,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 export const ASK_SEER_ITEM_KEY = 'ask_seer';
 
 export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
+  'use memo';
+
   const ref = useRef<HTMLDivElement>(null);
   const {setDisplayAskSeer, aiSearchBadgeType} = useSearchQueryBuilderAI();
   const analyticsArea = useAnalyticsArea();

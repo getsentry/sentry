@@ -62,6 +62,8 @@ function getProgressActivities(activities: GroupActivity[]): GroupActivity[] {
 }
 
 function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}) {
+  'use memo';
+
   const organization = useOrganization();
   const theme = useTheme();
   const {teams} = useTeamsById();
@@ -114,6 +116,8 @@ function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}
 }
 
 function ProgressActivityBody({group}: {group: Group}) {
+  'use memo';
+
   const organization = useOrganization();
 
   const {data, isPending, isError} = useQuery(
@@ -175,6 +179,8 @@ interface ProgressActivityTooltipProps {
 }
 
 export function ProgressActivityTooltip({children, group}: ProgressActivityTooltipProps) {
+  'use memo';
+
   return (
     <ClassNames>
       {({css}) => (

@@ -75,6 +75,8 @@ function FilterKeyOperatorLabel({
   includeKeyLabel?: boolean;
   opLabel?: string;
 }) {
+  'use memo';
+
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const fieldDefinition = getFieldDefinition(keyValue);
 
@@ -221,6 +223,8 @@ export function getOperatorInfo({
 }
 
 export function FilterOperator({state, item, token, onOpenChange}: FilterOperatorProps) {
+  'use memo';
+
   const organization = useOrganization();
   const {dispatch, query, focusOverride} = useSearchQueryBuilderState();
   const {searchSource, recentSearches, disabled, getFieldDefinition} =

@@ -204,6 +204,8 @@ export function AskSeerProgressBlocks({
   completedSteps,
   currentStep,
 }: AskSeerProgressBlocksProps) {
+  'use memo';
+
   // Dedupe consecutive steps (parallel tool calls show as single step)
   const dedupedSteps = dedupeConsecutiveSteps(completedSteps);
 

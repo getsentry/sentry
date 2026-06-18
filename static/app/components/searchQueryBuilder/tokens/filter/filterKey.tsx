@@ -29,6 +29,8 @@ type FilterKeyProps = {
 };
 
 export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) {
+  'use memo';
+
   const ref = useRef<HTMLDivElement>(null);
   const {disabled, getFieldDefinition} = useSearchQueryBuilderConfig();
   const fieldDefinition = getFieldDefinition(token.key.text);

@@ -137,6 +137,16 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
   return pageInt;
 };
 
+function endNavigationTransaction() {
+  // End navigation transaction to prevent additional page requests from impacting page metrics.
+  // Other transactions include stacktrace preview request
+  const currentSpan = Sentry.getActiveSpan();
+  const rootSpan = currentSpan ? Sentry.getRootSpan(currentSpan) : undefined;
+  if (rootSpan && Sentry.spanToJSON(rootSpan).op === 'navigation') {
+    rootSpan.end();
+  }
+}
+
 function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
   shouldFetchOnMount = true,
@@ -146,6 +156,8 @@ function IssueListOverviewInner({
   clickBehavior = 'navigate',
   withColumns,
 }: Props) {
+  'use memo';
+
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -358,16 +370,10 @@ function IssueListOverviewInner({
         }
       } catch (e) {
         setError(parseApiError(e as RequestError));
-      } finally {
-        setStatsLoading(false);
-        // End navigation transaction to prevent additional page requests from impacting page metrics.
-        // Other transactions include stacktrace preview request
-        const currentSpan = Sentry.getActiveSpan();
-        const rootSpan = currentSpan ? Sentry.getRootSpan(currentSpan) : undefined;
-        if (rootSpan && Sentry.spanToJSON(rootSpan).op === 'navigation') {
-          rootSpan.end();
-        }
       }
+
+      setStatsLoading(false);
+      endNavigationTransaction();
     },
     [getEndpointParams, api, organization.slug]
   );
@@ -421,83 +427,80 @@ function IssueListOverviewInner({
         }
       );
 
-      if (!resp) {
-        return;
-      }
+      if (resp) {
+        // If this is a direct hit, we redirect to the intended result directly.
+        if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+          let redirect: string;
+          if (data[0]?.matchingEventId) {
+            const {id, matchingEventId} = data[0];
+            redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
+          } else {
+            const {id} = data[0];
+            redirect = `/organizations/${organization.slug}/issues/${id}/`;
+          }
 
-      // If this is a direct hit, we redirect to the intended result directly.
-      if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-        let redirect: string;
-        if (data[0]?.matchingEventId) {
-          const {id, matchingEventId} = data[0];
-          redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
+          navigate(
+            normalizeUrl({
+              pathname: redirect,
+              query: {
+                referrer: 'issue-list',
+                ...extractSelectionParameters(location.query),
+              },
+            }),
+            {replace: true}
+          );
         } else {
-          const {id} = data[0];
-          redirect = `/organizations/${organization.slug}/issues/${id}/`;
+          if (undoRef.current) {
+            GroupStore.loadInitialData(data);
+          }
+          GroupStore.add(data);
+
+          if (data.length === 0) {
+            trackAnalytics('issue_search.empty', {
+              organization,
+              search_type: 'issues',
+              search_source: 'main_search',
+              query,
+            });
+          }
+
+          const hits = resp.getResponseHeader('X-Hits');
+          const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
+          const maxHits = resp.getResponseHeader('X-Max-Hits');
+          const newQueryMaxCount =
+            maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;
+          const newPageLinks = resp.getResponseHeader('Link');
+
+          setError(null);
+          setIssuesLoading(false);
+          setIssuesSuccessfullyLoaded(true);
+          setQueryCount(newQueryCount);
+          setQueryMaxCount(newQueryMaxCount);
+          setPageLinks(newPageLinks === null ? '' : newPageLinks);
+
+          // AI query analytics
+          const aiQueryRunId = getRunIdForAnalytics();
+          if (aiQueryRunId !== null) {
+            trackAiQueryOutcome({
+              dataset: 'issues',
+              mode: 'samples',
+              referrer: 'issues',
+              resultCount: data.length, // Can also use newQueryCount for total hits
+              orgSlug: organization.slug,
+              runId: aiQueryRunId,
+            });
+          }
+
+          // Need to wait for stats request to finish before saving to cache
+          await fetchStats(data.map((group: BaseGroup) => group.id));
+          IssueListCacheStore.save(requestParams, {
+            groups: GroupStore.getState() as Group[],
+            queryCount: newQueryCount,
+            queryMaxCount: newQueryMaxCount,
+            pageLinks: newPageLinks ?? '',
+          });
         }
-
-        navigate(
-          normalizeUrl({
-            pathname: redirect,
-            query: {
-              referrer: 'issue-list',
-              ...extractSelectionParameters(location.query),
-            },
-          }),
-          {replace: true}
-        );
-        return;
       }
-
-      if (undoRef.current) {
-        GroupStore.loadInitialData(data);
-      }
-      GroupStore.add(data);
-
-      if (data.length === 0) {
-        trackAnalytics('issue_search.empty', {
-          organization,
-          search_type: 'issues',
-          search_source: 'main_search',
-          query,
-        });
-      }
-
-      const hits = resp.getResponseHeader('X-Hits');
-      const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
-      const maxHits = resp.getResponseHeader('X-Max-Hits');
-      const newQueryMaxCount =
-        maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;
-      const newPageLinks = resp.getResponseHeader('Link');
-
-      setError(null);
-      setIssuesLoading(false);
-      setIssuesSuccessfullyLoaded(true);
-      setQueryCount(newQueryCount);
-      setQueryMaxCount(newQueryMaxCount);
-      setPageLinks(newPageLinks === null ? '' : newPageLinks);
-
-      // AI query analytics
-      const aiQueryRunId = getRunIdForAnalytics();
-      if (aiQueryRunId !== null) {
-        trackAiQueryOutcome({
-          dataset: 'issues',
-          mode: 'samples',
-          referrer: 'issues',
-          resultCount: data.length, // Can also use newQueryCount for total hits
-          orgSlug: organization.slug,
-          runId: aiQueryRunId,
-        });
-      }
-
-      // Need to wait for stats request to finish before saving to cache
-      await fetchStats(data.map((group: BaseGroup) => group.id));
-      IssueListCacheStore.save(requestParams, {
-        groups: GroupStore.getState() as Group[],
-        queryCount: newQueryCount,
-        queryMaxCount: newQueryMaxCount,
-        pageLinks: newPageLinks ?? '',
-      });
     } catch (err) {
       trackAnalytics('issue_search.failed', {
         organization,
@@ -523,13 +526,13 @@ function IssueListOverviewInner({
           error: parseApiError(err as RequestError),
         });
       }
-    } finally {
-      resumePolling();
+    }
 
-      if (!realtimeActive) {
-        actionTakenRef.current = false;
-        undoRef.current = false;
-      }
+    resumePolling();
+
+    if (!realtimeActive) {
+      actionTakenRef.current = false;
+      undoRef.current = false;
     }
   }, [
     resetNewViewQueryParam,
@@ -589,9 +592,6 @@ function IssueListOverviewInner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const previousSelection = usePrevious(selection);
-  const previousIssuesLoading = usePrevious(issuesLoading);
-
   const previousRequestParams = usePrevious(requestParams);
 
   // Keep data up to date
@@ -601,17 +601,7 @@ function IssueListOverviewInner({
     if (!isEqual(previousRequestParams, requestParams)) {
       fetchData();
     }
-  }, [
-    fetchData,
-    selection,
-    previousSelection,
-    organization.features,
-    issuesLoading,
-    loadFromCache,
-    previousIssuesLoading,
-    previousRequestParams,
-    requestParams,
-  ]);
+  }, [fetchData, previousRequestParams, requestParams]);
 
   // Cleanup
   useEffect(() => {
@@ -763,9 +753,9 @@ function IssueListOverviewInner({
     } catch (err) {
       setError(parseApiError(err as RequestError));
       setIssuesLoading(false);
-    } finally {
-      fetchData();
     }
+
+    fetchData();
   };
 
   const onIssueAction = ({

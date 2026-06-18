@@ -103,6 +103,8 @@ function ActionsBarPriority({
   toggleSelectAllVisible: () => void;
   withColumns?: GroupListColumn[];
 }) {
+  'use memo';
+
   const shouldDisplayActions = anySelected && !narrowViewport;
 
   return (
@@ -171,6 +173,8 @@ export function IssueListActions({
   statsPeriod,
   withColumns,
 }: IssueListActionsProps) {
+  'use memo';
+
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();

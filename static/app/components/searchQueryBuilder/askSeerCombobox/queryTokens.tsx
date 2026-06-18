@@ -23,6 +23,8 @@ export function QueryTokens({
   visualizations,
   expandedProjectIds,
 }: QueryTokensProps) {
+  'use memo';
+
   const tokens = [];
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {projects} = useProjects();

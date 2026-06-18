@@ -38,6 +38,8 @@ export function IssueListSearchBar({
   initialQuery = '',
   ...props
 }: Props) {
+  'use memo';
+
   const {selection: pageFilters} = usePageFilters();
   const {getFilterKeys, getFilterKeySections, getTagValues} =
     useIssueListSearchBarDataProvider({pageFilters});

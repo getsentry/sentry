@@ -11,6 +11,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function NoIssuesMatched() {
+  'use memo';
+
   const organization = useOrganization();
   const navigate = useNavigate();
 

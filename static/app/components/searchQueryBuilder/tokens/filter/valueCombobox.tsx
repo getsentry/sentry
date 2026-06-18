@@ -575,6 +575,8 @@ function ItemCheckbox({
   isFocused: boolean;
   value: string;
 }) {
+  'use memo';
+
   const {ctrlKeyPressed, selectedValueMap, token} = useValueComboboxContext();
   const {dispatch} = useSearchQueryBuilderState();
   const selected = selectedValueMap.get(value) ?? false;
@@ -608,6 +610,8 @@ function ItemCheckbox({
 function ValueComboboxCustomMenu(
   props: CustomComboboxMenuProps<SelectOptionWithKey<string>>
 ) {
+  'use memo';
+
   const {
     canSelectMultipleValues,
     canUseWildcard,
