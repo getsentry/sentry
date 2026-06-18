@@ -2194,8 +2194,6 @@ tests/sentry/plugins/bases/test_issue2.py
 tests/sentry/plugins/bases/test_notify.py
 tests/sentry/plugins/interfaces/__init__.py
 tests/sentry/plugins/interfaces/test_releasehook.py
-tests/sentry/plugins/sentry_useragents/__init__.py
-tests/sentry/plugins/sentry_useragents/test_models.py
 tests/sentry/plugins/sentry_webhooks/__init__.py
 tests/sentry/plugins/sentry_webhooks/test_plugin.py
 tests/sentry/plugins/test_config.py
