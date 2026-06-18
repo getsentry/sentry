@@ -310,12 +310,21 @@ export function FrameVariables({data, meta, platform}: Props) {
     }
 
     const allEntries = Object.entries(data);
+    const sortByOrder = ([, a]: [string, unknown], [, b]: [string, unknown]) => {
+      const orderA =
+        isNativeVarMetadata(a) && typeof a.__order === 'number' ? a.__order : Infinity;
+      const orderB =
+        isNativeVarMetadata(b) && typeof b.__order === 'number' ? b.__order : Infinity;
+      return orderA - orderB;
+    };
     return {
       params: allEntries
         .filter(([, v]) => isNativeVarMetadata(v) && v.__is_parameter === true)
+        .sort(sortByOrder)
         .map(([key, rawValue]) => toNativeVarEntry(key, rawValue, config, meta)),
       locals: allEntries
         .filter(([, v]) => !isNativeVarMetadata(v) || v.__is_parameter !== true)
+        .sort(sortByOrder)
         .map(([key, rawValue]) => toNativeVarEntry(key, rawValue, config, meta)),
     };
   }, [data, meta, platform, isNativePlatform]);
