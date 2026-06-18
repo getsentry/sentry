@@ -52,10 +52,11 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
-import {GroupContextProvider} from 'sentry/views/issueDetails/groupContext';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/groupDetailsLayout';
 import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/hooks/useMergedIssuesDrawer';
@@ -833,7 +834,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   }
 
   return (
-    <GroupContextProvider group={props.group}>
+    <GroupDataContextProvider group={props.group} project={projectWithFallback}>
       <TourContextProvider<IssueDetailsTour>
         tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
         isCompleted={isIssueDetailsTourCompleted}
@@ -849,7 +850,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
           {props.children}
         </GroupDetailsContent>
       </TourContextProvider>
-    </GroupContextProvider>
+    </GroupDataContextProvider>
   );
 }
 
@@ -900,7 +901,17 @@ function GroupDetails() {
   );
 }
 
-export default Sentry.withProfiler(GroupDetails);
+function GroupDetailsContainer() {
+  const params = useParams<{groupId: string}>();
+
+  return (
+    <GroupIdProvider groupId={params.groupId}>
+      <GroupDetails />
+    </GroupIdProvider>
+  );
+}
+
+export default Sentry.withProfiler(GroupDetailsContainer);
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${p => p.theme.space.xl};
