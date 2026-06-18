@@ -43,7 +43,7 @@ def start_span(
                 Scope.set_custom_sampling_context(custom_sampling_context)
 
             try:
-                sentry_sdk.traces.start_span(
+                return sentry_sdk.traces.start_span(
                     name=name,
                     attributes=attributes,  # type: ignore[arg-type]
                     parent_span=None,
