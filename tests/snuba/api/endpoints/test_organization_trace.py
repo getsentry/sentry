@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any, cast
 from unittest import mock
 from uuid import uuid4
 
@@ -8,8 +7,6 @@ from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
-from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceResponse
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.uptime import UptimeRegionConfig
@@ -20,7 +17,6 @@ from sentry.issues.grouptype import (
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
-from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import _run_errors_query_eap
@@ -39,7 +35,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeValue as ProtoAttributeValue,
 )
 
-from sentry.snuba.trace import SerializedSpan, _serialize_columnar_uptime_item, _serialize_rpc_event
+from sentry.snuba.trace import _serialize_columnar_uptime_item
 from sentry.testutils.cases import TestCase
 
 # Test regions for uptime item serialization tests
@@ -194,101 +190,6 @@ class TestSerializeColumnarUptimeItem(TestCase):
             assert result["region_name"] == expected_name
 
 
-class TestSpansRunTraceQuery(TestCase):
-    def test_requests_span_v2_web_vitals(self) -> None:
-        project = self.create_project()
-        params = SnubaParams(
-            start=before_now(hours=1),
-            end=before_now(),
-            organization=project.organization,
-            projects=[project],
-        )
-        response = GetTraceResponse(page_token=PageToken(end_pagination=True))
-
-        with mock.patch(
-            "sentry.snuba.spans_rpc.snuba_rpc.get_trace_rpc", return_value=response
-        ) as mock_get_trace:
-            Spans.run_trace_query(
-                trace_id=uuid4().hex,
-                params=params,
-                referrer="api.trace-view.get-events",
-                config=SearchResolverConfig(),
-            )
-
-        request = mock_get_trace.call_args.args[0]
-        requested_attributes = {attribute.name for attribute in request.items[0].attributes}
-        assert {
-            "browser.web_vital.lcp.value",
-            "browser.web_vital.cls.value",
-            "browser.web_vital.inp.value",
-            "browser.web_vital.ttfb.value",
-            "browser.web_vital.fcp.value",
-        }.issubset(requested_attributes)
-        assert "browser.web_vital.fp.value" not in requested_attributes
-
-
-class TestSerializeRpcEventWebVitals(TestCase):
-    """Test that ``browser.web_vital.*`` attributes are serialized onto spans."""
-
-    def _build_span_event(self, **overrides: Any) -> dict[str, Any]:
-        event: dict[str, Any] = {
-            "event_type": "span",
-            "id": "a" * 16,
-            "transaction.event_id": "b" * 32,
-            "project.id": 1,
-            "project.slug": "test-project",
-            "profile.id": "",
-            "profiler.id": "",
-            "parent_span": "0" * 16,
-            "precise.start_ts": 1700000000.0,
-            "precise.finish_ts": 1700000001.0,
-            "span.duration": 1000.0,
-            "transaction": "/home",
-            "is_transaction": True,
-            "description": "GET /home",
-            "sdk.name": "sentry.javascript.react",
-            "span.op": "navigation",
-            "span.name": "",
-            "children": [],
-            "errors": [],
-            "occurrences": [],
-        }
-        event.update(overrides)
-        return event
-
-    def test_serializes_browser_web_vital_attributes(self) -> None:
-        event = self._build_span_event(
-            **{
-                "browser.web_vital.lcp.value": 2807.335,
-                "browser.web_vital.cls.value": 0.0382,
-                "browser.web_vital.inp.value": 120.0,
-                "browser.web_vital.ttfb.value": 450.0,
-                "browser.web_vital.fcp.value": 2258.06,
-                "measurements.lcp": 2807.335,
-            }
-        )
-
-        result = cast(SerializedSpan, _serialize_rpc_event(event, {}))
-
-        assert result["browser_web_vital"] == {
-            "browser.web_vital.lcp.value": 2807.335,
-            "browser.web_vital.cls.value": 0.0382,
-            "browser.web_vital.inp.value": 120.0,
-            "browser.web_vital.ttfb.value": 450.0,
-            "browser.web_vital.fcp.value": 2258.06,
-        }
-        # Web vital attributes must not leak into measurements and vice versa
-        assert result["measurements"] == {"measurements.lcp": 2807.335}
-
-    def test_browser_web_vital_empty_when_absent(self) -> None:
-        event = self._build_span_event(**{"measurements.lcp": 1000.0})
-
-        result = cast(SerializedSpan, _serialize_rpc_event(event, {}))
-
-        assert result["browser_web_vital"] == {}
-        assert result["measurements"] == {"measurements.lcp": 1000.0}
-
-
 class OrganizationEventsTraceEndpointTest(
     OrganizationEventsTraceEndpointBase, UptimeResultEAPTestCase
 ):
@@ -424,6 +325,25 @@ class OrganizationEventsTraceEndpointTest(
         data = response.data
         assert len(data) == 1
         self.assert_trace_data(data[0])
+
+    def test_with_browser_web_vitals(self) -> None:
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+
+        root = response.data[0]
+        span = next(child for child in root["children"] if child["description"] == "GET gen1-0")
+        assert span["browser_web_vital"] == {
+            "browser.web_vital.lcp.value": 2807.335,
+            "browser.web_vital.cls.value": 0.0382,
+            "browser.web_vital.inp.value": 120.0,
+            "browser.web_vital.ttfb.value": 450.0,
+            "browser.web_vital.fcp.value": 2258.06,
+        }
+        assert "browser.web_vital.lcp.value" not in span["measurements"]
 
     def test_with_errors_data(self) -> None:
         self.load_trace()
