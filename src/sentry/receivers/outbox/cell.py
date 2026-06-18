@@ -32,7 +32,12 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.seer.agent.client import _trigger_explorer_indexes_if_needed
-from sentry.seer.agent.client_utils import AgentChatRequest, make_agent_chat_request
+from sentry.seer.agent.client_utils import (
+    AgentChatRequest,
+    SeerFeatureRunRequest,
+    make_agent_chat_request,
+    make_feature_run_request,
+)
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
@@ -246,6 +251,10 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
         case SeerRunType.ASSISTED_QUERY:
             response = make_search_agent_start_request(
                 cast(SearchAgentStartRequest, body), viewer_context=viewer_context
+            )
+        case SeerRunType.FEATURE_RUN:
+            response = make_feature_run_request(
+                cast(SeerFeatureRunRequest, body), viewer_context=viewer_context
             )
         case unknown:
             assert_never(unknown)

@@ -8,7 +8,6 @@ from datetime import timedelta
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
-from django.utils import timezone
 
 from sentry import features, options, quotas
 from sentry.constants import (
@@ -18,7 +17,7 @@ from sentry.constants import (
 )
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
-from sentry.seer.agent.client_utils import SeerFeatureRunRequest, trigger_seer_feature
+from sentry.seer.agent.feature_run import start_feature_run
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
@@ -31,7 +30,7 @@ from sentry.seer.models.night_shift import (
     SeerNightShiftRunResult,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.seer.models.run import SeerRun, SeerRunType
+from sentry.seer.models.run import SeerRun
 from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.base import instrumented_task
@@ -495,61 +494,43 @@ def _dispatch_to_seer_feature(
         logger.info("night_shift.no_candidates", extra=log_extra)
         return
 
-    # SeerRun gives the run a uuid that the pushed-back result correlates on.
-    seer_run = SeerRun.objects.create(
+    payload = {
+        "candidates": [
+            {
+                "group_id": c.group.id,
+                "title": c.group.title,
+                "culprit": c.group.culprit,
+                "fixability": c.fixability,
+                "times_seen": c.group.times_seen,
+                "first_seen": c.group.first_seen.isoformat(),
+                "priority": priority_label(c.group.priority),
+            }
+            for c in scored
+        ],
+        "tweaks": {
+            "intelligence_level": resolved_options["intelligence_level"],
+            "reasoning_effort": resolved_options["reasoning_effort"],
+            "extra_triage_instructions": resolved_options["extra_triage_instructions"],
+        },
+    }
+    # flush=False: night shift is a background batch job, so it doesn't block on
+    # kickoff — the async outbox runner drains and retries the dispatch.
+    seer_run = start_feature_run(
         organization=organization,
-        type=SeerRunType.EXPLORER,
-        last_triggered_at=timezone.now(),
+        feature_id="night_shift",
+        payload=payload,
+        viewer_context=SeerViewerContext(organization_id=organization.id),
+        flush=False,
     )
     run.update(seer_run=seer_run)
-
-    request = SeerFeatureRunRequest(
-        feature_id="night_shift",
-        ref=str(seer_run.uuid),
-        payload={
-            "candidates": [
-                {
-                    "group_id": c.group.id,
-                    "title": c.group.title,
-                    "culprit": c.group.culprit,
-                    "fixability": c.fixability,
-                    "times_seen": c.group.times_seen,
-                    "first_seen": c.group.first_seen,
-                    "priority": priority_label(c.group.priority),
-                }
-                for c in scored
-            ],
-            "tweaks": {
-                "intelligence_level": resolved_options["intelligence_level"],
-                "reasoning_effort": resolved_options["reasoning_effort"],
-                "extra_triage_instructions": resolved_options["extra_triage_instructions"],
-            },
-        },
-    )
-    try:
-        agent_run_id = trigger_seer_feature(
-            request,
-            viewer_context=SeerViewerContext(organization_id=organization.id),
-        )
-    except Exception:
-        sentry_sdk.metrics.count("night_shift.run_error", 1)
-        _fail_run(
-            run,
-            message="Night shift run failed",
-            event="night_shift.run_failed",
-            extra=log_extra,
-        )
-        return
-
-    if agent_run_id is not None:
-        run.update(extras={**run.extras, "agent_run_id": agent_run_id})
 
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
     logger.info(
         "night_shift.feature_dispatched",
         extra={
             **log_extra,
-            "agent_run_id": agent_run_id,
+            "seer_run_id": seer_run.id,
+            "seer_run_uuid": str(seer_run.uuid),
             "num_eligible_projects": len(eligible_projects),
             "num_candidates": len(scored),
         },

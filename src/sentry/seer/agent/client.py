@@ -44,6 +44,7 @@ from sentry.seer.agent.client_utils import (
 from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
 from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
 from sentry.seer.agent.embed_widgets import get_embed_widgets
+from sentry.seer.agent.feature_run import start_feature_run as _start_feature_run
 from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
@@ -522,6 +523,33 @@ class SeerAgentClient:
                 detail = f"Seer run in unexpected state after outbox drain: {run.mirror_status}"
             raise SeerApiError(detail, 500)
         return run
+
+    def start_feature_run(
+        self,
+        feature_id: str,
+        payload: dict[str, Any],
+        flush: bool = True,
+    ) -> SeerRun:
+        """Dispatch a run to a registered Seer feature by feature_id.
+
+        Companion to start_run: start_run drives the explorer chat agent
+        directly, while this hands off to a feature registered in Seer's FEATURES
+        registry, which builds its own agent run from `payload`. See
+        sentry.seer.agent.feature_run.start_feature_run for flush semantics.
+        """
+        user_id = (
+            self.user.id
+            if self.user and hasattr(self.user, "id") and self.user.id is not None
+            else None
+        )
+        return _start_feature_run(
+            organization=self.organization,
+            feature_id=feature_id,
+            payload=payload,
+            viewer_context=self.viewer_context,
+            user_id=user_id,
+            flush=flush,
+        )
 
     def continue_run(
         self,
