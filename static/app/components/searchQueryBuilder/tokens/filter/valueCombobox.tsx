@@ -23,6 +23,7 @@ import {
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import {HighlightText} from 'sentry/components/searchQueryBuilder/highlightText';
+import {getMultiSelectValueState} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {
   SearchQueryBuilderCombobox,
   type CustomComboboxMenu,
@@ -592,23 +593,24 @@ function ItemCheckbox({
           checked={selected}
           disabled={disabled}
           onChange={() => {
+            const escapedValue = escapeTagValueForSearch(value);
+
             dispatch({
               type: 'TOGGLE_FILTER_VALUE',
               token,
-              value: escapeTagValueForSearch(value),
+              value: escapedValue,
             });
 
-            const currentlySelectedCount = Array.from(selectedValueMap.values()).filter(
-              Boolean
-            ).length;
+            const {selected: currentlySelected, selectedCount} = getMultiSelectValueState(
+              token,
+              escapedValue
+            );
 
             trackAnalytics('search.multi_value_selected', {
               ...analyticsData,
               filter_value: value,
-              selected: !selected,
-              selected_count: selected
-                ? currentlySelectedCount - 1
-                : currentlySelectedCount + 1,
+              selected: !currentlySelected,
+              selected_count: currentlySelected ? selectedCount - 1 : selectedCount + 1,
             });
           }}
           aria-label={t('Toggle %s', value)}
