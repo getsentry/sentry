@@ -253,8 +253,6 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
                 cast(SearchAgentStartRequest, body), viewer_context=viewer_context
             )
         case SeerRunType.FEATURE_RUN:
-            # ref is the SeerRun uuid Seer echoes back so the result correlates
-            # to this run; stamped here like external_idempotency_key.
             wire_body = {**body, "ref": str(run.uuid)}
             response = make_feature_run_request(
                 cast(SeerFeatureRunWireRequest, wire_body), viewer_context=viewer_context

@@ -122,9 +122,7 @@ class SeerFeatureRunRequest(TypedDict):
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):
-    """As sent to Seer: the outbox handler stamps the SeerRun uuid as both the
-    correlation ref (echoed back with the result) and the idempotency key (so
-    redelivery is deduped)."""
+    """As sent to Seer: the outbox handler stamps the SeerRun uuid fields."""
 
     ref: str
     external_idempotency_key: str
@@ -237,9 +235,8 @@ def enqueue_seer_run(
     on_run_created: Callable[[SeerRun], None] | None = None,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the SEER_RUN_CREATE outbox that
-    dispatches it to Seer. The outbox handler stamps run-derived fields (the
-    correlation ref and idempotency key) on the body at dispatch, so callers pass
-    a static body here.
+    dispatches it to Seer. The outbox handler stamps run-derived fields on the
+    body at dispatch, so callers pass a static body here.
 
     on_run_created(run), if given, runs in the same transaction right after the
     SeerRun is created — use it to create associated rows atomically with the run
