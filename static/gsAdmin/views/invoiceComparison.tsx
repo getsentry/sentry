@@ -123,6 +123,20 @@ function formatPercent(pct: number | null) {
   return `${(pct * 100).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
 }
 
+// `formatPercent` renders ``null`` as ``∞`` because for ``delta_pct`` rows
+// a missing percentage means "undefined drift" (legacy=$0 with non-zero
+// platform — sorts to the top of the list). That semantic doesn't apply
+// to summary ratios like ``over_threshold_pct`` / ``unmatched_invoice_pct``,
+// where a runtime ``null``/``undefined`` would just mean the backend
+// didn't populate the field (deploy-window race, response-shape drift).
+// Render those as ``N/A`` instead of pretending the metric blew up.
+function formatPercentOrNA(pct: number | null | undefined) {
+  if (pct === null || pct === undefined) {
+    return <em>N/A</em>;
+  }
+  return `${(pct * 100).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
+}
+
 // `datetime-local` inputs use the user's local timezone with no offset
 // in the string (e.g. "2026-05-26T22:30"). Format a Date for that field.
 function toDatetimeLocalValue(d: Date): string {
@@ -462,7 +476,7 @@ export function InvoiceComparison() {
                     {'>1% diff'}
                   </Text>
                   <Text size="lg" bold>
-                    {formatPercent(data.summary.over_threshold_pct)}
+                    {formatPercentOrNA(data.summary.over_threshold_pct)}
                     <TruncatedNote size="sm" variant="muted">
                       ({data.summary.over_threshold_count} of {data.summary.row_count})
                     </TruncatedNote>
@@ -473,7 +487,7 @@ export function InvoiceComparison() {
                     Unmatched
                   </Text>
                   <Text size="lg" bold>
-                    {formatPercent(data.summary.unmatched_invoice_pct)}
+                    {formatPercentOrNA(data.summary.unmatched_invoice_pct)}
                     <TruncatedNote size="sm" variant="muted">
                       ({data.summary.unmatched_invoice_count} of{' '}
                       {data.summary.legacy_count + data.summary.platform_count})
