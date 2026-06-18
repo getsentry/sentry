@@ -332,16 +332,28 @@ const ValueButton = styled(UnstyledButton)`
 `;
 
 const ValueEditing = styled('div')`
+  position: relative;
   padding: 0 ${p => p.theme.space['2xs']};
   color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
-  border-right: 1px solid transparent;
   max-width: 100%;
 
+  /*
+   * The combobox input keeps a trailing comma so that typing adds a new entry.
+   * The focus highlight stops short of that comma so it reads as a delimiter
+   * sitting outside the highlighted/typed zone rather than part of it.
+   */
   :focus-within {
-    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+  }
+
+  :focus-within::before {
+    content: '';
+    position: absolute;
+    inset: 0 calc(${p => p.theme.space['2xs']} + 1ch) 0 0;
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
     border-right: 1px solid ${p => p.theme.tokens.border.secondary};
+    pointer-events: none;
   }
 `;
 
