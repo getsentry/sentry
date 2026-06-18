@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 from django.utils import timezone
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
+from scm.types import GetBranchProtocol, GetRepositoryProtocol
 
 from sentry import analytics, features, quotas
 from sentry.analytics.events.autofix_events import (
@@ -51,8 +52,6 @@ from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
-from scm.types import GetBranchProtocol, GetRepositoryProtocol
-
 from sentry.utils import json, metrics
 
 if TYPE_CHECKING:
