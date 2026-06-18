@@ -63,6 +63,7 @@ type UnmatchedSide = 'legacy_only' | 'platform_only';
 type UnmatchedRow = {
   amount: number;
   invoice_count: number;
+  invoice_guids: string[];
   organization_id: number;
   organization_slug: string | null;
   side: UnmatchedSide;
@@ -97,12 +98,16 @@ function receiptUrl(orgSlug: string, guid: string) {
 // pick a single invoice to point at. Multiple-invoice rows fall back to
 // plain text — the count badge next to the cell already signals there's
 // more than one, and per-invoice drill-down isn't a common workflow.
+//
+// Uses a plain `<a>` (not router `<Link>`) because gsAdmin is a separate
+// app bundle from the org-facing settings UI; the receipts page lives in
+// the latter, so navigating there has to be a full page load.
 function renderAmountCell(cents: number | null, guids: string[], orgSlug: string | null) {
   const dollars = formatDollars(cents);
   if (!orgSlug || guids.length !== 1) {
     return dollars;
   }
-  return <Link to={receiptUrl(orgSlug, guids[0]!)}>{dollars}</Link>;
+  return <a href={receiptUrl(orgSlug, guids[0]!)}>{dollars}</a>;
 }
 
 function formatPercent(pct: number | null) {
@@ -589,7 +594,13 @@ export function InvoiceComparison() {
                       <td>
                         <Tag variant="danger">{row.side}</Tag>
                       </td>
-                      <RightCell>{formatDollars(row.amount)}</RightCell>
+                      <RightCell>
+                        {renderAmountCell(
+                          row.amount,
+                          row.invoice_guids,
+                          row.organization_slug
+                        )}
+                      </RightCell>
                       <RightCell>{row.invoice_count}</RightCell>
                     </tr>
                   ))}

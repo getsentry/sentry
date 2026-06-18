@@ -82,6 +82,7 @@ export function CustomerGrid(props: Props) {
     <ResultGrid
       inPanel
       isCellScoped
+      probeAcrossRegions
       path="/_admin/customers/"
       method="GET"
       columns={[
