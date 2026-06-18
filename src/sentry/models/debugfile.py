@@ -279,14 +279,15 @@ class ProjectDebugFile(Model):
             os.makedirs(base, exist_ok=True)
 
             tmp = None
+            tmp_path = None
             try:
                 # Get the payload and save it to a temporary file.
                 contents = self._get_objectstore_session().get(self.storage_path).payload
                 try:
                     tmp = tempfile.NamedTemporaryFile(dir=base, delete=False)
+                    tmp_path = tmp.name
                     shutil.copyfileobj(contents, tmp)
                     tmp.flush()
-                    tmp_path = tmp.name
                     tmp.close()
                     tmp = None
                 finally:
@@ -298,11 +299,13 @@ class ProjectDebugFile(Model):
                     # Someone else has already materialized this cached file.
                     # Keep the previous one, clean up our temporary one.
                     os.remove(tmp_path)
+                tmp_path = None
             finally:
                 if tmp is not None:
                     tmp.close()
+                if tmp_path is not None:
                     try:
-                        os.remove(tmp.name)
+                        os.remove(tmp_path)
                     except Exception:
                         pass
         elif self.file is not None:
