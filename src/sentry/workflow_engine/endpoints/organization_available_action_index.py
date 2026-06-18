@@ -33,6 +33,7 @@ from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import (
     get_available_action_integrations_for_org,
     get_integration_services,
+    get_legacy_webhook_service,
     get_notification_plugins_for_org,
 )
 from sentry.workflow_engine.registry import action_handler_registry
@@ -142,9 +143,12 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                     )
 
             # add webhook action
-            # service options include plugins and sentry apps without components
+            # service options include legacy webhooks, plugins, and sentry apps without components
             elif action_type == Action.Type.WEBHOOK:
                 plugins = get_notification_plugins_for_org(organization)
+                legacy_webhook = get_legacy_webhook_service(organization)
+                if legacy_webhook and not any(p.slug == "webhooks" for p in plugins):
+                    plugins.append(legacy_webhook)
                 sentry_apps: list[PluginService] = [
                     SentryAppService(context.installation.sentry_app)
                     for context in alertable_apps_without_components

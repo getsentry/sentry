@@ -345,13 +345,6 @@ def get_available_action_integrations_for_org(organization: Organization) -> lis
     )
 
 
-class _LegacyWebhookStub:
-    slug = "webhooks"
-
-    def get_title(self) -> str:
-        return "WebHooks"
-
-
 def get_notification_plugins_for_org(organization: Organization) -> list[PluginService]:
     """
     Get all plugins for an organization.
@@ -370,16 +363,29 @@ def get_notification_plugins_for_org(organization: Organization) -> list[PluginS
 
             plugin_map[plugin.slug] = PluginService(plugin)
 
-    if "webhooks" not in plugin_map:
-        has_webhooks = ProjectOption.objects.filter(
-            project__organization_id=organization.id,
-            key="webhooks:enabled",
-            value=True,
-        ).exists()
-        if has_webhooks:
-            plugin_map["webhooks"] = PluginService(_LegacyWebhookStub())
-
     return list(plugin_map.values())
+
+
+class _LegacyWebhookStub:
+    slug = "webhooks"
+
+    def get_title(self) -> str:
+        return "WebHooks"
+
+
+def get_legacy_webhook_service(organization: Organization) -> PluginService | None:
+    """
+    Check if any project in the org has legacy webhooks enabled and return a
+    service for ACI discovery. This is independent of the plugin system.
+    """
+    has_webhooks = ProjectOption.objects.filter(
+        project__organization_id=organization.id,
+        key="webhooks:enabled",
+        value=True,
+    ).exists()
+    if has_webhooks:
+        return PluginService(_LegacyWebhookStub())
+    return None
 
 
 def get_integration_services(organization_id: int) -> dict[int, list[tuple[int, str]]]:

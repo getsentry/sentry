@@ -19,7 +19,10 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.utils import json
 from sentry.workflow_engine.models.action import Action
-from sentry.workflow_engine.processors.action import get_notification_plugins_for_org
+from sentry.workflow_engine.processors.action import (
+    get_legacy_webhook_service,
+    get_notification_plugins_for_org,
+)
 
 from .types import BaseActionValidatorHandler
 
@@ -257,6 +260,9 @@ class WebhookActionValidatorHandler(BaseActionValidatorHandler):
 
     def _get_services(self) -> list[Any]:
         plugins = get_notification_plugins_for_org(self.organization)
+        legacy_webhook = get_legacy_webhook_service(self.organization)
+        if legacy_webhook and not any(p.slug == "webhooks" for p in plugins):
+            plugins.append(legacy_webhook)
         sentry_apps = app_service.find_alertable_services(organization_id=self.organization.id)
         return [
             *plugins,
