@@ -54,6 +54,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 from sentry.utils.dates import deprecated_utcnow
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -772,7 +773,7 @@ class GitHubBaseClient(
         if page_number_limit is None or page_number_limit > self.page_number_limit:
             page_number_limit = self.page_number_limit
 
-        with sentry_sdk.start_span(
+        with start_span(
             op=f"{self.integration_type}.http.pagination",
             name=f"{self.integration_type}.http_response.pagination.{self.name}",
         ):
