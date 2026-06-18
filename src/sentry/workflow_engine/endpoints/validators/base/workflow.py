@@ -154,6 +154,8 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                         f"Action type '{action_type}' is not supported for activity triggers"
                     )
 
+        return attrs
+
     def _update_or_create(
         self,
         input_data: dict[str, Any],
