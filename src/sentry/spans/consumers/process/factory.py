@@ -81,7 +81,9 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         self.rebalancing_count += 1
         sentry_sdk.set_tag("sentry_spans_rebalancing_count", str(self.rebalancing_count))
+        sentry_sdk.set_attribute("sentry_spans_rebalancing_count", str(self.rebalancing_count))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "consumer")
+        sentry_sdk.set_attribute("sentry_spans_buffer_component", "consumer")
 
         committer = CommitOffsets(commit)
 

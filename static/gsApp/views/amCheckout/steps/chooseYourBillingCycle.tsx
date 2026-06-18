@@ -18,8 +18,11 @@ export function ChooseYourBillingCycle({
   stepNumber,
 }: StepProps) {
   const intervalOptions = useMemo(() => {
-    const basePlan = formData.plan.replace('_test', '').replace('_auf', '');
-    const plans = billingConfig.planList.filter(({id}) => id.indexOf(basePlan) === 0);
+    // Billing cycle variants of a plan share the same name (e.g. "Business"),
+    // differing only by contract interval, so match on that rather than parsing
+    // the plan id's interval suffix.
+    const selectedPlan = billingConfig.planList.find(p => p.id === formData.plan);
+    const plans = billingConfig.planList.filter(p => p.name === selectedPlan?.name);
 
     if (plans.length === 0) {
       throw new Error('Cannot get billing interval options');

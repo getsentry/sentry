@@ -4,7 +4,7 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {TagStore} from 'sentry/stores/tagStore';
@@ -72,6 +72,18 @@ describe('AwaitingInputPage', () => {
       method: 'POST',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: group,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/attachments/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
 
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],
@@ -99,5 +111,22 @@ describe('AwaitingInputPage', () => {
     expect(screen.getByText('Progress')).toBeInTheDocument();
     expect(screen.queryByText('Priority')).not.toBeInTheDocument();
     expect(await screen.findByText('Diagnosed')).toBeInTheDocument();
+  });
+
+  it('opens an issue preview drawer instead of navigating when an issue is clicked', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-progress/',
+      body: {results: {1: {progress: 'diagnosed'}}},
+    });
+
+    const {router} = render(<AwaitingInputPage />);
+
+    await userEvent.click(await screen.findByText('RequestError'), {skipHover: true});
+
+    // Stays on the page and opens the drawer via the preview query param.
+    expect(router.location.query.preview).toBe('1');
+    expect(
+      await screen.findByRole('complementary', {name: 'Issue preview'})
+    ).toBeInTheDocument();
   });
 });

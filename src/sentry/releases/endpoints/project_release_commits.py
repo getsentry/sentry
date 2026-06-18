@@ -29,7 +29,8 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     @extend_schema(
-        operation_id="List a Project Release's Commits",
+        operation_id="listProjectReleaseCommits",
+        summary="List a Project Release's Commits",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

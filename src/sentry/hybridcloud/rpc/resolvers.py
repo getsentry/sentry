@@ -101,7 +101,7 @@ class RequireSingleOrganization(CellResolutionStrategy):
             OrganizationMapping.objects.all().values_list("cell_name", flat=True).distinct()[:2]
         )
         if len(all_cell_names) == 0:
-            return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+            return get_cell_by_name(settings.SENTRY_FALLBACK_CELL)
         if len(all_cell_names) != 1:
             raise CellResolutionError("Expected single-org environment to have only one cell")
 

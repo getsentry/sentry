@@ -139,12 +139,12 @@ function ProjectRowWithUpdate({
     openModal(deps => (
       <AddAutofixRepoModal
         {...deps}
-        selectedRepoIds={currentRepoIds}
-        onSave={(repoIds: string[]) => {
+        hiddenExternalIds={currentRepoIds}
+        onSave={({selectedExternalIds}) => {
           const reposData = transformRepositoriesToApiFormat(
             repositories,
             organization.id,
-            repoIds
+            [...currentRepoIds, ...selectedExternalIds]
           );
 
           updateProjectSeerPreferences({repositories: reposData});

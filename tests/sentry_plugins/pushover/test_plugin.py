@@ -51,7 +51,7 @@ class PushoverPluginTest(PluginTestCase):
         request = responses.calls[0].request
         payload = parse_qs(request.body)
         assert payload == {
-            "message": [f"{event.title}\n\nTags: level=warning"],
+            "message": [f"{event.title}\n\nTags: interface_type=logentry, level=warning"],
             "title": ["Bar: Hello world"],
             "url": [
                 f"http://example.com/organizations/baz/issues/{group.id}/?referrer=pushover_plugin"
@@ -89,7 +89,7 @@ class PushoverPluginTest(PluginTestCase):
         request = responses.calls[0].request
         payload = parse_qs(request.body)
         assert payload == {
-            "message": [f"{event.title}\n\nTags: level=warning"],
+            "message": [f"{event.title}\n\nTags: interface_type=logentry, level=warning"],
             "title": ["Bar: Hello world"],
             "url": [
                 f"http://example.com/organizations/baz/issues/{group.id}/?referrer=pushover_plugin"

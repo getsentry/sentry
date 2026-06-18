@@ -62,7 +62,6 @@ describe('parseOnDemandBudgetsFromSubscription', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_business',
-      planTier: 'am1',
       onDemandMaxSpend: 123,
       onDemandBudgets: {
         enabled: true,
@@ -84,7 +83,6 @@ describe('parseOnDemandBudgetsFromSubscription', () => {
     let subscription = SubscriptionFixture({
       organization,
       plan: 'am1_business',
-      planTier: 'am1',
       onDemandMaxSpend: 0,
       onDemandBudgets: {
         enabled: false,
@@ -104,7 +102,6 @@ describe('parseOnDemandBudgetsFromSubscription', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am1_business',
-      planTier: 'am1',
       onDemandMaxSpend: 0,
     });
 
@@ -118,7 +115,6 @@ describe('parseOnDemandBudgetsFromSubscription', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am1_business',
-      planTier: 'am1',
     });
 
     ondemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
@@ -133,7 +129,6 @@ describe('parseOnDemandBudgetsFromSubscription', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_business',
-      planTier: 'am1',
       onDemandMaxSpend: 100 + 200 + 300,
       onDemandBudgets: {
         enabled: true,
@@ -188,7 +183,6 @@ describe('parseOnDemandBudgetsFromSubscription', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_business',
-      planTier: 'am1',
       onDemandMaxSpend: 123,
     });
     subscription.categories.errors!.reserved = 200000;
@@ -245,7 +239,6 @@ describe('getTotalBudget', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_business',
-      planTier: 'am1',
       onDemandMaxSpend: 100 + 200 + 300,
       onDemandBudgets: {
         enabled: true,
@@ -266,7 +259,6 @@ describe('getTotalBudget', () => {
     let subscription = SubscriptionFixture({
       organization,
       plan: 'am1_business',
-      planTier: 'am1',
       onDemandMaxSpend: 0,
       onDemandBudgets: {
         enabled: false,
@@ -285,7 +277,6 @@ describe('getTotalBudget', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am1_business',
-      planTier: 'am1',
       onDemandMaxSpend: 0,
     });
 
@@ -298,7 +289,6 @@ describe('getTotalBudget', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am1_business',
-      planTier: 'am1',
     });
 
     actualTotalBudget = getTotalBudget(
@@ -312,7 +302,6 @@ describe('getTotalBudget', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_business',
-      planTier: 'am1',
       onDemandMaxSpend: 100 + 200 + 300,
       onDemandBudgets: {
         enabled: true,
@@ -336,7 +325,6 @@ describe('getTotalBudget', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_business',
-      planTier: 'am1',
       onDemandMaxSpend: 123,
     });
 

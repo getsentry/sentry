@@ -234,7 +234,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         )
 
     @extend_schema(
-        operation_id="Add an Organization Member to a Team",
+        operation_id="addOrganizationMemberTeam",
+        summary="Add an Organization Member to a Team",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the organization member to add to the team"),
@@ -368,7 +369,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         return Response(body, status=201)
 
     @extend_schema(
-        operation_id="Update an Organization Member's Team Role",
+        operation_id="updateOrganizationMemberTeam",
+        summary="Update an Organization Member's Team Role",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the organization member to change"),
@@ -475,7 +477,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         )
 
     @extend_schema(
-        operation_id="Delete an Organization Member from a Team",
+        operation_id="deleteOrganizationMemberTeam",
+        summary="Delete an Organization Member from a Team",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the organization member to delete from the team"),
