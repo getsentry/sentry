@@ -26,6 +26,7 @@ from sentry.issues.derived.framework import (
     AggregatorResult,
     Feature,
     Pipeline,
+    StateUpdate,
     StateView,
     aggregator,
 )
@@ -343,15 +344,39 @@ class GroupDerivedDataStoreTest(TestCase):
 
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
         _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
-        derived = process_group_log(group.id)
+        first = process_group_log(group.id)
 
-        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        first_data = first.data.copy()
+        first_view_count = first.view_count
+        first_progress = first.progress
+        first_last_progressed_at = first.last_progressed_at
+
+        invalidate_group_derived_data(group.id)
+        second = process_group_log(group.id)
+
+        assert second.data == first_data
+        assert second.view_count == first_view_count
+        assert second.progress == first_progress
+        assert second.last_progressed_at == first_last_progressed_at
+
+    def test_build_update_excludes_unchanged_columns(self) -> None:
+        state = PIPELINE.initial_state()
+
+        # Dirty only STATUS (lives in JSON) — column features stay clean
+        state.merge(StateUpdate({STATUS: IssueStatus.CLOSED}))
+
         update = GroupDerivedDataStore.build_update(PIPELINE, state)
 
-        assert update["data"] == derived.data
-        assert update["view_count"] == derived.view_count
-        assert update["progress"] == derived.progress
-        assert update["last_progressed_at"] == derived.last_progressed_at
+        assert "view_count" not in update
+        assert "progress" not in update
+        assert "last_progressed_at" not in update
+        assert "data" in update
+        assert update["data"]["status"] == "closed"
+
+        # Dirty a column-mapped feature — it should appear in the update
+        state.merge(StateUpdate({VIEW_COUNT: 5}))
+        update = GroupDerivedDataStore.build_update(PIPELINE, state)
+        assert update["view_count"] == 5
 
     def test_progress_round_trip(self) -> None:
         group = self.create_group()

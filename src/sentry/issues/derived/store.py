@@ -47,16 +47,21 @@ class GroupDerivedDataStore:
     @staticmethod
     def build_update(pipeline: Pipeline[Any], state: State) -> dict[str, Any]:
         fields_by_name = {f.name: f for f in pipeline.features}
+        dirty = state.dirty
         json_data: dict[str, Any] = {}
+        has_json = False
         update: dict[str, Any] = {}
         for name, val in state.items():
             f = fields_by_name[name]
             column = COLUMN_MAP.get(f)
             if column:
-                update[column] = f.dump(val)
+                if f in dirty:
+                    update[column] = f.dump(val)
             else:
                 json_data[name] = f.dump(val)
-        update["data"] = json_data
+                has_json = True
+        if has_json:
+            update["data"] = json_data
         return update
 
     @staticmethod
