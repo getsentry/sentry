@@ -176,6 +176,14 @@ class SnubaProtocolEventStream(EventStream):
             # transactions processing has a configurable 'skipped contexts' to skip writing specific contexts maps
             # to the row. for now, we're ignoring that until we have a need for it
 
+        elif event_type == EventStreamEventType.Transaction:
+            # The transactions Kafka schema requires `measurements` to be an object when present.
+            # Some events carry an explicit `null`, which fails schema validation in the Snuba
+            # consumer, so default it to an empty object.
+            if event_data.get("measurements") is None and "measurements" in event_data:
+                event_data = dict(event_data)
+                event_data["measurements"] = {}
+
         self._send(
             project.id,
             "insert",

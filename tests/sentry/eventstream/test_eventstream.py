@@ -421,6 +421,28 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             contexts_after_processing = send_extra_data_data["contexts"]
             assert contexts_after_processing == {**{"geo": geo_interface}}
 
+    def test_insert_transaction_null_measurements(self) -> None:
+        es = SnubaProtocolEventStream()
+
+        event = self.__build_transaction_event()
+        event.group_id = None
+        event.groups = [self.group]
+        # Some transaction events carry an explicit `null` for measurements, which fails
+        # the transactions Kafka schema (it requires an object when present).
+        event.data["measurements"] = None
+
+        with patch.object(es, "_send") as send:
+            es.insert(
+                event,
+                True,
+                True,
+                False,
+                "acbd18db4cc2f85cedef654fccc4a4d8",
+                event.data["received"],
+            )
+            send_extra_data_data = send.call_args.kwargs["extra_data"][0]["data"]
+            assert send_extra_data_data["measurements"] == {}
+
     def test_event_forwarding_to_items(self) -> None:
         create_default_projects()
         es = self.kafka_eventstream
