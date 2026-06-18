@@ -88,7 +88,9 @@ describe('AutomationDetail', () => {
       },
     });
 
-    expect(await screen.findByText('Test Automation')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: /Test Automation/i})
+    ).toBeInTheDocument();
 
     // Check sidebar sections
     expect(screen.getByRole('heading', {name: 'Last Triggered'})).toBeInTheDocument();
@@ -157,7 +159,7 @@ describe('AutomationDetail', () => {
         },
       });
 
-      await screen.findByText('Test Automation');
+      await screen.findByRole('heading', {name: /Test Automation/i});
 
       expect(
         screen.getByText('You must add an action for this alert to run.')
@@ -187,7 +189,7 @@ describe('AutomationDetail', () => {
         },
       });
 
-      await screen.findByText('Test Automation');
+      await screen.findByRole('heading', {name: /Test Automation/i});
 
       expect(
         screen.getByText(
@@ -219,7 +221,7 @@ describe('AutomationDetail', () => {
         },
       });
 
-      await screen.findByText('Test Automation');
+      await screen.findByRole('heading', {name: /Test Automation/i});
 
       expect(
         screen.getByText('One or more actions need to be reconfigured in order to run.')
@@ -246,7 +248,7 @@ describe('AutomationDetail', () => {
       },
     });
 
-    await screen.findByText('Test Automation');
+    await screen.findByRole('heading', {name: /Test Automation/i});
 
     expect(
       screen.getByText(
@@ -264,7 +266,7 @@ describe('AutomationDetail', () => {
       },
     });
 
-    await screen.findByText('Test Automation');
+    await screen.findByRole('heading', {name: /Test Automation/i});
 
     expect(
       screen.queryByText(
@@ -287,7 +289,7 @@ describe('AutomationDetail', () => {
       },
     });
 
-    await screen.findByText('Test Automation');
+    await screen.findByRole('heading', {name: /Test Automation/i});
 
     expect(screen.getByRole('button', {name: 'Disable'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
