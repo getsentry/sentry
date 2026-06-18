@@ -354,7 +354,8 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
 
         mark_skipped(skipped_group.id)
         try:
-            run_night_shift_for_org(org.id)
+            with self.feature("organizations:gen-ai-features"):
+                run_night_shift_for_org(org.id)
         finally:
             redis_clusters.get("default").delete(skip_cache_key(skipped_group.id))
 
@@ -499,7 +500,10 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
             project, "fixable", seer_fixability_score=0.9, times_seen=5, priority=75
         )
 
-        with patch("sentry.tasks.seer.night_shift.cron.trigger_autofix_agent") as mock_autofix:
+        with (
+            self.feature("organizations:gen-ai-features"),
+            patch("sentry.tasks.seer.night_shift.cron.trigger_autofix_agent") as mock_autofix,
+        ):
             run_night_shift_for_org(org.id)
 
         # Autofix is fired by Seer's pushed-back verdicts, not in-process.
@@ -539,7 +543,8 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         assert not SeerRun.objects.filter(organization=org).exists()
         assert not CellOutbox.objects.filter(category=OutboxCategory.SEER_RUN_CREATE).exists()
 
-    def test_outbox_drain_mirrors_run_against_seer(self) -> None:
+    def test_no_seer_access_skips_dispatch(self) -> None:
+        # Without gen-ai-features the SeerAgentClient access gate blocks dispatch.
         org = self.create_organization()
         project = self.create_project(organization=org)
         self._make_eligible(project)
@@ -548,6 +553,22 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         )
 
         run_night_shift_for_org(org.id)
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        assert run.seer_run is None
+        assert run.extras["error_message"] == "Organization does not have Seer access"
+        assert not SeerRun.objects.filter(organization=org).exists()
+
+    def test_outbox_drain_mirrors_run_against_seer(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+        self._store_event_and_update_group(
+            project, "fixable", seer_fixability_score=0.9, times_seen=5
+        )
+
+        with self.feature("organizations:gen-ai-features"):
+            run_night_shift_for_org(org.id)
 
         seer_run = SeerRun.objects.get(organization=org, type=SeerRunType.FEATURE_RUN)
         assert seer_run.mirror_status == SeerRunMirrorStatus.PENDING
@@ -577,9 +598,12 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
             project, "fixable", seer_fixability_score=0.9, times_seen=5
         )
 
-        with patch(
-            "sentry.seer.agent.client_utils.make_signed_seer_api_request"
-        ) as mock_seer_request:
+        with (
+            self.feature("organizations:gen-ai-features"),
+            patch(
+                "sentry.seer.agent.client_utils.make_signed_seer_api_request"
+            ) as mock_seer_request,
+        ):
             run_night_shift_for_org(org.id)
 
         mock_seer_request.assert_not_called()

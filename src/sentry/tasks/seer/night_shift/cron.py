@@ -17,7 +17,7 @@ from sentry.constants import (
 )
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
-from sentry.seer.agent.feature_run import start_feature_run
+from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
@@ -25,6 +25,7 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
+from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
@@ -32,7 +33,6 @@ from sentry.seer.models.night_shift import (
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import SeerRun
 from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy, priority_label
@@ -513,15 +513,14 @@ def _dispatch_to_seer_feature(
             "extra_triage_instructions": resolved_options["extra_triage_instructions"],
         },
     }
-    # flush=False: night shift is a background batch job, so it doesn't block on
-    # kickoff — the async outbox runner drains and retries the dispatch.
-    seer_run = start_feature_run(
-        organization=organization,
-        feature_id="night_shift",
-        payload=payload,
-        viewer_context=SeerViewerContext(organization_id=organization.id),
-        flush=False,
-    )
+    try:
+        client = SeerAgentClient(organization)
+    except SeerPermissionError:
+        logger.info("night_shift.no_seer_access", extra=log_extra)
+        _record_run_error(run, "Organization does not have Seer access")
+        return
+
+    seer_run = client.start_feature_run(feature_id="night_shift", payload=payload, flush=False)
     run.update(seer_run=seer_run)
 
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)

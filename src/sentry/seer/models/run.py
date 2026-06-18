@@ -14,8 +14,6 @@ class SeerRunType(models.TextChoices):
     EXPLORER = "explorer"
     PR_REVIEW = "pr_review"
     ASSISTED_QUERY = "assisted_query"
-    # Any run dispatched through the feature-run endpoint; the body's feature_id
-    # selects the specific feature (e.g. night shift).
     FEATURE_RUN = "feature_run"
 
 

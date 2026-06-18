@@ -32,6 +32,7 @@ from sentry.seer.agent.client_utils import (
     AgentReposRequest,
     AgentRunsRequest,
     AgentUpdateRequest,
+    SeerFeatureRunRequest,
     collect_user_org_context,
     fetch_run_status,
     get_proxy_headers,
@@ -44,7 +45,6 @@ from sentry.seer.agent.client_utils import (
 from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
 from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
 from sentry.seer.agent.embed_widgets import get_embed_widgets
-from sentry.seer.agent.feature_run import start_feature_run as _start_feature_run
 from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
@@ -530,26 +530,74 @@ class SeerAgentClient:
         payload: dict[str, Any],
         flush: bool = True,
     ) -> SeerRun:
-        """Dispatch a run to a registered Seer feature by feature_id.
+        """Dispatch a run to a registered Seer feature by feature_id via the
+        SEER_RUN_CREATE outbox. The feature builds its own agent run from
+        `payload`; the result is pushed back via deliver_feature_result.
 
-        Companion to start_run: start_run drives the explorer chat agent
-        directly, while this hands off to a feature registered in Seer's FEATURES
-        registry, which builds its own agent run from `payload`. See
-        sentry.seer.agent.feature_run.start_feature_run for flush semantics.
+        flush=True (default): drain inline; dispatch failure surfaces
+        synchronously (mirror -> FAILED, raises SeerApiError, no retry).
+
+        flush=False: leave the row for the async outbox runner to drain and
+        retry. Use for background callers (e.g. night shift).
         """
         user_id = (
             self.user.id
             if self.user and hasattr(self.user, "id") and self.user.id is not None
             else None
         )
-        return _start_feature_run(
-            organization=self.organization,
-            feature_id=feature_id,
-            payload=payload,
-            viewer_context=self.viewer_context,
-            user_id=user_id,
-            flush=flush,
-        )
+        try:
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(SeerRun)), flush=flush
+            ):
+                run = SeerRun.objects.create(
+                    organization=self.organization,
+                    user_id=user_id,
+                    type=SeerRunType.FEATURE_RUN,
+                    last_triggered_at=now(),
+                )
+                body = SeerFeatureRunRequest(
+                    feature_id=feature_id,
+                    ref=str(run.uuid),
+                    payload=payload,
+                )
+                CellOutbox(
+                    shard_scope=OutboxScope.SEER_SCOPE,
+                    shard_identifier=run.id,
+                    category=OutboxCategory.SEER_RUN_CREATE,
+                    object_identifier=run.id,
+                    payload={
+                        "body": dict(body),
+                        "viewer_context": dict(self.viewer_context),
+                    },
+                ).save()
+        except (OutboxFlushError, OutboxDatabaseError):
+            metrics.incr("seer.outbox_flush_error", tags={"type": "feature_run"})
+            logger.exception(
+                "feature_run.outbox_flush_error",
+                extra={
+                    "organization_id": self.organization.id,
+                    "feature_id": feature_id,
+                    "seer_run_id": run.id,
+                    "seer_run_uuid": str(run.uuid),
+                },
+            )
+            run.mirror_status = SeerRunMirrorStatus.FAILED
+            run.save(update_fields=["mirror_status"])
+            raise SeerApiError("Outbox flush failed for feature run SeerRun", 500)
+
+        if not flush:
+            return run
+
+        run.refresh_from_db()
+        if run.mirror_status != SeerRunMirrorStatus.LIVE or run.seer_run_state_id is None:
+            if run.mirror_status == SeerRunMirrorStatus.FAILED:
+                detail = "Seer feature run failed during outbox drain"
+            elif run.seer_run_state_id is None:
+                detail = "Seer feature run did not mirror during outbox drain"
+            else:
+                detail = f"Seer feature run in unexpected state after drain: {run.mirror_status}"
+            raise SeerApiError(detail, 500)
+        return run
 
     def continue_run(
         self,

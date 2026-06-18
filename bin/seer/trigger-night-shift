@@ -62,8 +62,6 @@ def main(org_id: int, max_candidates: int | None, drain: bool) -> None:
     if run_id is None:
         return
 
-    # Delivery is async: the run is dispatched to Seer when the SEER_RUN_CREATE
-    # outbox drains, which mirrors the Seer run id back onto the SeerRun.
     if drain:
         sys.stdout.write("> Draining outbox to dispatch the run to Seer...\n")
         _drain_outbox()
