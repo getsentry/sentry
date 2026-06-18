@@ -24,7 +24,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.userreport import UserReport
 from sentry.services import eventstore
 from sentry.signals import user_feedback_received
-from sentry.types.cell import Cell, get_cell_by_name
+from sentry.types.cell import Cell, get_cell_by_name, get_local_locality
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.http import is_valid_origin, origin_from_request
@@ -265,7 +265,10 @@ class ErrorPageEmbedView(View):
         elif request.method == "POST":
             return self._smart_response(request, {"errors": dict(form.errors)}, status=400)
 
-        endpoint = urljoin(sentry_options.get("system.url-prefix"), request.get_full_path())
+        if sentry_options.get("error-embeds.control-silo-address"):
+            endpoint = urljoin(sentry_options.get("system.url-prefix"), request.get_full_path())
+        else:
+            endpoint = get_local_locality().to_url(request.get_full_path())
         show_branding = (
             ProjectOption.objects.get_value(
                 project=key.project, key="feedback:branding", default="1"

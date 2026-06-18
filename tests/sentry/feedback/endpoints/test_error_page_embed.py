@@ -27,7 +27,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, get_cell_by_name
+from sentry.types.cell import Cell, get_cell_by_name, get_local_locality
 from sentry.utils import json
 
 
@@ -92,8 +92,27 @@ class ErrorPageEmbedTest(TestCase):
         assert resp["Access-Control-Allow-Origin"] == "*"
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
 
-    def test_endpoint_reflects_control_silo_url(self) -> None:
-        with override_options({"system.url-prefix": "http://controlsilo.testserver"}):
+    def test_endpoint_reflects_region_url_by_default(self) -> None:
+        resp = self.client.get(
+            self.path_with_qs,
+            HTTP_REFERER="http://example.com",
+            HTTP_ACCEPT="text/html, text/javascript",
+        )
+        assert resp.status_code == 200, resp.content
+        assert resp["Access-Control-Allow-Origin"] == "*"
+        self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
+
+        region_url = get_local_locality().to_url(self.path_with_qs)
+        body = resp.content.decode("utf8")
+        assert f'endpoint = /**/"{region_url}";/**/' in body
+
+    def test_endpoint_reflects_control_silo_url_when_option_enabled(self) -> None:
+        with override_options(
+            {
+                "error-embeds.control-silo-address": True,
+                "system.url-prefix": "http://controlsilo.testserver",
+            }
+        ):
             resp = self.client.get(
                 self.path_with_qs,
                 HTTP_REFERER="http://example.com",
