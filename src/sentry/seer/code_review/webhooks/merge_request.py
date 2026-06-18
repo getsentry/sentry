@@ -42,6 +42,8 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 
+import sentry_sdk
+from dateutil.parser import parse as parse_date
 from pydantic import ValidationError
 from scm import actions as scm_actions
 from scm.types import (
@@ -538,13 +540,48 @@ def handle_merge_request_event(
     )
 
 
+def _normalize_trigger_at(raw: str | None) -> str:
+    """Normalize a GitLab webhook timestamp to ISO 8601.
+
+    GitLab webhook timestamps are NOT consistently formatted across event types.
+    The "Merge request events" and "Comment events" payloads documented at
+    https://docs.gitlab.com/user/project/integrations/webhook_events/ serialize
+    ``object_attributes`` timestamps as ``"2026-01-16 05:56:22 UTC"`` (space
+    separator, textual ``UTC`` suffix) -- the Rails ``Time#to_s`` default --
+    while other event types (work items, jobs, pipelines) use ISO 8601
+    (``"2013-12-03T17:15:43Z"``, ``"2014-02-27T10:06:20+02:00"``). Some GitLab
+    versions/editions also emit ISO 8601 for MR events, which is why the bug only
+    reproduces on instances sending the ``"... UTC"`` form.
+
+    Pydantic v1's ``datetime`` validator accepts ISO 8601 only and rejects the
+    space+``UTC`` form with ``value_error.datetime``. Since
+    ``SeerCodeReviewConfig.trigger_at`` is such a field -- and a failed
+    ``parse_obj`` silently drops the whole review (see ``_schedule_task``) -- we
+    normalize here. ``dateutil.parser.parse`` handles BOTH forms, so this is a
+    strict superset of the prior behavior. Falls back to "now" when the value is
+    missing or unparseable.
+    """
+    if raw:
+        try:
+            return parse_date(raw).astimezone(timezone.utc).isoformat()
+        except (ValueError, OverflowError) as e:
+            # We fall back to "now" below so the review still proceeds, but an
+            # unparseable GitLab timestamp means trigger_at is wrong for this
+            # review -- escalate it so the unhandled format surfaces in Sentry.
+            with sentry_sdk.new_scope() as scope:
+                scope.set_context(
+                    "code_review_trigger_at",
+                    {"raw": raw},
+                )
+                sentry_sdk.capture_exception(e, level="warning")
+    return datetime.now(timezone.utc).isoformat()
+
+
 def _get_trigger_metadata(event: Mapping[str, Any]) -> dict[str, Any]:
     user = event.get("user", {})
     object_attributes = event.get("object_attributes", {})
-    trigger_at = (
-        object_attributes.get("updated_at")
-        or object_attributes.get("created_at")
-        or datetime.now(timezone.utc).isoformat()
+    trigger_at = _normalize_trigger_at(
+        object_attributes.get("updated_at") or object_attributes.get("created_at")
     )
     return {
         "trigger_user": user.get("username"),
@@ -672,7 +709,7 @@ def _get_note_trigger_metadata(event: Mapping[str, Any]) -> dict[str, Any]:
     """Extract trigger metadata from a GitLab note (comment) event."""
     user = event.get("user", {})
     object_attributes = event.get("object_attributes", {})
-    trigger_at = object_attributes.get("created_at") or datetime.now(timezone.utc).isoformat()
+    trigger_at = _normalize_trigger_at(object_attributes.get("created_at"))
     return {
         "trigger_user": user.get("username"),
         "trigger_user_id": user.get("id"),
