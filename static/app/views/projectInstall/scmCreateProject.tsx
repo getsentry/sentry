@@ -220,7 +220,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
           maxWidth={CREATE_PROJECT_MAX_WIDTH}
         >
           <LayoutGroup>
-            <Layout.Title withMargins>{t('Create a new project')}</Layout.Title>
+            <Layout.Title>{t('Create a new project')}</Layout.Title>
             <Container paddingBottom="lg">
               <Text as="p" variant="muted">
                 {tct(
