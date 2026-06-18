@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from django.http import HttpResponseRedirect
+from requests.exceptions import HTTPError
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -134,6 +135,89 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
 
         assert "redirectUrl" in response.data
 
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_connect_datadog_pat_links_identity(self, mock_get_user_info: MagicMock) -> None:
+        mock_get_user_info.return_value = {
+            "user_uuid": "dd-user-123",
+            "org_uuid": "dd-org-456",
+            "user_email": "user@example.com",
+            "user_name": "Test User",
+        }
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(
+                self.organization.slug, "datadog_pat", access_token="pat-abc", site="datadoghq.com"
+            )
+
+        assert response.status_code == 204
+
+        idp = IdentityProvider.objects.get(type="datadog_pat", external_id="dd-org-456")
+        identity = Identity.objects.get(idp=idp, user=self.user)
+        assert identity.external_id == "dd-user-123"
+        assert identity.data == {"access_token": "pat-abc", "site": "datadoghq.com"}
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_connect_datadog_pat_overwrites_existing_token(
+        self, mock_get_user_info: MagicMock
+    ) -> None:
+        mock_get_user_info.return_value = {
+            "user_uuid": "dd-user-123",
+            "org_uuid": "dd-org-456",
+        }
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            self.get_success_response(
+                self.organization.slug, "datadog_pat", access_token="pat-old", site="datadoghq.com"
+            )
+            self.get_success_response(
+                self.organization.slug, "datadog_pat", access_token="pat-new", site="datadoghq.eu"
+            )
+
+        idp = IdentityProvider.objects.get(type="datadog_pat", external_id="dd-org-456")
+        identity = Identity.objects.get(idp=idp, user=self.user)
+        assert identity.data == {"access_token": "pat-new", "site": "datadoghq.eu"}
+
+    def test_connect_datadog_pat_requires_access_token(self) -> None:
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(
+                self.organization.slug, "datadog_pat", site="datadoghq.com"
+            )
+
+        assert response.status_code == 400
+        assert "access_token" in response.data["detail"]
+
+    def test_connect_datadog_pat_requires_site(self) -> None:
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(
+                self.organization.slug, "datadog_pat", access_token="pat-abc"
+            )
+
+        assert response.status_code == 400
+        assert "site" in response.data["detail"]
+
+    def test_connect_datadog_pat_invalid_site(self) -> None:
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(
+                self.organization.slug,
+                "datadog_pat",
+                access_token="pat-abc",
+                site="evil.example.com",
+            )
+
+        assert response.status_code == 400
+        assert "Invalid Datadog site" in response.data["detail"]
+
+    @patch("sentry.identity.datadog.provider.get_user_info", side_effect=HTTPError())
+    def test_connect_datadog_pat_provider_error(self, mock_get_user_info: MagicMock) -> None:
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(
+                self.organization.slug, "datadog_pat", access_token="pat-abc", site="datadoghq.com"
+            )
+
+        assert response.status_code == 400
+        assert "Failed to verify token" in response.data["detail"]
+        assert not IdentityProvider.objects.filter(type="datadog_pat").exists()
+
 
 @control_silo_test
 class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
@@ -159,6 +243,21 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
 
         with self.feature("organizations:seer-infra-telemetry"):
             response = self.get_response(self.organization.slug, "datadog")
+
+        assert response.status_code == 204
+        assert not Identity.objects.filter(idp=idp, user=self.user).exists()
+
+    def test_disconnect_deletes_identity_datadog_pat(self) -> None:
+        idp = self.create_identity_provider(type="datadog_pat", external_id="dd-org-456")
+        self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-123",
+            data={"access_token": "pat-abc", "site": "datadoghq.com"},
+        )
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(self.organization.slug, "datadog_pat")
 
         assert response.status_code == 204
         assert not Identity.objects.filter(idp=idp, user=self.user).exists()

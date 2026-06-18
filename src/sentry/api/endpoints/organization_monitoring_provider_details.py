@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from django.http import HttpResponseRedirect
+from requests.exceptions import RequestException
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,7 +16,10 @@ from sentry.api.endpoints.organization_monitoring_provider_index import (
     MONITORING_PROVIDERS,
     MonitoringProviderPermission,
 )
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity import default_manager as identity_manager
+from sentry.identity.base import Provider
+from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.models.identity import Identity, IdentityProvider
@@ -42,6 +46,12 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
             return Response({"detail": "Unknown monitoring provider."}, status=400)
 
         provider_type = identity_manager.get(provider_key)
+
+        # Token-based providers (e.g. Datadog PAT) have no OAuth flow: verify the
+        # submitted token and link the identity directly instead of redirecting.
+        if not isinstance(provider_type, OAuth2Provider):
+            return self._link_submitted_token(request, provider_key, provider_type)
+
         try:
             config = provider_type.get_pipeline_config(request.data)
         except ValueError as e:
@@ -70,6 +80,34 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
             extra={"provider": provider_key, "response_type": type(response).__name__},
         )
         return Response({"detail": "Failed to start OAuth flow."}, status=500)
+
+    def _link_submitted_token(
+        self, request: Request, provider_key: str, provider_type: Provider
+    ) -> Response:
+        """Verify a user-submitted token and link the identity (no OAuth flow)."""
+        try:
+            identity = provider_type.build_identity(request.data)
+        except (ValueError, IdentityNotValid) as e:
+            return Response({"detail": str(e)}, status=400)
+        except RequestException:
+            return Response({"detail": "Failed to verify token with provider."}, status=400)
+
+        idp, _ = IdentityProvider.objects.get_or_create(
+            type=identity["type"],
+            external_id=identity["idp_external_id"],
+            defaults={"config": identity.get("idp_config", {})},
+        )
+        Identity.objects.link_identity(
+            user=request.user,  # type: ignore[arg-type]
+            idp=idp,
+            external_id=identity["id"],
+            should_reattach=False,
+            defaults={
+                "scopes": identity.get("scopes", []),
+                "data": identity.get("data", {}),
+            },
+        )
+        return Response(status=204)
 
     def delete(
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
