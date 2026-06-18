@@ -25,11 +25,9 @@ from sentry.profiles.task import (
     _deobfuscate,
     _deobfuscate_using_symbolicator,
     _normalize,
-    _prepare_frames_from_profile,
     _process_symbolicator_results_for_sample,
     _set_frames_platform,
     _symbolicate_profile,
-    process_profile_from_kafka,
     process_profile_task,
 )
 from sentry.profiles.utils import Profile
@@ -1224,96 +1222,3 @@ def test_process_profile_task_should_flip_project_flag(
     )
     project.refresh_from_db()
     assert project.flags.has_profiles
-
-
-@override_options({"profiling.killswitch.ingest-profiles": [{"project_id": "2"}]})
-@pytest.mark.parametrize("headers", [{}, {"project_id": "1"}])
-@patch("sentry.profiles.task.process_profile_task")
-@django_db_all
-def test_process_profile_from_kafka(
-    mock_process_profile_task: mock.MagicMock, headers: dict[str, str]
-) -> None:
-    payload = msgpack.packb(
-        {
-            "organization_id": 1,
-            "project_id": 1,
-            "key_id": 1,
-            "received": 1700000000,
-            "payload": json.dumps({"platform": "android", "profile": ""}),
-        }
-    )
-
-    process_profile_from_kafka(payload, headers)
-
-    mock_process_profile_task.assert_called_with(payload=payload, sampled=True)
-
-
-@patch("sentry.profiles.task.process_profile_task")
-@override_options({"profiling.killswitch.ingest-profiles": [{"project_id": "1"}]})
-@django_db_all
-def test_process_profile_from_kafka_killswitch(
-    mock_process_profile_task: mock.MagicMock,
-) -> None:
-    payload = msgpack.packb(
-        {
-            "organization_id": 1,
-            "project_id": 1,
-            "key_id": 1,
-            "received": 1700000000,
-            "payload": json.dumps({"platform": "android", "profile": ""}),
-        }
-    )
-
-    process_profile_from_kafka(payload, {"project_id": "1"})
-
-    mock_process_profile_task.assert_not_called()
-
-
-def test_adjust_instruction_addr_sample_format() -> None:
-    original_frames = [
-        {"instruction_addr": "0xdeadbeef"},
-        {"instruction_addr": "0xbeefdead"},
-        {"instruction_addr": "0xfeedface"},
-    ]
-    profile: dict[str, Any] = {
-        "version": "1",
-        "platform": "cocoa",
-        "profile": {
-            "frames": original_frames.copy(),
-            "stacks": [[1, 0], [0, 1, 2]],
-        },
-        "debug_meta": {"images": []},
-    }
-
-    _, stacktraces, _ = _prepare_frames_from_profile(profile, profile["platform"])
-    assert profile["profile"]["stacks"] == [[3, 0], [4, 1, 2]]
-    frames = stacktraces[0]["frames"]
-
-    for i in range(3):
-        assert frames[i] == original_frames[i]
-
-    assert frames[3] == {"instruction_addr": "0xbeefdead", "adjust_instruction_addr": False}
-    assert frames[4] == {"instruction_addr": "0xdeadbeef", "adjust_instruction_addr": False}
-
-
-def test_adjust_instruction_addr_original_format() -> None:
-    profile = {
-        "platform": "cocoa",
-        "sampled_profile": {
-            "samples": [
-                {
-                    "frames": [
-                        {"instruction_addr": "0xdeadbeef", "platform": "native"},
-                        {"instruction_addr": "0xbeefdead", "platform": "native"},
-                    ],
-                }
-            ]
-        },
-        "debug_meta": {"images": []},
-    }
-
-    _, stacktraces, _ = _prepare_frames_from_profile(profile, str(profile["platform"]))
-    frames = stacktraces[0]["frames"]
-
-    assert not frames[0]["adjust_instruction_addr"]
-    assert "adjust_instruction_addr" not in frames[1]
