@@ -102,9 +102,18 @@ function receiptUrl(orgSlug: string, guid: string) {
 // Uses a plain `<a>` (not router `<Link>`) because gsAdmin is a separate
 // app bundle from the org-facing settings UI; the receipts page lives in
 // the latter, so navigating there has to be a full page load.
-function renderAmountCell(cents: number | null, guids: string[], orgSlug: string | null) {
+//
+// `guids` is widened to allow `undefined` so that a stale-cached response
+// from before the backend companion shipped (or any future shape drift
+// that drops the field) renders as plain text rather than crashing the
+// page on `undefined.length`.
+function renderAmountCell(
+  cents: number | null,
+  guids: string[] | undefined,
+  orgSlug: string | null
+) {
   const dollars = formatDollars(cents);
-  if (!orgSlug || guids.length !== 1) {
+  if (!orgSlug || guids?.length !== 1) {
     return dollars;
   }
   return <a href={receiptUrl(orgSlug, guids[0]!)}>{dollars}</a>;
