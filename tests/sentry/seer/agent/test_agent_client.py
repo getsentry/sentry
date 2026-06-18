@@ -1229,6 +1229,7 @@ class TestStartFeatureRun(TestCase):
 
         outbox = self._outbox_for(run)
         assert outbox is not None
+        assert outbox.payload is not None
         body = outbox.payload["body"]
         assert body["feature_id"] == "night_shift"
         # ref/external_idempotency_key are stamped by the handler at dispatch, not enqueue.

@@ -31,6 +31,7 @@ def _dispatched_feature_body(organization):
         category=OutboxCategory.SEER_RUN_CREATE,
         object_identifier=seer_run.id,
     )
+    assert outbox.payload is not None
     return seer_run, outbox.payload["body"]
 
 
@@ -522,6 +523,7 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         outbox = CellOutbox.objects.get(
             category=OutboxCategory.SEER_RUN_CREATE, object_identifier=seer_run.id
         )
+        assert outbox.payload is not None
         assert outbox.payload["viewer_context"] == {"organization_id": org.id}
 
         assert run.seer_run.mirror_status == SeerRunMirrorStatus.PENDING
