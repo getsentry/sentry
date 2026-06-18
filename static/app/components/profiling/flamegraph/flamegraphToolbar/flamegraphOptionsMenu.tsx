@@ -5,6 +5,7 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {ProfileChunkAttachmentsButton} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/profileChunkAttachmentsButton';
 import {IconChevron, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -77,6 +78,10 @@ function FlamegraphOptionsMenu({
       <Button size="xs" onClick={onResetZoom}>
         {t('Reset Zoom')}
       </Button>
+      {profileType === 'continuous profile' &&
+      organization.features.includes('continuous-profiling-perfetto') ? (
+        <ProfileChunkAttachmentsButton />
+      ) : null}
       <CompactSelect
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps} icon={<IconSliders />} size="xs">
