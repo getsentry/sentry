@@ -36,6 +36,7 @@ from sentry.tasks.summaries.utils import (
     _project_key_errors_snuba,
     _project_key_performance_issues_eap,
     _project_key_performance_issues_snuba,
+    compute_actionability_score,
     fetch_past_resolved_issue_links,
     org_key_errors,
     organization_project_issue_substatus_summaries,
@@ -2048,3 +2049,150 @@ class WeeklyReportsTest(
             assert context["show_past_issues"] is False
             assert len(context["past_issues"]) == 0
             assert len(context["key_errors"]) == 1
+
+    def test_compute_actionability_score(self) -> None:
+        window_start = self.now - timedelta(days=7)
+        window_end = self.now
+
+        group = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ESCALATING,
+            last_seen=self.now - timedelta(days=1),
+            level=40,  # logging.ERROR
+            data={"type": "error", "metadata": {"type": "ValueError"}},
+        )
+
+        score = compute_actionability_score(
+            event_count=1000,
+            user_count=100,
+            group=group,
+            window_start=window_start,
+            window_end=window_end,
+        )
+
+        assert score > 0
+        # Event volume: ln(1001)/ln(10001) ≈ 0.75 -> 0.30 * 0.75 = 0.225
+        # User impact: ln(101)/ln(1001) ≈ 0.67 -> 0.25 * 0.67 = 0.167
+        # Recency: 6/7 ≈ 0.857 -> 0.15 * 0.857 = 0.129
+        # Substatus: escalating=1.0 -> 0.15 * 1.0 = 0.15
+        # Severity: error=0.75 -> 0.15 * 0.75 = 0.1125
+        # Total ≈ 0.783
+        assert 0.7 < score < 0.9
+
+    def test_compute_actionability_score_low_signals(self) -> None:
+        window_start = self.now - timedelta(days=7)
+        window_end = self.now
+
+        group = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            last_seen=window_start + timedelta(hours=1),
+            level=20,  # logging.INFO (performance issue level)
+            type=PerformanceNPlusOneGroupType.type_id,
+            data={"type": "transaction", "metadata": {"title": "N+1 Query"}},
+        )
+
+        score = compute_actionability_score(
+            event_count=5,
+            user_count=2,
+            group=group,
+            window_start=window_start,
+            window_end=window_end,
+        )
+
+        assert score > 0
+        # All signals are low — this should score well below the escalating error
+        assert score < 0.3
+
+    def test_compute_actionability_score_escalating_beats_ongoing(self) -> None:
+        window_start = self.now - timedelta(days=7)
+        window_end = self.now
+
+        escalating = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ESCALATING,
+            last_seen=self.now - timedelta(days=1),
+            level=40,
+            data={"type": "error", "metadata": {"type": "ValueError"}},
+        )
+        ongoing = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            last_seen=self.now - timedelta(days=1),
+            level=40,
+            data={"type": "error", "metadata": {"type": "TypeError"}},
+        )
+
+        score_escalating = compute_actionability_score(
+            event_count=100,
+            user_count=50,
+            group=escalating,
+            window_start=window_start,
+            window_end=window_end,
+        )
+        score_ongoing = compute_actionability_score(
+            event_count=100,
+            user_count=50,
+            group=ongoing,
+            window_start=window_start,
+            window_end=window_end,
+        )
+
+        assert score_escalating > score_ongoing
+
+    @with_feature({"organizations:weekly-report-top-actionable-issues": True})
+    def test_top_actionable_issues_renders_in_template(self) -> None:
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        error_group = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ESCALATING,
+            data={"type": "error", "metadata": {"type": "ValueError", "value": "bad value"}},
+        )
+        perf_group = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            type=PerformanceNPlusOneGroupType.type_id,
+            data={"type": "transaction", "metadata": {"title": "N+1 Query", "value": "slow"}},
+        )
+
+        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
+        project_context = ProjectContext(self.project)
+        project_context.top_actionable_issues = [
+            (error_group, 500, 100, 0.85),
+            (perf_group, 200, 50, 0.65),
+        ]
+        project_context.accepted_error_count = 1000
+        ctx.projects_context_map = {self.project.id: project_context}
+        ctx.project_ownership[user.id] = {self.project.id}
+
+        rendered = render_template_context(ctx, user.id)
+
+        assert rendered is not None
+        assert len(rendered["top_actionable_issues"]) == 2
+        assert rendered["top_actionable_issues"][0]["score"] == 0.85
+        assert rendered["top_actionable_issues"][0]["count"] == 500
+        assert rendered["top_actionable_issues"][1]["score"] == 0.65
+
+    def test_top_actionable_issues_feature_flag_gated(self) -> None:
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
+        project_context = ProjectContext(self.project)
+        project_context.accepted_error_count = 1000
+        ctx.projects_context_map = {self.project.id: project_context}
+        ctx.project_ownership[user.id] = {self.project.id}
+
+        rendered = render_template_context(ctx, user.id)
+
+        assert rendered is not None
+        assert rendered["top_actionable_issues"] == []
+        assert rendered["show_top_actionable_issues"] is False

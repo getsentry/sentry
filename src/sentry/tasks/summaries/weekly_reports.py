@@ -824,7 +824,34 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             "total_substatus_count": total_substatus_count,
         }
 
+    def top_actionable_issues():
+        def all_actionable_issues():
+            for project_ctx in user_projects:
+                for group, event_count, user_count, score in project_ctx.top_actionable_issues:
+                    display = get_group_display(group)
+                    (
+                        substatus,
+                        substatus_color,
+                        substatus_text_color,
+                    ) = get_group_status_badge(group)
+                    yield {
+                        "count": event_count,
+                        "user_count": user_count,
+                        "score": score,
+                        "group": group,
+                        "title": display["title"],
+                        "message": display["message"],
+                        "group_substatus": substatus,
+                        "group_substatus_color": substatus_color,
+                        "group_substatus_text_color": substatus_text_color,
+                    }
+
+        return heapq.nlargest(3, all_actionable_issues(), lambda d: d["score"])
+
     show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
+    show_top_actionable = features.has(
+        "organizations:weekly-report-top-actionable-issues", ctx.organization
+    )
 
     return {
         "organization": ctx.organization,
@@ -834,6 +861,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
+        "top_actionable_issues": top_actionable_issues() if show_top_actionable else [],
+        "show_top_actionable_issues": show_top_actionable,
         "past_issues": past_issues() if show_past_issues else [],
         "show_past_issues": show_past_issues,
         "issue_summary": issue_summary(),

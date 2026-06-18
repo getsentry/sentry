@@ -851,6 +851,38 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Weekly report actionability scoring weights (adapted recommended sort for batch reports)
+register(
+    "weekly-report.actionability.event-volume-weight",
+    default=0.30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "weekly-report.actionability.user-impact-weight",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "weekly-report.actionability.recency-weight",
+    default=0.15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "weekly-report.actionability.substatus-weight",
+    default=0.15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "weekly-report.actionability.severity-weight",
+    default=0.15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "weekly-report.actionability.candidate-limit",
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
     "snuba.tagstore.cache-tagkeys-rate",
