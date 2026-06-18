@@ -244,7 +244,7 @@ function Graph({
     </Fragment>
   ) : (
     <Button
-      aria-label={t('Expand')}
+      aria-label={t('Expand chart')}
       icon={<IconExpand />}
       onClick={() => onChartVisibilityChange(true)}
       size="xs"
