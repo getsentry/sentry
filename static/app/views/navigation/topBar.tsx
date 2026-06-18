@@ -1,5 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
@@ -67,9 +68,13 @@ function TopBarContent() {
       }}
     >
       <SizeProvider size="sm">
-        <Slot.Outlet name="title">
-          {props => <Flex {...props} align="center" gap="sm" />}
-        </Slot.Outlet>
+        {/*
+         * The title slot is rendered as a semantic <h1> so the page title
+         * (whatever a view routes into it — breadcrumbs, text, etc.) is exposed
+         * as the page heading. TitleHeading inherits the TopBar typography, so
+         * it carries no visual weight of its own.
+         */}
+        <Slot.Outlet name="title">{props => <TitleHeading {...props} />}</Slot.Outlet>
 
         <Flex align="center" gap="sm">
           <Slot.Outlet name="search">
@@ -104,5 +109,16 @@ function TopBarContent() {
     </Flex>
   );
 }
+
+const TitleHeading = styled('h1')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  margin: 0;
+  min-width: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+`;
 
 export const TopBar = withSlots(TopBarContent, Slot);
