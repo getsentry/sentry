@@ -49,6 +49,10 @@ export function calculateHeatMapBucketDimensions(
     (intervalAsMilliseconds / timeRangeAsMilliseconds) * dimensions.width
   );
 
+  if (intervalAsPixels <= 0) {
+    return null;
+  }
+
   const yBuckets = Math.round(dimensions.height / intervalAsPixels);
 
   return {

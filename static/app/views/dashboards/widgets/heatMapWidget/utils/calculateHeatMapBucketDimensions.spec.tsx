@@ -73,6 +73,18 @@ describe('calculateHeatMapBucketDimensions()', () => {
         )
       ).toBeNull();
     });
+
+    it('returns null when the chosen interval is sub-pixel', () => {
+      // A 1m interval over a 90d range on a narrow chart rounds to 0px wide,
+      // which would cause a division-by-zero when computing yBuckets.
+      expect(
+        calculateHeatMapBucketDimensions(
+          makeSelection('90d'),
+          {width: 100, height: 300},
+          ['1m']
+        )
+      ).toBeNull();
+    });
   });
 
   describe('return shape', () => {
