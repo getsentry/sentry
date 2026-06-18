@@ -70,6 +70,7 @@ from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
+from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +81,12 @@ def _is_unknown_run_id_error(error: SeerPermissionError) -> bool:
     return getattr(error, "message", None) == UNKNOWN_RUN_ID_FOR_GROUP
 
 
-def _parse_autofix_referrer(raw: str | None) -> AutofixReferrer:
+def _parse_autofix_referrer(raw: str | None, request: Request) -> AutofixReferrer:
     if raw is None:
+        # Fall back to the request origin: requests from the Sentry MCP server are
+        # attributed to MCP, everything else to the generic endpoint referrer.
+        if is_mcp_request(request):
+            return AutofixReferrer.MCP
         return AutofixReferrer.GROUP_AUTOFIX_ENDPOINT
     try:
         return AutofixReferrer(raw)
@@ -186,7 +191,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
     )
 
     @extend_schema(
-        operation_id="Start Seer Issue Fix",
+        operation_id="startOrganizationIssueAutofix",
+        summary="Start Seer Issue Fix",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -268,7 +274,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 handoff_result: AutofixHandoffResponse = trigger_coding_agent_handoff(
                     group=group,
                     run_id=resolved_run_id,
-                    referrer=_parse_autofix_referrer(data.get("referrer")),
+                    referrer=_parse_autofix_referrer(data.get("referrer"), request),
                     integration_id=integration_id,
                     provider=provider,
                     user_id=request.user.id if request.user else None,
@@ -290,7 +296,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 trigger_push_changes(
                     group,
                     resolved_run_id,
-                    referrer=_parse_autofix_referrer(data.get("referrer")),
+                    referrer=_parse_autofix_referrer(data.get("referrer"), request),
                     repo_name=repo_name,
                 )
             except SeerPermissionError:
@@ -341,7 +347,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             run_id = trigger_autofix_agent(
                 group=group,
                 step=AutofixStep(step),
-                referrer=_parse_autofix_referrer(data.get("referrer")),
+                referrer=_parse_autofix_referrer(data.get("referrer"), request),
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=resolved_run_id,
                 user_context=user_context,
@@ -389,7 +395,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             raise PermissionDenied(SEER_PERMISSION_DENIED)
 
     @extend_schema(
-        operation_id="Retrieve Seer Issue Fix State",
+        operation_id="getOrganizationIssueAutofixState",
+        summary="Retrieve Seer Issue Fix State",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,

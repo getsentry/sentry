@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
-from django.db.models import UniqueConstraint
+from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -14,6 +15,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.dashboard_widget import TypesClass
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SupportedTraceItemType
 
 
 class ExploreSavedQueryDataset(TypesClass):
@@ -345,3 +347,111 @@ class ExploreSavedQueryStarred(DefaultFieldsModel):
                 deferrable=models.Deferrable.DEFERRED,
             )
         ]
+
+
+class TraceItemTypes(TypesClass):
+    """
+    Integer-backed mirror of ``SupportedTraceItemType`` used for compact storage.
+
+    Each member's name is the corresponding ``SupportedTraceItemType`` value, so the
+    two can be converted with ``get_type_name`` / ``get_id_for_type_name``. The
+    integer ids are stable identifiers and must never be reused or reordered. A test
+    in ``tests/sentry/explore/test_models.py`` guards against drift from the enum.
+    """
+
+    SPANS = 0
+    LOGS = 1
+    TRACEMETRICS = 2
+    UPTIME_RESULTS = 3
+    PROFILE_FUNCTIONS = 4
+    PREPROD = 5
+    ATTACHMENTS = 6
+    PROCESSING_ERRORS = 7
+    OCCURRENCES = 8
+    REPLAYS = 9
+
+    TYPES = [
+        (SPANS, SupportedTraceItemType.SPANS.value),
+        (LOGS, SupportedTraceItemType.LOGS.value),
+        (TRACEMETRICS, SupportedTraceItemType.TRACEMETRICS.value),
+        (UPTIME_RESULTS, SupportedTraceItemType.UPTIME_RESULTS.value),
+        (PROFILE_FUNCTIONS, SupportedTraceItemType.PROFILE_FUNCTIONS.value),
+        (PREPROD, SupportedTraceItemType.PREPROD.value),
+        (ATTACHMENTS, SupportedTraceItemType.ATTACHMENTS.value),
+        (PROCESSING_ERRORS, SupportedTraceItemType.PROCESSING_ERRORS.value),
+        (OCCURRENCES, SupportedTraceItemType.OCCURRENCES.value),
+        (REPLAYS, SupportedTraceItemType.REPLAYS.value),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class TraceItemAttributeTypes(TypesClass):
+    """The value type of an attribute, as exposed by the trace item attributes API."""
+
+    STRING = 0
+    NUMBER = 1
+    BOOLEAN = 2
+
+    TYPES = [
+        (STRING, "string"),
+        (NUMBER, "number"),
+        (BOOLEAN, "boolean"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
+@cell_silo_model
+class TraceItemAttributeContext(DefaultFieldsModel):
+    """
+    Human (and agent) authored context for a trace item attribute (e.g. a span or
+    log attribute). Used to surface descriptions and example values when building
+    queries. Attributes are scoped to an organization and, optionally, a project
+    (a null project means the context applies org-wide).
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    organization = FlexibleForeignKey("sentry.Organization")
+    # A null project means the context applies to the whole organization.
+    project = FlexibleForeignKey("sentry.Project", null=True)
+
+    # The attribute this context is for, e.g. "http.method".
+    attribute_key = models.CharField()
+    item_type = BoundedPositiveIntegerField(choices=TraceItemTypes.as_choices())
+    attribute_type = BoundedPositiveIntegerField(choices=TraceItemAttributeTypes.as_choices())
+
+    # A short, one-line description of the attribute.
+    brief = models.CharField(max_length=280, null=True)
+    # Longer markdown notes / additional context about the attribute often used for agents.
+    additional_context = models.TextField(null=True)
+    # Example values the attribute can take, used to help build filters.
+    examples = ArrayField(models.TextField(), default=list)
+
+    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    updated_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # When the attribute was last seen in storage. Used to prune stale attributes.
+    last_received = models.DateTimeField(null=True)
+
+    class Meta:
+        app_label = "explore"
+        db_table = "explore_traceitemattributecontext"
+        # project is nullable, so unique_together would treat each null project as
+        # distinct and allow duplicate org-wide rows. Use partial unique constraints
+        # to enforce uniqueness for both the project-scoped and org-wide cases.
+        constraints = [
+            UniqueConstraint(
+                fields=["organization", "project", "item_type", "attribute_key", "attribute_type"],
+                name="explore_traceitemattr_unique_project_scoped",
+                condition=Q(project__isnull=False),
+            ),
+            UniqueConstraint(
+                fields=["organization", "item_type", "attribute_key", "attribute_type"],
+                name="explore_traceitemattr_unique_org_scoped",
+                condition=Q(project__isnull=True),
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["organization", "item_type", "attribute_key"]),
+        ]
+
+    __repr__ = sane_repr("organization_id", "project_id", "item_type", "attribute_key")

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, cast
 
 import orjson
@@ -22,26 +23,78 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingModel,
 )
 from sentry.dynamic_sampling.per_org.gate import project_balancing_debug_project_ids
-from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
+from sentry.dynamic_sampling.per_org.queries import (
+    ProjectTransactionCounts,
+    ProjectVolume,
+    get_eap_organization_volume,
+    get_outcomes_organization_volume,
+)
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrides
-from sentry.dynamic_sampling.tasks.common import sample_rate_to_float
+from sentry.dynamic_sampling.tasks.common import (
+    OrganizationDataVolume,
+    compute_sliding_window_sample_rate,
+    sample_rate_to_float,
+)
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     generate_boost_low_volume_transactions_cache_key,
 )
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
+    from sentry.dynamic_sampling.per_org.configuration import (
+        AutomaticDynamicSamplingConfiguration,
+        BaseDynamicSamplingConfiguration,
+    )
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 REBALANCE_INTENSITY = 0.8
 PROJECT_BALANCING_DEBUG_METRIC_PREFIX = "dynamic_sampling.per_org.project_balancing_debug"
+SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
 logger = logging.getLogger(__name__)
+
+
+def compare_organization_sliding_window_sample_rates(
+    config: AutomaticDynamicSamplingConfiguration,
+    window: timedelta = timedelta(hours=24),
+) -> None:
+    end = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
+    eap_volume = get_eap_organization_volume(config, time_interval=window, end=end)
+    outcomes_volume = get_outcomes_organization_volume(config, time_interval=window, end=end)
+
+    def sample_rate_for(volume: OrganizationDataVolume | None) -> float | None:
+        if volume is None:
+            return None
+        return compute_sliding_window_sample_rate(
+            org_id=config.organization.id,
+            project_id=None,
+            total_root_count=volume.total,
+            window_size=FALLBACK_SLIDING_WINDOW_SIZE,
+        )
+
+    eap_sample_rate = sample_rate_for(eap_volume)
+    outcomes_sample_rate = sample_rate_for(outcomes_volume)
+
+    tags = {"ds_org": str(config.organization.id)}
+    if eap_sample_rate is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_sample_rate",
+            eap_sample_rate,
+            sample_rate=1.0,
+            tags=tags,
+        )
+    if outcomes_sample_rate is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.outcomes_sample_rate",
+            outcomes_sample_rate,
+            sample_rate=1.0,
+            tags=tags,
+        )
 
 
 def run_project_balancing(

@@ -128,7 +128,7 @@ def _get_public_dsn() -> str | None:
     result = cache.get(cache_key)
     if result is None:
         key = project_key_service.get_project_key_by_cell(
-            cell_name=settings.SENTRY_MONOLITH_REGION,
+            cell_name=settings.SENTRY_FALLBACK_CELL,
             project_id=project_id,
             role=ProjectKeyRole.store,
         )
@@ -370,7 +370,7 @@ class _ClientConfig:
         if not locality_names:
             return [{"name": "default", "url": options.get("system.url-prefix")}]
 
-        monolith_locality = get_locality_name_for_cell(settings.SENTRY_MONOLITH_REGION)
+        monolith_locality = get_locality_name_for_cell(settings.SENTRY_FALLBACK_CELL)
 
         def region_display_order(region: Locality) -> tuple[bool, bool, str]:
             return (
@@ -395,7 +395,7 @@ class _ClientConfig:
 
         def cell_display_order(cell: Cell) -> tuple[bool, bool, str]:
             return (
-                cell.name != settings.SENTRY_MONOLITH_REGION,  # default historical cell comes first
+                cell.name != settings.SENTRY_FALLBACK_CELL,  # default historical cell comes first
                 not cell.visible,  # visible cells first
                 cell.name,  # then sort alphabetically
             )
