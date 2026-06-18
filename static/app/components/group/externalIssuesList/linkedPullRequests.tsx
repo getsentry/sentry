@@ -6,9 +6,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {Placeholder} from 'sentry/components/placeholder';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
+import {GroupActivityType, type Group} from 'sentry/types/group';
 import type {
   LinkedPullRequest,
   LinkedPullRequestsResponse,
@@ -24,6 +25,17 @@ import {
 } from './pullRequestStatusBadge';
 
 const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
+
+export function getLinkedPullRequestActivityIds(group: Group) {
+  return new Set(
+    group.activity
+      .filter(
+        activity => activity.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST
+      )
+      .map(activity => activity.data.pullRequest?.id)
+      .filter(id => id !== undefined)
+  );
+}
 
 interface LinkedPullRequestsProps {
   group: Group;
@@ -73,7 +85,7 @@ function LinkedPullRequestRow({
         }
       >
         <Grid columns="max-content minmax(0, 1fr)" gap="sm" padding="sm">
-          <Flex as="span" aria-hidden align="start" paddingTop="2xs">
+          <Flex as="span" aria-hidden align="start">
             <RepoProviderIcon
               provider={pullRequest.repository.provider.id}
               size="sm"
@@ -119,10 +131,15 @@ export function useLinkedPullRequests({group}: {group: Group}) {
 export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
   const organization = useOrganization();
   const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
-  const {data, isError} = useLinkedPullRequests({group});
+  const {data, isError, isPending} = useLinkedPullRequests({group});
+  const activityPullRequestIds = getLinkedPullRequestActivityIds(group);
 
   if (!hasFeature || isError) {
     return null;
+  }
+
+  if (isPending && activityPullRequestIds.size > 0) {
+    return <Placeholder height="40px" />;
   }
 
   if (data?.pullRequests.length === 0) {

@@ -5,7 +5,9 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {LinkedPullRequests} from './linkedPullRequests';
+import {GroupActivityType} from 'sentry/types/group';
+
+import {getLinkedPullRequestActivityIds, LinkedPullRequests} from './linkedPullRequests';
 
 const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
 const REPOSITORY_NAME = 'example/widget-app';
@@ -82,5 +84,32 @@ describe('LinkedPullRequests', () => {
     expect(mergedStatus.querySelector('svg')).toBeInTheDocument();
     expect(closedStatus.querySelector('svg')).toBeInTheDocument();
     expect(pullRequestsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('deduplicates pull request ids from group activity', () => {
+    const activityGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'activity-1',
+          dateCreated: '2026-06-08T23:11:32.000000Z',
+          data: {
+            pullRequest: PullRequestFixture({id: '123'}),
+          },
+          user: null,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'activity-2',
+          dateCreated: '2026-06-08T23:12:32.000000Z',
+          data: {
+            pullRequest: PullRequestFixture({id: '123'}),
+          },
+          user: null,
+        },
+      ],
+    });
+
+    expect([...getLinkedPullRequestActivityIds(activityGroup)]).toEqual(['123']);
   });
 });
