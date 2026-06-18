@@ -598,9 +598,9 @@ function ItemCheckbox({
               value: escapeTagValueForSearch(value),
             });
 
-            const currentlySelectedCount = Array.from(
-              selectedValueMap.values()
-            ).filter(Boolean).length;
+            const currentlySelectedCount = Array.from(selectedValueMap.values()).filter(
+              Boolean
+            ).length;
 
             trackAnalytics('search.multi_value_selected', {
               ...analyticsData,
