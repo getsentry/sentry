@@ -1497,6 +1497,8 @@ def get_issue_committers(
     *,
     organization_id: int,
     issue_id: str,
+    start: str | None = None,
+    end: str | None = None,
     project_slug: str | None = None,
 ) -> dict[str, Any] | None:
     """
@@ -1515,6 +1517,8 @@ def get_issue_committers(
     Args:
         organization_id: The ID of the organization.
         issue_id: The issue ID (numeric) or qualified short ID (e.g. PROJECT-123).
+        start: ISO timestamp for the start of the time range to get the event from (optional).
+        end: ISO timestamp for the end of the time range to get the event from (optional).
         project_slug: The slug of the project (optional, used to improve numeric ID lookups).
 
     Returns:
@@ -1522,6 +1526,8 @@ def get_issue_committers(
         Both lists may be empty (e.g. no release/commit data linked to the issue).
         Returns None if the project/issue cannot be resolved.
     """
+    start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
+
     organization = Organization.objects.get(id=organization_id)
 
     project_ids = list(
@@ -1556,7 +1562,7 @@ def get_issue_committers(
     # input to the suspect-commit feature and is available far more often.
     committers: list[dict[str, Any]] = []
     try:
-        event = _get_recommended_event(group, organization, None, None)
+        event = _get_recommended_event(group, organization, start_dt, end_dt)
         if isinstance(event, Event):
             event = event.for_group(group)
         if event is not None:
