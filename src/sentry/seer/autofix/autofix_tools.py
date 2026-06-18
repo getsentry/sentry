@@ -1,6 +1,6 @@
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.seer.agent.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.sentry_data_models import ProfileDetailsResponse
+from sentry.seer.sentry_data_models import ErrorEventDetailsResponse, ProfileDetailsResponse
 from sentry.services import eventstore
 
 
@@ -29,10 +29,10 @@ def get_profile_details(
     return ProfileDetailsResponse(execution_tree=execution_tree)
 
 
-def get_error_event_details(project_id: int, event_id: str):
+def get_error_event_details(project_id: int, event_id: str) -> ErrorEventDetailsResponse | None:
     event = eventstore.backend.get_event_by_id(project_id, event_id)
     if not event:
         return None
 
     serialized_event = serialize(objects=event, user=None, serializer=EventSerializer())
-    return serialized_event
+    return ErrorEventDetailsResponse(__root__=serialized_event)

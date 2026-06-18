@@ -1,47 +1,64 @@
+from __future__ import annotations
+
 import logging
+from collections.abc import Mapping
+from typing import Any
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 logger = logging.getLogger(__name__)
 
 
 def human_desc(
-    action_type,
-    target_type,
-    target_identifier,
-    target,
-    target_display=None,
-    action_target=None,
-    priority=None,
-):
-    # Returns a human readable description to display in the UI
+    action_type: int,
+    target_identifier: str | None,
+    target: OrganizationMember | Team | str | None,
+    target_display: str | None = None,
+    priority: str | None = None,
+) -> str | None:
+    """Return a human-readable description of a metric alert action for display in the UI.
+
+    Args:
+        action_type: An ``ActionService`` enum value (e.g. EMAIL, SLACK, PAGERDUTY).
+        priority: On-call severity/priority string when applicable.
+            PagerDuty: "default", "critical", "warning", "error", "info".
+            Opsgenie: "P1"–"P5".
+    """
     if priority:
         priority += " level"
 
+    slack_desc = f"Send a Slack notification to {target_display}"
     action_type_to_string = {
-        AlertRuleTriggerAction.Type.PAGERDUTY.value: f"Send a {priority} PagerDuty notification to {target_display}",
-        AlertRuleTriggerAction.Type.SLACK.value: f"Send a Slack notification to {target_display}",
+        AlertRuleTriggerAction.Type.PAGERDUTY.value: (
+            f"Send a {priority} PagerDuty notification to {target_display}"
+            if priority
+            else f"Send a PagerDuty notification to {target_display}"
+        ),
+        AlertRuleTriggerAction.Type.SLACK.value: slack_desc,
+        AlertRuleTriggerAction.Type.SLACK_STAGING.value: slack_desc,
         AlertRuleTriggerAction.Type.MSTEAMS.value: f"Send a Microsoft Teams notification to {target_display}",
         AlertRuleTriggerAction.Type.SENTRY_APP.value: f"Send a notification via {target_display}",
     }
 
     if action_type == AlertRuleTriggerAction.Type.EMAIL.value:
-        if action_target:
-            if target_type == AlertRuleTriggerAction.TargetType.USER.value:
-                email = target.get_email() if target else "[removed]"
-                return "Send a notification to " + email
-            elif target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
-                slug = "#" + target.slug if target else "[removed]"
-                return "Send an email to members of " + slug
-        else:
-            logger.info("email.action.description.no_action_target")
-            return "Send an email to [removed]"
+        if isinstance(target, OrganizationMember):
+            return "Send a notification to " + target.get_email()
+        elif isinstance(target, Team):
+            return "Send an email to members of #" + target.slug
+        logger.info("email.action.description.no_action_target")
+        return "Send an email to [removed]"
     elif action_type == AlertRuleTriggerAction.Type.OPSGENIE.value:
         if priority:
             return f"Send a {priority} Opsgenie notification to {target_display}"
-        return "Send an Opsgenie notification to {target_display}"
+        return f"Send an Opsgenie notification to {target_display}"
     elif action_type == AlertRuleTriggerAction.Type.DISCORD.value:
         if not target_display:
             logger.info(
@@ -50,7 +67,7 @@ def human_desc(
             )
         return f"Send a Discord notification to {target_display}"
     else:
-        return action_type_to_string[action_type]
+        return action_type_to_string.get(action_type)
 
 
 def get_identifier_from_action(action_type, target_identifier, target_display=None):
@@ -70,19 +87,35 @@ def get_input_channel_id(action_type, target_identifier=None):
     """
     Don't pass an inputChannelId value unless the action is for Slack
     """
-    return target_identifier if action_type == AlertRuleTriggerAction.Type.SLACK.value else None
+    return (
+        target_identifier
+        if action_type
+        in (
+            AlertRuleTriggerAction.Type.SLACK.value,
+            AlertRuleTriggerAction.Type.SLACK_STAGING.value,
+        )
+        else None
+    )
 
 
 @register(AlertRuleTriggerAction)
-class AlertRuleTriggerActionSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+class AlertRuleTriggerActionSerializer(Serializer[dict[str, Any]]):
+    def serialize(
+        self,
+        obj: AlertRuleTriggerAction,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
         # Mark that we're using legacy AlertRuleTriggerAction models
         report_used_legacy_models()
 
         from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 
-        priority = (
-            obj.sentry_app_config.get("priority") if isinstance(obj.sentry_app_config, dict) else ""
+        priority: str | None = (
+            obj.sentry_app_config.get("priority")
+            if isinstance(obj.sentry_app_config, dict)
+            else None
         )
         result = {
             "id": str(obj.id),
@@ -102,18 +135,12 @@ class AlertRuleTriggerActionSerializer(Serializer):
             "dateCreated": obj.date_added,
             "desc": human_desc(
                 obj.type,
-                obj.target_type,
                 obj.target_identifier,
                 obj.target,
                 obj.target_display,
-                obj.target,
                 priority,
             ),
-            "priority": (
-                obj.sentry_app_config.get("priority", None)
-                if isinstance(obj.sentry_app_config, dict)
-                else None
-            ),
+            "priority": priority,
         }
 
         # Check if action is a Sentry App that has Alert Rule UI Component settings

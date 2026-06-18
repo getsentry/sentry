@@ -30,6 +30,7 @@ from sentry.tasks.summaries.organization_report_context_factory import (
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
+    ProjectContext,
     _project_key_errors_eap,
     _project_key_errors_snuba,
     _project_key_performance_issues_eap,
@@ -46,6 +47,7 @@ from sentry.tasks.summaries.weekly_reports import (
     group_status_to_color,
     prepare_organization_report,
     prepare_template_context,
+    render_template_context,
     schedule_organizations,
 )
 from sentry.testutils.cases import (
@@ -1046,13 +1048,13 @@ class WeeklyReportsTest(
         assert ctx["trends"]["legend"][0] == {
             "slug": "bar",
             "url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&project={self.project.id}",
-            "color": "#422C6E",
+            "color": "#7553FF",
             "accepted_error_count": 1,
             "accepted_transaction_count": 3,
         }
 
         assert ctx["trends"]["series"][-2][1][0] == {
-            "color": "#422C6E",
+            "color": "#7553FF",
             "error_count": 1,
             "transaction_count": 3,
         }
@@ -1125,6 +1127,51 @@ class WeeklyReportsTest(
 
         unique_enum_count = len(enum_values)
         assert len(group_status_to_color) == unique_enum_count
+
+    def test_key_errors_and_performance_issues_share_substatus_badges(self) -> None:
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+        error_group = self.create_group(
+            project=self.project,
+            message="error message",
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            data={
+                "type": "error",
+                "metadata": {"type": "TypeError", "value": "error message"},
+            },
+        )
+        performance_group = self.create_group(
+            project=self.project,
+            message="performance message",
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            type=PerformanceNPlusOneGroupType.type_id,
+            data={
+                "type": "transaction",
+                "metadata": {"title": "N+1 Query", "value": "performance message"},
+            },
+        )
+        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
+        project_context = ProjectContext(self.project)
+        project_context.key_errors_by_group = [(error_group, 10)]
+        project_context.key_performance_issues = [(performance_group, None, 10)]
+        ctx.projects_context_map = {self.project.id: project_context}
+        ctx.project_ownership[user.id] = {self.project.id}
+
+        rendered_context = render_template_context(ctx, user.id)
+
+        assert rendered_context is not None
+        key_error = rendered_context["key_errors"][0]
+        performance_issue = rendered_context["key_performance_issues"][0]
+        substatus_fields = (
+            "group_substatus",
+            "group_substatus_color",
+            "group_substatus_text_color",
+        )
+        assert {field: key_error[field] for field in substatus_fields} == {
+            field: performance_issue[field] for field in substatus_fields
+        }
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")

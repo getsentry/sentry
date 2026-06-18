@@ -259,7 +259,7 @@ export type AM2UpdateSurfaces =
   | 'replay_project_creation'
   | 'replay'
   | 'subscription_page';
-type UpdateProps = Pick<Subscription, 'planTier' | 'canSelfServe' | 'channel'> & {
+type UpdateProps = Pick<Subscription, 'canSelfServe' | 'channel'> & {
   has_billing_scope: boolean;
   surface: AM2UpdateSurfaces;
 };

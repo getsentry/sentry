@@ -258,7 +258,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a Project's Symbol Sources",
+        operation_id="listProjectSymbolSources",
+        summary="Retrieve a Project's Symbol Sources",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -294,7 +295,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         return Response(redacted)
 
     @extend_schema(
-        operation_id="Delete a Symbol Source from a Project",
+        operation_id="deleteProjectSymbolSource",
+        summary="Delete a Symbol Source from a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -330,7 +332,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         return Response(data={"error": "Missing source id"}, status=404)
 
     @extend_schema(
-        operation_id="Add a Symbol Source to a Project",
+        operation_id="addProjectSymbolSource",
+        summary="Add a Symbol Source to a Project",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=SourceSerializer,
         responses={
@@ -369,7 +372,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         return Response(data=redacted_single[0], status=201)
 
     @extend_schema(
-        operation_id="Update a Project's Symbol Source",
+        operation_id="updateProjectSymbolSource",
+        summary="Update a Project's Symbol Source",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

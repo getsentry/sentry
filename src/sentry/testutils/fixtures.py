@@ -778,6 +778,9 @@ class Fixtures:
     def create_action(self, *args, **kwargs):
         return Factories.create_action(*args, **kwargs)
 
+    def create_action_invocation(self, *args, **kwargs):
+        return Factories.create_action_invocation(*args, **kwargs)
+
     def create_uptime_subscription(
         self,
         type: str = "test",

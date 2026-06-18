@@ -15,6 +15,7 @@ from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     AutofixStep,
     NoSeerQuotaException,
+    PrIterationNoPullRequestException,
     build_step_prompt,
     generate_autofix_handoff_prompt,
     get_iteration_for_insert_index,
@@ -256,12 +257,17 @@ def _iteration_block(iteration_index: int | None = None) -> MemoryBlock:
     )
 
 
-def _state_with_blocks(blocks: list[MemoryBlock], group_id: int | None = None) -> SeerRunState:
+def _state_with_blocks(
+    blocks: list[MemoryBlock],
+    group_id: int | None = None,
+    repo_pr_states: dict[str, RepoPRState] | None = None,
+) -> SeerRunState:
     return SeerRunState(
         run_id=67890,
         blocks=blocks,
         status="completed",
         updated_at="2024-01-01T00:00:00Z",
+        repo_pr_states=repo_pr_states or {},
         metadata={"group_id": group_id} if group_id is not None else None,
     )
 
@@ -423,30 +429,7 @@ class TestTriggerAutofixAgent(TestCase):
         assert call_kwargs["metadata"] == {
             "group_id": self.group.id,
             "referrer": "unknown",
-            "pr_iteration_enabled": False,
         }
-
-    @patch("sentry.quotas.backend.record_seer_run")
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_new_run_records_pr_iteration_enabled_in_metadata(
-        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
-    ):
-        """The pr_iteration feature flag value is persisted in the run metadata."""
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
-
-        with self.feature("organizations:autofix-pr-iteration"):
-            trigger_autofix_agent(
-                group=self.group,
-                step=AutofixStep.ROOT_CAUSE,
-                referrer=AutofixReferrer.UNKNOWN,
-                run_id=None,
-            )
-
-        assert mock_client.start_run.call_args.kwargs["metadata"]["pr_iteration_enabled"] is True
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
@@ -459,20 +442,48 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = _state_with_blocks(
-            [_iteration_block(1)], group_id=self.group.id
+            [_iteration_block(1)],
+            group_id=self.group.id,
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", pr_url="https://example.com/pull/7"
+                )
+            },
         )
         mock_client.continue_run.return_value = 67890
 
-        trigger_autofix_agent(
-            group=self.group,
-            step=AutofixStep.PR_ITERATION,
-            referrer=AutofixReferrer.UNKNOWN,
-            run_id=67890,
-        )
+        with self.feature("organizations:autofix-pr-iteration"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=67890,
+            )
 
         call_kwargs = mock_broadcast.call_args.kwargs
         assert call_kwargs["event_name"] == SeerActionType.ITERATION_STARTED.value
         assert call_kwargs["payload"]["iteration_index"] == 2
+
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_pr_iteration_requires_existing_pr(self, mock_client_class, mock_broadcast):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = _state_with_blocks([], group_id=self.group.id)
+
+        with (
+            self.feature("organizations:autofix-pr-iteration"),
+            pytest.raises(PrIterationNoPullRequestException),
+        ):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=67890,
+            )
+
+        mock_client.continue_run.assert_not_called()
+        mock_broadcast.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
