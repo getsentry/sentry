@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
@@ -212,7 +212,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         mock_capture.assert_called_once_with(
             validation_error,
             level="warning",
-            contexts={"code_review_validation": {"seer_path": mock.ANY}},
+            contexts={"code_review_validation": {"seer_path": ANY}},
         )
         self.mock_seer.assert_not_called()
 
