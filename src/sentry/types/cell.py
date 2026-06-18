@@ -174,18 +174,11 @@ class CellDirectory:
     def get_locality_by_name(self, locality_name: str) -> Locality | None:
         return self._localities_by_name.get(locality_name)
 
-    def get_cells(self, category: RegionCategory | None = None) -> Iterable[Cell]:
-        if category is None:
-            return iter(self._cells)
+    def get_cells(self) -> Iterable[Cell]:
+        return iter(self._cells)
 
-        return (
-            r
-            for r in self._cells
-            if (loc := self._cell_to_locality.get(r.name)) is not None and loc.category == category
-        )
-
-    def get_cell_names(self, category: RegionCategory | None = None) -> Iterable[str]:
-        return (r.name for r in self.get_cells(category))
+    def get_cell_names(self) -> Iterable[str]:
+        return (r.name for r in self.get_cells())
 
     def get_locality_for_cell(self, cell_name: str) -> Locality | None:
         return self._cell_to_locality.get(cell_name)
@@ -331,10 +324,7 @@ def get_cell_by_name(name: str) -> Cell:
     if cell is not None:
         return cell
     else:
-        cell_names = list(cell_regions.get_cell_names(RegionCategory.MULTI_TENANT))
-        raise CellResolutionError(
-            f"No cell with name: {name!r} (expected one of {cell_names!r} or a single-tenant name)"
-        )
+        raise CellResolutionError(f"No cell with name: {name!r}")
 
 
 def get_new_org_cell_for_locality(name: str) -> Cell:

@@ -35,7 +35,12 @@ from sentry.seer.agent.client import (
     _trigger_explorer_indexes_if_needed,
     get_monitoring_provider_connections,
 )
-from sentry.seer.agent.client_utils import AgentChatRequest, make_agent_chat_request
+from sentry.seer.agent.client_utils import (
+    AgentChatRequest,
+    SeerFeatureRunWireRequest,
+    make_agent_chat_request,
+    make_feature_run_request,
+)
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
@@ -262,6 +267,11 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
         case SeerRunType.ASSISTED_QUERY:
             response = make_search_agent_start_request(
                 cast(SearchAgentStartRequest, body), viewer_context=viewer_context
+            )
+        case SeerRunType.FEATURE_RUN:
+            wire_body = {**body, "ref": str(run.uuid)}
+            response = make_feature_run_request(
+                cast(SeerFeatureRunWireRequest, wire_body), viewer_context=viewer_context
             )
         case unknown:
             assert_never(unknown)

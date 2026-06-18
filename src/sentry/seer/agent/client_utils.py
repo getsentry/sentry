@@ -10,17 +10,27 @@ from __future__ import annotations
 import logging
 import re
 import time
+from collections.abc import Callable, Mapping
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.db import router, transaction
+from django.utils.timezone import now
 from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.models.outbox import (
+    CellOutbox,
+    OutboxDatabaseError,
+    OutboxFlushError,
+    outbox_context,
+)
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -29,12 +39,14 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
 from sentry.seer.models import SeerApiError
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.users.models.user import User as SentryUser
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -104,9 +116,17 @@ class AgentPrStateRequest(TypedDict):
 
 
 class SeerFeatureRunRequest(TypedDict):
+    """The feature-run body as enqueued onto the SEER_RUN_CREATE outbox."""
+
     feature_id: str
-    ref: str
     payload: dict[str, Any]
+
+
+class SeerFeatureRunWireRequest(SeerFeatureRunRequest):
+    """As sent to Seer: the outbox handler stamps the SeerRun uuid fields."""
+
+    ref: str
+    external_idempotency_key: str
 
 
 class AgentReposRequest(TypedDict):
@@ -192,26 +212,89 @@ def make_agent_state_pr_request(
     )
 
 
-def trigger_seer_feature(
-    body: SeerFeatureRunRequest,
+def make_feature_run_request(
+    body: SeerFeatureRunWireRequest,
     connection_pool: HTTPConnectionPool | None = None,
     viewer_context: SeerViewerContext | None = None,
-) -> int | None:
-    """Trigger a Seer feature run and return the resulting agent run id.
-
-    Seer runs the feature asynchronously and pushes results back via
-    deliver_feature_result. Raises SeerApiError on a non-2xx response.
-    """
-    response = make_signed_seer_api_request(
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
         connection_pool or agent_connection_pool,
         "/v1/automation/agent/feature/run",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
-    if response.status >= 400:
-        raise SeerApiError("Seer feature run request failed", response.status)
 
-    return response.json().get("run_id")
+
+def enqueue_seer_run(
+    *,
+    organization: Organization,
+    run_type: SeerRunType,
+    body: Mapping[str, Any],
+    viewer_context: SeerViewerContext | None,
+    user_id: int | None = None,
+    flush: bool = True,
+    on_run_created: Callable[[SeerRun], None] | None = None,
+) -> SeerRun:
+    """Create the SeerRun mirror and enqueue the SEER_RUN_CREATE outbox that
+    dispatches it to Seer. The outbox handler stamps run-derived fields on the
+    body at dispatch, so callers pass a static body here.
+
+    on_run_created(run), if given, runs in the same transaction right after the
+    SeerRun is created — use it to create associated rows atomically with the run
+    (e.g. SeerAgentRun).
+
+    flush=True: drain inline; a dispatch failure surfaces synchronously
+    (mirror -> FAILED, raises SeerApiError, no retry). flush=False: leave the row
+    for the async outbox runner to drain and retry.
+    """
+    try:
+        with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=flush):
+            run = SeerRun.objects.create(
+                organization=organization,
+                user_id=user_id,
+                type=run_type,
+                last_triggered_at=now(),
+            )
+            if on_run_created is not None:
+                on_run_created(run)
+            CellOutbox(
+                shard_scope=OutboxScope.SEER_SCOPE,
+                shard_identifier=run.id,
+                category=OutboxCategory.SEER_RUN_CREATE,
+                object_identifier=run.id,
+                payload={
+                    "body": dict(body),
+                    "viewer_context": dict(viewer_context) if viewer_context else None,
+                },
+            ).save()
+    except (OutboxFlushError, OutboxDatabaseError):
+        metrics.incr("seer.outbox_flush_error", tags={"type": run_type.value})
+        logger.exception(
+            "seer.run_create.outbox_flush_error",
+            extra={
+                "organization_id": organization.id,
+                "seer_run_id": run.id,
+                "seer_run_uuid": str(run.uuid),
+                "type": run_type.value,
+            },
+        )
+        run.mirror_status = SeerRunMirrorStatus.FAILED
+        run.save(update_fields=["mirror_status"])
+        raise SeerApiError("Outbox flush failed for SeerRun", 500)
+
+    if not flush:
+        return run
+
+    run.refresh_from_db()
+    if run.mirror_status != SeerRunMirrorStatus.LIVE or run.seer_run_state_id is None:
+        if run.mirror_status == SeerRunMirrorStatus.FAILED:
+            detail = "Seer run failed during outbox drain"
+        elif run.seer_run_state_id is None:
+            detail = "Seer run did not mirror during outbox drain"
+        else:
+            detail = f"Seer run in unexpected state after outbox drain: {run.mirror_status}"
+        raise SeerApiError(detail, 500)
+    return run
 
 
 def get_agent_state_from_pr_id(

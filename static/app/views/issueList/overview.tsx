@@ -70,6 +70,8 @@ import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
   FOR_REVIEW_QUERIES,
+  getStoredIssueSort,
+  setStoredIssueSort,
   isForReviewQuery,
   IssueSortOptions,
   Query,
@@ -225,7 +227,16 @@ function IssueListOverviewInner({
   const query = defined(location.query.query)
     ? (decodeScalar(location.query.query) ?? '')
     : initialQuery;
-  const sort = decodeScalar(location.query.sort, initialSort) as IssueSortOptions;
+  const hasRecommendedSort = organization.features.includes(
+    'issue-stream-recommended-sort'
+  );
+  const defaultSort =
+    initialSort === DEFAULT_ISSUE_STREAM_SORT
+      ? hasRecommendedSort
+        ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
+        : DEFAULT_ISSUE_STREAM_SORT
+      : initialSort;
+  const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
     const currentPeriod = decodeScalar(
@@ -257,7 +268,7 @@ function IssueListOverviewInner({
       params.start = getUtcDateString(params.start);
     }
 
-    if (sort !== DEFAULT_ISSUE_STREAM_SORT) {
+    if (sort !== IssueSortOptions.DATE) {
       params.sort = sort;
     }
 
@@ -699,6 +710,9 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
+    if (hasRecommendedSort) {
+      setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
+    }
     transitionTo({sort: newSort});
   };
 
