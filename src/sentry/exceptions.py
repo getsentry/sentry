@@ -62,7 +62,7 @@ class ApiTokenLimitError(Exception):
 
 class InvalidSearchQuery(Exception):
     def __init__(self, text, extra=None):
-        self.text = text
+        super().__init__(text)
         self.extra = extra
 
 
