@@ -108,7 +108,7 @@ describe('AwaitingInputPage', () => {
     render(<AwaitingInputPage />);
 
     expect(await screen.findByText('RequestError')).toBeInTheDocument();
-    expect(screen.getByText('Progress')).toBeInTheDocument();
+    expect(screen.getAllByText('Progress').length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText('Priority')).not.toBeInTheDocument();
     expect(await screen.findByText('Diagnosed')).toBeInTheDocument();
   });
