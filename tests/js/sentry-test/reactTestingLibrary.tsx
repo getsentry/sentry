@@ -122,8 +122,7 @@ interface InitialRouterOptions {
 function TopBarTestSlotOutlets() {
   return createPortal(
     <Fragment>
-      {/* The title slot renders as an <h1> in the real app (see topBar.tsx). */}
-      <TopBar.Slot.Outlet name="title">{p => <h1 {...p} />}</TopBar.Slot.Outlet>
+      <TopBar.Slot.Outlet name="title">{p => <div {...p} />}</TopBar.Slot.Outlet>
       <TopBar.Slot.Outlet name="search">{p => <div {...p} />}</TopBar.Slot.Outlet>
       <TopBar.Slot.Outlet name="actions">{p => <div {...p} />}</TopBar.Slot.Outlet>
       <TopBar.Slot.Outlet name="feedback">{p => <div {...p} />}</TopBar.Slot.Outlet>
