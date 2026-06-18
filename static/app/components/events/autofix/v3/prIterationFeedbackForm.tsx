@@ -5,6 +5,7 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {type useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -36,7 +37,7 @@ export function PrIterationFeedbackForm({
 
   const prompt = t('Anything else you want to see on your PR?');
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!feedback.trim()) {
       return;
     }
@@ -46,7 +47,13 @@ export function PrIterationFeedbackForm({
     // component unmounts and remounts fresh (resetting this flag) once the run
     // completes.
     setIsSubmitting(true);
-    startStep('pr_iteration', {runId, userContext: feedback});
+    try {
+      await startStep('pr_iteration', {runId, userContext: feedback});
+    } catch {
+      setIsSubmitting(false);
+      addErrorMessage(t('Failed to submit feedback. Please try again.'));
+      return;
+    }
     trackAnalytics('autofix.pr_iteration.feedback', {
       organization,
       group_id: groupId,

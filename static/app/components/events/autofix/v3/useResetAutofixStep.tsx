@@ -1,5 +1,8 @@
 import {useMemo, useState} from 'react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
+
 import {
   isRunValidForPrIteration,
   type AutofixExplorerStep,
@@ -25,11 +28,16 @@ export function useResetAutofixStep({
   const allowResetAfterPRs = isRunValidForPrIteration(runState);
 
   const handleReset = useMemo(() => {
-    return (userContext?: string) => {
+    return async (userContext?: string) => {
       // Dismiss the reset UI before kicking off the run so it doesn't reappear
       // once the run completes (during processing the loading view takes over).
       setShouldShowReset(false);
-      startStep(step, {runId, userContext, insertIndex: section.index});
+      try {
+        await startStep(step, {runId, userContext, insertIndex: section.index});
+      } catch {
+        setShouldShowReset(true);
+        addErrorMessage(t('Failed to reset. Please try again.'));
+      }
     };
   }, [startStep, step, runId, section.index]);
 
@@ -39,12 +47,14 @@ export function useResetAutofixStep({
       !shouldShowReset &&
       // can only reset if run state is not processing
       autofix.runState?.status !== 'processing' &&
-      // can only reset if PRs states are empty (i.e. no PR have been created)
-      (allowResetAfterPRs ||
-        Object.values(autofix.runState?.repo_pr_states ?? {}).length === 0) &&
+      // can only reset if PRs states are empty (i.e. no PR have been created),
+      // except on code_changes card where PR iteration is supported
+      (step === 'code_changes'
+        ? allowResetAfterPRs ||
+          Object.values(autofix.runState?.repo_pr_states ?? {}).length === 0
+        : Object.values(autofix.runState?.repo_pr_states ?? {}).length === 0) &&
       // can only reset if coding agents are empty (i.e. no coding agents have been started)
-      (allowResetAfterPRs ||
-        Object.values(autofix.runState?.coding_agents ?? {}).length === 0),
+      Object.values(autofix.runState?.coding_agents ?? {}).length === 0,
     shouldShowReset,
     setShouldShowReset,
     handleReset,

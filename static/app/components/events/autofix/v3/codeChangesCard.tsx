@@ -78,7 +78,7 @@ type DistributiveOmit<T, K extends keyof any> = T extends unknown ? Omit<T, K> :
 function parseFeedback(
   raw: string
 ): DistributiveOmit<IterationFeedback, 'iterationIndex'> | null {
-  const parsed = JSON.parse(raw);
+  const parsed: {text: string; timestamp?: string; source?: {type: string; user?: User; comment?: {user?: {login: string}; html_url?: string}}} = JSON.parse(raw);
   const base = {text: parsed.text, timestamp: parsed.timestamp};
   switch (parsed.source?.type) {
     case 'user-ui':
@@ -367,7 +367,7 @@ function FeedbackAttribution({item}: {item: IterationFeedback}) {
         </Tooltip>
       );
     case 'user-ui':
-      return item.user ? <UserAvatar size={16} user={item.user} /> : null;
+      return item.user ? <UserAvatar size={16} user={item.user} hasTooltip /> : null;
     default:
       return null;
   }
