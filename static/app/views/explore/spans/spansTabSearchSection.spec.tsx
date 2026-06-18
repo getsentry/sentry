@@ -52,6 +52,18 @@ describe('SpanTabSearchSection', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/validate/',
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: [],
+        valid: true,
+      },
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/seer/setup-check/',
       body: {},
     });
