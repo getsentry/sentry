@@ -748,8 +748,8 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
         project_ctx.total_substatus_count += item["total"]
 
 
-_PAST_ISSUES_CANDIDATE_LIMIT = 50
-_PAST_ISSUES_LINK_BOOST = 2
+PAST_ISSUES_CANDIDATE_LIMIT = 50
+PAST_ISSUES_LINK_BOOST = 2
 
 
 def project_past_resolved_issues(
@@ -765,7 +765,7 @@ def project_past_resolved_issues(
                 status=GroupStatus.RESOLVED,
                 resolved_at__gte=ctx.start,
                 resolved_at__lt=ctx.end + timedelta(days=1),
-            ).order_by("-times_seen")[:_PAST_ISSUES_CANDIDATE_LIMIT]
+            ).order_by("-times_seen")[:PAST_ISSUES_CANDIDATE_LIMIT]
         )
 
         if not candidates:
@@ -853,7 +853,6 @@ def _past_resolved_error_counts(
                 Op.EQ,
                 GroupStatus.RESOLVED,
             ),
-            Condition(Column("level", entity=events_entity), Op.EQ, "error"),
         ],
         groupby=[Column("group_id", entity=events_entity)],
         orderby=[OrderBy(Function("count", []), Direction.DESC)],
@@ -926,7 +925,7 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
     # Re-sort with link boost applied, then truncate to top 3
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.past_resolved_issues.sort(
-            key=lambda x: x[1] * (_PAST_ISSUES_LINK_BOOST if x[2] else 1),
+            key=lambda x: x[1] * (PAST_ISSUES_LINK_BOOST if x[2] else 1),
             reverse=True,
         )
         project_ctx.past_resolved_issues = project_ctx.past_resolved_issues[:3]

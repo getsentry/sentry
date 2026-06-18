@@ -36,7 +36,7 @@ from sentry.tasks.summaries.metrics import (
 from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
-from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
+from sentry.tasks.summaries.utils import ONE_DAY, PAST_ISSUES_LINK_BOOST, OrganizationReportContext
 from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
@@ -781,8 +781,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
 
     def past_issues():
-        from sentry.tasks.summaries.utils import _PAST_ISSUES_LINK_BOOST
-
         def all_past_issues():
             for project_ctx in user_projects:
                 for group, count, has_linked_pr_or_commit in project_ctx.past_resolved_issues:
@@ -794,7 +792,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                         "message": display["message"],
                         "has_linked_pr_or_commit": has_linked_pr_or_commit,
                         "_relevance": count
-                        * (_PAST_ISSUES_LINK_BOOST if has_linked_pr_or_commit else 1),
+                        * (PAST_ISSUES_LINK_BOOST if has_linked_pr_or_commit else 1),
                     }
 
         return heapq.nlargest(3, all_past_issues(), lambda d: d["_relevance"])
