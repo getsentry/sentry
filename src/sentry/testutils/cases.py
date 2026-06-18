@@ -467,7 +467,7 @@ class TestCase(BaseTestCase, DjangoTestCase):
                             # TODO: Can we infer the correct region here?  would need to package up the
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
-                            cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+                            cell = get_cell_by_name(settings.SENTRY_FALLBACK_CELL)
                         with (
                             SingleProcessSiloModeState.exit(),
                             SingleProcessSiloModeState.enter(mode, cell),

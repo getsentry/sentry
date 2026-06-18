@@ -26,7 +26,12 @@ export default function AwaitingInputPage() {
     <IssueListContainer title={TITLE}>
       <PageFiltersContainer>
         <NoProjectMessage organization={organization}>
-          <IssueListOverview initialQuery={QUERY} title={TITLE} withColumns={COLUMNS} />
+          <IssueListOverview
+            initialQuery={QUERY}
+            title={TITLE}
+            withColumns={COLUMNS}
+            clickBehavior="preview"
+          />
         </NoProjectMessage>
       </PageFiltersContainer>
     </IssueListContainer>

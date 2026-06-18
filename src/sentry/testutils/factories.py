@@ -163,7 +163,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -209,6 +209,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from social_auth.models import UserSocialAuth
 
@@ -2448,6 +2449,27 @@ class Factories:
             type = Action.Type.SLACK
 
         return Action.objects.create(type=type, config=config, data=data, **kwargs)
+
+    @staticmethod
+    def create_action_invocation(
+        event: GroupEvent | Activity,
+        group: Group,
+        action: Action,
+        detector: Detector,
+        workflow_id: int | None = None,
+        notification_uuid: str | None = None,
+        **kwargs,
+    ) -> ActionInvocation:
+        import uuid
+
+        return ActionInvocation(
+            event_data=WorkflowEventData(event=event, group=group),
+            action=action,
+            detector=detector,
+            notification_uuid=notification_uuid or str(uuid.uuid4()),
+            workflow_id=workflow_id or 0,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

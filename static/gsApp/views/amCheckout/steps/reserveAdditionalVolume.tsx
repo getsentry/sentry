@@ -9,7 +9,7 @@ import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 
-import {isDeveloperPlan, isTrialPlan} from 'getsentry/utils/billing';
+import {isDeveloperPlan} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {VolumeSliders} from 'getsentry/views/amCheckout/components/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
@@ -27,7 +27,7 @@ export function ReserveAdditionalVolume({
 >) {
   // if the customer has any reserved volume above platform already, auto-show the sliders
   const [showSliders, setShowSliders] = useState(
-    isDeveloperPlan(subscription.planDetails) || isTrialPlan(subscription.plan)
+    isDeveloperPlan(subscription.planDetails) || subscription.onTrialPlan
       ? false
       : Object.values(subscription.categories ?? {})
           .filter(

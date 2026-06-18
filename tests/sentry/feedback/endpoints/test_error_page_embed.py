@@ -432,7 +432,7 @@ class ErrorEmbedCellResolverTest(ApiGatewayTestCase):
         assert self._resolve(dsn) == ApiGatewayTestCase.CELL
 
     def test_resolver_falls_back_to_monolith_region(self) -> None:
-        monolith_cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+        monolith_cell = get_cell_by_name(settings.SENTRY_FALLBACK_CELL)
 
         # Bare app host with no cell/ingest segments.
         bare_dsn = f"https://{self.primary_key.public_key}@{self.app_host}/1"
