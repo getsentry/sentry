@@ -115,10 +115,18 @@ class AgentPrStateRequest(TypedDict):
 
 
 class SeerFeatureRunRequest(TypedDict):
+    """The feature-run body as enqueued onto the SEER_RUN_CREATE outbox."""
+
     feature_id: str
     ref: str
     payload: dict[str, Any]
-    external_idempotency_key: NotRequired[str]
+
+
+class SeerFeatureRunWireRequest(SeerFeatureRunRequest):
+    """As sent to Seer: the outbox handler stamps the SeerRun uuid as the
+    idempotency key so redelivery is deduped."""
+
+    external_idempotency_key: str
 
 
 class AgentReposRequest(TypedDict):
@@ -205,7 +213,7 @@ def make_agent_state_pr_request(
 
 
 def make_feature_run_request(
-    body: SeerFeatureRunRequest,
+    body: SeerFeatureRunWireRequest,
     connection_pool: HTTPConnectionPool | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:

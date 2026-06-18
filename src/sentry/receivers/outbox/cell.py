@@ -34,7 +34,7 @@ from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.seer.agent.client import _trigger_explorer_indexes_if_needed
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
-    SeerFeatureRunRequest,
+    SeerFeatureRunWireRequest,
     make_agent_chat_request,
     make_feature_run_request,
 )
@@ -254,7 +254,7 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
             )
         case SeerRunType.FEATURE_RUN:
             response = make_feature_run_request(
-                cast(SeerFeatureRunRequest, body), viewer_context=viewer_context
+                cast(SeerFeatureRunWireRequest, body), viewer_context=viewer_context
             )
         case unknown:
             assert_never(unknown)
