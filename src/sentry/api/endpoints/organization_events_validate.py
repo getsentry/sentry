@@ -234,16 +234,29 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
         query_attributes_to_lookup: dict[AttributeKey.Type.ValueType, list[ResolvedAttribute]] = {}
         query_columns = []
         try:
-            # While resolve_query also runs parse_search_query, we don't need the resolved_query just want to dry-run it
-            # to get any errors
-            resolver.resolve_query(query_string)
-            parsed_terms = resolver.parse_search_query(query_string)
+            try:
+                parsed_terms = resolver.parse_search_query(query_string)
+            except InvalidSearchQuery as err:
+                # If we fail to parse, try again but truncate the query to hopefully get some terms
+                if err.extra is not None:
+                    try:
+                        parsed_terms = resolver.parse_search_query(
+                            query_string[: err.extra.get("idx", 0) - 1]
+                        )
+                    except InvalidSearchQuery:
+                        # If we fail again don't bubble the error up
+                        parsed_terms = []
+                else:
+                    parsed_terms = []
             query_columns = resolver.collect_terms(parsed_terms)
             query_validity, query_attributes_to_lookup, valid = self.validate_columns(
                 query_columns, resolver
             )
             if not valid:
                 response.valid = valid
+            # While resolve_query also runs parse_search_query, we don't need the resolved_query just want to dry-run it
+            # to get any errors
+            resolver.resolve_query(query_string)
         except InvalidSearchQuery as error:
             response.valid = False
             response.query.append(Validation(error=str(error), valid=False))

@@ -2022,7 +2022,8 @@ def parse_search_query(
             "{} {}".format(
                 f"Parse error at '{prefix}{suffix}' (column {e.column():d}).",
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
-            )
+            ),
+            extra={"idx": idx},
         )
 
     return SearchVisitor(

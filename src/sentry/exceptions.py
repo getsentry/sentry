@@ -61,7 +61,9 @@ class ApiTokenLimitError(Exception):
 
 
 class InvalidSearchQuery(Exception):
-    pass
+    def __init__(self, text, extra=None):
+        self.text = text
+        self.extra = extra
 
 
 class IncompatibleMetricsQuery(Exception):

@@ -327,14 +327,35 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
                 "project": [self.project.id],
                 "dataset": "spans",
                 "field": ["span.duration"],
-                "query": "Thing AND",
+                "query": "project:foo AND",
             }
         )
 
         assert response.status_code == 400, response.content
         assert not response.data["valid"]
         assert response.data["query"] == [
-            {"valid": False, "error": "Condition is missing on the right side of 'AND' operator"}
+            {"valid": False, "error": "Condition is missing on the right side of 'AND' operator"},
+            {"attrType": "string", "error": None, "name": "project", "valid": True},
+        ]
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["span.duration"],
+                "query": "project:foo AND p90(hello",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["query"] == [
+            {
+                "valid": False,
+                "error": "Parse error at ' p90(hello' (column 20). This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
+            },
+            {"attrType": "string", "error": None, "name": "project", "valid": True},
+            {"attrType": "string", "error": None, "name": "message", "valid": True},
         ]
 
         response = self.do_request(
