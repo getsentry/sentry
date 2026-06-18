@@ -132,7 +132,8 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
     @extend_schema(
-        operation_id="Retrieve Snapshot image detail",
+        operation_id="getOrganizationPreprodArtifactSnapshotImage",
+        summary="Retrieve Snapshot image detail",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
