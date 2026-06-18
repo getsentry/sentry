@@ -9,7 +9,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_conventions.attributes import ATTRIBUTE_METADATA
+from sentry_conventions.attributes import ATTRIBUTE_METADATA, AttributeMetadata, AttributeType
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
@@ -24,6 +24,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AndFilter,
     ExistsFilter,
     OrFilter,
     TraceItemFilter,
@@ -187,6 +188,23 @@ SEARCH_QUERY_PARAM = OpenApiParameter(
     description="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter trace items before computing attributes.",
 )
 
+CONTEXT_SEARCH_QUERY_PARAM = OpenApiParameter(
+    name="contextSearch",
+    location="query",
+    required=False,
+    type=str,
+    # Internal-only for now: gated behind the data-browsing-attribute-context
+    # feature, so exclude it from the public OpenAPI spec.
+    exclude=True,
+    description=(
+        "Restrict results to attributes whose name contains this string, or "
+        "whose sentry-conventions description (brief / additional context) "
+        "matches it (case-insensitive). Only attributes present in storage are "
+        "returned. Useful for finding attributes by meaning, e.g. "
+        "`contextSearch=status code`. Cannot be combined with `substringMatch`."
+    ),
+)
+
 EXPAND_QUERY_PARAM = OpenApiParameter(
     name="expand",
     location="query",
@@ -239,12 +257,17 @@ class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
         source="attribute_type",
     )
     substringMatch = serializers.CharField(required=False, source="substring_match")
+    contextSearch = serializers.CharField(required=False, source="context_search")
     query = serializers.CharField(required=False)
     expand = serializers.MultipleChoiceField(choices=["context"], required=False)
 
     def validate(self, attrs: Any) -> Any:
         if attrs.get("item_type") is None and attrs.get("dataset") is None:
             raise serializers.ValidationError("dataset is required if itemType is not passed")
+        if attrs.get("substring_match") and attrs.get("context_search"):
+            raise serializers.ValidationError(
+                "substringMatch and contextSearch cannot be used together"
+            )
         return attrs
 
 
@@ -345,6 +368,39 @@ def build_sentry_convention_context(
     return context
 
 
+# Convention `type` values that map onto each public api attribute type. Arrays
+# and `any` aren't exposed as filterable attribute types, so conventions with
+# those types can't be matched against storage.
+CONVENTION_TYPE_TO_ATTRIBUTE_TYPE: dict[AttributeType, Literal["string", "number", "boolean"]] = {
+    AttributeType.STRING: "string",
+    AttributeType.BOOLEAN: "boolean",
+    AttributeType.INTEGER: "number",
+    AttributeType.DOUBLE: "number",
+}
+
+
+def convention_description_matches(metadata: AttributeMetadata, search_term: str) -> bool:
+    """
+    Whether a sentry convention's description contains ``search_term`` (already
+    lower-cased). Searches the ``brief`` summary and the longer
+    ``additional_context`` notes.
+    """
+    if metadata.brief and search_term in metadata.brief.lower():
+        return True
+
+    additional_context = metadata.additional_context
+    if not additional_context:
+        return False
+    # Normalize the same way build_sentry_convention_context does, in case a
+    # convention stores additional_context as a single string rather than a list.
+    details = (
+        additional_context
+        if isinstance(additional_context, (list, tuple))
+        else [additional_context]
+    )
+    return any(search_term in str(detail).lower() for detail in details)
+
+
 def as_attribute_key(
     name: str,
     attr_type: Literal["string", "number", "boolean"],
@@ -438,6 +494,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             ITEM_TYPE_QUERY_PARAM,
             ATTRIBUTE_TYPE_QUERY_PARAM,
             SUBSTRING_MATCH_QUERY_PARAM,
+            CONTEXT_SEARCH_QUERY_PARAM,
             SEARCH_QUERY_PARAM,
             EXPAND_QUERY_PARAM,
             CursorQueryParam,
@@ -476,6 +533,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
         serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
+        context_search = serialized.get("context_search", "")
         query_string = serialized.get("query")
         attribute_types = serialized.get("attribute_type")
         # When not passed the user wants all types
@@ -513,14 +571,42 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         debug = request.user.is_superuser and request.GET.get("debug", False)
         debug_infos: list[dict] = []
 
-        # Only expand the sentry conventions context when explicitly requested
-        # via `expand=context` and the feature is enabled for the org. When the
-        # feature is disabled this is a no-op even if `expand=context` is passed.
-        include_context = "context" in serialized.get("expand", set()) and features.has(
+        # The sentry conventions context (descriptions etc.) is gated behind the
+        # data-browsing-attribute-context feature. Both expanding it into the
+        # response (`expand=context`) and searching against it (`contextSearch`)
+        # are no-ops when the feature is disabled, matching how the rest of the
+        # endpoint treats this metadata.
+        has_attribute_context = features.has(
             "organizations:data-browsing-attribute-context",
             organization,
             actor=request.user,
         )
+        include_context = "context" in serialized.get("expand", set()) and has_attribute_context
+        if not has_attribute_context:
+            context_search = ""
+
+        # contextSearch matches two datasources (see the issue): attribute names
+        # and attribute descriptions. Name matching reuses the substring path so
+        # it stays server-side and paginated; the description half is resolved
+        # separately below against the sentry conventions.
+        name_substring = context_search or substring_match
+
+        # Description matching only covers sentry conventions, so we match the
+        # (finite) conventions metadata in memory and then confirm which of those
+        # attributes actually exist in storage. This is a small, bounded set, so
+        # we compute it once and merge it onto the first page of name matches.
+        description_attributes: list[TraceItemAttributeKey] = []
+        if context_search:
+            with handle_query_errors():
+                description_attributes = self.query_description_attributes(
+                    context_search,
+                    resolver,
+                    trace_item_type,
+                    attribute_types,
+                    include_internal,
+                    include_context,
+                    query_filter=query_filter,
+                )
 
         def data_fn(offset: int, limit: int) -> list[TraceItemAttributeKey]:
             futures = []
@@ -536,7 +622,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             limit,
                             meta,
                             query_filter,
-                            substring_match,
+                            name_substring,
                             attribute_type,
                             column_definitions,
                             trace_item_type,
@@ -551,6 +637,16 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 attributes.extend(result_attributes)
                 if result_debug_info is not None:
                     debug_infos.append(result_debug_info)
+
+            # Merge in the description matches on the first page only, so they
+            # aren't duplicated across pages. Name matches take precedence.
+            if description_attributes and offset == 0:
+                seen = {attribute["key"] for attribute in attributes}
+                attributes.extend(
+                    attribute
+                    for attribute in description_attributes
+                    if attribute["key"] not in seen
+                )
             return attributes
 
         response = self.paginate(
@@ -748,6 +844,87 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         sentry_sdk.set_context("api_response", {"attributes": attributes})
         sentry_sdk.set_attribute("api_response.attributes", str(attributes))
         return attributes
+
+    def query_description_attributes(
+        self,
+        context_search: str,
+        resolver: SearchResolver,
+        trace_item_type: SupportedTraceItemType,
+        attribute_types: list[str],
+        include_internal: bool,
+        include_context: bool,
+        query_filter: TraceItemFilter | None = None,
+    ) -> list[TraceItemAttributeKey]:
+        """
+        Find attributes whose sentry-conventions description matches
+        ``context_search`` and that actually exist in the org's storage.
+
+        The conventions metadata is a finite static set, so we match descriptions
+        in memory to get candidate attributes, then issue a single storage check
+        per attribute type to keep only the ones that exist. Only sentry-sourced
+        attributes are returned -- a user tag whose name happens to collide with a
+        convention has no real description, so it isn't matched here (it can still
+        match by name via the substring path).
+        """
+        search_term = context_search.lower()
+        requested_types = set(attribute_types)
+
+        # 1. Match convention descriptions, mapping each to its public api type.
+        candidate_types: dict[str, Literal["string", "number", "boolean"]] = {}
+        for public_name, metadata in ATTRIBUTE_METADATA.items():
+            attribute_type = CONVENTION_TYPE_TO_ATTRIBUTE_TYPE.get(metadata.type)
+            if attribute_type is None or attribute_type not in requested_types:
+                continue
+            if convention_description_matches(metadata, search_term):
+                candidate_types[public_name] = attribute_type
+        if not candidate_types:
+            return []
+
+        # 2. Resolve candidates to internal storage names, grouped by proto type.
+        attrs_by_type: dict[AttributeKey.Type.ValueType, list[str]] = {}
+        attribute_type_by_internal: dict[
+            tuple[AttributeKey.Type.ValueType, str], Literal["string", "number", "boolean"]
+        ] = {}
+        for public_name, attribute_type in candidate_types.items():
+            try:
+                resolved, _context = resolver.resolve_attribute(public_name)
+            except InvalidSearchQuery:
+                continue
+            proto_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP[attribute_type]
+            attrs_by_type.setdefault(proto_type, []).append(resolved.internal_name)
+            attribute_type_by_internal[(proto_type, resolved.internal_name)] = attribute_type
+
+        # 3. Keep only the candidates that exist in storage (respecting the
+        #    search query filter, if any, like the name-matching path does).
+        existing = _check_attributes_exist(
+            resolver, trace_item_type, attrs_by_type, query_filter=query_filter
+        )
+
+        # 4. Build response keys, dropping anything that isn't exposable or whose
+        #    stored attribute isn't sentry-sourced (a user-tag name collision).
+        attribute_keys: dict[str, TraceItemAttributeKey] = {}
+        for proto_type, internal_name in existing:
+            attribute_type = attribute_type_by_internal[(proto_type, internal_name)]
+            if not can_expose_attribute_to_api(
+                internal_name, trace_item_type, include_internal=include_internal
+            ):
+                continue
+            attr_key = as_attribute_key(
+                internal_name,
+                attribute_type,
+                trace_item_type,
+                include_context=include_context,
+            )
+            if (
+                attr_key["attributeSource"]["source_type"] != AttributeSourceType.SENTRY.value
+                or is_sentry_convention_replacement_attribute(attr_key["name"], trace_item_type)
+                or not can_expose_trace_item_attribute_to_api(
+                    attr_key, trace_item_type, include_internal=include_internal
+                )
+            ):
+                continue
+            attribute_keys[attr_key["key"]] = attr_key
+        return list(attribute_keys.values())
 
 
 @cell_silo_endpoint
@@ -1143,26 +1320,36 @@ def _check_attributes_by_type(
     meta: RequestMeta,
     attr_type: AttributeKey.Type.ValueType,
     names: list[str],
+    query_filter: TraceItemFilter | None = None,
 ) -> set[tuple[AttributeKey.Type.ValueType, str]]:
     """Check which typed attribute names exist in storage for the active window."""
     if not names:
         return set()
 
     requested_names = set(names)
+    exists_filter = TraceItemFilter(
+        or_filter=OrFilter(
+            filters=[
+                TraceItemFilter(
+                    exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=name))
+                )
+                for name in requested_names
+            ]
+        )
+    )
+    # When a search query is supplied we only consider attributes present on the
+    # matching trace items, so the existence check stays consistent with the
+    # name-matching path (which applies the same filter at the RPC).
+    intersecting_filter = (
+        TraceItemFilter(and_filter=AndFilter(filters=[query_filter, exists_filter]))
+        if query_filter is not None
+        else exists_filter
+    )
     names_request = TraceItemAttributeNamesRequest(
         meta=meta,
         limit=10000,
         type=attr_type,
-        intersecting_attributes_filter=TraceItemFilter(
-            or_filter=OrFilter(
-                filters=[
-                    TraceItemFilter(
-                        exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=name))
-                    )
-                    for name in requested_names
-                ]
-            )
-        ),
+        intersecting_attributes_filter=intersecting_filter,
     )
     names_response = snuba_rpc.attribute_names_rpc(names_request)
     return {
@@ -1180,6 +1367,7 @@ def _check_attributes_exist(
     resolver: SearchResolver,
     item_type: SupportedTraceItemType,
     attrs_by_type: dict[AttributeKey.Type.ValueType, list[str]],
+    query_filter: TraceItemFilter | None = None,
 ) -> set[tuple[AttributeKey.Type.ValueType, str]]:
     """Check which typed attribute internal names exist in storage."""
     if not attrs_by_type:
@@ -1196,7 +1384,7 @@ def _check_attributes_exist(
         max_workers=MAX_ATTRIBUTE_VALIDATION_THREADS,
     ) as pool:
         futures = [
-            pool.submit(_check_attributes_by_type, meta, attr_type, names)
+            pool.submit(_check_attributes_by_type, meta, attr_type, names, query_filter)
             for attr_type, names in attrs_by_type.items()
         ]
         for future in futures:

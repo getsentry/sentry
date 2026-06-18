@@ -6,9 +6,17 @@ import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from sentry_conventions.attributes import ATTRIBUTE_METADATA
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesResponse,
+)
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, TraceItemFilter
 
-from sentry.api.endpoints.organization_trace_item_attributes import build_sentry_convention_context
+from sentry.api.endpoints.organization_trace_item_attributes import (
+    _check_attributes_by_type,
+    build_sentry_convention_context,
+)
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeKey,
 )
@@ -56,6 +64,51 @@ class TestBuildAttributeContext:
 
     def test_unknown_attribute_returns_none(self) -> None:
         assert build_sentry_convention_context("not.a.convention", "also.not.a.convention") is None
+
+
+class TestCheckAttributesByType:
+    """The storage existence check underpinning contextSearch description matches."""
+
+    def _capture_request(self):
+        captured: dict = {}
+
+        def fake_rpc(request, *args, **kwargs):
+            captured["request"] = request
+            return TraceItemAttributeNamesResponse()
+
+        return captured, fake_rpc
+
+    def test_without_query_filter_uses_exists_or_filter(self) -> None:
+        captured, fake_rpc = self._capture_request()
+        with mock.patch(
+            "sentry.api.endpoints.organization_trace_item_attributes.snuba_rpc.attribute_names_rpc",
+            side_effect=fake_rpc,
+        ):
+            _check_attributes_by_type(RequestMeta(), AttributeKey.Type.TYPE_STRING, ["a", "b"])
+
+        intersecting = captured["request"].intersecting_attributes_filter
+        assert intersecting.WhichOneof("value") == "or_filter"
+
+    def test_query_filter_is_anded_with_existence(self) -> None:
+        captured, fake_rpc = self._capture_request()
+        query_filter = TraceItemFilter(
+            exists_filter=ExistsFilter(
+                key=AttributeKey(type=AttributeKey.Type.TYPE_STRING, name="foo")
+            )
+        )
+        with mock.patch(
+            "sentry.api.endpoints.organization_trace_item_attributes.snuba_rpc.attribute_names_rpc",
+            side_effect=fake_rpc,
+        ):
+            _check_attributes_by_type(
+                RequestMeta(), AttributeKey.Type.TYPE_STRING, ["a"], query_filter
+            )
+
+        # The query filter must be ANDed with the existence check so description
+        # matches only count attributes on items matching the search query.
+        intersecting = captured["request"].intersecting_attributes_filter
+        assert intersecting.WhichOneof("value") == "and_filter"
+        assert query_filter in intersecting.and_filter.filters
 
 
 class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase):
@@ -564,6 +617,138 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         )
         assert response.status_code == 200, response.data
         assert all("context" not in item for item in response.data)
+
+    def _store_segment_with_environment(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            environment="prod",
+            duration=100,
+            exclusive_time=100,
+            tags={"foo": "foo", "checkout_id": "abc"},
+        )
+
+    def test_context_search_matches_description(self) -> None:
+        self._store_segment_with_environment()
+
+        # `environment`'s convention brief is "The sentry environment.", so it
+        # matches even though its name doesn't contain "sentry environment". It's
+        # a sentry attribute that exists in storage (we stored a segment with it).
+        response = self.do_request(
+            query={"contextSearch": "sentry environment"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+        keys = {item["key"] for item in response.data}
+        assert "environment" in keys
+        # User tags have no convention description and don't match by name.
+        assert "foo" not in keys
+        assert "checkout_id" not in keys
+
+    def test_context_search_requires_attribute_in_storage(self) -> None:
+        self._store_segment_with_environment()
+
+        # `device.class`'s brief contains "classification", but no device data was
+        # stored, so a description match must NOT surface it...
+        response = self.do_request(
+            query={"contextSearch": "classification"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert "device.class" not in {item["key"] for item in response.data}
+
+        # ...even though it's otherwise an available column (substring lists it).
+        response = self.do_request(query={"substringMatch": "device.class"})
+        assert "device.class" in {item["key"] for item in response.data}
+
+    def test_context_search_is_case_insensitive(self) -> None:
+        self._store_segment_with_environment()
+
+        response = self.do_request(
+            query={"contextSearch": "SENTRY ENVIRONMENT"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert "environment" in {item["key"] for item in response.data}
+
+    def test_context_search_matches_name(self) -> None:
+        self._store_segment_with_environment()
+
+        # `checkout_id` is a user attribute with no convention description; it can
+        # still be found by name via the substring datasource.
+        response = self.do_request(
+            query={"attributeType": "string", "contextSearch": "checkout"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+        keys = {item["key"] for item in response.data}
+        assert "checkout_id" in keys
+        assert "foo" not in keys
+
+    def test_context_search_ignores_user_tag_name_collision(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            duration=100,
+            exclusive_time=100,
+            # `gen_ai.request.model` is a convention name, but here it's a user
+            # tag (user source), so its description must not be searched.
+            # "identifier" appears in the convention brief but not the name.
+            tags={"gen_ai.request.model": "gpt-4"},
+        )
+
+        response = self.do_request(
+            query={"contextSearch": "identifier"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert "gen_ai.request.model" not in {item["key"] for item in response.data}
+
+    def test_context_search_no_op_without_feature_flag(self) -> None:
+        self._store_segment_with_environment()
+
+        # Without the gating feature, contextSearch is ignored and all
+        # attributes are returned (including ones that wouldn't match).
+        response = self.do_request(
+            query={"attributeType": "string", "contextSearch": "sentry environment"},
+        )
+        assert response.status_code == 200, response.data
+        assert "foo" in {item["key"] for item in response.data}
+
+    def test_context_search_and_substring_match_are_mutually_exclusive(self) -> None:
+        response = self.do_request(
+            query={"substringMatch": "device", "contextSearch": "classification"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 400, response.data
 
     def test_tags_list_str(self) -> None:
         for tag in ["foo", "bar", "baz"]:
