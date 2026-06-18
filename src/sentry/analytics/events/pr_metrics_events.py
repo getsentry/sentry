@@ -67,8 +67,9 @@ class PrCloseMetricsEvent(analytics.Event):
     # null off the judge path and BigQuery-only. Enum-like values are free strings
     # so a Seer vocabulary change can't break the schema.
     #
-    # positive | neutral | negative | mixed. Null when the judge was skipped (no
-    # comments), so there's no separate ``analyzed`` flag.
+    # positive | neutral | negative | mixed. Null when there was nothing to judge
+    # (no comments) or the judge couldn't run; conversation_comments_total
+    # disambiguates (0 = no comments, >0 = judge ran but produced no sentiment).
     conversation_sentiment: str | None = None
     # Comments split by author class — "did bots/humans comment?"
     conversation_comments_bot: int | None = None

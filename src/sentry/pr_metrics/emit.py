@@ -58,8 +58,8 @@ class PrConversationAnalysis(BaseModel):
     and the graceful-drop behavior (it'd drop the whole analysis on any new field).
     """
 
-    # positive | neutral | negative | mixed. Null when the judge was skipped (no
-    # comments), so there's no separate ``analyzed`` flag.
+    # positive | neutral | negative | mixed. Null when there was nothing to judge
+    # (no comments) or the judge couldn't run; comments_total disambiguates.
     sentiment: str | None = None
     # Comments split by author class.
     comments_bot: int | None = None
