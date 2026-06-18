@@ -6,6 +6,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 import sentry_sdk
+from sentry_sdk.traces import StreamedSpan
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
@@ -25,6 +26,7 @@ from sentry.models.project import Project
 from sentry.types.activity import ActivityType
 from sentry.types.group import IGNORED_SUBSTATUS_CHOICES, GroupSubStatus
 from sentry.utils import metrics
+from sentry.utils.tracing import set_span_tag
 
 logger = logging.getLogger(__name__)
 
@@ -224,7 +226,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def process_status_change_message(
-    message: Mapping[str, Any], txn: Transaction | NoOpSpan | Span
+    message: Mapping[str, Any], span: Transaction | NoOpSpan | Span | StreamedSpan
 ) -> Group | None:
     with metrics.timer("occurrence_consumer._process_message.status_change._get_kwargs"):
         kwargs = _get_status_change_kwargs(message)
@@ -235,15 +237,15 @@ def process_status_change_message(
         sample_rate=1.0,
         tags={"new_status": status_change_data["new_status"]},
     )
-    txn.set_tag("new_status", status_change_data["new_status"])
+    set_span_tag(span, "new_status", status_change_data["new_status"])
 
     project = Project.objects.get_from_cache(id=status_change_data["project_id"])
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
-    txn.set_tag("organization_id", organization.id)
-    txn.set_tag("organization_slug", organization.slug)
-    txn.set_tag("project_id", project.id)
-    txn.set_tag("project_slug", project.slug)
+    set_span_tag(span, "organization_id", organization.id)
+    set_span_tag(span, "organization_slug", organization.slug)
+    set_span_tag(span, "project_id", project.id)
+    set_span_tag(span, "project_slug", project.slug)
 
     with metrics.timer("occurrence_consumer._process_message.status_change.get_group"):
         fingerprint = status_change_data["fingerprint"]
@@ -262,7 +264,7 @@ def process_status_change_message(
                 sample_rate=1.0,
             )
             return None
-        txn.set_tag("group_id", group.id)
+        set_span_tag(span, "group_id", group.id)
 
     sentry_sdk.set_tag("group_type", group.issue_type.slug)
     sentry_sdk.set_attribute("group_type", group.issue_type.slug)

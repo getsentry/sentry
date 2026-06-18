@@ -4,7 +4,6 @@ import hashlib
 from collections import defaultdict
 from typing import Any
 
-import sentry_sdk
 from symbolic.proguard import ProguardMapper
 
 from sentry.issues.grouptype import (
@@ -16,6 +15,7 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
+from sentry.utils.tracing import start_span
 
 from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
@@ -137,7 +137,9 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
             for image in images:
                 if image.get("type") == "proguard":
-                    with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
+                    with start_span(
+                        op="proguard.fetch_debug_files", name="proguard.fetch_debug_files"
+                    ):
                         uuid = image.get("uuid")
                         dif_paths = ProjectDebugFile.difcache.fetch_difs(
                             project, [uuid], features=["mapping"]
