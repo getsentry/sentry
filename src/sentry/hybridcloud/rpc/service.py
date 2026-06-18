@@ -37,6 +37,7 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
+from sentry.utils.tracing import start_span
 from sentry.viewer_context import get_viewer_context
 
 if TYPE_CHECKING:
@@ -659,7 +660,7 @@ class _RemoteSiloCall:
     @contextmanager
     def _open_request_context(self) -> Generator[None]:
         timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
-        span = sentry_sdk.start_span(
+        span = start_span(
             op="hybrid_cloud.dispatch_rpc",
             name=f"rpc to {self.service_name}.{self.method_name}",
         )
