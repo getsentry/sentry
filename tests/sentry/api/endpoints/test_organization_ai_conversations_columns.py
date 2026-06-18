@@ -102,9 +102,9 @@ class OrganizationAIConversationsColumnsEndpointTest(BaseAIConversationsTestCase
         assert row["toolCalls"] == 1
         assert row["totalCost"] == LLM_COST
         assert row["errors"] == 0
-        assert row["modelsUsed"] == ["gpt-4o"]
         assert row["user"]["email"] == "user@example.com"
         # Enrichment / IO fields are not requested by default.
+        assert "modelsUsed" not in row
         assert "toolNames" not in row
         assert "firstInput" not in row
 
@@ -211,31 +211,39 @@ class OrganizationAIConversationsColumnsEndpointTest(BaseAIConversationsTestCase
         assert row["endTimestamp"] >= row["startTimestamp"]
         assert row["duration"] == row["endTimestamp"] - row["startTimestamp"]
 
-    def test_sort_by_aggregate(self) -> None:
+    def test_models_used_returns_all_distinct_models(self) -> None:
         now = before_now(days=15).replace(microsecond=0)
-        low = uuid4().hex
-        high = uuid4().hex
-        # low: 1 llm call, high: 3 llm calls
-        self._store_basic_conversation(low, now)
-        for i in range(3):
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+        for i, model in enumerate(["gpt-4o", "gpt-4o-mini", "gpt-4o"]):
             self.store_ai_span(
-                conversation_id=high,
+                conversation_id=conversation_id,
                 timestamp=now - timedelta(seconds=3 - i),
                 op="gen_ai.chat",
                 operation_type="ai_client",
                 tokens=LLM_TOKENS,
+                model=model,
+                trace_id=trace_id,
                 messages=[{"role": "user", "content": "hi"}],
                 response_text="ok",
             )
 
-        query = {
-            **self._time_window(now),
-            "field": [CONVERSATION_ID, LLM_CALLS],
-            "sort": f"-{LLM_CALLS}",
-        }
+        query = {**self._time_window(now), "field": [CONVERSATION_ID, "modelsUsed"]}
         response = self.do_request(query)
         assert response.status_code == 200, response.data
-        assert [r[CONVERSATION_ID] for r in response.data] == [high, low]
+        assert response.data[0]["modelsUsed"] == ["gpt-4o", "gpt-4o-mini"]
+
+    def test_default_sort_is_most_recent_last_message(self) -> None:
+        now = before_now(days=23).replace(microsecond=0)
+        older = uuid4().hex
+        newer = uuid4().hex
+        self._store_basic_conversation(older, now - timedelta(minutes=10))
+        self._store_basic_conversation(newer, now)
+
+        query = {**self._time_window(now), "field": [CONVERSATION_ID]}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert [r[CONVERSATION_ID] for r in response.data] == [newer, older]
 
     def test_aggregate_filter(self) -> None:
         now = before_now(days=16).replace(microsecond=0)
@@ -290,12 +298,6 @@ class OrganizationAIConversationsColumnsEndpointTest(BaseAIConversationsTestCase
     def test_invalid_field_returns_400(self) -> None:
         now = before_now(days=18).replace(microsecond=0)
         query = {**self._time_window(now), "field": ["bogus"]}
-        response = self.do_request(query)
-        assert response.status_code == 400
-
-    def test_invalid_sort_returns_400(self) -> None:
-        now = before_now(days=19).replace(microsecond=0)
-        query = {**self._time_window(now), "sort": "conversationId"}
         response = self.do_request(query)
         assert response.status_code == 400
 

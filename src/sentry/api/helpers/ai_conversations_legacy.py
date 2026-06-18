@@ -3,6 +3,9 @@
 This is the behavior used when ``organizations:gen-ai-conversations-columns`` is
 off: a fixed set of columns is always computed and returned for every row. The
 selectable-column behavior lives in :mod:`ai_conversations_columns`.
+
+TODO: remove this module (and the flag branch in the endpoint) once
+``organizations:gen-ai-conversations-columns`` has fully rolled out.
 """
 
 from __future__ import annotations

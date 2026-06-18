@@ -4,12 +4,10 @@ from rest_framework.exceptions import ParseError
 from sentry.api.helpers.ai_conversations_columns import (
     CONVERSATION_ID,
     DEFAULT_FIELDS,
-    END_TIMESTAMP,
     LLM_CALLS,
     TOTAL_TOKENS,
     build_id_query_string,
     resolve_requested_fields,
-    resolve_sort,
 )
 
 
@@ -29,25 +27,6 @@ class TestResolveRequestedFields:
     def test_rejects_unknown_field(self) -> None:
         with pytest.raises(ParseError):
             resolve_requested_fields(["nope"])
-
-
-class TestResolveSort:
-    def test_default(self) -> None:
-        assert resolve_sort(None) == (END_TIMESTAMP, True)
-
-    def test_ascending(self) -> None:
-        assert resolve_sort([TOTAL_TOKENS]) == (TOTAL_TOKENS, False)
-
-    def test_descending(self) -> None:
-        assert resolve_sort([f"-{LLM_CALLS}"]) == (LLM_CALLS, True)
-
-    def test_legacy_timestamp_alias(self) -> None:
-        assert resolve_sort(["timestamp"]) == (END_TIMESTAMP, False)
-        assert resolve_sort(["-timestamp"]) == (END_TIMESTAMP, True)
-
-    def test_rejects_unsortable(self) -> None:
-        with pytest.raises(ParseError):
-            resolve_sort([CONVERSATION_ID])
 
 
 class TestBuildIdQueryString:

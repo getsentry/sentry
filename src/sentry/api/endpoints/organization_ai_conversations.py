@@ -9,7 +9,6 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.helpers.ai_conversations_columns import (
     get_conversations_columns,
     resolve_requested_fields,
-    resolve_sort,
 )
 from sentry.api.helpers.ai_conversations_legacy import get_conversations
 from sentry.api.paginator import GenericOffsetPaginator
@@ -58,14 +57,13 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         self, request: Request, organization: Organization, snuba_params: SnubaParams
     ):
         fields = resolve_requested_fields(self.get_field_list(organization, request))
-        orderby = resolve_sort(self.get_orderby(request))
-        sampling_mode: SAMPLING_MODES = snuba_params.sampling_mode or "NORMAL"
+        # Default matches the legacy serializer so sampling behaves identically.
+        sampling_mode: SAMPLING_MODES = snuba_params.sampling_mode or "HIGHEST_ACCURACY"
 
         def data_fn(offset: int, limit: int):
             return get_conversations_columns(
                 snuba_params,
                 fields=fields,
-                orderby=orderby,
                 sampling_mode=sampling_mode,
                 offset=offset,
                 limit=limit,

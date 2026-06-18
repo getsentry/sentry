@@ -63,15 +63,13 @@ _ANY_USER_ID = "any(user.id)"
 _ANY_USER_EMAIL = "any(user.email)"
 _ANY_USER_USERNAME = "any(user.username)"
 _ANY_USER_IP = "any(user.ip)"
-_ANY_MODEL = "any(gen_ai.request.model)"
-# Sortable via an equation; duration HAVING is rejected in _translate_aggregate_filters.
-_EQUATION_DURATION = f"{_MAX_FINISH} - {_MIN_START}"
 
 _ENRICHMENT_COLUMNS = (
     "gen_ai.conversation.id",
     "gen_ai.operation.type",
     "gen_ai.agent.name",
     "gen_ai.tool.name",
+    "gen_ai.request.model",
     "span.status",
     "trace",
     "timestamp",
@@ -101,58 +99,35 @@ class SourceQuery(Enum):
 class FieldSpec:
     source: SourceQuery
     eap_columns: tuple[str, ...]
-    sort_expr: str | None = None
     aggregate_filter_expr: str | None = None
 
 
 FIELD_REGISTRY: dict[str, FieldSpec] = {
     CONVERSATION_ID: FieldSpec(SourceQuery.IDS, ("gen_ai.conversation.id",)),
-    END_TIMESTAMP: FieldSpec(SourceQuery.AGGREGATES, (_MAX_FINISH,), sort_expr=_MAX_FINISH),
+    END_TIMESTAMP: FieldSpec(SourceQuery.AGGREGATES, (_MAX_FINISH,)),
     START_TIMESTAMP: FieldSpec(SourceQuery.AGGREGATES, (_MIN_START,)),
-    DURATION: FieldSpec(
-        SourceQuery.AGGREGATES, (_MIN_START, _MAX_FINISH), sort_expr=_EQUATION_DURATION
-    ),
+    DURATION: FieldSpec(SourceQuery.AGGREGATES, (_MIN_START, _MAX_FINISH)),
     ERRORS: FieldSpec(
-        SourceQuery.AGGREGATES,
-        (_FAILURE_COUNT,),
-        sort_expr=_FAILURE_COUNT,
-        aggregate_filter_expr=_FAILURE_COUNT,
+        SourceQuery.AGGREGATES, (_FAILURE_COUNT,), aggregate_filter_expr=_FAILURE_COUNT
     ),
     LLM_CALLS: FieldSpec(
-        SourceQuery.AGGREGATES,
-        (_COUNT_AI_CLIENT,),
-        sort_expr=_COUNT_AI_CLIENT,
-        aggregate_filter_expr=_COUNT_AI_CLIENT,
+        SourceQuery.AGGREGATES, (_COUNT_AI_CLIENT,), aggregate_filter_expr=_COUNT_AI_CLIENT
     ),
     TOOL_CALLS: FieldSpec(
-        SourceQuery.AGGREGATES,
-        (_COUNT_TOOL,),
-        sort_expr=_COUNT_TOOL,
-        aggregate_filter_expr=_COUNT_TOOL,
+        SourceQuery.AGGREGATES, (_COUNT_TOOL,), aggregate_filter_expr=_COUNT_TOOL
     ),
     TOTAL_TOKENS: FieldSpec(
-        SourceQuery.AGGREGATES,
-        (_SUM_TOKENS,),
-        sort_expr=_SUM_TOKENS,
-        aggregate_filter_expr=_SUM_TOKENS,
+        SourceQuery.AGGREGATES, (_SUM_TOKENS,), aggregate_filter_expr=_SUM_TOKENS
     ),
-    TOTAL_COST: FieldSpec(
-        SourceQuery.AGGREGATES,
-        (_SUM_COST,),
-        sort_expr=_SUM_COST,
-        aggregate_filter_expr=_SUM_COST,
-    ),
+    TOTAL_COST: FieldSpec(SourceQuery.AGGREGATES, (_SUM_COST,), aggregate_filter_expr=_SUM_COST),
     TRACE_COUNT: FieldSpec(
-        SourceQuery.AGGREGATES,
-        (_COUNT_UNIQUE_TRACE,),
-        sort_expr=_COUNT_UNIQUE_TRACE,
-        aggregate_filter_expr=_COUNT_UNIQUE_TRACE,
+        SourceQuery.AGGREGATES, (_COUNT_UNIQUE_TRACE,), aggregate_filter_expr=_COUNT_UNIQUE_TRACE
     ),
     USER: FieldSpec(
         SourceQuery.AGGREGATES,
         (_ANY_USER_ID, _ANY_USER_EMAIL, _ANY_USER_USERNAME, _ANY_USER_IP),
     ),
-    MODELS_USED: FieldSpec(SourceQuery.AGGREGATES, (_ANY_MODEL,)),
+    MODELS_USED: FieldSpec(SourceQuery.ENRICHMENT, _ENRICHMENT_COLUMNS),
     TOOL_NAMES: FieldSpec(SourceQuery.ENRICHMENT, _ENRICHMENT_COLUMNS),
     FLOW: FieldSpec(SourceQuery.ENRICHMENT, _ENRICHMENT_COLUMNS),
     TRACE_IDS: FieldSpec(SourceQuery.ENRICHMENT, _ENRICHMENT_COLUMNS),
@@ -161,6 +136,7 @@ FIELD_REGISTRY: dict[str, FieldSpec] = {
     LAST_OUTPUT: FieldSpec(SourceQuery.IO, _IO_COLUMNS),
 }
 
+# Default columns served by the id query plus a single bounded aggregate query.
 DEFAULT_FIELDS: tuple[str, ...] = (
     CONVERSATION_ID,
     USER,
@@ -170,17 +146,8 @@ DEFAULT_FIELDS: tuple[str, ...] = (
     TOTAL_TOKENS,
     TOTAL_COST,
     ERRORS,
-    MODELS_USED,
 )
 
-DEFAULT_SORT = f"-{END_TIMESTAMP}"
-
-# Legacy sort tokens accepted for backwards compatibility with the old serializer.
-_SORT_ALIASES = {"timestamp": END_TIMESTAMP}
-
-SORTABLE_FIELDS: dict[str, str] = {
-    name: spec.sort_expr for name, spec in FIELD_REGISTRY.items() if spec.sort_expr
-}
 AGGREGATE_FILTER_FIELDS: dict[str, str] = {
     name: spec.aggregate_filter_expr
     for name, spec in FIELD_REGISTRY.items()
@@ -210,18 +177,6 @@ def resolve_requested_fields(fields: list[str]) -> list[str]:
     if CONVERSATION_ID not in seen:
         resolved.insert(0, CONVERSATION_ID)
     return resolved
-
-
-def resolve_sort(orderby: list[str] | None) -> tuple[str, bool]:
-    """Resolve the single sort field and direction, defaulting to -endTimestamp."""
-    raw = orderby[0] if orderby else DEFAULT_SORT
-    descending = raw.startswith("-")
-    field = raw[1:] if descending else raw
-    # Accept the legacy `timestamp` sort token as an alias for endTimestamp.
-    field = _SORT_ALIASES.get(field, field)
-    if field not in SORTABLE_FIELDS:
-        raise ParseError(detail=f"Cannot sort by: {field}")
-    return field, descending
 
 
 def build_id_query_string(user_query: str) -> str:
@@ -258,19 +213,15 @@ def get_conversations_columns(
     snuba_params: SnubaParams,
     *,
     fields: list[str],
-    orderby: tuple[str, bool],
     sampling_mode: SAMPLING_MODES,
     offset: int,
     limit: int,
 ) -> list[dict[str, Any]]:
-    sort_field, descending = orderby
     query_string = build_id_query_string(snuba_params.query_string or "")
 
     conversation_ids = _fetch_conversation_ids(
         snuba_params,
         query_string=query_string,
-        sort_field=sort_field,
-        descending=descending,
         offset=offset,
         limit=limit,
         sampling_mode=sampling_mode,
@@ -290,30 +241,16 @@ def _fetch_conversation_ids(
     snuba_params: SnubaParams,
     *,
     query_string: str,
-    sort_field: str,
-    descending: bool,
     offset: int,
     limit: int,
     sampling_mode: SAMPLING_MODES,
 ) -> list[str]:
-    prefix = "-" if descending else ""
-
-    if sort_field == DURATION:
-        equations: list[str] | None = [_EQUATION_DURATION]
-        selected_columns = ["gen_ai.conversation.id"]
-        orderby = [f"{prefix}equation|{_EQUATION_DURATION}"]
-    else:
-        sort_expr = SORTABLE_FIELDS[sort_field]
-        equations = None
-        selected_columns = ["gen_ai.conversation.id", sort_expr]
-        orderby = [f"{prefix}{sort_expr}"]
-
+    # Conversations are always ordered by most recent last message, like the legacy path.
     results = Spans.run_table_query(
         params=snuba_params,
         query_string=query_string,
-        selected_columns=selected_columns,
-        equations=equations,
-        orderby=orderby,
+        selected_columns=["gen_ai.conversation.id", _MAX_FINISH],
+        orderby=[f"-{_MAX_FINISH}"],
         offset=offset,
         limit=limit,
         referrer=Referrer.API_AI_CONVERSATIONS.value,
@@ -353,7 +290,7 @@ def _fill_conversation_data(
         if SourceQuery.IO in needed:
             _apply_io(conversations, results[SourceQuery.IO.value], fields)
 
-    return [conversations[conv_id] for conv_id in conversation_ids if conv_id in conversations]
+    return [conversations[conv_id] for conv_id in conversation_ids]
 
 
 def _requested_columns(fields: list[str], source: SourceQuery) -> list[str]:
@@ -436,9 +373,6 @@ def _extract_aggregate_value(field: str, row: dict[str, Any]) -> Any:
         return float(row.get(_SUM_COST) or 0)
     if field == TRACE_COUNT:
         return int(row.get(_COUNT_UNIQUE_TRACE) or 0)
-    if field == MODELS_USED:
-        model = row.get(_ANY_MODEL)
-        return [model] if model else []
     if field == USER:
         # A conversation is a single user session, so every span carries the same
         # identity (or none). any() ignores nulls, so each field resolves to that
@@ -478,6 +412,7 @@ def _apply_enrichment(
     traces: dict[str, set[str]] = defaultdict(set)
     tool_names: dict[str, set[str]] = defaultdict(set)
     tool_errors: dict[str, int] = defaultdict(int)
+    models: dict[str, set[str]] = defaultdict(set)
 
     for row in enrichment.get("data", []):
         conv_id = row.get("gen_ai.conversation.id", "")
@@ -488,6 +423,11 @@ def _apply_enrichment(
             trace_id = row.get("trace", "")
             if trace_id:
                 traces[conv_id].add(trace_id)
+
+        if MODELS_USED in requested:
+            model = row.get("gen_ai.request.model")
+            if model:
+                models[conv_id].add(model)
 
         operation_type = row.get("gen_ai.operation.type")
         if FLOW in requested and operation_type == "invoke_agent":
@@ -514,6 +454,8 @@ def _apply_enrichment(
             conversation[TOOL_NAMES] = sorted(tool_names.get(conv_id, set()))
         if TOOL_ERRORS in requested:
             conversation[TOOL_ERRORS] = tool_errors.get(conv_id, 0)
+        if MODELS_USED in requested:
+            conversation[MODELS_USED] = sorted(models.get(conv_id, set()))
 
 
 def _apply_io(conversations: dict[str, dict[str, Any]], io: EAPResponse, fields: list[str]) -> None:
@@ -551,5 +493,4 @@ def _apply_io(conversations: dict[str, dict[str, Any]], io: EAPResponse, fields:
 __all__ = [
     "get_conversations_columns",
     "resolve_requested_fields",
-    "resolve_sort",
 ]
