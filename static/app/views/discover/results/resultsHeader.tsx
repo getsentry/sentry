@@ -1,4 +1,4 @@
-import {Component, Fragment, type ComponentProps} from 'react';
+import {Component, Fragment} from 'react';
 import type {Location} from 'history';
 
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
@@ -36,7 +36,7 @@ type State = {
   savedQuery: SavedQuery | undefined;
 };
 
-class ResultsHeader extends Component<Props, State> {
+class ResultsHeaderBase extends Component<Props, State> {
   state: State = {
     homepageQuery: undefined,
     savedQuery: undefined,
@@ -172,12 +172,4 @@ class ResultsHeader extends Component<Props, State> {
   }
 }
 
-const ResultsHeaderWithApi = withApi(ResultsHeader);
-
-type ResultsHeaderWrapperProps = ComponentProps<typeof ResultsHeaderWithApi>;
-
-function ResultsHeaderWrapper(props: ResultsHeaderWrapperProps) {
-  return <ResultsHeaderWithApi {...props} />;
-}
-
-export {ResultsHeaderWrapper};
+export const ResultsHeader = withApi(ResultsHeaderBase);
