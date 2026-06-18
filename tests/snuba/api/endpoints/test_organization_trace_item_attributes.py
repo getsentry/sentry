@@ -574,62 +574,67 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             }
         )
         assert response.status_code == 200, response.data
-        assert response.data == [
-            {
-                "key": "tags[bar,number]",
-                "name": "bar",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "user"},
-            },
-            {
-                "key": "tags[baz,number]",
-                "name": "baz",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "user"},
-            },
-            {
-                "key": "measurements.fcp",
-                "name": "measurements.fcp",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "tags[foo,number]",
-                "name": "foo",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "user"},
-            },
-            {
-                "key": "http.decoded_response_content_length",
-                "name": "http.decoded_response_content_length",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "http.response_content_length",
-                "name": "http.response_content_length",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "http.response_transfer_size",
-                "name": "http.response_transfer_size",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "measurements.lcp",
-                "name": "measurements.lcp",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "span.duration",
-                "name": "span.duration",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-        ]
+        # Don't depend on the order of the values, just that they're all
+        # present. snuba PR getsentry/snuba#8062 changes the default sort.
+        assert sorted(response.data, key=itemgetter("key")) == sorted(
+            [
+                {
+                    "key": "tags[bar,number]",
+                    "name": "bar",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "user"},
+                },
+                {
+                    "key": "tags[baz,number]",
+                    "name": "baz",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "user"},
+                },
+                {
+                    "key": "measurements.fcp",
+                    "name": "measurements.fcp",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "tags[foo,number]",
+                    "name": "foo",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "user"},
+                },
+                {
+                    "key": "http.decoded_response_content_length",
+                    "name": "http.decoded_response_content_length",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "http.response_content_length",
+                    "name": "http.response_content_length",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "http.response_transfer_size",
+                    "name": "http.response_transfer_size",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "measurements.lcp",
+                    "name": "measurements.lcp",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "span.duration",
+                    "name": "span.duration",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+            ],
+            key=itemgetter("key"),
+        )
 
     @override_options({"explore.trace-items.keys.max": 3})
     def test_pagination(self) -> None:
