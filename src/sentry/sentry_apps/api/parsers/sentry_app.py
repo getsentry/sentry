@@ -24,19 +24,18 @@ ALLOWED_WEBHOOK_HEADERS = frozenset({"authorization"})
 # the limited punctuation set below. Excludes separators and control chars.
 _HTTP_TOKEN_RE = re.compile(r"^[!#$%&'*+\-.^_`|~A-Za-z0-9]+$")
 
-# Headers Sentry owns, or transport/proxy identity headers that must not be
-# user-controlled. The "sentry-hook" prefix is also blocked.
+# X-* headers Sentry owns, or transport/proxy identity headers that must not be
+# user-controlled. These are the exceptions carved out of the X-* allowance
+# below — every other non-allowed header is already rejected by the allow list,
+# so only X-* names need to be reserved here.
 RESERVED_WEBHOOK_HEADERS = frozenset(
     {
-        "content-type",
-        "host",
-        "request-id",
         "x-forwarded",
         "x-real-ip",
         "x-sentry",
     }
 )
-RESERVED_WEBHOOK_HEADER_PREFIXES = ("sentry-hook", "x-forwarded-", "x-sentry-")
+RESERVED_WEBHOOK_HEADER_PREFIXES = ("x-forwarded-", "x-sentry-")
 
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))

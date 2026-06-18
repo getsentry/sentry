@@ -877,8 +877,8 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
     @override_options({"staff.ga-rollout": True})
     def test_webhook_headers_reserved_check_is_case_insensitive(self) -> None:
         # The reserved-name guard normalizes with .lower(), so non-canonical casing
-        # must not slip a reserved header through.
-        for reserved in ["content-TYPE: text/plain", "HOST: evil.test", "SENTRY-HOOK-foo: x"]:
+        # must not slip a reserved X-* header through the X-* allowance.
+        for reserved in ["X-FORWARDED-For: 1.2.3.4", "X-Real-IP: 1.2.3.4", "X-SENTRY-foo: x"]:
             response = self.get_error_response(
                 self.published_app.slug,
                 webhookHeaders=[reserved],
