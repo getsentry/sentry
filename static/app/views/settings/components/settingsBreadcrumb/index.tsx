@@ -64,7 +64,7 @@ export function SettingsBreadcrumb({params}: Props) {
           );
         }
         return (
-          <Flex gap="sm" align="center" key={`${route.name}:${route.path}`}>
+          <Flex as="span" gap="sm" align="center" key={`${route.name}:${route.path}`}>
             <CrumbLink
               to={recreateRoute(route, {routes, params})}
               onClick={onSettingsBreadcrumbLinkClick}
