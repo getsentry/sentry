@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import sentry_sdk
+from django.db.models import Q
 
 from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT, ObjectStatus
 from sentry.models.group import Group
@@ -29,12 +30,14 @@ def deliver_night_shift_result(
     error: str | None,
 ) -> None:
     """Process a night_shift result from Seer."""
-    try:
-        run = SeerNightShiftRun.objects.select_related("organization", "seer_run").get(
-            organization_id=organization_id,
-            seer_run__uuid=run_uuid,
-        )
-    except SeerNightShiftRun.DoesNotExist:
+    run = (
+        SeerNightShiftRun.objects.filter(organization_id=organization_id)
+        .filter(Q(shards__seer_run__uuid=run_uuid) | Q(seer_run__uuid=run_uuid))
+        .select_related("organization")
+        .distinct()
+        .first()
+    )
+    if run is None:
         logger.warning(
             "night_shift.delivery.missing_run",
             extra={"organization_id": organization_id, "run_uuid": run_uuid},

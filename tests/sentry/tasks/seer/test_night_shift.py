@@ -5,7 +5,11 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.group import Group
 from sentry.models.organization import OrganizationStatus
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunResult
+from sentry.seer.models.night_shift import (
+    SeerNightShiftRun,
+    SeerNightShiftRunResult,
+    SeerNightShiftRunShard,
+)
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.tasks.seer.night_shift.cron import (
@@ -531,6 +535,78 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         assert run.extras.get("error_message") is None
         # Verdicts and autofix are Seer's responsibility now; no result rows here.
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
+
+    def test_shards_candidates_across_feature_runs(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+
+        groups = [
+            self._store_event_and_update_group(
+                project, f"fixable-{i}", seer_fixability_score=0.9, times_seen=5 + i
+            )
+            for i in range(3)
+        ]
+
+        with (
+            self.options({"seer.night_shift.shard_size": 2}),
+            self.feature("organizations:gen-ai-features"),
+        ):
+            run_night_shift_for_org(org.id)
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        # 3 candidates, shard size 2 -> 2 shards (2 + 1).
+        shards = list(SeerNightShiftRunShard.objects.filter(run=run).order_by("id"))
+        assert len(shards) == 2
+        assert SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 2
+
+        shard_sizes = []
+        dispatched_group_ids: list[int] = []
+        for shard in shards:
+            outbox = CellOutbox.objects.get(
+                category=OutboxCategory.SEER_RUN_CREATE, object_identifier=shard.seer_run_id
+            )
+            assert outbox.payload is not None
+            candidates = outbox.payload["body"]["payload"]["candidates"]
+            shard_sizes.append(len(candidates))
+            dispatched_group_ids.extend(c["group_id"] for c in candidates)
+
+        assert sorted(shard_sizes) == [1, 2]
+        assert sorted(dispatched_group_ids) == sorted(g.id for g in groups)
+
+        assert run.seer_run_id == shards[0].seer_run_id
+        assert run.extras.get("error_message") is None
+
+    def test_partial_shard_failure_still_dispatches(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+        for i in range(2):
+            self._store_event_and_update_group(
+                project, f"fixable-{i}", seer_fixability_score=0.9, times_seen=5 + i
+            )
+
+        real_create = SeerNightShiftRunShard.objects.create
+        calls: list[int] = []
+
+        def flaky_create(*args, **kwargs):
+            calls.append(1)
+            if len(calls) == 2:
+                raise RuntimeError("boom")
+            return real_create(*args, **kwargs)
+
+        with (
+            self.options({"seer.night_shift.shard_size": 1}),
+            self.feature("organizations:gen-ai-features"),
+            patch.object(SeerNightShiftRunShard.objects, "create", side_effect=flaky_create),
+        ):
+            run_night_shift_for_org(org.id)
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        assert run.extras.get("error_message") is None
+        assert SeerNightShiftRunShard.objects.filter(run=run).count() == 1
+        assert SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 1
+        assert run.seer_run_id is not None
 
     def test_no_candidates_skips_dispatch(self) -> None:
         org = self.create_organization()

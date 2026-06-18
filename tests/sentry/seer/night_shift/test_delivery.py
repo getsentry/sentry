@@ -3,7 +3,11 @@ from unittest.mock import patch
 
 from sentry.models.organization import Organization
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunResult
+from sentry.seer.models.night_shift import (
+    SeerNightShiftRun,
+    SeerNightShiftRunResult,
+    SeerNightShiftRunShard,
+)
 from sentry.seer.night_shift.delivery import deliver_night_shift_result
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
@@ -26,6 +30,39 @@ class TestDeliverNightShiftResult(TestCase):
             seer_run=seer_run,
             extras=extras,
         )
+
+    def test_correlates_via_shard_seer_run(self) -> None:
+        """Sharded runs carry no scalar seer_run; delivery resolves the run from
+        the shard's SeerRun uuid and processes that shard's verdicts."""
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        group = self.create_group(project=project)
+        shard_seer_run = self.create_seer_run(organization=org)
+        run = SeerNightShiftRun.objects.create(
+            organization=org, seer_run=None, extras={"options": {}}
+        )
+        SeerNightShiftRunShard.objects.create(run=run, seer_run=shard_seer_run)
+
+        result = {
+            "verdicts": [
+                {"group_id": group.id, "action": TriageAction.AUTOFIX.value, "reason": "ok"}
+            ]
+        }
+        with patch(
+            "sentry.tasks.seer.night_shift.cron.trigger_autofix_agent", return_value=42
+        ) as mock_trigger:
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=str(shard_seer_run.uuid),
+                status="completed",
+                result=result,
+                error=None,
+            )
+
+        mock_trigger.assert_called_once()
+        results = list(SeerNightShiftRunResult.objects.filter(run=run))
+        assert len(results) == 1
+        assert results[0].group_id == group.id
 
     def test_missing_run_logs_warning(self) -> None:
         """When run_uuid doesn't match any SeerNightShiftRun, log and return."""
