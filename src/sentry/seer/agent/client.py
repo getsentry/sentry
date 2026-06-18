@@ -23,6 +23,7 @@ from sentry.hybridcloud.models.outbox import (
     outbox_context,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.hybridcloud.rpc.service import RpcException
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.services.identity import identity_service
@@ -123,31 +124,43 @@ def get_monitoring_provider_connections(
         return []
 
     connections: list[dict[str, Any]] = []
-    for provider_type in MONITORING_PROVIDERS:
-        provider = identity_manager.get(provider_type)
-        if not isinstance(provider, McpIdentityProvider):
-            continue
-        identities = identity_service.get_user_identities_by_provider_type(
-            user_id=user_id, provider_type=provider_type
-        )
-        for identity in identities:
-            access_token = identity.data.get("access_token")
-            if not access_token:
+    try:
+        for provider_type in MONITORING_PROVIDERS:
+            provider = identity_manager.get(provider_type)
+            if not isinstance(provider, McpIdentityProvider):
                 continue
-            url = provider.build_mcp_url(identity.data)
-            if not url:
-                continue
-            encrypted_access_token = encrypt_access_token_for_seer(access_token)
-            if not encrypted_access_token:
-                continue
-            connections.append(
-                {
-                    "provider_key": provider_type,
-                    "url": url,
-                    "encrypted_access_token": encrypted_access_token,
-                    "identity_id": identity.id,
-                }
+
+            identities = identity_service.get_user_identities_by_provider_type(
+                user_id=user_id, provider_type=provider_type
             )
+
+            for identity in identities:
+                access_token = identity.data.get("access_token")
+                if not access_token:
+                    continue
+                url = provider.build_mcp_url(identity.data)
+                if not url:
+                    continue
+                encrypted_access_token = encrypt_access_token_for_seer(access_token)
+                if not encrypted_access_token:
+                    continue
+                connections.append(
+                    {
+                        "provider_key": provider_type,
+                        "url": url,
+                        "encrypted_access_token": encrypted_access_token,
+                        "identity_id": identity.id,
+                    }
+                )
+    except RpcException:
+        # Monitoring providers are optional enrichment. Don't stall the outbox shard
+        # or fail the run on control silo RPC failure--just return whatever we've
+        # partially built.
+        logger.warning(
+            "seer.monitoring_providers.fetch_failed",
+            extra={"organization_id": organization.id, "user_id": user_id},
+            exc_info=True,
+        )
 
     return connections
 

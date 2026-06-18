@@ -7,6 +7,7 @@ from django.test import override_settings
 from django.utils import timezone
 from pydantic import BaseModel
 
+from sentry.hybridcloud.rpc.service import RpcException
 from sentry.seer.agent.client import SeerAgentClient, get_monitoring_provider_connections
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
@@ -1312,4 +1313,12 @@ class TestGetMonitoringProviderConnections(TestCase):
             data={"access_token": "access-token", "site": "datadoghq.com"},
         )
 
+        assert get_monitoring_provider_connections(self.organization, self.user.id) == []
+
+    @patch(
+        "sentry.seer.agent.client.identity_service.get_user_identities_by_provider_type",
+        side_effect=RpcException("identity", "get_user_identities_by_provider_type", "boom"),
+    )
+    def test_degrades_when_identity_service_errors(self, mock_get: MagicMock) -> None:
+        # A control-silo RPC failure must not propagate (it would stall the outbox shard).
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
