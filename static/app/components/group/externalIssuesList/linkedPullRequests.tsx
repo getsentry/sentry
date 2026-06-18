@@ -1,17 +1,14 @@
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
+import {Badge} from '@sentry/scraps/badge';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
-import {
-  IconMerge,
-  IconPullRequest,
-  IconPullRequestClosed,
-  IconRepository,
-} from 'sentry/icons';
+import {IconMerge, IconPullRequest, IconPullRequestClosed} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -39,30 +36,13 @@ interface LinkedPullRequestsProps {
   showEmptyState?: boolean;
 }
 
-type StatusIconConfig = {
-  Icon: React.ComponentType<SVGIconProps>;
-  variant: SVGIconProps['variant'];
-};
-
-const STATUS_ICON_CONFIG = {
-  closed: {Icon: IconPullRequestClosed, variant: 'danger'},
-  draft: {Icon: IconPullRequest, variant: 'muted'},
-  merged: {Icon: IconMerge, variant: 'accent'},
-  open: {Icon: IconPullRequest, variant: 'success'},
-  unknown: {Icon: IconPullRequest, variant: 'muted'},
-} satisfies Record<LinkedPullRequestStatus, StatusIconConfig>;
-
-function getStatusIcon(status: LinkedPullRequestStatus) {
-  const {Icon, variant} = STATUS_ICON_CONFIG[status];
-  return (
-    <Icon
-      aria-hidden
-      data-test-id={`linked-pull-request-status-${status}`}
-      size="xs"
-      variant={variant}
-    />
-  );
-}
+const STATUS_ICONS = {
+  closed: IconPullRequestClosed,
+  draft: IconPullRequest,
+  merged: IconMerge,
+  open: IconPullRequest,
+  unknown: IconPullRequest,
+} satisfies Record<LinkedPullRequestStatus, React.ComponentType<SVGIconProps>>;
 
 function getStatusLabel(status: LinkedPullRequestStatus) {
   switch (status) {
@@ -81,6 +61,23 @@ function getStatusLabel(status: LinkedPullRequestStatus) {
   }
 }
 
+function getStatusBadgeVariant(status: LinkedPullRequestStatus) {
+  switch (status) {
+    case 'closed':
+      return 'danger';
+    case 'draft':
+      return 'muted';
+    case 'merged':
+      return 'info';
+    case 'open':
+      return 'success';
+    case 'unknown':
+      return 'muted';
+    default:
+      return status satisfies never;
+  }
+}
+
 function LinkedPullRequestRow({
   group,
   pullRequest,
@@ -91,15 +88,17 @@ function LinkedPullRequestRow({
   const organization = useOrganization();
   const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
   const statusLabel = getStatusLabel(pullRequest.status);
+  const pullRequestLabel = t('#%s', pullRequest.id);
+  const StatusIcon = STATUS_ICONS[pullRequest.status];
 
   return (
     <PullRequestRow
       aria-label={t(
-        '%s, pull request #%s, %s in %s',
-        title,
+        'Pull request #%s in %s, %s, %s',
         pullRequest.id,
+        pullRequest.repository.name,
         statusLabel,
-        pullRequest.repository.name
+        title
       )}
       href={pullRequest.externalUrl}
       onClick={() =>
@@ -122,25 +121,32 @@ function LinkedPullRequestRow({
           />
         </Flex>
         <Flex direction="column" gap="2xs" minWidth={0}>
-          <PullRequestTitle>{title}</PullRequestTitle>
-          <Flex align="center" gap="sm">
-            <Flex as="span" align="center" gap="xs" minWidth={0}>
-              {getStatusIcon(pullRequest.status)}
-              <Text as="span" textWrap="nowrap" variant="muted">
-                #{pullRequest.id}
+          <Tooltip
+            title={
+              <Text as="span" align="left" wordBreak="break-word">
+                {title}
               </Text>
-            </Flex>
-            <Flex as="span" align="center" gap="xs" minWidth={0}>
-              <RepositoryIcon size="xs" variant="muted" />
-              <Text
-                as="span"
-                ellipsis
-                title={pullRequest.repository.name}
-                variant="muted"
-              >
+            }
+            maxWidth={275}
+            skipWrapper
+          >
+            <PullRequestTitle>
+              <Text as="span" bold textWrap="nowrap">
+                {pullRequestLabel}
+              </Text>
+              <Text as="span" ellipsis>
                 {pullRequest.repository.name}
               </Text>
-            </Flex>
+            </PullRequestTitle>
+          </Tooltip>
+          <Flex align="center">
+            <StatusBadge
+              data-test-id={`linked-pull-request-status-${pullRequest.status}`}
+              variant={getStatusBadgeVariant(pullRequest.status)}
+            >
+              <StatusIcon aria-hidden size="xs" />
+              {statusLabel}
+            </StatusBadge>
           </Flex>
         </Flex>
       </Grid>
@@ -225,15 +231,15 @@ const EmptyLinksText = styled(Text)`
   margin: 0;
 `;
 
-const RepositoryIcon = styled(IconRepository)`
-  transform: translateY(1px);
+const StatusBadge = styled(Badge)`
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const PullRequestTitle = styled('span')`
-  display: block;
+  align-items: center;
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+  min-width: 0;
   overflow: hidden;
   width: 100%;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  text-overflow: ellipsis;
-  white-space: nowrap;
 `;

@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {LinkedPullRequests} from './linkedPullRequests';
 
@@ -56,7 +56,7 @@ describe('LinkedPullRequests', () => {
 
     const list = await screen.findByRole('list', {name: 'Linked pull requests'});
     const linkedPullRequest = within(list).getByRole('link', {
-      name: /Fix widget crash on startup/,
+      name: /Pull request #123 in example\/widget-app/,
     });
 
     expect(linkedPullRequest).toHaveAttribute(
@@ -64,18 +64,23 @@ describe('LinkedPullRequests', () => {
       'https://github.com/example/widget-app/pull/123'
     );
     expect(linkedPullRequest).toHaveAccessibleName(
-      `Fix widget crash on startup, pull request #123, Merged in ${REPOSITORY_NAME}`
+      `Pull request #123 in ${REPOSITORY_NAME}, Merged, Fix widget crash on startup`
     );
+    await userEvent.hover(within(linkedPullRequest).getByText('#123'));
+    expect(await screen.findByText('Fix widget crash on startup')).toBeInTheDocument();
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     expect(within(list).getByText('#123')).toBeInTheDocument();
     expect(within(list).getByText('#124')).toBeInTheDocument();
     expect(within(list).getAllByText(REPOSITORY_NAME)).toHaveLength(2);
-    expect(
-      within(list).getByTestId('linked-pull-request-status-merged')
-    ).toBeInTheDocument();
-    expect(
-      within(list).getByTestId('linked-pull-request-status-closed')
-    ).toBeInTheDocument();
+    expect(linkedPullRequest.querySelectorAll('svg')).toHaveLength(2);
+    expect(within(list).getByText('Merged')).toBeInTheDocument();
+    expect(within(list).getByText('Closed')).toBeInTheDocument();
+    const mergedStatus = within(list).getByTestId('linked-pull-request-status-merged');
+    const closedStatus = within(list).getByTestId('linked-pull-request-status-closed');
+    expect(mergedStatus).toBeInTheDocument();
+    expect(closedStatus).toBeInTheDocument();
+    expect(mergedStatus.querySelector('svg')).toBeInTheDocument();
+    expect(closedStatus.querySelector('svg')).toBeInTheDocument();
     expect(pullRequestsMock).toHaveBeenCalledTimes(1);
   });
 });
