@@ -798,6 +798,23 @@ class PostSentryAppsTest(SentryAppsTest):
             f"Authorization: {MASKED_VALUE}",
         ]
 
+    def test_create_integration_strips_webhook_header_whitespace(self) -> None:
+        # CharField children are whitespace-trimmed during validation, so a
+        # leading/trailing CR/LF passes the newline check. The endpoint must
+        # persist the sanitized (trimmed) value from validated_data, not the raw
+        # request body, otherwise the stored header smuggles the newline back in.
+        response = self.get_success_response(
+            **self.get_data(
+                webhookHeaders=["X-Trailing: value\r\n", "\nAuthorization: Bearer token"]
+            ),
+            status_code=201,
+        )
+        sentry_app = SentryApp.objects.get(slug=response.data["slug"])
+        assert sentry_app.webhook_headers == ["X-Trailing: value", "Authorization: Bearer token"]
+        for header in sentry_app.webhook_headers:
+            assert "\n" not in header
+            assert "\r" not in header
+
     def test_create_integration_with_invalid_webhook_header(self) -> None:
         response = self.get_error_response(
             **self.get_data(webhookHeaders=["missing-colon"]), status_code=400

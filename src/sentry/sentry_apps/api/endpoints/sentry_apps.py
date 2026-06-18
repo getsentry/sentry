@@ -112,6 +112,8 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
         serializer = SentryAppParser(data=data, access=request.access, context={"request": request})
 
         if serializer.is_valid():
+            validated_data = serializer.validated_data
+
             if data.get("isInternal"):
                 data["verifyInstall"] = False
                 data["author"] = data["author"] or organization.name
@@ -134,7 +136,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                     schema=data["schema"],
                     overview=data["overview"],
                     allowed_origins=data["allowedOrigins"],
-                    webhook_headers=data["webhookHeaders"],
+                    webhook_headers=validated_data.get("webhookHeaders", []),
                     popularity=data["popularity"],
                 ).run(user=request.user, request=request, skip_default_auth_token=True)
                 # We want to stop creating the default auth token for new apps and installations through the API
