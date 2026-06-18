@@ -1472,27 +1472,6 @@ def get_issue_details(
     )
 
 
-def _serialize_file_committers(author_commits: Any) -> list[dict[str, Any]]:
-    """Serialize get_event_file_committers output (author + scored commits), best-first.
-
-    ``get_event_file_committers`` already serializes the author but leaves commits as
-    ``(Commit, score)`` tuples and orders authors weakest-first; we serialize the
-    commits and reverse so the strongest blame is first.
-    """
-    serialized: list[dict[str, Any]] = []
-    for entry in author_commits:
-        commits = [
-            {
-                **serialize(commit, serializer=CommitSerializer(exclude=["author"])),
-                "score": score,
-            }
-            for commit, score in entry.get("commits", [])
-        ]
-        serialized.append({"author": entry.get("author"), "commits": commits})
-    serialized.reverse()
-    return serialized
-
-
 def get_issue_committers(
     *,
     organization_id: int,
@@ -1574,7 +1553,23 @@ def get_issue_committers(
                 event.platform,
                 sdk_name=sdk_name,
             )
-            committers = _serialize_file_committers(author_commits)
+            # get_event_file_committers serializes the author but leaves commits as
+            # (Commit, score) tuples ordered weakest-first; serialize the commits and
+            # reverse so the strongest blame is first.
+            committers = [
+                {
+                    "author": entry.get("author"),
+                    "commits": [
+                        {
+                            **serialize(commit, serializer=CommitSerializer(exclude=["author"])),
+                            "score": score,
+                        }
+                        for commit, score in entry.get("commits", [])
+                    ],
+                }
+                for entry in author_commits
+            ]
+            committers.reverse()
     except (Release.DoesNotExist, Commit.DoesNotExist):
         # No release/commit data linked to this issue; frame blame isn't available.
         committers = []
