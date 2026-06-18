@@ -34,9 +34,9 @@ class CommitSerializerResponse(TypedDict):
 class CommitReleaseSerializerResponse(TypedDict):
     version: str
     shortVersion: str
-    ref: str
-    url: str
-    dateReleased: datetime
+    ref: str | None
+    url: str | None
+    dateReleased: datetime | None
     dateCreated: datetime
 
 
