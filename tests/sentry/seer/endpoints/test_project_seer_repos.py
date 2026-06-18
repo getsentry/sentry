@@ -401,7 +401,8 @@ class ProjectSeerReposGetTest(APITestCase):
         )
         self.create_seer_project_repository(self.project, repository=gitlab_repo)
 
-        response = self.get_success_response()
+        with self.feature("organizations:seer-gitlab-support"):
+            response = self.get_success_response()
         assert len(response.data) == 1
         repo_data = response.data[0]
         # owner and name must come from the URL-safe path, not the display name
