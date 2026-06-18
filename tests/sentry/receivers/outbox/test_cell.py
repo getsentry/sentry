@@ -160,6 +160,27 @@ class HandleSeerRunCreateTest(TestCase):
         assert run.seer_run_state_id == 7
         assert run.mirror_status == SeerRunMirrorStatus.LIVE
 
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_happy_path_feature_run(self, mock_request: Mock) -> None:
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 55}))
+        run = self.create_seer_run(type=SeerRunType.FEATURE_RUN)
+
+        handle_seer_run_create(
+            object_identifier=run.id,
+            payload=self._make_payload({"feature_id": "night_shift", "payload": {}}),
+            shard_identifier=run.id,
+        )
+
+        run.refresh_from_db()
+        assert run.seer_run_state_id == 55
+        assert run.mirror_status == SeerRunMirrorStatus.LIVE
+
+        # The handler stamps the SeerRun uuid as both ref and idempotency key.
+        sent_body = mock_request.call_args.args[0]
+        assert sent_body["feature_id"] == "night_shift"
+        assert sent_body["ref"] == str(run.uuid)
+        assert sent_body["external_idempotency_key"] == str(run.uuid)
+
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_idempotent_retry_already_set(self, mock_request: Mock) -> None:
         run = self.create_seer_run(seer_run_state_id=123)

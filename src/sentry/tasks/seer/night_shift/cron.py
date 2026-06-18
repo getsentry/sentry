@@ -8,7 +8,6 @@ from datetime import timedelta
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
-from django.utils import timezone
 
 from sentry import features, options, quotas
 from sentry.constants import (
@@ -18,7 +17,7 @@ from sentry.constants import (
 )
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
-from sentry.seer.agent.client_utils import SeerFeatureRunRequest, trigger_seer_feature
+from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
@@ -26,14 +25,15 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
+from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.seer.models.run import SeerRun, SeerRunType
+from sentry.seer.models.run import SeerRun
 from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
-from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.seer.night_shift.models import NightShiftPayload, TriageCandidate, TriageTweaks
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy, priority_label
@@ -495,61 +495,61 @@ def _dispatch_to_seer_feature(
         logger.info("night_shift.no_candidates", extra=log_extra)
         return
 
-    # SeerRun gives the run a uuid that the pushed-back result correlates on.
-    seer_run = SeerRun.objects.create(
-        organization=organization,
-        type=SeerRunType.EXPLORER,
-        last_triggered_at=timezone.now(),
-    )
-    run.update(seer_run=seer_run)
-
-    request = SeerFeatureRunRequest(
-        feature_id="night_shift",
-        ref=str(seer_run.uuid),
-        payload={
-            "candidates": [
-                {
-                    "group_id": c.group.id,
-                    "title": c.group.title,
-                    "culprit": c.group.culprit,
-                    "fixability": c.fixability,
-                    "times_seen": c.group.times_seen,
-                    "first_seen": c.group.first_seen,
-                    "priority": priority_label(c.group.priority),
-                }
-                for c in scored
-            ],
-            "tweaks": {
-                "intelligence_level": resolved_options["intelligence_level"],
-                "reasoning_effort": resolved_options["reasoning_effort"],
-                "extra_triage_instructions": resolved_options["extra_triage_instructions"],
-            },
-        },
+    payload = NightShiftPayload(
+        candidates=[
+            TriageCandidate(
+                group_id=c.group.id,
+                title=c.group.title,
+                culprit=c.group.culprit,
+                fixability=c.fixability,
+                times_seen=c.group.times_seen,
+                first_seen=c.group.first_seen.isoformat(),
+                priority=priority_label(c.group.priority),
+            )
+            for c in scored
+        ],
+        tweaks=TriageTweaks(
+            intelligence_level=resolved_options["intelligence_level"],
+            reasoning_effort=resolved_options["reasoning_effort"],
+            extra_triage_instructions=resolved_options["extra_triage_instructions"],
+        ),
     )
     try:
-        agent_run_id = trigger_seer_feature(
-            request,
-            viewer_context=SeerViewerContext(organization_id=organization.id),
+        client = SeerAgentClient(organization)
+    except SeerPermissionError:
+        logger.info("night_shift.no_seer_access", extra=log_extra)
+        _record_run_error(run, "Organization does not have Seer access")
+        return
+
+    def _link_run(created: SeerRun) -> None:
+        # Link inside the dispatch transaction so the row exists before the outbox
+        # drains and Seer's result correlates back to this night shift run.
+        run.update(seer_run=created)
+
+    try:
+        seer_run = client.start_feature_run(
+            feature_id="night_shift",
+            payload=payload.dict(),
+            flush=False,
+            on_run_created=_link_run,
         )
     except Exception:
         sentry_sdk.metrics.count("night_shift.run_error", 1)
         _fail_run(
             run,
-            message="Night shift run failed",
-            event="night_shift.run_failed",
+            message="Night shift dispatch failed",
+            event="night_shift.dispatch_failed",
             extra=log_extra,
         )
         return
-
-    if agent_run_id is not None:
-        run.update(extras={**run.extras, "agent_run_id": agent_run_id})
 
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
     logger.info(
         "night_shift.feature_dispatched",
         extra={
             **log_extra,
-            "agent_run_id": agent_run_id,
+            "seer_run_id": seer_run.id,
+            "seer_run_uuid": str(seer_run.uuid),
             "num_eligible_projects": len(eligible_projects),
             "num_candidates": len(scored),
         },
