@@ -50,7 +50,9 @@ def start_span(
                 )
             finally:
                 if previous_custom_sampling_context is not None:
-                    Scope.set_custom_sampling_context(previous_custom_sampling_context)
+                    scope = sentry_sdk.get_current_scope()
+                    propagation_context = scope.get_active_propagation_context()
+                    propagation_context.custom_sampling_context = previous_custom_sampling_context
 
         if sampled is not False:
             return sentry_sdk.traces.start_span(
