@@ -155,7 +155,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         return all_features
 
     @extend_schema(
-        operation_id="Query Explore Events in Table Format",
+        operation_id="listOrganizationEvents",
+        summary="Query Explore Events in Table Format",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,

@@ -1,6 +1,5 @@
 import type {FocusTrap} from 'focus-trap';
 
-import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 import type {ApiResult} from 'sentry/types/api';
 
 import type {ParntershipAgreementType} from './overrides';
@@ -27,7 +26,7 @@ export type OnSentryInitConfiguration =
     }
   | {
       name: 'onReady';
-      onReady: (globals: typeof exportedGlobals) => void;
+      onReady: (globals: Record<string, any>) => void;
     };
 
 declare global {

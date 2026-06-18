@@ -24,7 +24,7 @@ def sign(*, salt: str = SALT, **kwargs: object) -> str:
     )
 
 
-def unsign(data: str | bytes, salt: str = SALT, max_age: int = 60 * 60 * 24 * 2) -> Any:
+def unsign(data: str | bytes, salt: str = SALT, max_age: int | None = 60 * 60 * 24 * 2) -> Any:
     """
     Unsign a signed base64 string. Accepts the base64 value as a string or bytes.
 

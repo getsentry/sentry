@@ -184,12 +184,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 webhook_action_type = SeerActionType.CODING_COMPLETED
                 webhook_payload["code_changes"] = cls._format_code_changes_payload(state)
         elif current_step == AutofixStep.PR_ITERATION:
-            # PR iteration only runs against an existing PR, so there should be pr states.
-            if not state.repo_pr_states:
-                logger.error(
-                    "autofix.on_completion_hook.pr_iteration_missing_repo_pr_states",
-                    extra={"run_id": run_id, "organization_id": organization.id},
-                )
+            assert state.repo_pr_states, "PR iteration must have repo pr states"
+
+            # we only want to emit this webhook after the iteration changes are pushed
+            _, is_synced = state.has_code_changes()
+            if not is_synced and not cls._iteration_terminal_errored_repos(state):
+                return
             webhook_action_type = SeerActionType.ITERATION_COMPLETED
             iteration_index = get_latest_iteration_index(state)
             webhook_payload["pull_requests"] = cls._format_pull_requests_payload(state)
@@ -414,6 +414,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     },
                 )
 
+        # PR iteration runs against an existing PR rather than the automated
+        # pipeline. Once the agent finishes iterating, push the new changes to
+        # update that PR. _push_changes is a no-op once the repos are synced, so
+        # the hook re-fire after the push doesn't loop.
+        if current_step == AutofixStep.PR_ITERATION:
+            cls._push_changes(group, run_id, state)
+            return
+
         if stopping_point is None or reached_stopping_point:
             # We've reached the stopping point
             return
@@ -496,6 +504,28 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return introspect_iteration(organization, run_id, state, group)
 
     @classmethod
+    def _iteration_terminal_errored_repos(cls, state: SeerRunState) -> list[str]:
+        """
+        Return the errored repos when unsynced repos have terminal push failures.
+
+        Returns an empty list when there are no errored repos, or when some
+        non-errored repo is still unsynced (i.e. a push can still make progress).
+        Used to stop waiting for a synced PR after push errors without retrying.
+        """
+        diffs_by_repo = state.get_diffs_by_repo()
+        errored_repos = [
+            repo
+            for repo in diffs_by_repo
+            if (pr_state := state.repo_pr_states.get(repo)) is not None
+            and pr_state.pr_creation_status == "error"
+        ]
+        if not errored_repos:
+            return []
+        if all(state._is_repo_synced(repo) or repo in errored_repos for repo in diffs_by_repo):
+            return errored_repos
+        return []
+
+    @classmethod
     def _push_changes(cls, group: Group, run_id: int, state: SeerRunState) -> None:
         """Push code changes to create PRs."""
         # Check if there are code changes to push
@@ -513,16 +543,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         # Errored repos are terminal — re-pushing would re-fire this hook in a loop.
-        diffs_by_repo = state.get_diffs_by_repo()
-        errored_repos = [
-            repo
-            for repo in diffs_by_repo
-            if (pr_state := state.repo_pr_states.get(repo)) is not None
-            and pr_state.pr_creation_status == "error"
-        ]
-        if errored_repos and all(
-            state._is_repo_synced(repo) or repo in errored_repos for repo in diffs_by_repo
-        ):
+        errored_repos = cls._iteration_terminal_errored_repos(state)
+        if errored_repos:
             logger.info(
                 "autofix.on_completion_hook.skip_no_pushable_repos",
                 extra={
