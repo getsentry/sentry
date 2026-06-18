@@ -13,6 +13,21 @@ import {useIssuePreviewDrawer} from 'sentry/views/issueList/pages/useIssuePrevie
 const AWAITING_INPUT_PATH = '/organizations/org-slug/issues/awaiting-input/';
 
 describe('useIssuePreviewDrawer', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/42/',
+      body: GroupFixture({id: '42'}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/42/attachments/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
+  });
+
   it('sets the preview query param when opening a preview', async () => {
     const {result, router} = renderHookWithProviders(() => useIssuePreviewDrawer(), {
       initialRouterConfig: {location: {pathname: AWAITING_INPUT_PATH}},
