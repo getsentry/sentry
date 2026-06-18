@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
 from unittest import mock
-from urllib.parse import quote, urlencode, urlparse
+from urllib.parse import quote, urlencode, urljoin, urlparse
 from uuid import uuid4
 
 import pytest
@@ -23,6 +23,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
@@ -92,12 +93,7 @@ class ErrorPageEmbedTest(TestCase):
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
 
     def test_endpoint_reflects_control_silo_url(self) -> None:
-        with mock.patch(
-            "sentry.feedback.endpoints.error_page_embed.sentry_options.get",
-            side_effect=lambda key: "http://controlsilo.testserver"
-            if key == "system.url-prefix"
-            else options.get(key),
-        ):
+        with override_options({"system.url-prefix": "http://controlsilo.testserver"}):
             resp = self.client.get(
                 self.path_with_qs,
                 HTTP_REFERER="http://example.com",
@@ -106,8 +102,6 @@ class ErrorPageEmbedTest(TestCase):
             assert resp.status_code == 200, resp.content
             assert resp["Access-Control-Allow-Origin"] == "*"
             self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
-
-            from urllib.parse import urljoin
 
             control_url = urljoin("http://controlsilo.testserver", self.path_with_qs)
             body = resp.content.decode("utf8")
