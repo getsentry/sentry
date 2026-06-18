@@ -48,7 +48,6 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.base import MCP_USER_AGENT_PREFIX
 from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
@@ -76,6 +75,7 @@ from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
 
@@ -179,7 +179,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
         return response
 
     @extend_schema(
-        operation_id="Retrieve an Issue",
+        operation_id="getOrganizationIssue",
+        summary="Retrieve an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -377,7 +378,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
             raise
 
     @extend_schema(
-        operation_id="Update an Issue",
+        operation_id="updateOrganizationIssue",
+        summary="Update an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -451,7 +453,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
             return Response(body, status=e.status_code)
 
     @extend_schema(
-        operation_id="Remove an Issue",
+        operation_id="deleteOrganizationIssue",
+        summary="Remove an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -506,8 +509,7 @@ def send_issue_view_attribution(request: Request, response: Response, group: Any
     if not isinstance(group, Group):
         return
 
-    user_agent = request.META.get("HTTP_USER_AGENT", "")
-    if isinstance(user_agent, str) and user_agent.startswith(MCP_USER_AGENT_PREFIX):
+    if is_mcp_request(request):
         client_family = request.headers.get("x-sentry-mcp-client-family") or "unknown"
         analytics.record(
             IssueViewedEvent(

@@ -14,3 +14,16 @@ export const HEATMAP_COLORS = [
   '#921178',
   '#990056',
 ] as const;
+
+/**
+ * Target width, in pixels, of a single heat map X-axis (time) bucket. The
+ * interval is chosen so that columns are roughly this wide for the rendered
+ * container width.
+ */
+export const PIXELS_PER_X_BUCKET = 15;
+
+/**
+ * Scale used for the heat map's Z axis (the cell color). A logarithmic scale
+ * handles the wide range of counts better than a linear one.
+ */
+export const HEATMAP_Z_AXIS_SCALE = 'log' as const;

@@ -83,15 +83,13 @@ function PlanFeature({subscription, features, organization, children}: Props) {
 
   plans = matchPlanConfiguration();
 
-  // XXX: Enterprise plans are *not* user selectable, but should be included
-  // in the list of plans. Unfortunately we don't distinguish between Trial /
-  // Friends & Family / Enterprise, so we hardcode the name here.
-  //
-  // XXX(epurkhiser): We don't really have enterprise plans anymore, so maybe
-  // we no longer need this.
+  // Enterprise plans are *not* user selectable, so they're excluded from the
+  // list above, but some features are only offered on them (e.g.
+  // spend-allocations). Include them so those features can still resolve to an
+  // upgrade target.
   const enterprisePlans = billingConfig.planList
     .filter(billingIntervalFilter)
-    .filter(p => p.id.includes('ent'));
+    .filter(p => p.isEnterprise);
 
   plans.push(...enterprisePlans);
 

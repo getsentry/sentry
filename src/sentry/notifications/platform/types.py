@@ -26,6 +26,7 @@ class NotificationCategory(StrEnum):
     ISSUE = "issue"
     METRIC_ALERT = "metric-alert"
     SENTRY_APP = "sentry-app"
+    WORKFLOW_ENGINE = "workflow-engine"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -72,6 +73,15 @@ class NotificationSource(StrEnum):
     # SENTRY_APP
     SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
 
+    # WORKFLOW_ENGINE
+    ACTIVITY_SEER_RCA_STARTED = "activity-seer-rca-started"
+    ACTIVITY_SEER_RCA_COMPLETED = "activity-seer-rca-completed"
+    ACTIVITY_SEER_SOLUTION_STARTED = "activity-seer-solution-started"
+    ACTIVITY_SEER_SOLUTION_COMPLETED = "activity-seer-solution-completed"
+    ACTIVITY_SEER_CODING_STARTED = "activity-seer-coding-started"
+    ACTIVITY_SEER_CODING_COMPLETED = "activity-seer-coding-completed"
+    ACTIVITY_SEER_PR_CREATED = "activity-seer-pr-created"
+
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
     NotificationCategory.DEBUG: [
@@ -108,6 +118,15 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
     ],
     NotificationCategory.SENTRY_APP: [
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
+    ],
+    NotificationCategory.WORKFLOW_ENGINE: [
+        NotificationSource.ACTIVITY_SEER_RCA_STARTED,
+        NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
+        NotificationSource.ACTIVITY_SEER_SOLUTION_STARTED,
+        NotificationSource.ACTIVITY_SEER_SOLUTION_COMPLETED,
+        NotificationSource.ACTIVITY_SEER_CODING_STARTED,
+        NotificationSource.ACTIVITY_SEER_CODING_COMPLETED,
+        NotificationSource.ACTIVITY_SEER_PR_CREATED,
     ],
 }
 
@@ -334,8 +353,8 @@ class CodeBlock(NotificationBodyFormattingBlock):
 
 @dataclass
 class BoldTextBlock(NotificationBodyTextBlock):
-    type: Literal[NotificationBodyTextBlockType.BOLD_TEXT]
     text: str
+    type: Literal[NotificationBodyTextBlockType.BOLD_TEXT] = NotificationBodyTextBlockType.BOLD_TEXT
 
 
 @dataclass

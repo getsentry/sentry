@@ -727,6 +727,11 @@ INITIAL_CUSTOM_USER_MIGRATION = "0108_fix_user"
 # Protect login/registration endpoints during development phase
 AUTH_V2_SECRET = os.environ.get("AUTH_V2_SECRET", None)
 
+# Used when signing signup email-verification links
+SIGNUP_VERIFICATION_EMAIL_SALT = os.environ.get(
+    "SIGNUP_VERIFICATION_EMAIL_SALT", "signup-verification-email-salt"
+)
+
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
     "github": ("GITHUB_APP_ID", "GITHUB_API_SECRET"),
@@ -1180,8 +1185,8 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "seer-night-shift": {
         "task": "seer:sentry.tasks.seer.night_shift.schedule_night_shift",
-        # Run daily at 10:00 AM UTC (2/3 AM Pacific)
-        "schedule": crontab("0", "10", "*", "*", "*"),
+        # Run every 12 hours, at 10:00 and 22:00 UTC
+        "schedule": crontab("0", "10,22", "*", "*", "*"),
     },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
