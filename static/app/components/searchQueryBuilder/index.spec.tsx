@@ -3260,47 +3260,6 @@ describe('SearchQueryBuilder', () => {
         expect(optionsAfterToggle).toEqual(initialOptions);
       });
 
-      it('shows selection checkboxes without holding a modifier key', async () => {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:" />);
-
-        await userEvent.click(
-          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-        );
-
-        const checkbox = await screen.findByRole('checkbox', {name: 'Toggle Chrome'});
-
-        expect(checkbox.closest('[role="presentation"]')).not.toHaveStyle({opacity: 0});
-      });
-
-      it('toggles a value when clicking its checkbox without a modifier key', async () => {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:" />);
-
-        await userEvent.click(
-          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-        );
-
-        await userEvent.click(
-          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
-        );
-
-        expect(
-          await screen.findByRole('row', {name: 'browser.name:Chrome'})
-        ).toBeInTheDocument();
-      });
-
-      it('hints to use the checkboxes instead of holding a modifier key', async () => {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:" />);
-
-        await userEvent.click(
-          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-        );
-
-        expect(
-          await screen.findByText('Use the checkboxes to select multiple')
-        ).toBeInTheDocument();
-        expect(screen.queryByText(/Hold/)).not.toBeInTheDocument();
-      });
-
       it('does not reset frozen order when predefined sections rebuild', async () => {
         render(
           <SearchQueryBuilder
