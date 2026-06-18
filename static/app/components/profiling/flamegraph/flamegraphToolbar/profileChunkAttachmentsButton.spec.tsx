@@ -54,7 +54,7 @@ describe('ProfileChunkAttachmentsButton', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders a single download button for one attachment', async () => {
+  it('downloads a single attachment from the dropdown', async () => {
     MockApiClient.addMockResponse({url: attachmentsUrl, body: [makeAttachment()]});
 
     render(<ProfileChunkAttachmentsButton />, {
@@ -62,35 +62,27 @@ describe('ProfileChunkAttachmentsButton', () => {
       initialRouterConfig: routerConfig,
     });
 
-    const link = await screen.findByRole('button', {name: 'Download Perfetto Trace'});
-    expect(link).toHaveAttribute(
+    await userEvent.click(await screen.findByRole('button', {name: 'Download'}));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Perfetto Trace'})
+    ).toHaveAttribute(
       'href',
       `/api/0/projects/${organization.slug}/${project.slug}/profiling/chunks/${PROFILER_ID}/11111111111111111111111111111111/attachments/1/?download=1`
     );
   });
 
-  it('uses a generic label for non-Perfetto attachments', async () => {
-    MockApiClient.addMockResponse({
-      url: attachmentsUrl,
-      body: [makeAttachment({name: 'thread.json', contentType: 'application/json'})],
-    });
-
-    render(<ProfileChunkAttachmentsButton />, {
-      organization,
-      initialRouterConfig: routerConfig,
-    });
-
-    expect(
-      await screen.findByRole('button', {name: 'Download Attachment'})
-    ).toBeInTheDocument();
-  });
-
-  it('renders a dropdown when several attachments are available', async () => {
+  it('labels attachments by chunk and content type', async () => {
     MockApiClient.addMockResponse({
       url: attachmentsUrl,
       body: [
-        makeAttachment({id: '1', name: 'first.perfetto'}),
-        makeAttachment({id: '2', name: 'second.perfetto', chunkId: '22222'}),
+        makeAttachment({id: '1', name: 'system.perfetto'}),
+        makeAttachment({
+          id: '2',
+          name: 'thread.json',
+          chunkId: '22222',
+          contentType: 'application/json',
+        }),
       ],
     });
 
@@ -99,19 +91,20 @@ describe('ProfileChunkAttachmentsButton', () => {
       initialRouterConfig: routerConfig,
     });
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Download Attachments'})
-    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Download'}));
 
+    // Items are labeled by content type, with "<chunkId> / <name>" as a detail.
     expect(
-      await screen.findByRole('menuitemradio', {name: 'first.perfetto'})
+      await screen.findByRole('menuitemradio', {name: 'Perfetto Trace'})
     ).toHaveAttribute(
       'href',
       `/api/0/projects/${organization.slug}/${project.slug}/profiling/chunks/${PROFILER_ID}/11111111111111111111111111111111/attachments/1/?download=1`
     );
     expect(
-      screen.getByRole('menuitemradio', {name: 'second.perfetto'})
+      screen.getByText('11111111111111111111111111111111 / system.perfetto')
     ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Attachment'})).toBeInTheDocument();
+    expect(screen.getByText('22222 / thread.json')).toBeInTheDocument();
   });
 
   it('disables download when the viewer lacks the attachments role', async () => {
@@ -125,8 +118,6 @@ describe('ProfileChunkAttachmentsButton', () => {
       initialRouterConfig: routerConfig,
     });
 
-    const link = await screen.findByRole('button', {name: 'Download Perfetto Trace'});
-    expect(link).toHaveAttribute('aria-disabled', 'true');
-    expect(link).not.toHaveAttribute('href');
+    expect(await screen.findByRole('button', {name: 'Download'})).toBeDisabled();
   });
 });
