@@ -23,6 +23,11 @@ from sentry.hybridcloud.models.outbox import (
     outbox_context,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.hybridcloud.rpc.service import RpcException
+from sentry.identity import default_manager as identity_manager
+from sentry.identity.mcp import McpIdentityProvider
+from sentry.identity.services.identity import identity_service
+from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -52,6 +57,7 @@ from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefini
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.tasks.seer.context_engine_index import build_service_map, index_org_project_knowledge
 from sentry.tasks.seer.explorer_index import dispatch_explorer_index_projects
 from sentry.users.models.user import User
@@ -108,6 +114,59 @@ def _has_context_engine(
     return features.has(
         "organizations:seat-based-seer-enabled", organization, actor=user
     ) or features.has("organizations:seer-added", organization, actor=user)
+
+
+def get_monitoring_provider_connections(
+    organization: Organization, user_id: int
+) -> list[dict[str, Any]]:
+    """Fetch the user's monitoring provider identities and build connection dicts for Seer."""
+    if not features.has("organizations:seer-infra-telemetry", organization):
+        return []
+
+    connections: list[dict[str, Any]] = []
+    for provider_type in MONITORING_PROVIDERS:
+        provider = identity_manager.get(provider_type)
+        if not isinstance(provider, McpIdentityProvider):
+            continue
+
+        try:
+            identities = identity_service.get_user_identities_by_provider_type(
+                user_id=user_id, provider_type=provider_type
+            )
+        except RpcException:
+            # Monitoring providers are optional enrichment. A control-silo RPC failure
+            # shouldn't fail a run--just move on to the next provider.
+            logger.warning(
+                "seer.monitoring_providers.fetch_failed",
+                extra={
+                    "organization_id": organization.id,
+                    "user_id": user_id,
+                    "provider": provider_type,
+                },
+                exc_info=True,
+            )
+            continue
+
+        for identity in identities:
+            access_token = identity.data.get("access_token")
+            if not access_token:
+                continue
+            url = provider.build_mcp_url(identity.data)
+            if not url:
+                continue
+            encrypted_access_token = encrypt_access_token_for_seer(access_token)
+            if not encrypted_access_token:
+                continue
+            connections.append(
+                {
+                    "provider_key": provider_type,
+                    "url": url,
+                    "encrypted_access_token": encrypted_access_token,
+                    "identity_id": identity.id,
+                }
+            )
+
+    return connections
 
 
 class SeerAgentClient:
@@ -585,6 +644,13 @@ class SeerAgentClient:
 
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
+
+        if self.user and not isinstance(self.user, AnonymousUser):
+            monitoring_provider_connections = get_monitoring_provider_connections(
+                self.organization, self.user.id
+            )
+            if monitoring_provider_connections:
+                chat_body["monitoring_providers"] = monitoring_provider_connections
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.

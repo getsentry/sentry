@@ -230,7 +230,7 @@ ALL_KILLSWITCH_OPTIONS = {
     ),
     "profiling.killswitch.ingest-profiles": KillswitchInfo(
         description="""
-        Drop profiles in the sentry.profiles.task.process_profile_from_kafka task.
+        Drop profiles in the ingest-profiles consumer.
 
         This happens after relay produces profiles to the topic but before a task
         is started to process/ingest to profile.

@@ -816,7 +816,6 @@ SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", No
 # Fallback cell name for monolith deployments
 # This cell name is also used by the ApiGateway to proxy org-less region
 # requests.
-SENTRY_MONOLITH_REGION: str = "--monolith--"
 SENTRY_FALLBACK_CELL: str = "--monolith--"
 
 # The key used for generating or verifying the HMAC signature for Integration Proxy Endpoint requests.
