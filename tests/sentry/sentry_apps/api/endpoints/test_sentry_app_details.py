@@ -752,10 +752,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             webhookHeaders=[
                 "Authorization: Bearer token",
                 "X-Example: value",
-                "User-Agent: custom-agent",
-                "Accept: application/json",
-                "Date: Tue, 10 Jun 2026 12:00:00 GMT",
-                "Prefer: respond-async",
+                "X-Custom-Header: another",
             ],
             status_code=200,
         )
@@ -763,18 +760,12 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert self.published_app.webhook_headers == [
             "Authorization: Bearer token",
             "X-Example: value",
-            "User-Agent: custom-agent",
-            "Accept: application/json",
-            "Date: Tue, 10 Jun 2026 12:00:00 GMT",
-            "Prefer: respond-async",
+            "X-Custom-Header: another",
         ]
         assert response.data["webhookHeaders"] == [
             f"Authorization: {MASKED_VALUE}",
             f"X-Example: {MASKED_VALUE}",
-            f"User-Agent: {MASKED_VALUE}",
-            f"Accept: {MASKED_VALUE}",
-            f"Date: {MASKED_VALUE}",
-            f"Prefer: {MASKED_VALUE}",
+            f"X-Custom-Header: {MASKED_VALUE}",
         ]
 
     @override_options({"staff.ga-rollout": True})

@@ -16,9 +16,9 @@ from sentry.sentry_apps.models.sentry_app import REQUIRED_EVENT_PERMISSIONS, UUI
 from sentry.sentry_apps.utils.webhooks import VALID_EVENT_RESOURCES
 from sentry.utils.display_name_filter import is_spam_display_name
 
-# Custom webhook headers are intentionally limited to application-level metadata
-# and common custom-header names. Names are compared case-insensitively.
-ALLOWED_WEBHOOK_HEADERS = frozenset({"authorization", "user-agent", "accept", "date", "prefer"})
+# Custom webhook headers are intentionally limited to Authorization and X-*
+# custom headers. Names are compared case-insensitively.
+ALLOWED_WEBHOOK_HEADERS = frozenset({"authorization"})
 
 # RFC 7230 §3.2.6 — header field names are "tokens": letters, digits, and
 # the limited punctuation set below. Excludes separators and control chars.
@@ -256,8 +256,8 @@ class SentryAppParser(Serializer):
                 raise ValidationError(f"'{name}' is a reserved header and cannot be overridden.")
             if normalized not in ALLOWED_WEBHOOK_HEADERS and not normalized.startswith("x-"):
                 raise ValidationError(
-                    f"'{name}' is not an allowed webhook header. Use Authorization, "
-                    "User-Agent, Accept, Date, Prefer, or X-* custom headers."
+                    f"'{name}' is not an allowed webhook header. Use Authorization "
+                    "or X-* custom headers."
                 )
             # Reject duplicate names (case-insensitive). This keeps the masked-value
             # round-trip unambiguous: the updater re-pairs masked entries to stored
