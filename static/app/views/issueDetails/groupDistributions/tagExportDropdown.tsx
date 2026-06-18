@@ -1,5 +1,3 @@
-import {useState} from 'react';
-
 import {Button} from '@sentry/scraps/button';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -18,9 +16,9 @@ interface Props {
 }
 
 export function TagExportDropdown({tagKey, group, organization, project}: Props) {
-  const [isExportDisabled, setIsExportDisabled] = useState(false);
   const hasDiscoverQuery = organization.features.includes('discover-query');
-  const handleDataExport = useDataExport();
+  const {mutate: handleDataExport, isPending, isSuccess} = useDataExport();
+  const isExportDisabled = isPending || isSuccess;
 
   return (
     <DropdownMenu
@@ -58,7 +56,6 @@ export function TagExportDropdown({tagKey, group, organization, project}: Props)
                 key: tagKey,
               },
             });
-            setIsExportDisabled(true);
           },
           disabled: isExportDisabled || !hasDiscoverQuery,
           tooltip: hasDiscoverQuery
