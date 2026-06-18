@@ -43,11 +43,9 @@ type Row = {
 type Summary = {
   end: string;
   legacy_count: number;
-  legacy_total_cents: number;
   over_threshold_count: number;
   over_threshold_pct: number;
   platform_count: number;
-  platform_total_cents: number;
   queried_at: string;
   row_count: number;
   rows_page: number;
@@ -435,11 +433,11 @@ export function InvoiceComparison() {
             <PanelHeader>Summary</PanelHeader>
             <PanelBody withPadding>
               <Grid
-                columns="repeat(8, 1fr)"
+                columns="repeat(4, 1fr)"
                 gap="xl"
                 css={css`
                   @media (max-width: 900px) {
-                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-columns: repeat(2, 1fr);
                   }
                 `}
               >
@@ -457,40 +455,6 @@ export function InvoiceComparison() {
                   </Text>
                   <Text size="lg" bold>
                     {data.summary.platform_count}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Legacy total
-                  </Text>
-                  <Text size="lg" bold>
-                    {formatDollars(data.summary.legacy_total_cents)}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Platform total
-                  </Text>
-                  <Text size="lg" bold>
-                    {formatDollars(data.summary.platform_total_cents)}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Total delta
-                  </Text>
-                  <Text size="lg" bold>
-                    {formatDollars(
-                      data.summary.legacy_total_cents - data.summary.platform_total_cents
-                    )}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Rows
-                  </Text>
-                  <Text size="lg" bold>
-                    {data.summary.row_count}
                   </Text>
                 </Flex>
                 <Flex direction="column">
