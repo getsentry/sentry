@@ -18,6 +18,7 @@ from sentry.utils.redis import (
     load_redis_script,
     validate_dynamic_cluster,
 )
+from sentry.utils.tracing import set_span_tag, start_span
 
 is_rate_limited = load_redis_script("quotas/is_rate_limited.lua")
 
@@ -73,8 +74,10 @@ class RedisQuota(Quota):
 
         results = [*self.get_abuse_quotas(project.organization)]
 
-        with sentry_sdk.start_span(op="redis.get_quotas.get_monitor_quota") as span:
-            span.set_tag("project.id", project.id)
+        with start_span(
+            op="redis.get_quotas.get_monitor_quota", name="redis.get_quotas.get_monitor_quota"
+        ) as span:
+            set_span_tag(span, "project.id", project.id)
             mrlquota = self.get_monitor_quota(project)
             if mrlquota[0] is not None:
                 results.append(
@@ -95,8 +98,10 @@ class RedisQuota(Quota):
             keys = []
 
         for key in keys:
-            with sentry_sdk.start_span(op="redis.get_quotas.get_key_quota") as span:
-                span.set_tag("key.id", key.id)
+            with start_span(
+                op="redis.get_quotas.get_key_quota", name="redis.get_quotas.get_key_quota"
+            ) as span:
+                set_span_tag(span, "key.id", key.id)
                 kquota = self.get_key_quota(key)
                 if kquota[0] is not None:
                     results.append(

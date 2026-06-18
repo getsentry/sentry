@@ -19,6 +19,7 @@ from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
+from sentry.utils.tracing import start_span
 
 
 @instrumented_task(
@@ -98,7 +99,7 @@ def reprocess_group(
 
     for event in events:
         if max_events is None or max_events > 0:
-            with sentry_sdk.start_span(op="reprocess_event"):
+            with start_span(op="reprocess_event", name="reprocess_event"):
                 try:
                     reprocess_event(
                         project_id=project_id,
