@@ -30,6 +30,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         messages=None,
         response_text=None,
         tool_name=None,
+        model=None,
         user_id=None,
         user_email=None,
         user_username=None,
@@ -84,6 +85,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.response.text"] = response_text
         if tool_name is not None:
             span_data["gen_ai.tool.name"] = tool_name
+        if model is not None:
+            span_data["gen_ai.request.model"] = model
         # New format attributes
         if input_messages is not None:
             span_data["gen_ai.input.messages"] = json.dumps(input_messages)
