@@ -9,7 +9,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {LinkedPullRequest} from 'sentry/types/integrations';
+import type {
+  LinkedPullRequest,
+  LinkedPullRequestsResponse,
+} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -21,10 +24,6 @@ import {
 } from './pullRequestStatusBadge';
 
 const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
-
-type LinkedPullRequestsResponse = {
-  pullRequests: LinkedPullRequest[];
-};
 
 interface LinkedPullRequestsProps {
   group: Group;
