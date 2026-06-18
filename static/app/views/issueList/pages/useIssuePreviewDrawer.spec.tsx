@@ -26,6 +26,10 @@ describe('useIssuePreviewDrawer', () => {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
   });
 
   it('sets the preview query param when opening a preview', async () => {
