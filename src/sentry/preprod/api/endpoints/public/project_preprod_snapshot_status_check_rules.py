@@ -38,7 +38,7 @@ class ProjectPreprodSnapshotStatusCheckRulesEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="listProjectPreprodSnapshotsStatusCheckRules",
+        operation_id="getProjectPreprodSnapshotStatusCheckRules",
         summary="Retrieve Snapshot status check rules for a project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
