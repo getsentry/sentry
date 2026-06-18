@@ -19,6 +19,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
 import type {Cell} from 'sentry/types/system';
 import {getCells} from 'sentry/utils/cells';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -445,10 +446,17 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
         // component state — fall back so probes always carry the search term.
         const query = queryParams.query ?? this.state.query;
         const normalizedQuery = extractQuery(query).trim();
-        // Only probe on the first page. A paginated empty page (cursor set) does
-        // not mean the current region has no matches — it has results on earlier
-        // pages — so probing there would falsely report "no results in <region>".
+
+        const pageLinks = resp?.getResponseHeader('Link') ?? '';
+        // We can only conclude that a region lacks an exact match when we're
+        // looking at its *complete* result set: the first page with no further
+        // pages. If results span multiple pages the exact slug could live on a
+        // page we haven't loaded, which would both produce a misleading "No
+        // exact match" hint and make the hint vanish the moment the user
+        // paginates. An empty result is naturally a complete set.
         const isFirstPage = !extractQuery(queryParams.cursor);
+        const hasNextPage = parseLinkHeader(pageLinks).next?.results === true;
+        const isCompleteResultSet = isFirstPage && !hasNextPage;
 
         // Probe other regions whenever the active region lacks an *exact* match
         // for the search. With an `exactMatchQuery` predicate this includes the
@@ -458,7 +466,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
         const isEmpty = rowsArray.length === 0;
         const missingExactMatch = Boolean(
           this.props.probeAcrossRegions &&
-          isFirstPage &&
+          isCompleteResultSet &&
           hasSearchQuery(query) &&
           (this.props.exactMatchQuery
             ? !rowsArray.some(row => this.props.exactMatchQuery!(row, normalizedQuery))
@@ -469,7 +477,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
           loading: false,
           error: false,
           rows,
-          pageLinks: resp?.getResponseHeader('Link') ?? '',
+          pageLinks,
           regionMatches: [],
           missingExactMatch,
         });

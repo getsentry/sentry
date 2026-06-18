@@ -157,6 +157,34 @@ describe('ResultGrid region probing', () => {
     await waitFor(() => expect(deRequest).toHaveBeenCalled());
   });
 
+  it('does not probe when results span multiple pages (exact slug may be on a later page)', async () => {
+    const exactMatchQuery = (row: any, query: string) => row.slug === query;
+
+    // The first page has only a similar slug, but a next page exists — the
+    // exact slug could live there, so we must not claim "no exact match".
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [{id: '1', name: 'Acme Inc', slug: 'acme-inc'}],
+      headers: {
+        Link:
+          '<https://us.example.com/api/0/_admin/cells/us/customers/?cursor=0:0:1>; ' +
+          'rel="previous"; results="false"; cursor="0:0:1", ' +
+          '<https://us.example.com/api/0/_admin/cells/us/customers/?cursor=0:100:0>; ' +
+          'rel="next"; results="true"; cursor="0:100:0"',
+      },
+    });
+    const deRequest = MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '2', name: 'Acme', slug: 'acme'}],
+    });
+
+    renderGrid('acme', {}, {exactMatchQuery});
+
+    expect(await screen.findByText('Acme Inc')).toBeInTheDocument();
+    expect(deRequest).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: 'View in de'})).not.toBeInTheDocument();
+  });
+
   it('does not probe when the exact slug is returned in the current region', async () => {
     const exactMatchQuery = (row: any, query: string) => row.slug === query;
 
