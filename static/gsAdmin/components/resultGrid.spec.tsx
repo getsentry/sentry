@@ -204,6 +204,27 @@ describe('ResultGrid region probing', () => {
     expect(screen.queryByRole('button', {name: 'View in de'})).not.toBeInTheDocument();
   });
 
+  it('normalizes the query before exactMatchQuery (uppercase search matches a lowercase slug)', async () => {
+    // The predicate compares against the query as-is; ResultGrid is responsible
+    // for trimming + lower-casing, so an uppercase search still matches.
+    const exactMatchQuery = (row: any, query: string) => row.slug === query;
+
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [{id: '1', name: 'Acme', slug: 'acme'}],
+    });
+    const deRequest = MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '2', name: 'Acme', slug: 'acme'}],
+    });
+
+    renderGrid('  ACME  ', {}, {exactMatchQuery});
+
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    expect(deRequest).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: 'View in de'})).not.toBeInTheDocument();
+  });
+
   it('does not show a hint when another region is also empty', async () => {
     MockApiClient.addMockResponse({
       url: '/_admin/cells/us/customers/',

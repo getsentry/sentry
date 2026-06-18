@@ -168,6 +168,10 @@ interface ResultGridProps {
    *
    * When omitted, cross-region probing falls back to the original behavior of
    * only probing when the active region returns no results at all.
+   *
+   * `query` is passed pre-normalized: trimmed and lower-cased. Implementations
+   * should compare against an already-normalized field (e.g. an org slug, which
+   * is always lower-case) and must not re-normalize the query themselves.
    */
   exactMatchQuery?: (row: any, query: string) => boolean;
   /**
@@ -445,7 +449,9 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
         // The query lives in the URL when useQueryString is on, otherwise in
         // component state — fall back so probes always carry the search term.
         const query = queryParams.query ?? this.state.query;
-        const normalizedQuery = extractQuery(query).trim();
+        // Normalize once (trim + lower-case) so `exactMatchQuery` implementations
+        // can compare against an already-normalized field without re-normalizing.
+        const normalizedQuery = extractQuery(query).trim().toLowerCase();
 
         const pageLinks = resp?.getResponseHeader('Link') ?? '';
         // We can only conclude that a region lacks an exact match when we're
