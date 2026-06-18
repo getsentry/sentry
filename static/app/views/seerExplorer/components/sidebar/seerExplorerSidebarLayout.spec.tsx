@@ -6,6 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
+import * as analytics from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import * as useDimensionsModule from 'sentry/utils/useDimensions';
 import type {OpenSeerExplorerDrawerOptions} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
@@ -289,6 +290,22 @@ describe('SeerExplorerSidebarLayout', () => {
     // submit again, even though the sidebar content stays mounted.
     await userEvent.click(screen.getByText('open-seer'));
     await waitFor(() => expect(defaultHookReturn.sendMessage).toHaveBeenCalledTimes(2));
+  });
+
+  it('tracks the global-panel-opened analytics when the sidebar opens', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    mockWideScreen(true);
+    renderSidebar(orgWithSidebar);
+
+    await userEvent.click(screen.getByText('open-seer'));
+    await screen.findByTestId('seer-explorer-input');
+
+    await waitFor(() =>
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'seer.explorer.global_panel.opened',
+        expect.objectContaining({isDrawer: false})
+      )
+    );
   });
 
   it('closes the sidebar from the close button', async () => {

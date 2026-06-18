@@ -20,9 +20,11 @@ import {
   usePictureInPicture,
 } from '@sentry/scraps/pictureInPicture';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {
   type OpenSeerExplorerDrawerOptions,
@@ -211,10 +213,20 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   const isOpen = isSidebarMode ? isSidebarOpen : isDrawerOpen;
 
+  const organization = useOrganization({allowNull: true});
   const {getPageReferrer} = usePageReferrer();
 
   const {pipWindow, closePipWindow} = usePictureInPicture();
   const isPoppedOut = pipWindow !== null;
+
+  const openSidebar = useCallback(() => {
+    setIsSidebarOpen(true);
+    trackAnalytics('seer.explorer.global_panel.opened', {
+      referrer: getPageReferrer(),
+      organization,
+      isDrawer: false,
+    });
+  }, [getPageReferrer, organization]);
 
   // Re-open the active surface (sidebar or drawer) whenever the PiP window closes
   // (native controls, dock button, or programmatically) — unless a full close
@@ -231,12 +243,12 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         return;
       }
       if (isSidebarMode) {
-        setIsSidebarOpen(true);
+        openSidebar();
       } else {
         openSeerExplorerDrawer();
       }
     }
-  }, [isPoppedOut, isSidebarMode, openSeerExplorerDrawer]);
+  }, [isPoppedOut, isSidebarMode, openSidebar, openSeerExplorerDrawer]);
 
   const openSeerExplorer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
@@ -263,12 +275,12 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
           dispatch({type: 'set run id', payload: null});
         }
         setSidebarInitialQuery(initialQuery);
-        setIsSidebarOpen(true);
+        openSidebar();
         return;
       }
       openSeerExplorerDrawer(drawerOptions);
     },
-    [pipWindow, isSidebarMode, dispatch, openSeerExplorerDrawer]
+    [pipWindow, isSidebarMode, dispatch, openSidebar, openSeerExplorerDrawer]
   );
 
   const closeSeerExplorer = useCallback(() => {
@@ -300,12 +312,21 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         // Drop any forwarded query on close so reopening via toggle (which
         // forwards none) doesn't auto-submit a stale value.
         setSidebarInitialQuery(undefined);
+        setIsSidebarOpen(false);
+      } else {
+        openSidebar();
       }
-      setIsSidebarOpen(!isSidebarOpen);
       return;
     }
     toggleSeerExplorerDrawer();
-  }, [pipWindow, isSidebarMode, isSidebarOpen, closePipWindow, toggleSeerExplorerDrawer]);
+  }, [
+    pipWindow,
+    isSidebarMode,
+    isSidebarOpen,
+    closePipWindow,
+    openSidebar,
+    toggleSeerExplorerDrawer,
+  ]);
 
   const {apiData} = useSeerExplorerPolling({runId});
   const blocks = apiData?.session?.blocks;
