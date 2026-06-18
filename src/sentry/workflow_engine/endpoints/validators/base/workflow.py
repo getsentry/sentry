@@ -137,12 +137,27 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             c.get("type") == Condition.SEER_ACTIVITY_TRIGGER for c in triggers.get("conditions", [])
         )
 
+    def _existing_workflow_has_seer_activity_trigger(self) -> bool:
+        from sentry.workflow_engine.models import DataCondition
+
+        workflow: Workflow | None = self.context.get("workflow")
+        if workflow is None or workflow.when_condition_group_id is None:
+            return False
+        return DataCondition.objects.filter(
+            condition_group_id=workflow.when_condition_group_id,
+            type=Condition.SEER_ACTIVITY_TRIGGER,
+        ).exists()
+
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         from sentry.notifications.notification_action.activity_registry.base import (
             get_supported_action_types,
         )
 
-        if not self._has_seer_activity_trigger(attrs.get("triggers")):
+        has_activity_trigger = self._has_seer_activity_trigger(attrs.get("triggers"))
+        if not has_activity_trigger and "triggers" not in attrs:
+            has_activity_trigger = self._existing_workflow_has_seer_activity_trigger()
+
+        if not has_activity_trigger:
             return attrs
 
         supported_action_types = get_supported_action_types()
