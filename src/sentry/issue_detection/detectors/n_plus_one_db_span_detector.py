@@ -123,6 +123,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             op.startswith("db")
             and not op.startswith("db.redis")
             and not op.startswith("db.connection")
+            and not op.startswith("db.cursor")
         )
 
     def _maybe_use_as_source(self, span: Span) -> None:
