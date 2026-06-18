@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import {useQueryState} from 'nuqs';
 
@@ -36,21 +36,12 @@ export type AttributeDistribution = Array<{
   values: Array<{label: string; value: number}>;
 }>;
 
-type PaginationState = {
-  cursor: string | undefined;
-  page: number;
-};
-
 export function AttributeDistribution() {
   const [searchQuery, setSearchQuery] = useQueryState('attributeBreakdownsSearch');
 
-  // Little unconventional, but the /trace-items/stats/ endpoint but recommends fetching
-  // more data than we need to display the current page. We maintain a cursor to fetch the next page,
-  // and a page index to display the current page, from the accumulated data.
-  const [pagination, setPagination] = useState<PaginationState>({
-    cursor: undefined,
-    page: 0,
-  });
+  // The /trace-items/stats/ endpoint is cursor-paginated. We keep the current page's
+  // cursor in the URL and drive the prev/next buttons off the Link header it returns.
+  const [cursor, setCursor] = useQueryState('attributeBreakdownsCursor');
 
   const query = useQueryParamsQuery();
   const onAction = useAttributeBreakdownsTooltipAction();
@@ -109,7 +100,7 @@ export function AttributeDistribution() {
     isLoading: isAttributeBreakdownsLoading,
     error: attributeBreakdownsError,
   } = useAttributeBreakdowns({
-    cursor: pagination.cursor,
+    cursor: cursor ?? undefined,
     substringMatch: debouncedSearchQuery,
   });
 
@@ -122,10 +113,10 @@ export function AttributeDistribution() {
     }
   }, [attributeBreakdownsData, isAttributeBreakdownsLoading, refetchCohortCount]);
 
-  // Reset pagination on any query change
+  // Reset the cursor back to the first page on any query change
   useEffect(() => {
-    setPagination({cursor: undefined, page: 0});
-  }, [debouncedSearchQuery, selection, query]);
+    setCursor(null);
+  }, [debouncedSearchQuery, selection, query, setCursor]);
 
   const parsedLinks = parseLinkHeader(attributeBreakdownsPageLinks);
 
@@ -177,48 +168,33 @@ export function AttributeDistribution() {
         ) : uniqueAttributeDistribution.length > 0 ? (
           <Fragment>
             <AttributeBreakdownsComponent.ChartsGrid>
-              {uniqueAttributeDistribution
-                .slice(
-                  pagination.page * CHARTS_PER_PAGE,
-                  (pagination.page + 1) * CHARTS_PER_PAGE
-                )
-                .map(distribution => (
-                  <Chart
-                    key={distribution.attributeName}
-                    attributeDistribution={distribution}
-                    cohortCount={cohortCount}
-                    theme={theme}
-                    query={query}
-                    actions={{
-                      htmlRenderer: (value: string) =>
-                        tooltipActionsHtmlRenderer(
-                          value,
-                          distribution.attributeName,
-                          theme
-                        ),
-                      onAction,
-                    }}
-                  />
-                ))}
+              {uniqueAttributeDistribution.slice(0, CHARTS_PER_PAGE).map(distribution => (
+                <Chart
+                  key={distribution.attributeName}
+                  attributeDistribution={distribution}
+                  cohortCount={cohortCount}
+                  theme={theme}
+                  query={query}
+                  actions={{
+                    htmlRenderer: (value: string) =>
+                      tooltipActionsHtmlRenderer(
+                        value,
+                        distribution.attributeName,
+                        theme
+                      ),
+                    onAction,
+                  }}
+                />
+              ))}
             </AttributeBreakdownsComponent.ChartsGrid>
             <AttributeBreakdownsComponent.Pagination
-              isPrevDisabled={pagination.page === 0}
-              isNextDisabled={
-                pagination.page ===
-                Math.ceil(uniqueAttributeDistribution.length / CHARTS_PER_PAGE) - 1
-              }
+              isPrevDisabled={parsedLinks.previous?.results === false}
+              isNextDisabled={parsedLinks.next?.results === false}
               onPrevClick={() => {
-                setPagination({...pagination, page: pagination.page - 1});
+                setCursor(parsedLinks.previous?.cursor ?? null);
               }}
               onNextClick={() => {
-                if (parsedLinks.next?.results) {
-                  setPagination({
-                    cursor: parsedLinks.next?.cursor,
-                    page: pagination.page + 1,
-                  });
-                } else {
-                  setPagination({...pagination, page: pagination.page + 1});
-                }
+                setCursor(parsedLinks.next?.cursor ?? null);
               }}
             />
           </Fragment>
