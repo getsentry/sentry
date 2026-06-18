@@ -9,11 +9,20 @@ import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
  */
 export function SeerExplorerPanel() {
   const {getPageReferrer} = usePageReferrer();
-  const {closeSeerExplorer, sidebarPosition, setSidebarPosition, sidebarInitialQuery} =
-    useSeerExplorerContext();
+  const {
+    closeSeerExplorer,
+    sidebarPosition,
+    setSidebarPosition,
+    sidebarInitialQuery,
+    sidebarKey,
+  } = useSeerExplorerContext();
 
   return (
+    // Remount on each forwarded query so a re-forwarded query auto-submits again
+    // (the content's submit guard resets on mount), mirroring how the drawer
+    // remounts per open.
     <SeerExplorerContent
+      key={sidebarKey}
       getPageReferrer={getPageReferrer}
       initialQuery={sidebarInitialQuery}
       onClose={closeSeerExplorer}

@@ -276,6 +276,21 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(defaultHookReturn.sendMessage).toHaveBeenCalledTimes(1);
   });
 
+  it('re-submits the same query when re-forwarded while open', async () => {
+    mockWideScreen(true);
+    renderSidebar(orgWithSidebar, {initialQuery: 'find the bug'});
+
+    // First forward auto-submits once.
+    await userEvent.click(screen.getByText('open-seer'));
+    await screen.findByTestId('seer-explorer-input');
+    await waitFor(() => expect(defaultHookReturn.sendMessage).toHaveBeenCalledTimes(1));
+
+    // Forwarding the same query again (palette) starts a fresh session and must
+    // submit again, even though the sidebar content stays mounted.
+    await userEvent.click(screen.getByText('open-seer'));
+    await waitFor(() => expect(defaultHookReturn.sendMessage).toHaveBeenCalledTimes(2));
+  });
+
   it('closes the sidebar from the close button', async () => {
     mockWideScreen(true);
     renderSidebar(orgWithSidebar);

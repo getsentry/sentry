@@ -200,9 +200,10 @@ export function SeerExplorerContent({
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
 
   // Auto-submit the initial query forwarded from the command palette, but only
-  // if the session is still empty (don't clobber an active run). Tracking the
-  // last submitted query string (not just a boolean) lets a new query trigger
-  // a fresh submission when the drawer is reopened with a different query.
+  // if the session is still empty (don't clobber an active run). The ref dedupes
+  // within a single mount; each *new* forward remounts this component (the drawer
+  // via `openDrawer`, the sidebar via a `key` on the forward nonce), which resets
+  // the ref and re-arms the submit.
   const lastAutoSubmittedQueryRef = useRef<string | null>(null);
   useEffect(() => {
     const query = initialQuery?.trim();

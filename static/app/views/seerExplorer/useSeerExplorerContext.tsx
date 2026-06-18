@@ -72,6 +72,11 @@ type SeerExplorerContextValue = {
    * palette. Only meaningful in sidebar mode.
    */
   sidebarInitialQuery: string | undefined;
+  /**
+   * Increments on each forwarded query so the (always-mounted) sidebar content
+   * resubmits a re-forwarded query. Only meaningful in sidebar mode.
+   */
+  sidebarKey: number;
   sidebarPosition: SeerExplorerSidebarPosition;
   toggleSeerExplorer: () => void;
   unreadCount: number;
@@ -86,6 +91,7 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   sidebarContainerRef: {current: null},
   setSidebarPosition: () => {},
   sidebarInitialQuery: undefined,
+  sidebarKey: 0,
   sidebarPosition: 'auto',
   toggleSeerExplorer: () => {},
   unreadCount: 0,
@@ -186,11 +192,13 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     isSidebarOpenRef.current = isSidebarOpen;
   }, [isSidebarOpen]);
   // Query forwarded from the command palette to auto-submit into the persistent
-  // sidebar content (mirrors the drawer's `initialQuery` prop). The content's
-  // own `lastAutoSubmittedQueryRef` guard prevents resubmitting a stale value.
+  // sidebar content (mirrors the drawer's `initialQuery` prop). The nonce bumps
+  // on each forward so the content resubmits a re-forwarded query even though it
+  // stays mounted (the drawer gets this for free by remounting per open).
   const [sidebarInitialQuery, setSidebarInitialQuery] = useState<string | undefined>(
     undefined
   );
+  const [sidebarKey, setSidebarKey] = useState(0);
   const [sidebarPosition, setSidebarPosition] =
     useLocalStorageState<SeerExplorerSidebarPosition>(
       'seer-explorer-sidebar-position',
@@ -243,8 +251,10 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         const {runId: openRunId, startNewRun, initialQuery} = drawerOptions ?? {};
         if (initialQuery) {
           // Always start a fresh session so the query auto-submits into an empty
-          // conversation, even if the sidebar is already open with a run.
+          // conversation, even if the sidebar is already open with a run. Bump
+          // the nonce so re-forwarding the same query submits again.
           dispatch({type: 'set run id', payload: null});
+          setSidebarKey(n => n + 1);
         } else if (isSidebarOpenRef.current) {
           return;
         } else if (openRunId !== undefined) {
@@ -394,6 +404,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       sessionState,
       sidebarContainerRef,
       sidebarInitialQuery,
+      sidebarKey,
       sidebarPosition,
       setSidebarPosition,
       unreadCount,
@@ -406,6 +417,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       toggleSeerExplorer,
       sessionState,
       sidebarInitialQuery,
+      sidebarKey,
       sidebarPosition,
       setSidebarPosition,
       unreadCount,
@@ -465,6 +477,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
                 the drawer content otherwise. */}
             {isSidebarMode ? (
               <SeerExplorerContent
+                key={sidebarKey}
                 getPageReferrer={getPageReferrer}
                 initialQuery={sidebarInitialQuery}
                 onClose={closeSeerExplorer}
