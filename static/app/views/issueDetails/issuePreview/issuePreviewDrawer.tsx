@@ -17,6 +17,7 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -74,24 +75,33 @@ function IssuePreviewContent({
   const secondaryTitle = getMessage(group);
 
   return (
-    <Container paddingBottom="lg" borderBottom="muted">
-      <Flex direction="column" gap="xs">
-        <div>
-          <Tooltip
-            title={primaryTitle}
-            skipWrapper
-            isHoverable
-            showOnlyOnOverflow
-            delay={1000}
-          >
-            <Heading as="h3" size="lg" ellipsis>
-              {primaryTitle}
-            </Heading>
-          </Tooltip>
-          <EventMessage level={group.level} message={secondaryTitle} type={group.type} />
-        </div>
-        <GroupStatusSubtitle group={group} project={project} />
+    <Fragment>
+      <Container paddingBottom="lg" borderBottom="muted">
+        <Flex direction="column" gap="xs">
+          <div>
+            <Tooltip
+              title={primaryTitle}
+              skipWrapper
+              isHoverable
+              showOnlyOnOverflow
+              delay={1000}
+            >
+              <Heading as="h3" size="lg" ellipsis>
+                {primaryTitle}
+              </Heading>
+            </Tooltip>
+            <EventMessage
+              level={group.level}
+              message={secondaryTitle}
+              type={group.type}
+            />
+          </div>
+          <GroupStatusSubtitle group={group} project={project} />
+        </Flex>
+      </Container>
+      <Flex paddingTop="lg" align="center" wrap="wrap" gap="xs">
+        <GroupActions group={group} project={project} disabled={false} event={null} />
       </Flex>
-    </Container>
+    </Fragment>
   );
 }
