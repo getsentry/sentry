@@ -20,7 +20,7 @@ class OrganizationGroupIndexProgressTest(APITestCase):
         )
         assert response.data == {"results": {str(group.id): {"progress": "identified"}}}
 
-    def test_triaged_when_assigned(self) -> None:
+    def test_assigned_when_assigned(self) -> None:
         group = self.create_group(project=self.project)
         GroupAssignee.objects.assign(group, self.user)
 
@@ -28,7 +28,7 @@ class OrganizationGroupIndexProgressTest(APITestCase):
             self.organization.slug,
             groups=[group.id],
         )
-        assert response.data == {"results": {str(group.id): {"progress": "triaged"}}}
+        assert response.data == {"results": {str(group.id): {"progress": "assigned"}}}
 
     def test_diagnosed(self) -> None:
         group = self.create_group(project=self.project)
@@ -52,7 +52,7 @@ class OrganizationGroupIndexProgressTest(APITestCase):
         assert response.data == {
             "results": {
                 str(group_a.id): {"progress": "identified"},
-                str(group_b.id): {"progress": "triaged"},
+                str(group_b.id): {"progress": "assigned"},
             }
         }
 

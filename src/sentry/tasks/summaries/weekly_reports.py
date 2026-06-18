@@ -459,20 +459,20 @@ class _DuplicateDeliveryCheck:
         return is_duplicate_detected
 
 
-project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
+project_breakdown_colors = ["#7553FF", "#7C2282", "#F0369A", "#FF9838", "#FFD00E"]
 total_color = """
 linear-gradient(
     -45deg,
-    #ccc 25%,
+    #A29FAA 25%,
     transparent 25%,
     transparent 50%,
-    #ccc 50%,
-    #ccc 75%,
+    #A29FAA 50%,
+    #A29FAA 75%,
     transparent 75%,
     transparent
 );
 """
-other_color = "#f2f0fa"
+other_color = "#DAD9DE"
 group_status_to_color = {
     GroupHistoryStatus.UNRESOLVED: "#FAD473",
     GroupHistoryStatus.RESOLVED: "#8ACBBC",
@@ -513,19 +513,47 @@ def _pct_change(current: int, previous: int) -> str | None:
 
 def get_group_status_badge(group: Group) -> tuple[str, str, str]:
     """
-    Returns a tuple of (text, background_color, border_color)
-    Should be similar to GroupStatusBadge.tsx in the frontend
+    Returns a tuple of (text, background_color, text_color)
+    Matches frontend Tag component: background.transparent.*.muted blended on white, content.* text.
     """
     if group.status == GroupStatus.RESOLVED:
-        return ("Resolved", "rgba(108, 95, 199, 0.08)", "rgba(108, 95, 199, 0.5)")
+        return ("Resolved", "#E3F7E3", "#008900")
     if group.status == GroupStatus.UNRESOLVED:
         if group.substatus == GroupSubStatus.NEW:
-            return ("New", "rgba(245, 176, 0, 0.08)", "rgba(245, 176, 0, 0.55)")
+            return ("New", "#F9F0D2", "#A45200")
         if group.substatus == GroupSubStatus.REGRESSED:
-            return ("Regressed", "rgba(108, 95, 199, 0.08)", "rgba(108, 95, 199, 0.5)")
+            return ("Regressed", "#EDEEFE", "#653DE9")
         if group.substatus == GroupSubStatus.ESCALATING:
-            return ("Escalating", "rgba(245, 84, 89, 0.09)", "rgba(245, 84, 89, 0.5)")
-    return ("Ongoing", "rgba(219, 214, 225, 1)", "rgba(219, 214, 225, 1)")
+            return ("Escalating", "#FEE7E4", "#D50000")
+    return ("Ongoing", "#F0F0F2", "#6A6772")
+
+
+def get_group_display(group: Group) -> dict[str, str]:
+    metadata = group.get_event_metadata()
+    event_type = group.get_event_type()
+    custom_title = metadata.get("title")
+
+    if event_type == "error":
+        title = (
+            custom_title
+            if custom_title and custom_title != "<unlabeled event>"
+            else metadata.get("type") or metadata.get("function") or "<unknown>"
+        )
+        message = metadata.get("value")
+    elif event_type in ("transaction", "generic"):
+        title = custom_title or group.title
+        message = metadata.get("value")
+    elif event_type == "csp":
+        title = custom_title or metadata.get("directive") or ""
+        message = metadata.get("message")
+    else:
+        title = custom_title or group.title
+        message = group.culprit
+
+    return {
+        "title": title,
+        "message": message or group.message or "",
+    }
 
 
 def get_local_dates(ctx: OrganizationReportContext, user_id: int) -> tuple[datetime, datetime]:
@@ -681,20 +709,23 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         def all_key_errors():
             for project_ctx in user_projects:
                 for group, count in project_ctx.key_errors_by_group:
+                    display = get_group_display(group)
                     (
                         substatus,
                         substatus_color,
-                        substatus_border_color,
+                        substatus_text_color,
                     ) = get_group_status_badge(group)
 
                     yield {
                         "count": count,
                         "group": group,
+                        "title": display["title"],
+                        "message": display["message"],
                         "status": "Unresolved",
                         "status_color": (group_status_to_color[GroupHistoryStatus.NEW]),
                         "group_substatus": substatus,
                         "group_substatus_color": substatus_color,
-                        "group_substatus_border_color": substatus_border_color,
+                        "group_substatus_text_color": substatus_text_color,
                     }
 
         return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
@@ -723,9 +754,17 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         def all_key_performance_issues():
             for project_ctx in user_projects:
                 for group, group_history, count in project_ctx.key_performance_issues:
+                    display = get_group_display(group)
+                    (
+                        substatus,
+                        substatus_color,
+                        substatus_text_color,
+                    ) = get_group_status_badge(group)
                     yield {
                         "count": count,
                         "group": group,
+                        "title": display["title"],
+                        "message": display["message"],
                         "status": (
                             group_history.get_status_display() if group_history else "Unresolved"
                         ),
@@ -734,6 +773,9 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                             if group_history
                             else group_status_to_color[GroupHistoryStatus.NEW]
                         ),
+                        "group_substatus": substatus,
+                        "group_substatus_color": substatus_color,
+                        "group_substatus_text_color": substatus_text_color,
                     }
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])

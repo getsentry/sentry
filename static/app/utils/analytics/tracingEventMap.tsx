@@ -50,13 +50,6 @@ export type TracingEventParameters = {
     cross_event_metric_query_count?: number;
     cross_event_span_query_count?: number;
   };
-  'trace.explorer.schema_hints_click': {
-    source: 'list' | 'drawer';
-    hint_key?: string;
-  };
-  'trace.explorer.schema_hints_drawer': {
-    drawer_open: boolean;
-  };
   'trace.explorer.table_pagination': {
     direction: string;
     num_results: number;
@@ -229,10 +222,6 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.cross_event_added': 'Trace Explorer: Cross Event Added',
   'trace.explorer.cross_event_changed': 'Trace Explorer: Cross Event Changed',
   'trace.explorer.cross_event_removed': 'Trace Explorer: Cross Event Removed',
-  'trace.explorer.schema_hints_click':
-    'Improved Trace Explorer: Schema Hints Click Events',
-  'trace.explorer.schema_hints_drawer':
-    'Improved Trace Explorer: Schema Hints Drawer Events',
   'trace.explorer.table_pagination': 'Trace Explorer Table Pagination',
   'trace.explorer.table_tab_changed': 'Trace Explorer: Table Tab Changed',
   'trace.trace_layout.change': 'Changed Trace Layout',
