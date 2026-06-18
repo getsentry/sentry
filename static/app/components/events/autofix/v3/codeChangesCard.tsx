@@ -78,7 +78,15 @@ type DistributiveOmit<T, K extends keyof any> = T extends unknown ? Omit<T, K> :
 function parseFeedback(
   raw: string
 ): DistributiveOmit<IterationFeedback, 'iterationIndex'> | null {
-  const parsed: {text: string; timestamp?: string; source?: {type: string; user?: User; comment?: {user?: {login: string}; html_url?: string}}} = JSON.parse(raw);
+  const parsed: {
+    text: string;
+    source?: {
+      type: string;
+      comment?: {html_url?: string; user?: {login: string}};
+      user?: User;
+    };
+    timestamp?: string;
+  } = JSON.parse(raw);
   const base = {text: parsed.text, timestamp: parsed.timestamp};
   switch (parsed.source?.type) {
     case 'user-ui':

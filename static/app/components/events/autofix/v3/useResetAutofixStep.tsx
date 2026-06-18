@@ -1,14 +1,13 @@
 import {useMemo, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {t} from 'sentry/locale';
-
 import {
   isRunValidForPrIteration,
   type AutofixExplorerStep,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {t} from 'sentry/locale';
 
 interface UseResetAutofixStepOptions {
   autofix: ReturnType<typeof useExplorerAutofix>;
