@@ -727,6 +727,11 @@ INITIAL_CUSTOM_USER_MIGRATION = "0108_fix_user"
 # Protect login/registration endpoints during development phase
 AUTH_V2_SECRET = os.environ.get("AUTH_V2_SECRET", None)
 
+# Used when signing signup email-verification links
+SIGNUP_VERIFICATION_EMAIL_SALT = os.environ.get(
+    "SIGNUP_VERIFICATION_EMAIL_SALT", "signup-verification-email-salt"
+)
+
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
     "github": ("GITHUB_APP_ID", "GITHUB_API_SECRET"),
