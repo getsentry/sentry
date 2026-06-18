@@ -1,5 +1,7 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
+import {LinkButton} from '@sentry/scraps/button';
+
 import {useRole} from 'sentry/components/acl/useRole';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconDownload} from 'sentry/icons';
@@ -8,13 +10,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 // Content type Relay tags Perfetto system traces with when forwarding them as
 // profile-chunk attachments. Used to give the download a more specific label.
-// https://github.com/getsentry/relay/blob/d4526eabd7f5579ecfc6aa53ce5227d6fd493136/relay-server/src/envelope/content_type.rs#L65
 const PERFETTO_TRACE_CONTENT_TYPE = 'application/x-perfetto-trace';
 
 interface ProfileChunkAttachment {
@@ -36,8 +36,9 @@ function getDownloadUrl(
 
 /**
  * Lists the attachments (e.g. Perfetto traces) for the profiler currently in
- * view and lets the user download them via a dropdown. Renders nothing unless
- * there is at least one attachment across the visible chunks.
+ * view and lets the user download them. Renders nothing unless there is at
+ * least one attachment: a single button when there is exactly one, and a
+ * dropdown when several are available across the visible chunks.
  *
  * Listing is unscoped, but downloading requires the org's attachments role
  * (enforced by the download endpoint), so the controls are disabled with a
@@ -49,9 +50,10 @@ export function ProfileChunkAttachmentsButton() {
   const project = useCurrentProjectFromRouteParam();
   const {hasRole: hasAttachmentRole} = useRole({role: 'attachmentsRole'});
 
-  const profilerId = decodeScalar(location.query.profilerId);
-  const start = decodeScalar(location.query.start);
-  const end = decodeScalar(location.query.end);
+  const profilerId =
+    typeof location.query.profilerId === 'string' ? location.query.profilerId : null;
+  const start = typeof location.query.start === 'string' ? location.query.start : null;
+  const end = typeof location.query.end === 'string' ? location.query.end : null;
 
   const enabled = Boolean(project && profilerId && start && end);
 
@@ -76,31 +78,40 @@ export function ProfileChunkAttachmentsButton() {
     return null;
   }
 
+  const noPermissionTitle = t('Insufficient permissions to download attachments');
+
+  if (attachments.length === 1) {
+    const attachment = attachments[0]!;
+    const label =
+      attachment.contentType === PERFETTO_TRACE_CONTENT_TYPE
+        ? t('Download Perfetto Trace')
+        : t('Download Attachment');
+    return (
+      <LinkButton
+        size="xs"
+        icon={<IconDownload />}
+        href={hasAttachmentRole ? getDownloadUrl(organization, project, attachment) : ''}
+        disabled={!hasAttachmentRole}
+        tooltipProps={{title: hasAttachmentRole ? undefined : noPermissionTitle}}
+      >
+        {label}
+      </LinkButton>
+    );
+  }
+
   return (
     <DropdownMenu
       size="xs"
-      triggerLabel={t('Download')}
+      triggerLabel={t('Download Attachments')}
       triggerProps={{
         icon: <IconDownload />,
-        ...(hasAttachmentRole
-          ? {}
-          : {
-              tooltipProps: {
-                title: t(
-                  'Insufficient permissions. Ask your org admin to download attachments on your behalf or grant you the required permission.'
-                ),
-              },
-            }),
+        ...(hasAttachmentRole ? {} : {tooltipProps: {title: noPermissionTitle}}),
       }}
       isDisabled={!hasAttachmentRole}
       position="bottom-end"
       items={attachments.map(attachment => ({
         key: attachment.id,
-        label:
-          attachment.contentType === PERFETTO_TRACE_CONTENT_TYPE
-            ? t('Perfetto Trace')
-            : t('Attachment'),
-        details: `${attachment.chunkId} / ${attachment.name}`,
+        label: attachment.name,
         externalHref: getDownloadUrl(organization, project, attachment),
       }))}
     />
