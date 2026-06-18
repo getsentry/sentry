@@ -91,6 +91,7 @@ interface Props {
   clickBehavior?: 'navigate' | 'preview';
   headerActions?: ReactNode;
   initialQuery?: string;
+  initialSort?: IssueSortOptions;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
@@ -139,6 +140,7 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
 
 function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
+  initialSort = DEFAULT_ISSUE_STREAM_SORT,
   shouldFetchOnMount = true,
   title = t('Issues'),
   titleDescription,
@@ -223,10 +225,7 @@ function IssueListOverviewInner({
   const query = defined(location.query.query)
     ? (decodeScalar(location.query.query) ?? '')
     : initialQuery;
-  const sort = decodeScalar(
-    location.query.sort,
-    DEFAULT_ISSUE_STREAM_SORT
-  ) as IssueSortOptions;
+  const sort = decodeScalar(location.query.sort, initialSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
     const currentPeriod = decodeScalar(
