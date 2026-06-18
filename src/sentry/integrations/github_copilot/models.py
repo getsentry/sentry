@@ -108,3 +108,4 @@ class GithubPRFromGraphQL(BaseModel):
     number: int
     title: str
     url: str
+    database_id: int

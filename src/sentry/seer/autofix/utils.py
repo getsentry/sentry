@@ -1,4 +1,5 @@
 import logging
+import re
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
 from datetime import UTC, datetime
@@ -22,6 +23,7 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import integration_service
 from sentry.issues.auto_source_code_config.code_mapping import (
     get_sorted_code_mapping_configs,
 )
@@ -146,6 +148,7 @@ class CodingAgentResult(BaseModel):
     description: str
     repo_provider: str
     repo_full_name: str
+    pr_id: int | None = None
     pr_url: str | None = None
     branch_name: str | None = None
 
@@ -1081,3 +1084,47 @@ def update_coding_agent_state(
         return False
 
     return True
+
+
+def parse_github_pr_url(pr_url: str) -> tuple[str, str] | None:
+    """Extract ``(repo_full_name, pull_number)`` from a GitHub PR URL."""
+    match = re.match(r"https://github\.com/([^/]+/[^/]+)/pull/(\d+)", pr_url)
+    if not match:
+        return None
+    return match.group(1), match.group(2)
+
+
+def fetch_github_pr_database_id(org_id: int, pr_url: str) -> int | None:
+    """Best-effort fetch of the GitHub PR database ID from a PR URL.
+
+    Returns the numeric database ID (different from the PR number visible in
+    the URL), or ``None`` if the lookup fails for any reason.
+    """
+    parsed = parse_github_pr_url(pr_url)
+    if not parsed:
+        return None
+
+    repo_full_name, pull_number = parsed
+
+    try:
+        github_integrations = integration_service.get_integrations(
+            organization_id=org_id,
+            providers=["github"],
+        )
+        if not github_integrations:
+            logger.warning(
+                "fetch_github_pr_database_id.no_github_integration",
+                extra={"org_id": org_id, "pr_url": pr_url},
+            )
+            return None
+
+        github_integration = github_integrations[0]
+        client = github_integration.get_installation(organization_id=org_id).get_client()
+        pr_data = client.get_pull_request(repo_full_name, pull_number)
+        return pr_data.get("id")
+    except Exception:
+        logger.exception(
+            "fetch_github_pr_database_id.error",
+            extra={"org_id": org_id, "pr_url": pr_url},
+        )
+        return None

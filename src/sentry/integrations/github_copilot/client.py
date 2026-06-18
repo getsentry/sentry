@@ -143,6 +143,7 @@ class GithubCopilotAgentClient(CodingAgentClient):
             query($id: ID!) {
                 node(id: $id) {
                     ... on PullRequest {
+                        fullDatabaseId
                         number
                         title
                         url
@@ -178,4 +179,5 @@ class GithubCopilotAgentClient(CodingAgentClient):
             number=node["number"],
             title=node["title"],
             url=node["url"],
+            database_id=node["fullDatabaseId"],
         )

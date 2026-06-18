@@ -28,6 +28,7 @@ from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
 from sentry.seer.autofix.utils import (
     CodingAgentResult,
     CodingAgentStatus,
+    fetch_github_pr_database_id,
     update_coding_agent_state,
 )
 
@@ -235,6 +236,9 @@ class CursorWebhookEndpoint(Endpoint):
             pr_url=pr_url if status == CodingAgentStatus.COMPLETED else None,
             branch_name=branch_name,
         )
+
+        if pr_url and status == CodingAgentStatus.COMPLETED:
+            result.pr_id = fetch_github_pr_database_id(self.organization_id, pr_url)
 
         known_to_seer = self._update_coding_agent_status(
             agent_id=agent_id,

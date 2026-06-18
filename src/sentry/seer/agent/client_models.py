@@ -191,6 +191,7 @@ class CodingAgentResult(BaseModel):
     repo_provider: str
     repo_full_name: str
     pr_url: str | None = None
+    pr_id: int | None = None
 
     class Config:
         extra = "ignore"

@@ -33,6 +33,7 @@ from sentry.seer.autofix.utils import (
     CodingAgentState,
     CodingAgentStatus,
     StoreCodingAgentStatesRequest,
+    fetch_github_pr_database_id,
     make_store_coding_agent_states_request,
     update_coding_agent_state,
 )
@@ -211,6 +212,7 @@ def poll_github_copilot_agents(
             if pr_artifact and pr_artifact.data and pr_artifact.data.global_id:
                 # Get PR info from GraphQL using the global_id
                 pr_info = client.get_pr_from_graphql(pr_artifact.data.global_id)
+
                 if pr_info:
                     pr_url = pr_info.url
                     description = pr_info.title
@@ -219,6 +221,7 @@ def poll_github_copilot_agents(
                         description=description,
                         repo_provider="github",
                         repo_full_name=f"{owner}/{repo}",
+                        pr_id=pr_info.database_id,
                         pr_url=pr_url,
                         branch_name=branch_name,
                     )
@@ -346,7 +349,7 @@ def poll_claude_agent(
         new_status = CodingAgentStatus.COMPLETED
 
         result, new_status = build_result_from_events(
-            all_events, client, agent_id, agent_state.name, new_status
+            all_events, client, agent_id, agent_state.name, new_status, org_id=org_id
         )
 
         if new_status != agent_state.status:
@@ -472,6 +475,7 @@ def build_result_from_events(
     agent_id: str,
     agent_name: str,
     new_status: CodingAgentStatus,
+    org_id: int | None = None,
 ) -> tuple[Any | None, CodingAgentStatus]:
     result = None
     pr_url = None
@@ -494,6 +498,8 @@ def build_result_from_events(
         if result:
             result.description = description or ""
             result.branch_name = branch_name
+            if pr_url and org_id is not None:
+                result.pr_id = fetch_github_pr_database_id(org_id, pr_url)
     except Exception:
         logger.exception(
             "coding_agent.claude_code.build_result_error",
