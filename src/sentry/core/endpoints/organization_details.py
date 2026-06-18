@@ -1081,7 +1081,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve an Organization",
+        operation_id="getOrganization",
+        summary="Retrieve an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrganizationParams.DETAILED],
         request=None,
         responses={
@@ -1126,7 +1127,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(context)
 
     @extend_schema(
-        operation_id="Update an Organization",
+        operation_id="updateOrganization",
+        summary="Update an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],

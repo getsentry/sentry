@@ -39,6 +39,10 @@ from sentry.pr_metrics.emit import (
 from sentry.pr_metrics.utils import iso_or_none, resolved_group_ids
 from sentry.seer.code_review.models import SeerCodeReviewRepoDefinition
 from sentry.seer.code_review.utils import build_repo_definition
+from sentry.seer.sentry_data_models import (
+    UpdatePrMetricsErrorResponse,
+    UpdatePrMetricsSuccessResponse,
+)
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import metrics
 
@@ -245,7 +249,7 @@ def update_pr_metrics(
     repository_id: int,
     verdict: str | None = None,
     attributions: Sequence[Mapping[str, Any]] | None = None,
-) -> dict[str, Any]:
+) -> UpdatePrMetricsSuccessResponse | UpdatePrMetricsErrorResponse:
     """Persist Seer's judge result for a PR and emit the enriched metrics row.
 
     Inbound Seer RPC (Seer → Sentry), invoked once Seer has judged a forwarded
@@ -278,14 +282,14 @@ def update_pr_metrics(
     if verdict is None or verdict not in RESULT_VERDICTS:
         logger.warning("pr_metrics.update.invalid_verdict", extra={**log_extra, "verdict": verdict})
         metrics.incr("pr_metrics.update.skipped", tags={"reason": "invalid_verdict"})
-        return {"success": False, "error": "invalid_verdict"}
+        return UpdatePrMetricsErrorResponse(error="invalid_verdict")
 
     try:
         parsed_attributions = _parse_attributions(attributions or ())
     except (KeyError, TypeError, ValueError):
         logger.warning("pr_metrics.update.invalid_attribution", extra=log_extra)
         metrics.incr("pr_metrics.update.skipped", tags={"reason": "invalid_attribution"})
-        return {"success": False, "error": "invalid_attribution"}
+        return UpdatePrMetricsErrorResponse(error="invalid_attribution")
 
     # Scope the lookup to the reported org+repo: the id alone is attacker-influenced
     # (it round-trips through Seer), so trusting it unscoped would be an IDOR.
@@ -298,7 +302,7 @@ def update_pr_metrics(
     except PullRequest.DoesNotExist:
         logger.warning("pr_metrics.update.pull_request_not_found", extra=log_extra)
         metrics.incr("pr_metrics.update.skipped", tags={"reason": "pr_not_found"})
-        return {"success": False, "error": "pull_request_not_found"}
+        return UpdatePrMetricsErrorResponse(error="pull_request_not_found")
 
     # Emit needs a terminal PR (closed_at + head_commit_sha). Validate it before
     # writing so a non-terminal PR is rejected up front rather than committing the
@@ -306,7 +310,7 @@ def update_pr_metrics(
     if pull_request.closed_at is None or pull_request.head_commit_sha is None:
         logger.warning("pr_metrics.update.not_terminal", extra=log_extra)
         metrics.incr("pr_metrics.update.skipped", tags={"reason": "not_terminal"})
-        return {"success": False, "error": "pull_request_not_terminal"}
+        return UpdatePrMetricsErrorResponse(error="pull_request_not_terminal")
 
     # Only the verdict is written here; the webhook keeps the activity counters
     # current, so this partial update must not clobber them.
@@ -328,7 +332,7 @@ def update_pr_metrics(
                 "pr_metrics.update.already_settled", extra={**log_extra, "verdict": verdict}
             )
             metrics.incr("pr_metrics.update.skipped", tags={"reason": "already_settled"})
-            return {"success": True}
+            return UpdatePrMetricsSuccessResponse()
         for signal_type, source, signal_details in parsed_attributions:
             record_attribution_signal(
                 pull_request=pull_request,
@@ -341,4 +345,4 @@ def update_pr_metrics(
 
     metrics.incr("pr_metrics.update.recorded", tags={"verdict": verdict})
     logger.info("pr_metrics.update.recorded", extra={**log_extra, "verdict": verdict})
-    return {"success": True}
+    return UpdatePrMetricsSuccessResponse()
