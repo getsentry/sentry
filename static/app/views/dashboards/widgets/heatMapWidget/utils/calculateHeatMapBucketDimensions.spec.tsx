@@ -285,17 +285,16 @@ describe('calculateHeatMapBucketDimensions()', () => {
       expect(result!.yBuckets).toBeGreaterThan(0);
     });
 
-    it('handles a very short container gracefully', () => {
-      // A 1px tall container produces yBuckets = Math.round(1 / intervalAsPixels)
-      // which rounds to 0 — i.e. not enough vertical space for any rows.
-      const result = calculateHeatMapBucketDimensions(
-        makeSelection('24h'),
-        {width: 800, height: 1},
-        AVAILABLE_INTERVALS
-      );
-
-      expect(result).not.toBeNull();
-      expect(result!.yBuckets).toBe(0);
+    it('returns null for a very short container', () => {
+      // A 1px tall container produces yBuckets = 0, which is not a
+      // meaningful heat map.
+      expect(
+        calculateHeatMapBucketDimensions(
+          makeSelection('24h'),
+          {width: 800, height: 1},
+          AVAILABLE_INTERVALS
+        )
+      ).toBeNull();
     });
 
     it('produces at least 1 y-axis bucket when there is reasonable height', () => {
@@ -309,17 +308,26 @@ describe('calculateHeatMapBucketDimensions()', () => {
       expect(result!.yBuckets).toBeGreaterThanOrEqual(1);
     });
 
-    it('handles a very short time period (1m)', () => {
-      const result = calculateHeatMapBucketDimensions(
-        makeSelection('1m'),
-        {width: 800, height: 300},
-        AVAILABLE_INTERVALS
-      );
+    it('returns null for a very short time period where no grid is viable', () => {
+      // With a 1m window the finest interval (1m) spans the full width,
+      // so yBuckets rounds to 0 — no meaningful grid can be formed.
+      expect(
+        calculateHeatMapBucketDimensions(
+          makeSelection('1m'),
+          {width: 800, height: 300},
+          AVAILABLE_INTERVALS
+        )
+      ).toBeNull();
+    });
 
-      // With a 1-minute window, the finest interval (1m) should be chosen,
-      // since PIXELS_PER_BUCKET-wide buckets would span ~0.75s worth of time.
-      expect(result).not.toBeNull();
-      expect(result!.interval).toBe('1m');
+    it('returns null when the interval spans the full chart width', () => {
+      // 1m period + 1m interval → intervalAsPixels equals the full width.
+      // height / width rounds to 0, so no sensible grid can be formed.
+      expect(
+        calculateHeatMapBucketDimensions(makeSelection('1m'), {width: 800, height: 300}, [
+          '1m',
+        ])
+      ).toBeNull();
     });
 
     it('handles a very long time period (90d)', () => {
