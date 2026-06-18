@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import logging
+
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import logger as sentry_logger
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -18,19 +19,19 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiConflictError
+from sentry.shared_integrations.exceptions import ApiConflictError, ApiError
 
-_MULTI_METRICS_PREFIX = "onboarding-scm.platform_detection.multi"
+logger = logging.getLogger(__name__)
 
 
 @cell_silo_endpoint
 class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint):
-    """Measurement-only endpoint for the tree-based multi-platform detector.
+    """Endpoint for the tree-based multi-platform detector.
 
-    Runs ``detect_platforms_multi`` and emits metrics under
-    ``onboarding-scm.platform_detection.multi.*``. Returns 204 No Content;
-    the frontend fires this fire-and-forget alongside the live detection
-    request.
+    Runs ``detect_platforms_multi`` (which also emits metrics under
+    ``onboarding-scm.platform_detection.multi.*`` internally) and returns the
+    detected platforms as ``{"platforms": [...]}``. An empty / unprocessable
+    repo returns ``{"platforms": []}``; GitHub/API failures return a 502.
     """
 
     owner = ApiOwner.INTEGRATION_PLATFORM
@@ -70,14 +71,24 @@ class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint
 
         client = GitHubApiClient(integration=integration, org_integration_id=org_integration.id)
 
+        extra = {"repo_id": repo.id, "repo_name": repo.name}
         try:
-            detect_platforms_multi(client, repo.name)
-        except Exception as e:
-            sentry_logger.warning(
-                f"{_MULTI_METRICS_PREFIX}.failed",
-                attributes={"repo_id": repo.id, "repo_name": repo.name},
-            )
-            if not isinstance(e, ApiConflictError):
+            result = detect_platforms_multi(client, repo.name)
+        except ApiConflictError:
+            # Empty / unprocessable repo (e.g. empty git tree). Benign: the FE
+            # falls back to the manual picker on []. Still capture for visibility.
+            logger.warning("github.platform_detection.multi.empty_repo", extra=extra)
+            with sentry_sdk.new_scope() as scope:
+                scope.set_tag("scm_platform_detection", "empty_repo")
                 sentry_sdk.capture_exception()
+            return Response({"platforms": []})
+        except (ApiError, ValueError):
+            # logger.exception attaches the stacktrace to the log record;
+            # capture_exception files the Sentry issue with the original error.
+            logger.exception("github.platform_detection.multi.failed", extra=extra)
+            with sentry_sdk.new_scope() as scope:
+                scope.set_tag("scm_platform_detection", "failed")
+                sentry_sdk.capture_exception()
+            return Response({"detail": "Failed to detect platforms from GitHub."}, status=502)
 
-        return Response(status=204)
+        return Response({"platforms": result["platforms"]})
