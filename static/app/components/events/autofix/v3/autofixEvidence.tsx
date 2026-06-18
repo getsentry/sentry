@@ -310,14 +310,9 @@ function getCodeSearchEvidenceProps({
   return null;
 }
 
-function getScmIcon(url: string): ReactNode {
-  try {
-    const {hostname} = new URL(url);
-    if (hostname.includes('gitlab')) {
-      return <IconGitlab />;
-    }
-  } catch {
-    // fall through to default
+function getScmIcon(provider: string | undefined): ReactNode {
+  if (provider === 'integrations:gitlab') {
+    return <IconGitlab />;
   }
   return <IconGithub />;
 }
@@ -325,13 +320,13 @@ function getScmIcon(url: string): ReactNode {
 function getGitSearchEvidenceProps({
   toolLink,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
-  const {repo_name, commit_url, sha, commits_url, start_date, end_date, file_path} =
+  const {repo_name, commit_url, sha, commits_url, start_date, end_date, file_path, provider} =
     toolLink?.params ?? {};
 
   if (typeof commit_url === 'string' && typeof sha === 'string') {
     return {
       href: commit_url,
-      icon: getScmIcon(commit_url),
+      icon: getScmIcon(provider),
       label: t('Commit: %s', truncateText(getShortCommitHash(sha))),
       tooltip: sha,
     };
@@ -347,7 +342,7 @@ function getGitSearchEvidenceProps({
       typeof file_path === 'string' ? extractFileName(file_path) : undefined;
     return {
       href: commits_url,
-      icon: getScmIcon(commits_url),
+      icon: getScmIcon(provider),
       label: t('Commits: %s', fileName ? truncateText(fileName) : repo_name),
       tooltip: (
         <Fragment>
