@@ -101,6 +101,7 @@ const ATTR = 'data-scraps-decode';
 const ATTR_SEL = `[${ATTR}]`;
 
 const segmenter = new Intl.Segmenter(undefined, {granularity: 'grapheme'});
+const DUMMY_WRAPPER = document.createElement('span');
 
 function isSimpleChar(grapheme: string): boolean {
   return grapheme.length === 1 && !/\s/.test(grapheme);
@@ -178,9 +179,23 @@ function prepareTextNode(
     decoratedAncestors.push(ancestor);
     ancestor = ancestor.parentElement;
   }
-  const computedColor = getComputedStyle(parent as Element).color;
   const graphemes = Array.from(segmenter.segment(original), s => s.segment);
 
+  if (globalOffset + graphemes.length <= skipChars) {
+    return {
+      original,
+      wrapper: DUMMY_WRAPPER,
+      spans: [],
+      graphemes,
+      active: [],
+      globalOffset,
+      collapseCursor: 0,
+      decoratedAncestors,
+      revealed: true,
+    };
+  }
+
+  const computedColor = getComputedStyle(parent as Element).color;
   const wrapper = document.createElement('span');
   wrapper.style.setProperty('--glyph-color', computedColor);
   const spans: HTMLSpanElement[] = [];
