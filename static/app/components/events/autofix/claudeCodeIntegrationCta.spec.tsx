@@ -23,19 +23,36 @@ describe('ClaudeCodeIntegrationCta', () => {
     });
   }
 
+  // The CTA reads handoff state from the project's seer setting. Only fires
+  // once an integration exists, so the install-stage tests don't need it.
+  const mockSeerSettings = (
+    overrides: Partial<{
+      agent: string;
+      integrationId: string | null;
+    }> = {}
+  ) =>
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+      method: 'GET',
+      body: {
+        projectId: project.id,
+        projectSlug: project.slug,
+        agent: 'seer',
+        integrationId: null,
+        stoppingPoint: 'root_cause',
+        autoCreatePr: null,
+        automationTuning: 'medium',
+        scannerAutomation: true,
+        reposCount: 0,
+        ...overrides,
+      },
+    });
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     localStorage.clear();
 
     mockDetailedProject();
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-      body: {
-        code_mapping_repos: [],
-        preference: null,
-      },
-    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
@@ -130,6 +147,9 @@ describe('ClaudeCodeIntegrationCta', () => {
           ],
         },
       });
+
+      // Setting still points at Seer — handoff not configured for this agent.
+      mockSeerSettings();
     });
 
     it('shows configure stage when integration installed but not configured', async () => {
@@ -322,20 +342,10 @@ describe('ClaudeCodeIntegrationCta', () => {
         },
       });
 
-      MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-        body: {
-          code_mapping_repos: [],
-          preference: {
-            repositories: [],
-            automated_run_stopping_point: 'root_cause',
-            automation_handoff: {
-              handoff_point: 'root_cause',
-              target: CodingAgentProvider.CLAUDE_CODE_AGENT,
-              integration_id: 456,
-            },
-          },
-        },
+      // Handoff is set to Claude, but the project's automation is disabled.
+      mockSeerSettings({
+        agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+        integrationId: '456',
       });
     });
 
@@ -376,20 +386,10 @@ describe('ClaudeCodeIntegrationCta', () => {
         },
       });
 
-      MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-        body: {
-          code_mapping_repos: [],
-          preference: {
-            repositories: [],
-            automated_run_stopping_point: 'root_cause',
-            automation_handoff: {
-              handoff_point: 'root_cause',
-              target: CodingAgentProvider.CLAUDE_CODE_AGENT,
-              integration_id: 456,
-            },
-          },
-        },
+      // Handoff is configured to Claude.
+      mockSeerSettings({
+        agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+        integrationId: '456',
       });
     });
 

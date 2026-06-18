@@ -35,6 +35,26 @@ describe('ProjectSeer', () => {
   let project: DetailedProject;
   let organization: Organization;
 
+  // The coding-agent CTAs fetch the per-project seer setting to decide whether
+  // handoff is already configured. Only fires once an integration exists, so
+  // tests that mock a coding-agent integration also need this GET mocked.
+  const mockSeerSettingsGet = (orgSlug: string) =>
+    MockApiClient.addMockResponse({
+      url: `/projects/${orgSlug}/${project.slug}/seer/settings/`,
+      method: 'GET',
+      body: {
+        projectId: project.id,
+        projectSlug: project.slug,
+        agent: 'seer',
+        integrationId: null,
+        stoppingPoint: 'root_cause',
+        autoCreatePr: null,
+        automationTuning: 'off',
+        scannerAutomation: false,
+        reposCount: 1,
+      },
+    });
+
   beforeEach(() => {
     project = DetailedProjectFixture();
     organization = OrganizationFixture();
@@ -135,6 +155,8 @@ describe('ProjectSeer', () => {
         integrations: [],
       },
     });
+
+    mockSeerSettingsGet(organization.slug);
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
@@ -804,6 +826,8 @@ describe('ProjectSeer', () => {
         },
       });
 
+      mockSeerSettingsGet(orgWithCursorFeature.slug);
+
       render(<ProjectSeer />, {
         organization: orgWithCursorFeature,
         outletContext: {project: initialProject},
@@ -926,6 +950,8 @@ describe('ProjectSeer', () => {
         url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/settings/`,
         method: 'PUT',
       });
+
+      mockSeerSettingsGet(orgWithCursorFeature.slug);
 
       render(<ProjectSeer />, {
         organization: orgWithCursorFeature,
@@ -1053,6 +1079,8 @@ describe('ProjectSeer', () => {
         method: 'PUT',
         body: {},
       });
+
+      mockSeerSettingsGet(orgWithCursorFeature.slug);
 
       render(<ProjectSeer />, {
         organization: orgWithCursorFeature,
@@ -1184,6 +1212,8 @@ describe('ProjectSeer', () => {
         method: 'PUT',
       });
 
+      mockSeerSettingsGet(orgWithCursorFeature.slug);
+
       render(<ProjectSeer />, {
         organization: orgWithCursorFeature,
         outletContext: {project: initialProject},
@@ -1308,6 +1338,8 @@ describe('ProjectSeer', () => {
         },
       });
 
+      mockSeerSettingsGet(organization.slug);
+
       render(<ProjectSeer />, {
         organization,
         outletContext: {project: initialProject},
@@ -1414,6 +1446,8 @@ describe('ProjectSeer', () => {
           code_mapping_repos: [],
         },
       });
+
+      mockSeerSettingsGet(orgWithCursorFeature.slug);
 
       render(<ProjectSeer />, {
         organization: orgWithCursorFeature,

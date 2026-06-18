@@ -53,12 +53,20 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       },
       {enabled: hasFeatureFlag}
     );
-    const {data: seerSettings, isPending: isLoadingSettings} = useQuery(
-      getSeerProjectSettingsQueryOptions({organization, project})
-    );
     const {data: knownAgents, isLoading: isLoadingIntegrations} = useQuery(
       knownAgentIntegrationsQueryOptions({organization})
     );
+
+    const integration = knownAgents?.find(i => i.provider === config.target);
+    const hasIntegration = Boolean(integration);
+
+    // Only the configured/not-configured states need the project's Seer setting;
+    // without an integration the CTA short-circuits to the install card, so skip
+    // the fetch entirely until we know an integration exists.
+    const {data: seerSettings, isLoading: isLoadingSettings} = useQuery({
+      ...getSeerProjectSettingsQueryOptions({organization, project}),
+      enabled: hasIntegration,
+    });
     const {mutate: updateSeerSettings, isPending: isUpdatingSettings} = useMutation(
       getMutateSeerProjectSettingsOptions({
         organization,
@@ -69,9 +77,6 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     );
     const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
 
-    const integration = knownAgents?.find(i => i.provider === config.target);
-
-    const hasIntegration = Boolean(integration);
     const isAutomationEnabled =
       projectDetails?.seerScannerAutomation !== false &&
       projectDetails?.autofixAutomationTuning !== 'off';
