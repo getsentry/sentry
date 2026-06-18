@@ -826,8 +826,8 @@ function SecondaryNavigationReorderableLink({
     },
   };
 
-  const content = (
-    <Fragment>
+  return (
+    <StyledPageFrameReorderableFakeLink {...sharedProps} layout="sidebar">
       <Flex justify="center" align="center" position="relative">
         <GrabHandle />
         <Flex justify="center" align="center" data-reorderable-handle-slot>
@@ -836,12 +836,6 @@ function SecondaryNavigationReorderableLink({
       </Flex>
       {children}
       {trailingItems}
-    </Fragment>
-  );
-
-  return (
-    <StyledPageFrameReorderableFakeLink {...sharedProps} layout="sidebar">
-      {content}
     </StyledPageFrameReorderableFakeLink>
   );
 }
