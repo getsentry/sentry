@@ -539,8 +539,8 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
 
         run = SeerNightShiftRun.objects.get(organization=org)
         assert run.seer_run is None
+        # No SeerRun for the org -> no outbox either (created in one transaction).
         assert not SeerRun.objects.filter(organization=org).exists()
-        assert not CellOutbox.objects.filter(category=OutboxCategory.SEER_RUN_CREATE).exists()
 
     def test_no_seer_access_skips_dispatch(self) -> None:
         # Without gen-ai-features the SeerAgentClient access gate blocks dispatch.
