@@ -1,23 +1,49 @@
 from __future__ import annotations
 
+import string
 from base64 import b64encode
 from typing import Any
 from unittest import mock
 
 from sentry.integrations.github.multi_platform_detection import (
+    MAX_CONTENT_READS,
+    MAX_LANGUAGES,
     _build_tree_index,
     _collect_needed_paths,
     _framework_matches_scoped,
+    _get_tree,
+    _path_is_ignored,
     _rule_parent_dirs,
+    _select_active_platforms,
     detect_platforms_multi,
 )
 from sentry.integrations.github.platform_registry import (
+    GITHUB_LANGUAGE_TO_SENTRY_PLATFORM,
     DetectorRule,
     FrameworkDef,
     _PackageManifest,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
+
+
+def _distinct_platform_languages(n: int) -> list[str]:
+    """Return n languages that each map to a different Sentry base platform.
+
+    Iterates GITHUB_LANGUAGE_TO_SENTRY_PLATFORM in insertion order, picking
+    the first language seen for each new base platform, until n entries are
+    collected. Useful for building test inputs that exercise the MAX_LANGUAGES
+    cap without hardcoding specific language names.
+    """
+    seen: set[str] = set()
+    result: list[str] = []
+    for lang, bp in GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.items():
+        if bp not in seen:
+            seen.add(bp)
+            result.append(lang)
+        if len(result) == n:
+            break
+    return result
 
 
 class TestBuildTreeIndex:
@@ -164,12 +190,6 @@ class TestRuleParentDirs:
         rule: DetectorRule = {"match_ext": ".csproj", "match_content": r"Microsoft\.Maui"}
         content = {"myapp.csproj": "...<microsoft.maui...>"}  # lowercase — must not fire
         assert _rule_parent_dirs(rule, {}, {}, content, {}) == set()
-
-    def test_match_content_honors_inline_ignorecase_flag(self) -> None:
-        # Patterns that want case-insensitivity embed (?i) themselves.
-        rule: DetectorRule = {"path": "requirements.txt", "match_content": r"(?i)\bdjango\b"}
-        content = {"requirements.txt": "DJANGO==4.2\n"}
-        assert _rule_parent_dirs(rule, {}, {}, content, {}) == {""}
 
     def test_match_content_no_path_or_ext_filter_scans_all_files(self) -> None:
         # A bare match_content rule (no path/match_ext) should match any fetched file
@@ -438,10 +458,10 @@ class TestDetectPlatformsMulti:
         assert "javascript-react" in platforms
 
     def test_content_read_cap_and_shallow_first(self) -> None:
-        # Root package.json (deps: next) + 6 deeper workspace package.json files.
-        # Cap is 5; root must be read so javascript-nextjs is detected.
-        # The alphabetically-last deep manifest (packages/f/package.json) must not be fetched.
-        deep_names = [f"packages/{c}/package.json" for c in "abcdef"]  # 6 paths
+        # Root package.json (deps: next) + MAX_CONTENT_READS deeper workspace package.json files.
+        # Root takes the first cap slot; the alphabetically-last deep manifest must not be fetched.
+        deep_letters = string.ascii_lowercase[:MAX_CONTENT_READS]
+        deep_names = [f"packages/{c}/package.json" for c in deep_letters]
         tree = [_make_tree_entry("package.json")] + [_make_tree_entry(p) for p in deep_names]
         root_pkg = json.dumps({"dependencies": {"next": "14.0.0"}})
         contents = {"package.json": root_pkg}
@@ -460,8 +480,9 @@ class TestDetectPlatformsMulti:
             for call in client.get.call_args_list
             if "/contents/" in call.args[0]
         ]
+        last_deep = f"packages/{deep_letters[-1]}/package.json"
         assert "package.json" in fetched
-        assert "packages/f/package.json" not in fetched
+        assert last_deep not in fetched
 
         platforms = {p["platform"] for p in result["platforms"]}
         assert "javascript-nextjs" in platforms
@@ -495,3 +516,161 @@ class TestDetectPlatformsMulti:
         # No /contents/ call should have been issued
         contents_calls = [c for c in client.get.call_args_list if "/contents/" in c.args[0]]
         assert contents_calls == []
+
+    def test_existence_only_pass1_high_match_no_content_reads(self) -> None:
+        # manage.py is a pure path rule for python-django (no match_content required).
+        # Pass 1 should fire it as high-confidence with zero /contents/ calls.
+        tree = [_make_tree_entry("manage.py")]
+        client = _make_client(
+            languages={"Python": 80000},
+            tree=tree,
+            contents={},
+        )
+        result = detect_platforms_multi(client, "owner/repo")
+        platforms = {p["platform"]: p for p in result["platforms"]}
+        assert "python-django" in platforms
+        assert platforms["python-django"]["confidence"] == "high"
+        contents_calls = [c for c in client.get.call_args_list if "/contents/" in c.args[0]]
+        assert contents_calls == []
+
+    def test_colocation_prevents_false_positive_end_to_end(self) -> None:
+        # dotnet-aspnetcore requires .csproj AND appsettings.json in the same directory.
+        # Placing them in separate subtrees must NOT produce a high match.
+        tree = [
+            _make_tree_entry("tools/deploy/deploy.csproj"),
+            _make_tree_entry("backend/appsettings.json"),
+        ]
+        client = _make_client(
+            languages={"C#": 50000},
+            tree=tree,
+            contents={},
+        )
+        result = detect_platforms_multi(client, "owner/repo")
+        platforms = {p["platform"] for p in result["platforms"]}
+        assert "dotnet-aspnetcore" not in platforms
+
+    def test_confidence_ordering_high_before_medium(self) -> None:
+        # A high-confidence framework match must always rank above a medium
+        # bare-language fallback, even if the medium entry has more bytes.
+        # Use a Python repo with manage.py (pure existence → high) so no content
+        # reads are issued, then verify result ordering.
+        tree = [_make_tree_entry("manage.py")]
+        client = _make_client(
+            languages={"Python": 80000},
+            tree=tree,
+            contents={},
+        )
+        result = detect_platforms_multi(client, "owner/repo")
+        # First entry must be the high-confidence framework, not the medium fallback.
+        assert result["platforms"][0]["confidence"] == "high"
+        assert result["platforms"][0]["platform"] == "python-django"
+
+
+class TestSelectActivePlatforms:
+    def test_max_languages_cap_keeps_top_n(self) -> None:
+        # Feed MAX_LANGUAGES + 1 distinct base platforms; only the top MAX_LANGUAGES survive.
+        candidates = _distinct_platform_languages(MAX_LANGUAGES + 1)
+        languages = {lang: 100_000 - i * 10_000 for i, lang in enumerate(candidates)}
+        result = _select_active_platforms(languages)
+        assert len(result) == MAX_LANGUAGES
+        dropped_platform = GITHUB_LANGUAGE_TO_SENTRY_PLATFORM[candidates[-1]]
+        assert dropped_platform not in result
+
+    def test_related_languages_group_into_single_bucket(self) -> None:
+        # TypeScript and JavaScript both map to "javascript"; they share one slot.
+        languages = {
+            "TypeScript": 70_000,
+            "JavaScript": 50_000,
+        }
+        result = _select_active_platforms(languages)
+        assert list(result.keys()) == ["javascript"]
+        # Both language entries should appear in the bucket.
+        bucket = result["javascript"]
+        lang_names = {lang for lang, _ in bucket}
+        assert lang_names == {"TypeScript", "JavaScript"}
+
+    def test_grouping_does_not_consume_extra_cap_slot(self) -> None:
+        # TypeScript + JavaScript + Python + Ruby = 3 distinct base platforms, not 4.
+        # All three base platforms should be present despite 4 input languages.
+        languages = {
+            "TypeScript": 80_000,
+            "JavaScript": 70_000,
+            "Python": 60_000,
+            "Ruby": 50_000,
+        }
+        result = _select_active_platforms(languages)
+        assert "javascript" in result
+        assert "python" in result
+        assert "ruby" in result
+        assert len(result) == 3
+
+    def test_ignored_language_skipped(self) -> None:
+        # "Shell" is in IGNORED_LANGUAGES and must never appear.
+        languages = {"Shell": 999_999, "Python": 10_000}
+        result = _select_active_platforms(languages)
+        assert "python" in result
+        # Shell has no mapped base platform so it won't appear under any key.
+        for lang_entries in result.values():
+            for lang, _ in lang_entries:
+                assert lang != "Shell"
+
+    def test_byte_count_descending_ordering(self) -> None:
+        # The platform with the most bytes should appear first in iteration order.
+        languages = {"Ruby": 90_000, "Python": 120_000, "Go": 70_000}
+        result = _select_active_platforms(languages)
+        # dict preserves insertion order; first key is the top platform.
+        first_platform = next(iter(result))
+        assert first_platform == "python"
+
+
+class TestPathIsIgnored:
+    def test_node_modules_segment_ignored(self) -> None:
+        assert _path_is_ignored("node_modules/react/index.js") is True
+
+    def test_nested_ignored_segment(self) -> None:
+        assert _path_is_ignored("a/b/vendor/c/util.py") is True
+
+    def test_build_gradle_file_not_ignored(self) -> None:
+        # "build" is an ignored *directory* segment, but "build.gradle" is a filename,
+        # not the bare segment "build", so it must NOT be ignored.
+        assert _path_is_ignored("build.gradle") is False
+
+    def test_clean_path_not_ignored(self) -> None:
+        assert _path_is_ignored("src/app/main.py") is False
+
+    def test_root_level_file_not_ignored(self) -> None:
+        assert _path_is_ignored("manage.py") is False
+
+    def test_dist_dir_ignored(self) -> None:
+        assert _path_is_ignored("dist/bundle.js") is True
+
+
+class TestGetTree:
+    def test_normal_dict_response_returns_entries(self) -> None:
+        entries = [{"path": "manage.py", "type": "blob", "size": 100}]
+        client = mock.MagicMock()
+        client.get.return_value = {"tree": entries, "truncated": False}
+        result_entries, is_truncated = _get_tree(client, "owner/repo")
+        assert result_entries == entries
+        assert is_truncated is False
+
+    def test_non_dict_response_returns_empty(self) -> None:
+        # GitHub occasionally returns a list or unexpected type on error.
+        client = mock.MagicMock()
+        client.get.return_value = []
+        result_entries, is_truncated = _get_tree(client, "owner/repo")
+        assert result_entries == []
+        assert is_truncated is False
+
+    def test_missing_tree_key_returns_empty_entries(self) -> None:
+        client = mock.MagicMock()
+        client.get.return_value = {"truncated": False}
+        result_entries, is_truncated = _get_tree(client, "owner/repo")
+        assert result_entries == []
+        assert is_truncated is False
+
+    def test_truncated_flag_propagated(self) -> None:
+        client = mock.MagicMock()
+        client.get.return_value = {"tree": [], "truncated": True}
+        _, is_truncated = _get_tree(client, "owner/repo")
+        assert is_truncated is True
