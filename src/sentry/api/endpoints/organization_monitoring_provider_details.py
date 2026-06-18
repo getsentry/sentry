@@ -47,8 +47,8 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
 
         provider_type = identity_manager.get(provider_key)
 
-        # Token-based providers (e.g. Datadog PAT) have no OAuth flow: verify the
-        # submitted token and link the identity directly instead of redirecting.
+        # For token-based providers without OAuth flow, verify the submitted token
+        # link the identity directly instead of redirecting.
         if not isinstance(provider_type, OAuth2Provider):
             return self._link_submitted_token(request, provider_key, provider_type)
 
