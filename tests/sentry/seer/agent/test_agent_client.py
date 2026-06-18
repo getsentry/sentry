@@ -1225,7 +1225,8 @@ class TestStartFeatureRun(TestCase):
         assert outbox is not None
         body = outbox.payload["body"]
         assert body["feature_id"] == "night_shift"
-        assert body["ref"] == str(run.uuid)
+        # ref/external_idempotency_key are stamped by the handler at dispatch, not enqueue.
+        assert "ref" not in body
         assert outbox.payload["viewer_context"]["organization_id"] == self.organization.id
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
@@ -1240,6 +1241,7 @@ class TestStartFeatureRun(TestCase):
         assert run.seer_run_state_id == 4242
         sent_body = mock_request.call_args.args[0]
         assert sent_body["feature_id"] == "night_shift"
+        assert sent_body["ref"] == str(run.uuid)
         assert sent_body["external_idempotency_key"] == str(run.uuid)
         assert self._outbox_for(run) is None
 

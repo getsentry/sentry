@@ -91,7 +91,7 @@ def send_search_agent_start_request(
     return enqueue_seer_run(
         organization=organization,
         run_type=SeerRunType.ASSISTED_QUERY,
-        build_body=lambda run: body,
+        body=body,
         viewer_context=viewer_context,
         user_id=user_id,
     )

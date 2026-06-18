@@ -518,7 +518,6 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         assert body["feature_id"] == "night_shift"
         assert [c["group_id"] for c in body["payload"]["candidates"]] == [group.id]
         assert body["payload"]["candidates"][0]["priority"] == "high"
-        assert body["ref"] == str(run.seer_run.uuid)
 
         outbox = CellOutbox.objects.get(
             category=OutboxCategory.SEER_RUN_CREATE, object_identifier=seer_run.id

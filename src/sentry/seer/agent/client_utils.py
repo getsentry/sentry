@@ -118,14 +118,15 @@ class SeerFeatureRunRequest(TypedDict):
     """The feature-run body as enqueued onto the SEER_RUN_CREATE outbox."""
 
     feature_id: str
-    ref: str
     payload: dict[str, Any]
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):
-    """As sent to Seer: the outbox handler stamps the SeerRun uuid as the
-    idempotency key so redelivery is deduped."""
+    """As sent to Seer: the outbox handler stamps the SeerRun uuid as both the
+    correlation ref (echoed back with the result) and the idempotency key (so
+    redelivery is deduped)."""
 
+    ref: str
     external_idempotency_key: str
 
 
@@ -229,16 +230,17 @@ def enqueue_seer_run(
     *,
     organization: Organization,
     run_type: SeerRunType,
-    build_body: Callable[[SeerRun], Mapping[str, Any]],
+    body: Mapping[str, Any],
     viewer_context: SeerViewerContext | None,
     user_id: int | None = None,
     flush: bool = True,
     on_run_created: Callable[[SeerRun], None] | None = None,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the SEER_RUN_CREATE outbox that
-    dispatches it to Seer.
+    dispatches it to Seer. The outbox handler stamps run-derived fields (the
+    correlation ref and idempotency key) on the body at dispatch, so callers pass
+    a static body here.
 
-    build_body(run) returns the outbox body (and may read run, e.g. run.uuid).
     on_run_created(run), if given, runs in the same transaction right after the
     SeerRun is created — use it to create associated rows atomically with the run
     (e.g. SeerAgentRun).
@@ -257,7 +259,6 @@ def enqueue_seer_run(
             )
             if on_run_created is not None:
                 on_run_created(run)
-            body = build_body(run)
             CellOutbox(
                 shard_scope=OutboxScope.SEER_SCOPE,
                 shard_identifier=run.id,

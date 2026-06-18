@@ -480,7 +480,7 @@ class SeerAgentClient:
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.EXPLORER,
-            build_body=lambda run: chat_body,
+            body=chat_body,
             on_run_created=_create_agent_run,
             viewer_context=self.viewer_context,
             user_id=user_id,
@@ -511,9 +511,7 @@ class SeerAgentClient:
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
-            build_body=lambda run: SeerFeatureRunRequest(
-                feature_id=feature_id, ref=str(run.uuid), payload=payload
-            ),
+            body=SeerFeatureRunRequest(feature_id=feature_id, payload=payload),
             viewer_context=self.viewer_context,
             user_id=user_id,
             flush=flush,
