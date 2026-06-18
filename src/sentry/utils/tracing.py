@@ -73,7 +73,6 @@ def start_span(
     return sentry_sdk.start_span(
         name=name,
         op=op,
-        source=source,
     )
 
 
