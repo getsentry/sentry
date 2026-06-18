@@ -1,6 +1,5 @@
 import re
 
-import sentry_sdk
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -21,6 +20,7 @@ from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.utils import RPC_DATASETS
+from sentry.utils.tracing import set_span_data, start_span
 
 
 @cell_silo_endpoint
@@ -83,7 +83,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response([])
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="find_lookup_keys") as span:
+        with start_span(op="discover.endpoint", name="find_lookup_keys") as span:
             possible_keys = ["transaction"]
             lookup_keys = {key: request.query_params.get(key) for key in possible_keys}
 
@@ -96,7 +96,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
                 )
 
         with handle_query_errors():
-            with sentry_sdk.start_span(op="discover.endpoint", name="filter_creation"):
+            with start_span(op="discover.endpoint", name="filter_creation"):
                 projects = self.get_projects(request, organization)
                 # Filter out None values from environments
                 environments = [e for e in snuba_params.environments if e is not None]
@@ -120,12 +120,12 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
 
                 query_kwargs["actor"] = request.user
 
-            with sentry_sdk.start_span(op="discover.endpoint", name="issue_search"):
+            with start_span(op="discover.endpoint", name="issue_search"):
                 results_cursor = search.backend.query(**query_kwargs)
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="serialize_results") as span:
+        with start_span(op="discover.endpoint", name="serialize_results") as span:
             results = list(results_cursor)
-            span.set_data("result_length", len(results))
+            set_span_data(span, "result_length", len(results))
             context = serialize(
                 results,
                 request.user,

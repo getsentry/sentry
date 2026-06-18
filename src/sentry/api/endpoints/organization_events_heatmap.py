@@ -1,7 +1,6 @@
 import math
 from typing import Any, NamedTuple, NotRequired, TypedDict
 
-import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -20,6 +19,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.tracing import set_span_data, start_span
 
 MAX_BUCKETS = 1_000
 HEATMAP_DATASETS = {TraceMetrics}
@@ -103,8 +103,8 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             "organizations:data-browsing-heat-map-widget", organization, actor=request.user
         ):
             return Response(status=404)
-        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            span.set_data("organization", organization)
+        with start_span(op="discover.endpoint", name="filter_params") as span:
+            set_span_data(span, "organization", organization)
 
             dataset = self.get_dataset(request, organization)
             if dataset not in HEATMAP_DATASETS:
