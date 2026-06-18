@@ -3,11 +3,11 @@ from __future__ import annotations
 import logging
 import random
 import time
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Literal, overload
 
 from django.contrib.auth.models import AnonymousUser
-from django.db import router, transaction
 from django.utils import timezone as django_timezone
 from django.utils.timezone import now
 from pydantic import BaseModel
@@ -16,13 +16,6 @@ from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
-from sentry.hybridcloud.models.outbox import (
-    CellOutbox,
-    OutboxDatabaseError,
-    OutboxFlushError,
-    outbox_context,
-)
-from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc.service import RpcException
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
@@ -37,7 +30,9 @@ from sentry.seer.agent.client_utils import (
     AgentReposRequest,
     AgentRunsRequest,
     AgentUpdateRequest,
+    SeerFeatureRunRequest,
     collect_user_org_context,
+    enqueue_seer_run,
     fetch_run_status,
     get_proxy_headers,
     make_agent_chat_request,
@@ -54,7 +49,7 @@ from sentry.seer.agent.on_completion_hook import (
     extract_hook_definition,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
-from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.seer.utils import encrypt_access_token_for_seer
@@ -62,7 +57,6 @@ from sentry.tasks.seer.context_engine_index import build_service_map, index_org_
 from sentry.tasks.seer.explorer_index import dispatch_explorer_index_projects
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -522,65 +516,72 @@ class SeerAgentClient:
             if self.user and hasattr(self.user, "id") and self.user.id is not None
             else None
         )
-        try:
-            with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=True):
-                run = SeerRun.objects.create(
-                    organization=self.organization,
-                    user_id=user_id,
-                    type=SeerRunType.EXPLORER,
-                    last_triggered_at=now(),
-                )
-                source = self.category_key or ""
-                if not source:
-                    logger.warning(
-                        "seer_agent_run.missing_source",
-                        extra={
-                            "organization_id": self.organization.id,
-                            "seer_run_id": run.id,
-                            "user_id": user_id,
-                        },
-                    )
-                SeerAgentRun.objects.create(
-                    run=run,
-                    title=prompt[:255] + "…" if len(prompt) > 256 else prompt,
-                    source=source,
-                    project=self.project,
-                    group=self.group,
-                    extras=({"category_value": self.category_value} if self.category_value else {}),
-                )
-                CellOutbox(
-                    shard_scope=OutboxScope.SEER_SCOPE,
-                    shard_identifier=run.id,
-                    category=OutboxCategory.SEER_RUN_CREATE,
-                    object_identifier=run.id,
-                    payload={
-                        "body": dict(chat_body),
-                        "viewer_context": dict(self.viewer_context),
+
+        def _create_agent_run(run: SeerRun) -> None:
+            source = self.category_key or ""
+            if not source:
+                logger.warning(
+                    "seer_agent_run.missing_source",
+                    extra={
+                        "organization_id": self.organization.id,
+                        "seer_run_id": run.id,
+                        "user_id": user_id,
                     },
-                ).save()
-        except (OutboxFlushError, OutboxDatabaseError):
-            metrics.incr("seer.outbox_flush_error", tags={"type": "explorer"})
-            logger.exception(
-                "explorer.outbox_flush_error",
-                extra={
-                    "organization_id": self.organization.id,
-                    "seer_run_id": run.id,
-                    "seer_run_uuid": str(run.uuid),
-                },
+                )
+            SeerAgentRun.objects.create(
+                run=run,
+                title=prompt[:255] + "…" if len(prompt) > 256 else prompt,
+                source=source,
+                project=self.project,
+                group=self.group,
+                extras=({"category_value": self.category_value} if self.category_value else {}),
             )
-            run.mirror_status = SeerRunMirrorStatus.FAILED
-            run.save(update_fields=["mirror_status"])
-            raise SeerApiError("Outbox flush failed for explorer SeerRun", 500)
-        run.refresh_from_db()
-        if run.mirror_status != SeerRunMirrorStatus.LIVE or run.seer_run_state_id is None:
-            if run.mirror_status == SeerRunMirrorStatus.FAILED:
-                detail = "Seer run failed during outbox drain"
-            elif run.seer_run_state_id is None:
-                detail = "Seer run did not mirror during outbox drain"
-            else:
-                detail = f"Seer run in unexpected state after outbox drain: {run.mirror_status}"
-            raise SeerApiError(detail, 500)
-        return run
+
+        return enqueue_seer_run(
+            organization=self.organization,
+            run_type=SeerRunType.EXPLORER,
+            body=chat_body,
+            on_run_created=_create_agent_run,
+            viewer_context=self.viewer_context,
+            user_id=user_id,
+            flush=True,
+        )
+
+    def start_feature_run(
+        self,
+        feature_id: str,
+        payload: dict[str, Any],
+        flush: bool = True,
+        on_run_created: Callable[[SeerRun], None] | None = None,
+    ) -> SeerRun:
+        """Dispatch a run to a registered Seer feature by feature_id via the
+        SEER_RUN_CREATE outbox. The feature builds its own agent run from
+        `payload`; the result is pushed back via deliver_feature_result.
+
+        on_run_created(run), if given, runs in the same transaction as the
+        SeerRun + outbox — use it to link associated rows atomically (e.g. a
+        caller's record that the result delivery correlates back to).
+
+        flush=True (default): drain inline; dispatch failure surfaces
+        synchronously (mirror -> FAILED, raises SeerApiError, no retry).
+
+        flush=False: leave the row for the async outbox runner to drain and
+        retry. Use for background callers (e.g. night shift).
+        """
+        user_id = (
+            self.user.id
+            if self.user and hasattr(self.user, "id") and self.user.id is not None
+            else None
+        )
+        return enqueue_seer_run(
+            organization=self.organization,
+            run_type=SeerRunType.FEATURE_RUN,
+            on_run_created=on_run_created,
+            body=SeerFeatureRunRequest(feature_id=feature_id, payload=payload),
+            viewer_context=self.viewer_context,
+            user_id=user_id,
+            flush=flush,
+        )
 
     def continue_run(
         self,
