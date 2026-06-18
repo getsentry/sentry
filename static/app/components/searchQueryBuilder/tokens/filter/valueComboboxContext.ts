@@ -5,7 +5,6 @@ import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 
 type ValueComboboxContextValue = {
-  ctrlKeyPressed: boolean;
   selectedValueMap: ReadonlyMap<string, boolean>;
   token: TokenResult<Token.FILTER>;
 };
