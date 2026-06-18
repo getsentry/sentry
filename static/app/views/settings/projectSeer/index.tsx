@@ -204,7 +204,6 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
   );
   const setting = projectSettings?.find(s => s.projectSlug === project.slug);
 
-
   const {data: knownAgents} = useQuery(
     knownAgentIntegrationsQueryOptions({organization})
   );
