@@ -1,4 +1,4 @@
-import {Fragment, type ComponentProps, type ReactNode} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
@@ -95,9 +95,9 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <MaybeTopBarSlot name="title">
+            <TopBar.Slot name="title">
               <StyledBreadcrumbs crumbs={crumbs} />
-            </MaybeTopBarSlot>
+            </TopBar.Slot>
             {hasErrorUpsampling && (
               <Tooltip
                 title={t(
@@ -240,16 +240,6 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   );
 }
 
-function MaybeTopBarSlot({
-  name,
-  children,
-}: {
-  children: ReactNode;
-  name: ComponentProps<typeof TopBar.Slot>['name'];
-}) {
-  return <TopBar.Slot name={name}>{children}</TopBar.Slot>;
-}
-
 function HeaderActions({group}: {group: Group}) {
   const {feedback} = useFeedbackSDKIntegration();
 
@@ -272,7 +262,7 @@ function HeaderActions({group}: {group: Group}) {
 
   if (hasFeedbackForm && feedback) {
     return (
-      <MaybeTopBarSlot name="feedback">
+      <TopBar.Slot name="feedback">
         <FeedbackButton
           aria-label={feedbackLabel}
           feedbackOptions={feedbackOptions}
@@ -280,7 +270,7 @@ function HeaderActions({group}: {group: Group}) {
         >
           {null}
         </FeedbackButton>
-      </MaybeTopBarSlot>
+      </TopBar.Slot>
     );
   }
 
