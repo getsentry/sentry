@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any
 from uuid import uuid4
 
 from django.urls import reverse
@@ -21,7 +22,12 @@ from .test_organization_ai_conversations_base import (
 class OrganizationAIConversationsColumnsEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversations"
 
-    def do_request(self, query=None, features=None, **kwargs):
+    def do_request(
+        self,
+        query: dict[str, Any] | None = None,
+        features: list[str] | None = None,
+        **kwargs: Any,
+    ) -> Any:
         if features is None:
             features = [
                 "organizations:gen-ai-conversations",
@@ -36,7 +42,9 @@ class OrganizationAIConversationsColumnsEndpointTest(BaseAIConversationsTestCase
                 **kwargs,
             )
 
-    def _store_basic_conversation(self, conversation_id, now, trace_id=None):
+    def _store_basic_conversation(
+        self, conversation_id: str, now: datetime, trace_id: str | None = None
+    ) -> None:
         trace_id = trace_id or uuid4().hex
         self.store_ai_span(
             conversation_id=conversation_id,
@@ -69,7 +77,7 @@ class OrganizationAIConversationsColumnsEndpointTest(BaseAIConversationsTestCase
             trace_id=trace_id,
         )
 
-    def _time_window(self, now):
+    def _time_window(self, now: datetime) -> dict[str, Any]:
         return {
             "project": [self.project.id],
             "start": (now - timedelta(hours=1)).isoformat(),
