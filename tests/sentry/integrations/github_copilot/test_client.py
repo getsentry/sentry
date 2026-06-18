@@ -166,6 +166,7 @@ class GithubCopilotAgentClientTest(TestCase):
         mock_response.json = {
             "data": {
                 "node": {
+                    "fullDatabaseId": 99999,
                     "number": 12345,
                     "title": "Fix the bug",
                     "url": "https://github.com/getsentry/sentry/pull/12345",
@@ -181,6 +182,7 @@ class GithubCopilotAgentClientTest(TestCase):
         assert result.number == 12345
         assert result.title == "Fix the bug"
         assert result.url == "https://github.com/getsentry/sentry/pull/12345"
+        assert result.database_id == 99999
 
         mock_post.assert_called_once()
         call_kwargs = mock_post.call_args[1]

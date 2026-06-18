@@ -108,4 +108,4 @@ class GithubPRFromGraphQL(BaseModel):
     number: int
     title: str
     url: str
-    database_id: int
+    database_id: int | None = None

@@ -179,5 +179,5 @@ class GithubCopilotAgentClient(CodingAgentClient):
             number=node["number"],
             title=node["title"],
             url=node["url"],
-            database_id=node["fullDatabaseId"],
+            database_id=node.get("fullDatabaseId"),
         )
