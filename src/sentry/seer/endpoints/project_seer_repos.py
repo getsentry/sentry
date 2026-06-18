@@ -25,6 +25,7 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.autofix.utils import (
     add_seer_project_repos,
+    get_repo_url_path,
     replace_all_seer_project_repos,
 )
 from sentry.seer.models.project_repository import (
@@ -69,9 +70,9 @@ class ProjectRepoResponse(TypedDict):
 
 def _serialize_project_repo(project_repo: SeerProjectRepository) -> ProjectRepoResponse:
     repo = project_repo.project_repository.repository
-    name_parts = repo.name.split("/", 1)
+    name_parts = get_repo_url_path(repo).split("/", 1)
     owner = name_parts[0] if len(name_parts) > 1 else ""
-    name = name_parts[1] if len(name_parts) > 1 else repo.name
+    name = name_parts[1] if len(name_parts) > 1 else get_repo_url_path(repo)
 
     return ProjectRepoResponse(
         id=str(project_repo.id),

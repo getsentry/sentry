@@ -6,6 +6,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {IconCompass} from 'sentry/icons/iconCompass';
 import {IconFile} from 'sentry/icons/iconFile';
 import {IconGithub} from 'sentry/icons/iconGithub';
+import {IconGitlab} from 'sentry/icons/iconGitlab';
 import {IconIssues} from 'sentry/icons/iconIssues';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
@@ -309,6 +310,18 @@ function getCodeSearchEvidenceProps({
   return null;
 }
 
+function getScmIcon(url: string): ReactNode {
+  try {
+    const {hostname} = new URL(url);
+    if (hostname.includes('gitlab')) {
+      return <IconGitlab />;
+    }
+  } catch {
+    // fall through to default
+  }
+  return <IconGithub />;
+}
+
 function getGitSearchEvidenceProps({
   toolLink,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
@@ -318,7 +331,7 @@ function getGitSearchEvidenceProps({
   if (typeof commit_url === 'string' && typeof sha === 'string') {
     return {
       href: commit_url,
-      icon: <IconGithub />, // TODO: support other SCMs
+      icon: getScmIcon(commit_url),
       label: t('Commit: %s', truncateText(getShortCommitHash(sha))),
       tooltip: sha,
     };
@@ -334,7 +347,7 @@ function getGitSearchEvidenceProps({
       typeof file_path === 'string' ? extractFileName(file_path) : undefined;
     return {
       href: commits_url,
-      icon: <IconGithub />, // TODO: support other SCMs
+      icon: getScmIcon(commits_url),
       label: t('Commits: %s', fileName ? truncateText(fileName) : repo_name),
       tooltip: (
         <Fragment>
