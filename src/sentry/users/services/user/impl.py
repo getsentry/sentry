@@ -304,9 +304,7 @@ class DatabaseBackedUserService(UserService):
 
         return serialize_user_avatar(avatar=possible_avatar)
 
-    def update_user_avatar(
-        self, *, user_id: int, avatar_b64: str | None, filename: str
-    ) -> None:
+    def update_user_avatar(self, *, user_id: int, avatar_b64: str | None, filename: str) -> None:
         if avatar_b64:
             UserAvatar.save_avatar(
                 relation={"user_id": user_id},

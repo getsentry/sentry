@@ -316,9 +316,7 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def update_user_avatar(
-        self, *, user_id: int, avatar_b64: str | None, filename: str
-    ) -> None:
+    def update_user_avatar(self, *, user_id: int, avatar_b64: str | None, filename: str) -> None:
         """
         Set or clear a user's avatar from base64-encoded image data.
 

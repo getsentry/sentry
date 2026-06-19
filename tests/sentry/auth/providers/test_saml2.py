@@ -9,11 +9,7 @@ import pytest
 from PIL import Image
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.auth.providers.saml2.provider import (
-    Attributes,
-    SAML2Provider,
-    _validate_saml_avatar,
-)
+from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider, _validate_saml_avatar
 from sentry.auth.view import AuthView
 from sentry.testutils.silo import control_silo_test
 

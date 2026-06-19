@@ -1237,6 +1237,11 @@ class InactiveUserIdentityTest(AuthIdentityHandlerTest):
         template = mock_render.call_args.args[0]
         assert template == "sentry/auth-confirm-link.html"
 
+        # AuthIdentity still points to the original inactive user, not the attacker
+        auth_identity.refresh_from_db()
+        assert auth_identity.user_id == inactive_user.id
+        assert auth_identity.user_id != attacker.id
+
 
 @control_silo_test
 class ApplySSOAvatarTest(AuthIdentityHandlerTest):
@@ -1298,8 +1303,3 @@ class ApplySSOAvatarTest(AuthIdentityHandlerTest):
             handler._apply_sso_avatar(user)
 
         assert not UserAvatar.objects.filter(user_id=user.id).exists()
-
-        # AuthIdentity still points to the original inactive user, not the attacker
-        auth_identity.refresh_from_db()
-        assert auth_identity.user_id == inactive_user.id
-        assert auth_identity.user_id != attacker.id
