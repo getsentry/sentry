@@ -893,7 +893,7 @@ export function replaceFreeTextTokens(
     }
 
     const value = escapeTagValue(token.text.trim());
-    freeTextTokens.push(value.slice(1, -1));
+    freeTextTokens.push(token.text.trim());
 
     // We don't want to break user flows, so if they include an asterisk in their free
     // text value, leave it as an `is` filter.
