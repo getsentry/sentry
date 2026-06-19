@@ -6,6 +6,7 @@ import type {LowValueSpanEvidenceData} from './types';
 const evidenceData: LowValueSpanEvidenceData = {
   op: 'function',
   description: 'compute_checksum',
+  spanName: null,
   count: 1234,
   extrapolatedCount: 60_000,
   avgDurationMs: 0.4,
@@ -106,17 +107,56 @@ describe('LowValueSpanIssues ProblemSection', () => {
     );
   });
 
-  it('does not link to explore when both op and description are null', () => {
+  it('does not link to explore when op, description, and span name are all null', () => {
     render(
       <ProblemSection
         evidenceData={{
           ...evidenceData,
           op: null,
           description: null,
+          spanName: null,
         }}
       />
     );
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('prefers span name over op in the affected-span label', () => {
+    render(
+      <ProblemSection
+        evidenceData={{
+          ...evidenceData,
+          spanName: 'ProcessChecksum',
+        }}
+      />
+    );
+
+    expect(screen.getByText('ProcessChecksum - compute_checksum')).toBeInTheDocument();
+    expect(screen.queryByText('function - compute_checksum')).not.toBeInTheDocument();
+  });
+
+  it('uses span name when op is null', () => {
+    render(
+      <ProblemSection
+        evidenceData={{
+          ...evidenceData,
+          op: null,
+          spanName: 'ProcessChecksum',
+        }}
+      />
+    );
+
+    const exploreLink = screen.getByRole('link', {
+      name: 'ProcessChecksum - compute_checksum',
+    });
+    expect(exploreLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('span.name%3AProcessChecksum')
+    );
+    expect(exploreLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('%21has%3Aspan.op')
+    );
   });
 });
