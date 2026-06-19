@@ -10,7 +10,10 @@ import * as analytics from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import * as useDimensionsModule from 'sentry/utils/useDimensions';
 import type {OpenSeerExplorerDrawerOptions} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
-import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
+import {
+  getSidebarContentLayout,
+  SeerExplorerSidebarLayout,
+} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
@@ -333,5 +336,40 @@ describe('SeerExplorerSidebarLayout', () => {
       expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument()
     );
     expect(dividerDirection()).toBeUndefined();
+  });
+
+  describe('getSidebarContentLayout', () => {
+    it('leaves normal sizing unchanged when both minimums fit', () => {
+      const {size, min, max} = getSidebarContentLayout({
+        available: 1200,
+        seerSize: 420,
+        minContent: 480,
+        minSeer: 320,
+      });
+      expect(size).toBe(780);
+      expect(min).toBe(480);
+      expect(max).toBe(880);
+    });
+
+    it('preserves Seer minimum (no overflow) when the viewport is too small for both', () => {
+      // available (360) < minContent (200) + minSeer (240): the content pane must
+      // not crowd Seer below its minimum, and must never exceed the viewport.
+      const available = 360;
+      const minContent = 200;
+      const minSeer = 240;
+      const {size, max} = getSidebarContentLayout({
+        available,
+        seerSize: 360,
+        minContent,
+        minSeer,
+      });
+
+      // Content capped so Seer keeps at least minSeer.
+      expect(size).toBeLessThanOrEqual(available - minSeer);
+      expect(max).toBeLessThanOrEqual(available - minSeer);
+      // Never overflow the viewport.
+      expect(size).toBeLessThanOrEqual(available);
+      expect(max).toBeLessThanOrEqual(available);
+    });
   });
 });

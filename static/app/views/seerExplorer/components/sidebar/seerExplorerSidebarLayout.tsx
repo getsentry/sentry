@@ -26,6 +26,32 @@ const MIN_SEER_HEIGHT = 240;
 const DEFAULT_SEER_HEIGHT = 360;
 
 /**
+ * Sizing for the content (app) pane of the split, given the available space and
+ * Seer's persisted size. `SplitPanel` sizes the content pane and Seer takes the
+ * `1fr` remainder, so these bounds also determine Seer's size.
+ */
+export function getSidebarContentLayout({
+  available,
+  seerSize,
+  minContent,
+  minSeer,
+}: {
+  available: number;
+  minContent: number;
+  minSeer: number;
+  seerSize: number;
+}): {max: number; min: number; size: number} {
+  // Cap the content pane so it can never push Seer below its minimum or overflow
+  // the viewport. When `available < minContent + minSeer` the viewport can't fit
+  // both minimums, so Seer's minimum wins and the content pane scrolls. Clamp the
+  // effective content minimum to this cap so it doesn't force the pane back up.
+  const max = Math.max(0, available - minSeer);
+  const min = Math.min(minContent, max);
+  const size = Math.max(min, Math.min(available - seerSize, max));
+  return {size, min, max};
+}
+
+/**
  * Wraps the main app content so Seer Explorer can render as a resizable split
  * panel beside it (right on wide screens, bottom otherwise) when the persistent
  * sidebar flag is on. When off, the content is returned untouched (drawer mode).
@@ -59,12 +85,11 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
 
   const storedSeerSize = parseInt(localStorage.getItem(seerSizeKey) ?? '', 10);
   const seerSize = storedSeerSize > 0 ? storedSeerSize : defaultSeerSize;
-  // Content pane size for the current viewport + persisted Seer size, clamped so
-  // neither pane collapses.
-  const contentSize = Math.max(
-    minContent,
-    Math.min(available - seerSize, available - minSeer)
-  );
+  const {
+    size: contentSize,
+    min: contentMin,
+    max: contentMax,
+  } = getSidebarContentLayout({available, seerSize, minContent, minSeer});
 
   // The SplitPanel stays mounted across open/close (so the app never remounts)
   // and only reads its size on mount. Push the recomputed content size whenever
@@ -114,8 +139,8 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
   const side = {
     content: contentPane,
     default: contentSize,
-    min: minContent,
-    max: Math.max(available - minSeer, minContent),
+    min: contentMin,
+    max: contentMax,
   };
 
   const splitProps: SplitPanelProps = isRight
