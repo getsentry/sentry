@@ -210,9 +210,11 @@ function NativeVarValue({
       {stringValue ? (
         <Fragment>
           <StringValue>"{stringValue}"</StringValue>
-          <Text variant="muted" size="sm" monospace>
-            ({String(value)})
-          </Text>
+          {value !== undefined && (
+            <Text variant="muted" size="sm" monospace>
+              ({String(value)})
+            </Text>
+          )}
         </Fragment>
       ) : typeof value === 'number' ? (
         <Text size="sm" monospace>
