@@ -14,7 +14,6 @@ import {BaseChart} from 'sentry/components/charts/baseChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -40,10 +39,14 @@ const Y_AXIS_LABEL_FONT_SIZE = 12;
  * caller can build its own tooltip actions (e.g. links into Explore).
  */
 interface HeatMapTooltipContext {
-  /** Value-range filter for the hovered cell, e.g. `value:>=200 value:<250`. */
-  cellQuery: string;
-  /** Page filters narrowed to the hovered cell's X-axis (time) bucket. */
-  selection: PageFilters;
+  /** End of the cell's X-axis (time) bucket, as a millisecond timestamp. */
+  timestampEnd: number;
+  /** Start of the cell's X-axis (time) bucket, as a millisecond timestamp. */
+  timestampStart: number;
+  /** Upper bound of the cell's Y-axis (value) bucket (equals `valueMin` for a zero-width bucket). */
+  valueMax: number;
+  /** Inclusive lower bound of the cell's Y-axis (value) bucket. */
+  valueMin: number;
 }
 
 interface HeatMapWidgetVisualizationProps {
@@ -245,24 +248,17 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
               }
             }
 
-            // The caller renders any cell actions (e.g. an Explore link) from
-            // the cell's value-range query and time-narrowed selection.
+            // The caller renders any cell actions (e.g. an Explore link) from the
+            // cell's raw value/time bounds — the visualization doesn't know what
+            // a "query" or "selection" should look like.
             let tooltipActions: ReactNode = null;
             if (defined(rawXValue) && defined(rawYValue) && renderTooltipActions) {
-              const cellQuery =
-                yAxisBucketSize === 0
-                  ? `value:<=${rawYValue}`
-                  : `value:>=${rawYValue} value:<${rawYValue + yAxisBucketSize}`;
-              const selection = {
-                ...pageFilters.selection,
-                datetime: {
-                  ...pageFilters.selection.datetime,
-                  start: new Date(rawXValue),
-                  end: new Date(rawXValue + xAxisBucketSize * 1000),
-                  period: null,
-                },
-              };
-              tooltipActions = renderTooltipActions({cellQuery, selection});
+              tooltipActions = renderTooltipActions({
+                valueMin: rawYValue,
+                valueMax: rawYValue + yAxisBucketSize,
+                timestampStart: rawXValue,
+                timestampEnd: rawXValue + xAxisBucketSize * 1000,
+              });
             }
 
             return (

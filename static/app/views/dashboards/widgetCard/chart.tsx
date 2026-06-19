@@ -468,7 +468,7 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 }
 
 function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
-  const {heatmapResults, loading, widget, dashboardFilters} = props;
+  const {heatmapResults, loading, widget, dashboardFilters, selection} = props;
   const organization = useOrganization();
 
   // The heat map links each cell's tooltip to its metric in Explore.
@@ -496,18 +496,30 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
       <HeatMapWidgetVisualization
         plottables={[new HeatMap(heatmapResults)]}
         scale={HEATMAP_Z_AXIS_SCALE}
-        renderTooltipActions={({cellQuery, selection}) => {
+        renderTooltipActions={({valueMin, valueMax, timestampStart, timestampEnd}) => {
           if (!traceMetric) {
             return null;
           }
+          const valueQuery =
+            valueMin === valueMax
+              ? `value:<=${valueMin}`
+              : `value:>=${valueMin} value:<${valueMax}`;
           const tracesUrl = buildExploreUrl({
             organization,
-            selection,
+            selection: {
+              ...selection,
+              datetime: {
+                ...selection.datetime,
+                start: new Date(timestampStart),
+                end: new Date(timestampEnd),
+                period: null,
+              },
+            },
             crossEvents: [
               {
                 type: 'metrics',
                 metric: traceMetric,
-                query: [exploreBaseQuery, cellQuery].filter(Boolean).join(' '),
+                query: [exploreBaseQuery, valueQuery].filter(Boolean).join(' '),
               },
             ],
           });

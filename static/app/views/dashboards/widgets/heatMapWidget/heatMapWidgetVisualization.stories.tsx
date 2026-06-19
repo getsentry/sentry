@@ -116,9 +116,11 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
           </p>
           <p>
             Pass <code>renderTooltipActions</code> to add action rows (e.g. an Explore
-            link). It receives the cell's value-range query (<code>cellQuery</code>) and a{' '}
-            <code>selection</code> narrowed to the cell's time bucket, and returns the
-            extra rows — so the visualization stays agnostic about what the actions are.
+            link). It receives the hovered cell's raw bounds — <code>valueMin</code>/
+            <code>valueMax</code> (Y axis) and <code>timestampStart</code>/
+            <code>timestampEnd</code> (X axis) — and returns the extra rows. The caller
+            turns those into whatever query or URL it needs, so the visualization stays
+            agnostic.
           </p>
           <p>
             Because ECharts renders the tooltip to an HTML string, React click handlers
@@ -132,16 +134,19 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
               {`<HeatMapWidgetVisualization
   plottables={[new HeatMap(heatMapData)]}
   tooltipActionHandlers={{'add-to-filter': query => setLocalFilterQuery(query)}}
-  renderTooltipActions={({cellQuery, selection}) => (
-    <Fragment>
-      <a data-traces-link={getExploreUrl({organization, selection, crossEvents: [...]})}>
-        View connected spans
-      </a>
-      <a data-tooltip-action="add-to-filter" data-tooltip-action-value={cellQuery}>
-        Add to filter
-      </a>
-    </Fragment>
-  )}
+  renderTooltipActions={({valueMin, valueMax, timestampStart, timestampEnd}) => {
+    const valueQuery = \`value:>=\${valueMin} value:<\${valueMax}\`;
+    return (
+      <Fragment>
+        <a data-traces-link={getExploreUrl({organization, selection, crossEvents: [...]})}>
+          View connected spans
+        </a>
+        <a data-tooltip-action="add-to-filter" data-tooltip-action-value={valueQuery}>
+          Add to filter
+        </a>
+      </Fragment>
+    );
+  }}
 />`}
             </CodeBlock>
           </p>
@@ -152,12 +157,12 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
               tooltipActionHandlers={{
                 'add-to-filter': query => setLocalFilterQuery(query),
               }}
-              renderTooltipActions={({cellQuery}) => (
+              renderTooltipActions={({valueMin, valueMax}) => (
                 <div>
                   <span className="tooltip-label tooltip-label-centered">
                     <a
                       data-tooltip-action="add-to-filter"
-                      data-tooltip-action-value={cellQuery}
+                      data-tooltip-action-value={`value:>=${valueMin} value:<${valueMax}`}
                     >
                       Add to filter
                     </a>
