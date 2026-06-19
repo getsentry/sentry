@@ -78,8 +78,8 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
       const localNumberAttributes = {...spanNumberAttributes};
       const localStringAttributes = {...spanStringAttributesWithSemver};
 
-      if (props.validatedSearchQueryData?.query?.length) {
-        for (const item of props.validatedSearchQueryData.query) {
+      if (props.validatedSearchQueryData?.query.fields.length) {
+        for (const item of props.validatedSearchQueryData.query.fields) {
           if (item.valid) {
             if (item.attrType === 'boolean' && item.name) {
               localBooleanAttributes[item.name] ??= {
@@ -121,7 +121,7 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
         invalidFilterKeys: localInvalidFilterKeys,
       };
     }, [
-      props.validatedSearchQueryData?.query,
+      props.validatedSearchQueryData?.query.fields,
       spanBooleanAttributes,
       spanNumberAttributes,
       spanStringAttributesWithSemver,

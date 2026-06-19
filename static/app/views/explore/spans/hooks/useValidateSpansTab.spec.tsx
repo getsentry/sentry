@@ -21,7 +21,11 @@ const validationBody: EventValidationData = {
   field: [],
   orderby: [],
   projects: [],
-  query: [{attrType: 'string', error: null, name: 'span.op', valid: true}],
+  query: {
+    error: null,
+    fields: [{attrType: 'string', error: null, name: 'span.op', valid: true}],
+    valid: true,
+  },
   valid: true,
 };
 
@@ -79,9 +83,13 @@ describe('useValidateSpansTab', () => {
   it('returns validation details from request errors', async () => {
     const invalidValidationBody: EventValidationData = {
       ...validationBody,
-      query: [
-        {attrType: null, error: 'unknown attribute', name: 'missing.key', valid: false},
-      ],
+      query: {
+        error: 'unknown attribute',
+        fields: [
+          {attrType: null, error: 'unknown attribute', name: 'missing.key', valid: false},
+        ],
+        valid: false,
+      },
       valid: false,
     };
     MockApiClient.addMockResponse({

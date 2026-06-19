@@ -8,25 +8,45 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
-const STALE_TIME = 5 * 60 * 1000;
+const STALE_TIME = 30 * 60 * 1000;
 
-const BaseValidationSchema = z.object({
+// These schemas mirror the response dataclasses in
+// src/sentry/api/endpoints/organization_events_validate.py
+// Matches Validation
+const ValidationSchema = z.object({
   error: z.string().nullable(),
   valid: z.boolean(),
 });
 
-const BaseValidationReturnSchema = BaseValidationSchema.extend({
-  attrType: z.string().nullish(),
-  name: z.string().optional(),
+// Mirrors NamedValidation
+const NamedValidationSchema = z.object({
+  error: z.string().nullable(),
+  name: z.string(),
+  valid: z.boolean(),
+});
+
+// Mirrors AttributeValidation
+const AttributeValidationSchema = z.object({
+  attrType: z.string().nullable(),
+  error: z.string().nullable(),
+  name: z.string(),
+  valid: z.boolean(),
+});
+
+// Mirrors QueryValidation
+const QueryValidationSchema = z.object({
+  error: z.string().nullable(),
+  fields: z.array(AttributeValidationSchema),
+  valid: z.boolean(),
 });
 
 export const EventValidationSchema = z.object({
-  dataset: z.array(BaseValidationReturnSchema),
-  environment: z.array(BaseValidationReturnSchema),
-  field: z.array(BaseValidationReturnSchema),
-  orderby: z.array(BaseValidationReturnSchema),
-  projects: z.array(BaseValidationReturnSchema),
-  query: z.array(BaseValidationReturnSchema),
+  dataset: z.array(NamedValidationSchema),
+  environment: z.array(ValidationSchema),
+  field: z.array(AttributeValidationSchema),
+  orderby: z.array(AttributeValidationSchema),
+  projects: z.array(ValidationSchema),
+  query: QueryValidationSchema,
   valid: z.boolean(),
 });
 

@@ -44,14 +44,16 @@ const spanAttributesByType = {
   },
 };
 
-function makeValidationData(query: EventValidationData['query']): EventValidationData {
+function makeValidationData(
+  fields: EventValidationData['query']['fields']
+): EventValidationData {
   return {
     dataset: [],
     environment: [],
     field: [],
     orderby: [],
     projects: [],
-    query,
+    query: {error: null, fields, valid: true},
     valid: false,
   };
 }
