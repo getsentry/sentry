@@ -158,14 +158,13 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     });
   });
 
-  it('exposes getTagKeys and allows unsupported filters when async keys are enabled', () => {
+  it('exposes getTagKeys when async keys are enabled', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: defaultInitialProps,
       organization,
     });
 
     expect(result.current.getTagKeys).toEqual(expect.any(Function));
-    expect(result.current.disallowUnsupportedFilters).toBe(false);
   });
 
   it.each([TraceItemDataset.SPANS, TraceItemDataset.LOGS, TraceItemDataset.TRACEMETRICS])(

@@ -203,7 +203,6 @@ export function useTraceItemSearchQueryBuilderProps({
       getSuggestedFilterKey: getSuggestedAttribute,
       getTagValues: getTraceItemAttributeValues,
       getTagKeys,
-      disallowUnsupportedFilters: !getTagKeys,
       disallowFreeText,
       disallowLogicalOperators,
       recentSearches: disableRecentSearches
