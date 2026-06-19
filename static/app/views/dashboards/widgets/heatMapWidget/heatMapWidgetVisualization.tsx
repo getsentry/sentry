@@ -34,34 +34,17 @@ import {HEATMAP_COLORS} from './settings';
 // Source: https://echarts.apache.org/en/option.html#yAxis.axisLabel.fontSize
 const Y_AXIS_LABEL_FONT_SIZE = 12;
 
-/**
- * Context for the hovered heat map cell, handed to `renderTooltipActions` so the
- * caller can build its own tooltip actions (e.g. links into Explore).
- */
-interface HeatMapTooltipContext {
-  /** End of the cell's X-axis (time) bucket, as a millisecond timestamp. */
-  timestampEnd: number;
-  /** Start of the cell's X-axis (time) bucket, as a millisecond timestamp. */
-  timestampStart: number;
-  /** Upper bound of the cell's Y-axis (value) bucket (equals `valueMin` for a zero-width bucket). */
-  valueMax: number;
-  /** Inclusive lower bound of the cell's Y-axis (value) bucket. */
-  valueMin: number;
-}
-
 interface HeatMapWidgetVisualizationProps {
   /**
    * An single `HeatMap` object to render on the chart, and any number of other compatible Heat Map plottables.
    */
   plottables: [HeatMap, ...HeatMapPlottable[]];
   /**
-   * Renders extra action rows in a cell's tooltip (e.g. an Explore link). The
-   * visualization stays agnostic about what those actions are; the caller builds
-   * them from the cell context. Because ECharts renders the tooltip to an HTML
-   * string (no live React handlers), the visualization routes clicks for you:
-   * use `data-traces-link="<url>"` for navigations, and
+   * Renders extra content in a cell's tooltip. Because ECharts renders the
+   * tooltip to an HTML string (no live React handlers), the visualization
+   * routes clicks for you: use `data-traces-link="<url>"` for navigations, and
    * `data-tooltip-action="<id>"` with `data-tooltip-action-value="<value>"` for
-   * actions — the matching `tooltipActionHandlers[id]` is called with the value.
+   * actions. The matching `tooltipActionHandlers[id]` is called with the value.
    */
   renderTooltipActions?: (context: HeatMapTooltipContext) => ReactNode;
   /**
@@ -97,18 +80,25 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
       if (!chartRef.current?.ele?.contains(e.target as Node)) {
         return;
       }
+
       const actionTarget = (e.target as Element).closest('[data-tooltip-action]');
+
       const tracesLinkTarget = (e.target as Element).closest('[data-traces-link]');
+
       if (!actionTarget && !tracesLinkTarget) {
         return;
       }
+
       e.preventDefault();
+
       const openInNewTab = e.metaKey || e.ctrlKey;
+
       if (actionTarget) {
         const actionId = actionTarget.getAttribute('data-tooltip-action');
         const handler = actionId ? tooltipActionHandlers?.[actionId] : undefined;
         handler?.(actionTarget.getAttribute('data-tooltip-action-value') ?? '');
       }
+
       if (tracesLinkTarget) {
         const tracesUrl = tracesLinkTarget.getAttribute('data-traces-link');
         if (tracesUrl) {
@@ -406,4 +396,15 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
       />
     </Flex>
   );
+}
+
+/**
+ * Context for the hovered heat map cell, handed to `renderTooltipActions` so the
+ * caller can build its own tooltip actions (e.g. links into Explore).
+ */
+interface HeatMapTooltipContext {
+  timestampEnd: number;
+  timestampStart: number;
+  valueMax: number;
+  valueMin: number;
 }
