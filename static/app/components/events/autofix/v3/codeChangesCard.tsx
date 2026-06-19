@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -15,7 +16,7 @@ import {
   isCodeChangesArtifact,
   isPrIterationBlock,
   type AutofixSection,
-  type QueuedFeedbackItem,
+  type RawFeedback,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
@@ -25,7 +26,10 @@ import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixRes
 import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
+import {IconClock} from 'sentry/icons/iconClock';
 import {IconCode} from 'sentry/icons/iconCode';
 import {IconGithub} from 'sentry/icons/iconGithub';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
@@ -42,104 +46,66 @@ interface CodeChangesCardProps {
   section: AutofixSection;
 }
 
-interface BaseFeedback {
-  iterationIndex: number;
+/**
+ * - `processed`: the iteration it drove has finished and its changes are pushed.
+ * - `in_progress`: it's driving the iteration currently being processed.
+ * - `queued`: submitted while a run was processing, not yet picked up.
+ */
+type FeedbackStatus = 'processed' | 'in_progress' | 'queued';
+
+interface ParsedBaseFeedback {
   text: string;
   timestamp?: string;
 }
 
-interface UserUiFeedback extends BaseFeedback {
+interface UserUiFeedback extends ParsedBaseFeedback {
   sourceType: 'user-ui';
   user?: User | null;
 }
 
-interface GithubPrCommentFeedback extends BaseFeedback {
+interface GithubPrCommentFeedback extends ParsedBaseFeedback {
+  commentUrl: string;
   sourceType: 'github-pr-comment';
-  commentUrl?: string;
   githubUsername?: string;
 }
 
-type IterationFeedback = UserUiFeedback | GithubPrCommentFeedback;
+// What `parseFeedback` can produce from the stored JSON alone.
+type ParsedFeedback = UserUiFeedback | GithubPrCommentFeedback;
 
-type DistributiveOmit<T, K extends keyof any> = T extends unknown ? Omit<T, K> : never;
+// A parsed feedback enriched with the iteration context the caller supplies.
+type IterationFeedback = ParsedFeedback & {
+  iterationIndex: number;
+  status: FeedbackStatus;
+};
 
-/**
- * Feedback is stored as a JSON object (`{text, source, timestamp}`), where
- * `source` identifies who submitted it: `{type: 'user-ui', user_id, user}` from
- * the Sentry UI (the backend resolves `user_id` into a serialized `user`) or
- * `{type: 'github-pr-comment', comment}` from an `@sentry` PR comment, where
- * `comment` is the raw GitHub comment payload (we read `comment.user.login` for
- * attribution and `comment.html_url` to link back to it).
- *
- * We mux on `source.type` so each variant produces its own discriminated
- * `IterationFeedback`, which `FeedbackItem` then renders per-type. Source types
- * we don't recognize return `null` so a backend change can roll out ahead of the
- * frontend without rendering anything unexpected.
- */
-function parseQueuedFeedback(
-  item: QueuedFeedbackItem,
-  iterationIndex: number
-): IterationFeedback | null {
-  const base = {text: item.text, timestamp: item.timestamp, iterationIndex};
-  switch (item.source?.type) {
+function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
+  const base = {text: parsed.text, timestamp: parsed.timestamp};
+  switch (parsed.source?.type) {
     case 'user-ui':
-      return {...base, sourceType: 'user-ui', user: item.source.user ?? null};
-    case 'github-pr-comment':
+      return {...base, sourceType: 'user-ui', user: parsed.source?.user};
+    case 'github-pr-comment': {
+      const commentUrl = parsed.source?.comment?.html_url;
+      if (!commentUrl) {
+        return null;
+      }
       return {
         ...base,
         sourceType: 'github-pr-comment',
-        githubUsername: item.source.comment?.user?.login,
-        commentUrl: item.source.comment?.html_url,
+        githubUsername: parsed.source?.comment?.user?.login,
+        commentUrl,
       };
+    }
     default:
       return null;
   }
 }
 
-type FeedbackVariant = DistributiveOmit<IterationFeedback, 'iterationIndex'>;
-
-function parseFeedback(raw: string): FeedbackVariant[] {
-  type ParsedFeedback = {
-    text: string;
-    source?: {
-      type: string;
-      comment?: {html_url?: string; user?: {login: string}};
-      user?: User;
-    };
-    timestamp?: string;
-  };
-  const rawParsed: ParsedFeedback | ParsedFeedback[] = JSON.parse(raw);
-  const items = Array.isArray(rawParsed) ? rawParsed : [rawParsed];
-  return items.flatMap((parsed): FeedbackVariant[] => {
-    if (!parsed) {
-      return [];
-    }
-    const base = {text: parsed.text, timestamp: parsed.timestamp};
-    switch (parsed.source?.type) {
-      case 'user-ui':
-        return [{...base, sourceType: 'user-ui', user: parsed.source?.user}];
-      case 'github-pr-comment':
-        return [
-          {
-            ...base,
-            sourceType: 'github-pr-comment',
-            githubUsername: parsed.source?.comment?.user?.login,
-            commentUrl: parsed.source?.comment?.html_url,
-          },
-        ];
-      default:
-        return [];
-    }
-  });
+function parseFeedback(raw: string): ParsedFeedback[] {
+  const parsed: RawFeedback | RawFeedback[] = JSON.parse(raw);
+  const items = Array.isArray(parsed) ? parsed : [parsed];
+  return items.map(parseFeedbackItem).filter(defined);
 }
 
-/**
- * When the coding step finishes without producing any patches, the agent often
- * still leaves a final assistant message explaining why — e.g. the real fix is a
- * database migration / infra change, or the relevant files aren't in the
- * connected repo. Surface that explanation instead of a generic "this one is on
- * us" message so the user knows a plain re-run won't help.
- */
 function getFinalExplanation(section: AutofixSection): string | null {
   for (let i = section.blocks.length - 1; i >= 0; i--) {
     const block = section.blocks[i];
@@ -158,45 +124,6 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const organization = useOrganization();
   const hasPrIterationFeature = organization.features.includes('autofix-pr-iteration');
 
-  // PR iterations are folded into this section's blocks. Surface the feedback
-  // that drove each one — the cumulative diff is already merged into the
-  // section's code-change artifact by getOrderedAutofixSections. Gated behind
-  // the PR iteration feature; when it's off we render the card as if no
-  // iterations exist.
-  const feedback = useMemo<IterationFeedback[]>(() => {
-    if (!hasPrIterationFeature) {
-      return [];
-    }
-    const processed = section.blocks.filter(isPrIterationBlock).flatMap(block => {
-      const metadata = block.message.metadata;
-      const value = metadata?.feedback;
-      const iterationIndex = metadata?.iteration_index;
-      if (!value || iterationIndex === undefined) {
-        return [];
-      }
-      return parseFeedback(value).map(parsed => ({
-        ...parsed,
-        iterationIndex: Number(iterationIndex),
-      }));
-    });
-    const maxIndex = processed.reduce((m, f) => Math.max(m, f.iterationIndex), -1);
-    const queued = (autofix.runState?.queued_feedback ?? []).flatMap((item, i) => {
-      const parsed = parseQueuedFeedback(item, maxIndex + 1 + i);
-      return parsed ? [parsed] : [];
-    });
-    return [...processed, ...queued];
-  }, [section.blocks, hasPrIterationFeature, autofix.runState?.queued_feedback]);
-
-  const latestIterationIndex = useMemo(
-    () =>
-      feedback.reduce<number | null>(
-        (max, item) =>
-          max === null ? item.iterationIndex : Math.max(max, item.iterationIndex),
-        null
-      ),
-    [feedback]
-  );
-
   const hasQueuedFeedback = (autofix.runState?.queued_feedback ?? []).length > 0;
 
   const isIterating =
@@ -204,19 +131,94 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     (hasQueuedFeedback ||
       (section.status === 'processing' && section.blocks.some(isPrIterationBlock)));
 
-  // While processing, only replay the assistant output from the current
-  // in-progress step. Steps (the original coding step plus each PR iteration)
-  // are folded into this section's blocks; the first block of each step carries
-  // a `step` marker and the rest inherit it, so slice from the latest marker to
-  // avoid replaying earlier, already-finished steps.
-  const loadingBlocks = useMemo(() => {
-    const currentStepStart = section.blocks.findLastIndex(block =>
-      defined(block.message.metadata?.step)
-    );
-    return currentStepStart === -1
-      ? section.blocks
-      : section.blocks.slice(currentStepStart);
-  }, [section.blocks]);
+  const currentStepStart = useMemo(
+    () => section.blocks.findLastIndex(block => defined(block.message.metadata?.step)),
+    [section.blocks]
+  );
+
+  // PR iterations are folded into this section's blocks. Surface the feedback
+  // that drove each one — the cumulative diff is already merged into the
+  // section's code-change artifact by getOrderedAutofixSections. Feedback on a
+  // block at/after the current step marker drives the iteration still running
+  // (when the section is processing); everything earlier is already pushed.
+  const blockFeedback = useMemo<IterationFeedback[]>(
+    () =>
+      hasPrIterationFeature
+        ? section.blocks.flatMap((block, blockIndex) => {
+            if (!isPrIterationBlock(block)) {
+              return [];
+            }
+
+            const metadata = block.message.metadata;
+            const value = metadata?.feedback;
+            const iterationIndex = metadata?.iteration_index;
+
+            if (!value || iterationIndex === undefined) {
+              return [];
+            }
+
+            const status: FeedbackStatus =
+              section.status === 'processing' && blockIndex >= currentStepStart
+                ? 'in_progress'
+                : 'processed';
+
+            return parseFeedback(value).map(parsed => ({
+              ...parsed,
+              iterationIndex: Number(iterationIndex),
+              status,
+            }));
+          })
+        : [],
+    [section.blocks, section.status, currentStepStart, hasPrIterationFeature]
+  );
+
+  const latestIterationIndex = useMemo(
+    () =>
+      blockFeedback.reduce<number | null>(
+        (max, item) =>
+          max === null ? item.iterationIndex : Math.max(max, item.iterationIndex),
+        null
+      ),
+    [blockFeedback]
+  );
+
+  // Feedback submitted while this run is processing that hasn't been picked up
+  // and folded into a block yet. It will become the next iteration.
+  const queuedFeedback = useMemo<IterationFeedback[]>(
+    () =>
+      hasPrIterationFeature
+        ? (autofix.runState?.queued_feedback ?? []).flatMap(raw => {
+            const parsed = parseFeedbackItem(raw);
+            if (!parsed) {
+              return [];
+            }
+
+            return [
+              {
+                ...parsed,
+                iterationIndex: (latestIterationIndex ?? -1) + 1,
+                status: 'queued' as const,
+              },
+            ];
+          })
+        : [],
+    [autofix.runState?.queued_feedback, latestIterationIndex, hasPrIterationFeature]
+  );
+
+  const feedback = useMemo(
+    () => [...blockFeedback, ...queuedFeedback],
+    [blockFeedback, queuedFeedback]
+  );
+
+  const loadingBlocks = useMemo(
+    () =>
+      section.status !== 'processing'
+        ? []
+        : currentStepStart === -1
+          ? section.blocks
+          : section.blocks.slice(currentStepStart),
+    [section.status, section.blocks, currentStepStart]
+  );
 
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
@@ -229,16 +231,22 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     [artifact]
   );
 
+  const prIterationEnabled = hasPrIterationFeature;
+  const hasPRs = Object.keys(autofix.runState?.repo_pr_states ?? {}).length > 0;
+  const noCodingAgents =
+    Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
+
+  const isResetEligible = prIterationEnabled
+    ? noCodingAgents
+    : noCodingAgents && !hasPRs && autofix.runState?.status !== 'processing';
+
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
     useResetAutofixStep({
       autofix,
+      canReset: isResetEligible,
       section,
       step: 'code_changes',
     });
-
-  const prIterationEnabled = hasPrIterationFeature;
-  const hasPRs = Object.keys(autofix.runState?.repo_pr_states ?? {}).length > 0;
-
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
   const explanation = useMemo(() => getFinalExplanation(section), [section]);
@@ -293,17 +301,30 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
         <ArtifactDetails>
           <Text bold>{t('Feedback')}</Text>
           {feedback.map((item, index) => (
-            <FeedbackItem key={index} item={item} />
+            <FeedbackItem key={`${item.iterationIndex}-${index}`} item={item} />
           ))}
         </ArtifactDetails>
       )}
       {isProcessing ? (
-        <ArtifactLoadingDetails
-          blocks={loadingBlocks}
-          loadingMessage={
-            isIterating ? t('Iterating on PR…') : t('Implementing changes…')
-          }
-        />
+        <Fragment>
+          {/* PR iteration feedback is queued while a run is in progress, so keep
+              the form available even mid-run. */}
+          {shouldShowReset && hasPRs && prIterationEnabled && (
+            <PrIterationFeedbackForm
+              autofix={autofix}
+              groupId={groupId}
+              runId={autofix.runState?.run_id}
+              referrer="code_changes_card_reset"
+              onClose={() => setShouldShowReset(false)}
+            />
+          )}
+          <ArtifactLoadingDetails
+            blocks={loadingBlocks}
+            loadingMessage={
+              isIterating ? t('Iterating on PR…') : t('Implementing changes…')
+            }
+          />
+        </Fragment>
       ) : artifact && patchesByRepo.size ? (
         <Fragment>
           {shouldShowReset &&
@@ -413,20 +434,10 @@ function FeedbackAttribution({item}: {item: IterationFeedback}) {
   switch (item.sourceType) {
     case 'github-pr-comment':
       return (
-        <Tooltip title={t('From a GitHub PR comment')}>
-          <Flex gap="xs" align="center" flex="0 0 auto">
+        <Tooltip title={item.githubUsername ?? t('GitHub PR comment')} skipWrapper>
+          <GithubIconLink href={item.commentUrl}>
             <IconGithub size="md" />
-            {item.githubUsername &&
-              (item.commentUrl ? (
-                <ExternalLink href={item.commentUrl}>
-                  <Text wrap="nowrap">{item.githubUsername}</Text>
-                </ExternalLink>
-              ) : (
-                <Text underline wrap="nowrap">
-                  {item.githubUsername}
-                </Text>
-              ))}
-          </Flex>
+          </GithubIconLink>
         </Tooltip>
       );
     case 'user-ui':
@@ -436,20 +447,69 @@ function FeedbackAttribution({item}: {item: IterationFeedback}) {
   }
 }
 
+function FeedbackStatusIcon({status}: {status: FeedbackStatus}) {
+  switch (status) {
+    case 'processed':
+      return (
+        <Tooltip title={t('Changes from this feedback have been pushed')}>
+          <Tag variant="success" icon={<IconCheckmark />} />
+        </Tooltip>
+      );
+    case 'in_progress':
+      return (
+        <Tooltip title={t('This feedback is being processed')}>
+          <StyledLoadingIndicator size={14} />
+        </Tooltip>
+      );
+    case 'queued':
+      return <Tag variant="muted" icon={<IconClock />} />;
+    default:
+      return null;
+  }
+}
+
 function FeedbackItem({item}: {item: IterationFeedback}) {
+  const isQueued = item.status === 'queued';
   return (
-    <Flex gap="md" align="start" justify="between">
+    <Flex gap="md" align="center" justify="between">
       <Flex gap="md" align="center" flex="1" minWidth={0}>
+        <Flex align="center" justify="center" flex="0 0 28px">
+          <FeedbackStatusIcon status={item.status} />
+        </Flex>
         <FeedbackAttribution item={item} />
-        <Text wordBreak="break-word">{t('"%s"', item.text)}</Text>
+        {item.sourceType === 'github-pr-comment' ? (
+          <ExternalLink href={item.commentUrl}>{item.text}</ExternalLink>
+        ) : (
+          <Text wordBreak="break-word" variant={isQueued ? 'muted' : undefined}>
+            {item.text}
+          </Text>
+        )}
       </Flex>
-      {item.timestamp && (
+      {isQueued ? (
         <Flex flex="0 0 auto" align="center">
           <Text variant="muted" size="sm" wrap="nowrap">
-            <TimeSince date={item.timestamp} />
+            {t('Queued')}
           </Text>
         </Flex>
+      ) : (
+        item.timestamp && (
+          <Flex flex="0 0 auto" align="center">
+            <Text variant="muted" size="sm" wrap="nowrap">
+              <TimeSince date={item.timestamp} />
+            </Text>
+          </Flex>
+        )
       )}
     </Flex>
   );
 }
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
+`;
+
+const GithubIconLink = styled(ExternalLink)`
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+`;

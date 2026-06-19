@@ -763,7 +763,7 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('"Add a test for this"')).toBeInTheDocument();
     });
 
-    it('shows the iterating loader when feedback is queued', () => {
+    it('shows the iterating loader without replaying the previous step when feedback is queued', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
@@ -779,14 +779,23 @@ describe('ArtifactCard', () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofixWithQueued}
-          section={makeSection('code_changes', 'completed', [
-            [makePatch('org/repo', 'src/app.py')],
-          ])}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [
+              makePrIterationBlock(0, {text: 'first pass'}),
+              makeAssistantBlock('Previous step output that should not replay'),
+            ]
+          )}
         />,
         {organization: prIterationOrganization}
       );
 
       expect(screen.getByText('Iterating on PR…')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Previous step output that should not replay')
+      ).not.toBeInTheDocument();
       expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
     });
 

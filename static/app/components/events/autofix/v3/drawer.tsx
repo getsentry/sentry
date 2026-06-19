@@ -29,7 +29,7 @@ interface SeerDrawerProps {
 
 export function SeerDrawer({group, project}: SeerDrawerProps) {
   const aiConfig = useAiConfig(group, project);
-  const aiAutofix = useExplorerAutofix(group.id);
+  const aiAutofix = useExplorerAutofix(group.id, {pollPR: true});
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
   const handleRestart = useHandleRestart({aiAutofix});

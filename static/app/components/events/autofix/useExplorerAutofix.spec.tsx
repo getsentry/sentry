@@ -725,6 +725,84 @@ describe('useExplorerAutofix - createPR', () => {
   });
 });
 
+describe('useExplorerAutofix - startStep pr_iteration', () => {
+  const GROUP_ID = '123';
+  const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
+  const baseState = {
+    run_id: 42,
+    blocks: [],
+    status: 'processing' as const,
+    updated_at: '2026-01-01T00:00:00Z',
+  };
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: baseState},
+    });
+  });
+
+  it('sends the POST with user_context', async () => {
+    const mockPost = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {run_id: 42},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+
+    await act(() =>
+      result.current.startStep('pr_iteration', {runId: 42, userContext: 'make it blue'})
+    );
+
+    expect(mockPost).toHaveBeenCalledWith(
+      AUTOFIX_URL,
+      expect.objectContaining({
+        method: 'POST',
+        query: {mode: 'explorer'},
+        data: {
+          step: 'pr_iteration',
+          run_id: 42,
+          user_context: 'make it blue',
+          referrer: 'api.web',
+        },
+      })
+    );
+  });
+
+  it('awaits the refetch so queued feedback is present once it resolves', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {run_id: 42},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+    expect(result.current.runState?.queued_feedback).toBeUndefined();
+
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {
+        autofix: {
+          ...baseState,
+          queued_feedback: [{text: 'make it blue', source: {type: 'user-ui'}}],
+        },
+      },
+    });
+
+    await act(() =>
+      result.current.startStep('pr_iteration', {runId: 42, userContext: 'make it blue'})
+    );
+
+    expect(result.current.runState?.queued_feedback).toHaveLength(1);
+  });
+});
+
 describe('useExplorerAutofix - codingAgentErrors', () => {
   const GROUP_ID = '123';
   const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
