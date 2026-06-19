@@ -15,8 +15,8 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
     PullRequestVerdict,
 )
+from sentry.pr_metrics.contracts import PrConversationAnalysis
 from sentry.pr_metrics.emit import (
-    PrConversationAnalysis,
     active_attributions,
     build_pr_metrics_row,
     emit_pr_metrics_row,
