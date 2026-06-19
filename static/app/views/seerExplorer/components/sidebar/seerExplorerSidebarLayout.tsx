@@ -123,10 +123,19 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
   );
 
   // Persist Seer's size from a divider drag (content shrinks → Seer grows).
-  // Ignore pre-measure callbacks (the mount-time `onResize` fires before the
-  // container is measured) so we don't persist a size derived from a 0 width.
-  const onContentResize = (contentPx: number) => {
-    if (available <= 0) {
+  // `useResizableDrawer` also fires `onResize` programmatically — on mount and on
+  // every orientation flip — with `userEvent === false`. Persisting those is a
+  // no-op in the common case (the content size was derived from the stored Seer
+  // size) but clobbers the saved size with a smaller, clamped value when the
+  // viewport is too small to fit it alongside the content minimum. So only
+  // persist genuine user gestures; the `available <= 0` guard also skips the
+  // pre-measure mount callback.
+  const onContentResize = (
+    contentPx: number,
+    _prevPx?: number,
+    isUserEvent?: boolean
+  ) => {
+    if (!isUserEvent || available <= 0) {
       return;
     }
     const seer = Math.max(

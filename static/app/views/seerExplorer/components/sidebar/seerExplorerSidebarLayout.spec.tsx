@@ -225,19 +225,35 @@ describe('SeerExplorerSidebarLayout', () => {
     );
   });
 
-  it('persists Seer size (constant width), not the content size', async () => {
-    // Right dock, available width 1200 (CONTAINER_SIZE). Seer should be sized to
-    // a fixed DEFAULT_SEER_WIDTH (420) — viewport-independent — rather than
-    // persisting the content pane width (780), which would change with the
-    // viewport and skew the ratio on resize.
+  it('does not persist Seer size on open (only on a user drag)', async () => {
+    // Opening fires a programmatic (non-user) resize. The content size is derived
+    // from the stored Seer size, so persisting it back is pointless — and harmful
+    // when clamped (see the next test). Nothing should be written on open; reads
+    // fall back to the default size.
     mockWideScreen(true);
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
-    await screen.findByTestId('seer-explorer-input');
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
 
-    await waitFor(() =>
-      expect(localStorage.getItem('seer-explorer-sidebar-seer-size:right')).toBe('420')
-    );
+    expect(localStorage.getItem('seer-explorer-sidebar-seer-size:right')).toBeNull();
+  });
+
+  it('does not clobber a saved Seer size that no longer fits the viewport', async () => {
+    // Bottom dock, viewport too short to fit the saved Seer size (700) alongside
+    // the content minimum. The programmatic resize on open/orientation-change must
+    // not overwrite the saved preference with a clamped (smaller) value, so it is
+    // restored once the viewport has room again.
+    mockWideScreen(false); // auto → bottom
+    jest
+      .spyOn(useDimensionsModule, 'useDimensions')
+      .mockReturnValue({width: 1200, height: 360});
+    localStorage.setItem('seer-explorer-sidebar-seer-size:bottom', '700');
+
+    renderSidebar(orgWithSidebar);
+    await userEvent.click(screen.getByText('open-seer'));
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+
+    expect(localStorage.getItem('seer-explorer-sidebar-seer-size:bottom')).toBe('700');
   });
 
   it('switches to the run when opened with a runId (deep link / session picker)', async () => {
