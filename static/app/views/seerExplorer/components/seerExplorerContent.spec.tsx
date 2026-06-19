@@ -918,5 +918,76 @@ describe('SeerExplorerContent', () => {
       await userEvent.click(button);
       await waitFor(() => expect(requestWindow).toHaveBeenCalled());
     });
+
+    it('moves the pop-out toggle into the dock-position menu in sidebar mode', async () => {
+      Object.defineProperty(window, 'documentPictureInPicture', {
+        configurable: true,
+        writable: true,
+        value: {requestWindow: jest.fn(), window: null},
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+              sidebarPosition="auto"
+              onSidebarPositionChange={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      await screen.findByTestId('seer-explorer-input');
+
+      // No standalone top-level pop-out button in sidebar mode.
+      expect(
+        screen.queryByRole('button', {name: 'Open in a separate window'})
+      ).not.toBeInTheDocument();
+
+      // The toggle is a `Windowed` item inside the dock-position menu instead.
+      await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Windowed'})
+      ).toBeInTheDocument();
+    });
+
+    it('requests a window when selecting Windowed from the dock-position menu', async () => {
+      const requestWindow = jest.fn().mockResolvedValue({
+        document: document.implementation.createHTMLDocument('pip'),
+        close: jest.fn(),
+        focus: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        closed: false,
+      });
+      Object.defineProperty(window, 'documentPictureInPicture', {
+        configurable: true,
+        writable: true,
+        value: {requestWindow, window: null},
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+              sidebarPosition="auto"
+              onSidebarPositionChange={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      await screen.findByTestId('seer-explorer-input');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Windowed'}));
+      await waitFor(() => expect(requestWindow).toHaveBeenCalled());
+    });
   });
 });

@@ -27,7 +27,12 @@ import {t} from 'sentry/locale';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
-import {useSeerExplorerSidebarOrientation} from 'sentry/views/seerExplorer/utils';
+
+const POSITION_ICON_DIRECTION = {
+  auto: undefined,
+  right: 'right',
+  bottom: 'down',
+} as const satisfies Record<SeerExplorerSidebarPosition, string | undefined>;
 
 /**
  * The shared inner header content (title + action cluster) for Seer Explorer.
@@ -73,8 +78,6 @@ export function SeerExplorerHeader({
   onSidebarPositionChange,
   disableNewChatButton = false,
 }: SeerExplorerHeaderProps) {
-  const dockOrientation = useSeerExplorerSidebarOrientation(sidebarPosition);
-
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -155,6 +158,16 @@ export function SeerExplorerHeader({
       trailingItems: sidebarPosition === 'bottom' ? <IconCheckmark size="sm" /> : null,
       onAction: () => onSidebarPositionChange?.('bottom'),
     },
+    ...(isPipSupported
+      ? [
+          {
+            key: 'windowed',
+            label: t('Windowed'),
+            leadingItems: <IconWindow />,
+            onAction: onTogglePictureInPicture,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -247,22 +260,22 @@ export function SeerExplorerHeader({
               }}
             />
           </OverflowActions>
-          {isPipSupported && (
+          {/* Drawer-only pop-out button (in sidebar mode the toggle lives in the
+              dock-position menu as the `Windowed` item). Hidden once popped out —
+              the floating window is dismissed via its close button or Escape. */}
+          {isPipSupported && !onSidebarPositionChange && !isPoppedOut && (
             <Button
               icon={<IconWindow />}
               onClick={onTogglePictureInPicture}
               variant="transparent"
               size="xs"
-              aria-label={
-                isPoppedOut ? t('Dock in main window') : t('Open in a separate window')
-              }
-              tooltipProps={{
-                title: isPoppedOut ? t('Dock back in') : t('Open in a separate window'),
-              }}
+              aria-label={t('Open in a separate window')}
+              tooltipProps={{title: t('Open in a separate window')}}
             />
           )}
-          {/* Sidebar-only (an `onSidebarPositionChange` handler is supplied),
-              and meaningless for the floating popped-out window. */}
+          {/* Sidebar-only (an `onSidebarPositionChange` handler is supplied), and
+              meaningless for the floating popped-out window — which is dismissed
+              via its close/dock button or Escape. */}
           {!isPoppedOut && onSidebarPositionChange && (
             <DropdownMenu
               items={positionMenuItems}
@@ -274,11 +287,7 @@ export function SeerExplorerHeader({
                   title: t('Dock position'),
                 },
                 'aria-label': t('Dock position'),
-                icon: (
-                  <IconPanel
-                    direction={dockOrientation === 'bottom' ? 'down' : 'right'}
-                  />
-                ),
+                icon: <IconPanel direction={POSITION_ICON_DIRECTION[sidebarPosition]} />,
                 showChevron: false,
                 variant: 'transparent',
                 size: 'xs',
