@@ -1,3 +1,4 @@
+import type {ComponentPropsWithoutRef} from 'react';
 import styled from '@emotion/styled';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
