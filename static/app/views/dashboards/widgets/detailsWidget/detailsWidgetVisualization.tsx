@@ -119,7 +119,7 @@ function HttpSpanVisualization(props: {
 
   return (
     <Flex align="center" padding="xl" gap="md" height="100%">
-      <h1>{httpSpan[0][SpanFields.SPAN_DOMAIN]}</h1>
+      <h2>{httpSpan[0][SpanFields.SPAN_DOMAIN]}</h2>
       <DomainStatusLink domain={httpSpan[0][SpanFields.SPAN_DOMAIN]} />
     </Flex>
   );

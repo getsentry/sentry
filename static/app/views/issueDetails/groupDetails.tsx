@@ -619,7 +619,7 @@ function GroupDetailsContentInner({
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
-  const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
+  const {openSeerDrawer} = useOpenSeerDrawer({group, project});
   const {isAnyDrawerOpen} = useDrawer();
 
   const {currentTab} = useGroupDetailsRoute();
