@@ -1135,6 +1135,12 @@ register(
     default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "seer.night_shift.shard_size",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Per-org overrides for night shift run options. Keyed by stringified
 # organization id; each value is a partial set of run-option overrides (e.g.
 # {"max_candidates": 20}) that layer on top of the global defaults but below

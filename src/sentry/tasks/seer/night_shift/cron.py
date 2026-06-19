@@ -29,6 +29,7 @@ from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
+    SeerNightShiftRunShard,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import SeerRun
@@ -36,7 +37,11 @@ from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
 from sentry.seer.night_shift.models import NightShiftPayload, TriageCandidate, TriageTweaks
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
-from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy, priority_label
+from sentry.tasks.seer.night_shift.simple_triage import (
+    ScoredCandidate,
+    fixability_score_strategy,
+    priority_label,
+)
 from sentry.tasks.seer.night_shift.tweaks import (
     DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
     DEFAULT_INTELLIGENCE_LEVEL,
@@ -478,24 +483,11 @@ def _get_eligible_projects(
     return eligible
 
 
-def _dispatch_to_seer_feature(
-    run: SeerNightShiftRun,
-    organization: Organization,
-    eligible: Sequence[EligibleProject],
+def _build_triage_payload(
+    candidates: Sequence[ScoredCandidate],
     resolved_options: SeerNightShiftRunOptions,
-    log_extra: dict[str, object],
-    start_time: float,
-) -> None:
-    """Hand triage off to Seer's feature-run endpoint. Seer runs the triage agent
-    and pushes verdicts back via deliver_feature_result, which marks skips and
-    triggers autofix (using dry_run from run.extras["options"])."""
-    eligible_projects = [ep.project for ep in eligible]
-    scored = fixability_score_strategy(eligible_projects, resolved_options["max_candidates"])
-    if not scored:
-        logger.info("night_shift.no_candidates", extra=log_extra)
-        return
-
-    payload = NightShiftPayload(
+) -> NightShiftPayload:
+    return NightShiftPayload(
         candidates=[
             TriageCandidate(
                 group_id=c.group.id,
@@ -506,7 +498,7 @@ def _dispatch_to_seer_feature(
                 first_seen=c.group.first_seen.isoformat(),
                 priority=priority_label(c.group.priority),
             )
-            for c in scored
+            for c in candidates
         ],
         tweaks=TriageTweaks(
             intelligence_level=resolved_options["intelligence_level"],
@@ -514,6 +506,26 @@ def _dispatch_to_seer_feature(
             extra_triage_instructions=resolved_options["extra_triage_instructions"],
         ),
     )
+
+
+def _dispatch_to_seer_feature(
+    run: SeerNightShiftRun,
+    organization: Organization,
+    eligible: Sequence[EligibleProject],
+    resolved_options: SeerNightShiftRunOptions,
+    log_extra: dict[str, object],
+    start_time: float,
+) -> None:
+    """Shard the scored candidates into chunks of seer.night_shift.shard_size and
+    dispatch each chunk as its own Seer feature run, recorded as a
+    SeerNightShiftRunShard. Seer pushes verdicts back per shard via
+    deliver_feature_result."""
+    eligible_projects = [ep.project for ep in eligible]
+    scored = fixability_score_strategy(eligible_projects, resolved_options["max_candidates"])
+    if not scored:
+        logger.info("night_shift.no_candidates", extra=log_extra)
+        return
+
     try:
         client = SeerAgentClient(organization)
     except SeerPermissionError:
@@ -521,37 +533,52 @@ def _dispatch_to_seer_feature(
         _record_run_error(run, "Organization does not have Seer access")
         return
 
-    def _link_run(created: SeerRun) -> None:
-        # Link inside the dispatch transaction so the row exists before the outbox
-        # drains and Seer's result correlates back to this night shift run.
-        run.update(seer_run=created)
+    def _link_shard(created: SeerRun) -> None:
+        SeerNightShiftRunShard.objects.create(run=run, seer_run=created)
 
-    try:
-        seer_run = client.start_feature_run(
-            feature_id="night_shift",
-            payload=payload.dict(),
-            flush=False,
-            on_run_created=_link_run,
-        )
-    except Exception:
+    shards = list(chunked(scored, options.get("seer.night_shift.shard_size")))
+    dispatched = 0
+    for shard_index, chunk in enumerate(shards):
+        payload = _build_triage_payload(chunk, resolved_options)
+        try:
+            client.start_feature_run(
+                feature_id="night_shift",
+                payload=payload.dict(),
+                flush=False,
+                on_run_created=_link_shard,
+            )
+        except Exception:
+            logger.exception(
+                "night_shift.shard_dispatch_failed",
+                extra={**log_extra, "shard_index": shard_index, "num_shards": len(shards)},
+            )
+            continue
+        dispatched += 1
+
+    if dispatched == 0:
         sentry_sdk.metrics.count("night_shift.run_error", 1)
-        _fail_run(
-            run,
-            message="Night shift dispatch failed",
-            event="night_shift.dispatch_failed",
-            extra=log_extra,
-        )
+        _record_run_error(run, "Night shift dispatch failed")
+        logger.error("night_shift.dispatch_failed", extra={**log_extra, "num_shards": len(shards)})
         return
+
+    failed_shards = len(shards) - dispatched
+    if failed_shards:
+        sentry_sdk.metrics.count("night_shift.shard_dispatch_failure", failed_shards)
+        _record_run_error(run, f"Failed to dispatch {failed_shards} of {len(shards)} triage shards")
+        logger.warning(
+            "night_shift.partial_dispatch_failure",
+            extra={**log_extra, "num_shards": len(shards), "num_shards_dispatched": dispatched},
+        )
 
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
     logger.info(
         "night_shift.feature_dispatched",
         extra={
             **log_extra,
-            "seer_run_id": seer_run.id,
-            "seer_run_uuid": str(seer_run.uuid),
             "num_eligible_projects": len(eligible_projects),
             "num_candidates": len(scored),
+            "num_shards": len(shards),
+            "num_shards_dispatched": dispatched,
         },
     )
 
