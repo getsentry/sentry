@@ -1,12 +1,17 @@
 from unittest import mock
 
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.activity_registry.email import EmailActivityHandler
 from sentry.notifications.notification_action.registry import activity_handler_registry
+from sentry.notifications.platform.strategies.issue_owners import (
+    IssueOwnersNotificationStrategy,
+)
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
+from sentry.notifications.types import FallthroughChoiceType
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -25,7 +30,7 @@ class TestEmailActivityHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.EMAIL,
             config={
-                "target_type": 1,
+                "target_type": ActionTarget.USER,
                 "target_identifier": str(self.user.id),
             },
         )
@@ -58,3 +63,45 @@ class TestEmailActivityHandler(BaseWorkflowTest):
         assert target.provider_key == NotificationProviderKey.EMAIL
         assert target.resource_type == NotificationTargetResourceType.EMAIL
         assert target.resource_id == str(self.user.id)
+
+    @mock.patch(
+        "sentry.notifications.notification_action.activity_registry.email.NotificationService"
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.activity_registry.email.build_activity_data"
+    )
+    def test_invoke_action_issue_owners(
+        self,
+        mock_build_data: mock.MagicMock,
+        mock_notification_service: mock.MagicMock,
+    ) -> None:
+        self.action.config = {
+            "target_type": ActionTarget.ISSUE_OWNERS,
+        }
+        self.action.data = {
+            "fallthrough_type": FallthroughChoiceType.ACTIVE_MEMBERS,
+        }
+        self.action.save()
+
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SEER_RCA_STARTED.value,
+        )
+        invocation = self.create_action_invocation(
+            event=activity,
+            group=self.group,
+            action=self.action,
+            detector=self.detector,
+            workflow_id=self.workflow.id,
+        )
+
+        EmailActivityHandler.invoke_action(invocation=invocation, activity=activity)
+
+        mock_build_data.assert_called_once_with(invocation, activity)
+        mock_service_instance = mock_notification_service.__getitem__.return_value.return_value
+        mock_service_instance.notify_sync.assert_called_once()
+        call_kwargs = mock_service_instance.notify_sync.call_args[1]
+        strategy = call_kwargs["strategy"]
+        assert isinstance(strategy, IssueOwnersNotificationStrategy)
+        assert strategy.project == activity.project
+        assert strategy.fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS
