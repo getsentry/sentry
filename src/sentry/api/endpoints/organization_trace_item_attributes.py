@@ -608,7 +608,26 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     query_filter=query_filter,
                 )
 
+        # The description matches are a finite, fully-resolved set, so we treat
+        # them as a deterministic prefix of a single combined result stream and
+        # offset the (paginated) name matches by its size. This keeps one
+        # coherent pagination stream: a description hit is never duplicated by a
+        # later name page, and the prefix doesn't inflate ``has_more`` for the
+        # name stream.
+        description_count = len(description_attributes)
+        description_keys = {attribute["key"] for attribute in description_attributes}
+
         def data_fn(offset: int, limit: int) -> list[TraceItemAttributeKey]:
+            # Serve the description prefix first, then page into the name matches
+            # starting where the prefix leaves off.
+            description_page = description_attributes[offset : offset + limit]
+            attributes: list[TraceItemAttributeKey] = list(description_page)
+
+            name_limit = limit - len(description_page)
+            if name_limit <= 0:
+                return attributes
+            name_offset = max(0, offset - description_count)
+
             futures = []
             with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__,
@@ -618,8 +637,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     futures.append(
                         pool.submit(
                             self.query_trace_attributes,
-                            offset,
-                            limit,
+                            name_offset,
+                            name_limit,
                             meta,
                             query_filter,
                             name_substring,
@@ -631,22 +650,17 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             debug=debug,
                         )
                     )
-            attributes = []
             for future in futures:
                 result_attributes, result_debug_info = future.result()
-                attributes.extend(result_attributes)
-                if result_debug_info is not None:
-                    debug_infos.append(result_debug_info)
-
-            # Merge in the description matches on the first page only, so they
-            # aren't duplicated across pages. Name matches take precedence.
-            if description_attributes and offset == 0:
-                seen = {attribute["key"] for attribute in attributes}
+                # Drop any name match already emitted in the description prefix so
+                # the same key can't appear twice across pages.
                 attributes.extend(
                     attribute
-                    for attribute in description_attributes
-                    if attribute["key"] not in seen
+                    for attribute in result_attributes
+                    if attribute["key"] not in description_keys
                 )
+                if result_debug_info is not None:
+                    debug_infos.append(result_debug_info)
             return attributes
 
         response = self.paginate(

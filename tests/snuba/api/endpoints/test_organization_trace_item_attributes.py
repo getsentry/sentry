@@ -702,6 +702,23 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "checkout_id" in keys
         assert "foo" not in keys
 
+    def test_context_search_does_not_duplicate_name_and_description_match(self) -> None:
+        self._store_segment_with_environment()
+
+        # `environment` matches both datasources: its name contains "environment"
+        # and its convention brief ("The sentry environment.") does too. It must
+        # appear exactly once, not once per datasource.
+        response = self.do_request(
+            query={"attributeType": "string", "contextSearch": "environment"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+        keys = [item["key"] for item in response.data]
+        assert keys.count("environment") == 1
+
     def test_context_search_ignores_user_tag_name_collision(self) -> None:
         self.store_segment(
             self.project.id,
