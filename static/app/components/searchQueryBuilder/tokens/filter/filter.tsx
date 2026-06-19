@@ -237,7 +237,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 
   const hasTokenInvalid = 'invalid' in token && defined(token.invalid);
   const tokenHasWarning = 'warning' in token && defined(token.warning);
-  const isInvalidFilterKey = invalidFilterKeys.includes(getKeyName(token.key));
+  const filterKeyName = getKeyName(token.key, {aggregateWithArgs: true});
+  const isInvalidFilterKey = invalidFilterKeys.includes(filterKeyName);
   const tokenHasError = hasTokenInvalid || isInvalidFilterKey;
 
   return (
@@ -257,7 +258,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         forceVisible={filterMenuOpen ? false : undefined}
         warning={
           isInvalidFilterKey && !hasTokenInvalid
-            ? t('Invalid key. "%s" is not a supported search key.', getKeyName(token.key))
+            ? t('Invalid key. "%s" is not a supported search key.', filterKeyName)
             : undefined
         }
       >

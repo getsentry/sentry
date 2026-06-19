@@ -118,7 +118,7 @@ function markInvalidFilterKeys(
       return token;
     }
 
-    const keyName = getKeyName(token.key);
+    const keyName = getKeyName(token.key, {aggregateWithArgs: true});
     if (!invalidFilterKeySet.has(keyName) || token.invalid) {
       return token;
     }
