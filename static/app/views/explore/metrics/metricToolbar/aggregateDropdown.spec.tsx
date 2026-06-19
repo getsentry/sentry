@@ -536,6 +536,52 @@ describe('AggregateDropdown', () => {
     });
   });
 
+  it('disables aggregate options specified in disabledAggregates with tooltips', async () => {
+    const organization = OrganizationFixture({
+      features: ['tracemetrics-enabled'],
+    });
+
+    const queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.SAMPLES,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [new VisualizeFunction('sum(value,test_metric,counter,none)')],
+      aggregateSortBys: [{field: 'sum(value,test_metric,counter,none)', kind: 'desc'}],
+    });
+
+    render(
+      <AggregateDropdown
+        traceMetric={{name: 'test_metric', type: 'counter'}}
+        disabledAggregates={{
+          per_second: 'Rate aggregates are not supported in equations',
+          per_minute: 'Rate aggregates are not supported in equations',
+        }}
+      />,
+      {
+        organization,
+        additionalWrapper: createWrapper({
+          queryParams,
+          traceMetric: {name: 'test_metric', type: 'counter'},
+        }),
+      }
+    );
+
+    const trigger = screen.getByRole('button', {name: /Agg/});
+    await userEvent.click(trigger);
+
+    const perSecondOption = await screen.findByRole('option', {name: 'per_second'});
+    const perMinuteOption = screen.getByRole('option', {name: 'per_minute'});
+    const sumOption = screen.getByRole('option', {name: 'sum'});
+
+    expect(perSecondOption).toHaveAttribute('aria-disabled', 'true');
+    expect(perMinuteOption).toHaveAttribute('aria-disabled', 'true');
+    expect(sumOption).not.toHaveAttribute('aria-disabled');
+  });
+
   it('renders all groups as single-select and keeps only the last selection when singleSelect is passed', async () => {
     const organization = OrganizationFixture({
       features: ['tracemetrics-enabled'],
