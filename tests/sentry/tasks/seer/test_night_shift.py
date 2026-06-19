@@ -19,7 +19,7 @@ from sentry.tasks.seer.night_shift.cron import (
     schedule_night_shift,
 )
 from sentry.tasks.seer.night_shift.models import TriageAction
-from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy
+from sentry.tasks.seer.night_shift.simple_triage import ScoredCandidate, fixability_score_strategy
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -495,6 +495,60 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         )
         Group.objects.filter(id=event.group_id).update(**group_attrs)
         return Group.objects.get(id=event.group_id)
+
+    def _shard_group_ids(self, shard):
+        outbox = CellOutbox.objects.get(
+            category=OutboxCategory.SEER_RUN_CREATE, object_identifier=shard.seer_run_id
+        )
+        assert outbox.payload is not None
+        return [c["group_id"] for c in outbox.payload["body"]["payload"]["candidates"]]
+
+    def test_chunking_preserves_order_across_even_shards(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+        groups = [self.create_group(project=project) for _ in range(4)]
+        scored = [ScoredCandidate(group=g, fixability=0.9) for g in groups]
+
+        with (
+            self.options({"seer.night_shift.shard_size": 2}),
+            self.feature("organizations:gen-ai-features"),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                return_value=scored,
+            ),
+        ):
+            run_night_shift_for_org(org.id)
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        shards = list(SeerNightShiftRunShard.objects.filter(run=run).order_by("id"))
+        # 4 candidates @ size 2 -> two even shards, fixability order preserved.
+        assert [self._shard_group_ids(s) for s in shards] == [
+            [groups[0].id, groups[1].id],
+            [groups[2].id, groups[3].id],
+        ]
+
+    def test_chunking_single_shard_when_size_exceeds_count(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+        groups = [self.create_group(project=project) for _ in range(3)]
+        scored = [ScoredCandidate(group=g, fixability=0.9) for g in groups]
+
+        with (
+            self.options({"seer.night_shift.shard_size": 10}),
+            self.feature("organizations:gen-ai-features"),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                return_value=scored,
+            ),
+        ):
+            run_night_shift_for_org(org.id)
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        shards = list(SeerNightShiftRunShard.objects.filter(run=run))
+        assert len(shards) == 1
+        assert self._shard_group_ids(shards[0]) == [g.id for g in groups]
 
     def test_dispatches_candidates_to_seer_feature(self) -> None:
         org = self.create_organization()
