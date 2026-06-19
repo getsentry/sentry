@@ -319,7 +319,6 @@ class DebugFileObjectstoreTest(TestCase):
             self._get_session().get(storage_path)
 
 
-
 class CreateDebugFileTest(APITestCase):
     @property
     def file_path(self):
