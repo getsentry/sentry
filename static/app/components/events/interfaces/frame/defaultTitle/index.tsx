@@ -133,7 +133,7 @@ export function DefaultTitle({
         >
           <code key="filename" className="filename" data-test-id="filename">
             {isPotentiallyThirdParty && frame.absPath ? (
-              <Truncate value={frame.absPath} leftTrim />
+              <Truncate value={frame.absPath} maxLength={100} leftTrim />
             ) : !!pathNameOrModule.meta && !pathNameOrModule.value ? (
               <AnnotatedText
                 value={pathNameOrModule.value}

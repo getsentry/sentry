@@ -29,21 +29,37 @@ export function HoverScrollable({
   const direction = useRef<boolean | null>(null);
   const [isTruncated, setIsTruncated] = useState(false);
   const targetRef = useRef(0);
+  const scrollWidthRef = useRef(0);
 
   const showSlidingText = isHovered && isTruncated;
 
   useLayoutEffect(() => {
-    // When the hover container appears, instantly snap it to the rightmost edge
-    if (showSlidingText && containerRef.current && contentRef.current && leftTrim) {
-      const container = containerRef.current;
-      const content = contentRef.current;
-      const maxTranslate = content.scrollWidth - container.clientWidth;
+    const container = containerRef.current;
+    const content = contentRef.current;
 
-      if (maxTranslate > 0) {
-        content.style.transform = `translateX(${-maxTranslate}px)`;
-      }
+    if (!showSlidingText || !container || !content) {
+      return;
     }
-  }, [leftTrim, showSlidingText]);
+
+    const maxTranslate = content.scrollWidth - container.clientWidth;
+    const truncated = maxTranslate > 0;
+
+    setIsTruncated(truncated);
+
+    if (!truncated) {
+      animationRef.current?.cancel();
+      animationRef.current = null;
+      direction.current = null;
+      content.style.transform = '';
+      return;
+    }
+
+    // When the hover container appears or its text changes, snap left-trimmed
+    // content to the rightmost edge.
+    if (leftTrim) {
+      content.style.transform = `translateX(${-maxTranslate}px)`;
+    }
+  }, [leftTrim, showSlidingText, value]);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -62,6 +78,11 @@ export function HoverScrollable({
 
     if (maxTranslate <= 0) {
       return;
+    }
+
+    if (scrollWidthRef.current !== content.scrollWidth) {
+      scrollWidthRef.current = content.scrollWidth;
+      direction.current = null;
     }
 
     const mouseX = event.clientX - rect.left;
@@ -100,7 +121,7 @@ export function HoverScrollable({
     }
 
     // a new target
-    animationRef.current?.play();
+    // animationRef.current?.play();
 
     targetRef.current = target;
 
