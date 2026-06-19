@@ -46,7 +46,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
     def get_attrs(
         self, item_list: Sequence[SeerNightShiftRun], user: Any, **kwargs: Any
     ) -> dict[SeerNightShiftRun, dict[str, Any]]:
-        prefetch_related_objects(item_list, "results")
+        prefetch_related_objects(item_list, "results", "shards")
         return {}
 
     def serialize(
@@ -59,12 +59,21 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
         all_results = list(obj.results.all())
         triage_results = [r for r in all_results if r.kind == SeerWorkflowStrategy.AGENTIC_TRIAGE]
         extras = obj.extras or {}
+        # A dispatch failure records on the run; per-shard delivery failures record
+        # on the shard, so surface either so a failed shard doesn't read as healthy.
+        shard_error = next(
+            (
+                s.extras["error_message"]
+                for s in obj.shards.all()
+                if (s.extras or {}).get("error_message")
+            ),
+            None,
+        )
         return {
             "id": str(obj.id),
             "dateAdded": obj.date_added.isoformat(),
             "extras": extras,
-            # Legacy alias: error_message lives in extras now.
-            "errorMessage": extras.get("error_message"),
+            "errorMessage": extras.get("error_message") or shard_error,
             "results": [_serialize_result(r) for r in all_results],
             "issues": [_serialize_legacy_issue(r) for r in triage_results],
             # Match the pre-migration column behavior: always "agentic_triage"
