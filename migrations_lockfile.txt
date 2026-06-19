@@ -29,7 +29,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0018_backfill_seer_agent_run_group_id
+seer: 0019_add_night_shift_run_shard
 
 sentry: 1117_drop_organizationmapping_codecov_access_delete
 
