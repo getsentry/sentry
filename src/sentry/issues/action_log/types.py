@@ -7,6 +7,7 @@ from __future__ import annotations
 import abc
 import dataclasses
 from enum import IntEnum
+from typing import Any, TypedDict
 
 from pydantic import BaseModel
 
@@ -326,3 +327,16 @@ class PullRequestClosedAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.PULL_REQUEST_CLOSED
+
+
+class GroupActionLogPayload(TypedDict):
+    """Outbox payload for GROUP_ACTION_LOG_EVENT. Shared by producer and receiver."""
+
+    group_id: int
+    project_id: int
+    type: int
+    actor_type: int
+    actor_id: int
+    source: str
+    data: dict[str, Any]
+    force_async_derived: bool
