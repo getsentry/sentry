@@ -75,7 +75,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
         <Flex align="center" justify="between" gap="2xl">
           <Flex direction="column" gap="sm">
             <Flex align="center" gap="lg">
-              <Heading as="h1">{t('Edit your forwarder')}</Heading>
+              <Heading as="h2">{t('Edit your forwarder')}</Heading>
             </Flex>
             <Text variant="muted">
               {t(
