@@ -383,21 +383,21 @@ class ProjectSeerReposGetTest(APITestCase):
         assert project_repo_relay["branchName"] is None
         assert project_repo_relay["instructions"] is None
 
-    def test_gitlab_repo_uses_path_not_display_name(self):
-        """GitLab repo.name is name_with_namespace (display name with spaces).
-        The serializer must use repo.config['path'] (path_with_namespace) so that
-        owner/name are URL-safe and don't cause 404s in SCM links."""
+    def test_gitlab_repo_uses_display_name(self):
+        """The settings serializer's owner/name are display-only and must mirror
+        repo.name (GitLab's name_with_namespace), the same value the repo picker
+        shows. The URL-safe config['path'] is used only when building SCM links
+        sent to Seer (see seer/autofix/utils.py::get_repo_url_path), not here."""
         gitlab_integration = self.create_integration(
             organization=self.organization, provider="gitlab", external_id="gl123"
         )
-        gitlab_repo = Repository.objects.create(
-            organization_id=self.organization.id,
+        gitlab_repo = self.create_repo(
+            project=self.project,
             # name_with_namespace: human-readable display name that contains spaces
             name="My Group / My Project",
             provider="integrations:gitlab",
             external_id="gl-999",
             integration_id=gitlab_integration.id,
-            config={"path": "my-group/my-project"},
         )
         self.create_seer_project_repository(self.project, repository=gitlab_repo)
 
@@ -405,9 +405,11 @@ class ProjectSeerReposGetTest(APITestCase):
             response = self.get_success_response()
         assert len(response.data) == 1
         repo_data = response.data[0]
-        # owner and name must come from the URL-safe path, not the display name
-        assert repo_data["owner"] == "my-group"
-        assert repo_data["name"] == "my-project"
+        # owner/name come from the display name (repo.name) and reconstruct it,
+        # matching the picker — they are NOT slugified to the config['path'].
+        assert repo_data["owner"] == "My Group "
+        assert repo_data["name"] == " My Project"
+        assert f"{repo_data['owner']}/{repo_data['name']}" == gitlab_repo.name
 
     def test_excludes_inactive_repos(self):
         self.create_seer_project_repository(self.project, repository=self.repo1)
