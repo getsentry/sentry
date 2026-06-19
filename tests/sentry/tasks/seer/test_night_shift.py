@@ -655,9 +655,10 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
             run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.extras.get("error_message") is None
+        # One shard dispatched; the failed one is recorded so it isn't invisible.
         assert SeerNightShiftRunShard.objects.filter(run=run).count() == 1
         assert SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 1
+        assert run.extras["error_message"] == "Failed to dispatch 1 of 2 triage shards"
 
     def test_no_candidates_skips_dispatch(self) -> None:
         org = self.create_organization()

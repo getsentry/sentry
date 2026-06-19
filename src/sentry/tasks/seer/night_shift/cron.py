@@ -561,6 +561,15 @@ def _dispatch_to_seer_feature(
         logger.error("night_shift.dispatch_failed", extra={**log_extra, "num_shards": len(shards)})
         return
 
+    failed_shards = len(shards) - dispatched
+    if failed_shards:
+        sentry_sdk.metrics.count("night_shift.shard_dispatch_failure", failed_shards)
+        _record_run_error(run, f"Failed to dispatch {failed_shards} of {len(shards)} triage shards")
+        logger.warning(
+            "night_shift.partial_dispatch_failure",
+            extra={**log_extra, "num_shards": len(shards), "num_shards_dispatched": dispatched},
+        )
+
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
     logger.info(
         "night_shift.feature_dispatched",
