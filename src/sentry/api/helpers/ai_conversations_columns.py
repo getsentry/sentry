@@ -155,11 +155,12 @@ AGGREGATE_FILTER_FIELDS: dict[str, str] = {
     if spec.aggregate_filter_expr
 }
 
-_BASE_FILTER = (
-    "has:gen_ai.conversation.id"
-    " (has:gen_ai.input.messages OR has:gen_ai.request.messages)"
-    " (has:gen_ai.output.messages OR has:gen_ai.response.text)"
-)
+# Scope the id query to every AI span (ai_client, tool, invoke_agent all carry
+# gen_ai.operation.type) rather than only message-bearing spans. This lets a
+# filter like gen_ai.tool.name:foo match its tool span and surface the
+# conversation, instead of being ANDed against message attributes that only
+# exist on chat spans.
+_BASE_FILTER = "has:gen_ai.conversation.id has:gen_ai.operation.type"
 
 
 def resolve_requested_fields(fields: list[str]) -> list[str]:

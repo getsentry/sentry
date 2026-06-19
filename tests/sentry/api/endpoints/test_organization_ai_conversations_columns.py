@@ -295,6 +295,32 @@ class OrganizationAIConversationsColumnsEndpointTest(BaseAIConversationsTestCase
         assert response.status_code == 200, response.data
         assert [r[CONVERSATION_ID] for r in response.data] == [match]
 
+    def test_filter_by_tool_name(self) -> None:
+        # tool.name lives on tool spans (no messages); filtering on it must still
+        # surface the conversation that contains a matching tool span.
+        now = before_now(days=24).replace(microsecond=0)
+        with_tool = uuid4().hex
+        without_tool = uuid4().hex
+        self._store_basic_conversation(with_tool, now)  # has a "search" tool span
+        self.store_ai_span(
+            conversation_id=without_tool,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            tokens=LLM_TOKENS,
+            messages=[{"role": "user", "content": "hi"}],
+            response_text="ok",
+        )
+
+        query = {
+            **self._time_window(now),
+            "field": [CONVERSATION_ID],
+            "query": "gen_ai.tool.name:search",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert [r[CONVERSATION_ID] for r in response.data] == [with_tool]
+
     def test_invalid_field_returns_400(self) -> None:
         now = before_now(days=18).replace(microsecond=0)
         query = {**self._time_window(now), "field": ["bogus"]}
