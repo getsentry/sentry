@@ -111,63 +111,49 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
       return (
         <Fragment>
           <p>
-            <Storybook.JSXNode name="HeatMapWidgetVisualization" /> can render two
-            optional tooltip actions. Click a cell to open the tooltip and see the links.
+            By default a cell's tooltip shows its Y-axis bucket range and Z-axis count.
+            Click a cell to open the tooltip.
           </p>
           <p>
-            With no extra props, the tooltip shows the Y-axis bucket range and the Z-axis
-            count for the clicked cell.
+            Pass <code>renderTooltipActions</code> to add action rows (e.g. an Explore
+            link). It receives the cell's value-range query (<code>cellQuery</code>) and a{' '}
+            <code>selection</code> narrowed to the cell's time bucket, and returns the
+            extra rows — so the visualization stays agnostic about what the actions are.
           </p>
           <p>
-            Give the <code>HeatMap</code> plottable a <code>traceMetric</code> to add a{' '}
-            <em>View connected spans</em> link in the tooltip. The visualization builds
-            the Explore link itself, scoping it to the metric, the clicked cell's Y-axis
-            value range, and the X-axis time bucket. Optionally pass{' '}
-            <code>exploreBaseQuery</code> to fold an existing filter into that link.
-          </p>
-          <p>
-            <CodeBlock language="jsx">
-              {`<HeatMapWidgetVisualization
-  plottables={[
-    new HeatMap(heatMapData, {name: 'my.metric', type: 'distribution', unit: 'millisecond'}),
-  ]}
-  exploreBaseQuery="release:1.0.0"
-/>`}
-            </CodeBlock>
-          </p>
-
-          <p>
-            Pass <code>updateLocalFilterQuery</code> to add an <em>Add to filter</em> link
-            in the tooltip. The callback receives the Y-axis filter query and should apply
-            that filter to the current view. Navigation is handled however you choose in
-            the passing function (most likely will use hooks).
+            Because ECharts renders the tooltip to an HTML string, React click handlers
+            don't survive. Use <code>data-traces-link</code> for navigations, and{' '}
+            <code>data-local-query</code> for "add to filter" actions (routed through{' '}
+            <code>updateLocalFilterQuery</code>).
           </p>
           <p>
             <CodeBlock language="jsx">
               {`<HeatMapWidgetVisualization
   plottables={[new HeatMap(heatMapData)]}
-  updateLocalFilterQuery={(query) =>
-    setLocalFilterQuery(query)
-  }
+  updateLocalFilterQuery={query => setLocalFilterQuery(query)}
+  renderTooltipActions={({cellQuery, selection}) => (
+    <Fragment>
+      <a data-traces-link={getExploreUrl({organization, selection, crossEvents: [...]})}>
+        View connected spans
+      </a>
+      <a data-local-query={cellQuery}>Add to filter</a>
+    </Fragment>
+  )}
 />`}
             </CodeBlock>
-          </p>
-
-          <p>
-            Both props can be used together. The tooltip shows{' '}
-            <em>View related traces</em> and <em>Add to filter</em> as separate actions.
           </p>
           <LargeWidget>
             <p>{`Local Filter Query: ${localFilterQuery}`}</p>
             <HeatMapWidgetVisualization
-              plottables={[
-                new HeatMap(sampleLatencyHeatMap, {
-                  name: 'my.metric',
-                  type: 'distribution',
-                  unit: 'millisecond',
-                }),
-              ]}
+              plottables={[new HeatMap(sampleLatencyHeatMap)]}
               updateLocalFilterQuery={query => setLocalFilterQuery(query)}
+              renderTooltipActions={({cellQuery}) => (
+                <div>
+                  <span className="tooltip-label tooltip-label-centered">
+                    <a data-local-query={cellQuery}>Add to filter</a>
+                  </span>
+                </div>
+              )}
             />
           </LargeWidget>
         </Fragment>

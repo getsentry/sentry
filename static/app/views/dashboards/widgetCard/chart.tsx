@@ -75,6 +75,7 @@ import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWid
 import {WidgetError} from 'sentry/views/dashboards/widgets/widget/widgetError';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {getExploreUrl as buildExploreUrl} from 'sentry/views/explore/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
@@ -468,6 +469,7 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 
 function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
   const {heatmapResults, loading, widget, dashboardFilters} = props;
+  const organization = useOrganization();
 
   // The heat map links each cell's tooltip to its metric in Explore.
   const traceMetric = getSelectedTraceMetric(widget);
@@ -492,9 +494,33 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
   return (
     <ChartWrapper autoHeightResize>
       <HeatMapWidgetVisualization
-        plottables={[new HeatMap(heatmapResults, traceMetric)]}
+        plottables={[new HeatMap(heatmapResults)]}
         scale={HEATMAP_Z_AXIS_SCALE}
-        exploreBaseQuery={exploreBaseQuery}
+        renderTooltipActions={({cellQuery, selection}) => {
+          if (!traceMetric) {
+            return null;
+          }
+          const tracesUrl = buildExploreUrl({
+            organization,
+            selection,
+            crossEvents: [
+              {
+                type: 'metrics',
+                metric: traceMetric,
+                query: [exploreBaseQuery, cellQuery].filter(Boolean).join(' '),
+              },
+            ],
+          });
+          return (
+            <div>
+              <span className="tooltip-label tooltip-label-centered">
+                <a data-traces-link={tracesUrl} href={tracesUrl}>
+                  {t('View connected spans')}
+                </a>
+              </span>
+            </div>
+          );
+        }}
       />
     </ChartWrapper>
   );
