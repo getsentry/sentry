@@ -5,7 +5,18 @@ import {Legend} from 'sentry/components/charts/components/legend';
 import {XAxis} from 'sentry/components/charts/components/xAxis';
 import {YAxis} from 'sentry/components/charts/components/yAxis';
 
-export const DEFAULT_FONT_FAMILY = 'sans-serif';
+/**
+ * Rubik is registered with node-canvas by the chartcuterie service (see
+ * ``registerCanvasFonts`` in the getsentry/chartcuterie repo), so charts
+ * render with the same typeface as the Sentry UI.
+ */
+export const DEFAULT_FONT_FAMILY = 'Rubik';
+
+/**
+ * Built-in echarts fallback font for the handful of places that can't use
+ * Rubik (e.g. incident marker labels in metric alert/detector charts).
+ */
+export const FALLBACK_FONT_FAMILY = 'sans-serif';
 
 /**
  * Size configuration for SLACK_* type charts

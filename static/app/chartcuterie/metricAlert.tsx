@@ -11,7 +11,12 @@ import {
   transformSessionResponseToSeries,
 } from 'sentry/views/alerts/rules/metric/details/metricChartOption';
 
-import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './slack';
+import {
+  DEFAULT_FONT_FAMILY,
+  FALLBACK_FONT_FAMILY,
+  makeSlackChartDefaults,
+  slackChartSize,
+} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 
@@ -35,7 +40,7 @@ function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
 
     // Fix incident label font family, cannot use Rubik
     if (areaSeries.markLine?.label) {
-      areaSeries.markLine.label.fontFamily = DEFAULT_FONT_FAMILY;
+      areaSeries.markLine.label.fontFamily = FALLBACK_FONT_FAMILY;
     }
 
     return areaSeries;
