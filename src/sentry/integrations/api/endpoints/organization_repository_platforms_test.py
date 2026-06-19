@@ -25,10 +25,7 @@ from sentry.shared_integrations.exceptions import ApiConflictError, ApiError
 class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint):
     """Endpoint for the tree-based multi-platform detector.
 
-    Runs ``detect_platforms_multi`` (which also emits metrics under
-    ``onboarding-scm.platform_detection.multi.*`` internally) and returns the
-    detected platforms as ``{"platforms": [...]}``. An empty / unprocessable
-    repo returns ``{"platforms": []}``; GitHub/API failures return a 502.
+    Will replace the existing `OrganizationRepositoryPlatformsEndpoint`.
     """
 
     owner = ApiOwner.INTEGRATION_PLATFORM
@@ -72,8 +69,7 @@ class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint
         try:
             result = detect_platforms_multi(client, repo.name)
         except ApiConflictError:
-            # Empty / unprocessable repo (e.g. empty git tree). Benign: the FE
-            # falls back to the manual picker on []. Still capture for visibility.
+            # Empty / unprocessable repo (e.g. empty git tree).
             sentry_logger.warning(
                 "github.platform_detection.multi.empty_repo", attributes=attributes
             )
@@ -82,8 +78,6 @@ class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint
                 sentry_sdk.capture_exception()
             return Response({"platforms": []})
         except (ApiError, ValueError):
-            # The structured log is the searchable record; capture_exception files
-            # the Sentry issue with the original error + stacktrace.
             sentry_logger.error("github.platform_detection.multi.failed", attributes=attributes)
             with sentry_sdk.new_scope() as scope:
                 scope.set_tag("scm_platform_detection", "failed")
