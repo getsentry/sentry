@@ -24,6 +24,10 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {getExploreUrl, prettifyAggregation} from 'sentry/views/explore/utils';
 
+// Tooltip action id for the "Add to filter" button, wired to a handler via
+// `tooltipActionHandlers`.
+const ADD_TO_FILTER_ACTION = 'add-to-filter';
+
 interface MetricsHeatMapProps {
   actions: React.ReactNode;
   heatmapResult: UseQueryResult<HeatMapSeries>;
@@ -71,7 +75,7 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
             <HeatMapWidgetVisualization
               plottables={[new HeatMap(heatMapSeries)]}
               scale={HEATMAP_Z_AXIS_SCALE}
-              updateLocalFilterQuery={updateMetricQuery}
+              tooltipActionHandlers={{[ADD_TO_FILTER_ACTION]: updateMetricQuery}}
               renderTooltipActions={({cellQuery, selection}) => {
                 const tracesUrl = getExploreUrl({
                   organization,
@@ -89,7 +93,12 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
                     </div>
                     <div>
                       <span className="tooltip-label tooltip-label-centered">
-                        <a data-local-query={cellQuery}>{t('Add to filter')}</a>
+                        <a
+                          data-tooltip-action={ADD_TO_FILTER_ACTION}
+                          data-tooltip-action-value={cellQuery}
+                        >
+                          {t('Add to filter')}
+                        </a>
                       </span>
                     </div>
                   </Fragment>
