@@ -31,11 +31,6 @@ describe('SeerAutomation', () => {
       method: 'GET',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/autofix/automation-settings/',
-      method: 'GET',
-      body: [],
-    });
   });
 
   it('does not show legacy banner for orgs without legacy or beta Seer features', () => {

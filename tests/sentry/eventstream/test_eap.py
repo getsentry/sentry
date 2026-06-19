@@ -8,7 +8,11 @@ from sentry.deletions.tasks.nodestore import delete_events_from_eap
 from sentry.eventstream.eap import delete_groups_from_eap_rpc
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
-from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
+from sentry.utils.snuba_rpc import (
+    SnubaRPCRateLimitExceeded,
+    SnubaRPCTimeout,
+    SnubaRPCTooManySimultaneous,
+)
 
 
 class TestEAPDeletion(TestCase):
@@ -25,7 +29,10 @@ class TestEAPDeletion(TestCase):
         )
 
         delete_events_from_eap(
-            self.organization_id, self.project_id, self.group_ids, Dataset.Events
+            organization_id=self.organization_id,
+            project_id=self.project_id,
+            group_ids=self.group_ids,
+            dataset_str=Dataset.Events.value,
         )
         assert mock_rpc.call_count == 1
 
@@ -55,7 +62,10 @@ class TestEAPDeletion(TestCase):
         many_group_ids = [10, 20, 30, 40, 50]
 
         delete_events_from_eap(
-            self.organization_id, self.project_id, many_group_ids, Dataset.Events
+            organization_id=self.organization_id,
+            project_id=self.project_id,
+            group_ids=many_group_ids,
+            dataset_str=Dataset.Events.value,
         )
 
         request = mock_rpc.call_args[0][0]
@@ -68,7 +78,10 @@ class TestEAPDeletion(TestCase):
     def test_eap_deletion_disabled_skips_deletion(self, mock_rpc: MagicMock) -> None:
         with self.options({"eventstream.eap.deletion-enabled": False}):
             delete_events_from_eap(
-                self.organization_id, self.project_id, self.group_ids, Dataset.Events
+                organization_id=self.organization_id,
+                project_id=self.project_id,
+                group_ids=self.group_ids,
+                dataset_str=Dataset.Events.value,
             )
 
         mock_rpc.assert_not_called()
@@ -82,51 +95,42 @@ class TestEAPDeletion(TestCase):
             )
 
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
-    def test_exception_does_not_propagate(self, mock_rpc: MagicMock) -> None:
-        mock_rpc.side_effect = Exception("RPC connection failed")
+    def test_rpc_errors_propagate_and_are_retried(self, mock_rpc: MagicMock) -> None:
+        retry = delete_events_from_eap._retry
+        assert retry is not None
 
-        # Should not raise - exception should be caught
-        try:
+        for exc in [
+            SnubaRPCTimeout("read timed out"),
+            SnubaRPCRateLimitExceeded("rate limited"),
+            SnubaRPCTooManySimultaneous("too many queries"),
+        ]:
+            mock_rpc.side_effect = exc
+
+            with pytest.raises(type(exc)):
+                delete_events_from_eap(
+                    organization_id=self.organization_id,
+                    project_id=self.project_id,
+                    group_ids=self.group_ids,
+                    dataset_str=Dataset.Events.value,
+                )
+
+            state = retry.initial_state()
+            assert retry.should_retry(state, exc) is True
+
+    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
+    def test_non_rpc_error_propagates_and_is_not_retried(self, mock_rpc: MagicMock) -> None:
+        exc = RuntimeError("unexpected failure")
+        mock_rpc.side_effect = exc
+
+        with pytest.raises(RuntimeError, match="unexpected failure"):
             delete_events_from_eap(
-                self.organization_id, self.project_id, self.group_ids, Dataset.Events
+                organization_id=self.organization_id,
+                project_id=self.project_id,
+                group_ids=self.group_ids,
+                dataset_str=Dataset.Events.value,
             )
-        except Exception:
-            pytest.fail("Exception should have been caught and not propagated")
 
-    @patch("sentry.deletions.tasks.nodestore.exponential_delay")
-    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
-    def test_rate_limit_error_is_retried(self, mock_rpc: MagicMock, mock_delay: MagicMock) -> None:
-        mock_rpc.side_effect = SnubaRPCRateLimitExceeded("rate limited")
-        mock_delay.return_value = lambda _: 0
-
-        delete_events_from_eap(
-            self.organization_id, self.project_id, self.group_ids, Dataset.Events
-        )
-
-        assert mock_rpc.call_count == 5
-
-    @patch("sentry.deletions.tasks.nodestore.exponential_delay")
-    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
-    def test_rate_limit_succeeds_on_retry(self, mock_rpc: MagicMock, mock_delay: MagicMock) -> None:
-        mock_rpc.side_effect = [
-            SnubaRPCRateLimitExceeded("rate limited"),
-            SnubaRPCRateLimitExceeded("rate limited"),
-            DeleteTraceItemsResponse(meta=ResponseMeta(), matching_items_count=10),
-        ]
-        mock_delay.return_value = lambda _: 0
-
-        delete_events_from_eap(
-            self.organization_id, self.project_id, self.group_ids, Dataset.Events
-        )
-
-        assert mock_rpc.call_count == 3
-
-    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
-    def test_non_rate_limit_error_not_retried(self, mock_rpc: MagicMock) -> None:
-        mock_rpc.side_effect = Exception("Some other error")
-
-        delete_events_from_eap(
-            self.organization_id, self.project_id, self.group_ids, Dataset.Events
-        )
-
-        assert mock_rpc.call_count == 1
+        retry = delete_events_from_eap._retry
+        assert retry is not None
+        state = retry.initial_state()
+        assert retry.should_retry(state, exc) is False

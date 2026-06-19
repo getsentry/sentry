@@ -6,6 +6,7 @@ import type {LowValueSpanEvidenceData} from './types';
 const baseEvidenceData: LowValueSpanEvidenceData = {
   op: 'function',
   description: 'compute_checksum',
+  spanName: null,
   count: 1234,
   extrapolatedCount: 60_000,
   avgDurationMs: 0.4,
@@ -190,5 +191,75 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
     expect(screen.getByText(/span.get\("op"\) == "function"/)).toBeInTheDocument();
     expect(screen.getByText(/span.get\("description"\) is None/)).toBeInTheDocument();
+  });
+
+  it('uses span name as the JS matcher `name:` when set', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={{
+          ...baseEvidenceData,
+          spanName: 'ProcessChecksum',
+        }}
+        projectPlatform="javascript-nextjs"
+      />
+    );
+
+    expect(screen.getByText(/op: "function"/)).toBeInTheDocument();
+    expect(screen.getByText(/name: "ProcessChecksum"/)).toBeInTheDocument();
+    expect(screen.queryByText(/name: "compute_checksum"/)).not.toBeInTheDocument();
+  });
+
+  it('emits a name-only JS matcher when op is null and span name is set', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={{
+          ...baseEvidenceData,
+          op: null,
+          spanName: 'ProcessChecksum',
+        }}
+        projectPlatform="javascript-nextjs"
+      />
+    );
+
+    expect(screen.getByText(/name: "ProcessChecksum"/)).toBeInTheDocument();
+    expect(screen.queryByText(/op:/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/will also drop other spans with this op/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('adds a span name clause to the Python snippet when set', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={{
+          ...baseEvidenceData,
+          spanName: 'ProcessChecksum',
+        }}
+        projectPlatform="python-django"
+      />
+    );
+
+    expect(screen.getByText(/span.get\("op"\) == "function"/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/span.get\("name"\) == "ProcessChecksum"/)
+    ).toBeInTheDocument();
+  });
+
+  it('uses span name in the manual instrumentation search copy when set', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={{
+          ...baseEvidenceData,
+          spanName: 'ProcessChecksum',
+          spanOrigin: 'manual',
+        }}
+        projectPlatform={null}
+      />
+    );
+
+    expect(
+      screen.getAllByText('ProcessChecksum - compute_checksum').length
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText('function - compute_checksum')).not.toBeInTheDocument();
   });
 });
