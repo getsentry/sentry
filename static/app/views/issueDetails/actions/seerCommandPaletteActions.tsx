@@ -86,7 +86,7 @@ export function SeerCommandPaletteActions({
     hasPR,
   } = useSeerState(group, project);
 
-  const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
+  const {openSeerDrawer} = useOpenSeerDrawer({group, project});
 
   const {data: codingAgentResponse} = useQuery(
     organizationIntegrationsCodingAgents(organization)
