@@ -441,6 +441,10 @@ def _upload_dif_to_objectstore(
         return storage_path
     except Exception:
         logger.exception("Failed to upload debug file to Objectstore")
+        try:
+            upload.abort()
+        except Exception:
+            pass
         raise
 
 
