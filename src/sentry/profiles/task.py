@@ -97,50 +97,58 @@ def _get_profiles_producer_from_topic(
     )
 
 
-_task_producer_name = "sentry.profiles.taskproducer"
+def _get_task_producer_name(name: str) -> str:
+    return f"sentry.profiles.{name}.taskproducer"
+
+
 processed_profiles_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES),
     max_futures=settings.SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT,
 )
+processed_profiles_name = _get_task_producer_name("processed")
 processed_profiles_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES, _task_producer_name),
+    processed_profiles_name,
+    lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES, processed_profiles_name),
 )
 
 profile_functions_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE),
     max_futures=settings.SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT,
 )
+profile_functions_name = _get_task_producer_name("functions")
 profile_functions_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE, _task_producer_name),
+    profile_functions_name,
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE, profile_functions_name),
 )
 
 profile_chunks_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS),
     max_futures=settings.SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT,
 )
+profile_chunks_name = _get_task_producer_name("chunks")
 profile_chunks_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS, _task_producer_name),
+    profile_chunks_name,
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS, profile_chunks_name),
 )
 
 profile_occurrences_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES),
     max_futures=settings.SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT,
 )
+profile_occurrences_name = _get_task_producer_name("occurrences")
 profile_occurrences_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES, _task_producer_name),
+    profile_occurrences_name,
+    lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES, profile_occurrences_name),
 )
 
 eap_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS),
     max_futures=settings.SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT,
 )
+profile_eap_name = _get_task_producer_name("eap")
 eap_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS, _task_producer_name),
+    profile_eap_name,
+    lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS, profile_eap_name),
 )
 
 logger = logging.getLogger(__name__)

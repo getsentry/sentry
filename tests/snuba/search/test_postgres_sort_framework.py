@@ -457,7 +457,7 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
 
 class TestProgressSort(PostgresSortTestBase):
     """progress: primary sort by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
-    triaged > identified), secondary by last_seen.
+    assigned > identified), secondary by last_seen.
 
     The base fixture's groups have events ~8d, ~5d, and ~3d old, so on last_seen alone they
     order [2, 1, 0] (newest first).

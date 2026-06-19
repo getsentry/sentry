@@ -174,18 +174,11 @@ class CellDirectory:
     def get_locality_by_name(self, locality_name: str) -> Locality | None:
         return self._localities_by_name.get(locality_name)
 
-    def get_cells(self, category: RegionCategory | None = None) -> Iterable[Cell]:
-        if category is None:
-            return iter(self._cells)
+    def get_cells(self) -> Iterable[Cell]:
+        return iter(self._cells)
 
-        return (
-            r
-            for r in self._cells
-            if (loc := self._cell_to_locality.get(r.name)) is not None and loc.category == category
-        )
-
-    def get_cell_names(self, category: RegionCategory | None = None) -> Iterable[str]:
-        return (r.name for r in self.get_cells(category))
+    def get_cell_names(self) -> Iterable[str]:
+        return (r.name for r in self.get_cells())
 
     def get_locality_for_cell(self, cell_name: str) -> Locality | None:
         return self._cell_to_locality.get(cell_name)
@@ -226,7 +219,7 @@ class CellDirectory:
                     f"which is not in its cells={set(loc.cells)!r}"
                 )
 
-        # SENTRY_MONOLITH_REGION is resolved as a live cell at runtime
+        # SENTRY_FALLBACK_CELL is resolved as a live cell at runtime
         # (historic monolith region lookups), so a dangling name should fail
         # here rather than at request time.
         if settings.SENTRY_FALLBACK_CELL not in defined_cells:
@@ -331,10 +324,7 @@ def get_cell_by_name(name: str) -> Cell:
     if cell is not None:
         return cell
     else:
-        cell_names = list(cell_regions.get_cell_names(RegionCategory.MULTI_TENANT))
-        raise CellResolutionError(
-            f"No cell with name: {name!r} (expected one of {cell_names!r} or a single-tenant name)"
-        )
+        raise CellResolutionError(f"No cell with name: {name!r}")
 
 
 def get_new_org_cell_for_locality(name: str) -> Cell:
@@ -495,14 +485,6 @@ def find_cells_for_sentry_app(sentry_app: SentryApp) -> set[str]:
 
 def find_all_cell_names() -> Iterable[str]:
     return get_global_directory().get_cell_names()
-
-
-def find_all_multitenant_cell_names() -> list[str]:
-    """
-    Return all visible multi_tenant cells.
-    """
-    cells = get_global_directory().get_cells(RegionCategory.MULTI_TENANT)
-    return list([c.name for c in cells if c.visible])
 
 
 def find_all_multitenant_locality_names() -> list[str]:

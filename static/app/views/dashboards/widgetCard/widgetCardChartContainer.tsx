@@ -15,6 +15,7 @@ import type {
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
+import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
@@ -28,8 +29,7 @@ import type {
   TabularColumn,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {HEATMAP_RESIZE_DEBOUNCE_MS} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
-import {getHeatmapXAxisBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXAxisBucketInterval';
-import {getHeatmapYAxisBucketCount} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapYAxisBucketCount';
+import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
 import WidgetCardChart from './chart';
@@ -266,7 +266,10 @@ function HeatmapMeasuredArea({
   selection,
   children,
 }: {
-  children: (params: {widgetInterval: string; yBuckets: number}) => React.ReactNode;
+  children: (params: {
+    widgetInterval: string | undefined;
+    yBuckets: number | undefined;
+  }) => React.ReactNode;
   selection: PageFilters;
 }) {
   const chartAreaRef = useRef<HTMLDivElement>(null);
@@ -280,11 +283,19 @@ function HeatmapMeasuredArea({
     leading: true,
   });
 
+  // Returns null until the container is measured, which keeps the query
+  // disabled (no interval/yBuckets) until layout settles.
+  const bucketDimensions = calculateHeatMapBucketDimensions(
+    selection,
+    {width: debouncedWidth, height: debouncedHeight},
+    getIntervalOptionsForPageFilter(selection.datetime).map(option => option.value)
+  );
+
   return (
     <Container ref={chartAreaRef} height="100%" width="100%">
       {children({
-        widgetInterval: getHeatmapXAxisBucketInterval(selection, debouncedWidth),
-        yBuckets: getHeatmapYAxisBucketCount(debouncedHeight),
+        widgetInterval: bucketDimensions?.interval,
+        yBuckets: bucketDimensions?.yBuckets,
       })}
     </Container>
   );
