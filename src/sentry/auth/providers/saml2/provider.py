@@ -263,7 +263,10 @@ def _validate_saml_avatar(value: str | None) -> str | None:
     try:
         with Image.open(BytesIO(decoded)) as image:
             image_format = image.format
-    except OSError:
+    except Exception:
+        # Pillow can raise a variety of errors (OSError, DecompressionBombError,
+        # etc.) on malformed or hostile image data; never let a bad profile
+        # picture block SSO login.
         return None
 
     if image_format is None or Image.MIME.get(image_format) not in ALLOWED_AVATAR_MIMETYPES:

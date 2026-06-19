@@ -37,6 +37,12 @@ class DatabaseBackedUserService(TestCase):
         assert avatar.get_avatar_type_display() == "upload"
         assert avatar.get_file_id()
 
+        # The denormalized User fields are kept in sync with the stored avatar.
+        user.refresh_from_db()
+        assert user.avatar_type == avatar.avatar_type
+        assert user.avatar_url is not None
+        assert avatar.ident in user.avatar_url
+
     def test_update_user_avatar_clear_resets_to_letter_avatar(self) -> None:
         user = self.create_user(email="avatar@email.com")
         avatar_b64 = b64encode(self.load_fixture("avatar.jpg")).decode()
@@ -49,6 +55,11 @@ class DatabaseBackedUserService(TestCase):
 
         avatar = UserAvatar.objects.get(user_id=user.id)
         assert avatar.get_avatar_type_display() == "letter_avatar"
+
+        # Clearing also resets the denormalized User fields.
+        user.refresh_from_db()
+        assert user.avatar_type == avatar.avatar_type
+        assert user.avatar_url is None
 
     def test_get_no_existing(self) -> None:
         rpc_user = user_service.get_user_by_email(email="test@email.com")

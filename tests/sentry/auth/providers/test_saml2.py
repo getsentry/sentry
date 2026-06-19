@@ -168,3 +168,13 @@ class ValidateSamlAvatarTest(TestCase):
     def test_empty_or_missing(self) -> None:
         assert _validate_saml_avatar("") is None
         assert _validate_saml_avatar(None) is None
+
+    def test_does_not_raise_on_unexpected_pillow_error(self) -> None:
+        # Pillow can raise non-OSError errors (e.g. DecompressionBombError) on
+        # hostile data; validation must drop the avatar rather than propagate.
+        avatar = _png_b64()
+        with mock.patch(
+            "sentry.auth.providers.saml2.provider.Image.open",
+            side_effect=Image.DecompressionBombError("boom"),
+        ):
+            assert _validate_saml_avatar(avatar) is None
