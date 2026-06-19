@@ -24,28 +24,39 @@ export function prepareQueriesForEquationMode(
   queries: BaseMetricQuery[]
 ): BaseMetricQuery[] {
   const replaced = queries.map(query => {
-    const visualize = query.queryParams.visualizes[0];
-    if (!visualize || !isVisualizeFunction(visualize)) {
+    const visualizes = query.queryParams.visualizes;
+    let changed = false;
+    const newVisualizes = visualizes.map(visualize => {
+      if (!isVisualizeFunction(visualize)) {
+        return visualize;
+      }
+      const aggName = visualize.parsedFunction?.name;
+      if (!aggName || !RATE_AGGREGATES.has(aggName)) {
+        return visualize;
+      }
+      changed = true;
+      const defaultAgg = DEFAULT_YAXIS_BY_TYPE[query.metric.type] ?? 'sum';
+      return updateVisualizeYAxis(visualize, defaultAgg, query.metric);
+    });
+
+    if (!changed) {
       return query;
     }
-    const aggName = visualize.parsedFunction?.name;
-    if (!aggName || !RATE_AGGREGATES.has(aggName)) {
-      return query;
-    }
-    const defaultAgg = DEFAULT_YAXIS_BY_TYPE[query.metric.type] ?? 'sum';
-    const newVisualize = updateVisualizeYAxis(visualize, defaultAgg, query.metric);
+
     return {
       ...query,
       queryParams: query.queryParams.replace({
         aggregateFields: [
-          newVisualize,
+          ...newVisualizes,
           ...query.queryParams.aggregateFields.filter(isGroupBy),
         ],
       }),
     };
   });
 
-  return uniqBy(replaced, query => query.queryParams.visualizes[0]?.yAxis);
+  return uniqBy(replaced, query =>
+    JSON.stringify(query.queryParams.visualizes.map(v => v.yAxis).sort())
+  );
 }
 
 // Triggers a y-axis update using the correct action type based on the display type.
