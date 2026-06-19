@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from cryptography.fernet import Fernet
@@ -7,6 +7,8 @@ from django.test import override_settings
 from django.utils import timezone
 from pydantic import BaseModel
 
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.rpc.service import RpcException
 from sentry.seer.agent.client import SeerAgentClient, get_monitoring_provider_connections
 from sentry.seer.agent.client_models import (
@@ -18,7 +20,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
-from sentry.seer.models.run import SeerAgentRun
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.requests import make_request
@@ -1198,6 +1200,78 @@ class TestStartRunExplorerIndexTrigger(TestCase):
             client.start_run("Why are my errors spiking?")
 
         mock_dispatch.assert_not_called()
+
+
+class TestStartFeatureRun(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+
+    def _outbox_for(self, run: SeerRun) -> CellOutbox | None:
+        return CellOutbox.objects.filter(
+            category=OutboxCategory.SEER_RUN_CREATE, object_identifier=run.id
+        ).first()
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_flush_false_enqueues_without_dispatch(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="night_shift", payload={"candidates": [1, 2]}, flush=False
+        )
+
+        mock_request.assert_not_called()
+        assert run.type == SeerRunType.FEATURE_RUN
+        assert run.mirror_status == SeerRunMirrorStatus.PENDING
+        assert run.seer_run_state_id is None
+        assert run.user_id == self.user.id
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None
+        assert outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["feature_id"] == "night_shift"
+        # ref/external_idempotency_key are stamped by the handler at dispatch, not enqueue.
+        assert "ref" not in body
+        assert outbox.payload["viewer_context"]["organization_id"] == self.organization.id
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_flush_true_dispatches_inline_and_mirrors(self, mock_request, _mock_access) -> None:
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 4242}))
+
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(feature_id="night_shift", payload={})
+
+        assert run.mirror_status == SeerRunMirrorStatus.LIVE
+        assert run.seer_run_state_id == 4242
+        sent_body = mock_request.call_args.args[0]
+        assert sent_body["feature_id"] == "night_shift"
+        assert sent_body["ref"] == str(run.uuid)
+        assert sent_body["external_idempotency_key"] == str(run.uuid)
+        assert self._outbox_for(run) is None
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_flush_true_dispatch_failure_marks_failed_and_raises(
+        self, mock_request, _mock_access
+    ) -> None:
+        mock_request.return_value = Mock(status=400)
+
+        client = SeerAgentClient(self.organization, self.user)
+        with pytest.raises(SeerApiError):
+            client.start_feature_run(feature_id="night_shift", payload={})
+
+        run = SeerRun.objects.get(organization=self.organization, type=SeerRunType.FEATURE_RUN)
+        assert run.mirror_status == SeerRunMirrorStatus.FAILED
+        assert run.seer_run_state_id is None
+
+    def test_access_gate_blocks_dispatch(self) -> None:
+        # No gen-ai-features -> client construction raises before any run is created.
+        with pytest.raises(SeerPermissionError):
+            SeerAgentClient(self.organization, self.user)
+        assert not SeerRun.objects.filter(organization=self.organization).exists()
 
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)

@@ -1,6 +1,7 @@
 import time
 from datetime import datetime, timedelta, timezone
 from random import Random
+from typing import Any
 
 from django.utils.decorators import method_decorator
 from django.utils.text import slugify
@@ -16,7 +17,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
-from sentry.tasks.summaries.weekly_reports import render_template_context
+from sentry.tasks.summaries.weekly_reports import get_group_display, render_template_context
 from sentry.types.group import GroupSubStatus
 from sentry.utils import loremipsum
 from sentry.utils.dates import floor_to_utc_day, to_datetime
@@ -192,6 +193,27 @@ class DebugWeeklyReportView(MailPreviewView):
                 for group_index, performance_issue_type in enumerate(performance_issue_types)
             ]
 
+            project_context.past_resolved_issues = [
+                (
+                    make_debug_group(
+                        group_id=30000 + (project.id * 100) + group_index,
+                        project=project,
+                        title=make_debug_issue_title(
+                            random,
+                            random.choice(["TypeError", "ValueError", "RuntimeError"]),
+                        ),
+                        message=make_debug_issue_message(random),
+                        group_type=ErrorGroupType,
+                        event_type="error",
+                        status=GroupStatus.RESOLVED,
+                        substatus=GroupSubStatus.NEW,
+                    ),
+                    random.randint(100, 5000),
+                    random.choice([True, False]),
+                )
+                for group_index in range(3)
+            ]
+
             ctx.projects_context_map[project.id] = project_context
 
         user_id = request.user.id
@@ -201,6 +223,22 @@ class DebugWeeklyReportView(MailPreviewView):
             context["show_week_over_week_metric"] = (
                 request.GET.get("show_week_over_week_metric", "1") != "0"
             )
+            context["show_past_issues"] = True
+            past_issues: list[dict[str, Any]] = []
+            for project_ctx in ctx.projects_context_map.values():
+                for group, count, has_link in project_ctx.past_resolved_issues:
+                    display = get_group_display(group)
+                    past_issues.append(
+                        {
+                            "count": count,
+                            "group": group,
+                            "title": display["title"],
+                            "message": display["message"],
+                            "has_linked_pr_or_commit": has_link,
+                        }
+                    )
+            past_issues.sort(key=lambda x: x["count"], reverse=True)
+            context["past_issues"] = past_issues[:3]
         return context
 
     @property
