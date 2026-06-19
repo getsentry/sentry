@@ -17,7 +17,7 @@ export function HoverScrollable({
   value,
   className,
   leftTrim = false,
-  speed = 0.1,
+  speed = 0.15,
   edgeWidth = 40,
 }: HoverScrollableProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -26,9 +26,7 @@ export function HoverScrollable({
   const containerRef = useRef<HTMLSpanElement>(null);
   const contentRef = useRef<HTMLSpanElement>(null);
   const animationRef = useRef<Animation | null>(null);
-  const direction = useRef<boolean | null>(null);
   const [isTruncated, setIsTruncated] = useState(false);
-  const targetRef = useRef(0);
   const scrollWidthRef = useRef(0);
 
   const showSlidingText = isHovered && isTruncated;
@@ -46,20 +44,30 @@ export function HoverScrollable({
 
     setIsTruncated(truncated);
 
+    animationRef.current?.cancel();
     if (!truncated) {
-      animationRef.current?.cancel();
-      animationRef.current = null;
-      direction.current = null;
-      content.style.transform = '';
       return;
     }
 
-    // When the hover container appears or its text changes, snap left-trimmed
-    // content to the rightmost edge.
+    const duration = maxTranslate / speed;
+    animationRef.current = content.animate(
+      [{transform: 'translateX(0px)'}, {transform: `translateX(${-maxTranslate}px)`}],
+      {
+        duration,
+        easing: 'linear',
+        fill: 'both',
+      }
+    );
+
     if (leftTrim) {
-      content.style.transform = `translateX(${-maxTranslate}px)`;
+      animationRef.current.currentTime = duration;
+      animationRef.current.reverse();
+    } else {
+      animationRef.current.currentTime = 0;
     }
-  }, [leftTrim, showSlidingText, value]);
+
+    animationRef.current.updatePlaybackRate(1);
+  }, [leftTrim, showSlidingText, speed, value]);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -82,76 +90,34 @@ export function HoverScrollable({
 
     if (scrollWidthRef.current !== content.scrollWidth) {
       scrollWidthRef.current = content.scrollWidth;
-      direction.current = null;
+      animationRef.current?.pause();
     }
 
     const mouseX = event.clientX - rect.left;
-
-    let target: number | null = null;
+    const effectiveEdgeWidth = Math.min(edgeWidth, rect.width / 2);
 
     // left
-    if (mouseX <= edgeWidth) {
-      target = 0;
-      if (direction.current === false) {
-        // already moving left, no need to restart animation
-        return;
+    if (animationRef.current) {
+      if (mouseX <= effectiveEdgeWidth) {
+        if (animationRef.current.playbackRate !== -1) {
+          animationRef.current.updatePlaybackRate(-1);
+        }
+      } else if (rect.width - mouseX <= effectiveEdgeWidth) {
+        if (animationRef.current.playbackRate !== 1) {
+          animationRef.current.updatePlaybackRate(1);
+        }
+      } else {
+        if (animationRef.current.playbackRate !== 0) {
+          animationRef.current.updatePlaybackRate(0);
+        }
       }
-      direction.current = false;
     }
-
-    // right
-    if (rect.width - mouseX <= edgeWidth) {
-      target = -maxTranslate;
-      if (direction.current === true) {
-        // already moving right, no need to restart animation
-        return;
-      }
-      direction.current = true;
-    }
-
-    // middle
-    if (target === null) {
-      if (direction.current !== null) {
-        animationRef.current?.commitStyles();
-        animationRef.current?.cancel();
-        animationRef.current = null;
-        direction.current = null;
-      }
-      return;
-    }
-
-    // a new target
-    // animationRef.current?.play();
-
-    targetRef.current = target;
-
-    const currentX = getCurrentTranslateX(content);
-    const distance = Math.abs(target - currentX);
-    const duration = distance / speed;
-
-    animationRef.current?.cancel();
-
-    animationRef.current = content.animate(
-      [
-        {
-          transform: getComputedStyle(content).transform,
-        },
-        {
-          transform: `translateX(${target}px)`,
-        },
-      ],
-      {
-        duration,
-        easing: 'linear',
-        fill: 'forwards',
-      }
-    );
   };
 
   const handleMouseLeave = () => {
-    animationRef.current?.cancel();
-    animationRef.current = null;
-    direction.current = null;
+    if (animationRef.current) {
+      animationRef.current.cancel();
+    }
 
     setIsHovered(false);
   };
@@ -179,22 +145,17 @@ export function HoverScrollable({
   );
 }
 
-function getCurrentTranslateX(element: HTMLElement) {
-  const transform = window.getComputedStyle(element).transform;
-
-  if (transform === 'none') {
-    return 0;
-  }
-
-  return new DOMMatrixReadOnly(transform).m41;
-}
-
 const SlidingContainer = styled('span')`
   display: inline-block;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
   vertical-align: bottom;
+  cursor: text;
+  background: ${p => p.theme.tokens.background.primary};
+  padding: ${p => p.theme.space.xs};
+  border: 1px solid ${p => p.theme.tokens.focus.onVibrant};
+  border-radius: ${p => p.theme.space.xs};
 `;
 
 const SlidingText = styled('span')`
