@@ -10,7 +10,7 @@ from sentry.notifications.notification_action.registry import activity_handler_r
 from sentry.notifications.notification_action.types import ActivityHandler
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.strategies.issue_owners import (
-    IssueOwnersNotificationStrategy,
+    IssueOwnersActivityAlertStrategy,
 )
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.templates.workflow_engine import (
@@ -20,7 +20,6 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
-from sentry.notifications.types import FallthroughChoiceType
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -31,14 +30,11 @@ class EmailActivityHandler(ActivityHandler):
 
     @classmethod
     def invoke_using_issue_owners_strategy(
-        self, invocation: ActionInvocation, activity: Activity
+        cls, invocation: ActionInvocation, activity: Activity
     ) -> None:
-        fallthrough_type = invocation.action.data.get("fallthrough_type")
-        fallthrough_choice = FallthroughChoiceType(fallthrough_type) if fallthrough_type else None
-        strategy = IssueOwnersNotificationStrategy(
-            project=activity.project,
-            fallthrough_choice=fallthrough_choice,
-        )
+        if activity.group is None:
+            return
+        strategy = IssueOwnersActivityAlertStrategy(group=activity.group)
         data = build_activity_data(invocation, activity)
         NotificationService[WorkflowEngineActivityAction](data=data).notify_sync(strategy=strategy)
 
