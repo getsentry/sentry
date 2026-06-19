@@ -254,7 +254,7 @@ export function SeerExplorerHeader({
               variant="transparent"
               size="xs"
               aria-label={
-                isPoppedOut ? t('Dock back in') : t('Open in a separate window')
+                isPoppedOut ? t('Dock in main window') : t('Open in a separate window')
               }
               tooltipProps={{
                 title: isPoppedOut ? t('Dock back in') : t('Open in a separate window'),
