@@ -145,6 +145,9 @@ def handle_issue_comment_for_autofix_iteration(
         logger.info("autofix.pr_iteration.comment_trigger.no_pr_number", extra=log_extra)
         return None
 
+    if not comment.get("html_url"):
+        raise ValueError("GitHub PR comment is missing html_url")
+
     logger.info(
         "autofix.pr_iteration.comment_trigger.scheduled",
         extra={**log_extra, "pr_number": pr_number},
