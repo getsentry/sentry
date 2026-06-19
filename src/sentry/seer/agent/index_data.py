@@ -11,6 +11,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -151,20 +152,27 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
 
     # Step 1: Get a random trace ID for the transaction
     escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
-    traces_result = Spans.run_table_query(
-        params=snuba_params,
-        query_string=f'transaction:"{escaped_transaction_name}" project.id:{project_id}',
-        selected_columns=[
-            "trace",
-            "precise.start_ts",
-        ],
-        orderby=["precise.start_ts"],
-        offset=0,
-        limit=1,
-        referrer=Referrer.SEER_EXPLORER_INDEX,
-        config=config,
-        sampling_mode="NORMAL",
-    )
+    try:
+        traces_result = Spans.run_table_query(
+            params=snuba_params,
+            query_string=f'transaction:"{escaped_transaction_name}" project.id:{project_id}',
+            selected_columns=[
+                "trace",
+                "precise.start_ts",
+            ],
+            orderby=["precise.start_ts"],
+            offset=0,
+            limit=1,
+            referrer=Referrer.SEER_EXPLORER_INDEX,
+            config=config,
+            sampling_mode="NORMAL",
+        )
+    except InvalidSearchQuery:
+        logger.info(
+            "Invalid search query when fetching trace for transaction",
+            extra={"transaction_name": transaction_name, "project_id": project_id},
+        )
+        return None
 
     trace_id = None
     for row in traces_result.get("data", []):
