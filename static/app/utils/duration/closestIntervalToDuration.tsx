@@ -1,3 +1,4 @@
+import {isNonEmptyArray} from 'sentry/utils/array/isNonEmptyArray';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 
@@ -10,7 +11,7 @@ export function closestIntervalToDuration(
   duration: number,
   availableIntervals: string[]
 ): string | null {
-  if (availableIntervals.length === 0) {
+  if (!isNonEmptyArray(availableIntervals)) {
     return null;
   }
 
@@ -20,11 +21,16 @@ export function closestIntervalToDuration(
 
   const shortestIntervalDuration = intervalToMilliseconds(sortedIntervals.at(0)!);
   if (duration <= shortestIntervalDuration) {
-    return sortedIntervals.at(0)!;
+    // TypeScript correctly unpacks the tuple syntax here, so it knows that
+    // `[0]` must be defined. `.at(0)` doesn't have that benefit
+    return sortedIntervals[0];
   }
 
   const longestIntervalDuration = intervalToMilliseconds(sortedIntervals.at(-1)!);
   if (duration >= longestIntervalDuration) {
+    // Due to how `noUncheckedIndexedAccess` works, TypeScript here doesn't know
+    // that the last element _also_ must exist. The non-null assertion is not
+    // avoidable
     return sortedIntervals.at(-1)!;
   }
 
