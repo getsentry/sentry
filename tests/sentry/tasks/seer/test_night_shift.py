@@ -570,10 +570,10 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
 
         run = SeerNightShiftRun.objects.get(organization=org)
         shard = run.shards.get()
-        assert shard.seer_run.type == SeerRunType.FEATURE_RUN
 
         seer_run, body = _dispatched_feature_body(org)
         assert seer_run.id == shard.seer_run_id
+        assert seer_run.type == SeerRunType.FEATURE_RUN
         assert body["feature_id"] == "night_shift"
         assert [c["group_id"] for c in body["payload"]["candidates"]] == [group.id]
         assert body["payload"]["candidates"][0]["priority"] == "high"
@@ -584,8 +584,8 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         assert outbox.payload is not None
         assert outbox.payload["viewer_context"] == {"organization_id": org.id}
 
-        assert shard.seer_run.mirror_status == SeerRunMirrorStatus.PENDING
-        assert shard.seer_run.seer_run_state_id is None
+        assert seer_run.mirror_status == SeerRunMirrorStatus.PENDING
+        assert seer_run.seer_run_state_id is None
         assert run.extras.get("error_message") is None
         # Verdicts and autofix are Seer's responsibility now; no result rows here.
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()

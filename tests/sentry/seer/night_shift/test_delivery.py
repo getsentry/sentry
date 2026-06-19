@@ -32,7 +32,9 @@ class TestDeliverNightShiftResult(TestCase):
         return run
 
     def _run_uuid(self, run: SeerNightShiftRun) -> str:
-        return str(run.shards.get().seer_run.uuid)
+        seer_run = run.shards.get().seer_run
+        assert seer_run is not None
+        return str(seer_run.uuid)
 
     def test_correlates_via_legacy_seer_run_fallback(self) -> None:
         """Pre-shard runs have only the scalar seer_run FK and no shard rows;
@@ -110,16 +112,14 @@ class TestDeliverNightShiftResult(TestCase):
         project = self.create_project(organization=org)
         group = self.create_group(project=project)
         run = SeerNightShiftRun.objects.create(organization=org, extras={"options": {}})
-        failed_shard = SeerNightShiftRunShard.objects.create(
-            run=run, seer_run=self.create_seer_run(organization=org)
-        )
-        ok_shard = SeerNightShiftRunShard.objects.create(
-            run=run, seer_run=self.create_seer_run(organization=org)
-        )
+        failed_seer_run = self.create_seer_run(organization=org)
+        ok_seer_run = self.create_seer_run(organization=org)
+        failed_shard = SeerNightShiftRunShard.objects.create(run=run, seer_run=failed_seer_run)
+        SeerNightShiftRunShard.objects.create(run=run, seer_run=ok_seer_run)
 
         deliver_night_shift_result(
             organization_id=org.id,
-            run_uuid=str(failed_shard.seer_run.uuid),
+            run_uuid=str(failed_seer_run.uuid),
             status="error",
             result=None,
             error="shard failed",
@@ -127,7 +127,7 @@ class TestDeliverNightShiftResult(TestCase):
         with patch("sentry.tasks.seer.night_shift.cron.trigger_autofix_agent", return_value=1):
             deliver_night_shift_result(
                 organization_id=org.id,
-                run_uuid=str(ok_shard.seer_run.uuid),
+                run_uuid=str(ok_seer_run.uuid),
                 status="completed",
                 result={
                     "verdicts": [
