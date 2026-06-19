@@ -1,6 +1,6 @@
 import 'echarts/lib/chart/heatmap';
 
-import {Fragment, useCallback, useEffect, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useRef, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import type {
   TooltipFormatterCallback,
@@ -14,7 +14,6 @@ import {BaseChart} from 'sentry/components/charts/baseChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -36,27 +35,45 @@ import {HEATMAP_COLORS} from './settings';
 // Source: https://echarts.apache.org/en/option.html#yAxis.axisLabel.fontSize
 const Y_AXIS_LABEL_FONT_SIZE = 12;
 
+/**
+ * Context for the hovered heat map cell, handed to `renderTooltipActions` so the
+ * caller can build its own tooltip actions (e.g. links into Explore).
+ */
+interface HeatMapTooltipContext {
+  /** Value-range filter for the hovered cell, e.g. `value:>=200 value:<250`. */
+  cellQuery: string;
+  /** Page filters narrowed to the hovered cell's X-axis (time) bucket. */
+  selection: PageFilters;
+}
+
 interface HeatMapWidgetVisualizationProps {
   /**
    * An single `HeatMap` object to render on the chart, and any number of other compatible Heat Map plottables.
    */
   plottables: [HeatMap, ...HeatMapPlottable[]];
   /**
-   * Callback that returns an explore URL for a given query and filtered datetime selection
+   * Renders extra action rows in a cell's tooltip (e.g. an Explore link). The
+   * visualization stays agnostic about what those actions are; the caller builds
+   * them from the cell context. Because ECharts renders the tooltip to an HTML
+   * string (no live React handlers), use `data-traces-link="<url>"` for
+   * navigations and `data-local-query="<query>"` for "add to filter" actions —
+   * the visualization routes clicks on those (the latter via
+   * `updateLocalFilterQuery`).
    */
-  makeExploreUrl?: (query: string, filteredSelection: PageFilters) => string;
+  renderTooltipActions?: (context: HeatMapTooltipContext) => ReactNode;
   /**
    * Experimental! Specify the Z-axis scale type. Logarithmic scales can be much more useful for values with a high range.
    */
   scale?: 'linear' | 'log';
   /**
-   * Callback that updates the local filter to include the given Y-axis query.
+   * Handles clicks on `data-local-query` tooltip actions, updating the local
+   * filter to include the given Y-axis query.
    */
   updateLocalFilterQuery?: (query: string) => void;
 }
 
 export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProps) {
-  const {plottables, updateLocalFilterQuery, makeExploreUrl} = props;
+  const {plottables, updateLocalFilterQuery, renderTooltipActions} = props;
   const theme = useTheme();
   const renderToString = useRenderToString();
   const navigate = useNavigate();
@@ -228,29 +245,24 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
               }
             }
 
-            let tracesLink: string | undefined;
-            const metricsQuery = defined(rawYValue)
-              ? yAxisBucketSize === 0
-                ? `value:<=${rawYValue}`
-                : `value:>=${rawYValue} value:<${rawYValue + yAxisBucketSize}`
-              : undefined;
-
-            if (defined(rawXValue) && defined(rawYValue)) {
-              const xAxisMaxValue = rawXValue + xAxisBucketSize * 1000;
-
-              const filteredSelection = {
+            // The caller renders any cell actions (e.g. an Explore link) from
+            // the cell's value-range query and time-narrowed selection.
+            let tooltipActions: ReactNode = null;
+            if (defined(rawXValue) && defined(rawYValue) && renderTooltipActions) {
+              const cellQuery =
+                yAxisBucketSize === 0
+                  ? `value:<=${rawYValue}`
+                  : `value:>=${rawYValue} value:<${rawYValue + yAxisBucketSize}`;
+              const selection = {
                 ...pageFilters.selection,
                 datetime: {
                   ...pageFilters.selection.datetime,
                   start: new Date(rawXValue),
-                  end: new Date(xAxisMaxValue),
+                  end: new Date(rawXValue + xAxisBucketSize * 1000),
                   period: null,
                 },
               };
-
-              if (makeExploreUrl && metricsQuery) {
-                tracesLink = makeExploreUrl(metricsQuery, filteredSelection);
-              }
+              tooltipActions = renderTooltipActions({cellQuery, selection});
             }
 
             return (
@@ -261,22 +273,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                   </span>{' '}
                   {formattedZValue}
                 </div>
-                {makeExploreUrl && defined(tracesLink) && (
-                  <div>
-                    <span className="tooltip-label tooltip-label-centered">
-                      <a data-traces-link={tracesLink} href={tracesLink}>
-                        {t('View connected spans')}
-                      </a>
-                    </span>
-                  </div>
-                )}
-                {updateLocalFilterQuery && defined(metricsQuery) && (
-                  <div>
-                    <span className="tooltip-label tooltip-label-centered">
-                      <a data-local-query={metricsQuery}>{t('Add to filter')}</a>
-                    </span>
-                  </div>
-                )}
+                {tooltipActions}
               </Fragment>
             );
           })}

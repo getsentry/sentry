@@ -1,8 +1,7 @@
-import {useCallback} from 'react';
+import {Fragment, useCallback} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
@@ -39,7 +38,6 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
   const metric = useTraceMetric();
   const userQuery = useQueryParamsQuery();
   const setMetricQuery = useSetQueryParamsQuery();
-
   const organization = useOrganization();
 
   const {data: heatMapSeries, isPending, error} = heatmapResult;
@@ -49,23 +47,6 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
     visualizes.length > 1
       ? metricName
       : (title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate);
-
-  const getFilteredExploreUrl = useCallback(
-    (query: string, filteredSelection: PageFilters) => {
-      return getExploreUrl({
-        organization,
-        selection: filteredSelection,
-        crossEvents: [
-          {
-            type: 'metrics',
-            metric,
-            query,
-          },
-        ],
-      });
-    },
-    [metric, organization]
-  );
 
   const updateMetricQuery = useCallback(
     (query: string) => {
@@ -90,8 +71,30 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
             <HeatMapWidgetVisualization
               plottables={[new HeatMap(heatMapSeries)]}
               scale={HEATMAP_Z_AXIS_SCALE}
-              makeExploreUrl={getFilteredExploreUrl}
               updateLocalFilterQuery={updateMetricQuery}
+              renderTooltipActions={({cellQuery, selection}) => {
+                const tracesUrl = getExploreUrl({
+                  organization,
+                  selection,
+                  crossEvents: [{type: 'metrics', metric, query: cellQuery}],
+                });
+                return (
+                  <Fragment>
+                    <div>
+                      <span className="tooltip-label tooltip-label-centered">
+                        <a data-traces-link={tracesUrl} href={tracesUrl}>
+                          {t('View connected spans')}
+                        </a>
+                      </span>
+                    </div>
+                    <div>
+                      <span className="tooltip-label tooltip-label-centered">
+                        <a data-local-query={cellQuery}>{t('Add to filter')}</a>
+                      </span>
+                    </div>
+                  </Fragment>
+                );
+              }}
             />
           )
         }

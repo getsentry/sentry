@@ -111,68 +111,49 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
       return (
         <Fragment>
           <p>
-            <Storybook.JSXNode name="HeatMapWidgetVisualization" /> supports two optional
-            tooltip action props. Click a cell to open the tooltip and see the links.
+            By default a cell's tooltip shows its Y-axis bucket range and Z-axis count.
+            Click a cell to open the tooltip.
           </p>
           <p>
-            With no extra props, the tooltip shows the Y-axis bucket range and the Z-axis
-            count for the clicked cell.
+            Pass <code>renderTooltipActions</code> to add action rows (e.g. an Explore
+            link). It receives the cell's value-range query (<code>cellQuery</code>) and a{' '}
+            <code>selection</code> narrowed to the cell's time bucket, and returns the
+            extra rows — so the visualization stays agnostic about what the actions are.
           </p>
           <p>
-            Pass <code>makeExploreUrl</code> to add a <em>View connected spans</em> link
-            in the tooltip. The callback receives the Y-axis filter query (e.g.{' '}
-            <code>value:&gt;=200 value:&lt;250</code>) and a <code>PageFilters</code>{' '}
-            object whose datetime is narrowed to the clicked X-axis bucket. Use these to
-            build a cross-event query link into Explore.
-          </p>
-          <p>
-            <CodeBlock language="jsx">
-              {`<HeatMapWidgetVisualization
-  plottables={[new HeatMap(heatMapData)]}
-  makeExploreUrl={(query, filteredSelection) =>
-    getExploreUrl({
-      organization,
-      selection: filteredSelection,
-      crossEvents: [{
-            type: 'metrics',
-            metric,
-            query,
-      }]
-    })
-  }
-/>`}
-            </CodeBlock>
-          </p>
-
-          <p>
-            Pass <code>updateLocalFilterQuery</code> to add an <em>Add to filter</em> link
-            in the tooltip. The callback receives the Y-axis filter query and should apply
-            that filter to the current view. Navigation is handled however you choose in
-            the passing function (most likely will use hooks).
+            Because ECharts renders the tooltip to an HTML string, React click handlers
+            don't survive. Use <code>data-traces-link</code> for navigations, and{' '}
+            <code>data-local-query</code> for "add to filter" actions (routed through{' '}
+            <code>updateLocalFilterQuery</code>).
           </p>
           <p>
             <CodeBlock language="jsx">
               {`<HeatMapWidgetVisualization
   plottables={[new HeatMap(heatMapData)]}
-  updateLocalFilterQuery={(query) =>
-    setLocalFilterQuery(query)
-  }
+  updateLocalFilterQuery={query => setLocalFilterQuery(query)}
+  renderTooltipActions={({cellQuery, selection}) => (
+    <Fragment>
+      <a data-traces-link={getExploreUrl({organization, selection, crossEvents: [...]})}>
+        View connected spans
+      </a>
+      <a data-local-query={cellQuery}>Add to filter</a>
+    </Fragment>
+  )}
 />`}
             </CodeBlock>
-          </p>
-
-          <p>
-            Both props can be used together. The tooltip shows{' '}
-            <em>View related traces</em> and <em>Add to filter</em> as separate actions.
           </p>
           <LargeWidget>
             <p>{`Local Filter Query: ${localFilterQuery}`}</p>
             <HeatMapWidgetVisualization
               plottables={[new HeatMap(sampleLatencyHeatMap)]}
-              makeExploreUrl={(query, filteredSelection) =>
-                `/explore/traces/?query=${encodeURIComponent(query)}&start=${filteredSelection.datetime.start}&end=${filteredSelection.datetime.end}`
-              }
               updateLocalFilterQuery={query => setLocalFilterQuery(query)}
+              renderTooltipActions={({cellQuery}) => (
+                <div>
+                  <span className="tooltip-label tooltip-label-centered">
+                    <a data-local-query={cellQuery}>Add to filter</a>
+                  </span>
+                </div>
+              )}
             />
           </LargeWidget>
         </Fragment>
