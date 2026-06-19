@@ -326,6 +326,25 @@ class OrganizationEventsTraceEndpointTest(
         assert len(data) == 1
         self.assert_trace_data(data[0])
 
+    def test_with_browser_web_vitals(self) -> None:
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+
+        root = response.data[0]
+        span = next(child for child in root["children"] if child["description"] == "GET gen1-0")
+        assert span["browser_web_vital"] == {
+            "browser.web_vital.lcp.value": 2807.335,
+            "browser.web_vital.cls.value": 0.0382,
+            "browser.web_vital.inp.value": 120.0,
+            "browser.web_vital.ttfb.value": 450.0,
+            "browser.web_vital.fcp.value": 2258.06,
+        }
+        assert "browser.web_vital.lcp.value" not in span["measurements"]
+
     def test_with_errors_data(self) -> None:
         self.load_trace()
         _, start = self.get_start_end_from_day_ago(123)

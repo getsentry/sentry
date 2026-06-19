@@ -286,6 +286,7 @@ export function SearchQueryBuilderProvider({
     setDisplayAskSeerFeedback,
     replaceRawSearchKeys,
     parseQuery,
+    searchSource,
   });
 
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);

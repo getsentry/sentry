@@ -2406,13 +2406,13 @@ requires-dist = [
     { name = "requests-oauthlib", specifier = ">=1.2.0" },
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
-    { name = "sentry-arroyo", specifier = ">=2.40.1" },
+    { name = "sentry-arroyo", specifier = ">=2.40.3" },
     { name = "sentry-conventions", specifier = ">=0.12.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.1.33" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
     { name = "sentry-options", specifier = ">=1.0.13" },
-    { name = "sentry-protos", specifier = ">=0.31.2" },
+    { name = "sentry-protos", specifier = ">=0.32.2" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.27" },
     { name = "sentry-scm", specifier = "==0.22.0" },
@@ -2427,7 +2427,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=13.1.1" },
-    { name = "taskbroker-client", specifier = ">=0.19.1" },
+    { name = "taskbroker-client", specifier = ">=0.19.3" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2499,13 +2499,13 @@ dev = [
 
 [[package]]
 name = "sentry-arroyo"
-version = "2.40.1"
+version = "2.40.3"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.40.1-py3-none-any.whl", hash = "sha256:6d7f745ccadc50867fbf4088634b5e0e9858ead135e6c49b72ffcff025f1d3a5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.40.3-py3-none-any.whl", hash = "sha256:d10b9767cbb572de86b8a41b3894bcb371d112ac5d6f70cd66f35cabdbf6ea9b" },
 ]
 
 [[package]]
@@ -2596,7 +2596,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.31.2"
+version = "0.32.2"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2604,7 +2604,7 @@ dependencies = [
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.31.2-py3-none-any.whl", hash = "sha256:855d5bf119023ab2aaa3fbf9cf374aec3f631884c6c067ffe678b7008aaeadcb" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.32.2-py3-none-any.whl", hash = "sha256:4ae5023f27ea05b21b6a8fb5c7ef724921fd209f81c5d64a11ef346077274b66" },
 ]
 
 [[package]]
@@ -2820,7 +2820,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.19.1"
+version = "0.19.3"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2838,7 +2838,7 @@ dependencies = [
     { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.19.1-py3-none-any.whl", hash = "sha256:fc20b0aa19b0dad7caf8f1182b615b624158194e766f7d84abdaa40633b2d03d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.19.3-py3-none-any.whl", hash = "sha256:4359b5906902e254d8c3efa1492dc249d4ed0678146e87b14c82769742da433f" },
 ]
 
 [[package]]

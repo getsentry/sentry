@@ -17,22 +17,6 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 import {SpanFields} from 'sentry/views/insights/types';
 
-export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
-  if (!supportedAggregates?.length) {
-    return {};
-  }
-
-  return supportedAggregates.reduce((acc, item) => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    acc[item] = {
-      key: item,
-      name: item,
-      kind: FieldKind.FUNCTION,
-    };
-    return acc;
-  }, {});
-};
-
 export interface UseSpanSearchQueryBuilderProps {
   initialQuery: string;
   searchSource: string;
