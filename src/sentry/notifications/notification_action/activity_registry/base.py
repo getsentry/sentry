@@ -58,16 +58,3 @@ def send_activity_notification(
 ) -> None:
     data = build_activity_data(invocation, activity)
     NotificationService[WorkflowEngineActivityAction](data=data).notify_sync(targets=[target])
-
-
-def require_config(action: Action, key: str) -> str:
-    value = action.config.get(key)
-    if not value:
-        raise ValueError(f"No {key} for action {action.id}")
-    return value
-
-
-def require_integration_id(action: Action) -> int:
-    if action.integration_id is None:
-        raise ValueError(f"No integration_id for action {action.id}")
-    return action.integration_id

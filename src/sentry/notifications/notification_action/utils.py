@@ -240,6 +240,13 @@ def execute_via_activity_type_registry(invocation: ActionInvocation) -> None:
         raise
 
     try:
+        action_handler = invocation.action.get_handler()
+        invocation.action.validate_config(action_handler.config_schema)
+    except Exception:
+        logger.exception("Error validating action config for activity handler", extra=logging_ctx)
+        raise
+
+    try:
         handler.invoke_action(invocation=invocation, activity=activity)
     except Exception:
         logger.exception("Error invoking action via activity handler", extra=logging_ctx)

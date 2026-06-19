@@ -1,8 +1,6 @@
 from sentry.models.activity import Activity
 from sentry.notifications.notification_action.activity_registry.base import (
     NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES,
-    require_config,
-    require_integration_id,
     send_activity_notification,
 )
 from sentry.notifications.notification_action.registry import activity_handler_registry
@@ -26,8 +24,8 @@ class MSTeamsActivityHandler(ActivityHandler):
         target = IntegrationNotificationTarget(
             provider_key=NotificationProviderKey.MSTEAMS,
             resource_type=NotificationTargetResourceType.CHANNEL,
-            resource_id=require_config(action, "target_identifier"),
-            integration_id=require_integration_id(action),
+            resource_id=action.config["target_identifier"],
+            integration_id=action.integration_id,
             organization_id=invocation.detector.project.organization.id,
         )
         send_activity_notification(invocation, activity, target)

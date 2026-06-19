@@ -87,11 +87,17 @@ class TestExecuteViaActivityTypeRegistry(ActivityHandlerTest):
         self.mock_handler.validate_activity.return_value = self.activity
 
     def test_happy_path(self) -> None:
-        with mock.patch.object(
-            activity_handler_registry, "get", return_value=self.mock_handler
-        ) as mock_get:
+        mock_action_handler = mock.MagicMock()
+        with (
+            mock.patch.object(
+                activity_handler_registry, "get", return_value=self.mock_handler
+            ) as mock_get,
+            mock.patch.object(self.action, "get_handler", return_value=mock_action_handler),
+            mock.patch.object(self.action, "validate_config") as mock_validate_config,
+        ):
             execute_via_activity_type_registry(self.invocation)
             mock_get.assert_called_once_with(self.action.type)
+            mock_validate_config.assert_called_once_with(mock_action_handler.config_schema)
 
         self.mock_handler.validate_activity.assert_called_once_with(invocation=self.invocation)
         self.mock_handler.invoke_action.assert_called_once_with(

@@ -1,7 +1,6 @@
 from sentry.models.activity import Activity
 from sentry.notifications.notification_action.activity_registry.base import (
     NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES,
-    require_config,
     send_activity_notification,
 )
 from sentry.notifications.notification_action.registry import activity_handler_registry
@@ -27,6 +26,6 @@ class EmailActivityHandler(ActivityHandler):
         target = GenericNotificationTarget(
             provider_key=NotificationProviderKey.EMAIL,
             resource_type=NotificationTargetResourceType.EMAIL,
-            resource_id=require_config(action, "target_identifier"),
+            resource_id=action.config["target_identifier"],
         )
         send_activity_notification(invocation, activity, target)
