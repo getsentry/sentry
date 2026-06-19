@@ -640,7 +640,7 @@ def detect_platforms_multi(
     )
     for needed_path in needed_paths:
         sentry_sdk.metrics.distribution(
-            f"{_MULTI_METRICS_PREFIX}.k_reads_needed_depth",
+            f"{_MULTI_METRICS_PREFIX}.needed_path_depth",
             needed_path.count("/"),
         )
     sentry_sdk.metrics.count(
