@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import abc
+import binascii
+import logging
+from base64 import b64decode
 from collections.abc import Mapping
+from io import BytesIO
 from typing import Any, NotRequired, TypedDict, _TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.http import HttpResponse, HttpResponseServerError
@@ -17,6 +22,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
+from PIL import Image
 from rest_framework.request import Request
 
 from sentry import features, options
@@ -37,6 +43,12 @@ from sentry.web.frontend.base import BaseView, control_silo_view
 
 ERR_NO_SAML_SSO = _("The organization does not exist or does not have SAML SSO enabled.")
 ERR_SAML_FAILED = _("SAML SSO failed, {reason}")
+
+logger = logging.getLogger("sentry.auth.saml")
+
+# Mirrors sentry.api.fields.avatar.ALLOWED_MIMETYPES. Inlined to avoid importing the
+# API layer from an auth provider that is loaded early during app initialization.
+ALLOWED_AVATAR_MIMETYPES = ("image/gif", "image/jpeg", "image/png")
 
 
 def get_provider(organization_slug: str) -> SAML2Provider | None:
@@ -220,6 +232,44 @@ class Attributes:
     USER_EMAIL = "user_email"
     FIRST_NAME = "first_name"
     LAST_NAME = "last_name"
+    AVATAR = "avatar"
+
+
+def _validate_saml_avatar(value: str | None) -> str | None:
+    """
+    Validate a base64-encoded image carried by a SAML assertion, returning the
+    cleaned base64 string ready to store, or ``None`` if the value is absent or
+    invalid.
+
+    This never raises: a malformed profile picture must not block SSO login. An
+    optional ``data:<mimetype>;base64,`` prefix is stripped. We check the format
+    and size but not dimensions, since identity providers send photos of varying
+    sizes and stored avatars are resized on read.
+    """
+    if not value:
+        return None
+
+    if value.startswith("data:") and "base64," in value:
+        value = value.split("base64,", 1)[1]
+
+    try:
+        decoded = b64decode(value)
+    except (binascii.Error, ValueError):
+        return None
+
+    if not decoded or len(decoded) > settings.SENTRY_MAX_AVATAR_SIZE:
+        return None
+
+    try:
+        with Image.open(BytesIO(decoded)) as image:
+            image_format = image.format
+    except OSError:
+        return None
+
+    if image_format is None or Image.MIME.get(image_format) not in ALLOWED_AVATAR_MIMETYPES:
+        return None
+
+    return value
 
 
 class SAML2Provider(Provider, abc.ABC):
@@ -327,11 +377,20 @@ class SAML2Provider(Provider, abc.ABC):
         name_gen = (attributes[k] for k in (Attributes.FIRST_NAME, Attributes.LAST_NAME))
         name = " ".join(_f for _f in name_gen if _f)
 
-        return {
+        identity = {
             "id": attributes[Attributes.IDENTIFIER],
             "email": attributes[Attributes.USER_EMAIL],
             "name": name,
         }
+
+        # Optionally sync the user's profile picture from the assertion. This is
+        # opt-in: it only applies when the provider's attribute mapping maps the
+        # `avatar` attribute to a SAML attribute carrying base64 image data.
+        avatar = _validate_saml_avatar(attributes.get(Attributes.AVATAR))
+        if avatar is not None:
+            identity["avatar"] = avatar
+
+        return identity
 
     def refresh_identity(self, auth_identity: AuthIdentity) -> None:
         # Nothing to refresh

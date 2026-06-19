@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+from base64 import b64decode
 from collections.abc import Callable, MutableMapping
+from io import BytesIO
 from typing import Any
 from uuid import uuid4
 
@@ -301,6 +303,23 @@ class DatabaseBackedUserService(UserService):
             return None
 
         return serialize_user_avatar(avatar=possible_avatar)
+
+    def update_user_avatar(
+        self, *, user_id: int, avatar_b64: str | None, filename: str
+    ) -> None:
+        if avatar_b64:
+            UserAvatar.save_avatar(
+                relation={"user_id": user_id},
+                type="upload",
+                avatar=BytesIO(b64decode(avatar_b64)),
+                filename=filename,
+            )
+        else:
+            # An empty payload resets the user back to the default letter avatar.
+            UserAvatar.save_avatar(
+                relation={"user_id": user_id},
+                type="letter_avatar",
+            )
 
     def add_permission(self, *, user_id: int, permission: str) -> bool:
         """Add a permission to a user. Returns True if added, False if already existed."""
