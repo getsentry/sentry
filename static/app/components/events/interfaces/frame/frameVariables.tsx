@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -8,6 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import type {StructedEventDataConfig} from 'sentry/components/structuredEventData';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
 
@@ -157,6 +158,57 @@ function formatFieldValue(value: unknown): string {
   return typeof value === 'string' ? value : `${value as number | boolean}`;
 }
 
+function DerefFields({deref}: {deref: Record<string, unknown>}) {
+  const fields = Object.entries(deref).filter(([k]) => !k.startsWith('__'));
+
+  // Pointer-like deref (char**, int*, etc.) — no struct fields, just a value
+  if (fields.length === 0) {
+    const stringValue = deref.__string_value as string | undefined;
+    const value = deref.__value as string | undefined;
+    const annotations = deref.__annotations as Annotation[] | undefined;
+    return (
+      <Flex padding="xs 0 0 lg" gap="sm" align="center">
+        {stringValue ? (
+          <Fragment>
+            <StringValue>"{stringValue}"</StringValue>
+            {value && (
+              <Text variant="muted" size="sm" monospace>
+                ({value})
+              </Text>
+            )}
+          </Fragment>
+        ) : value ? (
+          <PointerValue>{value}</PointerValue>
+        ) : null}
+        {annotations?.map((ann, i) => {
+          const badge = getAnnotationBadge(ann);
+          return (
+            <Tooltip key={i} title={ann.description ?? ann.pattern ?? ann.type}>
+              <AnnotationBadge variant={badge.variant}>{badge.label}</AnnotationBadge>
+            </Tooltip>
+          );
+        })}
+      </Flex>
+    );
+  }
+
+  // Struct deref — show fields
+  return (
+    <Flex direction="column" gap="2xs" padding="xs 0 0 lg">
+      {fields.map(([fieldName, fieldVal]) => (
+        <Flex key={fieldName} gap="md" align="baseline">
+          <Text variant="muted" size="sm" monospace>
+            .{fieldName}
+          </Text>
+          <Text size="sm" monospace>
+            {formatFieldValue(fieldVal)}
+          </Text>
+        </Flex>
+      ))}
+    </Flex>
+  );
+}
+
 function NativeVarValue({
   rawValue,
 }: {
@@ -164,6 +216,10 @@ function NativeVarValue({
 }) {
   const typeName = rawValue.__type;
   const status = rawValue.__status as string | undefined;
+  const deref = rawValue.__deref;
+  const isObjectDeref = typeof deref === 'object' && deref !== null;
+  const isScalarDeref = deref !== undefined && !isObjectDeref;
+  const [derefExpanded, setDerefExpanded] = useState(false);
 
   // Unavailable / optimized out
   if (status && status in UNAVAILABLE_STATUSES) {
@@ -206,35 +262,58 @@ function NativeVarValue({
   const annotations = rawValue.__annotations as Annotation[] | undefined;
 
   return (
-    <Flex gap="sm" align="center" wrap="wrap">
-      {stringValue ? (
-        <Fragment>
-          <StringValue>"{stringValue}"</StringValue>
-          {value !== undefined && (
+    <Flex direction="column" gap="2xs">
+      <Flex gap="sm" align="center" wrap="wrap">
+        {isObjectDeref && (
+          <DerefToggle
+            onClick={() => setDerefExpanded(prev => !prev)}
+            aria-label={derefExpanded ? 'Collapse' : 'Expand'}
+          >
+            <IconChevron size="xs" direction={derefExpanded ? 'down' : 'right'} />
+          </DerefToggle>
+        )}
+        {stringValue ? (
+          <Fragment>
+            <StringValue>"{stringValue}"</StringValue>
+            {value !== undefined && (
+              <Text variant="muted" size="sm" monospace>
+                ({String(value)})
+              </Text>
+            )}
+          </Fragment>
+        ) : typeof value === 'number' ? (
+          <Text size="sm" monospace>
+            {value}
+          </Text>
+        ) : typeof value === 'string' && value.startsWith('0x') ? (
+          <PointerValue>{value}</PointerValue>
+        ) : value === undefined ? null : (
+          <Text size="sm" monospace>
+            {JSON.stringify(value)}
+          </Text>
+        )}
+        {isScalarDeref && (
+          <Fragment>
             <Text variant="muted" size="sm" monospace>
-              ({String(value)})
+              →
             </Text>
-          )}
-        </Fragment>
-      ) : typeof value === 'number' ? (
-        <Text size="sm" monospace>
-          {value}
-        </Text>
-      ) : typeof value === 'string' && value.startsWith('0x') ? (
-        <PointerValue>{value}</PointerValue>
-      ) : value === undefined ? null : (
-        <Text size="sm" monospace>
-          {JSON.stringify(value)}
-        </Text>
+            <Text size="sm" monospace>
+              {typeof deref === 'string' ? deref : JSON.stringify(deref)}
+            </Text>
+          </Fragment>
+        )}
+        {annotations?.map((ann, i) => {
+          const badge = getAnnotationBadge(ann);
+          return (
+            <Tooltip key={i} title={ann.description ?? ann.pattern ?? ann.type}>
+              <AnnotationBadge variant={badge.variant}>{badge.label}</AnnotationBadge>
+            </Tooltip>
+          );
+        })}
+      </Flex>
+      {isObjectDeref && derefExpanded && (
+        <DerefFields deref={deref as Record<string, unknown>} />
       )}
-      {annotations?.map((ann, i) => {
-        const badge = getAnnotationBadge(ann);
-        return (
-          <Tooltip key={i} title={ann.description ?? ann.pattern ?? ann.type}>
-            <AnnotationBadge variant={badge.variant}>{badge.label}</AnnotationBadge>
-          </Tooltip>
-        );
-      })}
     </Flex>
   );
 }
@@ -455,6 +534,20 @@ const PointerValue = styled('span')`
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.colors.blue400};
+`;
+
+const DerefToggle = styled('button')`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: ${p => p.theme.tokens.content.muted};
+  &:hover {
+    color: ${p => p.theme.tokens.content.primary};
+  }
 `;
 
 const AnnotationBadge = styled('span')<{variant: BadgeVariant}>`
