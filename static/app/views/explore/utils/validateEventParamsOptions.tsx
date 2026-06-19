@@ -42,7 +42,7 @@ const QueryValidationSchema = z.object({
   valid: z.boolean(),
 });
 
-export const EventValidationSchema = z.object({
+const EventValidationSchema = z.object({
   dataset: z.array(NamedValidationSchema),
   environment: z.array(ValidationSchema),
   field: z.array(AttributeValidationSchema),
