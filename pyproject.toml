@@ -3,6 +3,7 @@ name = "sentry"
 # see setup.cfg for versioning; we only have this here to make uv happy
 # which we intend to use for dependency management, not packaging
 version = "0.0.0"
+requires-python = ">=3.13"
 dependencies = [
   "asyncpg>=0.31.0",
   "backports-zstd>=1.3.0",
