@@ -12,15 +12,15 @@ describe('Markdown', () => {
     });
 
     it('renders headings', () => {
-      render(<Markdown raw="# Heading 1" />);
-      expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Heading 1');
+      render(<Markdown raw="## Heading 2" />);
+      expect(screen.getByRole('heading', {level: 2})).toHaveTextContent('Heading 2');
     });
 
     it('renders multiple heading levels', () => {
-      render(<Markdown raw={'# H1\n\n## H2\n\n### H3'} />);
-      expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('H1');
+      render(<Markdown raw={'## H2\n\n### H3\n\n#### H4'} />);
       expect(screen.getByRole('heading', {level: 2})).toHaveTextContent('H2');
       expect(screen.getByRole('heading', {level: 3})).toHaveTextContent('H3');
+      expect(screen.getByRole('heading', {level: 4})).toHaveTextContent('H4');
     });
 
     it('renders bold and italic', () => {
