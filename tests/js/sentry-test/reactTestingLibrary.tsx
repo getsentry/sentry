@@ -122,7 +122,8 @@ interface InitialRouterOptions {
 function TopBarTestSlotOutlets() {
   return createPortal(
     <Fragment>
-      <TopBar.Slot.Outlet name="title">{p => <div {...p} />}</TopBar.Slot.Outlet>
+      {/* Mirror the real TopBar, which renders the title slot as an <h1>. */}
+      <TopBar.Slot.Outlet name="title">{p => <h1 {...p} />}</TopBar.Slot.Outlet>
       <TopBar.Slot.Outlet name="search">{p => <div {...p} />}</TopBar.Slot.Outlet>
       <TopBar.Slot.Outlet name="actions">{p => <div {...p} />}</TopBar.Slot.Outlet>
       <TopBar.Slot.Outlet name="feedback">{p => <div {...p} />}</TopBar.Slot.Outlet>
