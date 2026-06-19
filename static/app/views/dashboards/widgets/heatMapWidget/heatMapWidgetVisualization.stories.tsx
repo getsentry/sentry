@@ -111,8 +111,8 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
       return (
         <Fragment>
           <p>
-            <Storybook.JSXNode name="HeatMapWidgetVisualization" /> supports two optional
-            tooltip action props. Click a cell to open the tooltip and see the links.
+            <Storybook.JSXNode name="HeatMapWidgetVisualization" /> can render two
+            optional tooltip actions. Click a cell to open the tooltip and see the links.
           </p>
           <p>
             With no extra props, the tooltip shows the Y-axis bucket range and the Z-axis

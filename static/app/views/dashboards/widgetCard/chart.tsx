@@ -22,7 +22,6 @@ import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
-  explodeField,
   isAggregateField,
   parseFunction,
   prettifyParsedFunction,
@@ -44,8 +43,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {getSelectedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedTraceMetric';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -470,19 +469,8 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
   const {heatmapResults, loading, widget, dashboardFilters} = props;
 
-  // Resolve the metric from the selected "Visualize" aggregate; the heat map
-  // links each cell's tooltip to it in Explore.
-  const query = widget.queries[0];
-  const traceMetric = React.useMemo(() => {
-    const selectedIndex = getSelectedAggregateIndex(
-      query?.selectedAggregate,
-      query?.aggregates.length ?? 0
-    );
-    const aggregate = query?.aggregates?.[selectedIndex];
-    return aggregate
-      ? extractTraceMetricFromColumn(explodeField({field: aggregate}))
-      : undefined;
-  }, [query]);
+  // The heat map links each cell's tooltip to its metric in Explore.
+  const traceMetric = getSelectedTraceMetric(widget);
 
   if (loading || !heatmapResults) {
     return <LoadingPlaceholder />;

@@ -273,13 +273,10 @@ function HeatmapMeasuredArea({
   selection: PageFilters;
 }) {
   const chartAreaRef = useRef<HTMLDivElement>(null);
-  const {width, height} = useDimensions({elementRef: chartAreaRef});
+  const dimensions = useDimensions({elementRef: chartAreaRef});
   // `leading: true` keeps the first measurement fast; mid-resize churn collapses
   // into a single trailing update once the drag settles.
-  const debouncedWidth = useDebouncedValue(width, HEATMAP_RESIZE_DEBOUNCE_MS, {
-    leading: true,
-  });
-  const debouncedHeight = useDebouncedValue(height, HEATMAP_RESIZE_DEBOUNCE_MS, {
+  const debouncedDimensions = useDebouncedValue(dimensions, HEATMAP_RESIZE_DEBOUNCE_MS, {
     leading: true,
   });
 
@@ -287,7 +284,7 @@ function HeatmapMeasuredArea({
   // disabled (no interval/yBuckets) until layout settles.
   const bucketDimensions = calculateHeatMapBucketDimensions(
     selection,
-    {width: debouncedWidth, height: debouncedHeight},
+    debouncedDimensions,
     getIntervalOptionsForPageFilter(selection.datetime).map(option => option.value)
   );
 

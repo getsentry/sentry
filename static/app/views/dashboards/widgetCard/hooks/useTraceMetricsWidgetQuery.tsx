@@ -13,7 +13,6 @@ import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {
-  explodeField,
   getEquationAliasIndex,
   isEquation,
   isEquationAlias,
@@ -36,8 +35,7 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
-import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {getSelectedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedTraceMetric';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
@@ -459,45 +457,41 @@ export function useTraceMetricsHeatmapQuery(
   );
 
   const query = filteredWidget.queries[0];
-  const selectedIndex = getSelectedAggregateIndex(
-    query?.selectedAggregate,
-    query?.aggregates.length ?? 0
-  );
-  const aggregate = query?.aggregates?.[selectedIndex];
-  const traceMetric = aggregate
-    ? extractTraceMetricFromColumn(explodeField({field: aggregate}))
-    : undefined;
+  const traceMetric = getSelectedTraceMetric(widget);
 
   // Don't fetch until the widget's aggregate resolves to a real metric —
   // otherwise we'd request with an empty `metric.name` filter.
   const heatmapEnabled =
     enabled && yBuckets > 0 && Boolean(widgetInterval) && Boolean(traceMetric?.name);
 
-  const {data, error} = useQuery(
-    metricHeatmapApiOptions({
-      traceMetric: traceMetric ?? {name: '', type: '', unit: NONE_UNIT},
-      enabled: heatmapEnabled,
-      organization,
-      selection: pageFilters,
-      query: query?.conditions ?? '',
-      interval: widgetInterval,
-      yBuckets,
-    })
-  );
-
-  // `genericWidgetQueries` guards its `onDataFetched` effect by reference
-  // (`rawData === prev`). A fresh array each render would defeat that guard and
-  // re-fire `onDataFetched` — plus the parent state update it triggers — every
-  // render, i.e. an update loop. react-query's `data` is referentially stable,
-  // so memoizing on it keeps `rawData` stable too.
-  const rawData = useMemo(() => (data ? [data] : EMPTY_ARRAY), [data]);
+  const heatmapApiOptions = metricHeatmapApiOptions({
+    traceMetric: traceMetric ?? {name: '', type: '', unit: NONE_UNIT},
+    enabled: heatmapEnabled,
+    organization,
+    selection: pageFilters,
+    query: query?.conditions ?? '',
+    interval: widgetInterval,
+    yBuckets,
+  });
 
   // The heatmap API returns the Y axis as the generic `value` field with no
-  // unit, so patch it with the selected metric's unit (mirroring Explore).
-  // Memoized so the result stays referentially stable across renders.
-  const heatmapResults = useMemo(
-    () => (data ? mergeMetricUnit(data, traceMetric?.unit ?? undefined) : undefined),
-    [data, traceMetric?.unit]
+  // unit, so patch it with the selected metric's unit in `select` (mirroring
+  // Explore). react-query keeps the selected result referentially stable.
+  const {data: heatmapResults, error} = useQuery({
+    ...heatmapApiOptions,
+    select: rawHeatmapData =>
+      mergeMetricUnit(
+        heatmapApiOptions.select!(rawHeatmapData),
+        traceMetric?.unit ?? undefined
+      ),
+  });
+
+  // `genericWidgetQueries` guards its `onDataFetched` effect by reference
+  // (`rawData === prev`); wrapping the single series in a fresh array each
+  // render would defeat that guard and cause an update loop, so memoize it.
+  const rawData = useMemo(
+    () => (heatmapResults ? [heatmapResults] : EMPTY_ARRAY),
+    [heatmapResults]
   );
 
   if (error) {
@@ -507,7 +501,7 @@ export function useTraceMetricsHeatmapQuery(
   // No data yet: the request is in flight, or the chart hasn't been measured
   // (so the query is still disabled). Report loading like the series/table
   // hooks do, so the chart container needs no heat-map-specific loading branch.
-  if (!data) {
+  if (!heatmapResults) {
     return {loading: true, rawData: EMPTY_ARRAY};
   }
 
