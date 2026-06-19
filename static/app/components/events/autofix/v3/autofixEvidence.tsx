@@ -320,8 +320,16 @@ function getScmIcon(provider: string | undefined): ReactNode {
 function getGitSearchEvidenceProps({
   toolLink,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
-  const {repo_name, commit_url, sha, commits_url, start_date, end_date, file_path, provider} =
-    toolLink?.params ?? {};
+  const {
+    repo_name,
+    commit_url,
+    sha,
+    commits_url,
+    start_date,
+    end_date,
+    file_path,
+    provider,
+  } = toolLink?.params ?? {};
 
   if (typeof commit_url === 'string' && typeof sha === 'string') {
     return {
