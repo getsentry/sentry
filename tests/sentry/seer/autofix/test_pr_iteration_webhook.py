@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
-from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration_webhook import (
     handle_issue_comment_for_autofix_iteration,
@@ -149,14 +148,16 @@ class TriggerPrIterationFromCommentTest(TestCase):
         )
 
     @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access", return_value=True)
-    @patch(f"{WEBHOOK_PATH}.trigger_autofix_agent")
+    @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
+    @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
     @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
     def test_triggers_agent_when_authorized(
         self,
         mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
-        mock_trigger: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_consume: MagicMock,
         mock_has_access: MagicMock,
     ) -> None:
         mock_integration = self._mock_integration()
@@ -170,23 +171,33 @@ class TriggerPrIterationFromCommentTest(TestCase):
             repo_id=self.repo.id,
             github_username="octocat",
         )
-        mock_trigger.assert_called_once()
-        args, kwargs = mock_trigger.call_args
-        assert args[0].id == self.group.id
-        assert args[1] == AutofixStep.PR_ITERATION
-        assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
+        mock_enqueue.assert_called_once()
+        _, kwargs = mock_enqueue.call_args
         assert kwargs["run_id"] == 67890
+        assert kwargs["organization_id"] == self.organization.id
+        assert kwargs["group_id"] == self.group.id
+        assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
+        assert kwargs["feedback"].message == "fix it"
+        mock_consume.assert_called_once_with(
+            kwargs={
+                "run_id": 67890,
+                "organization_id": self.organization.id,
+                "group_id": self.group.id,
+            }
+        )
         mock_integration.get_installation.return_value.get_client.return_value.create_comment_reaction.assert_called_once()
 
     @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access", return_value=False)
-    @patch(f"{WEBHOOK_PATH}.trigger_autofix_agent")
+    @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
+    @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
     @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
     def test_skips_when_no_write_access(
         self,
         mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
-        mock_trigger: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_consume: MagicMock,
         mock_has_access: MagicMock,
     ) -> None:
         mock_get_integration.return_value = self._mock_integration()
@@ -195,17 +206,20 @@ class TriggerPrIterationFromCommentTest(TestCase):
         self._call()
 
         mock_has_access.assert_called_once()
-        mock_trigger.assert_not_called()
+        mock_enqueue.assert_not_called()
+        mock_consume.assert_not_called()
 
     @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access")
-    @patch(f"{WEBHOOK_PATH}.trigger_autofix_agent")
+    @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
+    @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
     @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
     def test_skips_when_no_agent_state(
         self,
         mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
-        mock_trigger: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_consume: MagicMock,
         mock_has_access: MagicMock,
     ) -> None:
         mock_get_integration.return_value = self._mock_integration()
@@ -214,24 +228,30 @@ class TriggerPrIterationFromCommentTest(TestCase):
         self._call()
 
         mock_has_access.assert_not_called()
-        mock_trigger.assert_not_called()
+        mock_enqueue.assert_not_called()
+        mock_consume.assert_not_called()
 
     @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access", return_value=True)
-    @patch(f"{WEBHOOK_PATH}.trigger_autofix_agent", side_effect=NoSeerQuotaException())
+    @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
+    @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
     @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
-    def test_swallows_no_quota_exception(
+    def test_swallows_comment_reaction_exception(
         self,
         mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
-        mock_trigger: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_consume: MagicMock,
         mock_has_access: MagicMock,
     ) -> None:
         mock_integration = self._mock_integration()
+        mock_client = mock_integration.get_installation.return_value.get_client.return_value
+        mock_client.create_comment_reaction.side_effect = Exception("boom")
         mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = self._agent_state()
 
+        # Should not raise.
         self._call()
 
-        mock_trigger.assert_called_once()
-        mock_integration.get_installation.return_value.get_client.return_value.create_comment_reaction.assert_not_called()
+        mock_enqueue.assert_called_once()
+        mock_client.create_comment_reaction.assert_called_once()

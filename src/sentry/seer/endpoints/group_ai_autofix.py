@@ -358,7 +358,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
             enqueue_autofix_feedback(
                 run_id=resolved_run_id,
-                organization_id=group.organization_id,
+                organization_id=group.organization.id,
                 group_id=group.id,
                 feedback=feedback,
                 referrer=referrer,
@@ -367,7 +367,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             consume_queued_autofix_feedback.apply_async(
                 kwargs={
                     "run_id": resolved_run_id,
-                    "organization_id": group.organization_id,
+                    "organization_id": group.organization.id,
                     "group_id": group.id,
                 }
             )
@@ -407,7 +407,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 sentry_run_id = str(run.uuid) if run else None
             else:
                 sentry_run_id = resolved_sentry_run_id
-            kickoff_body: AutofixPostResponse = {
+            kickoff_body = {
                 "run_id": run_id,
                 "sentry_run_id": sentry_run_id,
             }
