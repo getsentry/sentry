@@ -1,6 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -43,6 +44,7 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
   const userQuery = useQueryParamsQuery();
   const setMetricQuery = useSetQueryParamsQuery();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
 
   const {data: heatMapSeries, isPending, error} = heatmapResult;
 
@@ -76,11 +78,28 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
               plottables={[new HeatMap(heatMapSeries)]}
               scale={HEATMAP_Z_AXIS_SCALE}
               tooltipActionHandlers={{[ADD_TO_FILTER_ACTION]: updateMetricQuery}}
-              renderTooltipActions={({cellQuery, selection}) => {
+              renderTooltipActions={({
+                valueMin,
+                valueMax,
+                timestampStart,
+                timestampEnd,
+              }) => {
+                const valueQuery =
+                  valueMin === valueMax
+                    ? `value:<=${valueMin}`
+                    : `value:>=${valueMin} value:<${valueMax}`;
                 const tracesUrl = getExploreUrl({
                   organization,
-                  selection,
-                  crossEvents: [{type: 'metrics', metric, query: cellQuery}],
+                  selection: {
+                    ...selection,
+                    datetime: {
+                      ...selection.datetime,
+                      start: new Date(timestampStart),
+                      end: new Date(timestampEnd),
+                      period: null,
+                    },
+                  },
+                  crossEvents: [{type: 'metrics', metric, query: valueQuery}],
                 });
                 return (
                   <Fragment>
@@ -95,7 +114,7 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
                       <span className="tooltip-label tooltip-label-centered">
                         <a
                           data-tooltip-action={ADD_TO_FILTER_ACTION}
-                          data-tooltip-action-value={cellQuery}
+                          data-tooltip-action-value={valueQuery}
                         >
                           {t('Add to filter')}
                         </a>
