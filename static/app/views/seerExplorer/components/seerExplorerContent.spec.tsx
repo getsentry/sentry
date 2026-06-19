@@ -948,7 +948,12 @@ describe('SeerExplorerContent', () => {
         {organization}
       );
 
-      await screen.findByTestId('seer-explorer-input');
+      const input = await screen.findByTestId('seer-explorer-input');
+
+      // The content auto-focuses the textarea ~100ms after opening. Wait for that
+      // to settle first — otherwise it steals focus from (and closes) the dock
+      // menu mid-interaction, dropping the `Windowed` item.
+      await waitFor(() => expect(input).toHaveFocus());
 
       await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
       await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Windowed'}));
