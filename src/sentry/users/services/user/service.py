@@ -320,8 +320,8 @@ class UserService(RpcService):
         """
         Set or clear a user's avatar from base64-encoded image data.
 
-        This is used by SCIM provisioning to sync a user's profile picture from
-        their identity provider's ``photos`` attribute.
+        This is used by the SAML SSO login flow to sync a user's profile picture
+        from their identity provider's mapped ``avatar`` attribute.
 
         :param user_id: The user whose avatar should be updated.
         :param avatar_b64: Base64-encoded image data to store as an uploaded

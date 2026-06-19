@@ -45,9 +45,7 @@ class DatabaseBackedUserService(TestCase):
         )
 
         # An empty payload resets the user to the default letter avatar.
-        user_service.update_user_avatar(
-            user_id=user.id, avatar_b64=None, filename=f"{user.id}.png"
-        )
+        user_service.update_user_avatar(user_id=user.id, avatar_b64=None, filename=f"{user.id}.png")
 
         avatar = UserAvatar.objects.get(user_id=user.id)
         assert avatar.get_avatar_type_display() == "letter_avatar"

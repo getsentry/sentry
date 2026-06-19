@@ -33,11 +33,11 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.users.models.user_avatar import UserAvatar
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.user_avatar import UserAvatar
 from sentry.utils import json
 from sentry.utils.redis import clusters
 
