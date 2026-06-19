@@ -453,9 +453,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const xAxis = showXAxis
     ? {
         animation: false,
-        type: 'value',
-        min: 'dataMin',
-        max: 'dataMax',
+        type: 'value' as const,
+        min: 'dataMin' as const,
+        max: 'dataMax' as const,
         axisLabel: {
           padding: [0, 10, 0, 10],
           formatter: (value: number) => {
