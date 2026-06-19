@@ -55,10 +55,10 @@ interface HeatMapWidgetVisualizationProps {
    * Renders extra action rows in a cell's tooltip (e.g. an Explore link). The
    * visualization stays agnostic about what those actions are; the caller builds
    * them from the cell context. Because ECharts renders the tooltip to an HTML
-   * string (no live React handlers), use `data-traces-link="<url>"` for
-   * navigations and `data-local-query="<query>"` for "add to filter" actions —
-   * the visualization routes clicks on those (the latter via
-   * `updateLocalFilterQuery`).
+   * string (no live React handlers), the visualization routes clicks for you:
+   * use `data-traces-link="<url>"` for navigations, and
+   * `data-tooltip-action="<id>"` with `data-tooltip-action-value="<value>"` for
+   * actions — the matching `tooltipActionHandlers[id]` is called with the value.
    */
   renderTooltipActions?: (context: HeatMapTooltipContext) => ReactNode;
   /**
@@ -66,14 +66,15 @@ interface HeatMapWidgetVisualizationProps {
    */
   scale?: 'linear' | 'log';
   /**
-   * Handles clicks on `data-local-query` tooltip actions, updating the local
-   * filter to include the given Y-axis query.
+   * Handlers for caller-rendered tooltip actions, keyed by the button's
+   * `data-tooltip-action` id. Clicking such a button calls the matching handler
+   * with its `data-tooltip-action-value`.
    */
-  updateLocalFilterQuery?: (query: string) => void;
+  tooltipActionHandlers?: Record<string, (value: string) => void>;
 }
 
 export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProps) {
-  const {plottables, updateLocalFilterQuery, renderTooltipActions} = props;
+  const {plottables, tooltipActionHandlers, renderTooltipActions} = props;
   const theme = useTheme();
   const renderToString = useRenderToString();
   const navigate = useNavigate();
@@ -93,18 +94,17 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
       if (!chartRef.current?.ele?.contains(e.target as Node)) {
         return;
       }
-      const localQueryUpdateTarget = (e.target as Element).closest('[data-local-query]');
+      const actionTarget = (e.target as Element).closest('[data-tooltip-action]');
       const tracesLinkTarget = (e.target as Element).closest('[data-traces-link]');
-      if (!localQueryUpdateTarget && !tracesLinkTarget) {
+      if (!actionTarget && !tracesLinkTarget) {
         return;
       }
       e.preventDefault();
       const openInNewTab = e.metaKey || e.ctrlKey;
-      if (localQueryUpdateTarget) {
-        const localQuery = localQueryUpdateTarget.getAttribute('data-local-query');
-        if (localQuery && updateLocalFilterQuery) {
-          updateLocalFilterQuery(localQuery);
-        }
+      if (actionTarget) {
+        const actionId = actionTarget.getAttribute('data-tooltip-action');
+        const handler = actionId ? tooltipActionHandlers?.[actionId] : undefined;
+        handler?.(actionTarget.getAttribute('data-tooltip-action-value') ?? '');
       }
       if (tracesLinkTarget) {
         const tracesUrl = tracesLinkTarget.getAttribute('data-traces-link');
@@ -117,7 +117,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
         }
       }
     },
-    [navigate, updateLocalFilterQuery]
+    [navigate, tooltipActionHandlers]
   );
 
   useEffect(() => {

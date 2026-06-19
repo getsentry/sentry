@@ -122,21 +122,24 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
           </p>
           <p>
             Because ECharts renders the tooltip to an HTML string, React click handlers
-            don't survive. Use <code>data-traces-link</code> for navigations, and{' '}
-            <code>data-local-query</code> for "add to filter" actions (routed through{' '}
-            <code>updateLocalFilterQuery</code>).
+            don't survive — the visualization routes clicks for you. Use{' '}
+            <code>data-traces-link</code> for navigations, and{' '}
+            <code>data-tooltip-action</code> + <code>data-tooltip-action-value</code> for
+            actions (dispatched to the matching <code>tooltipActionHandlers</code> entry).
           </p>
           <p>
             <CodeBlock language="jsx">
               {`<HeatMapWidgetVisualization
   plottables={[new HeatMap(heatMapData)]}
-  updateLocalFilterQuery={query => setLocalFilterQuery(query)}
+  tooltipActionHandlers={{'add-to-filter': query => setLocalFilterQuery(query)}}
   renderTooltipActions={({cellQuery, selection}) => (
     <Fragment>
       <a data-traces-link={getExploreUrl({organization, selection, crossEvents: [...]})}>
         View connected spans
       </a>
-      <a data-local-query={cellQuery}>Add to filter</a>
+      <a data-tooltip-action="add-to-filter" data-tooltip-action-value={cellQuery}>
+        Add to filter
+      </a>
     </Fragment>
   )}
 />`}
@@ -146,11 +149,18 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
             <p>{`Local Filter Query: ${localFilterQuery}`}</p>
             <HeatMapWidgetVisualization
               plottables={[new HeatMap(sampleLatencyHeatMap)]}
-              updateLocalFilterQuery={query => setLocalFilterQuery(query)}
+              tooltipActionHandlers={{
+                'add-to-filter': query => setLocalFilterQuery(query),
+              }}
               renderTooltipActions={({cellQuery}) => (
                 <div>
                   <span className="tooltip-label tooltip-label-centered">
-                    <a data-local-query={cellQuery}>Add to filter</a>
+                    <a
+                      data-tooltip-action="add-to-filter"
+                      data-tooltip-action-value={cellQuery}
+                    >
+                      Add to filter
+                    </a>
                   </span>
                 </div>
               )}
