@@ -1,4 +1,3 @@
-import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -99,17 +98,19 @@ export function DetailsHeader({
             },
           ]}
         />
-        <RuleTitle data-test-id="incident-rule-title" loading={!isRuleReady}>
-          {project && (
-            <IdBadge
-              project={project}
-              avatarSize={28}
-              hideName
-              avatarProps={{hasTooltip: true, tooltip: project.slug}}
-            />
-          )}
-          {ruleTitle}
-        </RuleTitle>
+        <Layout.Title>
+          <RuleTitle data-test-id="incident-rule-title" loading={!isRuleReady}>
+            {project && (
+              <IdBadge
+                project={project}
+                avatarSize={28}
+                hideName
+                avatarProps={{hasTooltip: true, tooltip: project.slug}}
+              />
+            )}
+            {ruleTitle}
+          </RuleTitle>
+        </Layout.Title>
       </Layout.HeaderContent>
       <TopBar.Slot name="actions">
         {rule && project && (
@@ -150,8 +151,12 @@ export function DetailsHeader({
   );
 }
 
-const RuleTitle = styled(Layout.Title, {
-  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',
+const RuleTitle = styled('div', {
+  shouldForwardProp: p => p !== 'loading',
 })<{loading: boolean}>`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  min-width: 0;
   ${p => p.loading && 'opacity: 0'};
 `;
