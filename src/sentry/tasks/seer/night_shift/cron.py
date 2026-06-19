@@ -537,12 +537,11 @@ def _dispatch_to_seer_feature(
         SeerNightShiftRunShard.objects.create(run=run, seer_run=created)
 
     shards = list(chunked(scored, options.get("seer.night_shift.shard_size")))
-    first_seer_run: SeerRun | None = None
     dispatched = 0
     for shard_index, chunk in enumerate(shards):
         payload = _build_triage_payload(chunk, resolved_options)
         try:
-            seer_run = client.start_feature_run(
+            client.start_feature_run(
                 feature_id="night_shift",
                 payload=payload.dict(),
                 flush=False,
@@ -554,8 +553,6 @@ def _dispatch_to_seer_feature(
                 extra={**log_extra, "shard_index": shard_index, "num_shards": len(shards)},
             )
             continue
-        if first_seer_run is None:
-            first_seer_run = seer_run
         dispatched += 1
 
     if dispatched == 0:
@@ -563,10 +560,6 @@ def _dispatch_to_seer_feature(
         _record_run_error(run, "Night shift dispatch failed")
         logger.error("night_shift.dispatch_failed", extra={**log_extra, "num_shards": len(shards)})
         return
-
-    # Point the legacy scalar FK at the first dispatched shard for the transition.
-    if first_seer_run is not None:
-        run.update(seer_run=first_seer_run)
 
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
     logger.info(

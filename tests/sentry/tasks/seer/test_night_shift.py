@@ -569,11 +569,11 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         mock_autofix.assert_not_called()
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.seer_run is not None
-        assert run.seer_run.type == SeerRunType.FEATURE_RUN
+        shard = run.shards.get()
+        assert shard.seer_run.type == SeerRunType.FEATURE_RUN
 
         seer_run, body = _dispatched_feature_body(org)
-        assert seer_run.id == run.seer_run_id
+        assert seer_run.id == shard.seer_run_id
         assert body["feature_id"] == "night_shift"
         assert [c["group_id"] for c in body["payload"]["candidates"]] == [group.id]
         assert body["payload"]["candidates"][0]["priority"] == "high"
@@ -584,8 +584,8 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         assert outbox.payload is not None
         assert outbox.payload["viewer_context"] == {"organization_id": org.id}
 
-        assert run.seer_run.mirror_status == SeerRunMirrorStatus.PENDING
-        assert run.seer_run.seer_run_state_id is None
+        assert shard.seer_run.mirror_status == SeerRunMirrorStatus.PENDING
+        assert shard.seer_run.seer_run_state_id is None
         assert run.extras.get("error_message") is None
         # Verdicts and autofix are Seer's responsibility now; no result rows here.
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
@@ -627,8 +627,6 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
 
         assert sorted(shard_sizes) == [1, 2]
         assert sorted(dispatched_group_ids) == sorted(g.id for g in groups)
-
-        assert run.seer_run_id == shards[0].seer_run_id
         assert run.extras.get("error_message") is None
 
     def test_partial_shard_failure_still_dispatches(self) -> None:
@@ -660,7 +658,6 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         assert run.extras.get("error_message") is None
         assert SeerNightShiftRunShard.objects.filter(run=run).count() == 1
         assert SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 1
-        assert run.seer_run_id is not None
 
     def test_no_candidates_skips_dispatch(self) -> None:
         org = self.create_organization()
