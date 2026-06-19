@@ -235,21 +235,16 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     onKeyDown,
   });
 
-  const tokenHasError = 'invalid' in token && defined(token.invalid);
+  const hasTokenInvalid = 'invalid' in token && defined(token.invalid);
   const tokenHasWarning = 'warning' in token && defined(token.warning);
   const isInvalidFilterKey = invalidFilterKeys.includes(getKeyName(token.key));
+  const tokenHasError = hasTokenInvalid || isInvalidFilterKey;
 
   return (
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
-      state={
-        tokenHasWarning || isInvalidFilterKey
-          ? 'warning'
-          : tokenHasError
-            ? 'invalid'
-            : 'valid'
-      }
+      state={tokenHasError ? 'invalid' : tokenHasWarning ? 'warning' : 'valid'}
       ref={ref}
       {...modifiedRowProps}
     >
@@ -261,7 +256,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
         warning={
-          isInvalidFilterKey
+          isInvalidFilterKey && !hasTokenInvalid
             ? t('Invalid key. "%s" is not a supported search key.', getKeyName(token.key))
             : undefined
         }
