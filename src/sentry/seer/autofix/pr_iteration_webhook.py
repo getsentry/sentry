@@ -22,20 +22,16 @@ from taskbroker_client.retry import Retry
 from sentry import features
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.services.integration import RpcIntegration, integration_service
-from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
-from sentry.seer.autofix.autofix_agent import (
-    AutofixStep,
-    Feedback,
-    NoSeerQuotaException,
-    trigger_autofix_agent,
-)
+from sentry.seer.autofix.autofix_agent import Feedback
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.feedback_queue import enqueue_autofix_feedback
 from sentry.seer.code_review.webhooks.issue_comment import SENTRY_REVIEW_COMMAND
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.seer.autofix import consume_queued_autofix_feedback
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
 
@@ -261,28 +257,25 @@ def trigger_pr_iteration_from_comment(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
-    group = Group.objects.get(id=group_id, project__organization_id=organization_id)
-
     feedback_obj = Feedback(
         message=feedback,
         source={"type": "github-pr-comment", "comment": comment},
     )
 
-    try:
-        trigger_autofix_agent(
-            group,
-            AutofixStep.PR_ITERATION,
-            referrer=AutofixReferrer.GITHUB_PR_COMMENT,
-            run_id=agent_state.run_id,
-            user_context=feedback,
-            feedback=feedback_obj,
-        )
-    except NoSeerQuotaException:
-        logger.info(
-            "autofix.pr_iteration.comment_trigger.no_quota",
-            extra={"organization_id": organization_id, "run_id": agent_state.run_id},
-        )
-        return None
+    enqueue_autofix_feedback(
+        run_id=agent_state.run_id,
+        organization_id=organization_id,
+        group_id=group_id,
+        feedback=feedback_obj,
+        referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+    )
+    consume_queued_autofix_feedback.apply_async(
+        kwargs={
+            "run_id": agent_state.run_id,
+            "organization_id": organization_id,
+            "group_id": group_id,
+        }
+    )
 
     metrics.incr("autofix.pr_iteration.comment_trigger.success")
 

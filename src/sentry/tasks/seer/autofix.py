@@ -10,12 +10,25 @@ from sentry.analytics.events.autofix_automation_events import AiAutofixAutomatio
 from sentry.constants import (
     ObjectStatus,
 )
+from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.autofix.autofix_agent import (
+    AutofixStep,
+    PrIterationNoPullRequestException,
+    PrIterationNotEnabledException,
+    get_autofix_run_state,
+    trigger_autofix_agent,
+)
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
+    AutofixReferrer,
     SeerAutomationSource,
+)
+from sentry.seer.autofix.feedback_queue import (
+    QueuedAutofixFeedback,
+    pop_queued_autofix_feedback,
 )
 from sentry.seer.autofix.utils import (
     SEAT_BASED_STOPPING_POINTS,
@@ -27,10 +40,12 @@ from sentry.seer.autofix.utils import (
     get_seer_seat_based_tier_cache_key,
     update_seer_project_settings,
 )
+from sentry.seer.models import SeerPermissionError
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
+from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks, seer_tasks
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +57,75 @@ def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
     except Group.DoesNotExist:
         logger.warning("%s.group_not_found", task_name, extra={"group_id": group_id})
         return None
+
+
+def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferrer:
+    referrers = {item.referrer for item in items}
+    if len(referrers) == 1:
+        return referrers.pop()
+    return AutofixReferrer.UNKNOWN
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.consume_queued_feedback",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(on=(UnableToAcquireLock,), times=3, delay=5),
+)
+def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id: int) -> None:
+    lock = locks.get(
+        f"autofix:feedback:lock:{run_id}",
+        duration=60,
+        name="autofix_feedback",
+    )
+
+    with lock.acquire():
+        group = Group.objects.filter(
+            id=group_id,
+            project__organization_id=organization_id,
+        ).first()
+        if group is None:
+            logger.warning(
+                "autofix.feedback_task.group_not_found",
+                extra={"run_id": run_id, "group_id": group_id},
+            )
+            return
+
+        try:
+            state = get_autofix_run_state(group, run_id)
+        except SeerPermissionError:
+            logger.warning(
+                "autofix.feedback_task.run_state_not_found",
+                extra={"run_id": run_id, "group_id": group_id},
+            )
+            return
+
+        if state.status == "processing":
+            return
+
+        queued_items = pop_queued_autofix_feedback(run_id)
+        if not queued_items:
+            return
+
+        feedback_items = [item.feedback for item in queued_items]
+        try:
+            trigger_autofix_agent(
+                group=group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=_get_feedback_referrer(queued_items),
+                run_id=run_id,
+                user_context="\n\n".join(item.message for item in feedback_items),
+                feedback=feedback_items,
+            )
+        except (
+            PrIterationNoPullRequestException,
+            PrIterationNotEnabledException,
+            SeerPermissionError,
+        ) as error:
+            logger.info(
+                "autofix.feedback_task.skipped",
+                extra={"run_id": run_id, "group_id": group.id, "error": str(error)},
+            )
 
 
 @instrumented_task(

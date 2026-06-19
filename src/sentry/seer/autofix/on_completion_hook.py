@@ -47,6 +47,7 @@ from sentry.seer.models import (
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
+from sentry.tasks.seer.autofix import consume_queued_autofix_feedback
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -420,6 +421,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # the hook re-fire after the push doesn't loop.
         if current_step == AutofixStep.PR_ITERATION:
             cls._push_changes(group, run_id, state)
+            # Feedback may have been enqueued while this iteration was running.
+            # The consume task is a no-op while the run is still processing and
+            # only triggers a new iteration once the run settles, so it's safe
+            # to always kick it after handling an iteration completion.
+            cls._consume_queued_feedback(organization, run_id, group)
             return
 
         if stopping_point is None or reached_stopping_point:
@@ -481,6 +487,19 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             step=next_step,
             referrer=referrer,
             run_id=run_id,
+        )
+
+    @classmethod
+    def _consume_queued_feedback(
+        cls, organization: Organization, run_id: int, group: Group
+    ) -> None:
+        """Drain any feedback enqueued while the iteration was running."""
+        consume_queued_autofix_feedback.apply_async(
+            kwargs={
+                "run_id": run_id,
+                "organization_id": organization.id,
+                "group_id": group.id,
+            }
         )
 
     @classmethod

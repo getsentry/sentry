@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 
@@ -353,7 +353,7 @@ def trigger_autofix_agent(
     reasoning_effort: Literal["low", "medium", "high"] | None = _UNSET,
     user_context: str | None = None,
     insert_index: int | None = None,
-    feedback: Feedback | None = None,
+    feedback: Sequence[Feedback] | None = None,
 ) -> int:
     """
     Start or continue an agent-based autofix run.
@@ -420,16 +420,22 @@ def trigger_autofix_agent(
         "has_user_context": "no" if user_context is None else "yes",
         "is_retry": "no" if insert_index is None else "yes",
     }
-    if step == AutofixStep.PR_ITERATION and feedback is not None:
-        # Stored as a JSON object so the UI can attribute the feedback to its
-        # source and show when it was submitted.
+    feedback_items = list(feedback or [])
+    if step == AutofixStep.PR_ITERATION and feedback_items:
+        timestamp = timezone.now().isoformat()
+
+        # Stored as JSON so the UI can attribute the feedback to its source.
         prompt_metadata["feedback"] = json.dumps(
-            {
-                "text": feedback.message,
-                "source": feedback.source,
-                "timestamp": timezone.now().isoformat(),
-            }
+            [
+                {
+                    "text": feedback_item.message,
+                    "source": feedback_item.source,
+                    "timestamp": timestamp,
+                }
+                for feedback_item in feedback_items
+            ]
         )
+
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
     artifact_key = step.value if config.artifact_schema else None

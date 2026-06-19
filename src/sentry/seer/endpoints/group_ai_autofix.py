@@ -57,6 +57,10 @@ from sentry.seer.autofix.coding_agent import (
     poll_github_copilot_agents,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.feedback_queue import (
+    enqueue_autofix_feedback,
+    peek_queued_autofix_feedback,
+)
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
     AutofixPostResponse,
@@ -68,6 +72,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import SeerPermissionError
+from sentry.tasks.seer.autofix import consume_queued_autofix_feedback
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_mcp_request
@@ -343,16 +348,46 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     "user": serialized_users[0] if serialized_users else None,
                 },
             )
+        referrer = _parse_autofix_referrer(data.get("referrer"), request)
+        if feedback is not None and resolved_run_id is not None:
+            if not features.has("organizations:autofix-pr-iteration", group.organization):
+                return Response(
+                    {"detail": "PR iteration is not enabled for this organization"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            enqueue_autofix_feedback(
+                run_id=resolved_run_id,
+                organization_id=group.organization_id,
+                group_id=group.id,
+                feedback=feedback,
+                referrer=referrer,
+            )
+
+            consume_queued_autofix_feedback.apply_async(
+                kwargs={
+                    "run_id": resolved_run_id,
+                    "organization_id": group.organization_id,
+                    "group_id": group.id,
+                }
+            )
+
+            kickoff_body: AutofixPostResponse = {
+                "run_id": resolved_run_id,
+                "sentry_run_id": resolved_sentry_run_id,
+            }
+            return Response(kickoff_body, status=status.HTTP_202_ACCEPTED)
+
         try:
             run_id = trigger_autofix_agent(
                 group=group,
                 step=AutofixStep(step),
-                referrer=_parse_autofix_referrer(data.get("referrer"), request),
+                referrer=referrer,
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=resolved_run_id,
                 user_context=user_context,
                 insert_index=data.get("insert_index"),
-                feedback=feedback,
+                feedback=[feedback] if feedback is not None else None,
             )
             if is_autofix_kickoff:
                 # Record the trigger action only on kickoff, not on each subsequent
@@ -450,6 +485,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         run = get_seer_run(state.run_id, group.organization)
         blocks = [block.dict() for block in state.blocks]
+        queued_feedback = [
+            item.feedback.dict() for item in peek_queued_autofix_feedback(state.run_id)
+        ]
         return Response(
             {
                 "autofix": {
@@ -470,6 +508,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     "pr_iteration_enabled": features.has(
                         "organizations:autofix-pr-iteration", group.organization
                     ),
+                    "queued_feedback": queued_feedback,
                 }
             }
         )
