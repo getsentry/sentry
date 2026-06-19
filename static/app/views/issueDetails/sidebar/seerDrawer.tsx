@@ -4,7 +4,6 @@ import {useDrawer} from '@sentry/scraps/drawer';
 
 import {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -16,9 +15,7 @@ export {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
 export const useOpenSeerDrawer = ({
   group,
   project,
-  event,
 }: {
-  event: Event | null;
   group: Group;
   project: Project;
   buttonRef?: React.RefObject<HTMLButtonElement | null>;
@@ -32,7 +29,6 @@ export const useOpenSeerDrawer = ({
 
   const openSeerDrawer = useCallback(() => {
     if (
-      !event ||
       !organization.features.includes('gen-ai-features') ||
       organization.hideAiFeatures
     ) {
@@ -77,7 +73,7 @@ export const useOpenSeerDrawer = ({
         },
       });
     }
-  }, [openDrawer, event, group, project, navigate, organization]);
+  }, [openDrawer, group, project, navigate, organization]);
 
   return {openSeerDrawer};
 };
