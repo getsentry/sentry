@@ -1,7 +1,6 @@
 import {useQuery, skipToken} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useQueryParamsFields,
@@ -11,10 +10,7 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {
-  EventValidationSchema,
-  validateEventParamsOptions,
-} from 'sentry/views/explore/utils/validateEventParamsOptions';
+import {validateEventParamsOptions} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 type UseValidateSpansTabArgs = {
   enabled?: boolean;
@@ -30,7 +26,7 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
 
-  const {data, error, isLoading, isError} = useQuery({
+  const {data, isLoading} = useQuery({
     ...validateEventParamsOptions({
       organization,
       selection,
@@ -50,14 +46,6 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
     // using skipToken is the new preferred way to skip a query
     ...(enabled ? {} : {queryFn: skipToken}),
   });
-
-  if (isError && error instanceof RequestError) {
-    const parsedData = EventValidationSchema.safeParse(error.responseJSON ?? {});
-    return {
-      data: parsedData.success ? parsedData.data : undefined,
-      isLoading,
-    };
-  }
 
   return {
     data,

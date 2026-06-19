@@ -106,4 +106,52 @@ describe('useValidateSpansTab', () => {
       expect(result.current.data).toEqual(invalidValidationBody);
     });
   });
+
+  it('keeps previous validation details while the next validation loads', async () => {
+    const invalidValidationBody: EventValidationData = {
+      ...validationBody,
+      query: {
+        error: 'unknown attribute',
+        fields: [
+          {attrType: null, error: 'unknown attribute', name: 'missing.key', valid: false},
+        ],
+        valid: false,
+      },
+      valid: false,
+    };
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/validate/',
+      body: invalidValidationBody,
+      statusCode: 400,
+      match: [MockApiClient.matchQuery({query: 'missing.key:foo'})],
+    });
+
+    const {result, router} = renderHookWithProviders(useValidateSpansTab, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {query: 'missing.key:foo'},
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual(invalidValidationBody);
+    });
+
+    const delayedValidateMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/validate/',
+      body: validationBody,
+      asyncDelay: 100000,
+      match: [MockApiClient.matchQuery({query: 'span.op:http'})],
+    });
+
+    router.navigate('/organizations/org-slug/explore/traces/?query=span.op%3Ahttp');
+
+    await waitFor(() => {
+      expect(delayedValidateMock).toHaveBeenCalled();
+    });
+    expect(result.current.data).toEqual(invalidValidationBody);
+  });
 });

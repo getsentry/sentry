@@ -1,3 +1,4 @@
+import {keepPreviousData, queryOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -6,6 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
 const STALE_TIME = 30 * 60 * 1000;
@@ -79,7 +81,7 @@ export function validateEventParamsOptions({
     explicitProjectIds ??
     (defined(projects) ? projects.map(project => project.id) : selection.projects);
 
-  return apiOptions.as<z.infer<typeof EventValidationSchema>>()(
+  const baseOptions = apiOptions.as<z.infer<typeof EventValidationSchema>>()(
     '/organizations/$organizationIdOrSlug/events/validate/',
     {
       path: {organizationIdOrSlug: organization.slug},
@@ -95,4 +97,31 @@ export function validateEventParamsOptions({
       },
     }
   );
+
+  const originalQueryFn = baseOptions.queryFn;
+
+  if (typeof originalQueryFn !== 'function') {
+    return queryOptions({
+      ...baseOptions,
+      placeholderData: keepPreviousData,
+    });
+  }
+
+  return queryOptions({
+    ...baseOptions,
+    queryFn: async context => {
+      try {
+        return await originalQueryFn(context);
+      } catch (error) {
+        if (error instanceof RequestError) {
+          const parsedData = EventValidationSchema.safeParse(error.responseJSON ?? {});
+          if (parsedData.success) {
+            return {headers: {}, json: parsedData.data};
+          }
+        }
+        throw error;
+      }
+    },
+    placeholderData: keepPreviousData,
+  });
 }
