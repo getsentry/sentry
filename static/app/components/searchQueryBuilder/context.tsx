@@ -253,6 +253,11 @@ export function SearchQueryBuilderProvider({
     [getSuggestedFilterKey]
   );
 
+  const stableInvalidFilterKeys = useMemo(
+    () => invalidFilterKeys ?? [],
+    [invalidFilterKeys]
+  );
+
   const parseQuery = useCallback(
     (query: string) =>
       parseQueryBuilderValue(query, getFieldDefinitionWithTagMetadata, {
@@ -263,6 +268,7 @@ export function SearchQueryBuilderProvider({
         disallowWildcard,
         filterKeys: mergedFilterKeys,
         invalidMessages,
+        invalidFilterKeys: stableInvalidFilterKeys,
         filterKeyAliases,
       }),
     [
@@ -274,6 +280,7 @@ export function SearchQueryBuilderProvider({
       mergedFilterKeys,
       getFilterTokenWarning,
       invalidMessages,
+      stableInvalidFilterKeys,
       filterKeyAliases,
     ]
   );
@@ -290,11 +297,6 @@ export function SearchQueryBuilderProvider({
   });
 
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
-
-  const stableInvalidFilterKeys = useMemo(
-    () => invalidFilterKeys ?? [],
-    [invalidFilterKeys]
-  );
 
   const previousQuery = usePrevious(state.query);
   const firstRender = useRef(true);
