@@ -80,7 +80,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         align="center"
         justify="center"
         borderBottom="primary"
-        width="100"
+        width="100%"
         minHeight={
           layout === 'mobile'
             ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
