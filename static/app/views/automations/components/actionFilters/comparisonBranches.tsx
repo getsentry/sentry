@@ -43,7 +43,7 @@ function ValueField() {
       name={`${condition_id}.comparison.value`}
       aria-label={t('Value')}
       value={condition.comparison.value}
-      min={1}
+      min={0}
       step={1}
       onChange={(value: number) => {
         onUpdate({comparison: {...condition.comparison, value}});
