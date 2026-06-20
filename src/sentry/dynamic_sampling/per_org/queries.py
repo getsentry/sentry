@@ -249,8 +249,11 @@ def get_eap_transaction_volumes(
             continue
 
         raw_project_id = row.get(DynamicSamplingQueryFields.DSC_PROJECT_ID)
+        if raw_project_id is None:
+            continue
+
         try:
-            project_id = int(raw_project_id) if raw_project_id is not None else 0
+            project_id = int(raw_project_id)
         except (ValueError, TypeError):
             logger.warning(
                 "dynamic_sampling.invalid_dsc_project_id",
