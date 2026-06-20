@@ -88,6 +88,8 @@ def load_defaults() -> None:
 # This cache is thread-unsafe mirroring the behavior of the options cache. The options
 # cache notes Python's GIL as the serialization provider. Race conditions produce
 # redundant network calls but do not otherwise err.
+#
+# This cache is unbounded mirroring the behavior of the options cache.
 __get_fast_cache: TTLCache[str, Any] = TTLCache(
     cast(Cache[str, tuple[int, Any]], {}), ttl=DEFAULT_KEY_TTL + 1
 )
