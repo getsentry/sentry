@@ -91,7 +91,7 @@ def load_defaults() -> None:
 #
 # This cache is unbounded mirroring the behavior of the options cache.
 __get_fast_cache: TTLCache[str, Any] = TTLCache(
-    cast(Cache[str, tuple[int, Any]], {}), ttl=DEFAULT_KEY_TTL + 1
+    cast(Cache[str, tuple[int, Any]], {}), ttl=DEFAULT_KEY_TTL
 )
 
 
@@ -109,6 +109,11 @@ def get_fast(key: str, silent: bool = False) -> Any:
     alternative is to cache your calls to "options.get" in a local variable, outside
     your loop, and use the local. This function captures 90% of the performance
     benefit with 1% the effort (find and replace).
+
+    This function uses a global option TTL policy. Per-option TTLs are not supported. If
+    your option's custom TTL is greater than or equal to the DEFAULT_KEY_TTL you will not
+    experience meaningful degradation. TTLs which are less than the DEFAULT_KEY_TTL will
+    return stale results.
 
     >>> from sentry import options
     >>> options.get_fast('option')
