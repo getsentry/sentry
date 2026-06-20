@@ -1,8 +1,11 @@
 import hashlib
 import threading
+import time
 from collections import OrderedDict
 from collections.abc import Iterator
 from typing import Protocol
+
+_now = time.time
 
 
 class Cache[K, V](Protocol):
@@ -108,6 +111,71 @@ class ThreadSafeCache[K, V]:
         with self.lock:
             items = list(self.cache.items())
         yield from items
+
+
+class TTLCache[K, V]:
+    """
+    Wraps any cache implementing the `Cache` protocol and expires entries after
+    a fixed time-to-live. Expired entries are lazily evicted on access.
+    """
+
+    def __init__(self, cache: Cache[K, tuple[int, V]], ttl: int) -> None:
+        self.cache = cache
+        self.ttl = ttl
+
+    def _is_expired(self, expiry: int) -> bool:
+        return expiry <= _now()
+
+    def __contains__(self, key: K) -> bool:
+        try:
+            self[key]
+            return True
+        except KeyError:
+            return False
+
+    def __len__(self) -> int:
+        return len(self.cache)
+
+    def __delitem__(self, key: K) -> None:
+        del self.cache[key]
+
+    def __getitem__(self, key: K) -> V:
+        expiry, value = self.cache[key]
+        if self._is_expired(expiry):
+            del self.cache[key]
+            raise KeyError(key)
+        return value
+
+    def __setitem__(self, key: K, value: V) -> None:
+        self.cache[key] = (_now() + self.ttl, value)
+
+    def get(self, key: K) -> V | None:
+        try:
+            return self[key]
+        except KeyError:
+            return None
+
+    def pop(self, key: K) -> V | None:
+        item = self.cache.pop(key)
+        if item is None:
+            return None
+        expiry, value = item
+        if self._is_expired(expiry):
+            return None
+        return value
+
+    def keys(self) -> Iterator[K]:
+        yield from self.cache.keys()
+
+    def values(self) -> Iterator[V]:
+        for expiry, value in self.cache.values():
+            if not self._is_expired(expiry):
+                yield value
+
+    def items(self) -> Iterator[tuple[K, V]]:
+        for key, (expiry, value) in self.cache.items():
+            if not self._is_expired(expiry):
+                yield key, value
 
 
 class SizedKeyCache[V]:
