@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import logging
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from sentry.seer.autofix.autofix_agent import Feedback
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.utils import json
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
@@ -22,7 +21,7 @@ class QueuedAutofixFeedback(BaseModel):
     referrer: AutofixReferrer
 
 
-def _get_feedback_queue_key(run_id: int) -> str:
+def _feedback_queue_key(run_id: int) -> str:
     return f"autofix:feedback:{run_id}"
 
 
@@ -35,45 +34,36 @@ def enqueue_autofix_feedback(
     referrer: AutofixReferrer,
 ) -> None:
     redis = redis_clusters.get(_REDIS_CLUSTER)
-    key = _get_feedback_queue_key(run_id)
+    key = _feedback_queue_key(run_id)
     redis.rpush(
         key,
-        json.dumps(
-            QueuedAutofixFeedback(
-                organization_id=organization_id,
-                group_id=group_id,
-                feedback=feedback,
-                referrer=referrer,
-            ).dict()
-        ),
+        QueuedAutofixFeedback(
+            organization_id=organization_id,
+            group_id=group_id,
+            feedback=feedback,
+            referrer=referrer,
+        ).json(),
     )
     redis.expire(key, _QUEUE_TTL_SECONDS)
 
 
 def peek_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
-    """Read the queued feedback for a run without removing it."""
     redis = redis_clusters.get(_REDIS_CLUSTER)
-    key = _get_feedback_queue_key(run_id)
+    key = _feedback_queue_key(run_id)
     items: list[QueuedAutofixFeedback] = []
 
     for raw_item in redis.lrange(key, 0, -1):
-        try:
-            items.append(QueuedAutofixFeedback(**json.loads(raw_item)))
-        except (TypeError, ValueError, ValidationError):
-            logger.warning("autofix.feedback_queue.invalid_item", extra={"run_id": run_id})
+        items.append(QueuedAutofixFeedback.parse_raw(raw_item))
 
     return items
 
 
 def pop_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
     redis = redis_clusters.get(_REDIS_CLUSTER)
-    key = _get_feedback_queue_key(run_id)
+    key = _feedback_queue_key(run_id)
     items: list[QueuedAutofixFeedback] = []
 
     while raw_item := redis.lpop(key):
-        try:
-            items.append(QueuedAutofixFeedback(**json.loads(raw_item)))
-        except (TypeError, ValueError, ValidationError):
-            logger.warning("autofix.feedback_queue.invalid_item", extra={"run_id": run_id})
+        items.append(QueuedAutofixFeedback.parse_raw(raw_item))
 
     return items
