@@ -1,4 +1,9 @@
+from typing import Any, cast
+
 from django.core.signals import request_finished
+
+from sentry.options.manager import DEFAULT_KEY_TTL
+from sentry.utils.local_cache import Cache, TTLCache
 
 from .manager import (
     FLAG_ADMIN_MODIFIABLE,
@@ -78,3 +83,36 @@ def load_defaults() -> None:
     from sentry.hybridcloud import options  # NOQA
 
     from . import defaults  # NOQA
+
+
+# This cache is thread-unsafe mirroring the behavior of the options cache. The options
+# cache notes Python's GIL as the serialization provider. Race conditions produce
+# redundant network calls but do not otherwise err.
+__get_fast_cache: TTLCache[str, Any] = TTLCache(
+    cast(Cache[str, tuple[int, Any]], {}), ttl=DEFAULT_KEY_TTL + 1
+)
+
+
+def get_fast(key: str, silent: bool = False) -> Any:
+    """
+    Get the value of an option, falling back to the local configuration.
+
+    If no value is present for the key, the default Option value is returned.
+
+    The default options "get" method logs, emits a metric, contains four levels of
+    indrection and allocations a set and dictionary. These are unnecessary operations
+    which may need to be skipped in select high-throughput environments.
+
+    Though this function is faster than the default "get" function the fastest
+    alternative is to cache your calls to "options.get" in a local variable, outside
+    your loop, and use the local. This function captures 90% of the performance
+    benefit with 1% the effort (find and replace).
+
+    >>> from sentry import options
+    >>> options.get_fast('option')
+    """
+    try:
+        return __get_fast_cache[key]
+    except KeyError:
+        v = __get_fast_cache[key] = get(key, silent)
+        return v
