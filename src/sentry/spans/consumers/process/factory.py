@@ -186,7 +186,7 @@ def process_batch(
                 val = cast(SpanEvent, orjson.loads(payload.value))
             decode_time += time.monotonic() - decode_start
 
-            if killswitches.value_matches(
+            if killswitch_config and killswitches.value_matches(
                 "spans.drop-in-buffer",
                 killswitch_config,
                 {
