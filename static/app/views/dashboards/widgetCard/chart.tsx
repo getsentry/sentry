@@ -43,8 +43,9 @@ import {
 } from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {getSelectedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedTraceMetric';
+import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -472,7 +473,10 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
   const organization = useOrganization();
 
   // The heat map links each cell's tooltip to its metric in Explore.
-  const traceMetric = getSelectedTraceMetric(widget);
+  const selectedAggregate = getSelectedAggregate(widget);
+  const traceMetric = selectedAggregate
+    ? extractTraceMetricFromColumn(selectedAggregate)
+    : undefined;
 
   if (loading || !heatmapResults) {
     return <LoadingPlaceholder />;

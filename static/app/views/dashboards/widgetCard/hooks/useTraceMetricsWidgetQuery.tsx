@@ -35,7 +35,8 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import {getSelectedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedTraceMetric';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
@@ -457,7 +458,10 @@ export function useTraceMetricsHeatmapQuery(
   );
 
   const query = filteredWidget.queries[0];
-  const traceMetric = getSelectedTraceMetric(widget);
+  const selectedAggregate = getSelectedAggregate(widget);
+  const traceMetric = selectedAggregate
+    ? extractTraceMetricFromColumn(selectedAggregate)
+    : undefined;
 
   // Don't fetch until the widget's aggregate resolves to a real metric —
   // otherwise we'd request with an empty `metric.name` filter.

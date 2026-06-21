@@ -2,7 +2,8 @@ import {t} from 'sentry/locale';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
-import {getSelectedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedTraceMetric';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
 
 /**
  * Returns a user-facing error message if the widget has a static config
@@ -29,8 +30,11 @@ export function getWidgetConfigError(widget: Widget): string | undefined {
 
   // Heat maps plot the metric from their selected "Visualize" aggregate. If
   // that aggregate doesn't resolve to a metric, the widget can't render.
-  if (widget.displayType === DisplayType.HEATMAP && !getSelectedTraceMetric(widget)) {
-    return t('This widget is missing a metric to visualize.');
+  if (widget.displayType === DisplayType.HEATMAP) {
+    const aggregate = getSelectedAggregate(widget);
+    if (!aggregate || !extractTraceMetricFromColumn(aggregate)) {
+      return t('This widget is missing a metric to visualize.');
+    }
   }
 
   return undefined;
