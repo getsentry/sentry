@@ -11,6 +11,7 @@ from typing import Any as TAny
 from django.conf import settings
 
 from sentry.silo.base import SiloMode
+from sentry.utils import metrics
 from sentry.utils.flag import record_option
 from sentry.utils.hashlib import md5_text
 from sentry.utils.types import Any, Type, type_from_value
@@ -318,17 +319,9 @@ class OptionsManager:
         >>> from sentry import options
         >>> options.get('option')
         """
-        # TODO(mattrobenolt): Perform validation on key returned for type Justin Case
-        # values change. This case is unlikely, but good to cover our bases.
-        from sentry.utils import metrics
-
-        sentry_env = os.environ.get("CUSTOMER_ID", settings.SENTRY_LOCAL_CELL) or "unknown"
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            sentry_env = SiloMode.CONTROL.name
-
         with metrics.timer(
             "options.store.get",
-            tags={"key": key, "region": sentry_env},
+            tags={"key": key, "region": _get_sentry_env()},
             sample_rate=0.01,
         ) as tags:
             opt = self.lookup_key(key)
@@ -580,3 +573,17 @@ class OptionsManager:
             return NotWritableReason.DRIFTED
 
         return None
+
+
+def _get_sentry_env() -> str:
+    """Sentry environment is process stable and can be re-used indefinitely."""
+    global SENTRY_ENV
+    if not SENTRY_ENV:
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            SENTRY_ENV = SiloMode.CONTROL.name
+        else:
+            SENTRY_ENV = os.environ.get("CUSTOMER_ID", settings.SENTRY_LOCAL_CELL) or "unknown"
+    return SENTRY_ENV
+
+
+SENTRY_ENV: str | None = None
