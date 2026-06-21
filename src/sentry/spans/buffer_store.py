@@ -108,7 +108,7 @@ class SpansBufferStore:
         for batch in batches:
             with self.client.pipeline(transaction=False) as p:
                 for subsegment in batch:
-                    set_members = self._prepare_payloads(
+                    payloads = self._prepare_payloads(
                         subsegment.spans,
                         zstd_compressor,
                     )
@@ -116,8 +116,11 @@ class SpansBufferStore:
                         subsegment.project_and_trace,
                         subsegment.salt,
                     )
-                    p.sadd(payload_key, *set_members)
-                    p.expire(payload_key, redis_ttl)
+                    if isinstance(payloads, bytes):
+                        p.setex(payload_key, redis_ttl, payloads)
+                    else:
+                        p.sadd(payload_key, *payloads)
+                        p.expire(payload_key, redis_ttl)
 
                 p.execute()
 
@@ -125,7 +128,7 @@ class SpansBufferStore:
         self,
         spans: list[Span],
         zstd_compressor: zstandard.ZstdCompressor | None,
-    ) -> set[str | bytes]:
+    ) -> set[bytes] | bytes:
         if zstd_compressor is None:
             return {span.payload for span in spans}
 
@@ -142,7 +145,7 @@ class SpansBufferStore:
         metrics.timing("spans.buffer.compression.compressed_size", compressed_size)
         metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
 
-        return {compressed}
+        return compressed
 
     def insert_subsegments(
         self,
