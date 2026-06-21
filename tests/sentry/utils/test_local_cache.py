@@ -1,8 +1,29 @@
 import threading
+from unittest import mock
 
 import pytest
 
-from sentry.utils.local_cache import LRUCache, SizedKeyCache, ThreadSafeCache
+from sentry.utils import local_cache
+from sentry.utils.local_cache import LRUCache, SizedKeyCache, ThreadSafeCache, TTLCache
+
+
+@pytest.fixture
+def fake_clock():
+    """Replace the module clock with a manually-advanced one."""
+
+    class Clock:
+        def __init__(self) -> None:
+            self.now = 1000.0
+
+        def __call__(self) -> float:
+            return self.now
+
+        def advance(self, seconds: float) -> None:
+            self.now += seconds
+
+    clock = Clock()
+    with mock.patch.object(local_cache, "_now", clock):
+        yield clock
 
 
 class TestLRUCache:
@@ -223,6 +244,137 @@ class TestThreadSafeCache:
         w.join()
 
         assert errors == []
+
+
+class TestTTLCache:
+    def test_set_and_get_before_expiry(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        assert cache["a"] == 1
+        assert cache.get("a") == 1
+
+    def test_getitem_expires(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        fake_clock.advance(61)
+        with pytest.raises(KeyError):
+            cache["a"]
+
+    def test_expiry_is_inclusive(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        fake_clock.advance(60)
+        with pytest.raises(KeyError):
+            cache["a"]
+
+    def test_still_valid_just_before_expiry(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        fake_clock.advance(59)
+        assert cache["a"] == 1
+
+    def test_get_returns_none_after_expiry(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        fake_clock.advance(61)
+        assert cache.get("a") is None
+
+    def test_get_returns_none_when_missing(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        assert cache.get("missing") is None
+
+    def test_expired_entry_is_evicted_on_access(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        fake_clock.advance(61)
+        assert cache.get("a") is None
+        # The expired entry was deleted from the underlying cache.
+        assert len(cache.cache) == 0
+
+    def test_contains_before_and_after_expiry(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        assert "a" in cache
+        fake_clock.advance(61)
+        assert "a" not in cache
+
+    def test_contains_missing(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        assert "missing" not in cache
+
+    def test_setitem_refreshes_ttl(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        fake_clock.advance(59)
+        cache["a"] = 2
+        # Re-setting resets the expiry window from the new now.
+        fake_clock.advance(59)
+        assert cache["a"] == 2
+
+    def test_len_counts_unexpired_and_expired(self, fake_clock) -> None:
+        # __len__ delegates to the wrapped cache and does not account for expiry.
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        assert len(cache) == 1
+        fake_clock.advance(61)
+        assert len(cache) == 1
+
+    def test_delitem(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        del cache["a"]
+        assert "a" not in cache
+
+    def test_delitem_missing_raises(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        with pytest.raises(KeyError):
+            del cache["missing"]
+
+    def test_pop_returns_value_when_valid(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        assert cache.pop("a") == 1
+        assert "a" not in cache
+
+    def test_pop_returns_none_when_missing(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        assert cache.pop("missing") is None
+
+    def test_pop_returns_none_when_expired(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        fake_clock.advance(61)
+        assert cache.pop("a") is None
+
+    def test_values_excludes_expired(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        fake_clock.advance(30)
+        cache["b"] = 2
+        fake_clock.advance(31)
+        # "a" has expired (61s old), "b" has not (31s old).
+        assert list(cache.values()) == [2]
+
+    def test_items_excludes_expired(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        fake_clock.advance(30)
+        cache["b"] = 2
+        fake_clock.advance(31)
+        assert list(cache.items()) == [("b", 2)]
+
+    def test_keys_includes_expired(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(LRUCache(maxlen=10), ttl=60)
+        cache["a"] = 1
+        fake_clock.advance(61)
+        assert list(cache.keys()) == ["a"]
+
+    def test_wraps_thread_safe_cache(self, fake_clock) -> None:
+        cache: TTLCache[str, int] = TTLCache(ThreadSafeCache(LRUCache(maxlen=10)), ttl=60)
+        cache["a"] = 1
+        assert cache["a"] == 1
+        fake_clock.advance(61)
+        assert cache.get("a") is None
 
 
 class TestSizedKeyCache:

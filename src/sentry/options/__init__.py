@@ -107,8 +107,8 @@ def get_fast(key: str, silent: bool = False) -> Any:
 
     Though this function is faster than the default "get" function the fastest
     alternative is to cache your calls to "options.get" in a local variable, outside
-    your loop, and use the local. This function captures 90% of the performance
-    benefit with 1% the effort (find and replace).
+    your loop, and use the local in your loop. This function captures 90% of the
+    performance benefit with 1% the effort (find and replace).
 
     This function uses a global option TTL policy. Per-option TTLs are not supported. If
     your option's custom TTL is greater than or equal to the DEFAULT_KEY_TTL you will not
