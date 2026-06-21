@@ -105,8 +105,8 @@ class SpansBufferStore:
             None if compression_level == -1 else zstandard.ZstdCompressor(level=compression_level)
         )
 
-        for batch in batches:
-            with self.client.pipeline(transaction=False) as p:
+        with self.client.pipeline(transaction=False) as p:
+            for batch in batches:
                 for subsegment in batch:
                     set_members = self._prepare_payloads(
                         subsegment.spans,
@@ -119,7 +119,7 @@ class SpansBufferStore:
                     p.sadd(payload_key, *set_members)
                     p.expire(payload_key, redis_ttl)
 
-                p.execute()
+            p.execute()
 
     def _prepare_payloads(
         self,
