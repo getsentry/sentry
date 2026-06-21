@@ -162,8 +162,8 @@ class SpansBufferStore:
         add_buffer_sha = self.ensure_script()
 
         inserted_subsegments: list[InsertedSubsegment] = []
-        for batch in batches:
-            with self.client.pipeline(transaction=False) as p:
+        with self.client.pipeline(transaction=False) as p:
+            for batch in batches:
                 for subsegment in batch:
                     p.execute_command(
                         "EVALSHA",
@@ -181,7 +181,7 @@ class SpansBufferStore:
                         *subsegment.span_ids,
                     )
 
-                redis_results = p.execute()
+            redis_results = p.execute()
 
             assert len(batch) == len(redis_results)
             inserted_subsegments.extend(
