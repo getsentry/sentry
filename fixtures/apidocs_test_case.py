@@ -1,5 +1,6 @@
 import functools
 import os
+from typing import Any
 
 import orjson
 from django.conf import settings
@@ -15,7 +16,7 @@ from sentry.testutils.skips import requires_snuba
 @requires_snuba
 class APIDocsTestCase(APITestCase):
     @functools.cached_property
-    def cached_schema(self):
+    def cached_schema(self) -> Spec:
         path = os.path.join(os.path.dirname(__file__), "../tests/apidocs/openapi-derefed.json")
         with open(path, "rb") as json_file:
             data = orjson.loads(json_file.read())
@@ -24,7 +25,7 @@ class APIDocsTestCase(APITestCase):
 
             return Spec.from_dict(data)
 
-    def validate_schema(self, request, response):
+    def validate_schema(self, request: Any, response: Any) -> None:
         assert 200 <= response.status_code < 300, response.status_code
 
         if isinstance(response.data, list):
@@ -36,7 +37,7 @@ class APIDocsTestCase(APITestCase):
             DjangoOpenAPIResponse(response),  # type: ignore[arg-type]  # Werkzeug 3.1 Headers vs Mapping
         )
 
-    def create_event(self, name, **kwargs):
+    def create_event(self, name: str, **kwargs: Any) -> Any:
         # Somewhat sane default data.
         data = {
             "event_id": (name * 32)[:32],
