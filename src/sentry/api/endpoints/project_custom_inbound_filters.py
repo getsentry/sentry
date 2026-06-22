@@ -81,14 +81,8 @@ class CustomInboundFilterSerializer(serializers.Serializer):
             "or add separate filters."
         ),
     )
-    dateCreated = serializers.SerializerMethodField()
-    dateUpdated = serializers.SerializerMethodField()
-
-    def get_dateCreated(self, custom_filter: CustomInboundFilter) -> str:
-        return custom_filter.date_added.isoformat()
-
-    def get_dateUpdated(self, custom_filter: CustomInboundFilter) -> str:
-        return custom_filter.date_updated.isoformat()
+    dateCreated = serializers.DateTimeField(source="date_added", read_only=True)
+    dateUpdated = serializers.DateTimeField(source="date_updated", read_only=True)
 
     def validate_conditions(self, conditions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         condition_types = [condition["type"] for condition in conditions]

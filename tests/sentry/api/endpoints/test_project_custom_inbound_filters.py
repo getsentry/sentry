@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import patch
 
 from sentry import audit_log
@@ -37,24 +38,24 @@ class CustomInboundFiltersTest(APITestCase):
         with self.feature(self.features):
             response = self.get_success_response(self.organization.slug, self.project.slug)
 
-        assert response.data == [
-            {
-                "id": str(first_filter.id),
-                "name": "Release filter",
-                "active": True,
-                "conditions": [{"type": "release", "value": ["1.*"]}],
-                "dateCreated": first_filter.date_added.isoformat(),
-                "dateUpdated": first_filter.date_updated.isoformat(),
-            },
-            {
-                "id": str(second_filter.id),
-                "name": "Error filter",
-                "active": False,
-                "conditions": [{"type": "error_message", "value": ["TypeError*"]}],
-                "dateCreated": second_filter.date_added.isoformat(),
-                "dateUpdated": second_filter.date_updated.isoformat(),
-            },
-        ]
+        first_data, second_data = response.data
+        assert datetime.fromisoformat(first_data.pop("dateCreated")) == first_filter.date_added
+        assert datetime.fromisoformat(first_data.pop("dateUpdated")) == first_filter.date_updated
+        assert datetime.fromisoformat(second_data.pop("dateCreated")) == second_filter.date_added
+        assert datetime.fromisoformat(second_data.pop("dateUpdated")) == second_filter.date_updated
+
+        assert first_data == {
+            "id": str(first_filter.id),
+            "name": "Release filter",
+            "active": True,
+            "conditions": [{"type": "release", "value": ["1.*"]}],
+        }
+        assert second_data == {
+            "id": str(second_filter.id),
+            "name": "Error filter",
+            "active": False,
+            "conditions": [{"type": "error_message", "value": ["TypeError*"]}],
+        }
 
     def test_post(self) -> None:
         conditions = [
