@@ -1,3 +1,4 @@
+from django.db.migrations.state import StateApps
 from django.utils import timezone
 
 from sentry.testutils.cases import TestMigrations
@@ -8,7 +9,7 @@ class BackfillNightShiftRunShardsTest(TestMigrations):
     migrate_from = "0019_add_night_shift_run_shard"
     migrate_to = "0020_backfill_night_shift_run_shards"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         SeerRun = apps.get_model("seer", "SeerRun")
         SeerNightShiftRun = apps.get_model("seer", "SeerNightShiftRun")
         SeerNightShiftRunShard = apps.get_model("seer", "SeerNightShiftRunShard")
@@ -37,7 +38,7 @@ class BackfillNightShiftRunShardsTest(TestMigrations):
             run=self.already_sharded_run, seer_run=already_seer_run
         )
 
-    def test_backfill(self):
+    def test_backfill(self) -> None:
         SeerNightShiftRunShard = self.apps.get_model("seer", "SeerNightShiftRunShard")
 
         shards = list(SeerNightShiftRunShard.objects.filter(run_id=self.pre_shard_run.id))
