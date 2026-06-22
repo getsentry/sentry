@@ -85,17 +85,11 @@ class CustomInboundFilterSerializer(serializers.Serializer):
     dateUpdated = serializers.DateTimeField(source="date_updated", read_only=True)
 
     def validate_conditions(self, conditions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        organization = self.context["project"].organization
+        request = self.context["request"]
         condition_types = [condition["type"] for condition in conditions]
 
         primary_condition_types = PRIMARY_CONDITION_TYPES.intersection(condition_types)
-        if len(primary_condition_types) > 1:
-            raise serializers.ValidationError(
-                "Only one of error_message, log_message, or metric_name can be used in a filter."
-            )
-
-        organization = self.context["project"].organization
-        request = self.context["request"]
-
         if CustomInboundFilterConditionType.LOG_MESSAGE in condition_types and not features.has(
             "organizations:ourlogs-ingestion", organization, actor=request.user
         ):
@@ -109,20 +103,12 @@ class CustomInboundFilterSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "Metric name filters are not enabled for this organization."
             )
+        if len(primary_condition_types) > 1:
+            raise serializers.ValidationError(
+                "Only one of error_message, log_message, or metric_name can be used in a filter."
+            )
 
         return conditions
-
-
-def feature_access_denied(request: Request, project: Project) -> Response | None:
-    if not features.has(
-        "organizations:inbound-filters-v2", project.organization, actor=request.user
-    ):
-        raise ResourceDoesNotExist
-
-    if not features.has("projects:custom-inbound-filters", project, actor=request.user):
-        return Response({"detail": "You do not have that feature enabled"}, status=400)
-
-    return None
 
 
 def get_audit_log_data(
@@ -146,11 +132,22 @@ def get_audit_log_data(
     return data
 
 
-@cell_silo_endpoint
-@extend_schema(tags=["Projects"])
-class CustomInboundFiltersEndpoint(ProjectEndpoint):
+class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (ProjectSettingPermission,)
+
+    def has_feature(self, request: Request, project: Project) -> bool:
+        if not features.has(
+            "organizations:inbound-filters-v2", project.organization, actor=request.user
+        ):
+            raise ResourceDoesNotExist
+
+        return features.has("projects:custom-inbound-filters", project, actor=request.user)
+
+
+@cell_silo_endpoint
+@extend_schema(tags=["Projects"])
+class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
@@ -173,8 +170,8 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
         """
         List the custom inbound filters configured for a project.
         """
-        if denied := feature_access_denied(request, project):
-            return denied
+        if not self.has_feature(request, project):
+            return Response({"detail": "You do not have that feature enabled"}, status=400)
 
         filters = CustomInboundFilter.objects.filter(project_id=project.id)
         return self.paginate(
@@ -203,8 +200,8 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
         """
         Create a custom inbound filter for a project.
         """
-        if denied := feature_access_denied(request, project):
-            return denied
+        if not self.has_feature(request, project):
+            return Response({"detail": "You do not have that feature enabled"}, status=400)
 
         if CustomInboundFilter.objects.filter(project_id=project.id).count() >= (
             MAX_FILTERS_PER_PROJECT
@@ -246,9 +243,7 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
 
 @cell_silo_endpoint
 @extend_schema(tags=["Projects"])
-class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
-    permission_classes = (ProjectSettingPermission,)
+class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
@@ -278,8 +273,8 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
         """
         Retrieve a single custom inbound filter.
         """
-        if denied := feature_access_denied(request, project):
-            return denied
+        if not self.has_feature(request, project):
+            return Response({"detail": "You do not have that feature enabled"}, status=400)
 
         custom_filter = self.get_custom_inbound_filter(project, filter_id)
         return Response(CustomInboundFilterSerializer(custom_filter).data)
@@ -302,8 +297,8 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
         """
         Update a custom inbound filter's name, active state, or conditions.
         """
-        if denied := feature_access_denied(request, project):
-            return denied
+        if not self.has_feature(request, project):
+            return Response({"detail": "You do not have that feature enabled"}, status=400)
 
         custom_filter = self.get_custom_inbound_filter(project, filter_id)
         serializer = CustomInboundFilterSerializer(
@@ -355,8 +350,8 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
         """
         Delete a custom inbound filter.
         """
-        if denied := feature_access_denied(request, project):
-            return denied
+        if not self.has_feature(request, project):
+            return Response({"detail": "You do not have that feature enabled"}, status=400)
 
         custom_filter = self.get_custom_inbound_filter(project, filter_id)
         audit_log_data = get_audit_log_data(project, custom_filter, "remove")
