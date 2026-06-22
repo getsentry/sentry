@@ -98,6 +98,8 @@ interface ScmProjectDetailsForm {
   isBusy: boolean;
   /** Whether the team selector should be hidden (no-access member). */
   isOrgMemberWithNoAccess: boolean;
+  /** Required fields still missing, for disabled-submit messaging. */
+  missingFields: {platform: boolean; projectName: boolean; team: boolean};
   onAlertChange: <K extends keyof AlertRuleOptions>(
     key: K,
     value: AlertRuleOptions[K]
@@ -211,12 +213,22 @@ export function useScmProjectDetails({
     ]
   );
 
+  const missingFields = {
+    platform: !selectedPlatform,
+    projectName: projectNameResolved.length === 0,
+    // While teams load, teamSlugResolved is empty only because firstAdminTeam
+    // isn't available yet, not because the user must pick one. Don't report it
+    // as missing so the disabled-CTA tooltip stays silent for this transient
+    // blocker (canSubmit gates on !isLoadingTeams independently).
+    team: !isOrgMemberWithNoAccess && !isLoadingTeams && teamSlugResolved.length === 0,
+  };
+
   // Block submission until teams and the projects store have loaded so the
   // reuse check below can't be bypassed by a race.
   const canSubmit =
-    projectNameResolved.length > 0 &&
-    (isOrgMemberWithNoAccess || teamSlugResolved.length > 0) &&
-    !!selectedPlatform &&
+    !missingFields.projectName &&
+    !missingFields.team &&
+    !missingFields.platform &&
     !createProjectAndRules.isPending &&
     !isLoadingTeams &&
     projectsLoaded;
@@ -323,6 +335,7 @@ export function useScmProjectDetails({
     alertRuleConfig,
     onAlertChange,
     isOrgMemberWithNoAccess,
+    missingFields,
     canSubmit,
     isBusy: createProjectAndRules.isPending,
     error: createProjectAndRules.error,
