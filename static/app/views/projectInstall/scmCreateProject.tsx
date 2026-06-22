@@ -274,15 +274,13 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
             >
               <Stack gap="md">
                 <Heading as="h2" size="xl">
-                  {t('Create a new project')}
+                  {t('Connect your Git repository')}
                 </Heading>
-                <Text variant="muted">
-                  {t('Pick a platform, name your project and choose what to monitor.')}
-                </Text>
               </Stack>
 
               <ScmIntegrationConnect
                 analyticsFlow="project-creation"
+                allowIntegrationSwitching
                 selectedIntegration={selectedIntegration}
                 selectedRepository={selectedRepository}
                 onIntegrationChange={handleIntegrationChange}

@@ -1,4 +1,4 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -13,6 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
+import {ScmIntegrationSelect} from './scmIntegrationSelect';
 import {ScmProviderPills} from './scmProviderPills';
 import {ScmRepoSelector} from './scmRepoSelector';
 import {useMultiPlatformDetectionTest} from './useMultiPlatformDetectionTest';
@@ -22,6 +23,11 @@ import {useScmProviders} from './useScmProviders';
 const STEP_VIEWED_EVENT = {
   onboarding: 'onboarding.scm_connect_step_viewed',
   'project-creation': 'project_creation.scm_connect_step_viewed',
+} as const;
+
+const INTEGRATION_SELECTED_EVENT = {
+  onboarding: 'onboarding.scm_connect_integration_selected',
+  'project-creation': 'project_creation.scm_connect_integration_selected',
 } as const;
 
 interface ScmIntegrationConnectProps {
@@ -34,6 +40,10 @@ interface ScmIntegrationConnectProps {
   onRepositoryChange: (repo: Repository | undefined) => void;
   selectedIntegration: Integration | undefined;
   selectedRepository: Repository | undefined;
+  // When true, the connected state renders a dropdown for switching between
+  // connected integrations (provider + org/account). When false (default), it
+  // renders static "Connected to ..." text for the single active integration.
+  allowIntegrationSwitching?: boolean;
   maxWidth?: StackProps['maxWidth'];
 }
 
@@ -43,6 +53,10 @@ interface ScmIntegrationConnectProps {
  * provider install pills when no integration is connected, or the repo
  * selector when one is. Owns integration data fetching, platform detection
  * pre-warming, and the `scm_connect_step_viewed` analytic.
+ *
+ * With `allowIntegrationSwitching`, the connected state also renders an
+ * integration selector so the user can pick which connected integration to
+ * search repos within; otherwise it shows static "Connected to ..." text.
  *
  * Does NOT render the connect step's onboarding chrome (intro heading,
  * lock/revoke text, benefits grid, Continue/Skip footer). Hosts compose the
@@ -55,16 +69,17 @@ export function ScmIntegrationConnect({
   onRepositoryChange,
   selectedIntegration,
   selectedRepository,
+  allowIntegrationSwitching = false,
   maxWidth = SCM_STEP_CONTENT_WIDTH,
 }: ScmIntegrationConnectProps) {
   const organization = useOrganization();
   const {
     scmProviders,
+    activeIntegrations,
     isPending,
     isError,
     refetch,
     refetchIntegrations,
-    activeIntegrationExisting,
   } = useScmProviders();
 
   // Pre-warm platform detection so results are cached when the user advances
@@ -73,12 +88,44 @@ export function ScmIntegrationConnect({
   // Measurement call, to judge latency (no UI impact).
   useMultiPlatformDetectionTest(selectedRepository);
 
-  // Derive integration from explicit selection, falling back to existing
-  const effectiveIntegration = selectedIntegration ?? activeIntegrationExisting;
+  // Derive integration from explicit selection, falling back to the first
+  // active integration so the repo selector has something to search.
+  const effectiveIntegration = selectedIntegration ?? activeIntegrations[0];
+
+  // Guards the auto-select analytics event below so it fires once.
+  const defaultIntegrationTrackedRef = useRef(false);
 
   useEffect(() => {
     trackAnalytics(STEP_VIEWED_EVENT[analyticsFlow], {organization});
   }, [organization, analyticsFlow]);
+
+  // Fire scm_connect_integration_selected once for the integration auto-selected
+  // on entry, when the selector is in use and the user hasn't explicitly picked
+  // one. Otherwise a user who keeps the default never emits the event, leaving
+  // the funnel without an integration-selected step. An explicit switch fires
+  // its own `source: 'manual'` event in the handler below.
+  useEffect(() => {
+    if (
+      !allowIntegrationSwitching ||
+      defaultIntegrationTrackedRef.current ||
+      selectedIntegration ||
+      !effectiveIntegration
+    ) {
+      return;
+    }
+    defaultIntegrationTrackedRef.current = true;
+    trackAnalytics(INTEGRATION_SELECTED_EVENT[analyticsFlow], {
+      organization,
+      provider: effectiveIntegration.provider.key,
+      source: 'default',
+    });
+  }, [
+    allowIntegrationSwitching,
+    selectedIntegration,
+    effectiveIntegration,
+    analyticsFlow,
+    organization,
+  ]);
 
   const handleInstall = useCallback(
     (data: Integration) => {
@@ -87,6 +134,35 @@ export function ScmIntegrationConnect({
       refetchIntegrations();
     },
     [onIntegrationChange, onRepositoryChange, refetchIntegrations]
+  );
+
+  // Switching integrations invalidates the selected repo (repos are scoped to
+  // an integration) and everything derived from it (platform, features, form).
+  const handleIntegrationSelect = useCallback(
+    (integration: Integration) => {
+      // Reselecting the active integration is a no-op; clearing here would wipe
+      // the in-progress repo/platform/form for no reason (CompactSelect fires
+      // onChange even when the already-selected option is re-picked).
+      if (integration.id === effectiveIntegration?.id) {
+        return;
+      }
+      onClearDerivedState();
+      onIntegrationChange(integration);
+      onRepositoryChange(undefined);
+      trackAnalytics(INTEGRATION_SELECTED_EVENT[analyticsFlow], {
+        organization,
+        provider: integration.provider.key,
+        source: 'manual',
+      });
+    },
+    [
+      analyticsFlow,
+      organization,
+      effectiveIntegration?.id,
+      onClearDerivedState,
+      onIntegrationChange,
+      onRepositoryChange,
+    ]
   );
 
   if (isPending) {
@@ -107,8 +183,20 @@ export function ScmIntegrationConnect({
   }
 
   return effectiveIntegration ? (
-    <MotionStack key="with-integration" gap="xl" width="100%" maxWidth={maxWidth}>
-      <Stack gap="md" paddingTop="2xl">
+    <MotionStack
+      key="with-integration"
+      gap="md"
+      width="100%"
+      maxWidth={maxWidth}
+      paddingTop={allowIntegrationSwitching ? undefined : '2xl'}
+    >
+      {allowIntegrationSwitching ? (
+        <ScmIntegrationSelect
+          integrations={activeIntegrations}
+          selectedIntegration={effectiveIntegration}
+          onChange={handleIntegrationSelect}
+        />
+      ) : (
         <Text variant="secondary" bold size="sm" density="compressed" uppercase>
           {t(
             'Connected to %s / %s',
@@ -116,14 +204,14 @@ export function ScmIntegrationConnect({
             effectiveIntegration.name
           )}
         </Text>
-        <ScmRepoSelector
-          analyticsFlow={analyticsFlow}
-          integration={effectiveIntegration}
-          selectedRepository={selectedRepository}
-          onRepositoryChange={onRepositoryChange}
-          onClearDerivedState={onClearDerivedState}
-        />
-      </Stack>
+      )}
+      <ScmRepoSelector
+        analyticsFlow={analyticsFlow}
+        integration={effectiveIntegration}
+        selectedRepository={selectedRepository}
+        onRepositoryChange={onRepositoryChange}
+        onClearDerivedState={onClearDerivedState}
+      />
     </MotionStack>
   ) : (
     <MotionStack key="without-integration" gap="2xl" width="100%" maxWidth={maxWidth}>
