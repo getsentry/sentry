@@ -66,7 +66,8 @@ def _attempt_update(
         presenter_delegator.update(key, db_value, value)
     else:
         presenter_delegator.set(key, value)
-    return True
+    # don't emit in ci
+    return not dry_run
 
 
 def _load_options(file: str | None) -> dict[str, Any]:
@@ -361,8 +362,8 @@ def sync(ctx: click.Context) -> None:
                             )
                             presenter_delegator.flush()
                             raise
-                    # A deletion counts as a change.
-                    updated = True
+                        # A deletion counts as a change.
+                        updated = True
                     presenter_delegator.unset(opt.name)
                 elif last_updated == options.UpdateChannel.CLI:
                     presenter_delegator.drift(opt.name, options.get(opt.name))
