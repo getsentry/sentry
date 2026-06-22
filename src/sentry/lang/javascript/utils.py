@@ -115,7 +115,10 @@ def generate_module(src: str | None) -> str:
     if not src:
         return UNKNOWN_MODULE
 
-    filename, ext = splitext(urlsplit(src).path)
+    try:
+        filename, ext = splitext(urlsplit(src).path)
+    except ValueError:
+        return UNKNOWN_MODULE
     if filename.endswith(".min"):
         filename = filename[:-4]
 

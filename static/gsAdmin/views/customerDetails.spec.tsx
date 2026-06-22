@@ -1104,7 +1104,6 @@ describe('Customer Details', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      planTier: 'am3',
     });
     subscription.reservedBudgets = [
       SeerReservedBudgetFixture({
@@ -1867,6 +1866,59 @@ describe('Customer Details', () => {
             method: 'PUT',
             data: {
               terminateContract: true,
+            },
+          })
+        );
+      });
+    });
+  });
+
+  describe('recreate billing platform models', () => {
+    const recreateOrg = OrganizationFixture();
+    const mockBillingAdminUser = UserFixture({
+      permissions: new Set(['billing.admin']),
+    });
+
+    it('recreates billing platform models', async () => {
+      ConfigStore.set('user', mockBillingAdminUser);
+      setUpMocks(recreateOrg, {isBillingAdmin: false});
+
+      const updateMock = MockApiClient.addMockResponse({
+        url: `/customers/${recreateOrg.slug}/`,
+        method: 'PUT',
+        body: OrganizationFixture(),
+      });
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${recreateOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: recreateOrg,
+      });
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      await userEvent.click(
+        screen.getAllByRole('button', {
+          name: 'Customers Actions',
+        })[0]!
+      );
+
+      await userEvent.click(screen.getByText('Recreate Billing Platform Models'));
+
+      renderGlobalModal();
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Recreate Billing Platform Models'})
+      );
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledWith(
+          `/customers/${recreateOrg.slug}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: {
+              recreateBillingPlatformModels: true,
             },
           })
         );

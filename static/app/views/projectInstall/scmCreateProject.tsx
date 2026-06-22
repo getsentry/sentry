@@ -2,9 +2,9 @@ import {useCallback, useState} from 'react';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -13,7 +13,7 @@ import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboard
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconProject} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -59,6 +59,34 @@ const INITIAL_STATE: WizardState = {
   selectedPlatform: undefined,
   selectedRepository: undefined,
 };
+
+// Mirrors classic createProject's submit tooltip: name the missing field, or a
+// summary when several are missing. Transient blockers (stores loading, create
+// in flight) fall through without a message.
+function getSubmitTooltipText({
+  platform,
+  projectName,
+  team,
+}: {
+  platform: boolean;
+  projectName: boolean;
+  team: boolean;
+}): string | undefined {
+  const missingCount = [platform, projectName, team].filter(Boolean).length;
+  if (missingCount > 1) {
+    return t('Please fill out all the required fields');
+  }
+  if (platform) {
+    return t('Please select a platform');
+  }
+  if (projectName) {
+    return t('Please provide a project name');
+  }
+  if (team) {
+    return t('Please select a team');
+  }
+  return undefined;
+}
 
 export function ScmCreateProject() {
   const location = useLocation();
@@ -209,6 +237,8 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     onComplete: handleComplete,
   });
 
+  const submitTooltipText = getSubmitTooltipText(form.missingFields);
+
   return (
     <SentryDocumentTitle title={t('Create a new project')}>
       <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
@@ -218,40 +248,29 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
           padding="2xl"
           alignSelf="center"
           maxWidth={CREATE_PROJECT_MAX_WIDTH}
+          width="100%"
         >
           <LayoutGroup>
             <Layout.Title withMargins>{t('Create a new project')}</Layout.Title>
-            <Container paddingBottom="lg">
-              <Text as="p" variant="muted">
-                {tct(
-                  'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
-                    ),
-                  }
-                )}
+            <Stack paddingBottom="lg" gap="md">
+              <Heading as="h1">{t('Create a new project')}</Heading>
+              <Text size="lg">
+                {t('Pick a platform, name your project, and choose what to monitor.')}
               </Text>
-            </Container>
+            </Stack>
 
             <MotionStack
-              gap="lg"
+              gap="xl"
               border="primary"
-              radius="md"
-              padding="lg"
+              radius="lg"
+              padding="xl"
               layout="position"
             >
-              <Stack gap="md">
-                <Heading as="h2" size="xl">
-                  {t('Create a new project')}
-                </Heading>
-                <Text variant="muted">
-                  {t('Pick a platform, name your project and choose what to monitor.')}
-                </Text>
-              </Stack>
+              <Heading as="h3">{t('Connect your Git repository')}</Heading>
 
               <ScmIntegrationConnect
                 analyticsFlow="project-creation"
+                allowIntegrationSwitching
                 selectedIntegration={selectedIntegration}
                 selectedRepository={selectedRepository}
                 onIntegrationChange={handleIntegrationChange}
@@ -263,19 +282,12 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
             <MotionStack
               layout="position"
-              gap="lg"
+              gap="2xl"
               border="primary"
-              radius="md"
-              padding="lg"
+              radius="lg"
+              padding="xl"
             >
-              <Stack gap="md">
-                <Heading as="h2" size="xl">
-                  {t('Platform & features')}
-                </Heading>
-                <Text variant="muted">
-                  {t('Choose a platform and configure what to monitor.')}
-                </Text>
-              </Stack>
+              <Heading as="h3">{t('Platform & features')}</Heading>
               <ScmPlatformFeaturesCore
                 analyticsFlow="project-creation"
                 selectedRepository={selectedRepository}
@@ -289,19 +301,12 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
             <MotionStack
               layout="position"
-              gap="lg"
+              gap="2xl"
               border="primary"
-              radius="md"
-              padding="lg"
+              radius="lg"
+              padding="xl"
             >
-              <Stack gap="md">
-                <Heading as="h2" size="xl">
-                  {t('Project details')}
-                </Heading>
-                <Text variant="muted">
-                  {t('Name your project, assign a team, and set up issue alerts.')}
-                </Text>
-              </Stack>
+              <Heading as="h3">{t('Project details')}</Heading>
               <ScmProjectDetailsCore
                 analyticsFlow="project-creation"
                 projectName={form.projectName}
@@ -321,15 +326,17 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
           <Stack gap="md">
             <ProjectCreationErrorAlert error={form.error} />
             <Flex justify="end">
-              <Button
-                variant="primary"
-                onClick={form.submit}
-                disabled={!form.canSubmit}
-                busy={form.isBusy}
-                icon={<IconProject />}
-              >
-                {t('Create project')}
-              </Button>
+              <Tooltip title={submitTooltipText} disabled={!submitTooltipText}>
+                <Button
+                  variant="primary"
+                  onClick={form.submit}
+                  disabled={!form.canSubmit}
+                  busy={form.isBusy}
+                  icon={<IconProject />}
+                >
+                  {t('Create project')}
+                </Button>
+              </Tooltip>
             </Flex>
           </Stack>
         </Stack>

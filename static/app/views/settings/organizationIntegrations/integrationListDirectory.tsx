@@ -141,15 +141,11 @@ function useIntegrationList() {
     isError: isDocIntegrationsError,
   } = useApiQuery<DocIntegration[]>([getApiUrl('/doc-integrations/')], queryOptions);
 
-  const hasLegacyWebhookUI = organization.features.includes('legacy-webhook-ui');
   const {
     data: legacyWebhooks,
     isPending: isLegacyWebhooksPending,
     isError: isLegacyWebhooksError,
-  } = useQuery({
-    ...legacyWebhooksQueryOptions(organization),
-    enabled: hasLegacyWebhookUI,
-  });
+  } = useQuery(legacyWebhooksQueryOptions(organization));
 
   // This is the only conditional query, so we need to handle the pending and error states uniquely
   const extraAppQuery = useQuery(sentryAppApiOptions({appSlug: extraAppSlug}));
@@ -165,7 +161,7 @@ function useIntegrationList() {
     isAppInstallsPending ||
     isDocIntegrationsPending ||
     isExtraAppPending ||
-    (hasLegacyWebhookUI && isLegacyWebhooksPending);
+    isLegacyWebhooksPending;
 
   const anyError =
     isConfigError ||
@@ -175,7 +171,7 @@ function useIntegrationList() {
     isAppInstallsError ||
     isDocIntegrationsError ||
     isExtraAppError ||
-    (hasLegacyWebhookUI && isLegacyWebhooksError);
+    isLegacyWebhooksError;
 
   const sentryAppList = useMemo(() => {
     const list = orgOwnedApps ?? [];
@@ -202,7 +198,6 @@ function useIntegrationList() {
     appInstalls,
     publishedApps,
     list,
-    hasLegacyWebhookUI,
     legacyWebhooks,
   };
 }
@@ -219,7 +214,6 @@ export default function IntegrationListDirectory() {
     list,
     anyError,
     publishedApps,
-    hasLegacyWebhookUI,
     legacyWebhooks,
   } = useIntegrationList();
 
@@ -229,7 +223,6 @@ export default function IntegrationListDirectory() {
   const webhookName = t('Webhooks (Legacy)');
   const webhookCategories = ['notification action'];
   const showLegacyWebhookRow =
-    hasLegacyWebhookUI &&
     !!legacyWebhooks &&
     (!search || webhookName.toLowerCase().includes(search.toLowerCase())) &&
     (!category || webhookCategories.includes(category));
@@ -315,7 +308,7 @@ export default function IntegrationListDirectory() {
         integrationsInstalled.add(sentryApp.slug);
       });
       // add legacy webhooks
-      if (hasLegacyWebhookUI && legacyWebhooks?.projects?.length) {
+      if (legacyWebhooks?.projects?.length) {
         integrationsInstalled.add('legacy-webhooks');
       }
 
@@ -336,7 +329,6 @@ export default function IntegrationListDirectory() {
     integrations,
     publishedApps,
     getAppInstall,
-    hasLegacyWebhookUI,
     legacyWebhooks,
   ]);
 

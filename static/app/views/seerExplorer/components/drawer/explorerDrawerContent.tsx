@@ -1,14 +1,16 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {useDrawerContentContext} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
+import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
@@ -45,8 +47,43 @@ export function ExplorerDrawerContent({
   const {projects} = useProjects();
   const user = useUser();
   const {onClose: closeDrawer = () => {}} = useDrawerContentContext();
+  const {
+    pipWindow,
+    isSupported: isPipSupported,
+    requestPipWindow,
+    closePipWindow,
+  } = usePictureInPicture();
+  const isPoppedOut = pipWindow !== null;
 
-  const [showThinking, setShowThinking] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const handleTogglePictureInPicture = () => {
+    if (isPoppedOut) {
+      // Re-dock back into the drawer.
+      closePipWindow();
+      return;
+    }
+    // Match the popped-out window to the current (resizable) drawer width.
+    const drawerWidth = rootRef.current?.getBoundingClientRect().width;
+    requestPipWindow({
+      width: drawerWidth ? Math.round(drawerWidth) : 480,
+      height: Math.round(window.innerHeight * 0.9),
+      // Open at the browser's default placement rather than wherever the window
+      // happened to be left last time.
+      preferInitialWindowPlacement: true,
+    })
+      .then(() => closeDrawer())
+      .catch(() => {
+        // Failed to open the PiP window — keep the drawer open.
+      });
+  };
+
+  // Persisted so the toggle survives the drawer remounting (e.g. popping out
+  // into the picture-in-picture window, or reopening the drawer).
+  const [showThinking, setShowThinking] = useLocalStorageState(
+    'seer-explorer-show-thinking',
+    false
+  );
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -276,10 +313,14 @@ export function ExplorerDrawerContent({
         handleSend();
       } else if (e.key === 'Escape') {
         e.preventDefault();
-        closeDrawer();
+        if (isPoppedOut) {
+          closePipWindow();
+        } else {
+          closeDrawer();
+        }
       }
     },
-    [handleSend, closeDrawer]
+    [handleSend, closeDrawer, isPoppedOut, closePipWindow]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -368,7 +409,7 @@ export function ExplorerDrawerContent({
           : 'disabled';
 
   return (
-    <DrawerContentContainer data-seer-explorer-root="">
+    <DrawerContentContainer ref={rootRef} data-seer-explorer-root="">
       <ExplorerDrawerHeader
         disableNewChatButton={runId === null}
         onNewChatClick={() => {
@@ -390,6 +431,9 @@ export function ExplorerDrawerContent({
         showThinkingToggle={
           !!organization?.features.includes('seer-explorer-thinking-blocks')
         }
+        isPipSupported={isPipSupported}
+        isPoppedOut={isPoppedOut}
+        onTogglePictureInPicture={handleTogglePictureInPicture}
       />
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>

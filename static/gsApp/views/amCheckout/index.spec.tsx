@@ -119,7 +119,6 @@ describe('Legacy Tier Checkout', () => {
     const am2BizSubscription = SubscriptionFixture({
       organization,
       plan: 'am2_business_bundle',
-      planTier: 'am2',
       categories: {
         errors: MetricHistoryFixture({reserved: 100_000}),
         transactions: MetricHistoryFixture({reserved: 20_000_000}),
@@ -235,9 +234,8 @@ describe('Default Tier Checkout', () => {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toISOString(),
+      billingPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am2_sponsored_team_auf',
-      planTier: PlanTier.AM2,
       isSponsored: true,
       partner: {
         isActive: true,
@@ -283,9 +281,8 @@ describe('Default Tier Checkout', () => {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toISOString(),
+      billingPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am3_f',
-      planTier: PlanTier.AM3,
       isSelfServePartner: true,
       partner: {
         isActive: true,
@@ -327,9 +324,8 @@ describe('Default Tier Checkout', () => {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toISOString(),
+      billingPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am3_f',
-      planTier: PlanTier.AM3,
       isSelfServePartner: true,
       partner: {
         isActive: true,
@@ -370,9 +366,8 @@ describe('Default Tier Checkout', () => {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toISOString(),
+      billingPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am3_f',
-      planTier: PlanTier.AM3,
       isSelfServePartner: true,
       partner: {
         isActive: true,
@@ -413,7 +408,6 @@ describe('Default Tier Checkout', () => {
       organization,
       // This plan does not have hasOnDemandModes
       plan: 'mm2_b_100k',
-      planTier: PlanTier.AM2,
     });
     SubscriptionStore.set(organization.slug, sub);
 
@@ -440,7 +434,6 @@ describe('Default Tier Checkout', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_business',
-      planTier: PlanTier.AM3,
       onDemandBudgets: {
         onDemandSpendUsed: 0,
         sharedMaxBudget: 2000,
@@ -501,7 +494,6 @@ describe('Default Tier Checkout', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_business',
-      planTier: PlanTier.AM3,
       onDemandBudgets: {
         onDemandSpendUsed: 0,
         sharedMaxBudget: 2000,
@@ -561,7 +553,6 @@ describe('Default Tier Checkout', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_business',
-      planTier: PlanTier.AM3,
       categories: {
         // Intentionally omitting 'errors' and 'attachments' categories
         replays: MetricHistoryFixture({reserved: 50}),
@@ -706,7 +697,6 @@ describe('Default Tier Checkout', () => {
     const trialSub = SubscriptionFixture({
       organization,
       plan: 'am3_t',
-      planTier: PlanTier.AM3,
       isTrial: true, // This is true for both subscription trials and plan trials
       categories: {
         // These are high trial volumes that should NOT be used in checkout

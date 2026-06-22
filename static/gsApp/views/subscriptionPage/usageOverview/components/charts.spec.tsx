@@ -4,7 +4,6 @@ import {BillingStatFixture} from 'getsentry-test/fixtures/billingStat';
 import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {UsageTotalFixture} from 'getsentry-test/fixtures/usageTotal';
-import {PlanTier} from 'getsentry-test/planTier';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
@@ -78,7 +77,6 @@ describe('UsageCharts', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am2_team',
-      planTier: PlanTier.AM2,
     });
     organization.features.push('profiling-billing');
     subscription.categories.transactions = {

@@ -16,7 +16,7 @@ import {
   platformProductAvailability,
 } from 'sentry/components/onboarding/productSelection';
 import {PLATFORM_PRODUCT_INFO} from 'sentry/data/platformProductInfo.generated';
-import {IconBroadcast, IconBusiness, IconGeneric} from 'sentry/icons';
+import {IconBroadcast, IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -167,11 +167,12 @@ export function ScmPlatformFeaturesCore({
 
   const currentPlatformName = getPlatformName(currentPlatformKey);
 
-  // Fire scm_platform_selected once per repo when detection auto-resolves a
-  // platform and the user hasn't explicitly chosen one. Otherwise a user who
-  // accepts the recommendation and clicks Continue never emits the event,
-  // leaving the funnel without a platform-selected step. The ref is re-armed
-  // on repo change above so a switch to a new repo fires the event again.
+  // Adopt the first detected platform once per repo when the user hasn't
+  // explicitly chosen one: commit it to the host so flows without a Continue
+  // boundary (single-view project creation) get a platform without an explicit
+  // pick, and fire scm_platform_selected so a user who just accepts the
+  // recommendation still emits a platform-selected funnel step. The ref is
+  // re-armed on repo change above so a switch to a new repo adopts again.
   useEffect(() => {
     if (
       autoDetectionTrackedRef.current ||
@@ -181,12 +182,19 @@ export function ScmPlatformFeaturesCore({
       return;
     }
     autoDetectionTrackedRef.current = true;
+    setPlatform(detectedPlatformKey);
     trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
       organization,
       platform: detectedPlatformKey,
       source: 'detected',
     });
-  }, [detectedPlatformKey, selectedPlatform?.key, organization, analyticsFlow]);
+  }, [
+    detectedPlatformKey,
+    selectedPlatform?.key,
+    organization,
+    analyticsFlow,
+    setPlatform,
+  ]);
 
   // Wizard-driven platforms render an informational variant since the wizard CLI
   // owns product configuration and toggles aren't actionable.
@@ -432,8 +440,8 @@ export function ScmPlatformFeaturesCore({
         >
           <Flex justify="between" align="center">
             <Flex align="center" gap="sm">
-              <IconBroadcast size="sm" variant="secondary" />
-              <Text variant="secondary" bold size="sm" density="comfortable" uppercase>
+              <IconBroadcast size="sm" />
+              <Text bold size="md" density="comfortable">
                 {t('Auto-detected from your repository')}
               </Text>
             </Flex>
@@ -483,8 +491,7 @@ export function ScmPlatformFeaturesCore({
         >
           <Flex justify="between" align="center">
             <Flex align="center" gap="sm">
-              <IconGeneric size="sm" variant="secondary" />
-              <Text variant="secondary" bold size="sm" density="comfortable" uppercase>
+              <Text bold size="md" density="comfortable">
                 {t('Select a platform')}
               </Text>
             </Flex>

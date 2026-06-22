@@ -339,6 +339,7 @@ class RepositoryIntegration(
             )
             scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("stacktrace_link.tried_version", False)
+            scope.set_attribute("stacktrace_link.tried_version", False)
 
             def encode_url(url: str) -> str:
                 parsed = urlparse(url)
@@ -353,12 +354,15 @@ class RepositoryIntegration(
             try:
                 if version:
                     scope.set_tag("stacktrace_link.tried_version", True)
+                    scope.set_attribute("stacktrace_link.tried_version", True)
                     source_url = self.check_file(repo, filepath, version)
                     if source_url:
                         scope.set_tag("stacktrace_link.used_version", True)
+                        scope.set_attribute("stacktrace_link.used_version", True)
                         return encode_url(source_url)
 
                 scope.set_tag("stacktrace_link.used_version", False)
+                scope.set_attribute("stacktrace_link.used_version", False)
                 source_url = self.check_file(repo, filepath, default)
             except (ApiForbiddenError, IntegrationConfigurationError) as e:
                 # Similar to the `check_file` implementation, we need to re-raise

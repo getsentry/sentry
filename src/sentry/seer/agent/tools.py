@@ -57,13 +57,26 @@ from sentry.seer.agent.utils import (
     get_retention_boundary,
 )
 from sentry.seer.autofix.autofix import get_all_tags_overview
+from sentry.seer.autofix.utils import get_repo_url_path
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
+    BaselineTagDistributionEntry,
+    BaselineTagDistributionResponse,
+    ComparativeAttributeDistributionsResponse,
     EAPTrace,
     EmptyResponse,
+    EventDetailsResponse,
     ExecuteQueryErrorResponse,
     ExecuteQuerySuccessResponse,
+    ExecuteTimeseriesQueryErrorResponse,
+    ExecuteTimeseriesQuerySuccessResponse,
     GetDsnResponse,
+    IssueAndEventDetailsResponse,
+    IssueDetailsResponse,
+    ProfileFlamegraphErrorResponse,
+    ProfileFlamegraphMetadata,
+    ProfileFlamegraphSuccessResponse,
+    ReplayMetadataResponse,
     RepositoryDefinitionResponse,
     TraceItemAttributesResponse,
     TraceItemEventsResponse,
@@ -252,7 +265,7 @@ def execute_timeseries_query(
     sampling_mode: SAMPLING_MODES = "NORMAL",
     partial: bool | None = None,
     case_insensitive: bool | None = None,
-) -> dict[str, Any] | None:
+) -> ExecuteTimeseriesQuerySuccessResponse | ExecuteTimeseriesQueryErrorResponse | None:
     """
     Execute a query to get chart/timeseries data by calling the events-stats endpoint.
 
@@ -323,11 +336,9 @@ def execute_timeseries_query(
         if e.status_code == 400:
             logger.exception("execute_timeseries_query: bad request", extra={"org_id": org_id})
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return {
-                "_seer_error_detail": (
-                    str(error_detail) if error_detail is not None else str(e.body)
-                )
-            }
+            return ExecuteTimeseriesQueryErrorResponse(
+                seer_error_detail=(str(error_detail) if error_detail is not None else str(e.body))
+            )
         raise
     data = resp.data
 
@@ -337,20 +348,22 @@ def execute_timeseries_query(
     if metric_name and metric_is_single:
         # Handle grouped data with single metric: wrap each group's data in the metric name
         if group_by:
-            return {
-                group_value: (
-                    {metric_name: group_data}
-                    if isinstance(group_data, dict) and "data" in group_data
-                    else group_data
-                )
-                for group_value, group_data in data.items()
-            }
+            return ExecuteTimeseriesQuerySuccessResponse(
+                __root__={
+                    group_value: (
+                        {metric_name: group_data}
+                        if isinstance(group_data, dict) and "data" in group_data
+                        else group_data
+                    )
+                    for group_value, group_data in data.items()
+                }
+            )
 
         # Handle non-grouped data with single metric: wrap data in the metric name
         if isinstance(data, dict) and "data" in data:
-            return {metric_name: data}
+            return ExecuteTimeseriesQuerySuccessResponse(__root__={metric_name: data})
 
-    return data
+    return ExecuteTimeseriesQuerySuccessResponse(__root__=data)
 
 
 def execute_trace_table_query(
@@ -651,7 +664,7 @@ def rpc_get_profile_flamegraph(
     organization_id: int,
     trace_id: str | None = None,
     span_description: str | None = None,
-) -> dict[str, Any]:
+) -> ProfileFlamegraphSuccessResponse | ProfileFlamegraphErrorResponse:
     """
     Fetch and format a profile flamegraph by profile ID (8-char or full 32-char).
 
@@ -680,7 +693,7 @@ def rpc_get_profile_flamegraph(
             "rpc_get_profile_flamegraph: Organization not found",
             extra={"organization_id": organization_id},
         )
-        return {"error": "Organization not found"}
+        return ProfileFlamegraphErrorResponse(error="Organization not found")
 
     # Get all projects for the organization
     projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
@@ -690,7 +703,7 @@ def rpc_get_profile_flamegraph(
             "rpc_get_profile_flamegraph: No projects found for organization",
             extra={"organization_id": organization_id},
         )
-        return {"error": "No projects found for organization"}
+        return ProfileFlamegraphErrorResponse(error="No projects found for organization")
 
     # Search up to 90 days back using 14-day sliding windows
     now = datetime.now(UTC)
@@ -791,13 +804,13 @@ def rpc_get_profile_flamegraph(
             "rpc_get_profile_flamegraph: Profile not found",
             extra={"profile_id": profile_id, "organization_id": organization_id},
         )
-        return {"error": "Profile not found in the last 90 days"}
+        return ProfileFlamegraphErrorResponse(error="Profile not found in the last 90 days")
     if not project_id:
         logger.warning(
             "rpc_get_profile_flamegraph: Could not find project id for profile",
             extra={"profile_id": profile_id, "organization_id": organization_id},
         )
-        return {"error": "Project not found"}
+        return ProfileFlamegraphErrorResponse(error="Project not found")
 
     logger.info(
         "rpc_get_profile_flamegraph: Found profile",
@@ -825,7 +838,9 @@ def rpc_get_profile_flamegraph(
             "rpc_get_profile_flamegraph: Failed to fetch profile data from profiling service",
             extra={"profile_id": actual_profile_id, "project_id": project_id},
         )
-        return {"error": "Failed to fetch profile data from profiling service"}
+        return ProfileFlamegraphErrorResponse(
+            error="Failed to fetch profile data from profiling service"
+        )
 
     # Convert to execution tree (returns dicts, not Pydantic models)
     execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
@@ -839,19 +854,21 @@ def rpc_get_profile_flamegraph(
                 "raw_profile_data": profile_data,
             },
         )
-        return {"error": "Failed to generate execution tree from profile data"}
+        return ProfileFlamegraphErrorResponse(
+            error="Failed to generate execution tree from profile data"
+        )
 
-    return {
-        "execution_tree": execution_tree,
-        "metadata": {
-            "profile_id": actual_profile_id,
-            "project_id": project_id,
-            "is_continuous": is_continuous,
-            "start_ts": min_start_ts,
-            "end_ts": max_end_ts,
-            "thread_id": selected_thread_id,
-        },
-    }
+    return ProfileFlamegraphSuccessResponse(
+        execution_tree=execution_tree,
+        metadata=ProfileFlamegraphMetadata(
+            profile_id=actual_profile_id,
+            project_id=project_id,
+            is_continuous=is_continuous,
+            start_ts=min_start_ts,
+            end_ts=max_end_ts,
+            thread_id=selected_thread_id,
+        ),
+    )
 
 
 def get_repository_definition(
@@ -922,7 +939,9 @@ def get_repository_definition(
         return None
 
     # Use the actual repo name from the database, not the requested name.
-    repo_name_parts = repo.name.split("/")
+    # For GitLab, repo.name is the display name (name_with_namespace, may contain spaces);
+    # get_repo_url_path() returns the URL-safe path_with_namespace instead.
+    repo_name_parts = get_repo_url_path(repo).split("/")
     owner = repo_name_parts[0]
     name = "/".join(repo_name_parts[1:])
 
@@ -1004,9 +1023,9 @@ def _get_issue_event_timeseries(
         partial=True,
     )
 
-    if data is None or data.get("_seer_error_detail"):
+    if data is None or isinstance(data, ExecuteTimeseriesQueryErrorResponse):
         return None
-    return data, selected_period, interval
+    return data.dict(), selected_period, interval
 
 
 def _get_recommended_event(
@@ -1245,11 +1264,11 @@ def get_issue_and_event_response(
     organization: Organization,
     start: datetime | None = None,
     end: datetime | None = None,
-) -> dict[str, Any]:
+) -> IssueAndEventDetailsResponse:
     serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
     serialized_event.update(_get_event_troubleshooting_context(event))
 
-    result = {
+    event_fields: dict[str, Any] = {
         "event": serialized_event,
         "event_id": event.event_id,
         "event_trace_id": event.trace_id,
@@ -1257,88 +1276,88 @@ def get_issue_and_event_response(
         "project_slug": event.project.slug,
     }
 
-    if group is not None:
-        # Get the issue metadata, tags overview, and event count timeseries.
-        serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
-        # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
-        serialized_group["issueTypeDescription"] = group.issue_type.description
+    if group is None:
+        return IssueAndEventDetailsResponse(**event_fields)
 
-        logger.info(
-            "get_issue_and_event_details_v2: Querying for tags overview",
+    # Get the issue metadata, tags overview, and event count timeseries.
+    serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
+    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
+    serialized_group["issueTypeDescription"] = group.issue_type.description
+
+    logger.info(
+        "get_issue_and_event_details_v2: Querying for tags overview",
+        extra={
+            "organization_id": organization.id,
+            "issue_id": group.id,
+            "timedelta": (end - start) if start and end else None,
+            "start": start,
+            "end": end,
+        },
+    )
+
+    try:
+        tags_overview = get_all_tags_overview(group, start, end)
+    except Exception:
+        logger.exception(
+            "Failed to get tags overview for issue",
             extra={
                 "organization_id": organization.id,
                 "issue_id": group.id,
-                "timedelta": (end - start) if start and end else None,
                 "start": start,
                 "end": end,
             },
         )
+        tags_overview = None
 
-        try:
-            tags_overview = get_all_tags_overview(group, start, end)
-        except Exception:
-            logger.exception(
-                "Failed to get tags overview for issue",
-                extra={
-                    "organization_id": organization.id,
-                    "issue_id": group.id,
-                    "start": start,
-                    "end": end,
-                },
-            )
-            tags_overview = None
+    try:
+        ts_result = _get_issue_event_timeseries(
+            group=group,
+            organization=organization,
+            start=start,
+            end=end,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to get issue event timeseries",
+            extra={
+                "organization_id": organization.id,
+                "issue_id": group.id,
+                "start": start,
+                "end": end,
+            },
+        )
+        ts_result = None
 
-        try:
-            ts_result = _get_issue_event_timeseries(
-                group=group,
-                organization=organization,
-                start=start,
-                end=end,
-            )
-        except Exception:
-            logger.exception(
-                "Failed to get issue event timeseries",
-                extra={
-                    "organization_id": organization.id,
-                    "issue_id": group.id,
-                    "start": start,
-                    "end": end,
-                },
-            )
-            ts_result = None
+    if ts_result:
+        timeseries, timeseries_stats_period, timeseries_interval = ts_result
+    else:
+        timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
-        if ts_result:
-            timeseries, timeseries_stats_period, timeseries_interval = ts_result
-        else:
-            timeseries, timeseries_stats_period, timeseries_interval = None, None, None
+    # Fetch user activity (comments, status changes, etc.)
+    try:
+        activities = Activity.objects.filter(
+            group=group,
+            type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
+        ).order_by("-datetime")[:50]
+        serialized_activities = serialize(
+            list(activities), user=None, serializer=ActivitySerializer()
+        )
+    except Exception:
+        logger.exception(
+            "Failed to get user activity for issue",
+            extra={"organization_id": organization.id, "issue_id": group.id},
+        )
+        serialized_activities = []
 
-        # Fetch user activity (comments, status changes, etc.)
-        try:
-            activities = Activity.objects.filter(
-                group=group,
-                type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
-            ).order_by("-datetime")[:50]
-            serialized_activities = serialize(
-                list(activities), user=None, serializer=ActivitySerializer()
-            )
-        except Exception:
-            logger.exception(
-                "Failed to get user activity for issue",
-                extra={"organization_id": organization.id, "issue_id": group.id},
-            )
-            serialized_activities = []
-
-        result = {
-            **result,
-            "issue": serialized_group,
-            "event_timeseries": timeseries,
-            "timeseries_stats_period": timeseries_stats_period,
-            "timeseries_interval": timeseries_interval,
-            "tags_overview": tags_overview,
-            "user_activity": serialized_activities,
-        }
-
-    return result
+    return IssueAndEventDetailsResponse(
+        **event_fields,
+        issue=serialized_group,
+        event_timeseries=timeseries,
+        timeseries_stats_period=timeseries_stats_period,
+        timeseries_interval=timeseries_interval,
+        tags_overview=tags_overview,
+        user_activity=serialized_activities,
+    )
 
 
 def get_issue_details(
@@ -1348,7 +1367,7 @@ def get_issue_details(
     start: str | None = None,
     end: str | None = None,
     project_slug: str | None = None,
-) -> dict[str, Any] | None:
+) -> IssueDetailsResponse | None:
     """
     Get issue-level details for an issue, optionally scoped by time range.
 
@@ -1433,16 +1452,16 @@ def get_issue_details(
         )
         serialized_activities = []
 
-    return {
-        "issue": serialized_group,
-        "event_timeseries": timeseries,
-        "timeseries_stats_period": timeseries_stats_period,
-        "timeseries_interval": timeseries_interval,
-        "tags_overview": tags_overview,
-        "user_activity": serialized_activities,
-        "project_id": group.project_id,
-        "project_slug": group.project.slug,
-    }
+    return IssueDetailsResponse(
+        issue=serialized_group,
+        event_timeseries=timeseries,
+        timeseries_stats_period=timeseries_stats_period,
+        timeseries_interval=timeseries_interval,
+        tags_overview=tags_overview,
+        user_activity=serialized_activities,
+        project_id=group.project_id,
+        project_slug=group.project.slug,
+    )
 
 
 def get_event_details(
@@ -1453,7 +1472,7 @@ def get_event_details(
     start: str | None = None,
     end: str | None = None,
     project_slug: str | None = None,
-) -> dict[str, Any] | None:
+) -> EventDetailsResponse | None:
     """
     Get event details by event ID, or get the recommended event for an issue, optionally scoped by time range.
     Exactly one of event_id or issue_id must be provided.
@@ -1554,13 +1573,13 @@ def get_event_details(
     serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
     serialized_event.update(_get_event_troubleshooting_context(event))
 
-    return {
-        "event": serialized_event,
-        "event_id": event.event_id,
-        "event_trace_id": event.trace_id,
-        "project_id": event.project_id,
-        "project_slug": event.project.slug,
-    }
+    return EventDetailsResponse(
+        event=serialized_event,
+        event_id=event.event_id,
+        event_trace_id=event.trace_id,
+        project_id=event.project_id,
+        project_slug=event.project.slug,
+    )
 
 
 def get_issue_and_event_details_v2(
@@ -1572,7 +1591,7 @@ def get_issue_and_event_details_v2(
     event_id: str | None = None,
     project_slug: str | None = None,
     include_issue: bool = True,
-) -> dict[str, Any] | None:
+) -> IssueAndEventDetailsResponse | None:
     if bool(issue_id) == bool(event_id):
         raise BadRequest("Either issue_id or event_id must be provided, but not both.")
 
@@ -1680,7 +1699,7 @@ def get_replay_metadata(
     replay_id: str,
     organization_id: int,
     project_slug: str | None = None,
-) -> dict[str, Any] | None:
+) -> ReplayMetadataResponse | None:
     """
     Get the metadata for a replay through an aggregate replay event query.
 
@@ -1777,7 +1796,7 @@ def get_replay_metadata(
     result["project_slug"] = next(
         filter(lambda x: x[0] == int(result["project_id"]), p_ids_and_slugs)
     )[1]
-    return result
+    return ReplayMetadataResponse(__root__=result)
 
 
 def get_trace_item_attributes(
@@ -2120,7 +2139,7 @@ def get_baseline_tag_distribution(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-) -> dict[str, Any] | None:
+) -> BaselineTagDistributionResponse:
     """
     Get baseline tag distribution for suspect attributes analysis.
 
@@ -2155,7 +2174,7 @@ def get_baseline_tag_distribution(
     )
 
     if not tag_keys:
-        return {"baseline_tag_distribution": []}
+        return BaselineTagDistributionResponse(baseline_tag_distribution=[])
 
     # Use first/last seen if date params are not provided.
     start_dt, end_dt = get_group_date_range(group, organization, start_dt, end_dt)
@@ -2223,15 +2242,11 @@ def get_baseline_tag_distribution(
             combined_counts[key] = combined_counts.get(key, 0) + result["count"]
 
     baseline_distribution = [
-        {
-            "tag_key": tag_key,
-            "tag_value": tag_value,
-            "count": count,
-        }
+        BaselineTagDistributionEntry(tag_key=tag_key, tag_value=tag_value, count=count)
         for (tag_key, tag_value), count in combined_counts.items()
     ]
 
-    return {"baseline_tag_distribution": baseline_distribution}
+    return BaselineTagDistributionResponse(baseline_tag_distribution=baseline_distribution)
 
 
 def get_comparative_attribute_distributions(
@@ -2248,7 +2263,7 @@ def get_comparative_attribute_distributions(
     project_ids: list[int] | None = None,
     project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
-) -> dict[str, Any] | None:
+) -> ComparativeAttributeDistributionsResponse:
     """
     Fetch span attribute distributions for a selected time range (minute precision) compared to a baseline (defined by start/end/stats_period params).
     The selected range should be smaller and within the larger range. This is not validated.
@@ -2317,13 +2332,13 @@ def get_comparative_attribute_distributions(
         query_2=query_2,
     )
 
-    return {
-        "baseline_distribution": distributions_result["cohort_2_distribution"],
-        "total_baseline": distributions_result["total_cohort_2"],
-        "outliers_distribution": distributions_result["cohort_1_distribution"],
-        "total_outliers": distributions_result["total_cohort_1"],
-        "outliers_function_value": distributions_result["cohort_1_function_value"],
-    }
+    return ComparativeAttributeDistributionsResponse(
+        baseline_distribution=distributions_result["cohort_2_distribution"],
+        total_baseline=distributions_result["total_cohort_2"],
+        outliers_distribution=distributions_result["cohort_1_distribution"],
+        total_outliers=distributions_result["total_cohort_1"],
+        outliers_function_value=distributions_result["cohort_1_function_value"],
+    )
 
 
 def get_dsn(

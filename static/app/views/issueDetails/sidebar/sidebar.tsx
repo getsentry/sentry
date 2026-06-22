@@ -95,7 +95,7 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
           <StyledBreak />
           {showSeerSection && (
             <ErrorBoundary mini>
-              <AutofixSection group={group} project={project} event={event} />
+              <AutofixSection group={group} project={project} />
             </ErrorBoundary>
           )}
           {event && (

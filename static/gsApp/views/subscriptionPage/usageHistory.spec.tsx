@@ -70,7 +70,6 @@ describe('Subscription > UsageHistory', () => {
     const org = OrganizationFixture();
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization: org,
     });
     SubscriptionStore.set(org.slug, subscription);
@@ -88,7 +87,6 @@ describe('Subscription > UsageHistory', () => {
 
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -107,7 +105,6 @@ describe('Subscription > UsageHistory', () => {
 
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -139,7 +136,6 @@ describe('Subscription > UsageHistory', () => {
 
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -181,7 +177,6 @@ describe('Subscription > UsageHistory', () => {
 
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -224,7 +219,6 @@ describe('Subscription > UsageHistory', () => {
 
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -266,7 +260,6 @@ describe('Subscription > UsageHistory', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -318,7 +311,6 @@ describe('Subscription > UsageHistory', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -352,7 +344,6 @@ describe('Subscription > UsageHistory', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -395,7 +386,6 @@ describe('Subscription > UsageHistory', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -438,7 +428,6 @@ describe('Subscription > UsageHistory', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -482,7 +471,6 @@ describe('Subscription > UsageHistory', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);

@@ -12,8 +12,10 @@ from sentry.seer.assisted_query.issues_tools import (
     get_issues_stats,
 )
 from sentry.seer.sentry_data_models import (
+    ExecuteIssuesQuerySuccessResponse,
     FilterKeyValuesResponse,
     IssueFilterKeysResponse,
+    IssuesStatsResponse,
 )
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -543,7 +545,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, ExecuteIssuesQuerySuccessResponse)
         assert len(result) >= 2
 
         # Check structure of returned issues
@@ -575,7 +577,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, ExecuteIssuesQuerySuccessResponse)
         # Should have at least our error event
         assert len(result) >= 1
 
@@ -602,7 +604,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, ExecuteIssuesQuerySuccessResponse)
         assert len(result) >= 3
 
     def test_execute_issues_query_with_limit(self) -> None:
@@ -627,7 +629,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, ExecuteIssuesQuerySuccessResponse)
         # Should respect limit
         assert len(result) <= 2
 
@@ -671,7 +673,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, ExecuteIssuesQuerySuccessResponse)
         # Should have issues from both projects
         assert len(result) >= 2
         project_ids = {issue["project"]["id"] for issue in result}
@@ -717,8 +719,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
             stats_period="24h",
         )
 
-        assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, IssuesStatsResponse)
         assert len(result) == 2
 
         # Verify each stat has the expected fields
@@ -797,8 +798,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
             stats_period="24h",
         )
 
-        assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, IssuesStatsResponse)
         # Should return stats for both issues
         assert len(result) >= 2
         returned_issue_ids = {stat["id"] for stat in result}
@@ -827,8 +827,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
             stats_period="24h",
         )
 
-        assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, IssuesStatsResponse)
         assert len(result) == 0
 
     def test_get_issues_stats_stats_and_lifetime_structure(self) -> None:

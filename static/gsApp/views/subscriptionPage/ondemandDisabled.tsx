@@ -23,7 +23,6 @@
  * @param props.subscription - The organization's subscription object containing:
  *   - onDemandDisabled: boolean indicating if on-demand billing is disabled
  *   - onDemandMaxSpend: number indicating maximum on-demand spend limit
- *   - planTier: string indicating the subscription plan tier
  */
 import {NavLink} from 'react-router-dom';
 

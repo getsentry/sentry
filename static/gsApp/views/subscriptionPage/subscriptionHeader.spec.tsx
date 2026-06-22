@@ -386,7 +386,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -399,7 +398,7 @@ describe('SubscriptionHeader', () => {
       },
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -419,7 +418,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -432,7 +430,7 @@ describe('SubscriptionHeader', () => {
       },
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(50, 'days').toISOString(),
+      billingPeriodEnd: now.add(50, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -452,7 +450,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -472,7 +469,7 @@ describe('SubscriptionHeader', () => {
       }),
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -492,7 +489,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -512,7 +508,7 @@ describe('SubscriptionHeader', () => {
       }),
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);

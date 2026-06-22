@@ -7,7 +7,7 @@
     {% if is_new_user %}
         <p>Thanks for signing up for Sentry</p>
     {% endif %}
-    <p>Please confirm your email ({{ confirm_email }}) by clicking the button below. This link will expire in 48 hours.</p>
+    <p>Please confirm your email ({{ confirm_email }}) by clicking the button below. This link will expire in {{ expiry_text|default:"48 hours" }}.</p>
     <p><a href="{{ url }}" class="btn">Confirm</a></p>
     {% if is_new_user %}
         <p>If you did not sign up, you may simply ignore this email.</p>

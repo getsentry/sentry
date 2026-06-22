@@ -33,6 +33,7 @@ DB_TEST_PREFIX = "../sentry/tests/"
 
 # Known sentry test directory names.
 TEST_DIRS = (
+    "tests/apigw/",
     "tests/sentry/",
     "tests/snuba/",
     "tests/relay_integration/",
@@ -55,6 +56,9 @@ FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     re.compile(r"(^|/)conftest\.py$"),
     "src/sentry/runner/initializer.py",
     "src/sentry/constants.py",
+    # column-alias enum evaluated at import time; used indirectly by every
+    # Snuba query builder so coverage never records per-test contexts for it
+    "src/sentry/snuba/events.py",
     # option defaults registered at startup via initialize_app()
     re.compile(r"^src/sentry/options/"),
     # feature flags registered via manager.add() at import time
@@ -123,6 +127,22 @@ EXCLUDED_TEST_PATTERNS: list[re.Pattern[str]] = [
 ALWAYS_RUN_TESTS: set[str] = {
     "tests/sentry/taskworker/test_config.py",
     "tests/sentry/management/commands/test_generate_controlsilo_urls.py",
+    # apigw must stay in sync with sentry (url -> silo mapping, model queries),
+    # so any backend change can affect these. Coverage can't attribute the
+    # routing test to source files: both the django url conf and the apigw
+    # routing table are built at import time, before any per-test coverage
+    # context is active.
+    "tests/apigw/test_db.py",
+    "tests/apigw/test_routing.py",
+    # Both of these tests check global codebase invariants via runtime discovery —
+    # the same reason the apigw tests above are always run. Coverage can't attribute
+    # them to individual source files because the discovery happens at startup,
+    # before per-test coverage contexts are active:
+    #   test_base.py: walks all endpoint subclasses to check for silo decorators
+    #   test_validate.py: walks the Django ORM registry (get_exportable_sentry_models)
+    #     to assign comparators — __relocation_scope__ changes on any model are invisible
+    "tests/sentry/silo/test_base.py",
+    "tests/sentry/backup/test_validate.py",
 }
 
 
