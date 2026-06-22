@@ -598,9 +598,7 @@ describe('isPrIterationBlock', () => {
 describe('isRunValidForPrIteration', () => {
   it('is true only when the autofix-pr-iteration feature is enabled', () => {
     expect(
-      isRunValidForPrIteration(
-        OrganizationFixture({features: ['autofix-pr-iteration']})
-      )
+      isRunValidForPrIteration(OrganizationFixture({features: ['autofix-pr-iteration']}))
     ).toBe(true);
     expect(isRunValidForPrIteration(OrganizationFixture({features: []}))).toBe(false);
   });
