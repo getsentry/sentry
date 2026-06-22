@@ -217,7 +217,8 @@ export function MetricQueryRows({
   // We currently only support labels up to Z and do not have defined behaviour beyond
   // that, so restrict the UI if they exceed the max number of charts or the Z label is used.
   const hasMaxMetrics =
-    metricQueries.length >= MAX_METRICS_ALLOWED || referencedLabels.has('Z');
+    metricQueries.length >= MAX_METRICS_ALLOWED ||
+    metricQueries.some(q => q.label === 'Z');
 
   return (
     <Stack gap="lg" flex="1">

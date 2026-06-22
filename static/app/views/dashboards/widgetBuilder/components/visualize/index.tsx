@@ -622,7 +622,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
 
   const hasMaxMetrics =
     state.dataset === WidgetType.TRACEMETRICS &&
-    Boolean(fields?.length && fields.length >= MAX_METRICS_ALLOWED);
+    ((aggregateFields ?? state.yAxis)?.length ?? 0) >= MAX_METRICS_ALLOWED;
 
   return (
     <Fragment>
