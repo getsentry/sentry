@@ -92,8 +92,11 @@ def _validate_project_config(config):
     # Relay uses a BTreeSet for features:
     if features := config.get("features"):
         config["features"] = sorted(features)
+    # normalize_project_config strips trustedRelaySettings when verifySignature is "disabled"
+    # (the Relay SDK treats absent and disabled as equivalent), so exclude it from the check.
+    config_without_trusted_relay = {k: v for k, v in config.items() if k != "trustedRelaySettings"}
 
-    assert normalize_project_config(config) == config
+    assert normalize_project_config(config_without_trusted_relay) == config_without_trusted_relay
 
 
 @django_db_all
@@ -1498,7 +1501,9 @@ def test_project_config_trusted_relay_settings_disabled(default_project):
 
     config = get_project_config(default_project).to_dict()
 
-    assert config["config"].get("trustedRelaySettings") is None
+    trusted_relay_settings = config["config"].get("trustedRelaySettings")
+    assert trusted_relay_settings is not None
+    assert trusted_relay_settings["verifySignature"] == "disabled"
 
 
 @django_db_all
