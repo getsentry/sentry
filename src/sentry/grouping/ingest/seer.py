@@ -1,5 +1,5 @@
 import logging
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from typing import Any
 
 import sentry_sdk
@@ -389,8 +389,11 @@ def get_seer_similar_issues(
         # Similar issues are returned sorted in descending order of similarity, so we want to use
         # the first match we find.
         for seer_result in seer_results:
-            parent_grouphash = parent_grouphashes_by_hash[seer_result.parent_hash]
-            can_use_parent_grouphash = _should_use_seer_match_for_grouping(
+            parent_grouphash = parent_grouphashes_by_hash.get(seer_result.parent_hash)
+            if parent_grouphash is None:
+                continue
+
+            match_result = _should_use_seer_match_for_grouping(
                 event,
                 event_grouphash,
                 parent_grouphash,
@@ -398,9 +401,10 @@ def get_seer_similar_issues(
                 event_exception_type,
                 parent_grouphashes_checked,
             )
-            parent_grouphashes_checked += 1
+            if match_result.hybrid_related:
+                parent_grouphashes_checked += 1
 
-            if can_use_parent_grouphash:
+            if match_result.accepted:
                 winning_parent_grouphash = parent_grouphash
                 matching_seer_result = asdict(seer_result)
                 stacktrace_distance = seer_result.stacktrace_distance
@@ -490,6 +494,12 @@ def get_seer_similar_issues(
     return (stacktrace_distance, winning_parent_grouphash, model_used)
 
 
+@dataclass(frozen=True)
+class SeerMatchResult:
+    accepted: bool
+    hybrid_related: bool
+
+
 def _should_use_seer_match_for_grouping(
     event: Event,
     event_grouphash: GroupHash,
@@ -497,20 +507,20 @@ def _should_use_seer_match_for_grouping(
     event_has_hybrid_fingerprint: bool,
     event_exception_type: str | None,
     num_grouphashes_previously_checked: int,
-) -> bool:
+) -> SeerMatchResult:
     """
     Determine if a match returned from Seer can be used to group the given event.
 
-    Rejects matches where the exception type differs, since regular Sentry grouping always
-    keeps different exception types in separate groups.
+    Returns a SeerMatchResult indicating whether the match is accepted and whether the
+    check is hybrid-fingerprint-related (for metrics accounting).
 
-    If neither the event nor the Seer match has a hybrid fingerprint, return True. Seer matches
-    without the necessary metadata to make a determination are considered non-hybrid.
-
-    If the event is hybrid and the match is not (or vice versa), return False.
-
-    If they are both hybrid, return True if their fingerprints match, and False otherwise.
+    Checks applied in order:
+    - Exception type mismatch: rejects when event and parent have different exception types.
+      Skipped for synthetic exceptions (matching regular grouping behavior).
+    - Hybrid fingerprint compatibility: rejects when fingerprint types or values don't match.
     """
+    # Exception type check — reject before hybrid fingerprint logic so mismatches don't
+    # inflate hybrid fingerprint metrics.
     parent_group = parent_grouphash.group
     if parent_group is not None:
         parent_exception_type = get_path(parent_group.data, "metadata", "type")
@@ -524,7 +534,7 @@ def _should_use_seer_match_for_grouping(
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={"platform": event.platform},
             )
-            return False
+            return SeerMatchResult(accepted=False, hybrid_related=False)
 
     parent_has_hybrid_fingerprint = (
         get_fingerprint_type(parent_grouphash.get_associated_fingerprint()) == "hybrid"
@@ -541,7 +551,7 @@ def _should_use_seer_match_for_grouping(
                 tags={"platform": event.platform, "result": "non-hybrid"},
             )
 
-        return True
+        return SeerMatchResult(accepted=True, hybrid_related=True)
 
     # This check will catch both fingerprint type match and fingerprint value match
     fingerprints_match = check_grouphashes_for_positive_fingerprint_match(
@@ -568,7 +578,7 @@ def _should_use_seer_match_for_grouping(
         tags={"platform": event.platform, "result": result},
     )
 
-    return fingerprints_match
+    return SeerMatchResult(accepted=fingerprints_match, hybrid_related=True)
 
 
 @sentry_sdk.tracing.trace
