@@ -3,7 +3,12 @@ from __future__ import annotations
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, cell_silo_model
+from sentry.db.models import (
+    BoundedIntegerField,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    cell_silo_model,
+)
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
@@ -51,3 +56,36 @@ class OrganizationContributors(DefaultFieldsModel):
         Check if the contributor is a bot (has a [bot] suffix) or is Copilot (special case without [bot] suffix)
         """
         return self.alias is not None and (self.alias.endswith("[bot]") or self.alias == "Copilot")
+
+
+@cell_silo_model
+class OrganizationContributorAction(DefaultFieldsModel):
+    """
+    Append-only record of a contributor's billable action: one row per pull request, written the
+    first time that PR is opened. Used to count and display a contributor's actions for a billing
+    period.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    organization_contributor = FlexibleForeignKey(
+        "sentry.OrganizationContributors", on_delete=models.CASCADE
+    )
+    # Ensure a durable PR identity by avoiding a Repository or PullRequest FK.
+    repository_id = BoundedPositiveIntegerField()
+    pr_number = models.CharField(max_length=64)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_organizationcontributoraction"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["repository_id", "pr_number"], name="sentry_orgcontaction_unique_pr"
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["organization_contributor", "date_added"],
+                name="sentry_orgcontaction_date",
+            )
+        ]
