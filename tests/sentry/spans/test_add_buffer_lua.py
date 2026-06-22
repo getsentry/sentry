@@ -54,6 +54,7 @@ def eval_add_buffer_script(
     byte_count: int = 0,
     max_segment_bytes: int = 0,
     check_flush_lock: bool = False,
+    metrics_sample_rate: int = 1,
 ) -> list[Any]:
     sha = client.script_load(add_buffer_script.script)
     return client.execute_command(
@@ -69,6 +70,7 @@ def eval_add_buffer_script(
         max_segment_bytes,
         salt,
         "true" if check_flush_lock else "false",
+        metrics_sample_rate,
         *span_ids,
     )
 

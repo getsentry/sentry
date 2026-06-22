@@ -32,6 +32,7 @@ ARGS:
                  is detached into its own segment keyed by salt.
 - check_flush_lock -- "true" or "false" -- When true, this script checks for the per-segment flush lock and detaches
                                            the subsegment if the target segment is currently being flushed.
+- metrics_sample_rate -- int -- Collect metrics for 1 in N calls. 1 samples every call; 100 samples ~1%.
 - *span_id -- str[] -- The span ids in the subsegment.
 
 RETURNS:
@@ -41,9 +42,9 @@ RETURNS:
 - latency_table -- table -- Per-step latency measurements. Empty when this call is not sampled.
 - metrics_table -- table -- Per-step gauge metrics. Empty when this call is not sampled.
 
-NOTE: The latency_table, metrics_table and latency_ms are only populated for a ~1% sample of calls
-(see METRICS_SAMPLE_MODULO below). These are distribution/gauge metrics, so the sampled subset is
-statistically representative.
+NOTE: The latency_table, metrics_table and latency_ms are only populated for a sampled subset of
+calls (1 in metrics_sample_rate, see ARGS above). These are distribution/gauge metrics, so the
+sampled subset is statistically representative.
 
 ]] --
 
@@ -79,7 +80,8 @@ local byte_count = tonumber(ARGV[5])
 local max_segment_bytes = tonumber(ARGV[6])
 local salt = ARGV[7] or ""
 local check_flush_lock = ARGV[8] == "true"
-local NUM_ARGS = 8
+local metrics_sample_rate = tonumber(ARGV[9])
+local NUM_ARGS = 9
 
 local function get_time_ms()
     local time = redis.call("TIME")
@@ -88,8 +90,9 @@ end
 
 local now = redis.call("TIME")
 
--- Reuse the time microseconds to make a sampling decision.
-local sample_metrics = (tonumber(now[2]) % 100) == 0
+-- Reuse the time microseconds to make a sampling decision. A rate of 1 samples
+-- every call; a rate of 100 samples ~1% of calls.
+local sample_metrics = (tonumber(now[2]) % metrics_sample_rate) == 0
 
 local start_time_ms = 0
 if sample_metrics then
@@ -236,7 +239,8 @@ if sample_metrics then
     local counter_merge_end_time_ms = get_time_ms()
     table.insert(latency_table,
         { "counter_merge_step_latency_ms", counter_merge_end_time_ms - merge_payload_keys_end_time_ms })
-    table.insert(latency_table, { "total_step_latency_ms", counter_merge_end_time_ms - start_time_ms })
+    latency_ms = counter_merge_end_time_ms - start_time_ms
+    table.insert(latency_table, { "total_step_latency_ms", latency_ms })
 end
 
 return { set_key, has_root_span, latency_ms, latency_table, metrics_table }
