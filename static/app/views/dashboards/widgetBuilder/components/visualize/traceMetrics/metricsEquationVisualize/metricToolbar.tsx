@@ -7,6 +7,7 @@ import {Radio} from '@sentry/scraps/radio';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
+import {RATE_AGGREGATES} from 'sentry/views/explore/metrics/constants';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 import {extractReferenceLabels} from 'sentry/views/explore/metrics/equationBuilder/utils';
 import {
@@ -25,6 +26,13 @@ import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+const RATE_AGGREGATE_DISABLED_REASON = t(
+  'Rate aggregates are not supported in equations'
+);
+const DISABLED_EQUATION_AGGREGATES: Record<string, string> = Object.fromEntries(
+  [...RATE_AGGREGATES].map(agg => [agg, RATE_AGGREGATE_DISABLED_REASON])
+);
 
 const GRID_COLUMNS = 'auto 1fr auto';
 
@@ -95,7 +103,11 @@ export function MetricToolbar({
               />
             </Flex>
             <Flex flex="1" minWidth="0">
-              <AggregateDropdown traceMetric={traceMetric} singleSelect />
+              <AggregateDropdown
+                traceMetric={traceMetric}
+                singleSelect
+                disabledAggregates={DISABLED_EQUATION_AGGREGATES}
+              />
             </Flex>
           </Fragment>
         ) : isEquation ? (

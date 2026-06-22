@@ -2427,7 +2427,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=13.1.1" },
-    { name = "taskbroker-client", specifier = ">=0.19.3" },
+    { name = "taskbroker-client", specifier = ">=0.20.0" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2820,7 +2820,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.19.3"
+version = "0.20.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2828,7 +2828,6 @@ dependencies = [
     { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "grpcio-health-checking", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "msgpack", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "orjson", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "redis", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "redis-py-cluster", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2838,7 +2837,7 @@ dependencies = [
     { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.19.3-py3-none-any.whl", hash = "sha256:4359b5906902e254d8c3efa1492dc249d4ed0678146e87b14c82769742da433f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.0-py3-none-any.whl", hash = "sha256:0c7af97508162af86f3d925ded28101c4a4266437f382a5d8212cdb889cfc9fa" },
 ]
 
 [[package]]

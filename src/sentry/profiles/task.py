@@ -157,7 +157,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.profiles.task.process_profile_from_kafka",
     namespace=ingest_profiling_passthrough_tasks,
-    processing_deadline_duration=60,
+    processing_deadline_duration=80,
     retry=Retry(times=2, delay=5),
     compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.CELL,
@@ -176,7 +176,7 @@ def process_profile_from_kafka(
 @instrumented_task(
     name="sentry.profiles.task.process_profile",
     namespace=ingest_profiling_tasks,
-    processing_deadline_duration=60,
+    processing_deadline_duration=80,
     retry=Retry(times=2, delay=5),
     compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.CELL,
