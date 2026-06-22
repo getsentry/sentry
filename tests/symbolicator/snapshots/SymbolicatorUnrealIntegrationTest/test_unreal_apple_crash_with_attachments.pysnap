@@ -1,7 +1,5 @@
 ---
-created: '2023-06-19T11:19:37.050282Z'
-creator: sentry
-source: tests/symbolicator/test_unreal_full.py
+source: tests/symbolicator/test_unreal_full.py::test_unreal_apple_crash_with_attachments
 ---
 contexts:
   device:
@@ -17,6 +15,11 @@ contexts:
     name: macOS
     type: os
     version: 10.14.0
+  trace:
+    span_id: acc006c41ee3430e
+    status: unknown
+    trace_id: acc006c41ee3430ebb3b455c6759f0fd
+    type: trace
   unreal:
     app_default_locate: en-AT
     base_dir: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/UE4/YetAnotherMac/Binaries/Mac/
