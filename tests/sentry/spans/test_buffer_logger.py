@@ -106,6 +106,7 @@ def test_insert_spans_metrics_ignores_unsampled_results() -> None:
             latency_ms=-1,
             latency_metrics=[],
             gauge_metrics=[],
+            merged_segment_span_ids=[],
         ),
     )
     # Sampled call.
@@ -117,6 +118,7 @@ def test_insert_spans_metrics_ignores_unsampled_results() -> None:
             latency_ms=20,
             latency_metrics=[(b"step", 20.0)],
             gauge_metrics=[(b"gauge", 2.0)],
+            merged_segment_span_ids=[],
         ),
     )
 
