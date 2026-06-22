@@ -1477,17 +1477,28 @@ def test_project_config_with_transaction_name_clustering_disabled(
 
 @django_db_all
 @cell_silo_test
-@pytest.mark.parametrize("project_option_value", ["enabled", "disabled"])
-def test_project_config_trusted_relay_settings(default_project, project_option_value):
+def test_project_config_trusted_relay_settings_enabled(default_project):
     default_project.organization.update_option(
-        "sentry:ingest-through-trusted-relays-only", project_option_value
+        "sentry:ingest-through-trusted-relays-only", "enabled"
     )
 
     config = get_project_config(default_project).to_dict()
 
     trusted_relay_settings = config["config"].get("trustedRelaySettings")
     assert trusted_relay_settings is not None
-    assert trusted_relay_settings["verifySignature"] == project_option_value
+    assert trusted_relay_settings["verifySignature"] == "enabled"
+
+
+@django_db_all
+@cell_silo_test
+def test_project_config_trusted_relay_settings_disabled(default_project):
+    default_project.organization.update_option(
+        "sentry:ingest-through-trusted-relays-only", "disabled"
+    )
+
+    config = get_project_config(default_project).to_dict()
+
+    assert config["config"].get("trustedRelaySettings") is None
 
 
 @django_db_all

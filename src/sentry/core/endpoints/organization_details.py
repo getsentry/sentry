@@ -457,9 +457,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
-    def validate_ingestThroughTrustedRelaysOnly(self, value):
-        return value
-
     def validate_enabledConsolePlatforms(self, value):
         request = self.context["request"]
 
