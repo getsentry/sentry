@@ -13,7 +13,6 @@ import type {
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
 import type {ParsedOwnershipRule} from './ownership';
-import type {PlatformKey} from './platform';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
@@ -502,7 +501,7 @@ export type IntegrationIssueConfig = {
  * Project Plugins
  * Deprecated: legacy plugin system is being removed.
  */
-export type PluginNoProject = {
+type PluginNoProject = {
   canDisable: boolean;
   contexts: any[];
   doc: string;
@@ -535,19 +534,6 @@ export type PluginNoProject = {
 
 export type Plugin = PluginNoProject & {
   enabled: boolean;
-};
-
-type PluginProjectItem = {
-  configured: boolean;
-  enabled: boolean;
-  projectId: string;
-  projectName: string;
-  projectPlatform: PlatformKey;
-  projectSlug: string;
-};
-
-export type PluginWithProjectList = PluginNoProject & {
-  projectList: PluginProjectItem[];
 };
 
 export type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | DocIntegration;
