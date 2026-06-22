@@ -23,7 +23,6 @@ from sentry.api.serializers.models.group import (
     is_seen_stats,
     snuba_tsdb,
 )
-from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.constants import StatsPeriod
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -46,43 +45,7 @@ from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
-from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import get_snuba_column_name, resolve_column, resolve_conditions
-
-
-def get_actions(group: Group) -> list[tuple[str, str]]:
-    from sentry.plugins.base import plugins
-
-    project = group.project
-
-    action_list: list[tuple[str, str]] = []
-    for plugin in plugins.for_project(project, version=1):
-        if is_plugin_deprecated(plugin, project):
-            continue
-
-        results = safe_execute(plugin.actions, group, action_list)
-
-        if not results:
-            continue
-
-        action_list = results
-
-    return action_list
-
-
-def get_available_issue_plugins(group) -> list[dict[str, Any]]:
-    from sentry.plugins.base import plugins
-    from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
-
-    project = group.project
-
-    plugin_issues: list[dict[str, Any]] = []
-    for plugin in plugins.for_project(project, version=1):
-        if isinstance(plugin, IssueTrackingPlugin2):
-            if is_plugin_deprecated(plugin, project):
-                continue
-            safe_execute(plugin.plugin_issues, group, plugin_issues)
-    return plugin_issues
 
 
 class GroupStatsQueryArgs(NamedTuple):
@@ -466,13 +429,11 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("pluginActions"):
             for item in item_list:
-                action_list = get_actions(item)
-                attrs[item]["pluginActions"] = action_list
+                attrs[item]["pluginActions"] = []
 
         if self._expand("pluginIssues"):
             for item in item_list:
-                plugin_issue_list = get_available_issue_plugins(item)
-                attrs[item]["pluginIssues"] = plugin_issue_list
+                attrs[item]["pluginIssues"] = []
 
         if self._expand("integrationIssues"):
             for item in item_list:

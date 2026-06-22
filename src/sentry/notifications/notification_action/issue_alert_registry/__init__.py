@@ -9,7 +9,6 @@ __all__ = [
     "MSTeamsIssueAlertHandler",
     "OpsgenieIssueAlertHandler",
     "PagerdutyIssueAlertHandler",
-    "PluginIssueAlertHandler",
     "SentryAppIssueAlertHandler",
     "SlackIssueAlertHandler",
     "SlackStagingIssueAlertHandler",
@@ -27,7 +26,6 @@ from .handlers.jira_server_issue_alert_handler import JiraServerIssueAlertHandle
 from .handlers.msteams_issue_alert_handler import MSTeamsIssueAlertHandler
 from .handlers.opsgenie_issue_alert_handler import OpsgenieIssueAlertHandler
 from .handlers.pagerduty_issue_alert_handler import PagerDutyIssueAlertHandler
-from .handlers.plugin_issue_alert_handler import PluginIssueAlertHandler
 from .handlers.sentry_app_issue_alert_handler import SentryAppIssueAlertHandler
 from .handlers.slack_issue_alert_handler import (
     SlackIssueAlertHandler,

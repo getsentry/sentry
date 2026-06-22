@@ -16,7 +16,6 @@ from django.db.models import Min, prefetch_related_objects
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.constants import LOG_LEVELS
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.services.integration import integration_service
@@ -758,20 +757,8 @@ class GroupSerializerBase(Serializer, ABC):
     def _resolve_and_extend_plugin_annotation(
         item: Group, current_annotations: list[Any]
     ) -> Sequence[Any]:
-        from sentry.plugins.base import plugins
-
         annotations_for_group = []
         annotations_for_group.extend(current_annotations)
-
-        # add the annotations for plugins
-        # note that the model GroupMeta(where all the information is stored) is already cached at the start of
-        # `get_attrs`, so these for loops doesn't make a bunch of queries
-        for plugin in plugins.for_project(project=item.project, version=1):
-            if is_plugin_deprecated(plugin, item.project):
-                continue
-            safe_execute(plugin.tags, None, item, annotations_for_group)
-        for plugin in plugins.for_project(project=item.project, version=2):
-            annotations_for_group.extend(safe_execute(plugin.get_annotations, group=item) or ())
 
         return annotations_for_group
 
