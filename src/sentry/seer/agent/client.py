@@ -474,51 +474,9 @@ class SeerAgentClient:
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
 
-        if _has_context_engine(self.organization, self.user):
-            if random.random() < options.get("seer.explorer.context-engine-rollout"):
-                agent_run_options["is_context_engine_enabled"] = True
-
-        if features.has(
-            "organizations:seer-explorer-context-engine-allow-fe-override",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["is_context_engine_enabled"] = override_ce_enable
-
-        if features.has(
-            "organizations:seer-agent-source-code-search",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["enable_frontend_code_search"] = True
-
-        if features.has(
-            "organizations:seer-use-agent-sandbox",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["use_agent_sandbox"] = True
-
-        if features.has(
-            "organizations:seer-explorer-thinking-summary",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["enable_tool_summary"] = True
-
-        if features.has(
-            "organizations:seer-explorer-embeds",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["embed_widgets"] = get_embed_widgets()
-
-        if features.has(
-            "organizations:seer-explorer-stream",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["enable_streaming"] = True
+        agent_run_options.update(
+            self._build_agent_run_options(override_ce_enable=override_ce_enable)
+        )
 
         user_id = (
             self.user.id
@@ -586,11 +544,67 @@ class SeerAgentClient:
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
             on_run_created=on_run_created,
-            body=SeerFeatureRunRequest(feature_id=feature_id, payload=payload),
+            body=SeerFeatureRunRequest(
+                feature_id=feature_id,
+                payload=payload,
+                agent_run_options=self._build_agent_run_options(),
+            ),
             viewer_context=self.viewer_context,
             user_id=user_id,
             flush=flush,
         )
+
+    def _build_agent_run_options(self, override_ce_enable: bool = True) -> dict[str, Any]:
+        """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run."""
+        opts: dict[str, Any] = {}
+
+        if _has_context_engine(self.organization, self.user):
+            if random.random() < options.get("seer.explorer.context-engine-rollout"):
+                opts["is_context_engine_enabled"] = True
+
+        if features.has(
+            "organizations:seer-explorer-context-engine-allow-fe-override",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["is_context_engine_enabled"] = override_ce_enable
+
+        if features.has(
+            "organizations:seer-agent-source-code-search",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["enable_frontend_code_search"] = True
+
+        if features.has(
+            "organizations:seer-use-agent-sandbox",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["use_agent_sandbox"] = True
+
+        if features.has(
+            "organizations:seer-explorer-thinking-summary",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["enable_tool_summary"] = True
+
+        if features.has(
+            "organizations:seer-explorer-embeds",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["embed_widgets"] = get_embed_widgets()
+
+        if features.has(
+            "organizations:seer-explorer-stream",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["enable_streaming"] = True
+
+        return opts
 
     def continue_run(
         self,
