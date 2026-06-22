@@ -83,6 +83,24 @@ def should_increment_contributor_seat(
     )
 
 
+def should_record_contributor_action(
+    organization: Organization, repo: Repository, contributor: OrganizationContributors
+) -> bool:
+    """
+    Determines whether a contributor's PR-opened action should be recorded for seat billing.
+
+    Same requirements as should_increment_contributor_seat EXCEPT the quota check: quota/seat
+    availability is downstream of the count (a seat is granted once the action count crosses the
+    activation threshold), so gating the record on quota would be circular.
+    """
+    return (
+        repo.integration_id is not None
+        and not contributor.is_bot
+        and _has_code_review_or_autofix_enabled(organization, repo.id)
+        and features.has("organizations:seat-based-seer-enabled", organization)
+    )
+
+
 def track_contributor_seat(
     *,
     organization: Organization,

@@ -20,7 +20,7 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry import analytics, options
+from sentry import analytics, features, options
 from sentry.analytics.events.webhook_repository_created import WebHookRepositoryCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -55,6 +55,10 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import (
+    OrganizationContributorAction,
+    OrganizationContributors,
+)
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -73,7 +77,11 @@ from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
-from sentry.seer.code_review.contributor_seats import track_contributor_seat
+from sentry.seer.code_review.contributor_seats import (
+    should_record_contributor_action,
+    track_contributor_seat,
+)
+from sentry.seer.code_review.utils import get_pr_author_id
 from sentry.seer.code_review.webhooks.handlers import (
     handle_webhook_event as code_review_handle_webhook_event,
 )
@@ -146,6 +154,48 @@ def _handle_pr_webhook_for_autofix_processor(
         # Because we require that the sentry github integration be installed for autofix, we can piggyback
         # on this webhook for autofix for now. We may move to a separate autofix github integration in the future
         handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+
+
+def _track_contributor_action_processor(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Record a contributor's PR-opened action in the OrganizationContributorAction ledger."""
+    if not features.has("organizations:seer-billing-contributor-actions", organization):
+        return
+
+    if integration is None:
+        return
+
+    pull_request = event.get("pull_request")
+    author_id = get_pr_author_id(event)
+    if not pull_request or author_id is None:
+        return
+
+    # Seed on any action so the code-review preflight finds the contributor.
+    contributor, _ = OrganizationContributors.objects.get_or_create(
+        organization_id=organization.id,
+        integration_id=integration.id,
+        external_identifier=author_id,
+        defaults={"alias": (pull_request.get("user") or {}).get("login")},
+    )
+
+    # Record one row per PR, on the first "opened" action, for billable contributors.
+    if event.get("action") != "opened" or not should_record_contributor_action(
+        organization, repo, contributor
+    ):
+        return
+
+    OrganizationContributorAction.objects.get_or_create(
+        repository_id=repo.id,
+        pr_number=str(pull_request["number"]),
+        defaults={"organization_contributor": contributor},
+    )
 
 
 class GitHubWebhook(SCMWebhook, ABC):
@@ -973,6 +1023,8 @@ class PullRequestEventWebhook(GitHubWebhook):
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
     WEBHOOK_EVENT_PROCESSORS = (
         _handle_pr_webhook_for_autofix_processor,
+        # Seeds the contributor before code review's preflight; records the PR-opened billing action.
+        _track_contributor_action_processor,
         code_review_handle_webhook_event,
         pr_metrics_handle_attribution,
         # Persist counters before emission reads them off the PullRequestMetrics row.
