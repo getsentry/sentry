@@ -11,19 +11,19 @@ class TraceItemAttributeContext(TypedDict):
     Additional, mostly-static metadata about an attribute sourced from the
     sentry conventions (``sentry_conventions.attributes.ATTRIBUTE_METADATA``).
 
-    Only attributes that map to a known sentry convention have context, and
-    within the context only the fields actually present in the conventions
-    metadata are included. This is only attached when the caller passes
-    ``expand=context`` and the ``data-browsing-attribute-context`` feature is
-    enabled.
+    When ``expand=context`` is requested (and the
+    ``data-browsing-attribute-context`` feature is enabled), context is attached
+    to every attribute. Attributes that map to a known sentry convention carry
+    the convention metadata (only the fields actually present are included);
+    custom attributes get an empty context.
     """
 
-    # A short, human-readable description of the attribute. Always present for a
-    # known convention.
-    brief: str
-    # Whether the convention has been deprecated. Always present for a known
+    # A short, human-readable description of the attribute. Present for a known
     # convention.
-    isDeprecated: bool
+    brief: NotRequired[str]
+    # Whether the convention has been deprecated. Present for a known
+    # convention.
+    isDeprecated: NotRequired[bool]
     # Longer-form notes that add nuance beyond the brief (e.g. caveats,
     # double-counting warnings). Sourced from the convention's
     # ``additional_context``.
@@ -41,5 +41,6 @@ class TraceItemAttributeKey(TypedDict):
     attributeSource: TraceItemAttributeSource
     attributeType: Literal["string", "number", "boolean"]
     # Sentry conventions metadata, only present when requested via
-    # ``expand=context`` (and gated behind the feature flag).
+    # ``expand=context`` (and gated behind the feature flag). Attached to every
+    # attribute when requested; empty for custom (non-convention) attributes.
     context: NotRequired[TraceItemAttributeContext]
