@@ -59,6 +59,21 @@ jest.mock('sentry/utils/withDomainRedirect', () => ({
   withDomainRedirect: (component: unknown) => component,
 }));
 
+// Identity-mock errorHandler so directly-imported route components (e.g.
+// errorHandler(OverviewWrapper)) expose their real type — otherwise element.type
+// is the ErrorHandler wrapper and the component identity is lost.
+jest.mock('sentry/utils/errorHandler', () => ({
+  __esModule: true,
+  ...jest.requireActual('sentry/utils/errorHandler'),
+  errorHandler: (component: unknown) => component,
+}));
+
+afterEach(() => {
+  // Restore the USING_CUSTOMER_DOMAIN spy created per test so mock state does
+  // not leak between tests.
+  jest.restoreAllMocks();
+});
+
 /**
  * Build the route map for the current override-registration state. The
  * getsentry-context generator (static/gsApp/generateRouteMap.spec.tsx) has its

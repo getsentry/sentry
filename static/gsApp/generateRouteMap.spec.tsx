@@ -57,6 +57,11 @@ jest.mock('sentry/utils/withDomainRedirect', () => ({
   ...jest.requireActual('sentry/utils/withDomainRedirect'),
   withDomainRedirect: (component: unknown) => component,
 }));
+jest.mock('sentry/utils/errorHandler', () => ({
+  __esModule: true,
+  ...jest.requireActual('sentry/utils/errorHandler'),
+  errorHandler: (component: unknown) => component,
+}));
 
 function generateRouteMap(): RouteMap {
   const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
@@ -71,6 +76,10 @@ describe('route map generation (getsentry / full coverage)', () => {
   beforeAll(() => {
     // Populate the override registry exactly as the SaaS app does at startup.
     registerGsAppOverrides();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('resolves getsentry route-injection hooks', () => {

@@ -108,17 +108,27 @@ function cleanHandle(
   return Object.keys(cleaned).length > 0 ? cleaned : undefined;
 }
 
-function getComponentModulePath(element: RouteObject['element']): string | null {
+function getComponentId(element: RouteObject['element']): string | null {
   if (!element || typeof element !== 'object' || !('type' in element)) {
     return null;
   }
   const type = (element as React.ReactElement).type as
-    | (React.ComponentType & {[MODULE_PATH_KEY]?: string})
+    | (React.ComponentType & {[MODULE_PATH_KEY]?: string | null})
     | string;
   if (typeof type === 'string') {
     return null;
   }
-  return type[MODULE_PATH_KEY] ?? null;
+  // Lazy routes (make()) carry the recovered import path. The generator stamps
+  // this property even when the path can't be parsed, so its presence — not its
+  // value — distinguishes a lazy component from a directly-imported one.
+  if (MODULE_PATH_KEY in type) {
+    return type[MODULE_PATH_KEY] ?? null;
+  }
+  // Directly-imported components (e.g. errorHandler(OverviewWrapper)) have no
+  // import path to recover, so fall back to their display name / function name.
+  // Requires the generator to identity-mock errorHandler so `type` is the real
+  // component rather than the ErrorHandler wrapper.
+  return type.displayName || type.name || null;
 }
 
 function isRedirectElement(element: RouteObject['element']): boolean {
@@ -126,10 +136,14 @@ function isRedirectElement(element: RouteObject['element']): boolean {
     return false;
   }
   const type = (element as React.ReactElement).type;
-  return (
-    typeof type !== 'string' &&
-    Boolean((type as React.ComponentType).displayName?.endsWith('Redirect'))
-  );
+  if (typeof type === 'string') {
+    return false;
+  }
+  // Matches both the react-router <Redirect> wrapper (displayName 'Redirect')
+  // and directly-imported redirect components surfaced once errorHandler is
+  // identity-mocked (e.g. ProjectEventRedirect, RedirectToRuleList, NoOp).
+  const id = (type as React.ComponentType).displayName || (type as {name?: string}).name;
+  return Boolean(id) && (/redirect/i.test(id!) || id === 'NoOp');
 }
 
 /**
@@ -180,7 +194,7 @@ export function walkRouteTree(
     records.push({
       url,
       params: extractParams(url),
-      component: getComponentModulePath(route.element),
+      component: getComponentId(route.element),
       name: handle?.name as string | undefined,
       handle: cleanHandle(handle),
       customerDomain,
@@ -196,9 +210,11 @@ export function walkRouteTree(
  */
 interface LogicalRoute {
   /**
-   * Source module path of the route's component, i.e. the default export of
-   * this module (e.g. `sentry/views/dashboards/view`). Never null — layout/
-   * container shells are excluded from the logical map.
+   * Identifies the route's component. For lazy routes (the vast majority) this
+   * is the source module path / default export (e.g.
+   * `sentry/views/dashboards/view`). For the handful of directly-imported
+   * components it falls back to the component's name (e.g. `OverviewWrapper`),
+   * since there is no import path to recover. Never null.
    */
   component: string;
   /**

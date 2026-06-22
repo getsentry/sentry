@@ -45,13 +45,19 @@ describe('extractParams', () => {
   });
 });
 
-function elementWithModulePath(modulePath: string | null) {
-  function Component() {
+// Emulates a lazy (make()) component: always carries the MODULE_PATH_KEY stamp
+// (the generator stamps it even when the path is null).
+function lazyElement(modulePath: string | null) {
+  function RouteLazyLoad() {
     return null;
   }
-  if (modulePath !== null) {
-    (Component as any)[MODULE_PATH_KEY] = modulePath;
-  }
+  (RouteLazyLoad as any)[MODULE_PATH_KEY] = modulePath;
+  return {type: RouteLazyLoad, props: {}, key: null} as unknown as RouteObject['element'];
+}
+
+// Emulates a directly-imported component: a named function with no stamp.
+function directElement(name: string) {
+  const Component = {[name]: () => null}[name]!;
   return {type: Component, props: {}, key: null} as unknown as RouteObject['element'];
 }
 
@@ -74,7 +80,7 @@ describe('walkRouteTree', () => {
             children: [
               {
                 path: 'dashboard/:dashboardId/',
-                element: elementWithModulePath('sentry/views/dashboards/view'),
+                element: lazyElement('sentry/views/dashboards/view'),
                 handle: {name: 'Dashboard'},
               },
             ],
@@ -103,7 +109,7 @@ describe('walkRouteTree', () => {
         children: [
           {
             path: 'account/',
-            element: elementWithModulePath('sentry/views/settings/account'),
+            element: lazyElement('sentry/views/settings/account'),
           },
           {
             path: 'old/',
@@ -121,16 +127,29 @@ describe('walkRouteTree', () => {
 
   it('tags records with the provided customerDomain flag', () => {
     const tree: RouteObject[] = [
-      {path: 'issues/', element: elementWithModulePath('sentry/views/issueList')},
+      {path: 'issues/', element: lazyElement('sentry/views/issueList')},
     ];
     expect(walkRouteTree(tree, true)[0]!.customerDomain).toBe(true);
   });
 
   it('records a null component when none can be recovered', () => {
-    const tree: RouteObject[] = [
-      {path: 'mystery/', element: elementWithModulePath(null)},
-    ];
+    const tree: RouteObject[] = [{path: 'mystery/', element: lazyElement(null)}];
     expect(walkRouteTree(tree, false)[0]!.component).toBeNull();
+  });
+
+  it('uses the component name for directly-imported (non-lazy) components', () => {
+    const tree: RouteObject[] = [
+      {path: 'issues/', element: directElement('OverviewWrapper')},
+    ];
+    expect(walkRouteTree(tree, false)[0]!.component).toBe('OverviewWrapper');
+  });
+
+  it('skips redirect components identified by name', () => {
+    const tree: RouteObject[] = [
+      {path: 'events/:eventId/', element: directElement('ProjectEventRedirect')},
+      {path: 'settings/', element: directElement('NoOp')},
+    ];
+    expect(walkRouteTree(tree, false)).toHaveLength(0);
   });
 });
 
