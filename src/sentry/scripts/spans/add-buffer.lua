@@ -37,7 +37,7 @@ ARGS:
 RETURNS:
 - set_key -- str -- The key of the segment, used to look up member-keys index and identify the segment in the queue.
 - has_root_span -- bool -- Whether this segment contains a root span.
-- latency_ms -- number -- Milliseconds elapsed during script execution. 0 when this call is not sampled.
+- latency_ms -- number -- Milliseconds elapsed during script execution. -1 when this call is not sampled.
 - latency_table -- table -- Per-step latency measurements. Empty when this call is not sampled.
 - metrics_table -- table -- Per-step gauge metrics. Empty when this call is not sampled.
 
@@ -229,7 +229,9 @@ redis.call("incrby", ingested_byte_count_key, byte_count)
 redis.call("expire", ingested_count_key, set_timeout)
 redis.call("expire", ingested_byte_count_key, set_timeout)
 
-local latency_ms = 0
+-- -1 is a sentinel meaning "not sampled"; the consumer ignores these so they
+-- don't pollute metrics. A real measurement is always >= 0.
+local latency_ms = -1
 if sample_metrics then
     local counter_merge_end_time_ms = get_time_ms()
     table.insert(latency_table,
