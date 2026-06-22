@@ -1,11 +1,11 @@
-import React from 'react';
+import {createContext, useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Separator, type SeparatorProps} from '@sentry/scraps/separator';
 
 import type {ContainerElement} from './container';
 import {Flex, type FlexProps, type FlexPropsWithRenderFunction} from './flex';
-import {useResponsivePropValue} from './styles';
+import {type ResponsiveMode, useResponsivePropValue} from './styles';
 
 /**
  * Stack is just a super set of Flex props with a default direction initializer to 'column'.
@@ -20,13 +20,21 @@ const StackComponent = styled(
     direction = 'column',
     ...props
   }: StackProps<T>) => {
-    const responsiveDirection = useResponsivePropValue(direction);
+    // We deliberately do NOT resolve the breakpoint here. Doing so would make
+    // every Stack subscribe to breakpoint changes (and re-render on every
+    // crossing) even when it has no Separator or a non-responsive direction.
+    // Instead, we pass the raw direction + mode down via context and let
+    // Stack.Separator — the only consumer of the resolved orientation — do the
+    // resolution, so the subscription is scoped to stacks that actually use it.
+    const directionContext = useMemo<StackDirectionContextValue>(
+      () => ({direction, mode: props.responsiveTo}),
+      [direction, props.responsiveTo]
+    );
+
     return (
-      <OrientationContext.Provider
-        value={getOrientationFromDirection(responsiveDirection)}
-      >
+      <StackDirectionContext.Provider value={directionContext}>
         <Flex {...props} direction={direction} />
-      </OrientationContext.Provider>
+      </StackDirectionContext.Provider>
     );
   }
 )<StackProps<any> | StackPropsWithRenderFunction<any>>`
@@ -54,15 +62,25 @@ function getOrientationFromDirection(
   }
 }
 
-const OrientationContext = React.createContext<'horizontal' | 'vertical'>('horizontal');
-function useOrientation(): 'horizontal' | 'vertical' {
-  return React.useContext(OrientationContext);
+interface StackDirectionContextValue {
+  direction: NonNullable<StackProps['direction']>;
+  mode: ResponsiveMode | undefined;
 }
+
+// Default to 'row' so a Separator rendered outside a Stack keeps the
+// historical default of a vertical separator (the opposite of the stack's
+// orientation).
+const StackDirectionContext = createContext<StackDirectionContextValue>({
+  direction: 'row',
+  mode: undefined,
+});
 
 type StackSeparatorProps = Omit<SeparatorProps, 'orientation'>;
 
 const StackSeparator = styled((props: StackSeparatorProps) => {
-  const orientation = useOrientation();
+  const {direction, mode} = useContext(StackDirectionContext);
+  const responsiveDirection = useResponsivePropValue(direction, {mode});
+  const orientation = getOrientationFromDirection(responsiveDirection);
 
   return (
     <Separator

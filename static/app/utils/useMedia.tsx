@@ -1,7 +1,18 @@
 import {useEffect, useState} from 'react';
 
 /**
- * Hook that updates when a media query result changes
+ * Hook that updates when a media query result changes.
+ *
+ * Prefer this only for genuine media features that aren't container-expressible
+ * — e.g. `(prefers-color-scheme: ...)`, `(hover: ...)`, `(pointer: ...)`,
+ * `(max-height: ...)`, `(resolution: ...)`.
+ *
+ * For width-based checks (`min-width`/`max-width`), prefer scraps responsive
+ * props (`<Flex responsiveTo="container" direction={{...}} />`) or, when you
+ * need the resolved value in JS, `useContainerBreakpoint(ref)` from
+ * `sentry/components/core/layout/styles`. Those react to an element's available
+ * space rather than the raw viewport, which is almost always what width checks
+ * actually want.
  */
 export function useMedia(query: string) {
   const [state, setState] = useState(() => window.matchMedia?.(query)?.matches);

@@ -394,6 +394,25 @@ const Component = styled('div')`
 <Flex direction={{xs: 'column', md: 'row'}}>
 ```
 
+Responsive props resolve against the **viewport** by default. To resolve against
+the **available space** instead (a container query), declare a parent as a query
+container with `containerType="inline-size"` and opt the child into
+`responsiveTo="container"`. An element can never query its own size, so the
+container must be an ancestor.
+
+```tsx
+// ✅ Reflow based on the parent's width, not the viewport's
+<Container containerType="inline-size">
+  <Flex responsiveTo="container" direction={{'2xs': 'column', md: 'row'}}>
+    {/* ... */}
+  </Flex>
+</Container>
+```
+
+When you need the resolved breakpoint in JS, use `useContainerBreakpoint(ref)`
+(the `ResizeObserver`-backed, container-scoped replacement for width-based
+`useMedia`).
+
 ### 2. Prefer Gap/Padding Over Margin
 
 Container supports `margin` props but they are deprecated. Use `gap` on parent containers instead.

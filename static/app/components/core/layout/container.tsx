@@ -1,6 +1,8 @@
 import type React from 'react';
+import {useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import type {
   BorderVariant,
@@ -10,6 +12,7 @@ import type {
 } from 'sentry/utils/theme';
 
 import {
+  ContainerQueryProvider,
   getBorder,
   getMargin,
   getRadius,
@@ -17,6 +20,7 @@ import {
   rc,
   type Margin,
   type Responsive,
+  type ResponsiveMode,
   type Shorthand,
 } from './styles';
 
@@ -60,6 +64,33 @@ interface ContainerLayoutProps {
   cursor?: Responsive<React.CSSProperties['cursor']>;
 
   contain?: Responsive<React.CSSProperties['contain']>;
+
+  /**
+   * Controls whether this element's responsive props (e.g. on Flex/Grid/Stack)
+   * resolve against the viewport (`@media`) or the nearest ancestor query
+   * container (`@container`). Defaults to 'viewport'.
+   *
+   * Note: an element can never query its own size. 'container' resolves against
+   * the nearest *ancestor* that sets `containerType` — to react to your own
+   * available space, declare a parent as a container.
+   */
+  responsiveTo?: ResponsiveMode;
+  /**
+   * Declares this element as a query container for its descendants, enabling
+   * them to use `responsiveTo="container"`. Maps to the CSS `container-type`.
+   *
+   * Caution: `inline-size`/`size` apply layout, style and size containment,
+   * which makes this element the containing block for `position: fixed` and
+   * `position: absolute` descendants. Prefer `inline-size` unless you also need
+   * height-based (`size`) queries.
+   */
+  containerType?: 'inline-size' | 'size' | 'normal';
+  /**
+   * Optional name for this query container (CSS `container-name`), allowing
+   * descendants to target it specifically. Usually unnecessary — unnamed
+   * `@container` queries resolve to the nearest ancestor container.
+   */
+  containerName?: string;
 
   radius?: Responsive<Shorthand<RadiusSize, 4>>;
 
@@ -199,6 +230,8 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'bottom',
   'column',
   'contain',
+  'containerName',
+  'responsiveTo',
   'cursor',
   'display',
   'flex',
@@ -245,17 +278,45 @@ export const Container = styled(
       className?: string;
     }
   ) => {
+    // Hooks must run unconditionally, before the render-prop early return.
+    const containerRef = useRef<HTMLElement>(null);
+
     if (typeof props.children === 'function') {
       // When using render prop, only pass className to the child function
       return props.children({className: props.className ?? ''});
     }
 
-    const {as, ...rest} = props;
+    const {as, containerType, ref, ...rest} = props;
     const Component = as ?? 'div';
-    return <Component {...(rest as any)} />;
+
+    // A query container needs its size observed in JS so descendants can resolve
+    // container-mode responsive props (e.g. Stack orientation). We only attach a
+    // ref + observer when this element is actually a container, keeping the
+    // common (non-container) path free of any ResizeObserver overhead.
+    const isContainer = !!containerType && containerType !== 'normal';
+
+    const node = (
+      <Component
+        {...(rest as any)}
+        ref={isContainer ? mergeRefs(ref as React.Ref<any>, containerRef) : ref}
+      />
+    );
+
+    if (isContainer) {
+      return (
+        <ContainerQueryProvider elementRef={containerRef}>{node}</ContainerQueryProvider>
+      );
+    }
+
+    return node;
   },
   {
     shouldForwardProp: prop => {
+      // containerType must reach the inner component to wire up the query
+      // container; it is stripped there so it never lands on the DOM.
+      if (prop === 'containerType') {
+        return true;
+      }
       if (omitContainerProps.has(prop as keyof ContainerLayoutProps | 'as')) {
         return false;
       }
@@ -263,74 +324,82 @@ export const Container = styled(
     },
   }
 )<ContainerProps<any> | ContainerPropsWithRenderFunction<any>>`
-  ${p => rc('display', p.display, p.theme)};
-  ${p => rc('position', p.position, p.theme)};
+  ${p => rc('container-type', p.containerType, p.theme)};
+  ${p => rc('container-name', p.containerName, p.theme)};
 
-  ${p => rc('inset', p.inset, p.theme)};
-  ${p => rc('top', p.top, p.theme)};
-  ${p => rc('bottom', p.bottom, p.theme)};
-  ${p => rc('left', p.left, p.theme)};
-  ${p => rc('right', p.right, p.theme)};
+  ${p => rc('display', p.display, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('position', p.position, p.theme, undefined, p.responsiveTo)};
 
-  ${p => rc('overflow', p.overflow, p.theme)};
-  ${p => rc('overflow-x', p.overflowX, p.theme)};
-  ${p => rc('overflow-y', p.overflowY, p.theme)};
+  ${p => rc('inset', p.inset, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('top', p.top, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('bottom', p.bottom, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('left', p.left, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('right', p.right, p.theme, undefined, p.responsiveTo)};
 
-  ${p => rc('overscroll-behavior', p.overscrollBehavior, p.theme)};
-
-  ${p => rc('pointer-events', p.pointerEvents, p.theme)};
-
-  ${p => rc('cursor', p.cursor, p.theme)};
-  ${p => rc('contain', p.contain, p.theme)};
-
-  ${p => rc('padding', p.padding, p.theme, getSpacing)};
-  ${p => rc('padding-top', p.paddingTop, p.theme, getSpacing)};
-  ${p => rc('padding-bottom', p.paddingBottom, p.theme, getSpacing)};
-  ${p => rc('padding-left', p.paddingLeft, p.theme, getSpacing)};
-  ${p => rc('padding-right', p.paddingRight, p.theme, getSpacing)};
-
-  ${p => rc('margin', p.margin, p.theme, getMargin)};
-  ${p => rc('margin-top', p.marginTop, p.theme, getMargin)};
-  ${p => rc('margin-bottom', p.marginBottom, p.theme, getMargin)};
-  ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
-  ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
+  ${p => rc('overflow', p.overflow, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('overflow-x', p.overflowX, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('overflow-y', p.overflowY, p.theme, undefined, p.responsiveTo)};
 
   ${p =>
-    rc('background', p.background, p.theme, v =>
-      v ? p.theme.tokens.background[v] : undefined
+    rc('overscroll-behavior', p.overscrollBehavior, p.theme, undefined, p.responsiveTo)};
+
+  ${p => rc('pointer-events', p.pointerEvents, p.theme, undefined, p.responsiveTo)};
+
+  ${p => rc('cursor', p.cursor, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('contain', p.contain, p.theme, undefined, p.responsiveTo)};
+
+  ${p => rc('padding', p.padding, p.theme, getSpacing, p.responsiveTo)};
+  ${p => rc('padding-top', p.paddingTop, p.theme, getSpacing, p.responsiveTo)};
+  ${p => rc('padding-bottom', p.paddingBottom, p.theme, getSpacing, p.responsiveTo)};
+  ${p => rc('padding-left', p.paddingLeft, p.theme, getSpacing, p.responsiveTo)};
+  ${p => rc('padding-right', p.paddingRight, p.theme, getSpacing, p.responsiveTo)};
+
+  ${p => rc('margin', p.margin, p.theme, getMargin, p.responsiveTo)};
+  ${p => rc('margin-top', p.marginTop, p.theme, getMargin, p.responsiveTo)};
+  ${p => rc('margin-bottom', p.marginBottom, p.theme, getMargin, p.responsiveTo)};
+  ${p => rc('margin-left', p.marginLeft, p.theme, getMargin, p.responsiveTo)};
+  ${p => rc('margin-right', p.marginRight, p.theme, getMargin, p.responsiveTo)};
+
+  ${p =>
+    rc(
+      'background',
+      p.background,
+      p.theme,
+      v => (v ? p.theme.tokens.background[v] : undefined),
+      p.responsiveTo
     )};
 
-  ${p => rc('border-radius', p.radius, p.theme, getRadius)};
+  ${p => rc('border-radius', p.radius, p.theme, getRadius, p.responsiveTo)};
 
-  ${p => rc('width', p.width, p.theme)};
-  ${p => rc('min-width', p.minWidth, p.theme)};
-  ${p => rc('max-width', p.maxWidth, p.theme)};
+  ${p => rc('width', p.width, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('min-width', p.minWidth, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('max-width', p.maxWidth, p.theme, undefined, p.responsiveTo)};
 
-  ${p => rc('height', p.height, p.theme)};
-  ${p => rc('min-height', p.minHeight, p.theme)};
-  ${p => rc('max-height', p.maxHeight, p.theme)};
+  ${p => rc('height', p.height, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('min-height', p.minHeight, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('max-height', p.maxHeight, p.theme, undefined, p.responsiveTo)};
 
-  ${p => rc('grid-area', p.area, p.theme)};
-  ${p => rc('grid-row', p.row, p.theme)};
-  ${p => rc('grid-column', p.column, p.theme)};
+  ${p => rc('grid-area', p.area, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('grid-row', p.row, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('grid-column', p.column, p.theme, undefined, p.responsiveTo)};
 
-  ${p => rc('order', p.order, p.theme)};
-  ${p => rc('flex', p.flex, p.theme)};
-  ${p => rc('flex-grow', p.flexGrow, p.theme)};
-  ${p => rc('flex-shrink', p.flexShrink, p.theme)};
-  ${p => rc('flex-basis', p.flexBasis, p.theme)};
+  ${p => rc('order', p.order, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('flex', p.flex, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('flex-grow', p.flexGrow, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('flex-shrink', p.flexShrink, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('flex-basis', p.flexBasis, p.theme, undefined, p.responsiveTo)};
 
-  ${p => rc('align-self', p.alignSelf, p.theme)};
-  ${p => rc('justify-self', p.justifySelf, p.theme)};
+  ${p => rc('align-self', p.alignSelf, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('justify-self', p.justifySelf, p.theme, undefined, p.responsiveTo)};
 
-  ${p => rc('border', p.border, p.theme, getBorder)};
-  ${p => rc('border-top', p.borderTop, p.theme, getBorder)};
-  ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
-  ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
-  ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
+  ${p => rc('border', p.border, p.theme, getBorder, p.responsiveTo)};
+  ${p => rc('border-top', p.borderTop, p.theme, getBorder, p.responsiveTo)};
+  ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder, p.responsiveTo)};
+  ${p => rc('border-left', p.borderLeft, p.theme, getBorder, p.responsiveTo)};
+  ${p => rc('border-right', p.borderRight, p.theme, getBorder, p.responsiveTo)};
 
-  ${p => rc('visibility', p.visibility, p.theme)};
-  ${p => rc('white-space', p.whiteSpace, p.theme)};
+  ${p => rc('visibility', p.visibility, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('white-space', p.whiteSpace, p.theme, undefined, p.responsiveTo)};
 
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.

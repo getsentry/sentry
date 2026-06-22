@@ -67,44 +67,56 @@ export const Flex = styled(Container, {
     return !omitFlexProps.has(prop as keyof FlexLayoutProps | 'as');
   },
 })<FlexProps<any> | FlexPropsWithRenderFunction<any>>`
-  ${p => rc('display', p.display ?? 'flex', p.theme, v => v ?? 'flex')};
-  ${p => rc('order', p.order, p.theme)};
-  ${p => rc('gap', p.gap, p.theme, getSpacing)};
+  ${p => rc('display', p.display ?? 'flex', p.theme, v => v ?? 'flex', p.responsiveTo)};
+  ${p => rc('order', p.order, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('gap', p.gap, p.theme, getSpacing, p.responsiveTo)};
 
-  ${p => rc('flex-direction', p.direction, p.theme)};
-  ${p => rc('flex-wrap', p.wrap, p.theme)};
-  ${p => rc('flex', p.flex, p.theme)};
+  ${p => rc('flex-direction', p.direction, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('flex-wrap', p.wrap, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('flex', p.flex, p.theme, undefined, p.responsiveTo)};
   ${p =>
-    rc('justify-content', p.justify, p.theme, (value, _breakpoint, _theme) => {
-      switch (value) {
-        case 'start':
-          return 'flex-start';
-        case 'end':
-          return 'flex-end';
-        case 'center':
-          return 'center';
-        case 'between':
-          return 'space-between';
-        case 'around':
-          return 'space-around';
-        case 'evenly':
-          return 'space-evenly';
-        default:
-          return value;
-      }
-    })};
+    rc(
+      'justify-content',
+      p.justify,
+      p.theme,
+      (value, _breakpoint, _theme) => {
+        switch (value) {
+          case 'start':
+            return 'flex-start';
+          case 'end':
+            return 'flex-end';
+          case 'center':
+            return 'center';
+          case 'between':
+            return 'space-between';
+          case 'around':
+            return 'space-around';
+          case 'evenly':
+            return 'space-evenly';
+          default:
+            return value;
+        }
+      },
+      p.responsiveTo
+    )};
 
   ${p =>
-    rc('align-items', p.align, p.theme, (value, _breakpoint, _theme) => {
-      switch (value) {
-        case 'start':
-          return 'flex-start';
-        case 'end':
-          return 'flex-end';
-        default:
-          return value;
-      }
-    })};
+    rc(
+      'align-items',
+      p.align,
+      p.theme,
+      (value, _breakpoint, _theme) => {
+        switch (value) {
+          case 'start':
+            return 'flex-start';
+          case 'end':
+            return 'flex-end';
+          default:
+            return value;
+        }
+      },
+      p.responsiveTo
+    )};
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.

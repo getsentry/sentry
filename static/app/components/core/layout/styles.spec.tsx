@@ -1,13 +1,25 @@
+import {useRef} from 'react';
 import {css} from '@emotion/react';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderHookWithProviders,
+  screen,
+} from 'sentry-test/reactTestingLibrary';
 
 import {assert} from 'sentry/types/utils';
 import type {BreakpointSize} from 'sentry/utils/theme';
 
-// eslint-disable-next-line boundaries/dependencies
-import {rc, useActiveBreakpoint, useResponsivePropValue, type Responsive} from './styles';
+import {
+  rc,
+  useActiveBreakpoint,
+  useContainerBreakpoint,
+  useResponsivePropValue,
+  type Responsive,
+  // eslint-disable-next-line boundaries/dependencies
+} from './styles';
 
 const theme = ThemeFixture();
 const normalizeCss = (value: string) =>
@@ -114,6 +126,50 @@ describe('rc', () => {
         `.styles
       )
     ).toEqual(normalizeCss(output));
+  });
+
+  it('emits @media queries for responsive values by default', () => {
+    const output = rc('flex-direction', {xs: 'column', md: 'row'}, theme);
+    assert(output);
+    expect(output).toContain('@media');
+    expect(output).not.toContain('@container');
+  });
+
+  it('emits @container queries when mode is "container"', () => {
+    const output = rc(
+      'flex-direction',
+      {xs: 'column', md: 'row'},
+      theme,
+      undefined,
+      'container'
+    );
+    assert(output);
+    expect(output).toContain('@container');
+    expect(output).not.toContain('@media');
+    // The thresholds are reused verbatim from the theme breakpoints.
+    expect(output).toContain(`(min-width: ${theme.breakpoints.md})`);
+  });
+
+  it('container mode keeps the dual min/max prelude for the first breakpoint', () => {
+    const output = rc(
+      'flex-direction',
+      {xs: 'column', md: 'row'},
+      theme,
+      undefined,
+      'container'
+    );
+    assert(output);
+    // First defined breakpoint (xs) gets both min-width and max-width.
+    expect(output).toContain(
+      `@container (min-width: ${theme.breakpoints.xs}),\n            (max-width: ${theme.breakpoints.xs})`
+    );
+  });
+
+  it('returns a plain declaration (no at-rule) for non-responsive container values', () => {
+    expect(rc('container-type', 'inline-size', theme)).toBe(
+      'container-type: inline-size;'
+    );
+    expect(rc('container-type', undefined, theme)).toBeUndefined();
   });
 });
 
@@ -390,5 +446,57 @@ describe('useActiveBreakpoint', () => {
     unmount();
     // Removes listeners for all breakpoints
     expect(abortController.abort).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useContainerBreakpoint', () => {
+  class MockResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+
+  let originalResizeObserver: typeof window.ResizeObserver;
+  const originalClientWidth = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'clientWidth'
+  );
+
+  beforeEach(() => {
+    originalResizeObserver = window.ResizeObserver;
+    window.ResizeObserver = MockResizeObserver as unknown as typeof window.ResizeObserver;
+  });
+
+  afterEach(() => {
+    window.ResizeObserver = originalResizeObserver;
+    if (originalClientWidth) {
+      Object.defineProperty(HTMLElement.prototype, 'clientWidth', originalClientWidth);
+    }
+  });
+
+  const setClientWidth = (width: number) => {
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      get: () => width,
+    });
+  };
+
+  function BreakpointProbe() {
+    const ref = useRef<HTMLDivElement>(null);
+    const breakpoint = useContainerBreakpoint(ref);
+    return <div ref={ref}>breakpoint:{breakpoint}</div>;
+  }
+
+  it('resolves the largest breakpoint the element width satisfies', () => {
+    // md = 992px, lg = 1200px -> 1000px resolves to md.
+    setClientWidth(1000);
+    render(<BreakpointProbe />);
+    expect(screen.getByText('breakpoint:md')).toBeInTheDocument();
+  });
+
+  it('falls back to 2xs when the element is narrower than the smallest breakpoint', () => {
+    setClientWidth(0);
+    render(<BreakpointProbe />);
+    expect(screen.getByText('breakpoint:2xs')).toBeInTheDocument();
   });
 });
