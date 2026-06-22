@@ -24,6 +24,15 @@ type QueueKey = bytes
 type SpanPayload = dict[str, Any]
 
 
+def _unflatten_data(flat: Sequence[Any]) -> EvalshaData:
+    """
+    The Lua script returns metric/latency tables as flat lists of [key1, value1, key2, value2, ...]
+    because nested pair tables are difficult for redis-py to deserialize. We reconstruct the
+    (key, value) pairs here.
+    """
+    return [(flat[i], flat[i + 1]) for i in range(0, len(flat), 2)]
+
+
 # NamedTuples are faster to construct than dataclasses
 class Span(NamedTuple):
     trace_id: str
@@ -96,8 +105,8 @@ class EvalshaResult(NamedTuple):
             segment_key,
             has_root_span,
             latency_ms,
-            latency_metrics,
-            gauge_metrics,
+            _unflatten_data(latency_metrics),
+            _unflatten_data(gauge_metrics),
             merged_segment_span_ids,
         )
 
