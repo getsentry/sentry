@@ -200,6 +200,7 @@ def forward_pr_to_seer_judge(pull_request: PullRequest, repository: Repository) 
     log_extra = {
         "organization_id": pull_request.organization_id,
         "repository_id": pull_request.repository_id,
+        "repo_name": repository.name,
         "pull_request_id": pull_request.id,
     }
     response = make_signed_seer_api_request(

@@ -110,6 +110,7 @@ def select_verdict(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
                 "organization_id": pull_request.organization_id,
+                "repository_id": pull_request.repository_id,
                 "pull_request_id": pull_request.id,
             },
         )
