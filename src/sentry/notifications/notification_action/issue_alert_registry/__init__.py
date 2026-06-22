@@ -9,12 +9,12 @@ __all__ = [
     "MSTeamsIssueAlertHandler",
     "OpsgenieIssueAlertHandler",
     "PagerdutyIssueAlertHandler",
+    "PluginIssueAlertHandler",
     "SentryAppIssueAlertHandler",
     "SlackIssueAlertHandler",
     "SlackStagingIssueAlertHandler",
     "WebhookIssueAlertHandler",
     "PagerDutyIssueAlertHandler",
-    "PluginIssueAlertHandler",
 ]
 
 from .handlers.azure_devops_issue_alert_handler import AzureDevopsIssueAlertHandler

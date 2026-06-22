@@ -25,7 +25,10 @@ class NotifyEventAction(EventAction):
     ) -> Generator[CallbackFuture]:
         logger.info(
             "notify_event.legacy_plugin_action_noop",
-            extra={"rule_id": self.rule.id, "event_id": event.event_id},
+            extra={
+                "rule_id": self.rule.id,
+                "event_id": event.event_id,
+                "action": self.id,
+            },
         )
-        return
-        yield  # make this a generator
+        yield from ()
