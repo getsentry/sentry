@@ -612,7 +612,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 />
                 <BooleanField
                   label={`Apply Changes at the End of the Current Billing Period (${prettyDate(
-                    this.props.subscription.contractPeriodEnd
+                    this.props.subscription.billingPeriodEnd
                   )})`}
                   name="atPeriodEnd"
                   disabled={this.state.data.coterm}

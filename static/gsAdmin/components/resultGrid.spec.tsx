@@ -244,3 +244,88 @@ describe('ResultGrid region probing', () => {
     expect(screen.queryByRole('button', {name: 'View in de'})).not.toBeInTheDocument();
   });
 });
+
+describe('ResultGrid probeAllRegions', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    setupCells();
+  });
+
+  const allRegionsProps = {probeAcrossRegions: false, probeAllRegions: true};
+
+  it('flags other regions even with no search query and results in the active region', async () => {
+    // The active (us) region already has the user's orgs.
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [{id: '1', name: 'Acme'}],
+    });
+    // The user also belongs to an org in the de region.
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '2', name: 'Beta'}],
+    });
+
+    renderGrid(undefined, {}, allRegionsProps);
+
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'View in de'})).toBeInTheDocument();
+  });
+
+  it('flags other regions when the active region is empty', async () => {
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '2', name: 'Beta'}],
+    });
+
+    renderGrid(undefined, {}, allRegionsProps);
+
+    expect(await screen.findByRole('button', {name: 'View in de'})).toBeInTheDocument();
+  });
+
+  it('renders the custom hint text', async () => {
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [{id: '1', name: 'Acme'}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '2', name: 'Beta'}],
+    });
+
+    renderGrid(
+      undefined,
+      {},
+      {
+        ...allRegionsProps,
+        probeAllRegionsHint: 'This user also belongs to orgs in other regions:',
+      }
+    );
+
+    expect(
+      await screen.findByText('This user also belongs to orgs in other regions:')
+    ).toBeInTheDocument();
+  });
+
+  it('does not flag when no other region has matches', async () => {
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [{id: '1', name: 'Acme'}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [],
+    });
+
+    renderGrid(undefined, {}, allRegionsProps);
+
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText('Checking other regions…')).not.toBeInTheDocument()
+    );
+    expect(screen.queryByRole('button', {name: 'View in de'})).not.toBeInTheDocument();
+  });
+});

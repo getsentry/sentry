@@ -32,6 +32,31 @@ MERGE_SHA = "b" * 40
 OPENED_AT = datetime(2020, 6, 4, 9, 0, 0, tzinfo=timezone.utc)
 CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 
+# The conversation judge's result as Seer sends it over the RPC: the
+# semantic outputs alongside the opaque metadata drill-down bundle.
+CONVERSATION_ANALYSIS = {
+    "sentiment": "negative",
+    "comments_bot": 0,
+    "comments_human": 1,
+    "comments_total": 1,
+    "comments_judged": 1,
+    "comments_truncated": 0,
+    "metadata": {
+        "judge": "conversation.v1",
+        "sentiment_reasoning": "reviewer raised an unaddressed objection",
+        "comment_intents": [
+            {
+                "comment_id": "IC_9",
+                "author": "octocat",
+                "author_class": "human",
+                "intent": "objection",
+            },
+        ],
+    },
+}
+# Cross-judge close-reason labels, sent as a top-level arg alongside the verdict.
+DIAGNOSIS_LABELS = ["out_of_scope_or_unwanted"]
+
 
 def _last_row(mock_record: Any) -> PrCloseMetricsEvent:
     return mock_record.call_args_list[-1].args[0]
@@ -76,6 +101,129 @@ class UpdatePrMetricsTest(TestCase):
         )
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
         assert _last_row(mock_record).verdict == "merged_with_iteration"
+
+    @patch("sentry.analytics.record")
+    def test_threads_judge_enrichment_onto_emitted_row(self, mock_record: Any) -> None:
+        self._track()
+        result = self._call(
+            verdict="closed_unmerged",
+            conversation_analysis=CONVERSATION_ANALYSIS,
+            diagnosis_labels=DIAGNOSIS_LABELS,
+        )
+
+        assert result.dict() == {"success": True}
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        row = _last_row(mock_record)
+        assert row.conversation_sentiment == "negative"
+        assert row.conversation_comments_bot == 0
+        assert row.conversation_comments_human == 1
+        # diagnosis_labels is a cross-judge top-level arg, not part of the analysis.
+        assert row.diagnosis_labels == ["out_of_scope_or_unwanted"]
+        # The metadata bundle rides through verbatim as the opaque drill-down blob.
+        assert row.conversation_metadata is not None
+        assert orjson.loads(row.conversation_metadata) == CONVERSATION_ANALYSIS["metadata"]
+
+    @patch("sentry.analytics.record")
+    def test_unknown_sentiment_and_diagnosis_pass_through(self, mock_record: Any) -> None:
+        # sentiment and the diagnosis labels are free strings — a value outside the
+        # v1 vocabulary rides through verbatim, never 422s the row.
+        self._track()
+        conversation_analysis = {**CONVERSATION_ANALYSIS, "sentiment": "ambivalent"}
+        result = self._call(
+            verdict="closed_unmerged",
+            conversation_analysis=conversation_analysis,
+            diagnosis_labels=["brand_new_label"],
+        )
+
+        assert result.dict() == {"success": True}
+        row = _last_row(mock_record)
+        assert row.conversation_sentiment == "ambivalent"
+        assert row.diagnosis_labels == ["brand_new_label"]
+
+    @patch("sentry.pr_metrics.judge.metrics")
+    @patch("sentry.analytics.record")
+    def test_malformed_conversation_analysis_dropped_but_row_still_emits(
+        self, mock_record: Any, mock_metrics: Any
+    ) -> None:
+        # conversation_analysis is BigQuery-only enrichment, never persisted — a
+        # wrong-typed payload degrades gracefully: the verdict still settles and the
+        # row emits (without judge columns), rather than 422-ing the whole callback.
+        self._track()
+        result = self._call(
+            verdict="closed_unmerged",
+            conversation_analysis={"comments_total": "not-an-int"},
+        )
+
+        assert result.dict() == {"success": True}
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "closed_unmerged"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        row = _last_row(mock_record)
+        assert row.conversation_sentiment is None
+        assert row.conversation_comments_total is None
+        assert row.conversation_metadata is None
+        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_conversation_analysis")
+
+    @patch("sentry.pr_metrics.judge.metrics")
+    @patch("sentry.analytics.record")
+    def test_non_serializable_metadata_dropped_but_row_still_emits(
+        self, mock_record: Any, mock_metrics: Any
+    ) -> None:
+        # metadata is emitted as JSON outside the parse guard and after the verdict
+        # commits; a structurally-valid but non-serializable value (a bare object)
+        # must still be dropped gracefully, not raise mid-emit and 500 the callback.
+        self._track()
+        result = self._call(
+            verdict="closed_unmerged",
+            conversation_analysis={"sentiment": "negative", "metadata": {"obj": object()}},
+        )
+
+        assert result.dict() == {"success": True}
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        row = _last_row(mock_record)
+        assert row.conversation_sentiment is None
+        assert row.conversation_metadata is None
+        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_conversation_analysis")
+
+    @patch("sentry.pr_metrics.judge.metrics")
+    @patch("sentry.analytics.record")
+    def test_malformed_diagnosis_labels_dropped_but_row_still_emits(
+        self, mock_record: Any, mock_metrics: Any
+    ) -> None:
+        # diagnosis_labels must be a list of strings; a bare string is dropped
+        # gracefully (BigQuery-only enrichment) while the row still emits.
+        self._track()
+        result = self._call(verdict="closed_unmerged", diagnosis_labels="out_of_scope")
+
+        assert result.dict() == {"success": True}
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert _last_row(mock_record).diagnosis_labels is None
+        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_diagnosis_labels")
+
+    @patch("sentry.pr_metrics.judge.metrics")
+    @patch("sentry.analytics.record")
+    def test_mixed_type_diagnosis_labels_dropped(self, mock_record: Any, mock_metrics: Any) -> None:
+        # A list with a non-string element is not a valid label list — dropped whole.
+        self._track()
+        result = self._call(verdict="closed_unmerged", diagnosis_labels=["valid", 2])
+
+        assert result.dict() == {"success": True}
+        assert _last_row(mock_record).diagnosis_labels is None
+        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_diagnosis_labels")
+
+    @patch("sentry.analytics.record")
+    def test_judge_enrichment_absent_is_back_compat(self, mock_record: Any) -> None:
+        # Old Seer pods (and the no-judge path) send no analysis; the row emits with
+        # every judge column null.
+        self._track()
+        result = self._call(verdict="closed_unmerged")
+
+        assert result.dict() == {"success": True}
+        row = _last_row(mock_record)
+        assert row.conversation_sentiment is None
+        assert row.diagnosis_labels is None
+        assert row.conversation_metadata is None
 
     @patch("sentry.analytics.record")
     def test_records_seer_attributions(self, mock_record: Any) -> None:

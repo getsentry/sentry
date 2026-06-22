@@ -1,7 +1,7 @@
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-export function IconInProgress(props: SVGIconProps) {
+export function IconPieHalf(props: SVGIconProps) {
   return (
     <SvgIcon {...props}>
       <path
