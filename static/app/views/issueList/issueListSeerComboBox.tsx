@@ -10,6 +10,7 @@ import type {
   SeerRawResponse,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
+  buildSeerMutationResult,
   mapSeerResponseItem,
   transformSeerResponse,
   useInitialSeerQuery,
@@ -38,8 +39,12 @@ export function IssueListSeerComboBox() {
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, responseItem => mapSeerResponseItem(responseItem)),
-    []
+      transformSeerResponse(
+        response,
+        responseItem => mapSeerResponseItem(responseItem),
+        selectedProjectIds
+      ),
+    [selectedProjectIds]
   );
 
   const issueListAskSeerMutationOptions = mutationOptions({
@@ -54,16 +59,14 @@ export function IssueListSeerComboBox() {
         },
       });
 
-      return {
-        status: 'ok',
-        unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(response => mapSeerResponseItem(response)),
-      };
+      return buildSeerMutationResult(data, selectedProjectIds, response =>
+        mapSeerResponseItem(response)
+      );
     },
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery, runId?: number) => {
+    (result: AskSeerSearchQuery, runId?: number | string) => {
       if (!result) {
         return;
       }
@@ -74,6 +77,7 @@ export function IssueListSeerComboBox() {
         statsPeriod,
         start: resultStart,
         end: resultEnd,
+        expandedProjectIds,
       } = result;
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
@@ -114,6 +118,7 @@ export function IssueListSeerComboBox() {
 
       const queryParams = {
         ...omit(location.query, ['page', 'cursor']),
+        ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
         referrer: 'issue-list',
         query: queryToUse,
         ...(sort ? {sort} : {}),

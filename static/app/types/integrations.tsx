@@ -143,7 +143,7 @@ export type CommitFile = {
   type: string;
 };
 
-export type PullRequest = {
+export interface PullRequest {
   dateCreated: string;
   externalUrl: string;
   id: string;
@@ -151,7 +151,18 @@ export type PullRequest = {
   repository: Repository;
   title: string | null;
   author?: CommitAuthor;
-};
+}
+
+export type PullRequestStatus = 'merged' | 'open' | 'closed' | 'draft' | 'unknown';
+
+export interface LinkedPullRequest extends PullRequest {
+  dateLinked: string;
+  status: PullRequestStatus;
+}
+
+export interface LinkedPullRequestsResponse {
+  pullRequests: LinkedPullRequest[];
+}
 
 /**
  * Sentry Apps
@@ -383,7 +394,6 @@ export interface IntegrationProvider extends BaseIntegrationProvider {
     noun: string;
     source_url: string;
   };
-  setupDialog: {height: number; url: string; width: number};
 }
 
 interface OrganizationIntegrationProvider extends BaseIntegrationProvider {

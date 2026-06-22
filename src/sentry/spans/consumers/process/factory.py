@@ -2,9 +2,8 @@ import logging
 import time
 from collections.abc import Mapping
 from functools import partial
-from typing import cast
 
-import orjson
+import msgspec
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.dlq import InvalidMessage
@@ -13,22 +12,15 @@ from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
-from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import killswitches
-from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.options.rollout import in_random_rollout
 from sentry.spans.buffer import SpansBuffer
 from sentry.spans.buffer_types import Span
 from sentry.spans.consumers.process.flusher import ProduceToPipe, SpanFlusher
-from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, SetJoinTimeout, run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
-
-SPANS_CODEC: Codec[SpanEvent] = get_topic_codec(Topic.INGEST_SPANS)
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -80,7 +72,9 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         self.rebalancing_count += 1
         sentry_sdk.set_tag("sentry_spans_rebalancing_count", str(self.rebalancing_count))
+        sentry_sdk.set_attribute("sentry_spans_rebalancing_count", str(self.rebalancing_count))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "consumer")
+        sentry_sdk.set_attribute("sentry_spans_buffer_component", "consumer")
 
         committer = CommitOffsets(commit)
 
@@ -175,35 +169,34 @@ def process_batch(
             if min_timestamp is None or timestamp < min_timestamp:
                 min_timestamp = timestamp
 
+            # Decoding into the typed struct validates the fields the buffer relies on (presence
+            # and types); malformed spans raise here and are routed to the DLQ below. See also:
+            # INC-1453, INC-1458.
             decode_start = time.monotonic()
-            val = cast(SpanEvent, orjson.loads(payload.value))
+            span_event = _PROCESS_SPAN_DECODER.decode(payload.value)
             decode_time += time.monotonic() - decode_start
 
             if killswitches.value_matches(
                 "spans.drop-in-buffer",
                 killswitch_config,
                 {
-                    "org_id": val.get("organization_id"),
-                    "project_id": val.get("project_id"),
-                    "trace_id": val.get("trace_id"),
+                    "org_id": span_event.organization_id,
+                    "project_id": span_event.project_id,
+                    "trace_id": span_event.trace_id,
                     "partition_id": value.partition.index,
                 },
                 emit_metrics=False,
             ):
                 continue
 
-            # Adding schema validation to avoid crashing the consumer downstream
-            segment_id = cast(str | None, attribute_value(val, "sentry.segment.id"))
-            validate_span_event(val, segment_id)
-
             span = Span(
-                trace_id=val["trace_id"],
-                span_id=val["span_id"],
-                parent_span_id=val.get("parent_span_id"),
-                segment_id=segment_id,
-                project_id=val["project_id"],
+                trace_id=span_event.trace_id,
+                span_id=span_event.span_id,
+                parent_span_id=span_event.parent_span_id,
+                segment_id=span_event.segment_id,
+                project_id=span_event.project_id,
                 payload=payload.value,
-                is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_segment")),
+                is_segment_span=span_event.is_segment_span,
                 partition=value.partition.index,
             )
 
@@ -233,15 +226,42 @@ def process_batch(
     return min_timestamp
 
 
-def validate_span_event(span_event: SpanEvent, segment_id: str | None) -> None:
-    """
-    Checks whether the span is valid based on the ingest spans schema.
-    All spans that do not conform to the schema validation rules are discarded.
+class SpanAttributeValue(msgspec.Struct, gc=False):
+    value: str | None = None
 
-    There are several other assertions to protect against downstream crashes, see also: INC-1453, INC-1458.
-    """
-    if in_random_rollout("spans.process-segments.schema-validation"):
-        SPANS_CODEC.validate(span_event)
-    assert isinstance(span_event["trace_id"], str), "trace_id must be str"
-    assert isinstance(span_event["span_id"], str), "span_id must be str"
-    assert segment_id is None or isinstance(segment_id, str), "segment_id must be str or None"
+
+class SpanAttributes(msgspec.Struct, gc=False):
+    segment_id: SpanAttributeValue | None = msgspec.field(name="sentry.segment.id", default=None)
+
+
+class ProcessSpanEvent(msgspec.Struct, gc=False):
+    organization_id: int
+    project_id: int
+    trace_id: str
+    span_id: str
+    start_timestamp: float
+    end_timestamp: float
+    received: float
+    retention_days: int
+    status: str
+    name: str | None = None
+    parent_span_id: str | None = None
+    is_segment: bool | None = None
+    attributes: SpanAttributes | None = None
+
+    @property
+    def segment_id(self) -> str | None:
+        if self.attributes is None or self.attributes.segment_id is None:
+            return None
+        return self.attributes.segment_id.value
+
+    @property
+    def is_segment_span(self) -> bool:
+        return self.parent_span_id is None or bool(self.is_segment)
+
+
+_PROCESS_SPAN_DECODER = msgspec.json.Decoder(type=ProcessSpanEvent)
+
+
+def decode_process_span_event(buf: bytes) -> ProcessSpanEvent:
+    return _PROCESS_SPAN_DECODER.decode(buf)

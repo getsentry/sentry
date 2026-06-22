@@ -23,22 +23,19 @@ const JAVASCRIPT_PROJECT_PLATFORMS = new Set<PlatformKey>([
 ]);
 
 export function getSpanLabel(evidenceData: LowValueSpanEvidenceData): string {
-  const {op, description} = evidenceData;
+  const {op, description, spanName} = evidenceData;
+  const primary = spanName ?? op;
 
-  if (op && description) {
-    return `${op} - ${description}`;
+  if (primary && description) {
+    return `${primary} - ${description}`;
   }
-  if (op) {
-    return op;
+  if (primary) {
+    return primary;
   }
   if (description) {
     return description;
   }
   return t('Unknown span');
-}
-
-export function formatCount(count: number | null): string {
-  return count === null ? t('Unknown') : count.toLocaleString();
 }
 
 export function formatDurationMs(duration: number | null): string {
@@ -102,21 +99,30 @@ export function getCustomInstrumentationDocsUrl(): string {
   return CUSTOM_INSTRUMENTATION_DOCS_URL;
 }
 
-function toCodeString(value: string | null, fallback: string): string {
-  return JSON.stringify(value ?? fallback);
-}
-
 export function getJavaScriptSpanFilterSnippet(
   evidenceData: LowValueSpanEvidenceData
 ): string {
-  const spanOp = toCodeString(evidenceData.op, '<span.op>');
-  const spanDescription = toCodeString(evidenceData.description, '<span.description>');
+  const {op, description, spanName} = evidenceData;
+  const matcherName = spanName ?? description;
+  const matcherLines: string[] = [];
+
+  if (matcherName === null && op !== null) {
+    matcherLines.push(`      // NOTE: This span has no description or name, so it can`);
+    matcherLines.push(
+      `      // only be targeted by op. This will also drop other spans with this op.`
+    );
+  }
+  if (op !== null) {
+    matcherLines.push(`      op: ${JSON.stringify(op)},`);
+  }
+  if (matcherName !== null) {
+    matcherLines.push(`      name: ${JSON.stringify(matcherName)},`);
+  }
 
   return `Sentry.init({
   ignoreSpans: [
     {
-      op: ${spanOp},
-      name: ${spanDescription},
+${matcherLines.join('\n')}
     },
   ],
 });`;
@@ -125,8 +131,23 @@ export function getJavaScriptSpanFilterSnippet(
 export function getPythonSpanFilterSnippet(
   evidenceData: LowValueSpanEvidenceData
 ): string {
-  const spanOp = toCodeString(evidenceData.op, '<span.op>');
-  const spanDescription = toCodeString(evidenceData.description, '<span.description>');
+  const {op, description, spanName} = evidenceData;
+  const conditions: string[] = [];
+  if (op === null) {
+    conditions.push(`            span.get("op") is None`);
+  } else {
+    conditions.push(`            span.get("op") == ${JSON.stringify(op)}`);
+  }
+  if (description === null) {
+    conditions.push(`            and span.get("description") is None`);
+  } else {
+    conditions.push(
+      `            and span.get("description") == ${JSON.stringify(description)}`
+    );
+  }
+  if (spanName !== null) {
+    conditions.push(`            and span.get("name") == ${JSON.stringify(spanName)}`);
+  }
 
   return `import sentry_sdk
 
@@ -135,8 +156,7 @@ def before_send_transaction(event, hint):
     event["spans"] = [
         span for span in event.get("spans", [])
         if not (
-            span.get("op") == ${spanOp}
-            and span.get("description") == ${spanDescription}
+${conditions.join('\n')}
         )
     ]
     return event

@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import TypedDict
 
 SCIM_API_LIST = "urn:ietf:params:scim:api:messages:2.0:ListResponse"
 SCIM_SCHEMA_USER = "urn:ietf:params:scim:schemas:core:2.0:User"
@@ -9,13 +10,26 @@ SCIM_API_ERROR = "urn:ietf:params:scim:api:messages:2.0:Error"
 SCIM_API_PATCH = "urn:ietf:params:scim:api:messages:2.0:PatchOp"
 SCIM_COUNT = 100
 
+
+class SCIMErrorResponse(TypedDict, total=False):
+    """SCIM-specific error envelope: `{"schemas": [...], "detail": "..."}`
+    plus optional `scimType` per RFC 7644. The shape diverges from DRF's
+    `{"detail": ...}` because SCIM clients (IDPs) expect this exact format."""
+
+    schemas: list[str]
+    detail: str
+    scimType: str
+
+
 SCIM_404_USER_RES = {
     "schemas": [SCIM_API_ERROR],
+    "status": "404",
     "detail": "User not found.",
 }
 
 SCIM_404_GROUP_RES = {
     "schemas": [SCIM_API_ERROR],
+    "status": "404",
     "detail": "Group not found.",
 }
 
@@ -25,26 +39,31 @@ SCIM_409_USER_EXISTS = "User already exists in the database."
 
 SCIM_400_INVALID_FILTER = {
     "schemas": [SCIM_API_ERROR],
+    "status": "400",
     "scimType": "invalidFilter",
 }
 
 SCIM_400_INTEGRITY_ERROR = {
     "schemas": [SCIM_API_ERROR],
+    "status": "400",
     "detail": "Database Integrity Error.",
 }
 
 SCIM_400_TOO_MANY_PATCH_OPS_ERROR = {
     "schemas": [SCIM_API_ERROR],
+    "status": "400",
     "detail": "Too many patch ops sent, limit is 100.",
 }
 
 SCIM_400_UNSUPPORTED_ATTRIBUTE = {
     "schemas": [SCIM_API_ERROR],
+    "status": "400",
     "detail": "Invalid Replace attr. Only displayName and members supported.",
 }
 
 SCIM_400_INVALID_PAYLOAD = {
     "schemas": [SCIM_API_ERROR],
+    "status": "400",
     "detail": "Invalid SCIM payload.",
 }
 

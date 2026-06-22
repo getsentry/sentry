@@ -241,6 +241,7 @@ export function LogsInfiniteTable({
     Record<string, number>
   >({});
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
@@ -470,6 +471,8 @@ export function LogsInfiniteTable({
           logStart={logStart}
           logEnd={logEnd}
           isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+          isHoverLinked={hoveredRowId === rowId}
+          setHoveredRowId={setHoveredRowId}
           togglePinnedRow={logsPinning?.togglePinnedRow}
         />
       );
@@ -480,6 +483,7 @@ export function LogsInfiniteTable({
       handleExpand,
       handleExpandHeight,
       highlightTerms,
+      hoveredRowId,
       logEnd,
       logStart,
       logsPinning,
@@ -610,6 +614,8 @@ export function LogsInfiniteTable({
                   showCellActions={showCellActions}
                   showExploreSimilarSpansLink={showExploreSimilarSpansLink}
                   isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+                  isHoverLinked={hoveredRowId === rowId}
+                  setHoveredRowId={setHoveredRowId}
                   togglePinnedRow={logsPinning?.togglePinnedRow}
                 />
               </Fragment>

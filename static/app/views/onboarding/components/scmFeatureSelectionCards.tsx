@@ -1,5 +1,5 @@
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
@@ -15,6 +15,7 @@ interface ScmFeatureSelectionCardsProps {
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
   isVolumeLoading?: boolean;
+  showVolume?: boolean;
 }
 
 export function ScmFeatureSelectionCards({
@@ -24,13 +25,14 @@ export function ScmFeatureSelectionCards({
   onToggleFeature,
   featureMeta,
   isVolumeLoading,
+  showVolume = true,
 }: ScmFeatureSelectionCardsProps) {
   return (
     <Stack gap="xl" width="100%" justify="center">
       <Flex justify="between" align="center">
-        <Heading as="h3" size="xl">
+        <Text bold size="md" density="comfortable">
           {t('What do you want to instrument?')}
-        </Heading>
+        </Text>
         {availableFeatures.length > 1 ? (
           <Text size="sm" variant="secondary">
             {t('Choose one or more')}
@@ -57,6 +59,7 @@ export function ScmFeatureSelectionCards({
               volume={meta.volume}
               volumeTooltip={meta.volumeTooltip}
               isVolumeLoading={isVolumeLoading}
+              showVolume={showVolume}
             />
           );
         })}

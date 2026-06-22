@@ -13,7 +13,13 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {useProjects} from 'sentry/utils/useProjects';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 
-import type {AskSeerSearchQuery, SeerRawResponseItem} from './types';
+import type {
+  AskSeerSearchQuery,
+  QueryTokensProps,
+  SeerRawResponse,
+  SeerRawResponseItem,
+} from './types';
+import {getExpandedProjectIds} from './utils';
 
 export function useInitialSeerQuery(): string {
   const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
@@ -86,25 +92,66 @@ export function useSelectedProjectIdsForMutation(): Array<number | string> {
   }, [pageFilters.selection.projects, projects]);
 }
 
-export function transformSeerResponse<T>(
-  response: T,
+function mapResponsesWithExpansion<T extends QueryTokensProps>(
+  responses: SeerRawResponseItem[],
+  projectIds: number[] | null | undefined,
+  selectedProjectIds: number[] | undefined,
   mapItem: (item: SeerRawResponseItem) => T
 ): T[] {
-  const seerResponse = response as unknown as {
-    responses?: SeerRawResponseItem[];
-  };
+  const expandedProjectIds = selectedProjectIds
+    ? getExpandedProjectIds(projectIds, selectedProjectIds)
+    : undefined;
 
-  if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
-    return seerResponse.responses.map(mapItem);
+  return responses.map(item => ({
+    ...mapItem(item),
+    ...(expandedProjectIds ? {expandedProjectIds} : {}),
+  }));
+}
+
+export function transformSeerResponse<T extends QueryTokensProps>(
+  response: T,
+  mapItem: (item: SeerRawResponseItem) => T,
+  selectedProjectIds?: number[]
+): T[] {
+  // The polling `final_response` is a serialized `SeerRawResponse` envelope at
+  // runtime, even though the combobox types it as a single item. We reconcile
+  // that narrowing here once, rather than asserting in every ComboBox.
+  const envelope = response as unknown as SeerRawResponse;
+
+  if (!Array.isArray(envelope.responses)) {
+    return [response];
   }
 
-  return [response];
+  return mapResponsesWithExpansion(
+    envelope.responses,
+    envelope.project_ids,
+    selectedProjectIds,
+    mapItem
+  );
+}
+
+export function buildSeerMutationResult<T extends QueryTokensProps>(
+  data: SeerRawResponse,
+  selectedProjectIds: number[],
+  mapItem: (item: SeerRawResponseItem) => T
+): {queries: T[]; status: string; unsupported_reason: string | null} {
+  return {
+    status: 'ok',
+    unsupported_reason: data.unsupported_reason,
+    queries: mapResponsesWithExpansion(
+      data.responses,
+      data.project_ids,
+      selectedProjectIds,
+      mapItem
+    ),
+  };
 }
 
 export function mapSeerResponseItem(
   item: SeerRawResponseItem,
   defaultMode = 'samples'
 ): AskSeerSearchQuery {
+  const interval = getRawSeerInterval(item);
   return {
     visualizations:
       item.visualization
@@ -122,7 +169,20 @@ export function mapSeerResponseItem(
     start: item.start ?? null,
     end: item.end ?? null,
     mode: item.mode || defaultMode,
+    ...(interval ? {interval} : {}),
   };
+}
+
+// Seer returns the interval nested per-visualization, but the chart uses a
+// single shared interval. Hoist the interval from the first plotted
+// visualization (one with y-axes, matching what `mapSeerResponseItem` keeps) so
+// we don't pick up an interval from a dropped, axis-less entry.
+function getRawSeerInterval(item: SeerRawResponseItem): string | undefined {
+  return (
+    item.visualization?.find(
+      ({interval, y_axes}) => Boolean(interval) && (y_axes?.length ?? 0) > 0
+    )?.interval ?? undefined
+  );
 }
 
 export interface SeerDateTimeSelection {

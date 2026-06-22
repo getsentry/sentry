@@ -39,7 +39,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconBug} from 'sentry/icons';
 import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
@@ -49,6 +48,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSectionTypes';
 import {Resources} from 'sentry/views/issueDetails/sidebar/resources';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -57,10 +57,9 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 interface AutofixSectionProps {
   group: Group;
   project: Project;
-  event?: Event;
 }
 
-export function AutofixSection({group, project, event}: AutofixSectionProps) {
+export function AutofixSection({group, project}: AutofixSectionProps) {
   const aiConfig = useAiConfig(group, project);
 
   const issueTypeConfig = getConfigForIssueType(group, project);
@@ -86,7 +85,7 @@ export function AutofixSection({group, project, event}: AutofixSectionProps) {
       >
         <Resources
           configResources={issueTypeConfig.resources}
-          eventPlatform={event?.platform}
+          platform={group.platform}
           group={group}
         />
       </SidebarFoldSection>
@@ -104,12 +103,7 @@ export function AutofixSection({group, project, event}: AutofixSectionProps) {
       sectionKey={SectionKey.SEER}
       preventCollapse={false}
     >
-      <AutofixContentHook
-        aiConfig={aiConfig}
-        group={group}
-        project={project}
-        event={event}
-      />
+      <AutofixContentHook aiConfig={aiConfig} group={group} project={project} />
     </SidebarFoldSection>
   );
 }
@@ -122,14 +116,7 @@ const AutofixContentHook = registerLLMContext(
   })
 );
 
-export interface AutofixContentProps {
-  aiConfig: ReturnType<typeof useAiConfig>;
-  group: Group;
-  project: Project;
-  event?: Event;
-}
-
-export function AutofixContent({aiConfig, group, project, event}: AutofixContentProps) {
+export function AutofixContent({aiConfig, group, project}: AutofixContentProps) {
   const organization = useOrganization();
   const autofix = useExplorerAutofix(group.id);
   const {data: setupCheck, isPending} = useQuery(
@@ -193,8 +180,6 @@ export function AutofixContent({aiConfig, group, project, event}: AutofixContent
     isPending ||
     // autofix results are loading
     autofix.isLoading ||
-    // waiting for the event to load
-    !event ||
     // waiting for the ai configs to load
     aiConfig.isAutofixSetupLoading ||
     // we're polling and no blocks have been added yet
@@ -250,19 +235,16 @@ export function AutofixContent({aiConfig, group, project, event}: AutofixContent
     }
   }
 
-  return (
-    <AutofixArtifacts autofix={autofix} group={group} project={project} event={event} />
-  );
+  return <AutofixArtifacts autofix={autofix} group={group} project={project} />;
 }
 
 interface AutofixArtifactsProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
-  event: Event;
   group: Group;
   project: Project;
 }
 
-function AutofixArtifacts({autofix, group, project, event}: AutofixArtifactsProps) {
+function AutofixArtifacts({autofix, group, project}: AutofixArtifactsProps) {
   const sections = useMemo(
     () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
@@ -274,7 +256,6 @@ function AutofixArtifacts({autofix, group, project, event}: AutofixArtifactsProp
     return (
       <AutofixEmptyState
         autofix={autofix}
-        event={event}
         group={group}
         project={project}
         referrer={referrer}
@@ -285,7 +266,6 @@ function AutofixArtifacts({autofix, group, project, event}: AutofixArtifactsProp
   return (
     <AutofixPreviews
       sections={sections}
-      event={event}
       group={group}
       project={project}
       referrer={referrer}
@@ -295,23 +275,15 @@ function AutofixArtifacts({autofix, group, project, event}: AutofixArtifactsProp
 
 interface AutofixEmptyStateProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
-  event: Event;
   group: Group;
   project: Project;
   referrer?: string;
 }
 
-function AutofixEmptyState({
-  autofix,
-  group,
-  event,
-  project,
-  referrer,
-}: AutofixEmptyStateProps) {
+function AutofixEmptyState({autofix, group, project, referrer}: AutofixEmptyStateProps) {
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
-    event,
   });
 
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
@@ -375,20 +347,13 @@ function AutofixEmptyState({
 }
 
 interface AutofixPreviewsProps {
-  event: Event;
   group: Group;
   project: Project;
   sections: AutofixSection[];
   referrer?: string;
 }
 
-function AutofixPreviews({
-  event,
-  group,
-  project,
-  sections,
-  referrer,
-}: AutofixPreviewsProps) {
+function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsProps) {
   const hasRootCause =
     sections.findLast(isRootCauseSection)?.artifacts?.some(isRootCauseArtifact) ?? false;
 
@@ -415,7 +380,6 @@ function AutofixPreviews({
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
-    event,
   });
 
   return (

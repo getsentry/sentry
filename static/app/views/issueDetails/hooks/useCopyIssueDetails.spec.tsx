@@ -114,6 +114,37 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('## Plan');
     });
 
+    it('includes the message when it differs from the title', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError'}),
+        event: EventFixture({...event, message: 'Connection to database timed out'}),
+        organization,
+      });
+
+      expect(result).toContain('## Message');
+      expect(result).toContain('Connection to database timed out');
+    });
+
+    it('omits the message when it is already part of the title', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError: connection failed'}),
+        event: EventFixture({...event, message: 'connection failed'}),
+        organization,
+      });
+
+      expect(result).not.toContain('## Message');
+    });
+
+    it('omits the message when it is empty', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError'}),
+        event: EventFixture({...event, message: '   '}),
+        organization,
+      });
+
+      expect(result).not.toContain('## Message');
+    });
+
     it('includes tags when present in event', () => {
       const eventWithTags = {
         ...event,
@@ -175,6 +206,64 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('**Type:** TypeError');
       expect(result).toContain('**Value:** Cannot read property of undefined');
       expect(result).toContain('#### Stacktrace');
+      // No mechanism on this exception, so no handled line.
+      expect(result).not.toContain('**Handled:**');
+    });
+
+    it('marks an unhandled exception', () => {
+      const eventWithUnhandled = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                {
+                  type: 'TypeError',
+                  value: 'boom',
+                  mechanism: {type: 'onerror', handled: false},
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithUnhandled,
+        organization,
+      });
+
+      expect(result).toContain('**Handled:** No');
+    });
+
+    it('marks a handled exception', () => {
+      const eventWithHandled = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                {
+                  type: 'ValueError',
+                  value: 'caught',
+                  mechanism: {type: 'generic', handled: true},
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithHandled,
+        organization,
+      });
+
+      expect(result).toContain('**Handled:** Yes');
     });
 
     it('includes thread stacktrace when activeThreadId matches', () => {
@@ -341,6 +430,328 @@ describe('useCopyIssueDetails', () => {
 
       expect(result).not.toContain('## Thread');
       expect(result).not.toContain('mainFunction');
+    });
+
+    it('includes breadcrumbs when present in event', () => {
+      const eventWithBreadcrumbs = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [
+                {
+                  type: 'http',
+                  category: 'fetch',
+                  level: 'error',
+                  message: 'GET /api/users',
+                  data: {url: '/api/users', status_code: 500},
+                },
+                {
+                  type: 'navigation',
+                  category: 'ui.click',
+                  level: 'info',
+                  message: 'User clicked submit',
+                  data: null,
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithBreadcrumbs,
+        organization,
+      });
+
+      expect(result).toContain('## Breadcrumbs');
+      expect(result).toContain('- **http** `fetch` [error]');
+      expect(result).toContain('  GET /api/users');
+      expect(result).toContain('  {"url":"/api/users","status_code":500}');
+      expect(result).toContain('- **navigation** `ui.click` [info]');
+      expect(result).toContain('  User clicked submit');
+    });
+
+    it('truncates a single breadcrumb to the per-crumb character limit', () => {
+      const longMessage = 'x'.repeat(600);
+      const eventWithLongBreadcrumb = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [{type: 'default', level: 'info', message: longMessage}],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithLongBreadcrumb,
+        organization,
+      });
+
+      // Kept the first 500 chars plus an ellipsis, dropped the rest.
+      expect(result).toContain(`${'x'.repeat(500)}...`);
+      expect(result).not.toContain('x'.repeat(501));
+    });
+
+    it('truncates the breadcrumbs section to the total character limit', () => {
+      // 10 crumbs near the per-crumb cap (~490 chars each) overflow the 5000
+      // total. The first crumb's content survives; the last crumb's tail (well
+      // past the 5000th char) is cut off.
+      const values = Array.from({length: 10}, (_, i) => {
+        if (i === 0) {
+          return {type: 'default', level: 'info', message: `FIRSTHEAD${'a'.repeat(481)}`};
+        }
+        if (i === 9) {
+          return {
+            type: 'default',
+            level: 'info',
+            message: `LASTHEAD${'a'.repeat(470)}LASTTAIL`,
+          };
+        }
+        return {type: 'default', level: 'info', message: 'a'.repeat(490)};
+      });
+      const eventWithManyLargeBreadcrumbs = EventFixture({
+        ...event,
+        entries: [{type: EntryType.BREADCRUMBS, data: {values}}],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithManyLargeBreadcrumbs,
+        organization,
+      });
+
+      expect(result).toContain('... (breadcrumbs truncated to first 5,000 characters)');
+      expect(result).toContain('FIRSTHEAD');
+      expect(result).not.toContain('LASTTAIL');
+    });
+
+    it('renders breadcrumbs after exceptions', () => {
+      const eventWithBoth = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [{type: 'default', level: 'info', message: 'crumb'}],
+            },
+          },
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [{type: 'TypeError', value: 'boom'}],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithBoth,
+        organization,
+      });
+
+      expect(result.indexOf('## Exception')).toBeLessThan(
+        result.indexOf('## Breadcrumbs')
+      );
+    });
+
+    it('limits breadcrumbs to the most recent 10', () => {
+      const values = Array.from({length: 15}, (_, i) => ({
+        type: 'default',
+        level: 'info',
+        message: `crumb ${i}`,
+      }));
+      const eventWithManyBreadcrumbs = EventFixture({
+        ...event,
+        entries: [{type: EntryType.BREADCRUMBS, data: {values}}],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithManyBreadcrumbs,
+        organization,
+      });
+
+      // The oldest 5 are dropped, the most recent 10 are kept.
+      expect(result).not.toContain('crumb 4');
+      expect(result).toContain('crumb 5');
+      expect(result).toContain('crumb 14');
+    });
+
+    it('skips breadcrumbs with filtered content', () => {
+      const eventWithFiltered = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [
+                {type: 'http', level: 'info', message: 'token: [Filtered]'},
+                {
+                  type: 'http',
+                  level: 'info',
+                  message: 'visible',
+                  data: {secret: '[Filtered]'},
+                },
+                {type: 'default', level: 'info', message: 'kept crumb'},
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithFiltered,
+        organization,
+      });
+
+      expect(result).toContain('kept crumb');
+      expect(result).not.toContain('[Filtered]');
+      expect(result).not.toContain('visible');
+    });
+
+    it('does not include a breadcrumbs section when there are none', () => {
+      const eventWithEmptyBreadcrumbs = EventFixture({
+        ...event,
+        entries: [{type: EntryType.BREADCRUMBS, data: {values: []}}],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithEmptyBreadcrumbs,
+        organization,
+      });
+
+      expect(result).not.toContain('## Breadcrumbs');
+    });
+
+    it('includes the request method, url, and body when present', () => {
+      const eventWithRequest = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {
+              method: 'POST',
+              url: 'https://example.com/api/checkout/',
+              data: {cart_id: 'abc123', total: 4200},
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithRequest,
+        organization,
+      });
+
+      expect(result).toContain('## Request');
+      expect(result).toContain('POST https://example.com/api/checkout/');
+      expect(result).toContain('Body:');
+      expect(result).toContain('"cart_id": "abc123"');
+    });
+
+    it('renders a string request body as-is', () => {
+      const eventWithStringBody = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {
+              method: 'GET',
+              url: 'https://example.com/api/items/',
+              data: 'raw body payload',
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithStringBody,
+        organization,
+      });
+
+      expect(result).toContain('GET https://example.com/api/items/');
+      expect(result).toContain('raw body payload');
+    });
+
+    it('renders the request after breadcrumbs', () => {
+      const eventWithBoth = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {method: 'GET', url: 'https://example.com/', data: null},
+          },
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {values: [{type: 'default', level: 'info', message: 'crumb'}]},
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithBoth,
+        organization,
+      });
+
+      expect(result.indexOf('## Breadcrumbs')).toBeLessThan(result.indexOf('## Request'));
+    });
+
+    it('truncates a large request body to the character limit', () => {
+      const eventWithLargeBody = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {
+              method: 'POST',
+              url: 'https://example.com/api/upload/',
+              data: 'z'.repeat(2500),
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithLargeBody,
+        organization,
+      });
+
+      expect(result).toContain(`${'z'.repeat(2000)}...`);
+      expect(result).not.toContain('z'.repeat(2001));
+    });
+
+    it('does not include a request section when there is no request data', () => {
+      const eventWithEmptyRequest = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {method: null, url: '', data: null},
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithEmptyRequest,
+        organization,
+      });
+
+      expect(result).not.toContain('## Request');
     });
 
     // 1006 is the occurrence type for N+1 DB Queries. Spans mirror the classic
@@ -542,6 +953,188 @@ LIMIT 21`;
 
       const sampleLines = (result.match(/^ {2}- (?!…)/gm) ?? []).length;
       expect(sampleLines).toBeLessThanOrEqual(10);
+    });
+
+    it('includes payload size for large HTTP payload issues', () => {
+      const payloadGroup = GroupFixture({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
+      });
+      const payloadEvent = EventFixture({
+        ...event,
+        occurrence: {
+          type: 1015,
+          evidenceData: {offenderSpanIds: ['s1']},
+          evidenceDisplay: [],
+        },
+        entries: [
+          {
+            type: EntryType.SPANS,
+            data: [
+              {
+                span_id: 's1',
+                op: 'http.client',
+                description: 'GET /big.json',
+                data: {'http.response_content_length': 5_000_000},
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = formatSpanEvidenceToMarkdown(
+        payloadEvent,
+        organization,
+        payloadGroup
+      );
+      expect(result).toContain('**Payload Size:**');
+      expect(result).toContain('5000000 B');
+    });
+
+    it('includes FCP delay for render-blocking asset issues', () => {
+      const renderBlockingGroup = GroupFixture({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
+      });
+      const renderBlockingEvent = EventFixture({
+        ...event,
+        startTimestamp: 0,
+        endTimestamp: 1,
+        measurements: {fcp: {value: 1000, unit: 'millisecond'}},
+        occurrence: {
+          type: 1004,
+          evidenceData: {offenderSpanIds: ['s1']},
+          evidenceDisplay: [],
+        },
+        entries: [
+          {
+            type: EntryType.SPANS,
+            data: [
+              {
+                span_id: 's1',
+                op: 'resource.script',
+                description: 'app.js',
+                start_timestamp: 0,
+                timestamp: 0.4,
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = formatSpanEvidenceToMarkdown(
+        renderBlockingEvent,
+        organization,
+        renderBlockingGroup
+      );
+      expect(result).toContain('**FCP Delay:**');
+      expect(result).toContain('of FCP');
+    });
+
+    it('includes query and path parameters for N+1 API call issues', () => {
+      const apiGroup = GroupFixture({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+      });
+      const apiEvent = EventFixture({
+        ...event,
+        occurrence: {
+          type: 1010,
+          evidenceData: {
+            offenderSpanIds: ['s1'],
+            parameters: ['id:{1,2,3}'],
+            pathParameters: ['/users/*'],
+          },
+          evidenceDisplay: [],
+        },
+        entries: [
+          {
+            type: EntryType.SPANS,
+            data: [{span_id: 's1', op: 'http.client', description: 'GET /users/1'}],
+          },
+        ],
+      });
+
+      const result = formatSpanEvidenceToMarkdown(apiEvent, organization, apiGroup);
+      expect(result).toContain('**Query Parameters:** id:{1,2,3}');
+      expect(result).toContain('**Path Parameters:** /users/*');
+    });
+
+    it('derives N+1 API query params from spans when evidenceData lacks them', () => {
+      const apiGroup = GroupFixture({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+      });
+      // No evidenceData.parameters — mirror the UI fallback that derives the
+      // changing query params from the offending spans' URLs.
+      const spans = [1, 2, 3].map(id => ({
+        span_id: `s${id}`,
+        op: 'http.client',
+        description: `GET https://api.example.com/users?id=${id}`,
+      }));
+      const apiEvent = EventFixture({
+        ...event,
+        occurrence: {
+          type: 1010,
+          evidenceData: {offenderSpanIds: spans.map(s => s.span_id)},
+          evidenceDisplay: [],
+        },
+        entries: [{type: EntryType.SPANS, data: spans}],
+      });
+
+      const result = formatSpanEvidenceToMarkdown(apiEvent, organization, apiGroup);
+      expect(result).toContain('**Query Parameters:** id:{1,2,3}');
+    });
+
+    it('includes vulnerable parameters and request URL for query injection issues', () => {
+      const injectionGroup = GroupFixture({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.QUERY_INJECTION_VULNERABILITY,
+      });
+      const injectionEvent = EventFixture({
+        ...event,
+        occurrence: {
+          type: 1021,
+          evidenceData: {
+            offenderSpanIds: ['s1'],
+            vulnerableParameters: [['username', "admin' OR '1'='1"]],
+            requestUrl: 'https://example.com/login',
+          },
+          evidenceDisplay: [],
+        },
+        entries: [
+          {
+            type: EntryType.SPANS,
+            data: [
+              {
+                span_id: 's1',
+                op: 'db',
+                description: 'SELECT * FROM users WHERE name = ?',
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = formatSpanEvidenceToMarkdown(
+        injectionEvent,
+        organization,
+        injectionGroup
+      );
+      expect(result).toContain("**Vulnerable Parameters:** username: admin' OR '1'='1");
+      expect(result).toContain('**Request URL:** https://example.com/login');
+    });
+
+    it('does not add type-specific metrics for N+1 DB issues', () => {
+      // N+1 DB has no extra per-type metric rows beyond the generic summary.
+      const result = formatSpanEvidenceToMarkdown(
+        nPlusOneEvent,
+        organization,
+        performanceGroup
+      );
+      expect(result).not.toContain('**Payload Size:**');
+      expect(result).not.toContain('**FCP Delay:**');
+      expect(result).not.toContain('**Query Parameters:**');
     });
 
     it('includes evidence display rows for profiling issues', () => {

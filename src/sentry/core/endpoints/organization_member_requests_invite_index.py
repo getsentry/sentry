@@ -65,7 +65,9 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[OrganizationMemberWithTeamsResponse]]:
         """
         Return a list of pending invite and join requests for an organization.
         """

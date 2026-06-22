@@ -14,6 +14,7 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.utils import json
 from sentry.utils.redis import redis_clusters
 
 from ..metrics import record_webhook_filtered
@@ -81,8 +82,10 @@ def handle_webhook_event(
         )
         sentry_sdk.set_tags(tags)
         sentry_sdk.set_context("code_review_context", tags)
+        sentry_sdk.set_attribute("code_review_context", json.dumps(tags))
         if github_delivery_id:
             sentry_sdk.set_tag("github_delivery_id", github_delivery_id)
+            sentry_sdk.set_attribute("github_delivery_id", github_delivery_id)
     except Exception:
         logger.warning("github.webhook.code_review.failed_to_set_tags")
 
@@ -106,6 +109,7 @@ def handle_webhook_event(
             )
             if organization.slug == "sentry":
                 sentry_sdk.set_tag("denial_reason", preflight.denial_reason)
+                sentry_sdk.set_attribute("denial_reason", preflight.denial_reason)
                 logger.info("github.webhook.code_review.denied")
         return
 
@@ -117,6 +121,7 @@ def handle_webhook_event(
             is_first_time_seen = cluster.set(seen_key, "1", ex=WEBHOOK_SEEN_TTL_SECONDS, nx=True)
         except Exception as e:
             sentry_sdk.set_tag("error", str(e))
+            sentry_sdk.set_attribute("error", str(e))
             logger.warning("github.webhook.code_review.mark_seen_failed")
             # Keep going if error (e.g. Redis down) since we'd rather process twice than never
         else:

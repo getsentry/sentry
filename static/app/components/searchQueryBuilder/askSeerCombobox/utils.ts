@@ -36,7 +36,7 @@ export function trackAiQueryOutcome({
   orgSlug: string;
   referrer: string;
   resultCount: number;
-  runId: number;
+  runId: number | string;
   error?: string | boolean | Error;
 }) {
   const outcome = error
@@ -71,6 +71,24 @@ export function isNoneOfTheseItem(
   item: AskSeerSearchItems<any>
 ): item is NoneOfTheseItem {
   return item.key === 'none-of-these';
+}
+
+/**
+ * Returns the agent's expanded project scope to apply when it broadened beyond
+ * the user's selection (Seer always returns a superset). Returns `undefined`
+ * when there's no expansion, so the "Projects" chip stays hidden and the user's
+ * selection is left untouched.
+ */
+export function getExpandedProjectIds(
+  returnedProjectIds: number[] | null | undefined,
+  selectedProjectIds: number[]
+): number[] | undefined {
+  if (!returnedProjectIds || returnedProjectIds.length === 0) {
+    return undefined;
+  }
+  const selectedSet = new Set(selectedProjectIds);
+  const hasExtraProjects = returnedProjectIds.some(id => !selectedSet.has(id));
+  return hasExtraProjects ? returnedProjectIds : undefined;
 }
 
 function formatToken(token: string): string {
@@ -200,6 +218,10 @@ export function generateQueryTokensString(args: QueryTokensProps): string {
     }
   }
 
+  if (args?.interval) {
+    parts.push(`interval is '${args.interval}'`);
+  }
+
   if (args?.groupBys && args.groupBys.length > 0) {
     const groupByText =
       args.groupBys.length === 1 ? args.groupBys[0] : args.groupBys.join(', ');
@@ -217,6 +239,11 @@ export function generateQueryTokensString(args: QueryTokensProps): string {
     const sortText =
       args?.sort[0] === '-' ? `${args?.sort.slice(1)} Desc` : `${args?.sort} Asc`;
     parts.push(`sort is '${sortText}'`);
+  }
+
+  if (args?.expandedProjectIds && args.expandedProjectIds.length > 0) {
+    const count = args.expandedProjectIds.length;
+    parts.push(`search expanded to ${count} ${count === 1 ? 'project' : 'projects'}`);
   }
 
   return parts.length > 0 ? parts.join(', ') : 'No query parameters set';

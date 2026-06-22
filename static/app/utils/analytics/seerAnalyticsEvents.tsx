@@ -10,6 +10,16 @@ export type SeerAnalyticsEventsParameters = {
   'ai_query.error': {
     area: string;
     natural_language_query: string;
+    /**
+     * True when the error occurred while polling/fetching results, false (or
+     * absent) when it occurred while starting the search agent.
+     */
+    is_fetch?: boolean;
+    /**
+     * HTTP status code of the failed start request. Only available on the
+     * start-failure path; absent for polling errors (which have no HTTP status).
+     */
+    status_code?: number;
   };
   'ai_query.feedback': {
     area: string;
@@ -56,6 +66,12 @@ export type SeerAnalyticsEventsParameters = {
     group_id: string;
     organization: Organization;
     tool_name: string;
+  };
+  'autofix.pr_iteration.feedback': {
+    group_id: string;
+    organization: Organization;
+    mode?: 'explorer';
+    referrer?: string;
   };
   'autofix.root_cause.find_solution': {
     group_id: string;
@@ -165,6 +181,7 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'autofix.code_changes.re_run': 'Autofix: Code Changes Re-run',
   'autofix.create_pr_clicked': 'Autofix: Create PR Setup Clicked',
   'autofix.evidence.clicked': 'Autofix: Evidence Clicked',
+  'autofix.pr_iteration.feedback': 'Autofix: PR Iteration Feedback',
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
   'autofix.root_cause.re_run': 'Autofix: Root Cause Re-run',
   'autofix.solution.code': 'Autofix: Code It Up',

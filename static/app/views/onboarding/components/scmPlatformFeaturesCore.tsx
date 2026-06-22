@@ -16,7 +16,7 @@ import {
   platformProductAvailability,
 } from 'sentry/components/onboarding/productSelection';
 import {PLATFORM_PRODUCT_INFO} from 'sentry/data/platformProductInfo.generated';
-import {IconBroadcast, IconBusiness, IconGeneric} from 'sentry/icons';
+import {IconBroadcast, IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -59,6 +59,10 @@ const CHANGE_PLATFORM_CLICKED_EVENT = {
   onboarding: 'onboarding.scm_platform_change_platform_clicked',
   'project-creation': 'project_creation.scm_platform_change_platform_clicked',
 } as const;
+const SKIP_DETECTION_CLICKED_EVENT = {
+  onboarding: 'onboarding.scm_skip_detection_clicked',
+  'project-creation': 'project_creation.scm_skip_detection_clicked',
+} as const;
 
 interface ScmPlatformFeaturesCoreProps {
   analyticsFlow: ScmAnalyticsFlow;
@@ -94,6 +98,12 @@ export function ScmPlatformFeaturesCore({
 }: ScmPlatformFeaturesCoreProps) {
   const {openModal} = useModal();
   const organization = useOrganization();
+  // Trial/billing framing (the "unlimited volume" banner and per-feature volume
+  // limits) only makes sense during new-org onboarding, where a fresh trial is
+  // always active. In SCM-first project creation the viewer is an existing org
+  // on an unknown plan, so we hide that framing rather than show numbers that
+  // may not apply.
+  const isOnboarding = analyticsFlow === 'onboarding';
   // Fetch feature meta at step entry so billing-config is in flight (or cached)
   // before the user reaches the feature cards below.
   const {meta: featureMeta, isLoading: isFeatureMetaLoading} = useScmFeatureMeta();
@@ -157,11 +167,12 @@ export function ScmPlatformFeaturesCore({
 
   const currentPlatformName = getPlatformName(currentPlatformKey);
 
-  // Fire scm_platform_selected once per repo when detection auto-resolves a
-  // platform and the user hasn't explicitly chosen one. Otherwise a user who
-  // accepts the recommendation and clicks Continue never emits the event,
-  // leaving the funnel without a platform-selected step. The ref is re-armed
-  // on repo change above so a switch to a new repo fires the event again.
+  // Adopt the first detected platform once per repo when the user hasn't
+  // explicitly chosen one: commit it to the host so flows without a Continue
+  // boundary (single-view project creation) get a platform without an explicit
+  // pick, and fire scm_platform_selected so a user who just accepts the
+  // recommendation still emits a platform-selected funnel step. The ref is
+  // re-armed on repo change above so a switch to a new repo adopts again.
   useEffect(() => {
     if (
       autoDetectionTrackedRef.current ||
@@ -171,12 +182,19 @@ export function ScmPlatformFeaturesCore({
       return;
     }
     autoDetectionTrackedRef.current = true;
+    setPlatform(detectedPlatformKey);
     trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
       organization,
       platform: detectedPlatformKey,
       source: 'detected',
     });
-  }, [detectedPlatformKey, selectedPlatform?.key, organization, analyticsFlow]);
+  }, [
+    detectedPlatformKey,
+    selectedPlatform?.key,
+    organization,
+    analyticsFlow,
+    setPlatform,
+  ]);
 
   // Wizard-driven platforms render an informational variant since the wizard CLI
   // owns product configuration and toggles aren't actionable.
@@ -286,7 +304,7 @@ export function ScmPlatformFeaturesCore({
       openConsoleModal({
         organization,
         selectedPlatform: toSelectedSdk(platformInfo),
-        origin: 'onboarding',
+        origin: analyticsFlow,
       });
       return;
     }
@@ -313,8 +331,9 @@ export function ScmPlatformFeaturesCore({
               applyPlatformSelection(baseSdk);
               closeModal();
             }}
-            newOrg
+            newOrg={analyticsFlow === 'onboarding'}
             hasScmOnboarding
+            analyticsFlow={analyticsFlow}
           />
         ),
         {modalCss}
@@ -350,7 +369,13 @@ export function ScmPlatformFeaturesCore({
 
   function handleChangePlatformClick() {
     setShowManualPicker(true);
-    if (!isDetecting) {
+    // Distinguish bailing *while detection is still running* (a latency-driven
+    // abandonment signal) from changing an already-detected platform.
+    if (isDetecting) {
+      trackAnalytics(SKIP_DETECTION_CLICKED_EVENT[analyticsFlow], {
+        organization,
+      });
+    } else {
       trackAnalytics(CHANGE_PLATFORM_CLICKED_EVENT[analyticsFlow], {
         organization,
       });
@@ -415,8 +440,8 @@ export function ScmPlatformFeaturesCore({
         >
           <Flex justify="between" align="center">
             <Flex align="center" gap="sm">
-              <IconBroadcast size="sm" variant="secondary" />
-              <Text variant="secondary" bold size="sm" density="comfortable" uppercase>
+              <IconBroadcast size="sm" />
+              <Text bold size="md" density="comfortable">
                 {t('Auto-detected from your repository')}
               </Text>
             </Flex>
@@ -466,8 +491,7 @@ export function ScmPlatformFeaturesCore({
         >
           <Flex justify="between" align="center">
             <Flex align="center" gap="sm">
-              <IconGeneric size="sm" variant="secondary" />
-              <Text variant="secondary" bold size="sm" density="comfortable" uppercase>
+              <Text bold size="md" density="comfortable">
                 {t('Select a platform')}
               </Text>
             </Flex>
@@ -498,27 +522,29 @@ export function ScmPlatformFeaturesCore({
       {featureMode !== 'none' && (
         <MotionStack layout="position" width="100%">
           <Stack gap="2xl" paddingTop="xs">
-            <Flex
-              padding="lg"
-              background="secondary"
-              border="secondary"
-              radius="md"
-              gap="lg"
-            >
-              <IconBusiness size="lg" variant="accent" />
-              <Text size="md" density="comfortable">
-                {tct(
-                  'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
-                  {
-                    bold: (
-                      <Text as="span" bold variant="accent">
-                        {null}
-                      </Text>
-                    ),
-                  }
-                )}
-              </Text>
-            </Flex>
+            {isOnboarding && (
+              <Flex
+                padding="lg"
+                background="secondary"
+                border="secondary"
+                radius="md"
+                gap="lg"
+              >
+                <IconBusiness size="lg" variant="accent" />
+                <Text size="md" density="comfortable">
+                  {tct(
+                    'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
+                    {
+                      bold: (
+                        <Text as="span" bold variant="accent">
+                          {null}
+                        </Text>
+                      ),
+                    }
+                  )}
+                </Text>
+              </Flex>
+            )}
             {featureMode === 'toggleable' ? (
               <ScmFeatureSelectionCards
                 availableFeatures={availableFeatures}
@@ -527,6 +553,7 @@ export function ScmPlatformFeaturesCore({
                 onToggleFeature={handleToggleFeature}
                 featureMeta={featureMeta}
                 isVolumeLoading={isFeatureMetaLoading}
+                showVolume={isOnboarding}
               />
             ) : (
               <ScmFeatureInfoCards
@@ -535,6 +562,7 @@ export function ScmPlatformFeaturesCore({
                 featureMeta={featureMeta}
                 platformName={currentPlatformName}
                 isVolumeLoading={isFeatureMetaLoading}
+                showVolume={isOnboarding}
               />
             )}
           </Stack>

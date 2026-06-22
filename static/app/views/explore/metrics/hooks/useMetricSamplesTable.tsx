@@ -1,12 +1,13 @@
 import {useCallback, useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
-import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';

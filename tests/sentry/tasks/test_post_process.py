@@ -47,8 +47,6 @@ from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.userreport import UserReport
-from sentry.replays.lib import kafka as replays_kafka
-from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.seer.autofix.constants import (
     AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
     FixabilityScoreThresholds,
@@ -2172,7 +2170,6 @@ class SDKCrashMonitoringTestMixin(BasePostProcessGroupMixin):
 
 @patch("sentry.processing_errors.eap.producer.produce_processing_errors_to_eap")
 class ProcessingErrorsEAPTestMixin(BasePostProcessGroupMixin):
-    @with_feature("organizations:processing-errors-eap")
     def test_processing_errors_eap_called_with_errors(self, mock_produce: MagicMock) -> None:
         event = self.create_event(
             data={
@@ -2197,26 +2194,6 @@ class ProcessingErrorsEAPTestMixin(BasePostProcessGroupMixin):
         assert args[0].id == self.project.id
         assert args[2] == [{"type": "js_no_source", "symbolicator_type": "missing_sourcemap"}]
 
-    def test_processing_errors_eap_not_called_without_feature(
-        self, mock_produce: MagicMock
-    ) -> None:
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-            assert_no_errors=False,
-        )
-        event.data["errors"] = [{"type": "js_no_source"}]
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-
-        mock_produce.assert_not_called()
-
-    @with_feature("organizations:processing-errors-eap")
     def test_processing_errors_eap_not_called_without_errors(self, mock_produce: MagicMock) -> None:
         event = self.create_event(
             data={"message": "testing"},
@@ -2233,13 +2210,10 @@ class ProcessingErrorsEAPTestMixin(BasePostProcessGroupMixin):
         mock_produce.assert_not_called()
 
 
-@mock.patch.object(replays_kafka, "get_kafka_producer_cluster_options")
-@mock.patch.object(replays_kafka, "KafkaPublisher")
+@mock.patch("sentry.tasks.post_process.publish_replay_event")
 @mock.patch("sentry.utils.metrics.incr")
 class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
-    def test_replay_linkage(
-        self, incr: MagicMock, kafka_producer: MagicMock, kafka_publisher: MagicMock
-    ) -> None:
+    def test_replay_linkage(self, incr: MagicMock, publish_replay_event: MagicMock) -> None:
         replay_id = uuid.uuid4().hex
         event = self.create_event(
             data={"message": "testing", "contexts": {"replay": {"replay_id": replay_id}}},
@@ -2252,10 +2226,9 @@ class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
             is_new_group_environment=True,
             event=event,
         )
-        assert kafka_producer.return_value.publish.call_count == 1
-        assert kafka_producer.return_value.publish.call_args[0][0] == "ingest-replay-events"
+        assert publish_replay_event.call_count == 1
 
-        ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
+        ret_value = json.loads(publish_replay_event.call_args[0][0])
 
         assert ret_value["type"] == "replay_event"
         assert ret_value["start_time"]
@@ -2275,7 +2248,7 @@ class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
         incr.assert_any_call("post_process.process_replay_link.id_exists")
 
     def test_replay_linkage_with_tag(
-        self, incr: MagicMock, kafka_producer: MagicMock, kafka_publisher: MagicMock
+        self, incr: MagicMock, publish_replay_event: MagicMock
     ) -> None:
         replay_id = uuid.uuid4().hex
         event = self.create_event(
@@ -2289,10 +2262,9 @@ class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
             is_new_group_environment=True,
             event=event,
         )
-        assert kafka_producer.return_value.publish.call_count == 1
-        assert kafka_producer.return_value.publish.call_args[0][0] == "ingest-replay-events"
+        assert publish_replay_event.call_count == 1
 
-        ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
+        ret_value = json.loads(publish_replay_event.call_args[0][0])
 
         assert ret_value["type"] == "replay_event"
         assert ret_value["start_time"]
@@ -2312,7 +2284,7 @@ class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
         incr.assert_any_call("post_process.process_replay_link.id_exists")
 
     def test_replay_linkage_with_tag_pii_scrubbed(
-        self, incr: MagicMock, kafka_producer: MagicMock, kafka_publisher: MagicMock
+        self, incr: MagicMock, publish_replay_event: MagicMock
     ) -> None:
         event = self.create_event(
             data={"message": "testing", "tags": {"replayId": "***"}},
@@ -2325,11 +2297,9 @@ class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
             is_new_group_environment=True,
             event=event,
         )
-        assert kafka_producer.return_value.publish.call_count == 0
+        assert publish_replay_event.call_count == 0
 
-    def test_no_replay(
-        self, incr: MagicMock, kafka_producer: MagicMock, kafka_publisher: MagicMock
-    ) -> None:
+    def test_no_replay(self, incr: MagicMock, publish_replay_event: MagicMock) -> None:
         event = self.create_event(
             data={"message": "testing"},
             project_id=self.project.id,
@@ -2341,7 +2311,7 @@ class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
             is_new_group_environment=True,
             event=event,
         )
-        assert kafka_producer.return_value.publish.call_count == 0
+        assert publish_replay_event.call_count == 0
         incr.assert_any_call("post_process.process_replay_link.id_sampled")
 
 
@@ -3658,7 +3628,6 @@ class PostProcessGroupErrorTest(
 ):
     def setUp(self) -> None:
         super().setUp()
-        clear_replay_publisher()
 
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)

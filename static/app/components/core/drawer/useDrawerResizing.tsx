@@ -8,7 +8,7 @@ const MIN_WIDTH_PERCENT = 20;
 const MAX_WIDTH_PERCENT = 85;
 const DEFAULT_WIDTH_PERCENT = 50;
 
-function getDrawerWidthKey(drawerKey: string) {
+export function getDrawerWidthKey(drawerKey: string) {
   return `drawer-width:${drawerKey}`;
 }
 

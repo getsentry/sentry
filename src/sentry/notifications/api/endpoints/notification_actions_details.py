@@ -17,6 +17,7 @@ from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples.notification_examples import NotificationActionExamples
 from sentry.apidocs.parameters import GlobalParams, NotificationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.models.organization import Organization
 from sentry.notifications.api.endpoints.notification_actions_index import (
     NotificationActionsPermission,
@@ -25,6 +26,7 @@ from sentry.notifications.api.serializers.notification_action_request import (
     NotificationActionSerializer,
 )
 from sentry.notifications.api.serializers.notification_action_response import (
+    OutgoingNotificationActionResponse,
     OutgoingNotificationActionSerializer,
 )
 from sentry.notifications.models.notificationaction import NotificationAction
@@ -95,7 +97,8 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         return (parsed_args, parsed_kwargs)
 
     @extend_schema(
-        operation_id="Retrieve a Spike Protection Notification Action",
+        operation_id="getOrganizationNotificationsAction",
+        summary="Retrieve a Spike Protection Notification Action",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             NotificationParams.ACTION_ID,
@@ -105,7 +108,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     )
     def get(
         self, request: Request, organization: Organization, action: NotificationAction
-    ) -> Response:
+    ) -> Response[OutgoingNotificationActionResponse]:
         """
         Returns a serialized Spike Protection Notification Action object.
 
@@ -116,10 +119,12 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
             "notification_action.get_one",
             extra={"organization_id": organization.id, "action_id": action.id},
         )
-        return Response(serialize(action, request.user))
+        body: OutgoingNotificationActionResponse = serialize(action, request.user)
+        return Response(body)
 
     @extend_schema(
-        operation_id="Update a Spike Protection Notification Action",
+        operation_id="updateOrganizationNotificationsAction",
+        summary="Update a Spike Protection Notification Action",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             NotificationParams.ACTION_ID,
@@ -133,7 +138,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     )
     def put(
         self, request: Request, organization: Organization, action: NotificationAction
-    ) -> Response:
+    ) -> Response[OutgoingNotificationActionResponse] | Response[ValidationErrorResponse]:
         """
         Updates a Spike Protection Notification Action.
 
@@ -150,7 +155,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
             data=request.data,
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
         action = serializer.save()
         logger.info(
@@ -164,10 +169,12 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("NOTIFICATION_ACTION_EDIT"),
             data=action.get_audit_log_data(),
         )
-        return Response(serialize(action, user=request.user), status=status.HTTP_202_ACCEPTED)
+        put_body: OutgoingNotificationActionResponse = serialize(action, user=request.user)
+        return Response(put_body, status=status.HTTP_202_ACCEPTED)
 
     @extend_schema(
-        operation_id="Delete a Spike Protection Notification Action",
+        operation_id="deleteOrganizationNotificationsAction",
+        summary="Delete a Spike Protection Notification Action",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             NotificationParams.ACTION_ID,
@@ -178,7 +185,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     )
     def delete(
         self, request: Request, organization: Organization, action: NotificationAction
-    ) -> Response:
+    ) -> Response[None]:
         """
         Deletes a Spike Protection Notification Action.
 

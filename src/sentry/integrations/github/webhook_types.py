@@ -21,6 +21,7 @@ class GithubWebhookType(StrEnum):
     PULL_REQUEST_REVIEW_COMMENT = "pull_request_review_comment"
     PULL_REQUEST_REVIEW_THREAD = "pull_request_review_thread"
     PUSH = "push"
+    CHECK_SUITE = "check_suite"
 
 
 # Event type strings (X-GitHub-Event header values) that the cell webhook endpoint processes.
