@@ -23,6 +23,7 @@ function makeConfig(): ExploreExportConfig {
     supportsAllColumns: true,
     availableFormats: ['csv', 'jsonl'],
     estimatedRowCount: 1500,
+    localRowCount: 1000,
     localDownload: jest.fn(),
     trackExportSubmit: jest.fn(),
   };

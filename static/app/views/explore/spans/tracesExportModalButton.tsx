@@ -68,6 +68,7 @@ export function TracesExportModalButton({
     supportsAllColumns: false,
     availableFormats: ['csv', 'jsonl'],
     estimatedRowCount,
+    localRowCount: data.length,
     localDownload: ({format, limit}) => {
       const rows = data.slice(0, limit);
       if (format === 'jsonl') {

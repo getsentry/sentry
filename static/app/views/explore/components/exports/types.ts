@@ -22,6 +22,12 @@ export interface ExploreExportConfig {
   filenameBase: string;
   /** Performs the immediate browser download of the first `limit` rows. */
   localDownload: (args: {format: DataExportFormat; limit: number}) => void;
+  /**
+   * Number of rows the local (browser) download can actually serve — typically
+   * the loaded page length. A requested limit above this routes to the server
+   * export instead, so the user isn't silently given a truncated file.
+   */
+  localRowCount: number;
   /** Payload sent as `query_info` to the data-export endpoint. */
   queryInfo: Record<string, any>;
   /**

@@ -34,6 +34,13 @@ const eventView = EventView.fromNewQueryWithLocation(
 
 const tableData: TableData = {data: [{id: '1'}]};
 
+function mockEstimatedRowCount(count: number) {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events-meta/`,
+    body: {count},
+  });
+}
+
 function renderButton() {
   render(
     <DiscoverExportModalButton
@@ -57,6 +64,7 @@ describe('DiscoverExportModalButton', () => {
   });
 
   it('downloads CSV and tracks analytics when the export is submitted', async () => {
+    mockEstimatedRowCount(1);
     renderButton();
 
     await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
@@ -69,5 +77,47 @@ describe('DiscoverExportModalButton', () => {
       'discover_v2.results.download_csv',
       expect.objectContaining({organization: organization.id})
     );
+  });
+
+  it('estimates the row count from the events-meta endpoint', async () => {
+    const countMock = mockEstimatedRowCount(5000);
+    renderButton();
+
+    await waitFor(() => {
+      expect(countMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-meta/`,
+        expect.anything()
+      );
+    });
+  });
+
+  it('routes to the server data-export endpoint when the estimate exceeds the loaded rows', async () => {
+    const countMock = mockEstimatedRowCount(5000);
+    const dataExportMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      statusCode: 201,
+      body: {id: 721},
+    });
+
+    renderButton();
+
+    await waitFor(() => expect(countMock).toHaveBeenCalled());
+
+    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Number of rows'}));
+    await userEvent.click(await screen.findByRole('option', {name: /\(All\)$/}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+
+    await waitFor(() => {
+      expect(dataExportMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/data-export/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({query_type: 'Discover', limit: 5000}),
+        })
+      );
+    });
+    expect(downloadAsCsv).not.toHaveBeenCalled();
   });
 });

@@ -41,6 +41,7 @@ function makeConfig(overrides: Partial<ExploreExportConfig> = {}): ExploreExport
     supportsAllColumns: true,
     availableFormats: ['csv', 'jsonl'],
     estimatedRowCount: 1500,
+    localRowCount: 1000,
     localDownload: jest.fn(),
     trackExportSubmit: jest.fn(),
     ...overrides,
@@ -189,6 +190,37 @@ describe('ExploreExportModal', () => {
     expect(mockAddSuccessMessage).toHaveBeenCalledWith(
       "Sit tight. We'll shoot you an email when your data is ready for download."
     );
+  });
+
+  it('routes to the server export when the limit exceeds the locally loaded rows', async () => {
+    const config = makeConfig({
+      supportsAllColumns: false,
+      availableFormats: ['csv'],
+      estimatedRowCount: 133,
+      localRowCount: 50,
+    });
+    const dataExportMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      statusCode: 201,
+      body: {id: 721},
+    });
+
+    renderModal(config);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Number of rows'}));
+    await userEvent.click(await screen.findByRole('option', {name: /\(All\)$/}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+
+    await waitFor(() => {
+      expect(dataExportMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/data-export/`,
+        expect.objectContaining({
+          data: expect.objectContaining({limit: 133, query_type: 'Explore'}),
+        })
+      );
+    });
+    expect(config.localDownload).not.toHaveBeenCalled();
   });
 
   it('hides the All Columns switch when not supported', async () => {

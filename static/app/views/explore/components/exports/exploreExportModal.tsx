@@ -9,10 +9,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {
-  generateExportRowCountOptions,
-  ROW_COUNT_VALUE_SYNC_LIMIT,
-} from 'sentry/components/exports/generateExportRowCountOptions';
+import {generateExportRowCountOptions} from 'sentry/components/exports/generateExportRowCountOptions';
 import {ExportQueryType, useDataExport} from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
@@ -53,6 +50,7 @@ export function ExploreExportModal({
     availableFormats,
     estimatedRowCount,
     localDownload,
+    localRowCount,
     queryInfo,
     supportsAllColumns,
     title,
@@ -79,17 +77,19 @@ export function ExploreExportModal({
     },
     onSubmit: async ({value}) => {
       const isAllColumns = supportsAllColumns && value.columns === ModalColumnValue.ALL;
-      const passedSyncLimit = value.limit > ROW_COUNT_VALUE_SYNC_LIMIT;
+      // The local download can only serve rows already loaded in the browser, so
+      // anything beyond that must go through the server export.
+      const exceedsLocalData = value.limit > localRowCount;
 
       // The backend only supports exporting all columns in JSONL format.
       const format = isAllColumns ? 'jsonl' : value.format;
 
-      const exportType =
-        isAllColumns || passedSyncLimit ? 'export_download' : 'browser_sync';
+      const useServerExport = isAllColumns || exceedsLocalData;
+      const exportType = useServerExport ? 'export_download' : 'browser_sync';
 
       trackExportSubmit({format, limit: value.limit, isAllColumns, exportType});
 
-      if (isAllColumns || passedSyncLimit) {
+      if (useServerExport) {
         await handleDataExport({
           format,
           queryInfo: isAllColumns ? {...queryInfo, field: []} : queryInfo,

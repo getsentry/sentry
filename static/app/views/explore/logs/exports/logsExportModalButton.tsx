@@ -61,6 +61,7 @@ export function LogsExportModalButton({
     supportsAllColumns: true,
     availableFormats: ['csv', 'jsonl'],
     estimatedRowCount,
+    localRowCount: tableData.length,
     localDownload: ({format, limit}) =>
       downloadLogs({
         rows: tableData.slice(0, limit),

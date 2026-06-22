@@ -1,4 +1,4 @@
-import {Button} from '@sentry/scraps/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
 
 import {IconDownload} from 'sentry/icons';
@@ -23,6 +23,7 @@ type ExploreExportModalButtonProps = {
   isDataLoading: boolean;
   onClose?: (reason: ExploreExportModalCloseReason) => void;
   onOpen?: () => void;
+  size?: ButtonProps['size'];
 };
 
 export function ExploreExportModalButton({
@@ -32,6 +33,7 @@ export function ExploreExportModalButton({
   isDataLoading,
   onClose,
   onOpen,
+  size = 'xs',
 }: ExploreExportModalButtonProps) {
   const {openModal} = useModal();
 
@@ -44,7 +46,7 @@ export function ExploreExportModalButton({
   return (
     <Button
       disabled={!!disabledTooltip}
-      size="xs"
+      size={size}
       variant="secondary"
       icon={<IconDownload />}
       onClick={() => {

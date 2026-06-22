@@ -6,6 +6,7 @@ import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
+import {useDiscoverExportEstimatedRowCount} from 'sentry/views/discover/table/useDiscoverExportEstimatedRowCount';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
 import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
@@ -31,6 +32,13 @@ export function DiscoverExportModalButton({
 }: DiscoverExportModalButtonProps) {
   const rows = tableData?.data ?? [];
 
+  const estimatedRowCount = useDiscoverExportEstimatedRowCount({
+    enabled: error === null && !isLoading && rows.length > 0,
+    eventView,
+    loadedRowCount: rows.length,
+    location,
+  });
+
   const config: ExploreExportConfig = {
     title: t('Export'),
     filenameBase: title,
@@ -38,7 +46,8 @@ export function DiscoverExportModalButton({
     asyncQueryType: ExportQueryType.DISCOVER,
     supportsAllColumns: false,
     availableFormats: ['csv'],
-    estimatedRowCount: rows.length,
+    estimatedRowCount,
+    localRowCount: rows.length,
     localDownload: ({limit}) =>
       downloadAsCsv(
         {...tableData, data: rows.slice(0, limit)},
@@ -57,6 +66,7 @@ export function DiscoverExportModalButton({
   return (
     <ExploreExportModalButton
       config={config}
+      size="sm"
       isDataEmpty={rows.length === 0}
       isDataError={error !== null}
       isDataLoading={isLoading}

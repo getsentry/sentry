@@ -43,20 +43,10 @@ describe('TracesExportModalButton', () => {
     LocationFixture()
   );
 
-  const rawSpanCounts: RawCounts = {
-    normal: {count: 5000, isLoading: false},
-    total: {count: 5000, isLoading: false},
-  };
-
   const aggregatesTableResult: AggregatesTableResult = {
     eventView,
     fields: [],
     result: makeQueryResult([]),
-  };
-
-  const spansTableResult: SpansTableResult = {
-    eventView,
-    result: makeQueryResult([{id: '1', 'span.description': 'GET /'}]),
   };
 
   afterEach(() => {
@@ -64,7 +54,18 @@ describe('TracesExportModalButton', () => {
     MockApiClient.clearMockResponses();
   });
 
-  function renderButton() {
+  function renderButton({
+    spanRows = [{id: '1', 'span.description': 'GET /'}],
+    totalCount = 5000,
+  }: {spanRows?: Array<Record<string, unknown>>; totalCount?: number} = {}) {
+    const spansTableResult: SpansTableResult = {
+      eventView,
+      result: makeQueryResult(spanRows),
+    };
+    const rawSpanCounts: RawCounts = {
+      normal: {count: totalCount, isLoading: false},
+      total: {count: totalCount, isLoading: false},
+    };
     render(
       <TracesExportModalButton
         aggregatesTableResult={aggregatesTableResult}
@@ -88,8 +89,14 @@ describe('TracesExportModalButton', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('downloads CSV in the browser when the row count is below the sync limit', async () => {
-    renderButton();
+  it('downloads CSV in the browser when the requested rows are already loaded', async () => {
+    renderButton({
+      spanRows: [
+        {id: '1', 'span.description': 'GET /'},
+        {id: '2', 'span.description': 'GET /a'},
+      ],
+      totalCount: 2,
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
