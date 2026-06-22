@@ -43,17 +43,22 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.pr_metrics.activity_types import (
     AssignedPayload,
+    AutoMergeDisabledPayload,
+    AutoMergeEnabledPayload,
     CheckRunCompletedPayload,
     CheckSuiteCompletedPayload,
     ClosedPayload,
     CommentCreatedPayload,
     CommentEditedPayload,
     ConvertedToDraftPayload,
+    DequeuedPayload,
     EditedPayload,
+    EnqueuedPayload,
     LabeledPayload,
     OpenedPayload,
     ReadyForReviewPayload,
     ReopenedPayload,
+    ReviewDismissedPayload,
     ReviewRequestedPayload,
     ReviewRequestRemovedPayload,
     ReviewSubmittedPayload,
@@ -95,6 +100,10 @@ _ACTIVITY_ACTIONS = frozenset(
         "ready_for_review",
         "assigned",
         "unassigned",
+        "auto_merge_enabled",
+        "auto_merge_disabled",
+        "enqueued",
+        "dequeued",
     }
 )
 
@@ -113,6 +122,10 @@ _ACTION_TO_ACTIVITY_TYPE: dict[str, PullRequestActivityType] = {
     "ready_for_review": PullRequestActivityType.READY_FOR_REVIEW,
     "assigned": PullRequestActivityType.ASSIGNED,
     "unassigned": PullRequestActivityType.UNASSIGNED,
+    "auto_merge_enabled": PullRequestActivityType.AUTO_MERGE_ENABLED,
+    "auto_merge_disabled": PullRequestActivityType.AUTO_MERGE_DISABLED,
+    "enqueued": PullRequestActivityType.ENQUEUED,
+    "dequeued": PullRequestActivityType.DEQUEUED,
 }
 
 
@@ -469,9 +482,14 @@ def handle_review(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record a submitted PR review (approved / changes_requested / commented)."""
+    """Record a PR review event.
+
+    ``submitted`` captures the review state (approved / changes_requested /
+    commented); ``dismissed`` captures an approval or changes-request being
+    undone — review signal the comment judge can use. Other actions are ignored.
+    """
     action = event.get("action")
-    if action != "submitted":
+    if action not in ("submitted", "dismissed"):
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -485,20 +503,31 @@ def handle_review(
 
     review = event.get("review") or {}
     sender = event.get("sender") or {}
-    payload = asdict(
-        ReviewSubmittedPayload(
-            action=action,
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            review_state=review.get("state", ""),
-            review_id=review.get("id", 0),
+    if action == "submitted":
+        event_type = PullRequestActivityType.REVIEW_SUBMITTED
+        payload = asdict(
+            ReviewSubmittedPayload(
+                action=action,
+                sender_login=sender.get("login", ""),
+                sender_type=sender.get("type", ""),
+                review_state=review.get("state", ""),
+                review_id=review.get("id", 0),
+            )
         )
-    )
+    else:
+        event_type = PullRequestActivityType.REVIEW_DISMISSED
+        payload = asdict(
+            ReviewDismissedPayload(
+                sender_login=sender.get("login", ""),
+                sender_type=sender.get("type", ""),
+                review_id=review.get("id", 0),
+            )
+        )
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, PullRequestActivityType.REVIEW_SUBMITTED, payload)
+    _write_activity_row(pr, webhook_id, event_type, payload)
 
 
 def handle_review_comment(
@@ -980,5 +1009,18 @@ def _build_activity_payload(
             return asdict(ConvertedToDraftPayload(**base_kw))
         case "ready_for_review":
             return asdict(ReadyForReviewPayload(**base_kw))
+        case "auto_merge_enabled":
+            auto_merge = pull_request.get("auto_merge") or {}
+            return asdict(
+                AutoMergeEnabledPayload(
+                    **base_kw, merge_method=auto_merge.get("merge_method") or ""
+                )
+            )
+        case "auto_merge_disabled":
+            return asdict(AutoMergeDisabledPayload(**base_kw))
+        case "enqueued":
+            return asdict(EnqueuedPayload(**base_kw))
+        case "dequeued":
+            return asdict(DequeuedPayload(**base_kw, reason=event.get("reason") or ""))
         case _:
             raise ValueError(f"No payload builder for action {action!r}")

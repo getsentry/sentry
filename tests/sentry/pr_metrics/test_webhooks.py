@@ -577,6 +577,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         after: str | None = None,
         changes: dict[str, Any] | None = None,
         label: dict[str, Any] | None = None,
+        auto_merge: dict[str, Any] | None = None,
         extra_event: dict[str, Any] | None = None,
     ) -> None:
         pull_request: dict[str, Any] = {
@@ -594,6 +595,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
             "commits": commits,
             "comments": comments,
             "review_comments": review_comments,
+            "auto_merge": auto_merge,
             "user": {"id": 999, "login": "testuser"},
         }
         event: dict[str, Any] = {
@@ -890,10 +892,38 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    # --- Merge-intent signals ---
+
+    def test_auto_merge_enabled_writes_activity_with_method(self) -> None:
+        self._call(action="auto_merge_enabled", auto_merge={"merge_method": "squash"})
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.AUTO_MERGE_ENABLED
+        assert activity.payload["merge_method"] == "squash"
+
+    def test_auto_merge_disabled_writes_activity(self) -> None:
+        self._call(action="auto_merge_disabled", auto_merge=None)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.AUTO_MERGE_DISABLED
+
+    def test_enqueued_writes_activity(self) -> None:
+        self._call(action="enqueued")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.ENQUEUED
+
+    def test_dequeued_writes_activity_with_reason(self) -> None:
+        self._call(action="dequeued", extra_event={"reason": "MERGE_CONFLICT"})
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.DEQUEUED
+        assert activity.payload["reason"] == "MERGE_CONFLICT"
+
     # --- Unhandled actions ---
 
     def test_unhandled_actions_do_not_write_activity(self) -> None:
-        for action in ("auto_merge_enabled", "milestoned", "demilestoned"):
+        for action in ("milestoned", "demilestoned", "locked", "unlocked"):
             self._call(action=action, webhook_id=f"delivery-{action}")
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
@@ -1097,9 +1127,18 @@ class HandleReviewForPrMetricsTest(TestCase):
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.payload["review_state"] == "changes_requested"
 
-    def test_non_submitted_actions_skipped(self) -> None:
+    def test_dismissed_writes_review_dismissed_activity(self) -> None:
+        # GitHub reports the dismissed review's state as "dismissed"; the review_id
+        # is what lets the judge correlate back to the earlier submitted row.
+        self._call(action="dismissed", review_state="dismissed", review_id=100)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.REVIEW_DISMISSED
+        assert activity.payload["review_id"] == 100
+        assert activity.payload["sender_login"] == "reviewer"
+
+    def test_unhandled_review_action_skipped(self) -> None:
         self._call(action="edited")
-        self._call(action="dismissed")
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
