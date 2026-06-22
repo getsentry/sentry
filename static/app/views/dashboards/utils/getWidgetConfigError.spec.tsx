@@ -68,6 +68,26 @@ describe('getWidgetConfigError', () => {
     expect(getWidgetConfigError(widget)).toBeDefined();
   });
 
+  it.each([
+    DisplayType.TEXT,
+    DisplayType.WHEEL,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
+    DisplayType.AGENTS_TRACES_TABLE,
+  ])(
+    'returns undefined for special %s widgets that are not dataset-driven',
+    displayType => {
+      // These widgets aren't backed by a dataset, so the dataset/display-type
+      // compatibility check must not flag them regardless of widgetType.
+      const widget = WidgetFixture({
+        displayType,
+        widgetType: WidgetType.ERRORS,
+        queries: [WidgetQueryFixture({aggregates: []})],
+      });
+
+      expect(getWidgetConfigError(widget)).toBeUndefined();
+    }
+  );
+
   it('returns an error for heat map widgets on an unsupported dataset', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.HEATMAP,
