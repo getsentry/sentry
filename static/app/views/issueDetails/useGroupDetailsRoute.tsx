@@ -4,6 +4,7 @@ import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 function getCurrentTab({
@@ -61,9 +62,10 @@ export function useGroupDetailsRoute(): {
     tagKey?: string;
   }>();
   const matches = useMatches();
+  const groupId = useGroupId();
   return getCurrentRouteInfo({
     eventId: params.eventId,
-    groupId: params.groupId,
+    groupId,
     matches,
     organization,
     params,

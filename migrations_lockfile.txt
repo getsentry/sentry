@@ -29,9 +29,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0018_backfill_seer_agent_run_group_id
+seer: 0020_backfill_night_shift_run_shards
 
-sentry: 1118_add_organizationcontributoraction
+sentry: 1119_add_organizationcontributoraction
 
 social_auth: 0003_social_auth_json_field
 

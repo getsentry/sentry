@@ -3,8 +3,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {useHasLinkedIssues} from 'sentry/components/feedback/list/useHasLinkedIssues';
 import type {
   IntegrationComponent,
-  PluginActionComponent,
-  PluginIssueComponent,
   SentryAppIssueComponent,
 } from 'sentry/components/group/externalIssuesList/types';
 import {IconLink} from 'sentry/icons';
@@ -18,19 +16,6 @@ import {
 
 interface Props {
   group: Group;
-}
-
-function getPluginNames(pluginIssue: PluginIssueComponent | PluginActionComponent) {
-  if (Array.isArray(pluginIssue.props.plugin)) {
-    return {
-      name: pluginIssue.props.plugin[0],
-      icon: '',
-    };
-  }
-  return {
-    name: pluginIssue.props.plugin.name ?? '',
-    icon: pluginIssue.props.plugin.slug ?? '',
-  };
 }
 
 function getIntegrationNames(integrationIssue: IntegrationComponent) {
@@ -58,7 +43,6 @@ export function IssueTrackingSignals({group}: Props) {
   const {linkedIssues} = useHasLinkedIssues({
     group,
     event: {} as Event,
-    project: group.project,
   });
 
   if (!linkedIssues.length) {
@@ -77,13 +61,10 @@ export function IssueTrackingSignals({group}: Props) {
   }
 
   const issue = linkedIssues[0]!;
-  const {name, icon} = {
-    'plugin-issue': getPluginNames,
-    'plugin-actions': getPluginNames,
-    'integration-issue': getIntegrationNames,
-    'sentry-app-issue': getAppIntegrationNames,
-    // @ts-expect-error TS(2551): Property 'plugin-action' does not exist on type '{... Remove this comment to see the full error message
-  }[issue.type](issue) ?? {name: '', icon: undefined};
+  const {name, icon} =
+    issue.type === 'integration-issue'
+      ? getIntegrationNames(issue)
+      : getAppIntegrationNames(issue);
 
   return (
     <Tooltip title={t('Linked %s Issue', name)} containerDisplayMode="flex">
