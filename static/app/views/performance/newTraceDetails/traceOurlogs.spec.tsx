@@ -33,11 +33,6 @@ describe('TraceViewLogsSection', () => {
       method: 'GET',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/validate/',
-      method: 'POST',
-      body: {attributes: {}},
-    });
   });
 
   it('renders empty logs', async () => {
