@@ -12,8 +12,6 @@ import {defaultVisualizes} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-// The full result is a TanStack query union; only the fields the chart reads are
-// relevant here. Typing the overrides against the real type keeps them honest.
 function timeseriesResultFixture(overrides: Partial<SortedTimeSeries> = {}) {
   const base: Partial<SortedTimeSeries> = {
     data: {},
