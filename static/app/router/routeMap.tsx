@@ -10,7 +10,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
  * (vendored into seer, see the `generateRouteMap` spec). One record is emitted
  * per terminal (element-bearing) route, in each customer-domain mode.
  */
-export interface RouteRecord {
+interface RouteRecord {
   /**
    * Source module path of the route's component (e.g.
    * `sentry/views/dashboards/view`), or null for routes that resolve no
@@ -194,7 +194,7 @@ export function walkRouteTree(
  * A deduplicated, user-renderable route — one record per logical page,
  * carrying both URL forms. This is the artifact schema consumed by seer.
  */
-export interface LogicalRoute {
+interface LogicalRoute {
   /**
    * Source module path of the route's component, i.e. the default export of
    * this module (e.g. `sentry/views/dashboards/view`). Never null — layout/
