@@ -508,11 +508,19 @@ def get_repo_url_path(repo: Repository) -> str:
 
     For GitHub and all other providers, ``repo.name`` is already the
     URL-safe ``owner/repo`` string, so we return it unchanged.
+
+    Raises ``ValueError`` for a GitLab repo missing ``config["path"]``. This
+    should never happen in practice (every GitLab repo we store has the path
+    populated), so we fail loudly rather than silently falling back to the
+    space-containing display name, which would produce broken URLs / 404s.
     """
     if repo.provider == "integrations:gitlab":
         path = repo.config.get("path")
-        if path:
-            return path
+        if not path:
+            raise ValueError(
+                f"GitLab repository {repo.id} is missing config['path'] (path_with_namespace)"
+            )
+        return path
     return repo.name
 
 
