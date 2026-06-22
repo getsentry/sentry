@@ -852,7 +852,7 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
       maxCandidates: run.extras.options?.max_candidates,
       dryRun: run.extras.options?.dry_run,
       issues: run.issues,
-      shards: run.shards ?? [],
+      seerRuns: run.seerRuns ?? [],
       agentRunId:
         typeof agentRunId === 'number' || typeof agentRunId === 'string'
           ? agentRunId
@@ -862,11 +862,9 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
 }
 
 function getExplorerRunIds(row: WorkflowRow): Array<number | string> {
-  const shardRunIds = (row.triage?.shards ?? [])
-    .map(shard => shard.seerRunId)
-    .filter((id): id is string => id !== null);
-  if (shardRunIds.length > 0) {
-    return shardRunIds;
+  const seerRunIds = (row.triage?.seerRuns ?? []).map(seerRun => seerRun.seerRunId);
+  if (seerRunIds.length > 0) {
+    return seerRunIds;
   }
   // Fallback for pre-shard runs, which recorded a single id on the run extras.
   const agentRunId = row.triage?.agentRunId;

@@ -6,9 +6,9 @@ type SeerNightShiftRunIssue = {
   seerRunId: string | null;
 };
 
-export type SeerNightShiftRunShard = {
-  id: string;
-  seerRunId: string | null;
+// A Seer run dispatched by a night shift run, openable in Explorer.
+export type SeerNightShiftSeerRun = {
+  seerRunId: string;
 };
 
 type SeerNightShiftRunOptions = {
@@ -33,7 +33,7 @@ export type SeerNightShiftRun = {
   extras: SeerNightShiftRunExtras;
   id: string;
   issues: SeerNightShiftRunIssue[];
-  shards: SeerNightShiftRunShard[];
+  seerRuns: SeerNightShiftSeerRun[];
   triageStrategy: string;
 };
 
@@ -70,7 +70,7 @@ export type WorkflowRow = {
   summary?: string;
   triage?: {
     issues: SeerNightShiftRunIssue[];
-    shards: SeerNightShiftRunShard[];
+    seerRuns: SeerNightShiftSeerRun[];
     agentRunId?: number | string;
     dryRun?: boolean;
     maxCandidates?: number;

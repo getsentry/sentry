@@ -129,7 +129,7 @@ describe('SeerWorkflows', () => {
     expect(screen.queryByText('seer-1')).not.toBeInTheDocument();
   });
 
-  it('links the Result cell to Seer Explorer once per shard', async () => {
+  it('links the Result cell to Seer Explorer once per seer run', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -148,10 +148,7 @@ describe('SeerWorkflows', () => {
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
-          shards: [
-            {id: 'a', seerRunId: '42'},
-            {id: 'b', seerRunId: '43'},
-          ],
+          seerRuns: [{seerRunId: '42'}, {seerRunId: '43'}],
         },
       ],
     });
@@ -171,7 +168,7 @@ describe('SeerWorkflows', () => {
     );
   });
 
-  it('falls back to extras.agent_run_id when a run has no shards', async () => {
+  it('falls back to extras.agent_run_id when a run has no seer runs', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -182,7 +179,7 @@ describe('SeerWorkflows', () => {
           errorMessage: null,
           extras: {agent_run_id: 42},
           issues: [],
-          shards: [],
+          seerRuns: [],
         },
       ],
     });
@@ -215,7 +212,7 @@ describe('SeerWorkflows', () => {
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
-          shards: [],
+          seerRuns: [],
         },
       ],
     });
