@@ -29,7 +29,7 @@ from sentry.issues.derived.framework import (
     StateView,
     aggregator,
 )
-from sentry.issues.derived.groupderiveddata import GroupDerivedData
+from sentry.issues.derived.models.groupderiveddata import GroupDerivedData
 from sentry.issues.derived.processing import (
     PIPELINE,
     invalidate_group_derived_data,

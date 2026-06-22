@@ -7,7 +7,7 @@ from django.db.models import Q
 
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.framework import Pipeline
-from sentry.issues.derived.groupderiveddata import EPOCH, GroupDerivedData
+from sentry.issues.derived.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.utils import metrics
