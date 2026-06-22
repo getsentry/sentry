@@ -10,7 +10,11 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {generateExportRowCountOptions} from 'sentry/components/exports/generateExportRowCountOptions';
-import {ExportQueryType, useDataExport} from 'sentry/components/exports/useDataExport';
+import {
+  type DataExportPayload,
+  ExportQueryType,
+  useDataExport,
+} from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
 
@@ -57,7 +61,7 @@ export function ExploreExportModal({
     trackExportSubmit,
   } = config;
 
-  const handleDataExport = useDataExport();
+  const {mutateAsync: handleDataExport} = useDataExport();
   const {rowCountDefault, rowCountOptions} =
     generateExportRowCountOptions(estimatedRowCount);
 
@@ -89,14 +93,20 @@ export function ExploreExportModal({
       trackExportSubmit({format, limit: value.limit, isAllColumns, exportType});
 
       if (useServerExport) {
-        await handleDataExport({
-          format,
-          queryInfo: isAllColumns ? {...queryInfo, field: []} : queryInfo,
-          queryType: isAllColumns
-            ? ExportQueryType.TRACE_ITEM_FULL_EXPORT
-            : config.asyncQueryType,
-          limit: value.limit,
-        });
+        try {
+          // The shared modal is generic across query types, so the payload is
+          // assembled dynamically rather than matching a single union member.
+          await handleDataExport({
+            format,
+            queryInfo: isAllColumns ? {...queryInfo, field: []} : queryInfo,
+            queryType: isAllColumns
+              ? ExportQueryType.TRACE_ITEM_FULL_EXPORT
+              : config.asyncQueryType,
+            limit: value.limit,
+          } as DataExportPayload);
+        } catch {
+          // The error message is surfaced by useDataExport's onError handler.
+        }
       } else {
         localDownload({format, limit: value.limit});
         addSuccessMessage(t('Downloading file to your browser.'));

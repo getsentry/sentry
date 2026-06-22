@@ -4,6 +4,7 @@ import {defined} from 'sentry/utils/defined';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MetricQueryRows} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricQueryRows';
+import {prepareQueriesForEquationMode} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
@@ -70,13 +71,15 @@ export function MetricsEquationVisualize({
 
     // Otherwise, we parse each function to get the available metric queries and
     // add a default equation row
-    const metricQueries = (aggregateSource ?? [])
-      .filter(f => f.kind === FieldValueKind.FUNCTION)
-      .map(f => {
-        const parsed = parseAggregateExpression(generateFieldAsString(f));
-        return parsed.metricQueries[0];
-      })
-      .filter(defined);
+    const metricQueries = prepareQueriesForEquationMode(
+      (aggregateSource ?? [])
+        .filter(f => f.kind === FieldValueKind.FUNCTION)
+        .map(f => {
+          const parsed = parseAggregateExpression(generateFieldAsString(f));
+          return parsed.metricQueries[0];
+        })
+        .filter(defined)
+    );
     if (metricQueries.length === 0) {
       metricQueries.push(defaultMetricQuery());
     }

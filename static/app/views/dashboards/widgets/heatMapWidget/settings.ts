@@ -16,11 +16,11 @@ export const HEATMAP_COLORS = [
 ] as const;
 
 /**
- * Target width, in pixels, of a single heat map X-axis (time) bucket. The
- * interval is chosen so that columns are roughly this wide for the rendered
- * container width.
+ * Target size, in pixels, of a single heat map bucket along each axis. Both the
+ * X-axis (time) interval and the Y-axis bucket count are chosen so that cells
+ * are roughly this size, keeping them approximately square.
  */
-export const PIXELS_PER_X_BUCKET = 15;
+export const PIXELS_PER_BUCKET = 15;
 
 /**
  * Scale used for the heat map's Z axis (the cell color). A logarithmic scale

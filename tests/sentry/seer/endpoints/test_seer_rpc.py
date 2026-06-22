@@ -91,6 +91,15 @@ class TestSeerRpc(APITestCase):
         assert "features" in response.data
         assert isinstance(response.data["features"], list)
 
+    def test_validate_llm_proxy_key(self) -> None:
+        path = self._get_path("validate_llm_proxy_key")
+        data: dict[str, Any] = {"args": {"api_key": "test-key"}}
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+        assert response.status_code == 200
+        assert response.data["valid"] is True
+
     def test_snuba_rate_limit_returns_429(self) -> None:
         """Test that SnubaRPCRateLimitExceeded returns 429 to Seer for retry."""
         path = self._get_path("get_trace_waterfall")
@@ -1815,6 +1824,20 @@ class TestRefreshMonitoringProviderToken(APITestCase):
 
         # Not "identity_not_valid" due to KeyError from get_oauth_data before reaching the .get() guard
         assert result == {"error": "refresh_failed"}
+
+    def test_pat_provider_not_refreshable(self) -> None:
+        # Static-token providers (Datadog PAT) have no refresh flow.
+        pat_idp = self.create_identity_provider(type="datadog_pat", external_id="dd-org-pat")
+        pat_identity = self.create_identity(
+            user=self.user,
+            identity_provider=pat_idp,
+            external_id="dd-user-pat",
+            data={"access_token": "pat-tok", "site": "datadoghq.com"},
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=pat_identity.id)
+
+        assert result == {"error": "refresh_not_supported"}
 
 
 @with_feature("organizations:pr-metrics-attribution")

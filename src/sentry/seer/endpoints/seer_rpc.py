@@ -49,6 +49,7 @@ from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.identity import default_manager as identity_manager
+from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
@@ -949,8 +950,12 @@ def refresh_monitoring_provider_token(
     if idp is None or idp.type not in MONITORING_PROVIDERS:
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
 
+    provider = identity_manager.get(idp.type)
+    if not isinstance(provider, OAuth2Provider):
+        # Static-token providers (e.g. Datadog PAT) have no refresh flow.
+        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_not_supported")
+
     try:
-        provider = identity_manager.get(idp.type)
         provider.refresh_identity(identity)
     except IdentityNotValid:
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
@@ -1048,6 +1053,14 @@ def record_pr_attribution(
     return PrAttributionResponse(attribution_id=attribution.id)
 
 
+class ValidateLlmProxyKeyResponse(BaseModel):
+    valid: bool
+
+
+def validate_llm_proxy_key(api_key: str) -> ValidateLlmProxyKeyResponse:
+    return ValidateLlmProxyKeyResponse(valid=True)
+
+
 # Every value below MUST be a function returning a `pydantic.BaseModel` (or
 # a union of `BaseModel` subclasses, optionally with `None`). Two complementary
 # guards enforce this:
@@ -1137,6 +1150,9 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     #
     # Monitoring provider tokens (MCP)
     "refresh_monitoring_provider_token": seer_rpc(refresh_monitoring_provider_token),
+    #
+    # LLM Proxy
+    "validate_llm_proxy_key": seer_rpc(validate_llm_proxy_key),
 }
 
 
