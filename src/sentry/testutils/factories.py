@@ -76,8 +76,8 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.types import ExternalProviders
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
-from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.grouptype import get_group_type_by_type_id
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
