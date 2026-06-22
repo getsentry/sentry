@@ -32,15 +32,15 @@ export function rc<T>(
   property: string,
   value: Responsive<T> | undefined,
   theme: Theme,
+  // Whether responsive values resolve against the viewport (@media) or the
+  // nearest ancestor query container (@container).
+  mode: ResponsiveMode | undefined,
   // Optional resolver function to transform the value before it is applied to the CSS property.
   resolver?: (
     value: T | undefined,
     breakpoint: BreakpointSize | undefined,
     theme: Theme
-  ) => string | undefined,
-  // Whether responsive values resolve against the viewport (@media) or the
-  // nearest ancestor query container (@container). Defaults to 'viewport'.
-  mode: ResponsiveMode = 'viewport'
+  ) => string | undefined
 ): string | undefined {
   // Most values are unlikely to be responsive, so we can resolve
   // them directly and return early.

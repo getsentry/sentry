@@ -198,9 +198,10 @@ export const Text = styled(
     shouldForwardProp: p => isPropValid(p),
   }
 )`
-  ${p => rc('font-size', p.size, p.theme, v => getFontSize(v, p.theme))};
-  ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
-  ${p => rc('text-align', p.align, p.theme)};
+  ${p => rc('font-size', p.size, p.theme, 'viewport', v => getFontSize(v, p.theme))};
+  ${p =>
+    rc('line-height', p.density, p.theme, 'viewport', v => getLineHeight(v, p.theme))};
+  ${p => rc('text-align', p.align, p.theme, 'viewport')};
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};
   text-decoration: ${p => getTextDecoration(p)};

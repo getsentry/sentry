@@ -324,82 +324,77 @@ export const Container = styled(
     },
   }
 )<ContainerProps<any> | ContainerPropsWithRenderFunction<any>>`
-  ${p => rc('container-type', p.containerType, p.theme)};
-  ${p => rc('container-name', p.containerName, p.theme)};
+  ${p => rc('container-type', p.containerType, p.theme, p.responsiveTo)};
+  ${p => rc('container-name', p.containerName, p.theme, p.responsiveTo)};
 
-  ${p => rc('display', p.display, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('position', p.position, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('display', p.display, p.theme, p.responsiveTo)};
+  ${p => rc('position', p.position, p.theme, p.responsiveTo)};
 
-  ${p => rc('inset', p.inset, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('top', p.top, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('bottom', p.bottom, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('left', p.left, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('right', p.right, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('inset', p.inset, p.theme, p.responsiveTo)};
+  ${p => rc('top', p.top, p.theme, p.responsiveTo)};
+  ${p => rc('bottom', p.bottom, p.theme, p.responsiveTo)};
+  ${p => rc('left', p.left, p.theme, p.responsiveTo)};
+  ${p => rc('right', p.right, p.theme, p.responsiveTo)};
 
-  ${p => rc('overflow', p.overflow, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('overflow-x', p.overflowX, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('overflow-y', p.overflowY, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('overflow', p.overflow, p.theme, p.responsiveTo)};
+  ${p => rc('overflow-x', p.overflowX, p.theme, p.responsiveTo)};
+  ${p => rc('overflow-y', p.overflowY, p.theme, p.responsiveTo)};
+
+  ${p => rc('overscroll-behavior', p.overscrollBehavior, p.theme, p.responsiveTo)};
+
+  ${p => rc('pointer-events', p.pointerEvents, p.theme, p.responsiveTo)};
+
+  ${p => rc('cursor', p.cursor, p.theme, p.responsiveTo)};
+  ${p => rc('contain', p.contain, p.theme, p.responsiveTo)};
+
+  ${p => rc('padding', p.padding, p.theme, p.responsiveTo, getSpacing)};
+  ${p => rc('padding-top', p.paddingTop, p.theme, p.responsiveTo, getSpacing)};
+  ${p => rc('padding-bottom', p.paddingBottom, p.theme, p.responsiveTo, getSpacing)};
+  ${p => rc('padding-left', p.paddingLeft, p.theme, p.responsiveTo, getSpacing)};
+  ${p => rc('padding-right', p.paddingRight, p.theme, p.responsiveTo, getSpacing)};
+
+  ${p => rc('margin', p.margin, p.theme, p.responsiveTo, getMargin)};
+  ${p => rc('margin-top', p.marginTop, p.theme, p.responsiveTo, getMargin)};
+  ${p => rc('margin-bottom', p.marginBottom, p.theme, p.responsiveTo, getMargin)};
+  ${p => rc('margin-left', p.marginLeft, p.theme, p.responsiveTo, getMargin)};
+  ${p => rc('margin-right', p.marginRight, p.theme, p.responsiveTo, getMargin)};
 
   ${p =>
-    rc('overscroll-behavior', p.overscrollBehavior, p.theme, undefined, p.responsiveTo)};
-
-  ${p => rc('pointer-events', p.pointerEvents, p.theme, undefined, p.responsiveTo)};
-
-  ${p => rc('cursor', p.cursor, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('contain', p.contain, p.theme, undefined, p.responsiveTo)};
-
-  ${p => rc('padding', p.padding, p.theme, getSpacing, p.responsiveTo)};
-  ${p => rc('padding-top', p.paddingTop, p.theme, getSpacing, p.responsiveTo)};
-  ${p => rc('padding-bottom', p.paddingBottom, p.theme, getSpacing, p.responsiveTo)};
-  ${p => rc('padding-left', p.paddingLeft, p.theme, getSpacing, p.responsiveTo)};
-  ${p => rc('padding-right', p.paddingRight, p.theme, getSpacing, p.responsiveTo)};
-
-  ${p => rc('margin', p.margin, p.theme, getMargin, p.responsiveTo)};
-  ${p => rc('margin-top', p.marginTop, p.theme, getMargin, p.responsiveTo)};
-  ${p => rc('margin-bottom', p.marginBottom, p.theme, getMargin, p.responsiveTo)};
-  ${p => rc('margin-left', p.marginLeft, p.theme, getMargin, p.responsiveTo)};
-  ${p => rc('margin-right', p.marginRight, p.theme, getMargin, p.responsiveTo)};
-
-  ${p =>
-    rc(
-      'background',
-      p.background,
-      p.theme,
-      v => (v ? p.theme.tokens.background[v] : undefined),
-      p.responsiveTo
+    rc('background', p.background, p.theme, p.responsiveTo, v =>
+      v ? p.theme.tokens.background[v] : undefined
     )};
 
-  ${p => rc('border-radius', p.radius, p.theme, getRadius, p.responsiveTo)};
+  ${p => rc('border-radius', p.radius, p.theme, p.responsiveTo, getRadius)};
 
-  ${p => rc('width', p.width, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('min-width', p.minWidth, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('max-width', p.maxWidth, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('width', p.width, p.theme, p.responsiveTo)};
+  ${p => rc('min-width', p.minWidth, p.theme, p.responsiveTo)};
+  ${p => rc('max-width', p.maxWidth, p.theme, p.responsiveTo)};
 
-  ${p => rc('height', p.height, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('min-height', p.minHeight, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('max-height', p.maxHeight, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('height', p.height, p.theme, p.responsiveTo)};
+  ${p => rc('min-height', p.minHeight, p.theme, p.responsiveTo)};
+  ${p => rc('max-height', p.maxHeight, p.theme, p.responsiveTo)};
 
-  ${p => rc('grid-area', p.area, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('grid-row', p.row, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('grid-column', p.column, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('grid-area', p.area, p.theme, p.responsiveTo)};
+  ${p => rc('grid-row', p.row, p.theme, p.responsiveTo)};
+  ${p => rc('grid-column', p.column, p.theme, p.responsiveTo)};
 
-  ${p => rc('order', p.order, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('flex', p.flex, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('flex-grow', p.flexGrow, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('flex-shrink', p.flexShrink, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('flex-basis', p.flexBasis, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('order', p.order, p.theme, p.responsiveTo)};
+  ${p => rc('flex', p.flex, p.theme, p.responsiveTo)};
+  ${p => rc('flex-grow', p.flexGrow, p.theme, p.responsiveTo)};
+  ${p => rc('flex-shrink', p.flexShrink, p.theme, p.responsiveTo)};
+  ${p => rc('flex-basis', p.flexBasis, p.theme, p.responsiveTo)};
 
-  ${p => rc('align-self', p.alignSelf, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('justify-self', p.justifySelf, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('align-self', p.alignSelf, p.theme, p.responsiveTo)};
+  ${p => rc('justify-self', p.justifySelf, p.theme, p.responsiveTo)};
 
-  ${p => rc('border', p.border, p.theme, getBorder, p.responsiveTo)};
-  ${p => rc('border-top', p.borderTop, p.theme, getBorder, p.responsiveTo)};
-  ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder, p.responsiveTo)};
-  ${p => rc('border-left', p.borderLeft, p.theme, getBorder, p.responsiveTo)};
-  ${p => rc('border-right', p.borderRight, p.theme, getBorder, p.responsiveTo)};
+  ${p => rc('border', p.border, p.theme, p.responsiveTo, getBorder)};
+  ${p => rc('border-top', p.borderTop, p.theme, p.responsiveTo, getBorder)};
+  ${p => rc('border-bottom', p.borderBottom, p.theme, p.responsiveTo, getBorder)};
+  ${p => rc('border-left', p.borderLeft, p.theme, p.responsiveTo, getBorder)};
+  ${p => rc('border-right', p.borderRight, p.theme, p.responsiveTo, getBorder)};
 
-  ${p => rc('visibility', p.visibility, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('white-space', p.whiteSpace, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('visibility', p.visibility, p.theme, p.responsiveTo)};
+  ${p => rc('white-space', p.whiteSpace, p.theme, p.responsiveTo)};
 
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.

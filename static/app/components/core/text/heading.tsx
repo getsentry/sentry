@@ -75,12 +75,14 @@ export const Heading = styled(
       'font-size',
       p.size ?? (p.as ? getDefaultHeadingFontSize(p.as) : undefined),
       p.theme,
+      'viewport',
       v => {
         return getFontSize(v, p.theme);
       }
     )};
-  ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
-  ${p => rc('text-align', p.align, p.theme)};
+  ${p =>
+    rc('line-height', p.density, p.theme, 'viewport', v => getLineHeight(v, p.theme))};
+  ${p => rc('text-align', p.align, p.theme, 'viewport')};
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};
 

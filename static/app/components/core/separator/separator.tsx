@@ -31,8 +31,8 @@ export const Separator = styled(
   width: ${p => (p.orientation === 'horizontal' ? 'auto' : '1px')};
   height: ${p => (p.orientation === 'horizontal' ? '1px' : 'auto')};
 
-  ${p => rc('padding', p.padding, p.theme, getSpacing)};
-  ${p => rc('margin', p.margin ?? '0', p.theme, getMargin)};
+  ${p => rc('padding', p.padding, p.theme, 'viewport', getSpacing)};
+  ${p => rc('margin', p.margin ?? '0', p.theme, 'viewport', getMargin)};
 
   flex-shrink: 0;
   align-self: stretch;
@@ -43,6 +43,7 @@ export const Separator = styled(
       p.orientation === 'horizontal' ? 'border-bottom' : 'border-left',
       p.border ?? 'primary',
       p.theme,
+      'viewport',
       (...args) => `${getBorder(...args)} !important`
     )};
 `;

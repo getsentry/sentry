@@ -67,18 +67,19 @@ export const Flex = styled(Container, {
     return !omitFlexProps.has(prop as keyof FlexLayoutProps | 'as');
   },
 })<FlexProps<any> | FlexPropsWithRenderFunction<any>>`
-  ${p => rc('display', p.display ?? 'flex', p.theme, v => v ?? 'flex', p.responsiveTo)};
-  ${p => rc('order', p.order, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('gap', p.gap, p.theme, getSpacing, p.responsiveTo)};
+  ${p => rc('display', p.display ?? 'flex', p.theme, p.responsiveTo, v => v ?? 'flex')};
+  ${p => rc('order', p.order, p.theme, p.responsiveTo)};
+  ${p => rc('gap', p.gap, p.theme, p.responsiveTo, getSpacing)};
 
-  ${p => rc('flex-direction', p.direction, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('flex-wrap', p.wrap, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('flex', p.flex, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('flex-direction', p.direction, p.theme, p.responsiveTo)};
+  ${p => rc('flex-wrap', p.wrap, p.theme, p.responsiveTo)};
+  ${p => rc('flex', p.flex, p.theme, p.responsiveTo)};
   ${p =>
     rc(
       'justify-content',
       p.justify,
       p.theme,
+      p.responsiveTo,
       (value, _breakpoint, _theme) => {
         switch (value) {
           case 'start':
@@ -96,27 +97,20 @@ export const Flex = styled(Container, {
           default:
             return value;
         }
-      },
-      p.responsiveTo
+      }
     )};
 
   ${p =>
-    rc(
-      'align-items',
-      p.align,
-      p.theme,
-      (value, _breakpoint, _theme) => {
-        switch (value) {
-          case 'start':
-            return 'flex-start';
-          case 'end':
-            return 'flex-end';
-          default:
-            return value;
-        }
-      },
-      p.responsiveTo
-    )};
+    rc('align-items', p.align, p.theme, p.responsiveTo, (value, _breakpoint, _theme) => {
+      switch (value) {
+        case 'start':
+          return 'flex-start';
+        case 'end':
+          return 'flex-end';
+        default:
+          return value;
+      }
+    })};
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.

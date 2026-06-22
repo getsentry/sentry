@@ -100,22 +100,23 @@ export const Grid = styled(Container, {
     return !omitGridProps.has(prop as keyof GridLayoutProps | 'as');
   },
 })<GridProps<any> | GridPropsWithRenderFunction<any>>`
-  ${p => rc('display', p.display ?? 'grid', p.theme, v => v ?? 'grid', p.responsiveTo)}
+  ${p => rc('display', p.display ?? 'grid', p.theme, p.responsiveTo, v => v ?? 'grid')}
 
-  ${p => rc('gap', p.gap, p.theme, getSpacing, p.responsiveTo)};
+  ${p => rc('gap', p.gap, p.theme, p.responsiveTo, getSpacing)};
 
-  ${p => rc('grid-template-columns', p.columns, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('grid-template-rows', p.rows, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('grid-template-areas', p.areas, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('grid-auto-columns', p.autoColumns, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('grid-auto-rows', p.autoRows, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('grid-auto-flow', p.flow, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('grid-template-columns', p.columns, p.theme, p.responsiveTo)};
+  ${p => rc('grid-template-rows', p.rows, p.theme, p.responsiveTo)};
+  ${p => rc('grid-template-areas', p.areas, p.theme, p.responsiveTo)};
+  ${p => rc('grid-auto-columns', p.autoColumns, p.theme, p.responsiveTo)};
+  ${p => rc('grid-auto-rows', p.autoRows, p.theme, p.responsiveTo)};
+  ${p => rc('grid-auto-flow', p.flow, p.theme, p.responsiveTo)};
 
   ${p =>
     rc(
       'justify-content',
       p.justify,
       p.theme,
+      p.responsiveTo,
       (value, _breakpoint, _theme) => {
         switch (value) {
           case 'start':
@@ -135,8 +136,7 @@ export const Grid = styled(Container, {
           default:
             return value;
         }
-      },
-      p.responsiveTo
+      }
     )};
 
   ${p =>
@@ -144,6 +144,7 @@ export const Grid = styled(Container, {
       'align-content',
       p.alignContent,
       p.theme,
+      p.responsiveTo,
       (value, _breakpoint, _theme) => {
         switch (value) {
           case 'start':
@@ -163,12 +164,11 @@ export const Grid = styled(Container, {
           default:
             return value;
         }
-      },
-      p.responsiveTo
+      }
     )};
 
-  ${p => rc('align-items', p.align, p.theme, undefined, p.responsiveTo)};
-  ${p => rc('justify-items', p.justifyItems, p.theme, undefined, p.responsiveTo)};
+  ${p => rc('align-items', p.align, p.theme, p.responsiveTo)};
+  ${p => rc('justify-items', p.justifyItems, p.theme, p.responsiveTo)};
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.

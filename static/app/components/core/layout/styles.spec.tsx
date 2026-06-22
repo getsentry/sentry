@@ -71,7 +71,7 @@ const setupMediaQueries = (
 
 describe('rc', () => {
   it('returns a simple CSS declaration for a plain string value', () => {
-    const output = rc('color', 'red', theme);
+    const output = rc('color', 'red', theme, 'viewport');
     assert(output);
     expect(
       normalizeCss(
@@ -83,11 +83,17 @@ describe('rc', () => {
   });
 
   it('returns undefined when value is undefined', () => {
-    expect(rc('color', undefined, theme)).toBeUndefined();
+    expect(rc('color', undefined, theme, 'viewport')).toBeUndefined();
   });
 
   it('applies a resolver to a plain value', () => {
-    const output = rc('color', 'primary', theme, value => `resolved-${value}`);
+    const output = rc(
+      'color',
+      'primary',
+      theme,
+      'viewport',
+      value => `resolved-${value}`
+    );
     assert(output);
     expect(
       normalizeCss(
@@ -99,12 +105,12 @@ describe('rc', () => {
   });
 
   it('returns undefined when resolver returns undefined for a plain value', () => {
-    expect(rc('color', 'red', theme, () => {})).toBeUndefined();
+    expect(rc('color', 'red', theme, 'viewport', () => {})).toBeUndefined();
   });
 
   it('generates media queries for responsive values', () => {
     // First defined breakpoint gets both min-width and max-width; subsequent get min-width only.
-    const output = rc('color', {xs: 'blue', md: 'green'}, theme);
+    const output = rc('color', {xs: 'blue', md: 'green'}, theme, 'viewport');
     assert(output);
     expect(
       normalizeCss(
@@ -117,7 +123,7 @@ describe('rc', () => {
 
   it('skips undefined intermediate breakpoints', () => {
     // xs and md are defined; 2xs, sm, lg, xl, 2xl are absent from the output.
-    const output = rc('font-size', {xs: 'md', md: 'lg'}, theme);
+    const output = rc('font-size', {xs: 'md', md: 'lg'}, theme, 'viewport');
     assert(output);
     expect(
       normalizeCss(
@@ -129,20 +135,14 @@ describe('rc', () => {
   });
 
   it('emits @media queries for responsive values by default', () => {
-    const output = rc('flex-direction', {xs: 'column', md: 'row'}, theme);
+    const output = rc('flex-direction', {xs: 'column', md: 'row'}, theme, 'viewport');
     assert(output);
     expect(output).toContain('@media');
     expect(output).not.toContain('@container');
   });
 
   it('emits @container queries when mode is "container"', () => {
-    const output = rc(
-      'flex-direction',
-      {xs: 'column', md: 'row'},
-      theme,
-      undefined,
-      'container'
-    );
+    const output = rc('flex-direction', {xs: 'column', md: 'row'}, theme, 'container');
     assert(output);
     expect(output).toContain('@container');
     expect(output).not.toContain('@media');
@@ -151,13 +151,7 @@ describe('rc', () => {
   });
 
   it('container mode keeps the dual min/max prelude for the first breakpoint', () => {
-    const output = rc(
-      'flex-direction',
-      {xs: 'column', md: 'row'},
-      theme,
-      undefined,
-      'container'
-    );
+    const output = rc('flex-direction', {xs: 'column', md: 'row'}, theme, 'container');
     assert(output);
     // First defined breakpoint (xs) gets both min-width and max-width.
     expect(output).toContain(
@@ -166,10 +160,10 @@ describe('rc', () => {
   });
 
   it('returns a plain declaration (no at-rule) for non-responsive container values', () => {
-    expect(rc('container-type', 'inline-size', theme)).toBe(
+    expect(rc('container-type', 'inline-size', theme, 'viewport')).toBe(
       'container-type: inline-size;'
     );
-    expect(rc('container-type', undefined, theme)).toBeUndefined();
+    expect(rc('container-type', undefined, theme, 'viewport')).toBeUndefined();
   });
 });
 

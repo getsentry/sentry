@@ -33,5 +33,5 @@ const Img = styled('img')<ImageProps>`
   object-fit: ${p => p.objectFit};
   object-position: ${p => p.objectPosition};
   aspect-ratio: ${p => p.aspectRatio};
-  ${p => rc('border-radius', p.radius, p.theme, getRadius)};
+  ${p => rc('border-radius', p.radius, p.theme, 'viewport', getRadius)};
 `;
