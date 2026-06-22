@@ -51,7 +51,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         # For token-based providers without OAuth flow, verify the submitted token
         # and link the identity directly instead of redirecting.
         if not isinstance(provider_type, OAuth2Provider):
-            return self._link_submitted_token(request, provider_key, provider_type)
+            return self._link_submitted_token(request, provider_type)
 
         try:
             config = provider_type.get_pipeline_config(request.data)
@@ -82,9 +82,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         )
         return Response({"detail": "Failed to start OAuth flow."}, status=500)
 
-    def _link_submitted_token(
-        self, request: Request, provider_key: str, provider_type: Provider
-    ) -> Response:
+    def _link_submitted_token(self, request: Request, provider_type: Provider) -> Response:
         """Verify a user-submitted token and link the identity (no OAuth flow)."""
         try:
             identity = provider_type.build_identity(request.data)

@@ -177,6 +177,41 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         identity = Identity.objects.get(idp=idp, user=self.user)
         assert identity.data == {"access_token": "pat-new", "site": "datadoghq.eu"}
 
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_connect_datadog_pat_switch_account_via_reconnect(
+        self, mock_get_user_info: MagicMock
+    ) -> None:
+        # Switching to a different Datadog user in the same Datadog org is done by
+        # disconnecting first, then reconnecting.
+        mock_get_user_info.side_effect = [
+            {"user_uuid": "dd-user-1", "org_uuid": "dd-org-456"},
+            {"user_uuid": "dd-user-2", "org_uuid": "dd-org-456"},
+            {"user_uuid": "dd-user-2", "org_uuid": "dd-org-456"},
+        ]
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            # Connect the first Datadog account.
+            self.get_success_response(
+                self.organization.slug, "datadog_pat", access_token="pat-1", site="datadoghq.com"
+            )
+            # Connecting a different account in the same Datadog org conflicts.
+            conflict = self.get_response(
+                self.organization.slug, "datadog_pat", access_token="pat-2", site="datadoghq.com"
+            )
+            assert conflict.status_code == 409
+            # Disconnect, then reconnect with the new account.
+            self.get_success_response(
+                self.organization.slug, "datadog_pat", method="delete", status_code=204
+            )
+            self.get_success_response(
+                self.organization.slug, "datadog_pat", access_token="pat-2", site="datadoghq.com"
+            )
+
+        idp = IdentityProvider.objects.get(type="datadog_pat", external_id="dd-org-456")
+        identity = Identity.objects.get(idp=idp, user=self.user)
+        assert identity.external_id == "dd-user-2"
+        assert identity.data == {"access_token": "pat-2", "site": "datadoghq.com"}
+
     def test_connect_datadog_pat_requires_access_token(self) -> None:
         with self.feature("organizations:seer-infra-telemetry"):
             response = self.get_response(
