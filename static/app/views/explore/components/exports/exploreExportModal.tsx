@@ -81,7 +81,6 @@ export function ExploreExportModal({
       // anything beyond that must go through the server export.
       const exceedsLocalData = value.limit > localRowCount;
 
-      // The backend only supports exporting all columns in JSONL format.
       const format = isAllColumns ? 'jsonl' : value.format;
 
       const useServerExport = isAllColumns || exceedsLocalData;
@@ -116,9 +115,7 @@ export function ExploreExportModal({
       </Header>
       <Body>
         <Stack gap="xl">
-          <Text>
-            {t('Large data export files will be sent to your email address.')}
-          </Text>
+          <Text>{t('Large data export files will be sent to your email address.')}</Text>
           {supportsAllColumns && (
             <form.AppField name="columns">
               {field => (
