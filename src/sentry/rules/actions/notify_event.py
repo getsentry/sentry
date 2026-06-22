@@ -26,7 +26,7 @@ class NotifyEventAction(EventAction):
         logger.info(
             "notify_event.legacy_plugin_action_noop",
             extra={
-                "rule_id": self.rule.id,
+                "rule_id": self.rule.id if self.rule else None,
                 "event_id": event.event_id,
                 "action": self.id,
             },

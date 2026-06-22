@@ -959,7 +959,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     secondaryGroupingConfig: str | None
     fingerprintingRules: str
     organization: OrganizationSummarySerializerResponse
-    plugins: list[Plugin]
     platforms: list[str]
     processingIssues: int
     defaultEnvironment: str | None
