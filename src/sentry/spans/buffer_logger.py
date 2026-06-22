@@ -300,13 +300,6 @@ class InsertSpansMetrics:
         return insert_spans_metrics
 
     def record_evalsha_result(self, project_and_trace: str, result: EvalshaResult) -> None:
-        # add-buffer.lua only populates latency/metrics for a ~1% sample of calls.
-        # Unsampled calls return latency_ms == -1 (sentinel) and empty metric
-        # tables; including those would skew averages and the slow-operation
-        # logger, so we skip them.
-        if result.latency_ms < 0:
-            return
-
         self._latency_entries.append((project_and_trace, result.latency_ms))
         self._latency_metrics.append(result.latency_metrics)
         self._gauge_metrics.append(result.gauge_metrics)
