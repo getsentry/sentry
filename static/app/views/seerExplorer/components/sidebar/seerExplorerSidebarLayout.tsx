@@ -90,6 +90,7 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
   return (
     <Flex
       ref={sidebarContainerRef}
+      direction="column"
       flex="1"
       minWidth="0"
       minHeight="0"
