@@ -32,12 +32,13 @@ export function DiscoverExportModalButton({
 }: DiscoverExportModalButtonProps) {
   const rows = tableData?.data ?? [];
 
-  const estimatedRowCount = useDiscoverExportEstimatedRowCount({
-    enabled: error === null && !isLoading && rows.length > 0,
-    eventView,
-    loadedRowCount: rows.length,
-    location,
-  });
+  const {estimatedRowCount, isPending: isEstimatePending} =
+    useDiscoverExportEstimatedRowCount({
+      enabled: error === null && !isLoading && rows.length > 0,
+      eventView,
+      loadedRowCount: rows.length,
+      location,
+    });
 
   const config: ExploreExportConfig = {
     title: t('Export'),
@@ -69,7 +70,7 @@ export function DiscoverExportModalButton({
       size="sm"
       isDataEmpty={rows.length === 0}
       isDataError={error !== null}
-      isDataLoading={isLoading}
+      isDataLoading={isLoading || isEstimatePending}
     />
   );
 }

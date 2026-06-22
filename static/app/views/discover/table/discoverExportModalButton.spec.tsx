@@ -67,6 +67,9 @@ describe('DiscoverExportModalButton', () => {
     mockEstimatedRowCount(1);
     renderButton();
 
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Export Data'})).toBeEnabled()
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
 
@@ -76,6 +79,17 @@ describe('DiscoverExportModalButton', () => {
     expect(mockTrackAnalytics).toHaveBeenCalledWith(
       'discover_v2.results.download_csv',
       expect.objectContaining({organization: organization.id})
+    );
+  });
+
+  it('disables the export button until the row-count estimate resolves', async () => {
+    mockEstimatedRowCount(5000);
+    renderButton();
+
+    expect(screen.getByRole('button', {name: 'Export Data'})).toBeDisabled();
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Export Data'})).toBeEnabled()
     );
   });
 
@@ -103,6 +117,9 @@ describe('DiscoverExportModalButton', () => {
     renderButton();
 
     await waitFor(() => expect(countMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Export Data'})).toBeEnabled()
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Number of rows'}));

@@ -18,17 +18,23 @@ interface UseDiscoverExportEstimatedRowCountOptions {
   location: Location;
 }
 
+interface UseDiscoverExportEstimatedRowCountResult {
+  estimatedRowCount: number;
+  /** True while the estimate is being fetched and no value is available yet. */
+  isPending: boolean;
+}
+
 export function useDiscoverExportEstimatedRowCount({
   enabled,
   eventView,
   loadedRowCount,
   location,
-}: UseDiscoverExportEstimatedRowCountOptions): number {
+}: UseDiscoverExportEstimatedRowCountOptions): UseDiscoverExportEstimatedRowCountResult {
   const organization = useOrganization();
 
   const payload = eventView.getEventsAPIPayload(location);
 
-  const {data} = useQuery({
+  const {data, isLoading} = useQuery({
     ...apiOptions.as<EventsMetaResponse>()(
       '/organizations/$organizationIdOrSlug/events-meta/',
       {
@@ -40,5 +46,8 @@ export function useDiscoverExportEstimatedRowCount({
     enabled,
   });
 
-  return Math.max(loadedRowCount, data?.count ?? 0);
+  return {
+    estimatedRowCount: Math.max(loadedRowCount, data?.count ?? 0),
+    isPending: isLoading,
+  };
 }
