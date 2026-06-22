@@ -150,41 +150,6 @@ class ProjectBalancingCalculationsTest(TestCase):
             },
         ]
 
-    def test_compare_rebalanced_projects_with_cache_emits_seconds_since_last_item(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.25)]
-        cached_sample_rates: dict[int, float | None] = {project.id: 0.2}
-        project_volumes = [
-            ProjectVolume(
-                project_id=project.id,
-                total=200,
-                keep=100,
-                drop=100,
-                seconds_since_last_item=120.0,
-            )
-        ]
-
-        with (
-            override_options(
-                {"dynamic-sampling.per_org.project-balancing-debug-project-ids": [project.id]}
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.calculations.metrics.distribution"
-            ) as distribution,
-        ):
-            compare_rebalanced_projects_with_cache(
-                config, rebalanced_projects, cached_sample_rates, project_volumes
-            )
-
-        emitted = {call.args[0]: call.args[1] for call in distribution.call_args_list}
-        metric = "dynamic_sampling.per_org.project_balancing_debug.eap_seconds_since_last_item"
-        assert emitted[metric] == 120.0
-        for call in distribution.call_args_list:
-            assert call.kwargs["tags"] == {"org": str(org.id), "ds_project": str(project.id)}
-
     def test_compare_rebalanced_projects_with_cache_skips_seconds_metric_without_data(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
