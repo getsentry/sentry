@@ -26,15 +26,16 @@ interface ProblemSectionProps {
 const LOW_VALUE_SPAN_EXPLORE_REFERRER = 'low-value-span-configuration-issue';
 
 function getAffectedSpanQuery(evidenceData: LowValueSpanEvidenceData): string | null {
-  const {op, description} = evidenceData;
+  const {op, description, spanName} = evidenceData;
 
-  if (op === null && description === null) {
+  if (op === null && description === null && spanName === null) {
     return null;
   }
 
   return MutableSearch.fromQueryObject({
     'span.op': op ?? EMPTY_OPTION_VALUE,
     'span.description': description ?? EMPTY_OPTION_VALUE,
+    'span.name': spanName ?? EMPTY_OPTION_VALUE,
   }).formatString();
 }
 

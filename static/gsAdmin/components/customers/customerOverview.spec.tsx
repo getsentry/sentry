@@ -20,7 +20,7 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {CustomerOverview} from 'admin/components/customers/customerOverview';
-import {AddOnCategory, PlanTier} from 'getsentry/types';
+import {AddOnCategory} from 'getsentry/types';
 
 describe('CustomerOverview', () => {
   it('renders DetailLabels for SubscriptionSummary section', () => {
@@ -375,7 +375,6 @@ describe('CustomerOverview', () => {
     const enterprise_subscription = InvoicedSubscriptionFixture({
       organization,
       plan: 'am3_business_ent_auf',
-      planTier: PlanTier.AM3,
     });
 
     render(
@@ -402,7 +401,6 @@ describe('CustomerOverview', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      planTier: PlanTier.AM3,
     });
 
     render(
@@ -426,7 +424,6 @@ describe('CustomerOverview', () => {
     const am3Subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      planTier: PlanTier.AM3,
       productTrials: [
         {
           category: DataCategory.REPLAYS,
@@ -603,7 +600,6 @@ describe('CustomerOverview', () => {
     const am3Subscription = SubscriptionFixture({
       organization,
       plan: 'am3_team',
-      planTier: PlanTier.AM3,
     });
 
     MockApiClient.addMockResponse({
@@ -619,7 +615,7 @@ describe('CustomerOverview', () => {
       />
     );
 
-    expect(screen.getByText('Team Plan (am3)')).toBeInTheDocument();
+    expect(screen.getByText('Team Plan (am3_team)')).toBeInTheDocument();
     await waitFor(() => {
       const term = screen.getByText('Sample Rate (24h):');
       const definition = term.nextElementSibling;

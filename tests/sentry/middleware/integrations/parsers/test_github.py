@@ -20,9 +20,9 @@ from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell
 
-cell = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+cell = Cell("us", 1, "https://us.testserver")
 cell_config = (cell,)
 
 
