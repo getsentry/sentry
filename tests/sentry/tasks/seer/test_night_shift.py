@@ -569,7 +569,6 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
 
         run = SeerNightShiftRun.objects.get(organization=org)
         shards = list(SeerNightShiftRunShard.objects.filter(run=run))
-        # shard_size 0 clamps to 1 -> one shard per candidate, not one giant chunk.
         assert len(shards) == 3
 
     def test_dispatches_candidates_to_seer_feature(self) -> None:
