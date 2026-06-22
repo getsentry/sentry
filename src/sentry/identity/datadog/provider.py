@@ -6,6 +6,7 @@ import secrets
 from typing import Any
 
 import orjson
+import sentry_sdk
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from requests import ConnectionError, HTTPError, Response
@@ -72,7 +73,11 @@ def get_user_info(access_token: str, mcp_base_url: str) -> dict[str, Any]:
         json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
     )
     init_resp.raise_for_status()
-    headers["Mcp-Session-Id"] = init_resp.headers["mcp-session-id"]
+    try:
+        headers["Mcp-Session-Id"] = init_resp.headers["mcp-session-id"]
+    except KeyError as e:
+        sentry_sdk.capture_message("Datadog MCP initialize response missing session id")
+        raise IdentityNotValid("MCP initialize response missing session id") from e
 
     resp = safe_urlopen(
         url,
