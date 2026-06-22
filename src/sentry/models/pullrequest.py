@@ -41,7 +41,6 @@ class PullRequestAttributionSignalType(models.TextChoices):
     SEER_DELEGATED_CLAUDE_CODE = "seer_delegated:claude_code"
     SEER_DELEGATED_UNKNOWN = "seer_delegated:unknown"
     MCP = "mcp"
-    REFERENCED_ISSUE = "referenced_issue"
     UNKNOWN = "unknown"
 
 
@@ -55,6 +54,12 @@ class PullRequestVerdict(models.TextChoices):
     MERGED_UNCHANGED = "merged_unchanged"
     MERGED_WITH_ITERATION = "merged_with_iteration"
     CLOSED_UNMERGED = "closed_unmerged"
+    # Transient, internal: a terminal event whose outcome a judge must decide has
+    # been claimed and forwarded to Seer, but the judged verdict hasn't returned.
+    # Reuses the verdict column as the redelivery guard so a redelivered terminal
+    # event won't forward twice; Seer's callback overwrites it with a real verdict.
+    # Never a judge *result* — the callback rejects it coming back from Seer.
+    JUDGE_IN_PROGRESS = "judge_in_progress"
 
 
 class PullRequestManager(BaseManager["PullRequest"]):
@@ -106,10 +111,16 @@ class PullRequest(Model):
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
     merge_commit_sha = models.CharField(max_length=64, null=True, db_index=True)
 
+    # Facts for the PR metrics pipeline, kept current by the GitHub webhook.
+    # All nullable: we only have them for PRs whose events Sentry actually saw.
+    # A late-installed integration, a missed/dropped webhook, or a non-webhook
+    # creation path (e.g. attribution get_or_create) leaves them unset.
+    opened_at = models.DateTimeField(null=True)
     closed_at = models.DateTimeField(null=True)
     merged_at = models.DateTimeField(null=True)
     state = models.CharField(max_length=32, null=True, choices=PullRequestLifecycleState.choices)
     head_commit_sha = models.CharField(max_length=64, null=True)
+    draft = models.BooleanField(null=True)
 
     objects: ClassVar[PullRequestManager] = PullRequestManager()
 
@@ -329,6 +340,15 @@ class PullRequestAttribution(DefaultFieldsModel):
 
 @cell_silo_model
 class PullRequestMetrics(DefaultFieldsModel):
+    """One row per PR holding the webhook-sourced activity counters.
+
+    Kept current by the metrics pipeline on each ``pull_request`` webhook and read
+    by the emit/judge path (which, on the Seer callback, has no payload — hence
+    the counts are stored rather than re-derived). ``verdict`` and the Seer-only
+    counters (``participants_count``, ``reviews_count``) are populated later by
+    the judge path, not the webhook.
+    """
+
     __relocation_scope__ = RelocationScope.Excluded
 
     pull_request = models.OneToOneField(
@@ -340,6 +360,7 @@ class PullRequestMetrics(DefaultFieldsModel):
     files_changed = BoundedPositiveIntegerField(default=0)
     commits_count = BoundedPositiveIntegerField(default=0)
     comments_count = BoundedPositiveIntegerField(default=0)
+    review_comments_count = BoundedPositiveIntegerField(default=0, db_default=0)
     participants_count = BoundedPositiveIntegerField(default=0)
     reviews_count = BoundedPositiveIntegerField(default=0)
     is_assigned = models.BooleanField(default=False)

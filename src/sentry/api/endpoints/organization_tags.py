@@ -38,7 +38,8 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
 
     @extend_schema(
-        operation_id="List an Organization's Tags",
+        operation_id="listOrganizationTags",
+        summary="List an Organization's Tags",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -148,11 +149,17 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
 
                 # Setting the tag for now since the measurement is still experimental
                 sentry_sdk.set_tag("custom_tags.count", len(final_results))
+                sentry_sdk.set_attribute("custom_tags.count", len(final_results))
                 sentry_sdk.set_tag(
                     "custom_tags.count.grouped",
                     format_grouped_length(len(final_results), [1, 10, 50, 100]),
                 )
+                sentry_sdk.set_attribute(
+                    "custom_tags.count.grouped",
+                    format_grouped_length(len(final_results), [1, 10, 50, 100]),
+                )
                 sentry_sdk.set_tag("dataset_queried", dataset.value)
+                sentry_sdk.set_attribute("dataset_queried", dataset.value)
                 set_span_attribute("custom_tags.count", len(final_results))
 
         return Response(serialize(final_results, request.user, TagKeySerializer()))

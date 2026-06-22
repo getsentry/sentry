@@ -44,7 +44,8 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a Profile",
+        operation_id="getProjectProfilingProfile",
+        summary="Retrieve a Profile",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -60,7 +61,9 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
         },
         examples=ProfilingExamples.PROFILE_DETAILS,
     )
-    def get(self, request: Request, project: Project, profile_id: str) -> HttpResponse:
+    def get(
+        self, request: Request, project: Project, profile_id: str
+    ) -> Response[dict[str, Any]] | Response[None] | HttpResponse:
         """
         Retrieve a single profile by its ID.
 
@@ -79,7 +82,7 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
         )
 
         if response.status == 200:
-            profile = orjson.loads(response.data)
+            profile: dict[str, Any] = orjson.loads(response.data)
 
             if "release" in profile:
                 profile["release"] = get_release(project, profile["release"])

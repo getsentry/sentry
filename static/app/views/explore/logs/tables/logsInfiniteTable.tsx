@@ -30,6 +30,7 @@ import type {TagCollection} from 'sentry/types/group';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {
   TableBodyCell,
   TableHead,
@@ -232,6 +233,7 @@ export function LogsInfiniteTable({
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const {width: tableWidth} = useDimensions({elementRef: tableRef});
+  const {top: backToTopOffset} = useElementOffset(tableBodyRef, tableRef);
   const [expandedLogRows, setExpandedLogRows] = useState(
     new Set(embeddedOptions?.openWithExpandedIds)
   );
@@ -239,6 +241,7 @@ export function LogsInfiniteTable({
     Record<string, number>
   >({});
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
@@ -468,6 +471,8 @@ export function LogsInfiniteTable({
           logStart={logStart}
           logEnd={logEnd}
           isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+          isHoverLinked={hoveredRowId === rowId}
+          setHoveredRowId={setHoveredRowId}
           togglePinnedRow={logsPinning?.togglePinnedRow}
         />
       );
@@ -478,6 +483,7 @@ export function LogsInfiniteTable({
       handleExpand,
       handleExpandHeight,
       highlightTerms,
+      hoveredRowId,
       logEnd,
       logStart,
       logsPinning,
@@ -536,7 +542,7 @@ export function LogsInfiniteTable({
           <PinnedLogs
             allRows={data}
             logsPinning={logsPinning}
-            query={pinnedLogsQuery}
+            pinnedLogsQuery={pinnedLogsQuery}
             renderRow={renderRow}
           />
         )}
@@ -608,6 +614,8 @@ export function LogsInfiniteTable({
                   showCellActions={showCellActions}
                   showExploreSimilarSpansLink={showExploreSimilarSpansLink}
                   isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+                  isHoverLinked={hoveredRowId === rowId}
+                  setHoveredRowId={setHoveredRowId}
                   togglePinnedRow={logsPinning?.togglePinnedRow}
                 />
               </Fragment>
@@ -629,6 +637,7 @@ export function LogsInfiniteTable({
         position="absolute"
         inReplay={!!embeddedOptions?.replay}
         tableWidth={tableWidth}
+        topOffset={backToTopOffset}
       >
         {!embeddedOptions?.replay && (
           <BackToTopButton

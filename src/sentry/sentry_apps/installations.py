@@ -70,6 +70,8 @@ class SentryAppInstallationTokenCreator:
             )
 
     def _create_api_token(self) -> ApiToken:
+        assert self.sentry_app.proxy_user, "requires a proxy user"
+
         return ApiToken.objects.create(
             user=self.sentry_app.proxy_user,
             application_id=self.sentry_app.application_id,

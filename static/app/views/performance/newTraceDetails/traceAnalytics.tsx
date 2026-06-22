@@ -162,6 +162,17 @@ const trackEAPSpanHasDetails = (
     has_logs_details: hasLogsDetails,
   });
 
+const trackAITabClicked = (organization: Organization) =>
+  trackAnalytics('trace.trace_layout.ai_tab_clicked', {
+    organization,
+  });
+
+const trackGenAISpanDetailsViewed = (organization: Organization, operationType: string) =>
+  trackAnalytics('trace.trace_drawer_details.gen_ai_span_details_viewed', {
+    organization,
+    operation_type: operationType,
+  });
+
 const trackResetZoom = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.reset_zoom', {
     organization,
@@ -314,6 +325,9 @@ const traceAnalytics = {
   trackCompressedTimelinePreferenceChange,
   // Trace Drawer Details
   trackEAPSpanHasDetails,
+  trackGenAISpanDetailsViewed,
+  // AI
+  trackAITabClicked,
 };
 
 export {traceAnalytics};

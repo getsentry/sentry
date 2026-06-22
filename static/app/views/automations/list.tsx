@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
 
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {AlertsMonitorsShowcaseButton} from 'sentry/components/workflowEngine/alertsMonitorsShowcaseButton';
 import {WorkflowEngineListLayout as ListLayout} from 'sentry/components/workflowEngine/layout/list';
@@ -15,8 +14,6 @@ import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -24,7 +21,7 @@ import {AutomationFeedbackButton} from 'sentry/views/automations/components/auto
 import {AutomationListTable} from 'sentry/views/automations/components/automationListTable';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
-import {automationsApiOptions} from 'sentry/views/automations/hooks';
+import {useAutomationListQueryOptions} from 'sentry/views/automations/hooks/useAutomationListDetectors';
 import {
   getNoAlertWritePermissionTooltip,
   useCanEditAutomation,
@@ -33,34 +30,14 @@ import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function AutomationsList() {
-  const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const {selection, isReady} = usePageFilters();
 
-  const {
-    sort: sorts,
-    query,
-    cursor,
-  } = useLocationQuery({
-    fields: {
-      sort: decodeSorts,
-      query: decodeScalar,
-      cursor: decodeScalar,
-    },
-  });
-  const sort = sorts[0] ?? {kind: 'desc', field: 'lastTriggered'};
-
+  const {queryOptions, enabled, cursor, sort} = useAutomationListQueryOptions();
   const {data, isLoading, isError, isSuccess} = useQuery({
-    ...automationsApiOptions(organization, {
-      query,
-      sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
-      projects: selection.projects,
-      limit: AUTOMATION_LIST_PAGE_LIMIT,
-      cursor,
-    }),
+    ...queryOptions,
     select: selectJsonWithHeaders,
-    enabled: isReady,
+    enabled,
   });
 
   const automations = data?.json;

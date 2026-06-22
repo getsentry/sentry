@@ -47,6 +47,7 @@ class SiloHttpHeaders(TypedDict, total=False):
     HTTP_X_SENTRY_SUBNET_SIGNATURE: str
     HTTP_X_SENTRY_SUBNET_BASE_URL: str
     HTTP_X_SENTRY_SUBNET_PATH: str
+    HTTP_X_SENTRY_SUBNET_TIMEOUT: str
 
 
 def test_ensure_http_headers_match() -> None:
@@ -221,6 +222,71 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             mock_metrics=mock_metrics,
             kwargs_to_match={"sample_rate": 1.0, "tags": {"status": 400}},
         )
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_proxy_forwards_timeout(
+        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
+        signature_path = f"/{self.proxy_path}"
+        headers = self.create_request_headers(
+            signature_path=signature_path,
+            integration_id=self.org_integration.id,
+        )
+        headers["HTTP_X_SENTRY_SUBNET_TIMEOUT"] = "90.0"
+
+        content = b"{}"
+        mock_response = MagicMock(spec=Response)
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.content = content
+        mock_response.status_code = 200
+        mock_response.reason = "OK"
+        mock_response.headers = {"Content-Type": "application/json"}
+        mock_response.iter_content = MagicMock(return_value=iter([content]))
+
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock(return_value=mock_response)
+        mock_get_client.return_value = mock_client
+
+        self.client.get(self.path, **headers)
+
+        # The caller's timeout is decoded and forwarded to the downstream request.
+        assert mock_client.request.call_args.kwargs["timeout"] == 90.0
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_proxy_without_timeout_header(
+        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
+        signature_path = f"/{self.proxy_path}"
+        headers = self.create_request_headers(
+            signature_path=signature_path,
+            integration_id=self.org_integration.id,
+        )
+
+        content = b"{}"
+        mock_response = MagicMock(spec=Response)
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.content = content
+        mock_response.status_code = 200
+        mock_response.reason = "OK"
+        mock_response.headers = {"Content-Type": "application/json"}
+        mock_response.iter_content = MagicMock(return_value=iter([content]))
+
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock(return_value=mock_response)
+        mock_get_client.return_value = mock_client
+
+        self.client.get(self.path, **headers)
+
+        # Absent header -> None, so the client falls back to its own default timeout.
+        assert mock_client.request.call_args.kwargs["timeout"] is None
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")

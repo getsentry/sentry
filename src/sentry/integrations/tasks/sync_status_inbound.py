@@ -14,6 +14,7 @@ from sentry.api.helpers.group_index.update import get_current_release_version_of
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
+from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution
@@ -259,13 +260,14 @@ def sync_status_inbound(
         ) = get_resolutions_and_activity_data_for_groups(
             affected_groups, config.get("resolution_strategy"), activity_data, organization_id
         )
-        Group.objects.update_group_status(
-            groups=resolvable_groups,
-            status=GroupStatus.RESOLVED,
-            substatus=None,
-            activity_type=activity_type,
-            activity_data=activity_data,
-        )
+        with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
+            Group.objects.update_group_status(
+                groups=resolvable_groups,
+                status=GroupStatus.RESOLVED,
+                substatus=None,
+                activity_type=activity_type,
+                activity_data=activity_data,
+            )
         # after we update the group, update the resolutions
         for group in resolvable_groups:
             resolution_params = resolutions_by_group_id.get(group.id)
@@ -312,13 +314,14 @@ def sync_status_inbound(
                 sentry_sdk.capture_exception(e)
 
     elif action == ResolveSyncAction.UNRESOLVE:
-        Group.objects.update_group_status(
-            groups=affected_groups,
-            status=GroupStatus.UNRESOLVED,
-            substatus=GroupSubStatus.ONGOING,
-            activity_type=ActivityType.SET_UNRESOLVED,
-            activity_data=activity_data,
-        )
+        with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
+            Group.objects.update_group_status(
+                groups=affected_groups,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.ONGOING,
+                activity_type=ActivityType.SET_UNRESOLVED,
+                activity_data=activity_data,
+            )
 
         for group in affected_groups:
             issue_unresolved.send_robust(

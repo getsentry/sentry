@@ -12,10 +12,10 @@ type Props = {
 
 const getLabel = (item: Subscription) => {
   if (item.isEnterpriseTrial) {
-    return `Trialing (${item.trialTier} enterprise)`;
+    return `Trialing (${item.trialPlan} enterprise)`;
   }
   if (item.isTrial) {
-    return `Trialing (${item.trialTier})`;
+    return `Trialing (${item.trialPlan})`;
   }
   if (item.isFree) {
     return 'Free Account';
@@ -70,7 +70,7 @@ export function CustomerStatus({customer}: Props) {
       {typeof label !== 'object' && label}
       <br />
       <InfoText variant="inherit" title={getTooltip(customer)}>
-        <small>{`${customer.planDetails?.name} Plan (${customer.planTier})`}</small>
+        <small>{`${customer.planDetails?.name} Plan (${customer.planDetails?.id})`}</small>
       </InfoText>
     </Fragment>
   );

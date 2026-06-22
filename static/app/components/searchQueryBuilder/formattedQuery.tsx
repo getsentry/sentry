@@ -38,6 +38,8 @@ type TokenProps = {
 };
 
 const EMPTY_FILTER_KEYS: TagCollection = {};
+const defaultFieldDefinitionGetter: FieldDefinitionGetter = key =>
+  defaultGetFieldDefinition(key);
 
 function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
   if (token.filter === FilterType.IS || token.filter === FilterType.HAS) {
@@ -116,7 +118,7 @@ function QueryToken({token}: TokenProps) {
 export function FormattedQuery({
   className,
   query,
-  fieldDefinitionGetter = defaultGetFieldDefinition,
+  fieldDefinitionGetter = defaultFieldDefinitionGetter,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
@@ -152,7 +154,7 @@ export function FormattedQuery({
 export function ProvidedFormattedQuery({
   className,
   query,
-  fieldDefinitionGetter = defaultGetFieldDefinition,
+  fieldDefinitionGetter = defaultFieldDefinitionGetter,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
   getFilterTokenWarning,

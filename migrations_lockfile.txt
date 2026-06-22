@@ -7,13 +7,13 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 discover: 0003_discover_json_field
 
-explore: 0007_update_numeric_attrs_to_bools
+explore: 0009_add_trace_item_attribute_value_context
 
 feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-hybridcloud: 0029_remove_orgslugreservationreplica_pending
+hybridcloud: 0030_remove_orgslugreservationreplica_delete
 
 insights: 0002_backfill_team_starred
 
@@ -23,15 +23,15 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0012_drop_metric_alert_cols_notificationmessage
 
-preprod: 0029_add_snapshot_comparison_chunks_columns
+preprod: 0030_add_images_errored_to_snapshot_comparison
 
 releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0017_drop_old_fk_columns
+seer: 0019_add_night_shift_run_shard
 
-sentry: 1109_add_group_action_log_entry
+sentry: 1117_drop_organizationmapping_codecov_access_delete
 
 social_auth: 0003_social_auth_json_field
 

@@ -26,7 +26,7 @@ describe('Issues Similar View', () => {
     features: ['similarity-view'],
   });
 
-  const group = GroupFixture();
+  const group = GroupFixture({project});
   const initialRouterConfig = {
     location: {
       pathname: `/organizations/org-slug/issues/${group.id}/similar/`,
@@ -188,10 +188,10 @@ describe('Issues Similar View', () => {
 describe('Issues Similar Embeddings View', () => {
   let mock: jest.Mock;
 
-  const group = GroupFixture();
   const project = ProjectFixture({
     features: ['similarity-view'],
   });
+  const group = GroupFixture({project});
 
   const initialRouterConfig = {
     location: {

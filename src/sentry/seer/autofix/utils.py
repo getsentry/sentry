@@ -37,9 +37,7 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, Autof
 from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
-    SeerApiError,
     SeerAutomationHandoffConfiguration,
-    SeerPermissionError,
     SeerProjectPreference,
     SeerRepoDefinition,
 )
@@ -144,16 +142,12 @@ class CodingAgentStatus(StrEnum):
         return status_mapping.get(cursor_status.upper(), None)
 
 
-class AutofixTriggerSource(StrEnum):
-    ROOT_CAUSE = "root_cause"
-    SOLUTION = "solution"
-
-
 class CodingAgentResult(BaseModel):
     description: str
     repo_provider: str
     repo_full_name: str
     pr_url: str | None = None
+    branch_name: str | None = None
 
 
 class CodingAgentProviderType(StrEnum):
@@ -217,68 +211,9 @@ autofix_connection_pool = connection_from_url(
 )
 
 
-class GetAutofixStateRequest(TypedDict):
-    group_id: int | None
-    run_id: int | None
-    check_repo_access: bool
-    is_user_fetching: bool
-
-
-class GetAutofixStatePrRequest(TypedDict):
-    provider: str
-    pr_id: int
-
-
-class GetAutofixPromptRequest(TypedDict):
-    run_id: int
-    include_root_cause: bool
-    include_solution: bool
-
-
 class StoreCodingAgentStatesRequest(TypedDict):
     run_id: int
     coding_agent_states: list[dict[str, Any]]
-
-
-def make_get_autofix_state_request(
-    body: GetAutofixStateRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/state",
-        body=orjson.dumps(body),
-        viewer_context=viewer_context,
-    )
-
-
-def make_get_autofix_state_pr_request(
-    body: GetAutofixStatePrRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/state/pr",
-        body=orjson.dumps(body),
-        viewer_context=viewer_context,
-    )
-
-
-def make_get_autofix_prompt_request(
-    body: GetAutofixPromptRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/prompt",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
 
 
 def make_update_coding_agent_state_request(
@@ -289,7 +224,7 @@ def make_update_coding_agent_state_request(
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/coding-agent/state/update",
+        "/v1/automation/coding-agent/state/update",
         body=orjson.dumps(body.dict(exclude_none=True)),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -304,7 +239,7 @@ def make_store_coding_agent_states_request(
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/coding-agent/state/set",
+        "/v1/automation/coding-agent/state/set",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -798,48 +733,73 @@ class ProjectRepoCreateData(TypedDict):
     branch_overrides: NotRequired[list[BranchOverrideData]]
 
 
-def replace_all_branch_overrides(
-    seer_project_repo: SeerProjectRepository, branch_overrides: list[BranchOverrideData]
-) -> None:
-    """Replace all branch overrides for the given Seer project repo."""
-    SeerProjectRepositoryBranchOverride.objects.filter(
-        seer_project_repository=seer_project_repo
-    ).delete()
-    if branch_overrides:
-        SeerProjectRepositoryBranchOverride.objects.bulk_create(
-            [
-                SeerProjectRepositoryBranchOverride(
-                    seer_project_repository=seer_project_repo,
-                    tag_name=override["tag_name"],
-                    tag_value=override["tag_value"],
-                    branch_name=override["branch_name"],
-                )
-                for override in branch_overrides
-            ]
-        )
-
-
 def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateData]) -> list[int]:
     """Upsert Seer project repos."""
-    result_ids = []
+    if not repos_data:
+        return []
+
     with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        seer_project_repos_to_add: list[SeerProjectRepository] = []
+        branch_overrides_by_key: dict[tuple[int, int], list[BranchOverrideData]] = {}
+
+        # Collect SeerProjectRepository objects to upsert, linking each to its ProjectRepository.
         for data in repos_data:
             project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
                 project_id=project.id,
                 repository_id=data["repository_id"],
                 source=ProjectRepositorySource.SEER_PREFERENCE,
             )
-            seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
-                project_repository=project_repo,
-                defaults={
-                    "branch_name": data.get("branch_name"),
-                    "instructions": data.get("instructions"),
-                },
+            seer_project_repos_to_add.append(
+                SeerProjectRepository(
+                    project_repository=project_repo,
+                    branch_name=data.get("branch_name"),
+                    instructions=data.get("instructions"),
+                )
             )
-            replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
-            result_ids.append(seer_project_repo.id)
 
-    return result_ids
+            # Key branch overrides by project id and repo id so we can link them to
+            # the right SeerProjectRepository later.
+            if data.get("branch_overrides"):
+                branch_overrides_by_key[(project.id, data["repository_id"])] = data[
+                    "branch_overrides"
+                ]
+
+        seer_project_repos = SeerProjectRepository.objects.bulk_create(
+            seer_project_repos_to_add,
+            update_conflicts=True,
+            update_fields=["branch_name", "instructions", "date_updated"],
+            unique_fields=["project_repository"],
+        )
+
+        # Upsert branch overrides using the upserted SeerProjectRepository rows.
+        branch_overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
+        for seer_project_repo in seer_project_repos:
+            project_repo = seer_project_repo.project_repository
+            for override in branch_overrides_by_key.get(
+                (project_repo.project_id, project_repo.repository_id), []
+            ):
+                branch_overrides_to_create.append(
+                    SeerProjectRepositoryBranchOverride(
+                        seer_project_repository=seer_project_repo,
+                        tag_name=override["tag_name"],
+                        tag_value=override["tag_value"],
+                        branch_name=override["branch_name"],
+                    )
+                )
+
+        SeerProjectRepositoryBranchOverride.objects.filter(
+            seer_project_repository__in=seer_project_repos
+        ).delete()
+
+        if branch_overrides_to_create:
+            SeerProjectRepositoryBranchOverride.objects.bulk_create(
+                branch_overrides_to_create,
+                update_conflicts=True,
+                update_fields=["branch_name", "date_updated"],
+                unique_fields=["seer_project_repository", "tag_name", "tag_value"],
+            )
+
+    return [sr.id for sr in seer_project_repos]
 
 
 def replace_all_seer_project_repos(
@@ -852,20 +812,7 @@ def replace_all_seer_project_repos(
             project_repository__repository__status=ObjectStatus.ACTIVE,
         ).delete()
 
-        for data in repos_data:
-            project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
-                project_id=project.id,
-                repository_id=data["repository_id"],
-                source=ProjectRepositorySource.SEER_PREFERENCE,
-            )
-            seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
-                project_repository=project_repo,
-                defaults={
-                    "branch_name": data.get("branch_name"),
-                    "instructions": data.get("instructions"),
-                },
-            )
-            replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
+        add_seer_project_repos(project, repos_data)
 
 
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
@@ -919,63 +866,6 @@ def get_autofix_repos_from_project_code_mappings(
             repos[repo_key] = repo_dict
 
     return list(repos.values())
-
-
-def get_autofix_state(
-    *,
-    group_id: int | None = None,
-    run_id: int | None = None,
-    check_repo_access: bool = False,
-    is_user_fetching: bool = False,
-    organization_id: int,
-) -> AutofixState | None:
-    body = GetAutofixStateRequest(
-        group_id=group_id,
-        run_id=run_id,
-        check_repo_access=check_repo_access,
-        is_user_fetching=is_user_fetching,
-    )
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-    response = make_get_autofix_state_request(body, viewer_context=viewer_context)
-
-    if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
-
-    result = response.json()
-
-    if result:
-        if (
-            group_id is not None
-            and result["group_id"] == group_id
-            or run_id is not None
-            and result["run_id"] == run_id
-        ):
-            state = AutofixState.validate(result["state"])
-
-            if state.request.organization_id != organization_id:
-                raise SeerPermissionError("Different organization ID found in autofix state")
-
-            return state
-
-    return None
-
-
-def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | None:
-    body = GetAutofixStatePrRequest(provider=provider, pr_id=pr_id)
-    response = make_get_autofix_state_pr_request(body)
-
-    if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
-    result = response.json()
-
-    if not result:
-        return None
-
-    state = result.get("state", None)
-    if state is None:
-        return None
-
-    return AutofixState.validate(state)
 
 
 def is_seer_scanner_rate_limited(project: Project, organization: Organization) -> bool:
@@ -1146,59 +1036,16 @@ def is_seer_autotriggered_autofix_rate_limited_and_increment(
     return is_rate_limited
 
 
-def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: bool) -> str:
-    """Get the autofix prompt from Seer API."""
-
-    body = GetAutofixPromptRequest(
-        run_id=run_id,
-        include_root_cause=include_root_cause,
-        include_solution=include_solution,
-    )
-    response = make_get_autofix_prompt_request(body, timeout=15)
-
-    if response.status >= 400:
-        raise SeerApiError(response.data.decode("utf-8"), response.status)
-
-    response_data = orjson.loads(response.data)
-
-    return response_data.get("prompt")
-
-
-def get_coding_agent_prompt(
-    run_id: int,
-    trigger_source: AutofixTriggerSource,
-    instruction: str | None = None,
-    short_id: str | None = None,
-) -> str:
-    """Get the coding agent prompt with prefix from Seer API."""
-    include_root_cause = trigger_source in [
-        AutofixTriggerSource.ROOT_CAUSE,
-        AutofixTriggerSource.SOLUTION,
-    ]
-    include_solution = trigger_source == AutofixTriggerSource.SOLUTION
-
-    autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
-
-    base_prompt = "Please fix the following issue. Ensure that your fix is fully working."
-
-    if short_id:
-        base_prompt = f"{base_prompt}\n\nInclude 'Fixes {short_id}' in the commit message."
-
-    if instruction and instruction.strip():
-        base_prompt = f"{base_prompt}\n\n{instruction.strip()}"
-
-    return f"{base_prompt}\n\n{autofix_prompt}"
-
-
 def update_coding_agent_state(
     *,
     agent_id: str,
     status: CodingAgentStatus,
     agent_url: str | None = None,
     result: CodingAgentResult | None = None,
-) -> None:
+) -> bool:
     """Send coding agent state update to Seer.
 
+    Returns True if Seer accepted the update (2xx), False otherwise.
     Errors are logged and swallowed so that callers iterating over
     multiple agents are never interrupted by a single failed update.
     """
@@ -1220,7 +1067,7 @@ def update_coding_agent_state(
             "coding_agent.state_update_error",
             extra={"agent_id": agent_id},
         )
-        return
+        return False
 
     if response.status >= 400:
         logger.error(
@@ -1231,3 +1078,6 @@ def update_coding_agent_state(
                 "response": response.data.decode("utf-8"),
             },
         )
+        return False
+
+    return True

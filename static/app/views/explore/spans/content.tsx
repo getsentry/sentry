@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
 
@@ -14,6 +14,7 @@ import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {
@@ -160,6 +161,19 @@ function SpansTabHeader() {
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(id);
+
+  useEffect(() => {
+    if (defined(id) && defined(savedQuery)) {
+      trackAnalytics('trace_explorer.open_saved_query', {
+        organization,
+        query_name: savedQuery.name,
+        is_prebuilt: savedQuery.isPrebuilt ?? false,
+        dataset: savedQuery.dataset,
+      });
+    }
+    // Only fire once per saved query load, keyed by id
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, savedQuery?.id]);
 
   const hasSavedQueryTitle =
     defined(id) && defined(savedQuery) && savedQuery.name.length > 0;

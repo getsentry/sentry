@@ -48,7 +48,7 @@ from sentry.integrations.types import (
     IntegrationProviderSlug,
 )
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
-from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.commit import Commit
@@ -66,6 +66,7 @@ from sentry.pr_metrics.webhooks import handle_activity as pr_metrics_handle_acti
 from sentry.pr_metrics.webhooks import handle_attribution as pr_metrics_handle_attribution
 from sentry.pr_metrics.webhooks import handle_comment as pr_metrics_handle_comment
 from sentry.pr_metrics.webhooks import handle_emission as pr_metrics_handle_emission
+from sentry.pr_metrics.webhooks import handle_metrics as pr_metrics_handle_metrics
 from sentry.pr_metrics.webhooks import handle_review as pr_metrics_handle_review
 from sentry.pr_metrics.webhooks import handle_review_comment as pr_metrics_handle_review_comment
 from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle_review_thread
@@ -974,6 +975,8 @@ class PullRequestEventWebhook(GitHubWebhook):
         _handle_pr_webhook_for_autofix_processor,
         code_review_handle_webhook_event,
         pr_metrics_handle_attribution,
+        # Persist counters before emission reads them off the PullRequestMetrics row.
+        pr_metrics_handle_metrics,
         pr_metrics_handle_emission,
         pr_metrics_handle_activity,
     )
@@ -1011,9 +1014,11 @@ class PullRequestEventWebhook(GitHubWebhook):
 
         # Lifecycle facts kept current for the PR metrics pipeline.
         head_commit_sha = pull_request["head"]["sha"]
+        opened_at = _parse_github_timestamp(pull_request.get("created_at"))
         closed_at = _parse_github_timestamp(pull_request.get("closed_at"))
         merged_at = _parse_github_timestamp(pull_request.get("merged_at"))
         state = _pull_request_lifecycle_state(pull_request)
+        draft = pull_request.get("draft")
 
         author_email = "{}@localhost".format(user["login"][:65])
 
@@ -1078,9 +1083,11 @@ class PullRequestEventWebhook(GitHubWebhook):
                     "message": body,
                     "merge_commit_sha": merge_commit_sha,
                     "head_commit_sha": head_commit_sha,
+                    "opened_at": opened_at,
                     "closed_at": closed_at,
                     "merged_at": merged_at,
                     "state": state,
+                    "draft": draft,
                 },
             )
 
@@ -1167,6 +1174,11 @@ class PullRequestReviewThreadEventWebhook(GitHubWebhook):
     WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_review_thread,)
 
 
+class CheckSuiteWebhook(GitHubWebhook):
+    EVENT_TYPE = IntegrationWebhookEventType.CHECK_SUITE
+    WEBHOOK_EVENT_PROCESSORS = ()
+
+
 @all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(Endpoint):
     """
@@ -1193,6 +1205,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: PullRequestReviewCommentEventWebhook,
         GithubWebhookType.PULL_REQUEST_REVIEW_THREAD: PullRequestReviewThreadEventWebhook,
         GithubWebhookType.PUSH: PushEventWebhook,
+        GithubWebhookType.CHECK_SUITE: CheckSuiteWebhook,
     }
 
     def get_handler(self, event_type: GithubWebhookType) -> type[GitHubWebhook] | None:
@@ -1232,7 +1245,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         return self.handle(request)
 
     def handle(self, request: HttpRequest) -> HttpResponse:
-        clear_tags_and_context()
+        clear_organization_info()
         secret = self.get_secret()
 
         if secret is None:
@@ -1304,6 +1317,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             if github_delivery_id is not None:
                 github_delivery_id = str(github_delivery_id)
                 sentry_sdk.set_extra("github_delivery_id", github_delivery_id)
+                sentry_sdk.set_attribute("github_delivery_id", github_delivery_id)
 
             with IntegrationWebhookEvent(
                 interaction_type=event_handler.event_type,

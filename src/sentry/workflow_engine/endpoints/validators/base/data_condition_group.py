@@ -14,20 +14,20 @@ from sentry.workflow_engine.models.data_condition import TRIGGER_CONDITIONS, Dat
 
 
 class DataConditionGroupInput(TypedDict):
-    id: NotRequired[str]
+    id: NotRequired[int]
     logicType: str
     conditions: NotRequired[list[DataConditionInput]]
 
 
 class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
-    id = serializers.CharField(required=False)
+    id = serializers.IntegerField(required=False)
     logic_type = serializers.ChoiceField([(t.value, t.value) for t in DataConditionGroup.Type])
     conditions = serializers.ListField(required=False)
 
     def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         conditions = []
         for condition in value:
-            condition_validator = BaseDataConditionValidator(data=condition)
+            condition_validator = BaseDataConditionValidator(data=condition, context=self.context)
             condition_validator.is_valid(raise_exception=True)
             conditions.append(condition_validator.validated_data)
 

@@ -56,7 +56,8 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         return args, kwargs
 
     @extend_schema(
-        operation_id="Update an External Team",
+        operation_id="updateTeamExternalTeam",
+        summary="Update an External Team",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
@@ -100,7 +101,8 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        operation_id="Delete an External Team",
+        operation_id="deleteTeamExternalTeam",
+        summary="Delete an External Team",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
@@ -113,7 +115,7 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
             403: RESPONSE_FORBIDDEN,
         },
     )
-    def delete(self, request: Request, team: Team, external_team: ExternalActor) -> Response:
+    def delete(self, request: Request, team: Team, external_team: ExternalActor) -> Response[None]:
         """
         Delete the link between a team from an external provider and a Sentry team.
         """
