@@ -637,7 +637,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 vcs_info=vcs_info,
                 app_id=artifact.app_id,
                 is_selective=snapshot_metrics.is_selective,
-                images=image_list,
+                images=image_list if comparison_type != "diff" else [],
                 image_count=snapshot_metrics.image_count,
                 changed=categorized.changed,
                 changed_count=len(categorized.changed),
