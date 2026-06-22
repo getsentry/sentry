@@ -21,9 +21,7 @@ from sentry.tasks.summaries.utils import (
     project_key_transactions_this_week,
     project_past_resolved_issues,
 )
-from sentry.tasks.summaries.weekly_report_cache import read_project_metrics
 from sentry.utils import metrics
-from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
 
 
@@ -80,25 +78,7 @@ class OrganizationReportContextFactory:
 
     @metrics.wraps("weekly_report.create_context.project_event_counts_previous_week")
     def _append_project_event_counts_previous_week(self, ctx: OrganizationReportContext) -> None:
-        """Populate previous-week accepted error/transaction counts for week-over-week comparison.
-
-        Reads from Redis cache first (written by cache_project_metrics() at the end of each
-        weekly report run), then falls back to a Snuba query for any cache misses.
-        """
         with sentry_sdk.start_span(op="weekly_reports.project_event_counts_previous_week"):
-            project_ids = list(ctx.projects_context_map.keys())
-            cached = read_project_metrics(ctx.organization.id, project_ids)
-
-            for project_id, values in cached.items():
-                project_ctx = ctx.projects_context_map[project_id]
-                project_ctx.prev_week_accepted_error_count = values.get("e", 0)
-                project_ctx.prev_week_accepted_transaction_count = values.get("t", 0)
-
-            missed_project_ids = set(project_ids) - set(cached.keys())
-            if not missed_project_ids:
-                return
-
-            # Snuba fallback for cache misses (e.g. new projects, first report run)
             prev_start = ctx.start - (ctx.end - ctx.start)
             prev_end = ctx.start
             event_counts = project_event_counts_for_organization(
@@ -109,17 +89,13 @@ class OrganizationReportContextFactory:
             )
             for data in event_counts:
                 project_id = data["project_id"]
-                if project_id not in missed_project_ids:
-                    continue
                 if project_id not in ctx.projects_context_map:
                     continue
                 project_ctx = ctx.projects_context_map[project_id]
                 total = data["total"]
-                if data["outcome"] != Outcome.ACCEPTED:
-                    continue
                 if data["category"] == DataCategory.TRANSACTION:
                     project_ctx.prev_week_accepted_transaction_count += total
-                elif data["category"] in DataCategory.error_categories():
+                else:
                     project_ctx.prev_week_accepted_error_count += total
 
     @metrics.wraps("weekly_report.create_context.issue_substatus_summaries")
