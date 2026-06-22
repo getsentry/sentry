@@ -680,6 +680,14 @@ export function SearchQueryBuilderValueCombobox({
     [canSelectMultipleValues, token]
   );
 
+  // A chip being edited is lifted into the input but left in the token until the
+  // edit is committed, so it is hidden from the rendered chips and excluded when
+  // rebuilding the value. Canceling simply drops `editingValue` and it reappears.
+  const committedValues = useMemo(
+    () => selectedValues.filter(v => v.value !== editingValue),
+    [selectedValues, editingValue]
+  );
+
   const ctrlKeyPressed = useKeyPress(
     isMac() ? 'Meta' : 'Control',
     topLevelWrapperRef.current
@@ -835,13 +843,13 @@ export function SearchQueryBuilderValueCombobox({
       if (canSelectMultipleValues) {
         // UPDATE_TOKEN_VALUE (rather than TOGGLE_FILTER_VALUE) so the operator
         // switch (e.g. contains -> is) can ride along via `op`.
-        const alreadySelected = selectedValues.some(v => v.value === value);
+        const alreadySelected = committedValues.some(v => v.value === value);
         const newCommaSeparatedValue = alreadySelected
-          ? selectedValues
+          ? committedValues
               .filter(v => v.value !== value)
               .map(v => v.text)
               .join(',')
-          : getMultiSelectInputValue(token) + valueForSaving;
+          : [...committedValues.map(v => v.text), valueForSaving].join(',');
 
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
@@ -879,7 +887,7 @@ export function SearchQueryBuilderValueCombobox({
       items,
       canSelectMultipleValues,
       analyticsData,
-      selectedValues,
+      committedValues,
       dispatch,
       ctrlKeyPressed,
       onCommit,
@@ -936,13 +944,13 @@ export function SearchQueryBuilderValueCombobox({
         token,
         value: prepareInputValueForSaving(
           getFilterValueType(token, fieldDefinition),
-          getMultiSelectInputValue(token) + value
+          [...committedValues.map(v => v.text), value].join(',')
         ),
       });
       setInputValue('');
       setEditingValue(null);
     },
-    [dispatch, fieldDefinition, token]
+    [committedValues, dispatch, fieldDefinition, token]
   );
 
   const handleInputValueConfirmed = useCallback(
@@ -1012,11 +1020,6 @@ export function SearchQueryBuilderValueCombobox({
   );
 
   const editValue = (value: string) => {
-    dispatch({
-      type: 'TOGGLE_FILTER_VALUE',
-      token,
-      value: escapeTagValueForSearch(value),
-    });
     setInputValue(value);
     setEditingValue(value);
     inputRef.current?.focus();
@@ -1046,14 +1049,19 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       if ((e.key === 'Backspace' || e.key === 'Delete') && !currentValue) {
-        if (canSelectMultipleValues && selectedValues.length > 0) {
-          removeValue(selectedValues[selectedValues.length - 1]!.value);
+        // Mid-edit with an emptied input: don't remove an unrelated chip.
+        if (canSelectMultipleValues && editingValue !== null) {
+          return;
+        }
+        const lastValue = committedValues.at(-1);
+        if (canSelectMultipleValues && lastValue) {
+          removeValue(lastValue.value);
           return;
         }
         onDelete();
       }
     },
-    [addTypedValue, canSelectMultipleValues, onDelete, removeValue, selectedValues]
+    [addTypedValue, canSelectMultipleValues, committedValues, editingValue, onDelete, removeValue]
   );
 
   // Ensure that the menu stays open when clicking on the selected items
@@ -1099,7 +1107,7 @@ export function SearchQueryBuilderValueCombobox({
           ref={ref}
           data-test-id="filter-value-editing"
         >
-          {selectedValues.map(({value}) => (
+          {committedValues.map(({value}) => (
             <ValueChip key={value}>
               <ValueChipLabel
                 type="button"
@@ -1124,11 +1132,8 @@ export function SearchQueryBuilderValueCombobox({
             onCustomValueBlurred={handleInputValueConfirmed}
             onCustomValueCommitted={handleInputValueConfirmed}
             onExit={() => {
-              // Escape cancels an in-progress chip edit by restoring the value
-              // that was lifted out, rather than discarding it.
-              if (editingValue !== null) {
-                addTypedValue(editingValue);
-              }
+              setEditingValue(null);
+              setInputValue('');
               onCommit();
             }}
             inputValue={inputValue}

@@ -3552,9 +3552,49 @@ describe('SearchQueryBuilder', () => {
         });
         await userEvent.keyboard('{Escape}');
 
-        // The value is preserved rather than dropped
+        // The value is preserved in place, not dropped or reordered
         expect(
-          await screen.findByRole('row', {name: 'browser.name:[1,3,c]'})
+          await screen.findByRole('row', {name: 'browser.name:[1,c,3]'})
+        ).toBeInTheDocument();
+      });
+
+      it('preserves an escaped value when canceling its edit', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery={'browser.name:"foo bar"'} />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift the value containing a space, then cancel by clicking away
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: foo bar'}));
+        await userEvent.click(document.body);
+
+        // Value stays correctly quoted rather than being re-added unescaped
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:"foo bar"'})
+        ).toBeInTheDocument();
+      });
+
+      it('does not remove other chips when backspacing during an edit', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift "c", clear the input, then Backspace on the now-empty input
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
+        await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter value'}));
+        await userEvent.keyboard('{Backspace}');
+        await userEvent.keyboard('{Escape}');
+
+        // No unrelated chip is removed and the edited value is preserved
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[1,c,3]'})
         ).toBeInTheDocument();
       });
 
