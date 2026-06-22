@@ -5,7 +5,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {tct} from 'sentry/locale';
 import {
-  SentryAppExternalFormNew,
+  SentryAppExternalForm,
   type SchemaFormConfig,
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
@@ -46,7 +46,7 @@ export function SentryAppRuleModal({
         {config.description && <Description>{config.description}</Description>}
       </Header>
       <Body>
-        <SentryAppExternalFormNew
+        <SentryAppExternalForm
           sentryAppInstallationUuid={sentryAppInstallationUuid}
           appName={appName}
           config={formConfig}
