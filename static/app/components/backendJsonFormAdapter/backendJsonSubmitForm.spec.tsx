@@ -684,6 +684,60 @@ describe('BackendJsonSubmitForm', () => {
       });
     });
 
+    it('keeps valid multi-select values when fields change and some selections are no longer valid', async () => {
+      const firstFields: JsonFormAdapterFieldConfig[] = [
+        {
+          name: 'labels',
+          type: 'select',
+          label: 'Labels',
+          multiple: true,
+          choices: [
+            ['bug', 'Bug'],
+            ['feature', 'Feature'],
+            ['docs', 'Docs'],
+          ],
+        },
+      ];
+      const secondFields: JsonFormAdapterFieldConfig[] = [
+        {
+          name: 'labels',
+          type: 'select',
+          label: 'Labels',
+          multiple: true,
+          choices: [
+            ['bug', 'Bug'],
+            ['docs', 'Docs'],
+          ],
+        },
+      ];
+
+      const {rerender} = render(
+        <BackendJsonSubmitForm
+          fields={firstFields}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'Bug');
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'Feature');
+
+      rerender(
+        <BackendJsonSubmitForm
+          fields={secondFields}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({labels: ['bug']}));
+      });
+    });
+
     it('keeps async select values that are absent from static choices when fields change', async () => {
       const firstFields: JsonFormAdapterFieldConfig[] = [
         {

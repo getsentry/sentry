@@ -28,8 +28,8 @@ import type {JsonFormAdapterFieldConfig} from './types';
 import {
   getDefaultForField,
   getDisabledProp,
+  getReconciledFieldValue,
   getSubmitValues,
-  shouldUseFieldDefault,
   transformChoices,
 } from './utils';
 
@@ -252,12 +252,16 @@ export function BackendJsonSubmitForm({
       const hasAsyncChoices =
         (field.type === 'select' || field.type === 'choice') &&
         (field.url || customAsyncQueryOptions?.[field.name]);
-      if (
-        shouldUseFieldDefault(field, currentValue, {
+      const reconciledValue = getReconciledFieldValue(
+        field,
+        currentValue,
+        defaultValues[field.name],
+        {
           validateChoices: !hasAsyncChoices,
-        })
-      ) {
-        form.setFieldValue(field.name, defaultValues[field.name]);
+        }
+      );
+      if (!Object.is(reconciledValue, currentValue)) {
+        form.setFieldValue(field.name, reconciledValue);
       }
     }
   }, [customAsyncQueryOptions, defaultValues, fields, form]);

@@ -71,20 +71,21 @@ export function getSubmitValues(
   return submitValues;
 }
 
-/** Returns true when a config update should reset a field to its default. */
-export function shouldUseFieldDefault(
+/** Returns the field value after reconciling it with updated backend choices. */
+export function getReconciledFieldValue(
   field: JsonFormAdapterFieldConfig,
   value: unknown,
+  defaultValue: unknown,
   options: {validateChoices?: boolean} = {}
-): boolean {
+): unknown {
   if (value === undefined) {
-    return true;
+    return defaultValue;
   }
   if (options.validateChoices === false) {
-    return false;
+    return value;
   }
   if ((field.type !== 'select' && field.type !== 'choice') || !field.choices?.length) {
-    return false;
+    return value;
   }
 
   const choiceValues = new Set(field.choices.map(([choiceValue]) => String(choiceValue)));
@@ -100,10 +101,19 @@ export function shouldUseFieldDefault(
   };
 
   if (field.multiple) {
-    return !Array.isArray(value) || value.some(item => !hasChoice(item));
+    if (!Array.isArray(value)) {
+      return defaultValue;
+    }
+
+    const validValues = value.filter(hasChoice);
+    if (validValues.length === value.length) {
+      return value;
+    }
+
+    return validValues.length > 0 ? validValues : defaultValue;
   }
 
-  return value !== null && !hasChoice(value);
+  return value !== null && !hasChoice(value) ? defaultValue : value;
 }
 
 export function getDefaultForField(field: JsonFormAdapterFieldConfig): unknown {
