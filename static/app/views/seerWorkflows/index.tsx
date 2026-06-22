@@ -862,7 +862,9 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
 }
 
 function getExplorerRunIds(row: WorkflowRow): Array<number | string> {
-  const seerRunIds = (row.triage?.seerRuns ?? []).map(seerRun => seerRun.seerRunId);
+  const seerRunIds = (row.triage?.seerRuns ?? [])
+    .map(seerRun => seerRun.seerRunId)
+    .filter((id): id is string => id !== null);
   if (seerRunIds.length > 0) {
     return seerRunIds;
   }

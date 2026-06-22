@@ -8,7 +8,7 @@ type SeerNightShiftRunIssue = {
 
 // A Seer run dispatched by a night shift run, openable in Explorer.
 type SeerNightShiftSeerRun = {
-  seerRunId: string;
+  seerRunId: string | null;
 };
 
 type SeerNightShiftRunOptions = {

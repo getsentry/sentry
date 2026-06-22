@@ -148,7 +148,8 @@ describe('SeerWorkflows', () => {
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
-          seerRuns: [{seerRunId: '42'}, {seerRunId: '43'}],
+          // The null-id run (not yet mirrored back from Seer) is skipped.
+          seerRuns: [{seerRunId: '42'}, {seerRunId: '43'}, {seerRunId: null}],
         },
       ],
     });
