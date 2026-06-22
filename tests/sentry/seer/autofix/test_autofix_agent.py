@@ -1387,7 +1387,9 @@ class TestTriggerPushChanges(TestCase):
             )
 
         body = mock_post.call_args[0][0]
-        assert body["payload"]["pr_description_suffix"] == f"Fixes {self.group.qualified_short_id}"
+        issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
+        expected = f"Fixes [{self.group.qualified_short_id}]({issue_url})"
+        assert body["payload"]["pr_description_suffix"] == expected
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_pr_description_suffix_includes_linear_issue(self, mock_post):
@@ -1416,7 +1418,11 @@ class TestTriggerPushChanges(TestCase):
             )
 
         body = mock_post.call_args[0][0]
-        expected = f"Fixes {self.group.qualified_short_id}\nFixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)"
+        issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
+        expected = (
+            f"Fixes [{self.group.qualified_short_id}]({issue_url})\n"
+            f"Fixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)"
+        )
         assert body["payload"]["pr_description_suffix"] == expected
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
@@ -1446,5 +1452,9 @@ class TestTriggerPushChanges(TestCase):
             )
 
         body = mock_post.call_args[0][0]
-        expected = f"Fixes {self.group.qualified_short_id}\nFixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
+        issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
+        expected = (
+            f"Fixes [{self.group.qualified_short_id}]({issue_url})\n"
+            f"Fixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
+        )
         assert body["payload"]["pr_description_suffix"] == expected
