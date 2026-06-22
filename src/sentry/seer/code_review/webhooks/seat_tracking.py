@@ -101,13 +101,10 @@ def track_gitlab_contributor_seat_processor(
 
     base_extra["integration_id"] = integration.id
 
-    debug_log(logger, organization, "processor_started", base_extra)
-
     if not features.has("organizations:seer-gitlab-support", organization):
         return
 
     if object_attributes.get("action") != "open":
-        debug_log(logger, organization, "skipped_non_open_action", base_extra)
         return
 
     try:
@@ -154,4 +151,3 @@ def track_gitlab_contributor_seat_processor(
         user_username=user_username,
         provider="gitlab",
     )
-    debug_log(logger, organization, "contributor_seat_tracked", base_extra)
