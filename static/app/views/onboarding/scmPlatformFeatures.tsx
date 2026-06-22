@@ -19,6 +19,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
+import {ScmFeatureSelectionPanel} from './components/scmFeatureSelectionPanel';
 import {ScmPlatformFeaturesCore} from './components/scmPlatformFeaturesCore';
 import {getPlatformInfo, toSelectedSdk} from './components/scmPlatformHelpers';
 import {useScmPlatformDetection} from './components/useScmPlatformDetection';
@@ -187,10 +188,16 @@ export function ScmPlatformFeatures({
             analyticsFlow="onboarding"
             selectedRepository={selectedRepository}
             selectedPlatform={selectedPlatform}
-            selectedFeatures={selectedFeatures}
             onPlatformChange={onPlatformChange}
             onFeaturesChange={onFeaturesChange}
             onClearProjectDetailsForm={onClearProjectDetailsForm}
+          />
+          <ScmFeatureSelectionPanel
+            analyticsFlow="onboarding"
+            selectedRepository={selectedRepository}
+            selectedPlatform={selectedPlatform}
+            selectedFeatures={selectedFeatures}
+            onFeaturesChange={onFeaturesChange}
           />
           <MotionFlex
             layout="position"
