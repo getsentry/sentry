@@ -9,9 +9,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any, Final, Literal
-
-from pydantic import BaseModel
+from typing import Any
 
 from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
@@ -26,51 +24,16 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
+from sentry.pr_metrics.contracts import (
+    CLOSE_ACTION_CLOSED,
+    CLOSE_ACTION_MERGED,
+    CloseAction,
+    PrConversationAnalysis,
+)
 from sentry.pr_metrics.utils import is_activity_tracking_enabled, iso_or_none, resolved_group_ids
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
-
-# GitHub fires a single ``closed`` action for both outcomes; a set ``merged_at``
-# on the PR row disambiguates a merge from a plain close.
-CLOSE_ACTION_CLOSED: Final = "closed"
-CLOSE_ACTION_MERGED: Final = "merged"
-
-CloseAction = Literal["closed", "merged"]
-
-
-class PrConversationAnalysis(BaseModel):
-    """The conversation judge's analysis of a closed/merged PR — one of several
-    judges, each with its own result type and columns.
-
-    Mirrors the ``conversation_analysis`` Seer sends to ``update_pr_metrics`` — the
-    inbound-callback half of the contract, so it lives here beside the row it
-    shapes, separate from the outbound request mirrors in ``judge.py``; keep both in
-    sync with getsentry/seer:src/seer/pr_metrics/models.py. BigQuery-only: it shapes
-    the emitted ``PrCloseMetricsEvent`` and is never persisted. Enum-like values
-    stay free strings, so a Seer vocabulary change can't fail validation.
-
-    Extra keys are ignored (pydantic v1's default), deliberately: it keeps old
-    Sentry pods forward-compatible with fields a newer Seer adds. The flip side — a
-    near-miss payload that matches some field names populates those and silently
-    leaves the rest null — is owned by the Seer-side builder + a shared contract
-    test, not tightened here: ``extra="forbid"`` would fight both that forward-compat
-    and the graceful-drop behavior (it'd drop the whole analysis on any new field).
-    """
-
-    # positive | neutral | negative | mixed. Null when there was nothing to judge
-    # (no comments) or the judge couldn't run; comments_total disambiguates.
-    sentiment: str | None = None
-    # Comments split by author class.
-    comments_bot: int | None = None
-    comments_human: int | None = None
-    # comments_truncated > 0 means a chatty PR was capped before judging.
-    comments_total: int | None = None
-    comments_judged: int | None = None
-    comments_truncated: int | None = None
-    # Opaque drill-down stored verbatim: per-comment intents, reasoning, version
-    # markers, intent counts.
-    metadata: dict[str, Any] | None = None
 
 
 def select_verdict(
