@@ -1,18 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import wraps
+from typing import Any
 
 from sentry.testutils.skips import requires_objectstore
 
 _FEATURE_FLAG = "organizations:objectstore-debugfiles-write"
 
-_BACKENDS = [
-    ("filestore", False),
-    ("objectstore", True),
-]
 
-
-def debug_files_test_both_backends(cls):
+def debug_files_test_both_backends[T: type](cls: T) -> T:
     if not isinstance(cls, type):
         raise TypeError("debug_files_test_both_backends can only be applied to classes")
 
@@ -24,9 +21,9 @@ def debug_files_test_both_backends(cls):
     return requires_objectstore(cls)
 
 
-def _wrap_test(func, enabled):
+def _wrap_test(func: Callable[..., Any], enabled: bool) -> Callable[..., Any]:
     @wraps(func)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> None:
         from sentry.testutils.helpers.features import Feature
 
         with Feature({_FEATURE_FLAG: enabled}):
