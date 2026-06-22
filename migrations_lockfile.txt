@@ -29,7 +29,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0019_add_night_shift_run_shard
+seer: 0020_backfill_night_shift_run_shards
 
 sentry: 1117_drop_organizationmapping_codecov_access_delete
 
