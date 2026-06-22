@@ -218,6 +218,33 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         assert "Failed to verify token" in response.data["detail"]
         assert not IdentityProvider.objects.filter(type="datadog_pat").exists()
 
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_connect_datadog_pat_already_connected(self, mock_get_user_info: MagicMock) -> None:
+        mock_get_user_info.return_value = {
+            "user_uuid": "dd-user-123",
+            "org_uuid": "dd-org-456",
+        }
+
+        other_user = self.create_user()
+        idp = self.create_identity_provider(type="datadog_pat", external_id="dd-org-456")
+        self.create_identity(
+            user=other_user,
+            identity_provider=idp,
+            external_id="dd-user-123",
+            data={"access_token": "other-tok", "site": "datadoghq.com"},
+        )
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(
+                self.organization.slug, "datadog_pat", access_token="pat-abc", site="datadoghq.com"
+            )
+
+        assert response.status_code == 409
+        assert "already connected" in response.data["detail"]
+        # The other user's identity is preserved.
+        assert Identity.objects.get(idp=idp, external_id="dd-user-123").user_id == other_user.id
+        assert not Identity.objects.filter(idp=idp, user=self.user).exists()
+
 
 @control_silo_test
 class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):

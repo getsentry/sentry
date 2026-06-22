@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from django.db import IntegrityError
 from django.http import HttpResponseRedirect
 from requests.exceptions import RequestException
 from rest_framework.request import Request
@@ -97,16 +98,19 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
             external_id=identity["idp_external_id"],
             defaults={"config": identity.get("idp_config", {})},
         )
-        Identity.objects.link_identity(
-            user=request.user,  # type: ignore[arg-type]
-            idp=idp,
-            external_id=identity["id"],
-            should_reattach=False,
-            defaults={
-                "scopes": identity.get("scopes", []),
-                "data": identity.get("data", {}),
-            },
-        )
+        try:
+            Identity.objects.link_identity(
+                user=request.user,  # type: ignore[arg-type]
+                idp=idp,
+                external_id=identity["id"],
+                should_reattach=False,
+                defaults={
+                    "scopes": identity.get("scopes", []),
+                    "data": identity.get("data", {}),
+                },
+            )
+        except IntegrityError:
+            return Response({"detail": "This account is already connected."}, status=409)
         return Response(status=204)
 
     def delete(
