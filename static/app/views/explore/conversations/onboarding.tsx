@@ -59,6 +59,7 @@ import {
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
   BulletList,
@@ -441,9 +442,7 @@ function UnsupportedPlatformOnboarding({
           {tct(
             '[link:Manually instrument] your agents using the Sentry SDK, or let an AI coding agent set it up for you.',
             {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-              ),
+              link: <ExternalLink href={AI_INSTRUMENTATION_DOCS_LINKS.python} />,
             }
           )}
         </Text>

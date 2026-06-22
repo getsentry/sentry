@@ -4,8 +4,6 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {PlanTier} from 'getsentry/types';
-
 import {OnDemandDisabled} from './ondemandDisabled';
 
 describe('OnDemandDisabled', () => {
@@ -40,7 +38,6 @@ describe('OnDemandDisabled', () => {
       organization,
       onDemandDisabled: true,
       onDemandMaxSpend: 1000,
-      planTier: PlanTier.AM1,
     });
 
     render(<OnDemandDisabled organization={organization} subscription={subscription} />);

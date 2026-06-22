@@ -14,7 +14,7 @@ from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.integrations.jira_server.utils import handle_assignee_change, handle_status_change
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
-from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.integrations.utils.scope import clear_organization_info
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -75,7 +75,7 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request, token, *args, **kwargs) -> Response:
-        clear_tags_and_context()
+        clear_organization_info()
         extra: dict[str, object] = {}
         try:
             integration = get_integration_from_token(token)

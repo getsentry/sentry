@@ -278,6 +278,7 @@ class Contexts(Interface):
         except TypeError:
             # Debugging information for SENTRY-FOR-SENTRY-2NH2.
             sentry_sdk.set_context("ctx_type", ctx_type)
+            sentry_sdk.set_attribute("ctx_type", ctx_type)
             raise
         return ctx_cls(alias, data)
 

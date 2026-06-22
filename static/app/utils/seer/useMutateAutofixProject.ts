@@ -1,10 +1,8 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {
@@ -12,7 +10,11 @@ import {
   knownAgentIntegrationsQueryOptions,
   parseAgentOption,
 } from 'sentry/utils/seer/preferredAgent';
-import {getSeerProjectSettingsQueryOptions} from 'sentry/utils/seer/seerProjectSettings';
+import {getSeerProjectReposInfiniteQueryOptions} from 'sentry/utils/seer/seerProjectRepos';
+import {
+  getInfiniteSeerProjectsSettingsQueryOptions,
+  getSeerProjectSettingsQueryOptions,
+} from 'sentry/utils/seer/seerProjectSettings';
 import {
   getTuningFromStoppingPoint,
   resolveStoppingPoint,
@@ -96,14 +98,14 @@ export function useMutateAutofixProject() {
       //    provider/owner/name matching cannot. Its replace-all is transactional,
       //    so if this request fails we abort before touching settings and
       //    nothing is persisted.
+      const reposQueryOptions = getSeerProjectReposInfiniteQueryOptions({
+        organization,
+        project,
+      });
+      const [reposUrl] = reposQueryOptions.queryKey;
       await fetchMutation({
         method: 'PUT',
-        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/repos/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.slug,
-          },
-        }),
+        url: reposUrl,
         data: {repos},
       });
 
@@ -149,9 +151,6 @@ export function useMutateAutofixProject() {
           .queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: bulkAutofixAutomationSettingsInfiniteOptions({organization}).queryKey,
-      });
-      queryClient.invalidateQueries({
         queryKey: getSeerProjectSettingsQueryOptions({
           organization,
           project: {slug: project.slug},
@@ -162,6 +161,15 @@ export function useMutateAutofixProject() {
           orgSlug: organization.slug,
           projectSlug: project.slug,
         }),
+      });
+      // Invalidate the org-level infinite seer projects list so the
+      // /settings/seer/projects/ table reflects the newly added project
+      // without waiting for its 60s staleTime to expire.
+      const {queryKey: infiniteProjectsQueryKey} =
+        getInfiniteSeerProjectsSettingsQueryOptions({organization, query: {}});
+      queryClient.invalidateQueries({
+        queryKey: [infiniteProjectsQueryKey[0]],
+        exact: false,
       });
     },
   });

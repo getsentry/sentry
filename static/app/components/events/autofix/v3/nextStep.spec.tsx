@@ -381,6 +381,13 @@ describe('SeerDrawerNextStep', () => {
   });
 
   describe('CodeChangesNextStep', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/1/autofix/repos/',
+        body: {repos: [{has_write_access: true}]},
+      });
+    });
+
     it('returns null when section has no artifacts', () => {
       const autofix = makeAutofix();
       const {container} = render(
@@ -393,7 +400,7 @@ describe('SeerDrawerNextStep', () => {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('renders prompt and yes button', () => {
+    it('renders prompt and yes button', async () => {
       const autofix = makeAutofix();
       render(
         <SeerDrawerNextStep
@@ -403,7 +410,7 @@ describe('SeerDrawerNextStep', () => {
         />
       );
       expect(
-        screen.getByText('Are you happy with these code changes?')
+        await screen.findByText('Are you happy with these code changes?')
       ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'No'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Yes, draft a PR'})).toBeInTheDocument();
@@ -418,7 +425,7 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
-      await userEvent.click(screen.getByRole('button', {name: 'Yes, draft a PR'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Yes, draft a PR'}));
       expect(autofix.createPR).toHaveBeenCalledWith(1);
     });
 
@@ -431,7 +438,7 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
-      await userEvent.click(screen.getByRole('button', {name: 'No'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'No'}));
       expect(screen.getByRole('textbox')).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Rethink code changes'})
@@ -450,7 +457,7 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
-      await userEvent.click(screen.getByRole('button', {name: 'No'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'No'}));
       await userEvent.type(screen.getByRole('textbox'), 'Fix the error handling');
       await userEvent.click(screen.getByRole('button', {name: 'Rethink code changes'}));
       expect(autofix.startStep).toHaveBeenCalledWith('code_changes', {
@@ -468,12 +475,12 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
-      await userEvent.click(screen.getByRole('button', {name: 'No'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'No'}));
       await userEvent.click(screen.getByRole('button', {name: 'Nevermind, draft a PR'}));
       expect(autofix.createPR).toHaveBeenCalledWith(1);
     });
 
-    it('does not show coding agent dropdown', () => {
+    it('does not show coding agent dropdown', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/coding-agents/',
         body: {
@@ -490,6 +497,7 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
+      await screen.findByText('Are you happy with these code changes?');
       expect(
         screen.queryByRole('button', {name: 'More code fix options'})
       ).not.toBeInTheDocument();

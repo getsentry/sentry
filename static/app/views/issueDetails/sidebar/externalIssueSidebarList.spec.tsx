@@ -283,38 +283,56 @@ describe('ExternalIssueSidebarList', () => {
     });
   });
 
-  it('should render linked issues as full-width rows', async () => {
-    const issueKey = 'DE#1275';
-    const issueTitle = 'Linear: DE#1275';
-    mockLinkedPullRequestsFeatureRequests([
-      GitHubIntegrationFixture({
-        status: 'active',
-        externalIssues: [
-          {
-            id: '321',
-            key: issueKey,
-            url: 'https://linear.app/example/issue/DE-1275',
-            title: issueTitle,
-            description: 'something else, sorry',
-            displayName: '',
-          },
-        ],
-      }),
-    ]);
+  it('should render linked issues as single-line full-width rows', async () => {
+    const issue = {
+      key: 'getsentry/sentry#123',
+      title: 'Fix repository sync',
+      url: 'https://github.com/getsentry/sentry/issues/123',
+    };
+    const prefixedIssue = {
+      key: 'DE#1275',
+      title: 'Linear: DE#1275',
+      url: 'https://linear.app/example/issue/DE-1275',
+    };
+    const linkedIssues = [issue, prefixedIssue];
+    mockLinkedPullRequestsFeatureRequests(
+      linkedIssues.map((linkedIssue, index) =>
+        GitHubIntegrationFixture({
+          id: String(index + 1),
+          status: 'active',
+          externalIssues: [
+            {
+              id: String(321 + index),
+              key: linkedIssue.key,
+              url: linkedIssue.url,
+              title: linkedIssue.title,
+              description: 'something else, sorry',
+              displayName: '',
+            },
+          ],
+        })
+      )
+    );
 
     render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
       organization: organizationWithLinkedPullRequestsFeature,
     });
 
-    const linkedIssues = await screen.findByRole('list', {name: 'Linked issues'});
-    expect(within(linkedIssues).getByRole('link', {name: issueTitle})).toHaveAttribute(
+    const linkedIssueList = await screen.findByRole('list', {name: 'Linked issues'});
+    expect(within(linkedIssueList).getByRole('link', {name: issue.key})).toHaveAttribute(
       'href',
-      'https://linear.app/example/issue/DE-1275'
+      issue.url
     );
-    expect(within(linkedIssues).queryByText(issueKey)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: issueKey})).not.toBeInTheDocument();
     expect(
-      within(linkedIssues).getByRole('button', {name: `Unlink ${issueTitle}`})
+      within(linkedIssueList).getByRole('link', {name: prefixedIssue.key})
+    ).toHaveAttribute('href', prefixedIssue.url);
+    expect(
+      within(linkedIssueList).getByRole('button', {name: `Unlink ${issue.key}`})
+    ).toBeInTheDocument();
+    expect(
+      within(linkedIssueList).getByRole('button', {
+        name: `Unlink ${prefixedIssue.key}`,
+      })
     ).toBeInTheDocument();
   });
 

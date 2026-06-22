@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import orjson
+import zstandard
 from django.urls import reverse
 
 from sentry.models.commitcomparison import CommitComparison
@@ -63,6 +64,62 @@ class ProjectPreprodSnapshotTest(APITestCase):
         snapshot_metrics = PreprodSnapshotMetrics.objects.get(id=response.data["snapshotMetricsId"])
         assert snapshot_metrics.preprod_artifact == artifact
         assert snapshot_metrics.image_count == 1
+
+    def _compressible_snapshot_payload(self) -> bytes:
+        data = {
+            "app_id": "com.example.app",
+            "images": {
+                "abc123def456": {
+                    "content_hash": "abc123def456",
+                    "width": 375,
+                    "height": 812,
+                },
+            },
+        }
+        return orjson.dumps(data)
+
+    def test_snapshot_upload_zstd_encoded(self) -> None:
+        url = self._get_create_url()
+        body = zstandard.ZstdCompressor().compress(self._compressible_snapshot_payload())
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(
+                url,
+                data=body,
+                content_type="application/json",
+                HTTP_CONTENT_ENCODING="zstd",
+            )
+
+        assert response.status_code == 200
+        assert response.data["imageCount"] == 1
+
+    def test_snapshot_upload_invalid_zstd_payload(self) -> None:
+        url = self._get_create_url()
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(
+                url,
+                data=b"this is not a zstd payload",
+                content_type="application/json",
+                HTTP_CONTENT_ENCODING="zstd",
+            )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid zstd payload"
+
+    def test_snapshot_upload_unsupported_encoding(self) -> None:
+        url = self._get_create_url()
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(
+                url,
+                data=b"anything",
+                content_type="application/json",
+                HTTP_CONTENT_ENCODING="br",
+            )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Unsupported Content-Encoding"
 
     def test_snapshot_upload_creates_commit_comparison(self) -> None:
         url = self._get_create_url()

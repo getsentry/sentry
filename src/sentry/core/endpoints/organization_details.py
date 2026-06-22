@@ -457,18 +457,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
-    def validate_ingestThroughTrustedRelaysOnly(self, value):
-        organization = self.context["organization"]
-        request = self.context["request"]
-        if not features.has(
-            "organizations:ingest-through-trusted-relays-only", organization, actor=request.user
-        ):
-            # NOTE (vgrozdanic): For now allow access to this setting only to orgs with the feature flag enabled
-            raise serializers.ValidationError(
-                "Organization does not have the ingest through trusted relays only feature enabled."
-            )
-        return value
-
     def validate_enabledConsolePlatforms(self, value):
         request = self.context["request"]
 
@@ -1081,7 +1069,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve an Organization",
+        operation_id="getOrganization",
+        summary="Retrieve an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrganizationParams.DETAILED],
         request=None,
         responses={
@@ -1126,7 +1115,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(context)
 
     @extend_schema(
-        operation_id="Update an Organization",
+        operation_id="updateOrganization",
+        summary="Update an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],

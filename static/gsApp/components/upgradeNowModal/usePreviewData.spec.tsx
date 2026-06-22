@@ -3,10 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
-import {PlanTier} from 'getsentry/types';
 
 import type {Reservations} from './types';
 import {usePreviewData} from './usePreviewData';

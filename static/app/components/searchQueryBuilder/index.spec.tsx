@@ -275,8 +275,9 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
-        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Wildcard (*) matching allowed')
+        ).toBeInTheDocument();
       });
 
       it('does not display footer when disallowWildcard is true', async () => {
@@ -292,7 +293,7 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+        expect(await screen.findByRole('option', {name: 'Firefox'})).toBeInTheDocument();
 
         expect(
           screen.queryByText('Wildcard (*) matching allowed')
@@ -306,7 +307,7 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: assigned'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+        expect(await screen.findByRole('option', {name: 'me'})).toBeInTheDocument();
 
         expect(
           screen.queryByText('Wildcard (*) matching allowed')
@@ -345,8 +346,9 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: nullable_string'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
-        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Wildcard (*) matching allowed')
+        ).toBeInTheDocument();
       });
 
       it('renders swap to is for * when using a wildcard operator', async () => {
@@ -360,9 +362,9 @@ describe('SearchQueryBuilder', () => {
           })
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
-
-        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Wildcard (*) matching allowed')
+        ).toBeInTheDocument();
         await userEvent.keyboard('{escape}');
 
         await userEvent.click(
@@ -2396,6 +2398,27 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
+    it('shows value counts in the dropdown when the response includes them', async () => {
+      const mockGetTagValues = jest
+        .fn()
+        .mockResolvedValue([{value: 'tag_value_one', count: 1234}]);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="custom_tag_name:"
+          getTagValues={mockGetTagValues}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+      );
+
+      const option = await screen.findByRole('option', {name: /tag_value_one/});
+
+      expect(within(option).getByText('1.2K')).toBeInTheDocument();
+    });
+
     it('unescapes asterisks before fetching tag value suggestions', async () => {
       const mockGetTagValues = jest.fn().mockResolvedValue([]);
       render(
@@ -2727,10 +2750,20 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
-      it('renders escaped asterisks as a bare asterisk in the filter chip', async () => {
+      it('renders an escaped asterisk with the escape visible in the filter chip', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery={'browser.name:foo\\*'} />
         );
+
+        expect(
+          await within(
+            screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+          ).findByText('foo\\*')
+        ).toBeInTheDocument();
+      });
+
+      it('renders a wildcard asterisk without an escape in the filter chip', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:foo*" />);
 
         expect(
           await within(
@@ -5600,7 +5633,7 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
-    it('escapes * for is op but not contains op', async () => {
+    it('renders the escaped asterisk for the contains suggestion but a wildcard for the is suggestion', async () => {
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -5614,7 +5647,7 @@ describe('SearchQueryBuilder', () => {
       const options = within(screen.getByRole('listbox')).getAllByRole('option');
       expect(options).toHaveLength(2);
 
-      expect(options[0]).toHaveTextContent('span.description contains test*');
+      expect(options[0]).toHaveTextContent('span.description contains test\\*');
       expect(options[1]).toHaveTextContent('span.description is test*');
     });
 
