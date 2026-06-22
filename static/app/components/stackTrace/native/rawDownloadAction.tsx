@@ -3,7 +3,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useApi} from 'sentry/utils/useApi';

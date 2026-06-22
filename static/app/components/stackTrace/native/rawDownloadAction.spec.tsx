@@ -44,4 +44,18 @@ describe('RawDownloadAction', () => {
 
     expect(screen.queryByRole('button', {name: 'Download'})).not.toBeInTheDocument();
   });
+
+  it('does not render for console native platforms', () => {
+    render(
+      <StackTraceViewStateProvider defaultView="raw" platform="playstation">
+        <RawDownloadAction
+          eventId="event-id"
+          organization={organization}
+          projectSlug="project-slug"
+        />
+      </StackTraceViewStateProvider>
+    );
+
+    expect(screen.queryByRole('button', {name: 'Download'})).not.toBeInTheDocument();
+  });
 });

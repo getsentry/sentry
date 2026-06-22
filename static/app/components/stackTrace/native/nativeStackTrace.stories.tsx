@@ -723,11 +723,6 @@ function NativeIssueStackTraceStory() {
                   {activeThread.state}
                 </Text>
               )}
-              {activeThread.platform === 'javascript' ? (
-                <Text variant="muted" size="sm">
-                  {t('rendered with the generic (non-native) stack trace')}
-                </Text>
-              ) : null}
             </Flex>
             <ActiveThreadFrames event={event} thread={activeThread} />
           </Flex>

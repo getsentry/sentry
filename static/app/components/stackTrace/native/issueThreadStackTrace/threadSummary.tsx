@@ -24,7 +24,7 @@ import {
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {useActiveThread, useIssueThreadStackTraceContext} from './context';
 
@@ -157,7 +157,7 @@ function ThreadTags() {
           <Pill name={t('was active')} value={activeThread.current} />
         )}
         {activeThread.crashed !== undefined && (
-          <Pill name={t('errored')} value={activeThread.crashed} />
+          <Pill name={t('errored')}>{activeThread.crashed ? t('yes') : t('no')}</Pill>
         )}
         {threadStateDisplay !== undefined && (
           <Pill name={t('state')} value={threadStateDisplay} />

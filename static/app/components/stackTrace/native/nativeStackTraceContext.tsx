@@ -1,9 +1,9 @@
-import {createContext, useContext} from 'react';
+import {createContext, useContext, useMemo} from 'react';
 
 import type {StackTraceView} from 'sentry/components/stackTrace/types';
 import type {Image} from 'sentry/types/debugImage';
 
-interface NativeDisplayOptionState {
+export interface NativeDisplayOptionState {
   absoluteAddresses: boolean;
   absoluteFilePaths: boolean;
   isMinified: boolean;
@@ -72,12 +72,49 @@ export interface NativeStackTraceContextValue {
   verboseFunctionNames: boolean;
 }
 
+export type NativeStackTraceDisplayOptions = Pick<
+  NativeStackTraceContextValue,
+  | 'absoluteAddresses'
+  | 'absoluteFilePaths'
+  | 'persistDisplayOptions'
+  | 'setAbsoluteAddresses'
+  | 'setAbsoluteFilePaths'
+  | 'setVerboseFunctionNames'
+  | 'verboseFunctionNames'
+>;
+
 export const NativeStackTraceContext = createContext<NativeStackTraceContextValue | null>(
   null
 );
 
+export function useOptionalNativeStackTraceContext(): NativeStackTraceContextValue | null {
+  return useContext(NativeStackTraceContext);
+}
+
+export function useInheritedNativeDisplayOptions():
+  | NativeStackTraceDisplayOptions
+  | undefined {
+  const context = useOptionalNativeStackTraceContext();
+
+  return useMemo(() => {
+    if (!context) {
+      return;
+    }
+
+    return {
+      absoluteAddresses: context.absoluteAddresses,
+      absoluteFilePaths: context.absoluteFilePaths,
+      persistDisplayOptions: context.persistDisplayOptions,
+      setAbsoluteAddresses: context.setAbsoluteAddresses,
+      setAbsoluteFilePaths: context.setAbsoluteFilePaths,
+      setVerboseFunctionNames: context.setVerboseFunctionNames,
+      verboseFunctionNames: context.verboseFunctionNames,
+    };
+  }, [context]);
+}
+
 export function useNativeStackTraceContext(): NativeStackTraceContextValue {
-  const value = useContext(NativeStackTraceContext);
+  const value = useOptionalNativeStackTraceContext();
   if (!value) {
     throw new Error(
       'useNativeStackTraceContext must be used within NativeStackTraceProvider'

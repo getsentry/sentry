@@ -16,12 +16,14 @@ import {
 import {analyzeNativeFrames} from './nativeFrameAnalysis';
 import {
   NativeStackTraceContext,
+  type NativeStackTraceDisplayOptions,
   type NativeStackTraceContextValue,
 } from './nativeStackTraceContext';
 
 interface NativeStackTraceProviderProps extends StackTraceProviderProps {
   displayOptionsStorageKey?: string;
   groupingCurrentLevel?: number;
+  inheritedDisplayOptions?: NativeStackTraceDisplayOptions;
   isHoverPreviewed?: boolean;
 }
 
@@ -29,6 +31,7 @@ export function NativeStackTraceProvider({
   children,
   displayOptionsStorageKey,
   groupingCurrentLevel,
+  inheritedDisplayOptions,
   isHoverPreviewed = false,
   ...stackTraceProps
 }: NativeStackTraceProviderProps) {
@@ -53,9 +56,13 @@ export function NativeStackTraceProvider({
     persistedOptions,
   });
 
-  const [absoluteAddresses, setAbsoluteAddresses] = useState(defaultAbsoluteAddresses);
-  const [absoluteFilePaths, setAbsoluteFilePaths] = useState(defaultAbsoluteFilePaths);
-  const [verboseFunctionNames, setVerboseFunctionNames] = useState(
+  const [localAbsoluteAddresses, setLocalAbsoluteAddresses] = useState(
+    defaultAbsoluteAddresses
+  );
+  const [localAbsoluteFilePaths, setLocalAbsoluteFilePaths] = useState(
+    defaultAbsoluteFilePaths
+  );
+  const [localVerboseFunctionNames, setLocalVerboseFunctionNames] = useState(
     defaultVerboseFunctionNames
   );
 
@@ -88,7 +95,7 @@ export function NativeStackTraceProvider({
     [groupingCurrentLevel]
   );
 
-  const persistDisplayOptions = useCallback(
+  const persistLocalDisplayOptions = useCallback(
     (
       options: Partial<{
         absoluteAddresses: boolean;
@@ -104,29 +111,49 @@ export function NativeStackTraceProvider({
 
       setPersistedOptions(
         getNativeDisplayOptions({
-          absoluteAddresses: options.absoluteAddresses ?? absoluteAddresses,
-          absoluteFilePaths: options.absoluteFilePaths ?? absoluteFilePaths,
+          absoluteAddresses: options.absoluteAddresses ?? localAbsoluteAddresses,
+          absoluteFilePaths: options.absoluteFilePaths ?? localAbsoluteFilePaths,
           isMinified: options.isMinified ?? isMinified,
-          verboseFunctionNames: options.verboseFunctionNames ?? verboseFunctionNames,
+          verboseFunctionNames: options.verboseFunctionNames ?? localVerboseFunctionNames,
           view: options.view ?? view,
         })
       );
     },
     [
-      absoluteAddresses,
-      absoluteFilePaths,
       displayOptionsStorageKey,
       isMinified,
+      localAbsoluteAddresses,
+      localAbsoluteFilePaths,
+      localVerboseFunctionNames,
       setPersistedOptions,
-      verboseFunctionNames,
       view,
     ]
   );
+  const localDisplayOptions = useMemo<NativeStackTraceDisplayOptions>(
+    () => ({
+      absoluteAddresses: localAbsoluteAddresses,
+      absoluteFilePaths: localAbsoluteFilePaths,
+      persistDisplayOptions: persistLocalDisplayOptions,
+      setAbsoluteAddresses: setLocalAbsoluteAddresses,
+      setAbsoluteFilePaths: setLocalAbsoluteFilePaths,
+      setVerboseFunctionNames: setLocalVerboseFunctionNames,
+      verboseFunctionNames: localVerboseFunctionNames,
+    }),
+    [
+      localAbsoluteAddresses,
+      localAbsoluteFilePaths,
+      localVerboseFunctionNames,
+      persistLocalDisplayOptions,
+    ]
+  );
+
+  // Nested native stack traces should share the user-controlled display
+  // options from their parent, while keeping frame analysis local below.
+  const displayOptions = inheritedDisplayOptions ?? localDisplayOptions;
 
   const value = useMemo<NativeStackTraceContextValue>(
     () => ({
-      absoluteAddresses,
-      absoluteFilePaths,
+      ...displayOptions,
       hasAbsoluteAddresses,
       hasAbsoluteFilePaths,
       hasAnyStatusIcons,
@@ -134,15 +161,9 @@ export function NativeStackTraceProvider({
       imageByFrameIndex,
       isHoverPreviewed,
       maxLengthOfRelativeAddress,
-      persistDisplayOptions,
-      setAbsoluteAddresses,
-      setAbsoluteFilePaths,
-      setVerboseFunctionNames,
-      verboseFunctionNames,
     }),
     [
-      absoluteAddresses,
-      absoluteFilePaths,
+      displayOptions,
       hasAbsoluteAddresses,
       hasAbsoluteFilePaths,
       hasAnyStatusIcons,
@@ -150,11 +171,6 @@ export function NativeStackTraceProvider({
       imageByFrameIndex,
       isHoverPreviewed,
       maxLengthOfRelativeAddress,
-      persistDisplayOptions,
-      setAbsoluteAddresses,
-      setAbsoluteFilePaths,
-      setVerboseFunctionNames,
-      verboseFunctionNames,
     ]
   );
 

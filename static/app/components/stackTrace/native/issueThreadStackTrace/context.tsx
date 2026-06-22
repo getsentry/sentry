@@ -14,11 +14,14 @@ import {
   useNativeDisplayOptionsStorage,
 } from 'sentry/components/stackTrace/native/nativeDisplayOptionsPersistence';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
+import {createStackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
+import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import type {Event, Thread} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
+import {isNativePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {setActiveThreadId as setCopyIssueDetailsActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
@@ -104,6 +107,11 @@ export function IssueThreadStackTraceProviders({
     hasMinifiedStacktrace: activeThreadModel.hasMinifiedStacktrace,
     persistedOptions,
   });
+  const rowPolicy = useMemo(
+    () => createStackTraceRowPolicy({groupingCurrentLevel}),
+    [groupingCurrentLevel]
+  );
+  const activeThreadUsesNativeStackTrace = isNativePlatform(activeThreadModel.platform);
 
   const setActiveThread = useCallback((thread: Thread | undefined) => {
     setSelectedThreadId(thread?.id);
@@ -182,18 +190,32 @@ export function IssueThreadStackTraceProviders({
         defaultIsNewestFirst={activeThreadModel.defaultIsNewestFirst}
       >
         {activeThreadModel.stacktrace ? (
-          <NativeStackTraceProvider
-            event={event}
-            stacktrace={activeThreadModel.stacktrace}
-            minifiedStacktrace={activeThreadModel.minifiedStacktrace}
-            groupingCurrentLevel={groupingCurrentLevel}
-            hasScmSourceContext={hasScmSourceContext}
-            meta={activeThreadModel.stacktraceMeta}
-            platform={activeThreadModel.platform}
-            displayOptionsStorageKey={storageKey}
-          >
-            {children}
-          </NativeStackTraceProvider>
+          activeThreadUsesNativeStackTrace ? (
+            <NativeStackTraceProvider
+              event={event}
+              stacktrace={activeThreadModel.stacktrace}
+              minifiedStacktrace={activeThreadModel.minifiedStacktrace}
+              groupingCurrentLevel={groupingCurrentLevel}
+              hasScmSourceContext={hasScmSourceContext}
+              meta={activeThreadModel.stacktraceMeta}
+              platform={activeThreadModel.platform}
+              displayOptionsStorageKey={storageKey}
+            >
+              {children}
+            </NativeStackTraceProvider>
+          ) : (
+            <StackTraceProvider
+              event={event}
+              stacktrace={activeThreadModel.stacktrace}
+              minifiedStacktrace={activeThreadModel.minifiedStacktrace}
+              hasScmSourceContext={hasScmSourceContext}
+              meta={activeThreadModel.stacktraceMeta}
+              platform={activeThreadModel.platform}
+              rowPolicy={rowPolicy}
+            >
+              {children}
+            </StackTraceProvider>
+          )
         ) : (
           children
         )}

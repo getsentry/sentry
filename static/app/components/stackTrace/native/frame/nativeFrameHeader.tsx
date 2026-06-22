@@ -14,7 +14,7 @@ import {
 } from 'sentry/components/stackTrace/stackTraceContext';
 import type {StackTraceMeta} from 'sentry/components/stackTrace/types';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {isDartAsyncSuspension} from './actions/getSymbolicatorStatus';
 import {NativeDefaultActions} from './actions/nativeDefaultActions';
