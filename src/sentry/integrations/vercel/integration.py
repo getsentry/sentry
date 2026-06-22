@@ -39,7 +39,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 
@@ -393,32 +393,20 @@ class VercelIntegration(IntegrationInstallation):
             "target": target,
             "type": type,
         }
+        # `upsert=True` lets Vercel update the value in place when the env var
+        # already exists, so we don't need to look up its id to update it. That
+        # lookup could not find env vars Vercel omits from the listing endpoint
+        # (e.g. hidden production vars), which surfaced as a confusing
+        # "Could not update environment variable" error.
         try:
-            return client.create_env_variable(vercel_project_id, data)
+            return client.create_env_variable(vercel_project_id, data, upsert=True)
         except ApiError as e:
-            if e.json and e.json.get("error", {}).get("code") == "ENV_ALREADY_EXISTS":
-                try:
-                    return self.update_env_variable(client, vercel_project_id, data)
-                except ApiError as e:
-                    error_message = (
-                        e.json.get("error", {}).get("message")
-                        if e.json
-                        else f"Could not update environment variable {key}."
-                    )
-                    raise ValidationError({"project_mappings": [error_message]})
-            raise
-
-    def update_env_variable(self, client, vercel_project_id, data):
-        envs = client.get_env_vars(vercel_project_id)["envs"]
-
-        env_var_ids = [env_var["id"] for env_var in envs if env_var["key"] == data["key"]]
-        if env_var_ids:
-            return client.update_env_variable(vercel_project_id, env_var_ids[0], data)
-
-        key = data["key"]
-        raise IntegrationError(
-            f"Could not update environment variable {key} in Vercel project {vercel_project_id}."
-        )
+            error_message = (
+                e.json.get("error", {}).get("message")
+                if e.json
+                else f"Could not create or update environment variable {key}."
+            )
+            raise ValidationError({"project_mappings": [error_message]})
 
     def uninstall(self):
         client = self.get_client()

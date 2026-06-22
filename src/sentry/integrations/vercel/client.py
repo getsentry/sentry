@@ -34,12 +34,8 @@ class VercelClient(ApiClient):
     GET_PROJECTS_URL = "/v9/projects/"
 
     # Project Environment Variables API Scope (Read/Write)
-    # https://vercel.com/docs/rest-api#endpoints/projects/retrieve-the-environment-variables-of-a-project-by-id-or-name
-    GET_ENV_VAR_URL = "/v9/projects/%s/env"
     # https://vercel.com/docs/rest-api#endpoints/projects/create-one-or-more-environment-variables
     CREATE_ENV_VAR_URL = "/v9/projects/%s/env"
-    # https://vercel.com/docs/rest-api#endpoints/projects/edit-an-environment-variable
-    UPDATE_ENV_VAR_URL = "/v9/projects/%s/env/%s"
 
     # Integration Configuration API Scope (Read/Write)
     # https://vercel.com/docs/rest-api#endpoints/integrations/delete-an-integration-configuration
@@ -89,14 +85,13 @@ class VercelClient(ApiClient):
     def get_project(self, vercel_project_id):
         return self.get(self.GET_PROJECT_URL % vercel_project_id)
 
-    def get_env_vars(self, vercel_project_id):
-        return self.get(self.GET_ENV_VAR_URL % vercel_project_id)
-
-    def create_env_variable(self, vercel_project_id, data):
-        return self.post(self.CREATE_ENV_VAR_URL % vercel_project_id, data=data)
-
-    def update_env_variable(self, vercel_project_id, env_var_id, data):
-        return self.patch(self.UPDATE_ENV_VAR_URL % (vercel_project_id, env_var_id), data=data)
+    def create_env_variable(self, vercel_project_id, data, upsert=False):
+        # `upsert=true` makes Vercel update the value in place when the env var
+        # already exists rather than returning ENV_ALREADY_EXISTS. This avoids a
+        # read-back-and-patch dance that cannot find env vars Vercel hides from
+        # the listing endpoint (e.g. hidden production vars).
+        params = {"upsert": "true"} if upsert else None
+        return self.post(self.CREATE_ENV_VAR_URL % vercel_project_id, data=data, params=params)
 
     def uninstall(self, configuration_id):
         return self.delete(self.UNINSTALL % configuration_id)
