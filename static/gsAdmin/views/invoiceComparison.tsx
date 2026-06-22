@@ -373,11 +373,15 @@ export function InvoiceComparison() {
         Per-org totals comparing legacy <code>Invoice</code> and shadow{' '}
         <code>PlatformInvoice</code> records <strong>generated</strong> in the selected
         window (filtered on <code>date_added</code>, your local time — converted to UTC on
-        submit). The summary counts are scoped to orgs that have invoices on{' '}
-        <strong>both</strong> sides: legacy-only orgs haven't been onboarded to the
-        platform yet, so counting them would inflate the parity tallies with orgs that
-        can't be expected to match. The first table compares the both-sided orgs, sorted
-        by absolute % delta (relative to legacy), largest first. The second table lists
+        submit). <strong>Legacy invoices</strong> (count and dollar total) are scoped to
+        orgs that have invoices on both sides — legacy-only orgs haven't been onboarded to
+        the platform yet, so counting them would inflate the parity tallies with orgs that
+        can't be expected to match. <strong>Platform invoices</strong> reflect every{' '}
+        <code>PlatformInvoice</code> in the window; in production milestone-1 those are
+        equivalent to both-sided since <code>InvoicerService</code> only generates
+        platform invoices for orgs with a <code>Contract</code> (which already have a
+        legacy counterpart). The first table compares the both-sided orgs, sorted by
+        absolute % delta (relative to legacy), largest first. The second table lists
         one-sided orgs by absolute amount so you can see who hasn't been onboarded yet.
       </p>
 
