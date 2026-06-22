@@ -49,7 +49,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         provider_type = identity_manager.get(provider_key)
 
         # For token-based providers without OAuth flow, verify the submitted token
-        # link the identity directly instead of redirecting.
+        # and link the identity directly instead of redirecting.
         if not isinstance(provider_type, OAuth2Provider):
             return self._link_submitted_token(request, provider_key, provider_type)
 
@@ -98,6 +98,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
             external_id=identity["idp_external_id"],
             defaults={"config": identity.get("idp_config", {})},
         )
+
         try:
             Identity.objects.link_identity(
                 user=request.user,  # type: ignore[arg-type]
@@ -111,6 +112,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
             )
         except IntegrityError:
             return Response({"detail": "This account is already connected."}, status=409)
+
         return Response(status=204)
 
     def delete(
