@@ -45,7 +45,7 @@ export function BillingCycleSelectCard({
   const contractStartDate =
     !shouldApplyToExistingPeriod && isCotermUpgrade
       ? today
-      : moment(subscription.contractPeriodEnd).add(1, 'day');
+      : moment(subscription.billingPeriodEnd).add(1, 'day');
 
   const onCycleSelect = () => {
     const data: Partial<CheckoutFormData> = {

@@ -229,6 +229,9 @@ def compare_rebalanced_projects_with_cache(
                 generic_metrics_sample_rate=generic_metrics_sample_rate,
                 eap_volume=rebalanced_project.count,
                 eap_volume_without_extrapolation=eap_volume_without_extrapolation,
+                seconds_since_last_item=(
+                    project_volume.seconds_since_last_item if project_volume is not None else None
+                ),
             )
 
 
@@ -239,6 +242,7 @@ def _emit_project_balancing_debug_metrics(
     generic_metrics_sample_rate: float | None,
     eap_volume: float,
     eap_volume_without_extrapolation: float | None,
+    seconds_since_last_item: float | None,
 ) -> None:
     tags = {"org": str(org_id), "ds_project": str(project_id)}
     metrics.distribution(
@@ -247,6 +251,13 @@ def _emit_project_balancing_debug_metrics(
         sample_rate=1.0,
         tags=tags,
     )
+    if seconds_since_last_item is not None:
+        metrics.distribution(
+            f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_seconds_since_last_item",
+            seconds_since_last_item,
+            sample_rate=1.0,
+            tags=tags,
+        )
     if generic_metrics_sample_rate is not None:
         metrics.distribution(
             f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.generic_metrics_sample_rate",

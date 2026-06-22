@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 from django.utils import timezone
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
+from scm.types import GetBranchProtocol, GetRepositoryProtocol
 
 from sentry import analytics, features, quotas
 from sentry.analytics.events.autofix_events import (
@@ -333,6 +334,47 @@ def _code_review_enabled(organization: Organization) -> bool:
     return features.has("organizations:seer-autofix-code-review", organization)
 
 
+def _build_base_shas_metadata(group: Group, referrer: AutofixReferrer) -> str | None:
+    preference = read_preference_from_sentry_db(group.project)
+    # Imported lazily to avoid a circular import: sentry.scm pulls in the
+    # github/slack integrations, which import notifications templates that
+    # import back into sentry.seer.autofix.
+    from sentry.scm import factory as scm_factory
+
+    base_shas: dict[str, dict[str, str]] = {}
+    for repo in preference.repositories:
+        if repo.repository_id is None:
+            continue
+
+        full_name = f"{repo.owner}/{repo.name}"
+        try:
+            scm = scm_factory.new(group.organization.id, repo.repository_id, referrer.value)
+            if repo.branch_name:
+                base_branch: str | None = repo.branch_name
+            elif isinstance(scm, GetRepositoryProtocol):
+                base_branch = scm.get_repository()["data"]["default_branch"]
+            else:
+                continue
+            if not base_branch:
+                continue
+            if not isinstance(scm, GetBranchProtocol):
+                continue
+            base_sha = scm.get_branch(base_branch)["data"]["sha"]
+        except Exception:
+            logger.exception(
+                "autofix.base_shas.resolve_failed",
+                extra={"repo": full_name, "group_id": group.id},
+            )
+            continue
+
+        if base_sha:
+            base_shas[full_name] = {"base_sha": base_sha, "base_branch": base_branch}
+
+    if not base_shas:
+        return None
+    return json.dumps(base_shas)
+
+
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
@@ -427,6 +469,12 @@ def trigger_autofix_agent(
         )
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
+
+    if step == AutofixStep.CODE_CHANGES and pr_iteration_enabled:
+        base_shas = _build_base_shas_metadata(group, referrer)
+        if base_shas:
+            prompt_metadata["base_shas"] = base_shas
+
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
@@ -805,7 +853,8 @@ def build_pr_description_suffix(group: Group) -> str | None:
     lines = []
 
     if group.qualified_short_id:
-        lines.append(f"Fixes {group.qualified_short_id}")
+        issue_url = group.get_absolute_url(params={"seerDrawer": "true"})
+        lines.append(f"Fixes [{group.qualified_short_id}]({issue_url})")
 
     for external_issue in PlatformExternalIssue.objects.filter(group_id=group.id):
         if external_issue.service_type == "linear":
