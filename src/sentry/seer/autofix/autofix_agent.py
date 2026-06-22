@@ -838,7 +838,7 @@ def trigger_push_changes(
     client.push_changes(
         run_id,
         repo_name=repo_name,
-        pr_description_suffix=build_pr_description_suffix(group),
+        pr_description_suffix=build_pr_description_suffix(group, run_id),
         ready_for_review=ready_for_review,
         blocking=False,
     )
@@ -849,7 +849,7 @@ def trigger_push_changes(
     )
 
 
-def build_pr_description_suffix(group: Group) -> str | None:
+def build_pr_description_suffix(group: Group, run_id: int | None = None) -> str | None:
     lines = []
 
     if group.qualified_short_id:
@@ -871,6 +871,9 @@ def build_pr_description_suffix(group: Group) -> str | None:
                 continue
             linear_id = external_issue.display_name.replace("#", "-")
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
+
+    if features.has("organizations:autofix-pr-iteration-debug", group.organization):
+        lines.append(f"Run ID: {run_id}")
 
     if lines:
         return "\n".join(lines)
