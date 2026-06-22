@@ -120,7 +120,7 @@ describe('ScmPlatformFeatures', () => {
     expect(within(radioGroup).getByText('Django')).toBeInTheDocument();
   });
 
-  it('auto-selects first detected platform', async () => {
+  it('auto-selects and commits first detected platform', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/42/platforms/`,
       body: {
@@ -135,14 +135,15 @@ describe('ScmPlatformFeatures', () => {
       },
     });
 
-    render(
-      <ScmPlatformFeatures {...defaultProps({selectedRepository: mockRepository})} />,
-      {organization}
-    );
+    const props = defaultProps({selectedRepository: mockRepository});
+    render(<ScmPlatformFeatures {...props} />, {organization});
 
     expect(
       await screen.findByRole('heading', {level: 3, name: 'Available with Next.js'})
     ).toBeInTheDocument();
+    expect(props.onPlatformChange).toHaveBeenCalledWith(
+      expect.objectContaining({key: 'javascript-nextjs'})
+    );
   });
 
   describe('feature card variants', () => {

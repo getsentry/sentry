@@ -1,3 +1,4 @@
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -5,6 +6,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {MOBILE_BUILDS_ALLOWED_KEYS} from 'sentry/components/preprod/constants';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
+import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 const displaySelectOptions: Array<SelectOption<PreprodBuildsDisplay>> = [
@@ -44,6 +46,10 @@ interface PreprodBuildsSearchControlsProps {
    */
   onChange?: (query: string, state: {queryIsValid: boolean}) => void;
   /**
+   * When provided, renders a "Download CSV" button in the controls.
+   */
+  onExportCsv?: () => void;
+  /**
    * Called when search is submitted (e.g., on Enter)
    */
   onSearch?: (query: string) => void;
@@ -62,6 +68,7 @@ export function PreprodBuildsSearchControls({
   onChange,
   onSearch,
   onDisplayChange,
+  onExportCsv,
 }: PreprodBuildsSearchControlsProps) {
   return (
     <Flex
@@ -79,6 +86,11 @@ export function PreprodBuildsSearchControls({
           projects={projects}
         />
       </Container>
+      {onExportCsv && (
+        <Button icon={<IconDownload />} onClick={onExportCsv}>
+          {t('Download CSV')}
+        </Button>
+      )}
       {!hideDisplayToggle && (
         <Container maxWidth="200px">
           <CompactSelect
