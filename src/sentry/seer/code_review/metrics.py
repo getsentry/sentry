@@ -19,6 +19,7 @@ class WebhookFilteredReason(StrEnum):
     INVALID_PAYLOAD = "invalid_payload"  # Validation failed
     TRANSFORM_FAILED = "transform_failed"  # Couldn't build Seer payload
     TRIGGER_DISABLED = "trigger_disabled"  # Trigger not enabled in repo settings
+    SELF_AUTHORED = "self_authored"  # MR opened by the integration's own account
 
 
 CodeReviewFilteredReason = WebhookFilteredReason | PreflightDenialReason

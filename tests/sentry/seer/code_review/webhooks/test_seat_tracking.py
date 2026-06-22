@@ -1,7 +1,9 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import patch
 
 import orjson
+import pytest
 
 from fixtures.gitlab import MERGE_REQUEST_OPENED_EVENT, GitLabTestCase
 from sentry.integrations.gitlab.webhooks import MergeEventWebhook
@@ -45,6 +47,17 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         super().setUp()
         self.repo = self.create_gitlab_repo("getsentry/sentry")
         self.rpc_organization = _rpc_org(self.organization)
+
+    @pytest.fixture(autouse=True)
+    def mock_actor(self) -> Generator[None]:
+        # Resolve the integration's own GitLab user id without hitting GitLab.
+        # The fixture MR author is 51, so "999" means "not self" by default.
+        with patch(
+            "sentry.seer.code_review.webhooks.gitlab_identity.get_integration_actor_id",
+            return_value="999",
+        ) as mock_actor:
+            self.mock_actor = mock_actor
+            yield
 
     def _call(self, event: dict[str, Any] | None = None) -> None:
         track_gitlab_contributor_seat_processor(
@@ -111,6 +124,24 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         del event["user"]["username"]
         self._call(event=event)
         mock_track.assert_not_called()
+
+    @with_feature("organizations:seer-gitlab-support")
+    @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
+    def test_no_call_for_self_authored_mr(self, mock_track: Any) -> None:
+        # An MR opened by the integration's own account (author_id == our actor id)
+        # must not seed a contributor row or consume a seat.
+        self.mock_actor.return_value = "999"
+        self._call(event=_make_event(author_id=999))
+        mock_track.assert_not_called()
+
+    @with_feature("organizations:seer-gitlab-support")
+    @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
+    def test_fails_open_when_actor_unresolved(self, mock_track: Any) -> None:
+        # If we can't resolve our own actor id, fail open and still track the
+        # contributor — losing seat tracking is worse than an extra check.
+        self.mock_actor.return_value = None
+        self._call(event=_make_event(author_id=999))
+        mock_track.assert_called_once()
 
     @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")

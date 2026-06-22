@@ -16,6 +16,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.code_review.metrics import WebhookFilteredReason
 from sentry.seer.code_review.models import SeerCodeReviewTaskRequestForPrReview
 from sentry.seer.code_review.webhooks.merge_request import (
     WEBHOOK_NOTE_SEEN_KEY_PREFIX,
@@ -1604,3 +1605,66 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
 
         assert self.mock_scm.create_pull_request_reaction.call_count == 1
         assert self.mock_seer.call_count == 1
+
+
+class MergeRequestSelfAuthoredTest(_MergeRequestHandlerTestBase):
+    """The integration must not review MRs it opened itself.
+
+    ``mock_scm`` (autouse on the base) resolves the integration's own actor id to
+    ``"42"`` via ``get_authenticated_actor``; an MR whose ``author_id`` matches is
+    skipped before preflight, for every action.
+    """
+
+    @with_feature(_MergeRequestHandlerTestBase.CODE_REVIEW_FEATURES)
+    def test_open_by_integration_is_skipped(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open", author_id=42)
+
+        with (
+            patch(
+                "sentry.seer.code_review.webhooks.merge_request.record_webhook_filtered"
+            ) as mock_filtered,
+            self.tasks(),
+        ):
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+        mock_filtered.assert_called_once_with(
+            "merge_request", "open", WebhookFilteredReason.SELF_AUTHORED
+        )
+
+    @with_feature(_MergeRequestHandlerTestBase.CODE_REVIEW_FEATURES)
+    def test_merge_by_integration_is_skipped(self) -> None:
+        # Close/merge actions enqueue a PR-closed task; a self-authored merge must
+        # be skipped there too.
+        self._setup_code_review()
+        event = _make_event("merge", author_id=42)
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(_MergeRequestHandlerTestBase.CODE_REVIEW_FEATURES)
+    def test_other_author_is_not_skipped(self) -> None:
+        # Author 51 != actor 42, so a normal contributor's MR still gets reviewed.
+        self._setup_code_review()
+        event = _make_event("open", author_id=51)
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+
+    @with_feature(_MergeRequestHandlerTestBase.CODE_REVIEW_FEATURES)
+    def test_actor_id_is_cached_across_deliveries(self) -> None:
+        # The self-author check resolves our actor once and caches it in Redis, so a
+        # redelivered self MR does not call get_authenticated_actor again.
+        self._setup_code_review()
+        event = _make_event("open", author_id=42)
+
+        with self.tasks():
+            self._call_handler(event)
+            self._call_handler(event)
+
+        assert self.mock_scm.get_authenticated_actor.call_count == 1

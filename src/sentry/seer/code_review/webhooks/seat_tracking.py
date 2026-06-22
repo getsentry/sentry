@@ -52,6 +52,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.code_review.contributor_seats import track_contributor_seat
+from sentry.seer.code_review.webhooks.gitlab_identity import is_self_authored_mr
 from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.utils.redis import redis_clusters
 
@@ -125,6 +126,13 @@ def track_gitlab_contributor_seat_processor(
         return
 
     base_extra["author_id"] = user_id
+
+    # Skip MRs the integration opened itself: seeding a contributor row (and a
+    # seat) for our own GitLab account would mis-bill the org. Checked before the
+    # dedup key is set so a self MR never consumes the dedup window.
+    if is_self_authored_mr(organization_id=organization.id, repo=repo, author_id=user_id):
+        logger.info("gitlab.webhook.seat_tracking.self_authored_skipped", extra=base_extra)
+        return
 
     # Resolve the Organization before marking the delivery as seen so a missing
     # org does not poison the dedup window and block GitLab redeliveries from

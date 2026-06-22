@@ -82,6 +82,7 @@ from ..metrics import (
 )
 from ..preflight import CodeReviewPreflightService
 from ..utils import SeerEndpoint, _common_codegen_request_payload
+from .gitlab_identity import is_self_authored_mr
 from .logging import debug_log
 from .task import process_github_webhook_event
 
@@ -426,6 +427,16 @@ def handle_merge_request_event(
         return
 
     author_id = object_attributes.get("author_id")
+
+    # Skip MRs the integration opened itself so we never review our own MR (and
+    # never enqueue a PR-closed task for it on close/merge).
+    if is_self_authored_mr(organization_id=org.id, repo=repo, author_id=author_id):
+        logger.info("gitlab.webhook.merge_request.self_authored_skipped", extra=base_log)
+        record_webhook_filtered(
+            GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.SELF_AUTHORED
+        )
+        return
+
     preflight = CodeReviewPreflightService(
         organization=org,
         repo=repo,
