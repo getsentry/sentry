@@ -99,6 +99,7 @@ class Topic(Enum):
     TASKWORKER_INTERNAL_DLQ = "taskworker-internal-dlq"
     TASKWORKER_LAUNCHPAD = "taskworker-launchpad"
     TASKWORKER_LAUNCHPAD_DLQ = "taskworker-launchpad-dlq"
+    TASKWORKER_LAUNCHPAD_PUSH = "taskworker-launchpad-push"
     TASKWORKER_LIMITED = "taskworker-limited"
     TASKWORKER_LIMITED_DLQ = "taskworker-limited-dlq"
     TASKWORKER_LONG = "taskworker-long"
