@@ -3,7 +3,7 @@ import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModel
 
 const COLLAPSE_THRESHOLD_RATIO = 0.05;
 export const COLLAPSED_GAP_WIDTH_PX = 28;
-const DURATION_LABEL_BUFFER_PX = 60;
+const DURATION_LABEL_BUFFER_PX = 48;
 const MARKER_PADDING_RATIO = 0.01;
 const MARKER_PADDING_MAX_MS = 500;
 

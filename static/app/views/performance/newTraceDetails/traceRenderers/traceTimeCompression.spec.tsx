@@ -20,8 +20,8 @@ describe('TraceTimeCompression', () => {
 
     expect(compression.enabled).toBe(true);
     expect(compression.gaps).toHaveLength(2);
-    expect(compression.gaps[0]).toMatchObject({start: 160, end: 440});
-    expect(compression.gaps[1]).toMatchObject({start: 660, end: 1000});
+    expect(compression.gaps[0]).toMatchObject({start: 148, end: 452});
+    expect(compression.gaps[1]).toMatchObject({start: 648, end: 1000});
   });
 
   it('keeps a pixel-derived duration label buffer around visible spans', () => {
@@ -33,11 +33,11 @@ describe('TraceTimeCompression', () => {
       indicators: [],
     });
 
-    // 60px in a 10s trace rendered into 1000px is 600ms of real timeline buffer.
+    // 48px in a 10s trace rendered into 1000px is 480ms of real timeline buffer.
     expect(compression.gaps).toHaveLength(3);
-    expect(compression.gaps[0]).toMatchObject({start: 0, end: 1400});
-    expect(compression.gaps[1]).toMatchObject({start: 3600, end: 6400});
-    expect(compression.gaps[2]).toMatchObject({start: 8600, end: 10_000});
+    expect(compression.gaps[0]).toMatchObject({start: 0, end: 1520});
+    expect(compression.gaps[1]).toMatchObject({start: 3480, end: 6520});
+    expect(compression.gaps[2]).toMatchObject({start: 8480, end: 10_000});
   });
 
   it('does not collapse gaps covered by visible intervals', () => {
