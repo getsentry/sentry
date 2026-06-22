@@ -10,7 +10,7 @@ const ROW_COUNT_VALUE_DEFAULT = 500;
  * The largest export the backend serves synchronously rather than emailing.
  * Keep this in sync with data_export.py on the backend.
  */
-export const ROW_COUNT_VALUE_SYNC_LIMIT = 1000;
+const ROW_COUNT_VALUE_SYNC_LIMIT = 1000;
 
 const ROW_COUNT_VALUES = [
   100,

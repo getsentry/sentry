@@ -3,12 +3,12 @@ import {useModal} from '@sentry/scraps/modal';
 
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {getExportDisabledTooltip} from 'sentry/views/explore/components/getExportDisabledTooltip';
 import {ExploreExportModal} from 'sentry/views/explore/components/exports/exploreExportModal';
 import type {
   ExploreExportConfig,
   ExploreExportModalCloseReason,
 } from 'sentry/views/explore/components/exports/types';
+import {getExportDisabledTooltip} from 'sentry/views/explore/components/getExportDisabledTooltip';
 
 const GLOBAL_MODAL_DISMISS_TO_CLOSE_REASON = {
   'backdrop-click': 'backdrop_click',

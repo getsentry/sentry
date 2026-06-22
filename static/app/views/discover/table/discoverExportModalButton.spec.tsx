@@ -11,8 +11,8 @@ import {
 
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {downloadAsCsv} from 'sentry/views/discover/utils';
 import {DiscoverExportModalButton} from 'sentry/views/discover/table/discoverExportModalButton';
+import {downloadAsCsv} from 'sentry/views/discover/utils';
 
 const mockTrackAnalytics = jest.fn();
 

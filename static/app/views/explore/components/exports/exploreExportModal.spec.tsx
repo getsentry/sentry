@@ -227,7 +227,9 @@ describe('ExploreExportModal', () => {
     renderModal(makeConfig({supportsAllColumns: false}));
 
     expect(await screen.findByRole('button', {name: 'Export'})).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox', {name: 'All Columns?'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {name: 'All Columns?'})
+    ).not.toBeInTheDocument();
   });
 
   it('hides the Format radios when only one format is available', async () => {
