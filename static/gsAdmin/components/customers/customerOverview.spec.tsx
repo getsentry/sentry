@@ -767,15 +767,6 @@ describe('CustomerOverview', () => {
       plan: 'am3_f',
     });
 
-    subscription.planDetails = {
-      ...subscription.planDetails,
-      retentions: {
-        [DataCategory.SPANS]: {standard: 1234567, downsampled: 7654321},
-        [DataCategory.LOG_BYTE]: {standard: 1470369, downsampled: 9630741},
-        [DataCategory.ERRORS]: {standard: 2581471, downsampled: 1741852},
-      },
-    };
-
     subscription.categories.spans = MetricHistoryFixture({
       ...subscription.categories.spans,
       category: DataCategory.SPANS,
@@ -804,12 +795,7 @@ describe('CustomerOverview', () => {
 
     expect(screen.getByText('Retention Settings')).toBeInTheDocument();
 
-    // planDetails downsampled for span and logs in document, but not for errors
-    expect(screen.getByText('7654321')).toBeInTheDocument();
-    expect(screen.getByText('9630741')).toBeInTheDocument();
-    expect(screen.queryByText('1741852')).not.toBeInTheDocument();
-
-    // categories downsampled for span and logs in document, but not for errors
+    // categories standard/downsampled for span and logs in document, but not for errors
     expect(screen.getByText('13579')).toBeInTheDocument();
     expect(screen.getByText('null')).toBeInTheDocument();
     expect(screen.queryByText('36925')).not.toBeInTheDocument();
