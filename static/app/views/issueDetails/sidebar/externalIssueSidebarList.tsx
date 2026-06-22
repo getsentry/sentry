@@ -12,7 +12,6 @@ import {
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -20,15 +19,14 @@ import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 interface Props {
   event: Event;
   group: Group;
-  project: Project;
 }
 
-export function ExternalIssueSidebarList({event, group, project}: Props) {
+export function ExternalIssueSidebarList({event, group}: Props) {
   const organization = useOrganization();
   const hasLinkedPullRequestsFeature = organization.features.includes(
     'issue-details-linked-pull-requests'
   );
-  const externalIssueData = useGroupExternalIssues({group, event, project});
+  const externalIssueData = useGroupExternalIssues({group, event});
   const {data: linkedPullRequestsData, isPending: isLinkedPullRequestsLoading} =
     useLinkedPullRequests({group});
   const showEmptyIssueTrackerAction =

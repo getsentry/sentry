@@ -29,19 +29,8 @@ describe('RelayWrapper', () => {
   }
 
   describe('ingestThroughTrustedRelaysOnly toggle', () => {
-    it('does not render the Data Authenticity section without the feature flag', () => {
+    it('renders the toggle', async () => {
       renderComponent();
-
-      expect(screen.queryByText('Data Authenticity')).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('checkbox', {
-          name: 'Ingest Through Trusted Relays Only',
-        })
-      ).not.toBeInTheDocument();
-    });
-
-    it('renders the toggle when the feature flag is present', async () => {
-      renderComponent({features: ['ingest-through-trusted-relays-only']});
 
       expect(
         await screen.findByRole('checkbox', {
@@ -53,7 +42,6 @@ describe('RelayWrapper', () => {
 
     it('toggle is unchecked when ingestThroughTrustedRelaysOnly is disabled', async () => {
       renderComponent({
-        features: ['ingest-through-trusted-relays-only'],
         ingestThroughTrustedRelaysOnly: 'disabled',
       });
 
@@ -66,7 +54,6 @@ describe('RelayWrapper', () => {
 
     it('toggle is checked when ingestThroughTrustedRelaysOnly is enabled', async () => {
       renderComponent({
-        features: ['ingest-through-trusted-relays-only'],
         ingestThroughTrustedRelaysOnly: 'enabled',
       });
 
@@ -84,7 +71,6 @@ describe('RelayWrapper', () => {
       });
 
       renderComponent({
-        features: ['ingest-through-trusted-relays-only'],
         ingestThroughTrustedRelaysOnly: 'disabled',
       });
 
@@ -118,7 +104,6 @@ describe('RelayWrapper', () => {
       });
 
       renderComponent({
-        features: ['ingest-through-trusted-relays-only'],
         ingestThroughTrustedRelaysOnly: 'disabled',
       });
 
@@ -145,7 +130,6 @@ describe('RelayWrapper', () => {
       });
 
       renderComponent({
-        features: ['ingest-through-trusted-relays-only'],
         ingestThroughTrustedRelaysOnly: 'enabled',
       });
 
@@ -174,7 +158,6 @@ describe('RelayWrapper', () => {
       });
 
       renderComponent({
-        features: ['ingest-through-trusted-relays-only'],
         ingestThroughTrustedRelaysOnly: 'disabled',
       });
 
@@ -199,7 +182,6 @@ describe('RelayWrapper', () => {
 
     it('toggle is disabled when user lacks org:write permission', async () => {
       renderComponent({
-        features: ['ingest-through-trusted-relays-only'],
         access: [],
       });
 

@@ -885,7 +885,7 @@ class RefreshMonitoringProviderTokenSuccessResponse(BaseModel):
 
 
 class RefreshMonitoringProviderTokenErrorResponse(BaseModel):
-    """`refresh_monitoring_provider_token` error: `{"error": <code>}`. The four
+    """`refresh_monitoring_provider_token` error: `{"error": <code>}`. The
     error codes the function emits — one per refusal branch — encoded as a
     Literal so the seer-side caller can switch on them safely."""
 
@@ -894,6 +894,7 @@ class RefreshMonitoringProviderTokenErrorResponse(BaseModel):
         "identity_not_found",
         "identity_not_valid",
         "refresh_failed",
+        "refresh_not_supported",
     ]
 
     def __getitem__(self, key: str) -> Any:
