@@ -43,7 +43,7 @@ import {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface ExploreChartsProps {
   confidences: Confidence[];
@@ -51,7 +51,7 @@ interface ExploreChartsProps {
   query: string;
   rawSpanCounts: RawCounts;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
   visualizes: readonly Visualize[];
   samplingMode?: SamplingMode;
 }
@@ -144,7 +144,7 @@ interface ChartProps {
   onChartVisibilityChange: (visible: boolean) => void;
   query: string;
   rawSpanCounts: RawCounts;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
   visualize: Visualize;
   samplingMode?: SamplingMode;
   topEvents?: number;
