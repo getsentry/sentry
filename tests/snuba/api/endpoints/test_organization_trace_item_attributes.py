@@ -535,12 +535,13 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "isDeprecated": True,
             "replacementAttribute": "sentry.segment.name",
         }
-        # User tags are not sentry conventions, so they have no context.
-        assert "context" not in attributes["foo"]
-        # A user tag whose name collides with a sentry convention still gets no
-        # context, because only `sentry`-source attributes are expanded.
+        # Custom attribute context isn't served yet, so user tags get an empty
+        # context for now.
+        assert attributes["foo"]["context"] == {}
+        # A user tag whose name collides with a sentry convention still gets an
+        # empty context, because only `sentry`-source attributes are expanded.
         assert attributes["gen_ai.request.model"]["attributeSource"]["source_type"] == "user"
-        assert "context" not in attributes["gen_ai.request.model"]
+        assert attributes["gen_ai.request.model"]["context"] == {}
 
     def test_expand_context_without_feature_flag(self) -> None:
         self._store_basic_segment()

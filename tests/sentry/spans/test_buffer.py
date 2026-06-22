@@ -14,6 +14,7 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
 from sentry.spans.buffer import SpansBuffer
+from sentry.spans.buffer_store import METRICS_SAMPLE_RATE
 from sentry.spans.buffer_types import (
     EvalshaResult,
     FlushCandidate,
@@ -25,8 +26,7 @@ from sentry.spans.buffer_types import (
     Span,
     Subsegment,
 )
-from sentry.spans.consumers.process.factory import SPANS_CODEC, validate_span_event
-from sentry.spans.consumers.process_segments.types import attribute_value
+from sentry.spans.consumers.process.factory import decode_process_span_event
 from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.outcomes import Outcome
@@ -324,13 +324,16 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
         _segment_id(1, trace_id, parent_span_id),
         True,
         15,
-        [(b"latency", 1.0)],
-        [(b"gauge", 2.0)],
+        # The Lua script returns flattened [key1, value1, key2, value2, ...] lists.
+        [b"latency", 1.0],
+        [b"gauge", 2.0],
+        [],
     ]
     child_result = [
         _segment_id(1, trace_id, "b" * 16),
         False,
         5,
+        [],
         [],
         [],
     ]
@@ -366,6 +369,7 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
                 1024,
                 "root-salt",
                 "true",
+                METRICS_SAMPLE_RATE,
                 root_span.span_id,
             ),
             mock.call(
@@ -381,6 +385,7 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
                 1024,
                 "child-salt",
                 "true",
+                METRICS_SAMPLE_RATE,
                 child_span.span_id,
             ),
         ]
@@ -419,6 +424,7 @@ def test_emit_process_spans_count_metrics() -> None:
                 latency_ms=15,
                 latency_metrics=[],
                 gauge_metrics=[],
+                merged_segment_span_ids=[],
             ),
         )
     ]
@@ -472,10 +478,13 @@ def test_update_queue_uses_inserted_subsegment_metadata() -> None:
         latency_ms=15,
         latency_metrics=[],
         gauge_metrics=[],
+        merged_segment_span_ids=[
+            first_span.span_id.encode("ascii"),
+            second_span.span_id.encode("ascii"),
+        ],
     )
 
     buffer._update_queue(
-        {subsegment.key: [first_span, second_span]},
         [InsertedSubsegment(subsegment, result)],
         now=100,
         redis_ttl=3600,
@@ -2283,19 +2292,17 @@ def test_schema_examples(buffer: SpansBuffer, example: dict) -> None:
     to verify they are handled without errors.
     """
     # Replicate the parsing logic from process_batch() in factory.py
-    segment_id = cast(str | None, attribute_value(example, "sentry.segment.id"))
-    validate_span_event(cast(SpanEvent, example), segment_id)
-
     payload = orjson.dumps(example)
+    span_event = decode_process_span_event(payload)
 
     span = Span(
-        trace_id=example["trace_id"],
-        span_id=example["span_id"],
-        parent_span_id=example.get("parent_span_id"),
-        segment_id=segment_id,
-        project_id=example["project_id"],
+        trace_id=span_event.trace_id,
+        span_id=span_event.span_id,
+        parent_span_id=span_event.parent_span_id,
+        segment_id=span_event.segment_id,
+        project_id=span_event.project_id,
         payload=payload,
-        is_segment_span=bool(example.get("parent_span_id") is None or example.get("is_segment")),
+        is_segment_span=span_event.is_segment_span,
     )
 
     process_spans([span], buffer, now=0)
@@ -2323,7 +2330,7 @@ def test_schema_examples(buffer: SpansBuffer, example: dict) -> None:
     # It's not explicitly written anywhere that the spans schema in
     # buffered-segments is the same one as the input schema, but right now
     # that's what it is.
-    SPANS_CODEC.validate(cast(SpanEvent, output_span.payload))
+    get_topic_codec(Topic.INGEST_SPANS).validate(cast(SpanEvent, output_span.payload))
 
     # Validate that the assembled segment conforms to the buffered-segments schema
     buffered_segments_codec = get_topic_codec(Topic.BUFFERED_SEGMENTS)

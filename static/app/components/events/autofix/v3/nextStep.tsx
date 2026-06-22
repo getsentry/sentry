@@ -18,11 +18,14 @@ import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofixRepos'
 import {
   getAutofixArtifactFromSection,
   isCodeChangesSection,
+  isPullRequestsSection,
   isRootCauseSection,
+  isRunValidForPrIteration,
   isSolutionSection,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconOpen} from 'sentry/icons/iconOpen';
@@ -48,6 +51,11 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
   if (!defined(runId) || !defined(section)) {
+    return null;
+  }
+
+  // needed to hide PR iteration after clicking "submit feedback" button
+  if (autofix.isPolling) {
     return null;
   }
 
@@ -87,7 +95,36 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
     );
   }
 
+  if (isPullRequestsSection(section)) {
+    return (
+      <PullRequestNextStep
+        group={group}
+        autofix={autofix}
+        runId={runId}
+        section={section}
+        referrer={referrer}
+      />
+    );
+  }
+
   return null;
+}
+
+function PullRequestNextStep({autofix, group, runId, referrer}: NextStepProps) {
+  const organization = useOrganization();
+
+  if (!isRunValidForPrIteration(organization)) {
+    return null;
+  }
+
+  return (
+    <PrIterationFeedbackForm
+      autofix={autofix}
+      groupId={group.id}
+      runId={runId}
+      referrer={referrer}
+    />
+  );
 }
 
 interface NextStepProps {

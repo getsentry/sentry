@@ -35,8 +35,8 @@ describe('ScmProjectDetailsCore', () => {
   it('renders the project name, team, and alert-frequency fields', () => {
     renderCore();
 
-    expect(screen.getByText('Give your project a name')).toBeInTheDocument();
-    expect(screen.getByText('Assign a team')).toBeInTheDocument();
+    expect(screen.getByText('Project name')).toBeInTheDocument();
+    expect(screen.getByText('Team')).toBeInTheDocument();
     expect(screen.getByText('Alert frequency')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-project');
   });
@@ -54,7 +54,7 @@ describe('ScmProjectDetailsCore', () => {
   it('hides the team selector for a no-access member', () => {
     renderCore({isOrgMemberWithNoAccess: true});
 
-    expect(screen.getByText('Give your project a name')).toBeInTheDocument();
-    expect(screen.queryByText('Assign a team')).not.toBeInTheDocument();
+    expect(screen.getByText('Project name')).toBeInTheDocument();
+    expect(screen.queryByText('Team')).not.toBeInTheDocument();
   });
 });

@@ -2,9 +2,10 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   addErrorMessage,
@@ -126,7 +127,7 @@ class InstalledPlugin extends Component<Props> {
   }
 
   render() {
-    const {className, plugin, organization, hasAccess, projectItem} = this.props;
+    const {className, hasAccess, projectItem} = this.props;
     return (
       <Container data-test-id="installed-plugin">
         <Flex align="center" className={className}>
@@ -134,14 +135,19 @@ class InstalledPlugin extends Component<Props> {
             <ProjectBadge project={this.projectForBadge} />
           </IntegrationItemBox>
           <div>
-            <StyledLinkButton
-              variant="transparent"
-              icon={<IconSettings />}
-              to={`/settings/${organization.slug}/projects/${projectItem.projectSlug}/plugins/${plugin.id}/`}
-              data-test-id="integration-configure-button"
+            <Tooltip
+              title={t('This plugin is deprecated and can no longer be configured.')}
+              isHoverable
             >
-              {hasAccess ? t('Configure') : t('View')}
-            </StyledLinkButton>
+              <StyledButton
+                variant="transparent"
+                icon={<IconSettings />}
+                disabled
+                data-test-id="integration-configure-button"
+              >
+                {hasAccess ? t('Configure') : t('View')}
+              </StyledButton>
+            </Tooltip>
           </div>
           <div>
             <Confirm
@@ -191,10 +197,6 @@ const Container = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const StyledLinkButton = styled(LinkButton)`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

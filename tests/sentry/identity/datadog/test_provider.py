@@ -584,6 +584,19 @@ class DatadogIdentityProviderTest(TestCase):
                 }
             )
 
+    @responses.activate
+    def test_build_identity_missing_session_id(self) -> None:
+        responses.add(responses.POST, MCP_URL, json={"jsonrpc": "2.0", "id": 1, "result": {}})
+
+        with pytest.raises(IdentityNotValid, match="missing session id"):
+            self.provider.build_identity(
+                {
+                    "data": {"access_token": "token"},
+                    "dcr_client_id": "dcr-id",
+                    "dcr_client_secret": "dcr-secret",
+                }
+            )
+
     def _make_identity(self, **data_overrides: Any) -> Identity:
         data = {
             "access_token": "old-token",
