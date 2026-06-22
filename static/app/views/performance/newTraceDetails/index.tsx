@@ -47,6 +47,7 @@ import {useTraceTree} from './traceApi/useTraceTree';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   getInitialTracePreferences,
+  TRACE_WATERFALL_TIME_COMPRESSION_FEATURE,
 } from './traceState/tracePreferences';
 import {TraceStateProvider} from './traceState/traceStateProvider';
 import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
@@ -72,16 +73,22 @@ function decodeTraceSlug(maybeSlug: string | undefined): string {
 const TRACE_VIEW_PREFERENCES_KEY = 'trace-waterfall-preferences';
 
 export default function TraceView() {
+  const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = useMemo(() => decodeTraceSlug(params.traceSlug), [params.traceSlug]);
+  const enableCompressedTimeline = organization.features.includes(
+    TRACE_WATERFALL_TIME_COMPRESSION_FEATURE
+  );
 
   const preferences = useMemo(
     () =>
       getInitialTracePreferences(
         TRACE_VIEW_PREFERENCES_KEY,
-        DEFAULT_TRACE_VIEW_PREFERENCES
+        DEFAULT_TRACE_VIEW_PREFERENCES,
+        'trace_view',
+        {enableCompressedTimeline}
       ),
-    []
+    [enableCompressedTimeline]
   );
 
   return (
