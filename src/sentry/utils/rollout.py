@@ -13,7 +13,7 @@ from sentry.options.manager import (
 )
 from sentry.utils import metrics
 from sentry.utils.safe import trim
-from sentry.utils.types import Bool, Float, Sequence
+from sentry.utils.types import Bool, Dict, Float, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +96,20 @@ class SafeRolloutComparator:
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_experimental_sample_rate"
 
     @classmethod
+    def _callsite_sample_rate_option(cls) -> str:
+        """
+        This is a dictionary specifying a per-callsite sample rate for evaluating the experimental
+        branch. For a given callsite, when set to a value less than 1.0, only that percentage of
+        requests will actually evaluate both branches. This is useful for limiting latency impact on
+        high-traffic callsites while still collecting representative metrics. Defaults to an empty
+        dictionary.
+
+        NOTE: If a callsite is listed here, its sample rate will be used instead of the experiment-
+        wide sample rate. Any callsite which isn't included will use the experiment-wide rate.
+        """
+        return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.callsite_experiment_sample_rate"
+
+    @classmethod
     def _callsite_experiment_blocklist_option(cls) -> str:
         """
         This is the callsite-level experimemt rollout option. If the option value contains a
@@ -137,6 +151,12 @@ class SafeRolloutComparator:
             type=Float,
             default=1.0,
             flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+        )
+        register(
+            cls._callsite_sample_rate_option(),
+            type=Dict,
+            default={},
+            flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
         )
         register(
             cls._callsite_experiment_blocklist_option(),
@@ -248,7 +268,16 @@ class SafeRolloutComparator:
         if callsite in options.get(cls._callsite_experiment_blocklist_option()):
             return False
 
-        sample_rate = options.get(cls._experiment_sample_rate_option())
+        callsite_sample_rates = options.get(cls._callsite_sample_rate_option())  # Defaults to {}
+        if callsite in callsite_sample_rates and cls._is_valid_sample_rate(
+            callsite_sample_rates[callsite]
+        ):
+            sample_rate = callsite_sample_rates[callsite]
+        else:
+            # We don't need to validate this value, because options automator does it for us - it
+            # just can't validate values inside a dictionary, hence the check above
+            sample_rate = options.get(cls._experiment_sample_rate_option())  # Defaults to 1.0
+
         return random.random() < sample_rate
 
     @classmethod
