@@ -273,9 +273,9 @@ const ABOUT_THIS_PAGE_TEXT_WIDGET: PrebuiltWidget = {
   id: 'about-this-page-text',
   title: t('About this page'),
   description:
-    t(`The top-level metrics summarize your app's health at a glance. When one looks off, use the tables below to find which screens are responsible, then drill into a screen to investigate individual events.
+    t(`Top-level metrics show your app's health. When one looks off, use the tables below to find the screens responsible, then drill in to investigate.
 
-App start metrics only count launches that open the app UI, not headless or background starts.
+App start metrics only count launches that open the app UI, not background starts.
 
 See the [Mobile Vitals docs](https://docs.sentry.io/product/insights/mobile/mobile-vitals/) for more information.`),
   displayType: DisplayType.TEXT,
