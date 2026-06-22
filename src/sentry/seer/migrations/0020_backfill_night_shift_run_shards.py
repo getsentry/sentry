@@ -4,6 +4,7 @@ import logging
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
+from django.db.models import Model
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
@@ -26,7 +27,7 @@ def backfill_night_shift_run_shards(
         shards__isnull=True,
     ).values_list("id", "seer_run_id")
 
-    batch: list[object] = []
+    batch: list[Model] = []
     created = 0
     for run_id, seer_run_id in RangeQuerySetWrapperWithProgressBar(
         queryset, result_value_getter=lambda values: values[0]
