@@ -95,10 +95,10 @@ function ComparisonTypeField() {
   const {removeError} = useAutomationBuilderErrorContext();
 
   if (condition.type === DataConditionType.PERCENT_SESSIONS_COUNT) {
-    return <CountBranch intervalChoices={PERCENT_INTERVAL_CHOICES} />;
+    return <CountBranch intervalChoices={PERCENT_INTERVAL_CHOICES} minValue={1} />;
   }
   if (condition.type === DataConditionType.PERCENT_SESSIONS_PERCENT) {
-    return <PercentBranch intervalChoices={PERCENT_INTERVAL_CHOICES} />;
+    return <PercentBranch intervalChoices={PERCENT_INTERVAL_CHOICES} minValue={1} />;
   }
 
   return (
