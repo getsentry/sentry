@@ -7,6 +7,7 @@ import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -148,20 +149,6 @@ export function LogsExportModal({
               'When a high number of rows is selected and events are large, the results may be sent to your email.'
             )}
           </Text>
-          <form.AppField name="columns">
-            {field => (
-              <field.Layout.Stack label={t('All Columns?')}>
-                <field.Switch
-                  checked={field.state.value === ModalColumnValue.ALL}
-                  onChange={checked =>
-                    field.handleChange(
-                      checked ? ModalColumnValue.ALL : ModalColumnValue.SELECTED
-                    )
-                  }
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
           <form.AppField name="format">
             {field => (
               <field.Radio.Group
@@ -176,14 +163,40 @@ export function LogsExportModal({
                 disabled={columnsValue === ModalColumnValue.ALL}
               >
                 <field.Layout.Stack label={t('Format')}>
-                  <field.Radio.Item value={ModalColumnFormat.CSV}>
-                    {t('CSV')}
-                  </field.Radio.Item>
+                  <Tooltip
+                    title={t('All columns are only supported by JSONL.')}
+                    disabled={columnsValue !== ModalColumnValue.ALL}
+                  >
+                    <field.Radio.Item value={ModalColumnFormat.CSV}>
+                      {t('CSV')}
+                    </field.Radio.Item>
+                  </Tooltip>
                   <field.Radio.Item value={ModalColumnFormat.JSONL}>
                     {t('JSONL')}
                   </field.Radio.Item>
                 </field.Layout.Stack>
               </field.Radio.Group>
+            )}
+          </form.AppField>
+          <form.AppField name="columns">
+            {field => (
+              <field.Layout.Stack
+                label={t('All Columns?')}
+                hintText={
+                  field.state.value === ModalColumnValue.ALL
+                    ? undefined
+                    : t('Defaults to columns visible on table.')
+                }
+              >
+                <field.Switch
+                  checked={field.state.value === ModalColumnValue.ALL}
+                  onChange={checked =>
+                    field.handleChange(
+                      checked ? ModalColumnValue.ALL : ModalColumnValue.SELECTED
+                    )
+                  }
+                />
+              </field.Layout.Stack>
             )}
           </form.AppField>
           <form.AppField name="limit">
