@@ -62,6 +62,7 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSource,
 )
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import organization_service
 from sentry.pr_metrics.attribution import (
     DELEGATED_SIGNAL_TYPES,
     DelegatedAgentSignalDetails,
@@ -947,8 +948,17 @@ def get_monitoring_provider_connections(
     except Organization.DoesNotExist:
         return MonitoringProviderConnectionsResponse(connections=[])
 
-    connections = fetch_monitoring_provider_connections(organization, user_id)
-    return MonitoringProviderConnectionsResponse(connections=connections)
+    if (
+        organization_service.check_membership_by_id(
+            organization_id=organization_id, user_id=user_id
+        )
+        is None
+    ):
+        return MonitoringProviderConnectionsResponse(connections=[])
+
+    return MonitoringProviderConnectionsResponse(
+        connections=fetch_monitoring_provider_connections(organization, user_id)
+    )
 
 
 def refresh_monitoring_provider_token(

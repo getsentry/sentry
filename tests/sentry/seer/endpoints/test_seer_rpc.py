@@ -1730,6 +1730,22 @@ class TestGetMonitoringProviderConnections(APITestCase):
 
         assert result.connections == []
 
+    def test_non_member_returns_empty(self) -> None:
+        other_org = self.create_organization()
+        idp = self.create_identity_provider(type="datadog", external_id="org-uuid-2")
+        self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-2",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+
+        result = get_monitoring_provider_connections(
+            organization_id=other_org.id, user_id=self.user.id
+        )
+
+        assert result.connections == []
+
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
 @cell_silo_test
