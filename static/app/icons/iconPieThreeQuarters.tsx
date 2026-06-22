@@ -1,7 +1,7 @@
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-export function IconInReview(props: SVGIconProps) {
+export function IconPieThreeQuarters(props: SVGIconProps) {
   return (
     <SvgIcon {...props}>
       <path
