@@ -20,7 +20,7 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry import analytics, features, options
+from sentry import analytics, options
 from sentry.analytics.events.webhook_repository_created import WebHookRepositoryCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -166,9 +166,6 @@ def _track_contributor_action_processor(
     **kwargs: Any,
 ) -> None:
     """Record a contributor's PR-opened action in the OrganizationContributorAction ledger."""
-    if not features.has("organizations:seer-billing-contributor-actions", organization):
-        return
-
     if integration is None:
         return
 
@@ -186,16 +183,14 @@ def _track_contributor_action_processor(
     )
 
     # Record one row per PR, on the first "opened" action, for billable contributors.
-    if event.get("action") != "opened" or not should_record_contributor_action(
+    if event.get("action") == "opened" and should_record_contributor_action(
         organization, repo, contributor
     ):
-        return
-
-    OrganizationContributorAction.objects.get_or_create(
-        repository_id=repo.id,
-        pr_number=str(pull_request["number"]),
-        defaults={"organization_contributor": contributor},
-    )
+        OrganizationContributorAction.objects.get_or_create(
+            repository_id=repo.id,
+            pr_number=str(pull_request["number"]),
+            defaults={"organization_contributor": contributor},
+        )
 
 
 class GitHubWebhook(SCMWebhook, ABC):
