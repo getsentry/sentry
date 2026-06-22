@@ -710,7 +710,7 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
-    if (hasRecommendedSort) {
+    if (hasRecommendedSort && initialSort === DEFAULT_ISSUE_STREAM_SORT) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});
