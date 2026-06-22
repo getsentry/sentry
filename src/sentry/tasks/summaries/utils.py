@@ -841,7 +841,8 @@ def _construct_group_url(
     group_history: GroupHistory,
     group: Group,
     org_slug: str,
-    group_id_to_link: dict[int, GroupLink],
+    group_id_to_pr_link: dict[int, GroupLink],
+    group_id_to_commit_link: dict[int, GroupLink],
     prs_by_id: dict[int, PullRequest],
     commits_by_id: dict[int, Commit],
     repos_by_id: dict[int, Repository],
@@ -850,7 +851,7 @@ def _construct_group_url(
     status = group_history.status
 
     if status == GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST:
-        gl = group_id_to_link.get(gid)
+        gl = group_id_to_pr_link.get(gid)
         if gl is None:
             return None
         pr = prs_by_id.get(gl.linked_id)
@@ -862,7 +863,7 @@ def _construct_group_url(
             return None
 
     if status == GroupHistoryStatus.SET_RESOLVED_IN_COMMIT:
-        gl = group_id_to_link.get(gid)
+        gl = group_id_to_commit_link.get(gid)
         if gl is None:
             return None
         commit = commits_by_id.get(gl.linked_id)
@@ -903,7 +904,8 @@ def batch_resolve_group_urls(
         )
     ]
 
-    group_id_to_link: dict[int, GroupLink] = {}
+    group_id_to_pr_link: dict[int, GroupLink] = {}
+    group_id_to_commit_link: dict[int, GroupLink] = {}
     prs_by_id: dict[int, PullRequest] = {}
     commits_by_id: dict[int, Commit] = {}
     repos_by_id: dict[int, Repository] = {}
@@ -914,19 +916,17 @@ def batch_resolve_group_urls(
                 group_id__in=link_group_ids,
                 linked_type__in=[GroupLink.LinkedType.pull_request, GroupLink.LinkedType.commit],
             )
-            .order_by("group_id", "-datetime")
-            .distinct("group_id")
+            .order_by("group_id", "linked_type", "-datetime")
+            .distinct("group_id", "linked_type")
         )
-        group_id_to_link = {gl.group_id: gl for gl in group_links}
+        for gl in group_links:
+            if gl.linked_type == GroupLink.LinkedType.pull_request:
+                group_id_to_pr_link[gl.group_id] = gl
+            else:
+                group_id_to_commit_link[gl.group_id] = gl
 
-        pr_linked_ids = [
-            gl.linked_id
-            for gl in group_links
-            if gl.linked_type == GroupLink.LinkedType.pull_request
-        ]
-        commit_linked_ids = [
-            gl.linked_id for gl in group_links if gl.linked_type == GroupLink.LinkedType.commit
-        ]
+        pr_linked_ids = [gl.linked_id for gl in group_id_to_pr_link.values()]
+        commit_linked_ids = [gl.linked_id for gl in group_id_to_commit_link.values()]
 
         if pr_linked_ids:
             prs_by_id = {pr.id: pr for pr in PullRequest.objects.filter(id__in=pr_linked_ids)}
@@ -944,7 +944,8 @@ def batch_resolve_group_urls(
             gh,
             group,
             ctx.organization.slug,
-            group_id_to_link,
+            group_id_to_pr_link,
+            group_id_to_commit_link,
             prs_by_id,
             commits_by_id,
             repos_by_id,
