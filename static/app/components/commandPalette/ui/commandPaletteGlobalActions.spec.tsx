@@ -350,6 +350,15 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     ['codeowners', /Project Settings.*Ownership Rules/],
     ['inbound', /Project Settings.*Inbound Filters/],
     ['size', /Project Settings.*Mobile Builds/],
+    // No-result query backfill: keywords added for the most common command
+    // palette searches that previously returned zero results.
+    ['project slug', /Project Settings.*General Settings/],
+    ['transfer project', /Project Settings.*General Settings/],
+    ['sdk setup', /Project Settings.*Client Keys \(DSN\)/],
+    ['upload source maps', /Project Settings.*Source Maps/],
+    ['spend', /Stats & Usage/],
+    ['create new token', /Organization Tokens/, /Personal Tokens/],
+    ['SENTRY_ORG', /Organization Tokens/],
     // The SDK env var name (and its spaced form) should surface Client Keys
     // (DSN), just like "dsn". The Next.js public-prefixed variant should too.
     ['SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
@@ -489,5 +498,61 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     expect(
       await screen.findByRole('option', {name: 'Query Performance'})
     ).toBeInTheDocument();
+  });
+});
+
+describe('GlobalCommandPaletteActions - insights rollout search recall', () => {
+  // When both the insights-to-dashboards and workflow-engine rollouts are
+  // active the dedicated Insights section is hidden and prebuilt insights live
+  // under Dashboards. The "insights" keyword on the "Sentry Built" entry keeps
+  // that query reachable for these orgs.
+  const organization = OrganizationFixture({
+    features: [
+      'performance-view',
+      'insights-to-dashboards-ui-rollout',
+      'workflow-engine-ui',
+      'dashboards-prebuilt-insights-dashboards',
+    ],
+  });
+  const project = ProjectFixture({id: '1', slug: 'project-a', organization});
+
+  beforeEach(() => {
+    ProjectsStore.loadInitialData([project]);
+
+    for (const path of [
+      'group-search-views/starred',
+      'dashboards/starred',
+      'dashboards',
+      'explore/saved',
+      'members',
+      'teams',
+      'projects',
+    ]) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/${path}/`,
+        body: [],
+      });
+    }
+  });
+
+  it('surfaces Sentry Built dashboards for "insights"', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/issues/`},
+        },
+      }
+    );
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'insights');
+
+    expect(await screen.findByRole('option', {name: /Sentry Built/})).toBeInTheDocument();
   });
 });

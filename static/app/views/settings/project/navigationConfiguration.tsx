@@ -34,6 +34,13 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/`,
           index: true,
           title: t('General Settings'),
+          keywords: [
+            t('slug'),
+            t('project slug'),
+            t('rename project'),
+            t('transfer project'),
+            t('platform'),
+          ],
           description: t('Configure general settings for a project'),
         },
         {
@@ -135,6 +142,8 @@ export function getNavigationConfiguration({
             t('source maps'),
             t('sourcemap'),
             t('artifact bundles'),
+            t('upload'),
+            t('upload source maps'),
           ],
         },
         {
@@ -196,6 +205,10 @@ export function getNavigationConfiguration({
             t('client key'),
             t('dsn key'),
             t('allowed domains'),
+            t('sdk setup'),
+            t('install'),
+            t('installation'),
+            t('instrumentation'),
           ],
         },
         {

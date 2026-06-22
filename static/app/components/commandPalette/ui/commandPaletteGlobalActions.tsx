@@ -442,6 +442,7 @@ export function GlobalCommandPaletteActions() {
           {hasPrebuiltDashboards && (
             <CMDKAction
               display={{label: t('Sentry Built')}}
+              keywords={[t('insights'), t('prebuilt'), t('web vitals')]}
               to={`${prefix}/dashboards/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
             />
           )}
