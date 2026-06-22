@@ -63,6 +63,16 @@ date_format = partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
 
+RESOLVED_STATUSES = frozenset(
+    {
+        GroupHistoryStatus.RESOLVED,
+        GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
+        GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+        GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
+        GroupHistoryStatus.AUTO_RESOLVED,
+    }
+)
+
 
 @dataclass
 class WeeklyReportProgressTracker:
@@ -858,7 +868,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                         substatus_color,
                         substatus_text_color,
                     ) = get_group_status_badge(group)
-                    if group_history:
+                    if group_history and group_history.status in RESOLVED_STATUSES:
                         status_label = get_group_history_status_label(group_history)
                         status_url = ctx.resolved_issue_urls.get(group.id)
                         resolved_badge = get_group_status_badge(Group(status=GroupStatus.RESOLVED))
