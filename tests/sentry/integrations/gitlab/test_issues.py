@@ -226,6 +226,12 @@ class GitlabIssuesTest(GitLabTestCase):
             "metadata": {"display_name": key},
         }
 
+    def test_get_issue_integer_id_raises(self) -> None:
+        # A direct API client may send externalIssue as a bare integer instead of
+        # the expected "project#issue" string. This should be a clean error, not a 500.
+        with pytest.raises(IntegrationError):
+            self.installation.get_issue(issue_id=13, data={})
+
     @responses.activate
     def test_create_issue_default_project_in_group_api_call(self) -> None:
         group_description = (
@@ -456,6 +462,26 @@ class GitlabIssuesTest(GitLabTestCase):
         data = {"externalIssue": "2#231", "comment": "This is not good."}
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id, integration_id=self.integration.id, key="#"
+        )
+        with pytest.raises(IntegrationError):
+            self.installation.after_link_issue(external_issue, data=data)
+
+    def test_after_link_issue_integer_external_issue_raises(self) -> None:
+        # A direct API client may send externalIssue as a bare integer instead of
+        # the expected "project#issue" string. This should be a clean error, not a 500.
+        data = {"externalIssue": 321, "comment": "This is not good."}
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=self.integration.id, key="2#321"
+        )
+        with pytest.raises(IntegrationError):
+            self.installation.after_link_issue(external_issue, data=data)
+
+    def test_after_link_issue_missing_external_issue_raises(self) -> None:
+        # A missing externalIssue should raise a clean error rather than crashing
+        # on "".split("#").
+        data = {"comment": "This is not good."}
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=self.integration.id, key="2#321"
         )
         with pytest.raises(IntegrationError):
             self.installation.after_link_issue(external_issue, data=data)
