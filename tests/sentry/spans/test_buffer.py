@@ -25,8 +25,7 @@ from sentry.spans.buffer_types import (
     Span,
     Subsegment,
 )
-from sentry.spans.consumers.process.factory import SPANS_CODEC, validate_span_event
-from sentry.spans.consumers.process_segments.types import attribute_value
+from sentry.spans.consumers.process.factory import decode_process_span_event
 from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.outcomes import Outcome
@@ -2283,19 +2282,17 @@ def test_schema_examples(buffer: SpansBuffer, example: dict) -> None:
     to verify they are handled without errors.
     """
     # Replicate the parsing logic from process_batch() in factory.py
-    segment_id = cast(str | None, attribute_value(example, "sentry.segment.id"))
-    validate_span_event(cast(SpanEvent, example), segment_id)
-
     payload = orjson.dumps(example)
+    span_event = decode_process_span_event(payload)
 
     span = Span(
-        trace_id=example["trace_id"],
-        span_id=example["span_id"],
-        parent_span_id=example.get("parent_span_id"),
-        segment_id=segment_id,
-        project_id=example["project_id"],
+        trace_id=span_event.trace_id,
+        span_id=span_event.span_id,
+        parent_span_id=span_event.parent_span_id,
+        segment_id=span_event.segment_id,
+        project_id=span_event.project_id,
         payload=payload,
-        is_segment_span=bool(example.get("parent_span_id") is None or example.get("is_segment")),
+        is_segment_span=span_event.is_segment_span,
     )
 
     process_spans([span], buffer, now=0)
@@ -2323,7 +2320,7 @@ def test_schema_examples(buffer: SpansBuffer, example: dict) -> None:
     # It's not explicitly written anywhere that the spans schema in
     # buffered-segments is the same one as the input schema, but right now
     # that's what it is.
-    SPANS_CODEC.validate(cast(SpanEvent, output_span.payload))
+    get_topic_codec(Topic.INGEST_SPANS).validate(cast(SpanEvent, output_span.payload))
 
     # Validate that the assembled segment conforms to the buffered-segments schema
     buffered_segments_codec = get_topic_codec(Topic.BUFFERED_SEGMENTS)
