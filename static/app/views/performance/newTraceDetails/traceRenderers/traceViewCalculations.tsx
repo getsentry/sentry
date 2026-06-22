@@ -17,49 +17,82 @@ export type TraceViewCalculationContext = {
 };
 
 export interface TraceViewCalculations {
+  /**
+   * Return the visual left position of a timestamp within a parent span.
+   */
   computeRelativeLeftPositionFromOrigin(
     context: TraceViewCalculationContext,
     timestamp: number,
     entireSpace: [number, number]
   ): number;
+  /**
+   * Return the visual width of a child span relative to a parent span.
+   */
   computeRelativeWidth(
     context: TraceViewCalculationContext,
     space: [number, number],
     entireSpace: [number, number]
   ): number;
+  /**
+   * Build the CSS matrix used to position and scale a span bar in the timeline.
+   */
   computeSpanCSSMatrixTransform(
     context: TraceViewCalculationContext,
     space: [number, number]
   ): SpanMatrix;
+  /**
+   * Convert a fixed-width icon around a timestamp into trace-space bounds.
+   */
   computeTraceIconBounds(
     context: TraceViewCalculationContext,
     anchorTimestamp: number,
     iconWidthPx: number,
     edge: TraceIconEdge
   ): [number, number];
+  /**
+   * Compute the next trace view after a horizontal wheel pan.
+   */
   computeWheelPanView(
     context: TraceViewCalculationContext,
     physicalDeltaPct: number
   ): {x: number; width?: number};
+  /**
+   * Compute the next trace view after wheel zooming around a physical x position.
+   */
   computeWheelZoomView(
     context: TraceViewCalculationContext,
     x: number,
     scale: number
   ): [number, number, number, number];
+  /**
+   * Convert a cursor position in physical pixels to the trace view's config space.
+   */
   getConfigSpaceCursor(
     context: TraceViewCalculationContext,
     cursor: {x: number; y: number}
   ): [number, number];
+  /**
+   * Expand a zoom target so text near the selected span remains visible.
+   */
   padZoomIntoSpace(
     context: TraceViewCalculationContext,
     x: number,
     width: number
   ): {width: number; x: number};
+  /**
+   * Recompute the matrix that maps trace-space duration to physical pixels.
+   */
   recomputeSpanToPXMatrix(context: TraceViewCalculationContext): mat3;
+  /**
+   * Recompute timeline tick offsets for the current visible view.
+   */
   recomputeTimelineIntervals(
     context: TraceViewCalculationContext,
     intervals: Array<number | undefined>
   ): void;
+  /**
+   * Convert an absolute timestamp to a physical x offset in the visible timeline.
+   */
   transformXFromTimestamp(
     context: TraceViewCalculationContext,
     timestamp: number
