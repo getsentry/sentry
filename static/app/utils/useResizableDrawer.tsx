@@ -79,18 +79,19 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     return storedSize || options.initialSize;
   });
   const [isHeld, setIsHeld] = useState(false);
+  const optionsRef = useRef(options);
+  useLayoutEffect(() => {
+    optionsRef.current = options;
+  });
 
-  const updateSize = useCallback(
-    (newSize: number, userEvent = false) => {
-      sizeRef.current = newSize;
-      setSize(newSize);
-      options.onResize(newSize, undefined, userEvent);
-      if (options.sizeStorageKey) {
-        localStorage.setItem(options.sizeStorageKey, newSize.toString());
-      }
-    },
-    [options]
-  );
+  const updateSize = useCallback((newSize: number, userEvent = false) => {
+    sizeRef.current = newSize;
+    setSize(newSize);
+    optionsRef.current.onResize(newSize, undefined, userEvent);
+    if (optionsRef.current.sizeStorageKey) {
+      localStorage.setItem(optionsRef.current.sizeStorageKey, newSize.toString());
+    }
+  }, []);
 
   // We intentionally fire this once at mount to ensure the dimensions are set and
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
