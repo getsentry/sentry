@@ -4,30 +4,11 @@ from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration_webhook import (
     handle_issue_comment_for_autofix_iteration,
-    parse_iterate_command,
     trigger_pr_iteration_from_comment,
 )
 from sentry.testutils.cases import TestCase
 
 WEBHOOK_PATH = "sentry.seer.autofix.pr_iteration_webhook"
-
-
-class ParseIterateCommandTest(TestCase):
-    def test_extracts_feedback_preserving_casing(self) -> None:
-        assert parse_iterate_command("@sentry Fix The Bug") == "Fix The Bug"
-
-    def test_returns_empty_string_for_bare_command(self) -> None:
-        assert parse_iterate_command("@sentry") == ""
-
-    def test_returns_none_for_empty_body(self) -> None:
-        assert parse_iterate_command("") is None
-        assert parse_iterate_command(None) is None
-
-    def test_returns_none_without_command(self) -> None:
-        assert parse_iterate_command("just a normal comment") is None
-
-    def test_returns_none_for_review_command(self) -> None:
-        assert parse_iterate_command("@sentry review") is None
 
 
 class HandleIssueCommentForAutofixIterationTest(TestCase):

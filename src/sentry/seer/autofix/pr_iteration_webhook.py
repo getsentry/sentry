@@ -29,7 +29,7 @@ from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
 from sentry.seer.autofix.autofix_agent import Feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feedback_queue import enqueue_autofix_feedback
-from sentry.seer.code_review.webhooks.issue_comment import SENTRY_REVIEW_COMMAND
+from sentry.seer.webhooks import SentryIterateCommand, sentry_command
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.autofix import consume_queued_autofix_feedback
 from sentry.taskworker.namespaces import seer_tasks
@@ -39,30 +39,6 @@ logger = logging.getLogger(__name__)
 
 ITERATE_COMMAND = "@sentry"
 _SEER_GITHUB_PROVIDER = "integrations:github"
-
-
-def parse_iterate_command(comment_body: str | None) -> str | None:
-    """
-    Return the feedback that follows ``@sentry``, or ``None`` if the
-    comment isn't an iterate command.
-
-    We have to make sure that we don't process ``@sentry review``, as
-    it is a trigger for code review.
-    """
-    if not comment_body:
-        return None
-
-    lowered = comment_body.lower()
-
-    # Skip @sentry review comments as it is handled in other webhook handlers
-    if lowered.strip() == SENTRY_REVIEW_COMMAND:
-        return None
-
-    index = lowered.find(ITERATE_COMMAND)
-    if index == -1:
-        return None
-
-    return comment_body[index + len(ITERATE_COMMAND) :].strip()
 
 
 def _github_commenter_has_repo_write_access(
@@ -136,10 +112,12 @@ def handle_issue_comment_for_autofix_iteration(
         logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_pr", extra=log_extra)
         return None
 
-    feedback = parse_iterate_command(comment.get("body"))
-    if feedback is None:
+    command = sentry_command(comment.get("body"))
+    if not isinstance(command, SentryIterateCommand):
         logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
         return None
+
+    feedback = command.feedback
 
     pr_number = issue.get("number")
     # Past this point we have a genuine ``@sentry`` iterate command on a PR, so
