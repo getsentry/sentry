@@ -66,6 +66,36 @@ class WebhookProcessor(Protocol):
     ) -> None: ...
 
 
+def _extract_payload_repo_info(request) -> dict[str, Any]:
+    """
+    Best-effort identifiers pulled from the webhook body.
+
+    The token (HTTP_X_GITLAB_TOKEN) is what we'd normally use to resolve the
+    integration/org, but when it's missing or malformed we can't. The payload
+    body is independent of the token, and GitLab events carry a ``project``
+    object that identifies the repo/owner — enough to track down which customer
+    a bad webhook is coming from. Returns {} if anything is off.
+    """
+    try:
+        payload = orjson.loads(request.body)
+    except (orjson.JSONDecodeError, TypeError, AttributeError):
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+
+    project = payload.get("project")
+    project = project if isinstance(project, dict) else {}
+    info = {
+        # e.g. "cool-group/sentry" — the owning group/namespace plus repo
+        "webhook.repo.path": project.get("path_with_namespace"),
+        "webhook.repo.web_url": project.get("web_url"),
+        "webhook.repo.project_id": project.get("id"),
+        "webhook.object_kind": payload.get("object_kind"),
+    }
+    # Drop missing keys so the log attributes stay clean.
+    return {k: v for k, v in info.items() if v is not None}
+
+
 def get_gitlab_external_id(request, extra) -> tuple[str, str] | HttpResponse:
     token = "<unknown>"
     try:
@@ -78,17 +108,20 @@ def get_gitlab_external_id(request, extra) -> tuple[str, str] | HttpResponse:
         external_id = f"{instance}:{group_path}"
         return (external_id, secret)
     except KeyError:
-        extra["reason"] = "The customer needs to set a Secret Token in their webhook."
+        extra["webhook.reason"] = "The customer needs to set a Secret Token in their webhook."
         logger.warning("gitlab.webhook.missing-gitlab-token", extra=extra)
-        return HttpResponse(status=400, reason=extra["reason"])
+        return HttpResponse(status=400, reason=extra["webhook.reason"])
     except ValueError:
-        extra["reason"] = "The customer's Secret Token is malformed."
+        # The token is malformed so we can't resolve the integration/org from it.
+        # Fall back to identifiers in the payload body to find the source repo.
+        extra = {**extra, **_extract_payload_repo_info(request)}
+        extra["webhook.reason"] = "The customer's Secret Token is malformed."
         logger.warning("gitlab.webhook.malformed-gitlab-token", extra=extra)
-        return HttpResponse(status=400, reason=extra["reason"])
+        return HttpResponse(status=400, reason=extra["webhook.reason"])
     except Exception:
-        extra["reason"] = "Generic catch-all error."
+        extra["webhook.reason"] = "Generic catch-all error."
         logger.warning("gitlab.webhook.invalid-token", extra=extra)
-        return HttpResponse(status=400, reason=extra["reason"])
+        return HttpResponse(status=400, reason=extra["webhook.reason"])
 
 
 class GitlabWebhook(SCMWebhook, ABC):
@@ -644,10 +677,10 @@ class GitlabWebhookEndpoint(Endpoint):
         clear_organization_info()
         extra = {
             # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
-            "user-agent": request.META.get("HTTP_USER_AGENT"),
+            "webhook.user_agent": request.META.get("HTTP_USER_AGENT"),
             # Gitlab does not seem to be the only host sending events
             # AppPlatformEvents also hit this API
-            "event-type": request.META.get("HTTP_X_GITLAB_EVENT"),
+            "webhook.event_type": request.META.get("HTTP_X_GITLAB_EVENT"),
         }
         result = get_gitlab_external_id(request=request, extra=extra)
         if isinstance(result, HttpResponse):
@@ -661,49 +694,48 @@ class GitlabWebhookEndpoint(Endpoint):
         installs = org_contexts.organization_integrations
         if integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
-            extra["reason"] = "There is no integration that matches your organization."
-            logger.warning(extra["reason"])
-            return HttpResponse(status=409, reason=extra["reason"])
+            extra["webhook.reason"] = "There is no integration that matches your organization."
+            logger.warning(extra["webhook.reason"])
+            return HttpResponse(status=409, reason=extra["webhook.reason"])
 
         extra = {
             **extra,
-            **{
-                "integration": {
-                    # The metadata could be useful to debug
-                    # domain_name -> gitlab.com/getsentry-ecosystem/foo'
-                    # scopes -> ['api']
-                    "metadata": integration.metadata,
-                    "id": integration.id,  # This is useful to query via Redash
-                    "status": integration.status,  # 0 seems to be active
-                },
-                "org_ids": [install.organization_id for install in installs],
-            },
+            # The metadata could be useful to debug
+            # domain_name -> gitlab.com/getsentry-ecosystem/foo'
+            # scopes -> ['api']
+            "webhook.integration.metadata": integration.metadata,
+            "webhook.integration.id": integration.id,  # This is useful to query via Redash
+            "webhook.integration.status": integration.status,  # 0 seems to be active
+            # Logs/EAP attributes are scalar-first; a list serializes as an
+            # "array" attribute that the Logs explorer won't expose as a
+            # queryable column. Join to a string so it's filterable.
+            "webhook.org_ids": ",".join(str(install.organization_id) for install in installs),
         }
 
         if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
             # Summary and potential workaround mentioned here:
             # https://github.com/getsentry/sentry/issues/34903#issuecomment-1262754478
-            extra["reason"] = GITLAB_WEBHOOK_SECRET_INVALID_ERROR
+            extra["webhook.reason"] = GITLAB_WEBHOOK_SECRET_INVALID_ERROR
             logger.info("gitlab.webhook.invalid-token-secret", extra=extra)
             return HttpResponse(status=409, reason=GITLAB_WEBHOOK_SECRET_INVALID_ERROR)
 
         try:
             event = orjson.loads(request.body)
         except orjson.JSONDecodeError:
-            extra["reason"] = "Data received is not JSON."
+            extra["webhook.reason"] = "Data received is not JSON."
             logger.warning("gitlab.webhook.invalid-json", extra=extra)
-            return HttpResponse(status=400, reason=extra["reason"])
+            return HttpResponse(status=400, reason=extra["webhook.reason"])
 
         try:
             handler = self._handlers[request.META["HTTP_X_GITLAB_EVENT"]]
         except KeyError:
             supported_events = ", ".join(sorted(self._handlers.keys()))
-            extra["reason"] = (
+            extra["webhook.reason"] = (
                 "The customer has edited the webhook in Gitlab to include other types of events. We only support these kinds of events: %s"
                 % supported_events
             )
             logger.warning("gitlab.webhook.wrong-event-type", extra=extra)
-            return HttpResponse(status=400, reason=extra["reason"])
+            return HttpResponse(status=400, reason=extra["webhook.reason"])
 
         for install in installs:
             org_context = organization_service.get_organization_by_id(
