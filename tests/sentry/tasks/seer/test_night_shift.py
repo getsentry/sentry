@@ -689,7 +689,7 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.seer_run is None
+        assert not run.shards.exists()
         # No SeerRun for the org -> no outbox either (created in one transaction).
         assert not SeerRun.objects.filter(organization=org).exists()
 
@@ -705,7 +705,7 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.seer_run is None
+        assert not run.shards.exists()
         assert run.extras["error_message"] == "Organization does not have Seer access"
         assert not SeerRun.objects.filter(organization=org).exists()
 
@@ -727,7 +727,7 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
             run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.seer_run is None
+        assert not run.shards.exists()
         assert run.extras["error_message"] == "Night shift dispatch failed"
 
     def test_outbox_drain_mirrors_run_against_seer(self) -> None:

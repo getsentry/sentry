@@ -7,7 +7,6 @@ from collections.abc import Mapping
 from typing import Any
 
 import sentry_sdk
-from django.db.models import Q
 
 from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT, ObjectStatus
 from sentry.models.group import Group
@@ -34,28 +33,25 @@ def deliver_night_shift_result(
     error: str | None,
 ) -> None:
     """Process a night_shift result from Seer."""
-    run = (
-        SeerNightShiftRun.objects.filter(organization_id=organization_id)
-        .filter(Q(shards__seer_run__uuid=run_uuid) | Q(seer_run__uuid=run_uuid))
-        .select_related("organization")
-        .distinct()
+    shard = (
+        SeerNightShiftRunShard.objects.filter(
+            seer_run__uuid=run_uuid, run__organization_id=organization_id
+        )
+        .select_related("run", "run__organization")
         .first()
     )
-    if run is None:
+    if shard is None:
         logger.warning(
             "night_shift.delivery.missing_run",
             extra={"organization_id": organization_id, "run_uuid": run_uuid},
         )
         return
+    run = shard.run
 
     # Per-delivery error_message lives on the shard so a sibling shard's success
-    # can't clear it; the run is the fallback only for pre-shard rows.
-    error_target: SeerNightShiftRun | SeerNightShiftRunShard = (
-        run.shards.filter(seer_run__uuid=run_uuid).first() or run
-    )
-
+    # can't clear it.
     if error:
-        error_target.update(extras={**(error_target.extras or {}), "error_message": error})
+        shard.update(extras={**(shard.extras or {}), "error_message": error})
 
     log_extra: dict[str, object] = {
         "organization_id": run.organization_id,
@@ -84,10 +80,10 @@ def deliver_night_shift_result(
     dry_run = bool(options.get("dry_run", False))
 
     # Clear any stale error_message now that this delivery has succeeded.
-    if (error_target.extras or {}).get("error_message"):
-        extras = {**error_target.extras}
+    if (shard.extras or {}).get("error_message"):
+        extras = {**shard.extras}
         del extras["error_message"]
-        error_target.update(extras=extras)
+        shard.update(extras=extras)
 
     _process_verdicts(
         run=run,

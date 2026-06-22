@@ -36,39 +36,6 @@ class TestDeliverNightShiftResult(TestCase):
         assert seer_run is not None
         return str(seer_run.uuid)
 
-    def test_correlates_via_legacy_seer_run_fallback(self) -> None:
-        """Pre-shard runs have only the scalar seer_run FK and no shard rows;
-        delivery still resolves them through the fallback branch."""
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        group = self.create_group(project=project)
-        seer_run = self.create_seer_run(organization=org)
-        run = SeerNightShiftRun.objects.create(
-            organization=org, seer_run=seer_run, extras={"options": {}}
-        )
-
-        result = {
-            "verdicts": [
-                {"group_id": group.id, "action": TriageAction.AUTOFIX.value, "reason": "ok"}
-            ]
-        }
-        with patch(
-            "sentry.tasks.seer.night_shift.cron.trigger_autofix_agent", return_value=42
-        ) as mock_trigger:
-            deliver_night_shift_result(
-                organization_id=org.id,
-                run_uuid=str(seer_run.uuid),
-                status="completed",
-                result=result,
-                error=None,
-            )
-
-        mock_trigger.assert_called_once()
-        assert not run.shards.exists()
-        results = list(SeerNightShiftRunResult.objects.filter(run=run))
-        assert len(results) == 1
-        assert results[0].group_id == group.id
-
     def test_missing_run_logs_warning(self) -> None:
         """When run_uuid doesn't match any SeerNightShiftRun, log and return."""
         org = self.create_organization()
