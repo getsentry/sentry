@@ -322,7 +322,7 @@ class SeerAgentClient:
         reasoning_effort: Literal["low", "medium", "high"] | None = None,
         is_interactive: bool = False,
         enable_coding: bool = False,
-        enable_pr_ctx_tools: bool = False,
+        enable_pr_context_tools: bool = False,
         enable_code_mode_tools: str = "off",
         code_review_enabled: bool = False,
         max_iterations: int | None = None,
@@ -347,12 +347,12 @@ class SeerAgentClient:
 
         self.enable_coding = enable_coding
 
-        if enable_pr_ctx_tools and not features.has(
+        if enable_pr_context_tools and not features.has(
             "organizations:autofix-pr-iteration", organization, actor=user
         ):
             raise SeerPermissionError("PR context tools are not enabled for this organization")
 
-        self.enable_pr_context_tools = enable_pr_ctx_tools
+        self.enable_pr_context_tools = enable_pr_context_tools
 
         self.viewer_context = self._build_viewer_context()
 

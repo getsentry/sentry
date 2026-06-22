@@ -212,14 +212,14 @@ class TestSeerAgentClient(TestCase):
         mock_access.return_value = (True, None)
 
         with pytest.raises(SeerPermissionError):
-            SeerAgentClient(self.organization, self.user, enable_pr_ctx_tools=True)
+            SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @with_feature("organizations:autofix-pr-iteration")
     def test_client_init_succeeds_when_pr_ctx_tools_flag_enabled(self, mock_access):
         mock_access.return_value = (True, None)
 
-        client = SeerAgentClient(self.organization, self.user, enable_pr_ctx_tools=True)
+        client = SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
         assert client.enable_pr_context_tools is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
@@ -249,7 +249,7 @@ class TestSeerAgentClient(TestCase):
         mock_collect_context.return_value = {"user_id": self.user.id}
         mock_post.return_value = self._mock_run_response()
 
-        client = SeerAgentClient(self.organization, self.user, enable_pr_ctx_tools=True)
+        client = SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
         client.start_run("Test query")
 
         body = mock_post.call_args[0][0]
@@ -398,7 +398,7 @@ class TestSeerAgentClient(TestCase):
         mock_access.return_value = (True, None)
         mock_post.return_value = self._mock_run_response(run_id=789)
 
-        client = SeerAgentClient(self.organization, self.user, enable_pr_ctx_tools=True)
+        client = SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
         client.continue_run(789, "Follow up")
 
         body = mock_post.call_args[0][0]
