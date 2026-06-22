@@ -658,16 +658,12 @@ def _schedule_task(
             validated = SeerCodeReviewTaskRequestForPrReview.parse_obj(payload)
         serialized_payload = json.loads(validated.json())
     except ValidationError as e:
-        debug_log(
-            logger,
-            organization,
-            "validation_failed",
-            {
-                **(log_context or {}),
-                "seer_path": seer_path,
-                "validation_errors": e.errors(),
-            },
-            level=logging.WARNING,
+        # Capture at warning level: a dropped review is worth surfacing, but
+        # should not count toward the error rate that gates a canary deploy.
+        sentry_sdk.capture_exception(
+            e,
+            level="warning",
+            contexts={"code_review_validation": {"seer_path": seer_path}},
         )
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.INVALID_PAYLOAD
@@ -791,15 +787,12 @@ def _schedule_note_task(
         validated = SeerCodeReviewTaskRequestForPrReview.parse_obj(payload)
         serialized_payload = json.loads(validated.json())
     except ValidationError as e:
-        debug_log(
-            logger,
-            organization,
-            "note.validation_failed",
-            {
-                "mr_iid": mr_iid,
-                "validation_errors": e.errors(),
-            },
-            level=logging.WARNING,
+        # Capture at warning level: a dropped review is worth surfacing, but
+        # should not count toward the error rate that gates a canary deploy.
+        sentry_sdk.capture_exception(
+            e,
+            level="warning",
+            contexts={"code_review_validation": {"mr_iid": mr_iid}},
         )
         record_webhook_filtered(
             GITLAB_WEBHOOK_NOTE_EVENT,
