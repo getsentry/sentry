@@ -252,6 +252,8 @@ class RPCBase:
         """Make the query"""
         resolver = query.resolver
         sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
+        if query.sampling_mode is not None:
+            sentry_sdk.set_attribute("query.sampling_mode", query.sampling_mode)
         meta = resolver.resolve_meta(
             referrer=query.referrer,
             sampling_mode=query.sampling_mode,
@@ -411,6 +413,9 @@ class RPCBase:
                 setattr(e, "debug", MessageToJson(rpc_request))
             raise
         sentry_sdk.set_tag(
+            "query.storage_meta.tier", rpc_response.meta.downsampled_storage_meta.tier
+        )
+        sentry_sdk.set_attribute(
             "query.storage_meta.tier", rpc_response.meta.downsampled_storage_meta.tier
         )
 

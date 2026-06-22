@@ -29,12 +29,12 @@ from sentry import features
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.issues.constants import cache_key_for_issue_view
-from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
     PullRequestActivityType,
+    PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     PullRequestMetrics,
@@ -60,7 +60,7 @@ from sentry.pr_metrics.activity_types import (
     UnassignedPayload,
     UnlabeledPayload,
 )
-from sentry.pr_metrics.attribution import record_attribution_signal
+from sentry.pr_metrics.attribution import JUDGE_ELIGIBLE_SIGNAL_TYPES, record_attribution_signal
 from sentry.pr_metrics.emit import (
     emit_pr_metrics_row,
     is_pr_tracked,
@@ -70,6 +70,7 @@ from sentry.pr_metrics.tasks import forward_pr_to_seer_task
 from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
     DELEGATED_AGENT_BRANCH_PREFIXES,
+    is_activity_tracking_enabled,
     resolved_group_ids,
 )
 from sentry.seer.seer_setup import has_seer_access
@@ -132,7 +133,7 @@ def handle_attribution(
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    pr = _get_pull_request(organization, repo, pull_request)
+    pr = _get_pull_request(organization, repo, pull_request, kwargs.get("github_delivery_id"))
     if pr is None:
         return
 
@@ -188,16 +189,56 @@ def _claim_for_judge(pr: PullRequest) -> bool:
 def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
     """Hand a needs-judge terminal event to Seer, guarded against redelivery.
 
+
+    * Only PRs in orgs that have seer access are forwarded to the judge.
+    * Only PRs with attribution in JUDGE_ELIGIBLE_SIGNAL_TYPES are forwarded to
+    the judge.
+
     Gated on ``pr-metrics-judge`` independently of emission: until it's enabled
     (and Seer's endpoint exists), a needs-judge PR is skipped — today's behavior.
     Claims the sentinel via the redelivery guard before enqueuing the forward, so
     a redelivered terminal event can't forward to Seer twice.
     """
+    if not has_seer_access(organization):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_seer_access"})
+        logger.info(
+            "pr_metrics.emit.needs_judge",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": pr.repository_id,
+                "pull_request_id": pr.id,
+                "reason": "no_seer_access",
+            },
+        )
+        return
+
+    if not PullRequestAttribution.objects.filter(
+        pull_request=pr,
+        is_valid=True,
+        signal_type__in=JUDGE_ELIGIBLE_SIGNAL_TYPES,
+    ).exists():
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_eligible_attribution"})
+        logger.info(
+            "pr_metrics.emit.needs_judge",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": pr.repository_id,
+                "pull_request_id": pr.id,
+                "reason": "not_agent_attribution",
+            },
+        )
+        return
+
     if not features.has("organizations:pr-metrics-judge", organization):
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"})
         logger.info(
             "pr_metrics.emit.needs_judge",
-            extra={"organization_id": organization.id, "pull_request_id": pr.id},
+            extra={
+                "organization_id": organization.id,
+                "repository_id": pr.repository_id,
+                "pull_request_id": pr.id,
+                "reason": "blocked_by_flag",
+            },
         )
         return
 
@@ -219,7 +260,14 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
             pull_request=pr, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
         ).update(verdict=None)
         metrics.incr("pr_metrics.judge.enqueue_failed")
-        logger.exception("pr_metrics.judge.enqueue_failed", extra={"pull_request_id": pr.id})
+        logger.exception(
+            "pr_metrics.judge.enqueue_failed",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": pr.repository_id,
+                "pull_request_id": pr.id,
+            },
+        )
         return
     metrics.incr("pr_metrics.judge.enqueued")
 
@@ -253,7 +301,9 @@ def handle_emission(
     if not features.has("organizations:pr-metrics-emit", organization):
         return
 
-    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    pr = _get_pull_request(
+        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+    )
     if pr is None:
         return
 
@@ -302,7 +352,7 @@ def handle_metrics(
     if not features.has("organizations:pr-metrics-emit", organization):
         return
 
-    pr = _get_pull_request(organization, repo, pull_request)
+    pr = _get_pull_request(organization, repo, pull_request, kwargs.get("github_delivery_id"))
     if pr is None:
         return
 
@@ -327,11 +377,11 @@ def handle_activity(
     if not action or action not in _ACTIVITY_ACTIONS:
         return
 
-    pr = _get_pull_request(organization, repo, pull_request_data)
+    pr = _get_pull_request(organization, repo, pull_request_data, kwargs.get("github_delivery_id"))
     if pr is None:
         return
 
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not is_activity_tracking_enabled(organization):
         return
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
@@ -352,7 +402,7 @@ def handle_comment(
     if action not in ("created", "edited"):
         return
 
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not is_activity_tracking_enabled(organization):
         return
 
     issue = event.get("issue")
@@ -363,6 +413,7 @@ def handle_comment(
     if not issue.get("pull_request"):
         return
 
+    webhook_id: str | None = kwargs.get("github_delivery_id")
     try:
         pr = PullRequest.objects.get(
             organization_id=organization.id,
@@ -371,8 +422,15 @@ def handle_comment(
         )
     except PullRequest.DoesNotExist:
         logger.warning(
-            "github.pr_metrics.comment.pr_not_found",
-            extra={"repository_id": repo.id, "issue_number": issue["number"]},
+            "pr_metrics.comment.pr_not_found",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": repo.id,
+                "repo_name": repo.name,
+                "pr_number": issue["number"],
+                "action": action,
+                "github_delivery_id": webhook_id,
+            },
         )
         return
 
@@ -394,7 +452,6 @@ def handle_comment(
             author_association=comment.get("author_association", "NONE"),
         )
 
-    webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
 
@@ -415,10 +472,12 @@ def handle_review(
     if action != "submitted":
         return
 
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not is_activity_tracking_enabled(organization):
         return
 
-    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    pr = _get_pull_request(
+        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+    )
     if pr is None:
         return
 
@@ -454,10 +513,12 @@ def handle_review_comment(
     if action not in ("created", "edited"):
         return
 
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not is_activity_tracking_enabled(organization):
         return
 
-    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    pr = _get_pull_request(
+        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+    )
     if pr is None:
         return
 
@@ -503,10 +564,12 @@ def handle_review_thread(
     if action not in ("resolved", "unresolved"):
         return
 
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not is_activity_tracking_enabled(organization):
         return
 
-    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    pr = _get_pull_request(
+        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+    )
     if pr is None:
         return
 
@@ -535,13 +598,17 @@ def handle_review_thread(
 
 
 def _get_pull_request(
-    organization: Organization, repo: Repository, pull_request: dict[str, Any] | None
+    organization: Organization,
+    repo: Repository,
+    pull_request: dict[str, Any] | None,
+    github_delivery_id: str | None = None,
 ) -> PullRequest | None:
     """Resolve the canonical PullRequest row for a webhook payload, or None.
 
     Returns None when the event carries no pull_request. Otherwise the row is
     upserted by ``PullRequestEventWebhook._handle`` before processors run, so a
-    miss is unexpected — log it and let the caller bail.
+    miss is unexpected — log it (with the delivery id, to pull the raw payload)
+    and let the caller bail.
     """
     if not pull_request:
         return None
@@ -553,8 +620,14 @@ def _get_pull_request(
         )
     except PullRequest.DoesNotExist:
         logger.warning(
-            "github.pr_metrics.pr_not_found",
-            extra={"repository_id": repo.id, "pr_number": pull_request["number"]},
+            "pr_metrics.pr_not_found",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": repo.id,
+                "repo_name": repo.name,
+                "pr_number": pull_request["number"],
+                "github_delivery_id": github_delivery_id,
+            },
         )
         return None
 
@@ -638,13 +711,7 @@ def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, 
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:
-    group_ids = list(
-        GroupLink.objects.filter(
-            linked_type=GroupLink.LinkedType.pull_request,
-            relationship=GroupLink.Relationship.resolves,
-            linked_id=pr.id,
-        ).values_list("group_id", flat=True)
-    )
+    group_ids = resolved_group_ids(pr)
     if not group_ids:
         return
 

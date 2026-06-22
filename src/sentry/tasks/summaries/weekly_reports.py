@@ -36,7 +36,7 @@ from sentry.tasks.summaries.metrics import (
 from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
-from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
+from sentry.tasks.summaries.utils import ONE_DAY, PAST_ISSUES_LINK_BOOST, OrganizationReportContext
 from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
@@ -459,20 +459,20 @@ class _DuplicateDeliveryCheck:
         return is_duplicate_detected
 
 
-project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
+project_breakdown_colors = ["#7553FF", "#7C2282", "#F0369A", "#FF9838", "#FFD00E"]
 total_color = """
 linear-gradient(
     -45deg,
-    #ccc 25%,
+    #A29FAA 25%,
     transparent 25%,
     transparent 50%,
-    #ccc 50%,
-    #ccc 75%,
+    #A29FAA 50%,
+    #A29FAA 75%,
     transparent 75%,
     transparent
 );
 """
-other_color = "#f2f0fa"
+other_color = "#DAD9DE"
 group_status_to_color = {
     GroupHistoryStatus.UNRESOLVED: "#FAD473",
     GroupHistoryStatus.RESOLVED: "#8ACBBC",
@@ -513,19 +513,47 @@ def _pct_change(current: int, previous: int) -> str | None:
 
 def get_group_status_badge(group: Group) -> tuple[str, str, str]:
     """
-    Returns a tuple of (text, background_color, border_color)
-    Should be similar to GroupStatusBadge.tsx in the frontend
+    Returns a tuple of (text, background_color, text_color)
+    Matches frontend Tag component: background.transparent.*.muted blended on white, content.* text.
     """
     if group.status == GroupStatus.RESOLVED:
-        return ("Resolved", "rgba(108, 95, 199, 0.08)", "rgba(108, 95, 199, 0.5)")
+        return ("Resolved", "#E3F7E3", "#008900")
     if group.status == GroupStatus.UNRESOLVED:
         if group.substatus == GroupSubStatus.NEW:
-            return ("New", "rgba(245, 176, 0, 0.08)", "rgba(245, 176, 0, 0.55)")
+            return ("New", "#F9F0D2", "#A45200")
         if group.substatus == GroupSubStatus.REGRESSED:
-            return ("Regressed", "rgba(108, 95, 199, 0.08)", "rgba(108, 95, 199, 0.5)")
+            return ("Regressed", "#EDEEFE", "#653DE9")
         if group.substatus == GroupSubStatus.ESCALATING:
-            return ("Escalating", "rgba(245, 84, 89, 0.09)", "rgba(245, 84, 89, 0.5)")
-    return ("Ongoing", "rgba(219, 214, 225, 1)", "rgba(219, 214, 225, 1)")
+            return ("Escalating", "#FEE7E4", "#D50000")
+    return ("Ongoing", "#F0F0F2", "#6A6772")
+
+
+def get_group_display(group: Group) -> dict[str, str]:
+    metadata = group.get_event_metadata()
+    event_type = group.get_event_type()
+    custom_title = metadata.get("title")
+
+    if event_type == "error":
+        title = (
+            custom_title
+            if custom_title and custom_title != "<unlabeled event>"
+            else metadata.get("type") or metadata.get("function") or "<unknown>"
+        )
+        message = metadata.get("value")
+    elif event_type in ("transaction", "generic"):
+        title = custom_title or group.title
+        message = metadata.get("value")
+    elif event_type == "csp":
+        title = custom_title or metadata.get("directive") or ""
+        message = metadata.get("message")
+    else:
+        title = custom_title or group.title
+        message = group.culprit
+
+    return {
+        "title": title,
+        "message": message or group.message or "",
+    }
 
 
 def get_local_dates(ctx: OrganizationReportContext, user_id: int) -> tuple[datetime, datetime]:
@@ -568,11 +596,10 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                 (
                     project_ctx.accepted_error_count,
                     project_ctx.accepted_transaction_count,
-                    project_ctx.accepted_replay_count,
                 )
                 for project_ctx in project_ctxs
             ]
-            return tuple(sum(event[i] for event in event_counts) for i in range(3))
+            return tuple(sum(event[i] for event in event_counts) for i in range(2))
 
         # Highest volume projects go first
         projects_associated_with_user = sorted(
@@ -584,7 +611,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         (
             total_error,
             total_transaction,
-            total_replays,
         ) = sum_event_counts(projects_associated_with_user)
 
         # The number of reports to keep is the same as the number of colors
@@ -603,7 +629,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                 "color": project_breakdown_colors[i],
                 "accepted_error_count": project_ctx.accepted_error_count,
                 "accepted_transaction_count": project_ctx.accepted_transaction_count,
-                "accepted_replay_count": project_ctx.accepted_replay_count,
             }
             for i, project_ctx in enumerate(projects_taken)
         ]
@@ -612,7 +637,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             (
                 others_error,
                 others_transaction,
-                others_replays,
             ) = sum_event_counts(projects_not_taken)
             legend.append(
                 {
@@ -620,7 +644,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     "color": other_color,
                     "accepted_error_count": others_error,
                     "accepted_transaction_count": others_transaction,
-                    "accepted_replay_count": others_replays,
                 }
             )
         if len(projects_taken) > 1:
@@ -630,7 +653,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     "color": total_color,
                     "accepted_error_count": total_error,
                     "accepted_transaction_count": total_transaction,
-                    "accepted_replay_count": total_replays,
                 }
             )
 
@@ -643,7 +665,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     "color": project_breakdown_colors[i],
                     "error_count": project_ctx.error_count_by_day.get(t, 0),
                     "transaction_count": project_ctx.transaction_count_by_day.get(t, 0),
-                    "replay_count": project_ctx.replay_count_by_day.get(t, 0),
                 }
                 for i, project_ctx in enumerate(projects_taken)
             ]
@@ -657,10 +678,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                         ),
                         "transaction_count": sum(
                             project_ctx.transaction_count_by_day.get(t, 0)
-                            for project_ctx in projects_not_taken
-                        ),
-                        "replay_count": sum(
-                            project_ctx.replay_count_by_day.get(t, 0)
                             for project_ctx in projects_not_taken
                         ),
                     }
@@ -678,7 +695,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             "series": series,
             "total_error_count": total_error,
             "total_transaction_count": total_transaction,
-            "total_replay_count": total_replays,
             "error_pct_change": _pct_change(total_error, prev_week_error),
             "transaction_pct_change": _pct_change(total_transaction, prev_week_transaction),
             "error_maximum": max(  # The max error count on any single day
@@ -687,33 +703,29 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             "transaction_maximum": max(  # The max transaction count on any single day
                 sum(value["transaction_count"] for value in values) for timestamp, values in series
             ),
-            "replay_maximum": (
-                max(  # The max replay count on any single day
-                    sum(value["replay_count"] for value in values) for timestamp, values in series
-                )
-                if len(projects_taken) > 0
-                else 0
-            ),
         }
 
     def key_errors():
         def all_key_errors():
             for project_ctx in user_projects:
                 for group, count in project_ctx.key_errors_by_group:
+                    display = get_group_display(group)
                     (
                         substatus,
                         substatus_color,
-                        substatus_border_color,
+                        substatus_text_color,
                     ) = get_group_status_badge(group)
 
                     yield {
                         "count": count,
                         "group": group,
+                        "title": display["title"],
+                        "message": display["message"],
                         "status": "Unresolved",
                         "status_color": (group_status_to_color[GroupHistoryStatus.NEW]),
                         "group_substatus": substatus,
                         "group_substatus_color": substatus_color,
-                        "group_substatus_border_color": substatus_border_color,
+                        "group_substatus_text_color": substatus_text_color,
                     }
 
         return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
@@ -742,9 +754,17 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         def all_key_performance_issues():
             for project_ctx in user_projects:
                 for group, group_history, count in project_ctx.key_performance_issues:
+                    display = get_group_display(group)
+                    (
+                        substatus,
+                        substatus_color,
+                        substatus_text_color,
+                    ) = get_group_status_badge(group)
                     yield {
                         "count": count,
                         "group": group,
+                        "title": display["title"],
+                        "message": display["message"],
                         "status": (
                             group_history.get_status_display() if group_history else "Unresolved"
                         ),
@@ -753,9 +773,29 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                             if group_history
                             else group_status_to_color[GroupHistoryStatus.NEW]
                         ),
+                        "group_substatus": substatus,
+                        "group_substatus_color": substatus_color,
+                        "group_substatus_text_color": substatus_text_color,
                     }
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
+
+    def past_issues():
+        def all_past_issues():
+            for project_ctx in user_projects:
+                for group, count, has_linked_pr_or_commit in project_ctx.past_resolved_issues:
+                    display = get_group_display(group)
+                    yield {
+                        "count": count,
+                        "group": group,
+                        "title": display["title"],
+                        "message": display["message"],
+                        "has_linked_pr_or_commit": has_linked_pr_or_commit,
+                        "_relevance": count
+                        * (PAST_ISSUES_LINK_BOOST if has_linked_pr_or_commit else 1),
+                    }
+
+        return heapq.nlargest(3, all_past_issues(), lambda d: d["_relevance"])
 
     def issue_summary():
         new_substatus_count = 0
@@ -777,6 +817,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             "total_substatus_count": total_substatus_count,
         }
 
+    show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
+
     return {
         "organization": ctx.organization,
         "start": date_format(local_start),
@@ -785,6 +827,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
+        "past_issues": past_issues() if show_past_issues else [],
+        "show_past_issues": show_past_issues,
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,

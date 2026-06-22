@@ -4,7 +4,7 @@ import {useWindowSize} from 'sentry/utils/window/useWindowSize';
 
 export function useLogsQueryTruncate(): number {
   const {innerWidth} = useWindowSize();
-  const target = Math.max(128, Math.floor(innerWidth / 16));
+  const target = Math.max(128, Math.floor(innerWidth / 12));
 
   // Round up to the next power of two so small viewport changes don't shift the
   // truncation length and trigger a re-query.

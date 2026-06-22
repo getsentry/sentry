@@ -1,10 +1,10 @@
-import {Fragment, useCallback, useState} from 'react';
+import {useCallback, useState} from 'react';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -13,7 +13,7 @@ import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboard
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconProject} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -44,12 +44,6 @@ interface WizardState {
   createdProjectId: string | undefined;
   createdProjectSlug: string | undefined;
   projectDetailsForm: ProjectDetailsFormState | undefined;
-  // Flips true on the first meaningful action in section 1 (repo selected
-  // or "Continue without connecting a repo" clicked). Sections 2 and 3
-  // reveal together when this is true. Decoupled from selection state so
-  // later state edits (de-selecting a repo) do not collapse the rest of
-  // the page.
-  repoStepCompleted: boolean;
   selectedFeatures: ProductSolution[] | undefined;
   selectedIntegration: Integration | undefined;
   selectedPlatform: OnboardingSelectedSDK | undefined;
@@ -57,7 +51,6 @@ interface WizardState {
 }
 
 const INITIAL_STATE: WizardState = {
-  repoStepCompleted: false,
   createdProjectId: undefined,
   createdProjectSlug: undefined,
   projectDetailsForm: undefined,
@@ -66,6 +59,34 @@ const INITIAL_STATE: WizardState = {
   selectedPlatform: undefined,
   selectedRepository: undefined,
 };
+
+// Mirrors classic createProject's submit tooltip: name the missing field, or a
+// summary when several are missing. Transient blockers (stores loading, create
+// in flight) fall through without a message.
+function getSubmitTooltipText({
+  platform,
+  projectName,
+  team,
+}: {
+  platform: boolean;
+  projectName: boolean;
+  team: boolean;
+}): string | undefined {
+  const missingCount = [platform, projectName, team].filter(Boolean).length;
+  if (missingCount > 1) {
+    return t('Please fill out all the required fields');
+  }
+  if (platform) {
+    return t('Please select a platform');
+  }
+  if (projectName) {
+    return t('Please provide a project name');
+  }
+  if (team) {
+    return t('Please select a team');
+  }
+  return undefined;
+}
 
 export function ScmCreateProject() {
   const location = useLocation();
@@ -105,7 +126,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
   // session is only persisted once a project is created.
   const [wizardState, setState] = useState(initialState);
   const {
-    repoStepCompleted,
     createdProjectSlug,
     projectDetailsForm,
     selectedFeatures,
@@ -123,10 +143,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
   useScmPlatformDetection(selectedRepository);
 
-  const completeRepoStep = () => {
-    setState(s => ({...s, repoStepCompleted: true}));
-  };
-
   const handleIntegrationChange = useCallback(
     (integration: Integration | undefined) => {
       setState(s => ({...s, selectedIntegration: integration}));
@@ -134,16 +150,9 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     [setState]
   );
 
-  // Selecting a repo is itself a meaningful action, so it also flips the
-  // reveal flag. The "Continue without connecting a repo" path flips the
-  // flag via completeRepoStep below.
   const handleRepositoryChange = useCallback(
     (repository: Repository | undefined) => {
-      setState(s => ({
-        ...s,
-        selectedRepository: repository,
-        repoStepCompleted: repository ? true : s.repoStepCompleted,
-      }));
+      setState(s => ({...s, selectedRepository: repository}));
     },
     [setState]
   );
@@ -228,8 +237,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     onComplete: handleComplete,
   });
 
-  const showContinueWithoutRepo = !selectedRepository && !repoStepCompleted;
-  const showAllSteps = repoStepCompleted;
+  const submitTooltipText = getSubmitTooltipText(form.missingFields);
 
   return (
     <SentryDocumentTitle title={t('Create a new project')}>
@@ -240,40 +248,29 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
           padding="2xl"
           alignSelf="center"
           maxWidth={CREATE_PROJECT_MAX_WIDTH}
+          width="100%"
         >
           <LayoutGroup>
             <Layout.Title withMargins>{t('Create a new project')}</Layout.Title>
-            <Container paddingBottom="lg">
-              <Text as="p" variant="muted">
-                {tct(
-                  'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
-                    ),
-                  }
-                )}
+            <Stack paddingBottom="lg" gap="md">
+              <Heading as="h1">{t('Create a new project')}</Heading>
+              <Text size="lg">
+                {t('Pick a platform, name your project, and choose what to monitor.')}
               </Text>
-            </Container>
+            </Stack>
 
             <MotionStack
-              gap="lg"
+              gap="xl"
               border="primary"
-              radius="md"
-              padding="lg"
+              radius="lg"
+              padding="xl"
               layout="position"
             >
-              <Stack gap="md">
-                <Heading as="h2" size="xl">
-                  {t('Create a new project')}
-                </Heading>
-                <Text variant="muted">
-                  {t('Pick a platform, name your project and choose what to monitor.')}
-                </Text>
-              </Stack>
+              <Heading as="h3">{t('Connect your Git repository')}</Heading>
 
               <ScmIntegrationConnect
                 analyticsFlow="project-creation"
+                allowIntegrationSwitching
                 selectedIntegration={selectedIntegration}
                 selectedRepository={selectedRepository}
                 onIntegrationChange={handleIntegrationChange}
@@ -281,94 +278,65 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 onClearDerivedState={handleClearDerivedState}
                 maxWidth={CREATE_PROJECT_MAX_WIDTH}
               />
-              {showContinueWithoutRepo && (
-                <MotionFlex layout="position">
-                  <Button
-                    variant="transparent"
-                    analyticsEventKey="project_creation.scm_connect_skip_clicked"
-                    analyticsEventName="Project Creation: SCM Connect Skip Clicked"
-                    onClick={completeRepoStep}
-                  >
-                    {t('Continue without connecting a repo')}
-                  </Button>
-                </MotionFlex>
-              )}
             </MotionStack>
 
-            {showAllSteps && (
-              <Fragment>
-                <MotionStack
-                  layout="position"
-                  gap="lg"
-                  border="primary"
-                  radius="md"
-                  padding="lg"
-                >
-                  <Stack gap="md">
-                    <Heading as="h2" size="xl">
-                      {t('Platform & features')}
-                    </Heading>
-                    <Text variant="muted">
-                      {t('Choose a platform and configure what to monitor.')}
-                    </Text>
-                  </Stack>
-                  <ScmPlatformFeaturesCore
-                    analyticsFlow="project-creation"
-                    selectedRepository={selectedRepository}
-                    selectedPlatform={selectedPlatform}
-                    selectedFeatures={selectedFeatures}
-                    onPlatformChange={handlePlatformChange}
-                    onFeaturesChange={handleFeaturesChange}
-                    onClearProjectDetailsForm={handleClearProjectDetailsForm}
-                  />
-                </MotionStack>
+            <MotionStack
+              layout="position"
+              gap="2xl"
+              border="primary"
+              radius="lg"
+              padding="xl"
+            >
+              <Heading as="h3">{t('Platform & features')}</Heading>
+              <ScmPlatformFeaturesCore
+                analyticsFlow="project-creation"
+                selectedRepository={selectedRepository}
+                selectedPlatform={selectedPlatform}
+                selectedFeatures={selectedFeatures}
+                onPlatformChange={handlePlatformChange}
+                onFeaturesChange={handleFeaturesChange}
+                onClearProjectDetailsForm={handleClearProjectDetailsForm}
+              />
+            </MotionStack>
 
-                <MotionStack
-                  layout="position"
-                  gap="lg"
-                  border="primary"
-                  radius="md"
-                  padding="lg"
-                >
-                  <Stack gap="md">
-                    <Heading as="h2" size="xl">
-                      {t('Project details')}
-                    </Heading>
-                    <Text variant="muted">
-                      {t('Name your project, assign a team, and set up issue alerts.')}
-                    </Text>
-                  </Stack>
-                  <ScmProjectDetailsCore
-                    analyticsFlow="project-creation"
-                    projectName={form.projectName}
-                    onProjectNameChange={form.onProjectNameChange}
-                    onProjectNameBlur={form.onProjectNameBlur}
-                    teamSlug={form.teamSlug}
-                    onTeamChange={form.onTeamChange}
-                    alertRuleConfig={form.alertRuleConfig}
-                    onAlertChange={form.onAlertChange}
-                    isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
-                  />
-                </MotionStack>
-              </Fragment>
-            )}
+            <MotionStack
+              layout="position"
+              gap="2xl"
+              border="primary"
+              radius="lg"
+              padding="xl"
+            >
+              <Heading as="h3">{t('Project details')}</Heading>
+              <ScmProjectDetailsCore
+                analyticsFlow="project-creation"
+                projectName={form.projectName}
+                onProjectNameChange={form.onProjectNameChange}
+                onProjectNameBlur={form.onProjectNameBlur}
+                teamSlug={form.teamSlug}
+                onTeamChange={form.onTeamChange}
+                alertRuleConfig={form.alertRuleConfig}
+                onAlertChange={form.onAlertChange}
+                isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
+              />
+            </MotionStack>
           </LayoutGroup>
 
-          {/* Page-level CTA: always present so the primary action is available
-              regardless of which steps are currently revealed. Disabled until a
-              platform and project details are ready. */}
+          {/* Page-level CTA: disabled until a platform and project details are
+              ready. */}
           <Stack gap="md">
             <ProjectCreationErrorAlert error={form.error} />
             <Flex justify="end">
-              <Button
-                variant="primary"
-                onClick={form.submit}
-                disabled={!form.canSubmit}
-                busy={form.isBusy}
-                icon={<IconProject />}
-              >
-                {t('Create project')}
-              </Button>
+              <Tooltip title={submitTooltipText} disabled={!submitTooltipText}>
+                <Button
+                  variant="primary"
+                  onClick={form.submit}
+                  disabled={!form.canSubmit}
+                  busy={form.isBusy}
+                  icon={<IconProject />}
+                >
+                  {t('Create project')}
+                </Button>
+              </Tooltip>
             </Flex>
           </Stack>
         </Stack>
@@ -378,4 +346,3 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 }
 
 const MotionStack = motion.create(Stack);
-const MotionFlex = motion.create(Flex);

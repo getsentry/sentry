@@ -2,9 +2,10 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {ProgressState} from 'sentry/views/issueList/utils/progress';
 
 type IssueProgressResponse = {
-  results: Record<string, {progress: string}>;
+  results: Record<string, {progress: ProgressState}>;
 };
 
 export function useIssueProgress(groupIds: string[]) {

@@ -77,9 +77,12 @@ Sentry.init({
   enableLogs: true,`
       : ''
   }
-  // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
-  // https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection
-  // dataCollection: { userInfo: false, httpBodies: [] },
+  dataCollection: {
+    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection
+    // userInfo: false,
+    // httpBodies: [],
+  },
 });`;
 }
 
@@ -120,9 +123,12 @@ app.use(
     enableLogs: true,`
         : ''
     }
-    // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection
-    // dataCollection: { userInfo: false, httpBodies: [] },
+    dataCollection: {
+      // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+      // https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection
+      // userInfo: false,
+      // httpBodies: [],
+    },
   }),
 );
 
@@ -153,9 +159,12 @@ app.use(
     enableLogs: true,`
         : ''
     }
-    // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection
-    // dataCollection: { userInfo: false, httpBodies: [] },
+    dataCollection: {
+      // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+      // https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection
+      // userInfo: false,
+      // httpBodies: [],
+    },
   }),
 );
 

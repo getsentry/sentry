@@ -3,7 +3,7 @@ import {lazy} from 'react';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {registerOverride} from 'sentry/overrideRegistry';
 import type {Overrides} from 'sentry/types/overrides';
-import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
+import type {OrganizationStatsProps} from 'sentry/views/organizationStats/types';
 
 import {AiConfigureSeerQuotaSidebar} from 'getsentry/components/ai/aiConfigureSeerQuotaSidebar';
 import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
@@ -81,7 +81,6 @@ import {GsBillingCommandPaletteActions} from './components/gsBillingCommandPalet
 import {PrimaryNavigationQuotaExceeded} from './components/navBillingStatus';
 import {OpenInDiscoverBtn} from './components/openInDiscoverBtn';
 import {ContinuousProfilingBillingRequirementBanner} from './components/profiling/alerts';
-import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import {ReplaySettingsAlert} from './components/replaySettingsAlert';
 import {useButtonTracking} from './overrides/useButtonTracking';
 import {useGetMaxRetentionDays} from './overrides/useGetMaxRetentionDays';
@@ -251,7 +250,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
   'component:scm-github-multi-org-install': () => ScmGithubMultiOrgInstall,
-  'component:replay-onboarding-alert': () => ReplayOnboardingAlert,
   'component:replay-onboarding-cta': () => ReplayOnboardingCTA,
   'component:replay-settings-alert': () => ReplaySettingsAlert,
   'component:product-unavailable-cta': () => ProductUnavailableCTA,

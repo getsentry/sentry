@@ -6,7 +6,7 @@ import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
-import {FieldKind, type AggregationKey} from 'sentry/utils/fields';
+import {type AggregationKey} from 'sentry/utils/fields';
 import {
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
@@ -14,22 +14,6 @@ import {
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
-
-export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
-  if (!supportedAggregates?.length) {
-    return {};
-  }
-
-  return supportedAggregates.reduce((acc, item) => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    acc[item] = {
-      key: item,
-      name: item,
-      kind: FieldKind.FUNCTION,
-    };
-    return acc;
-  }, {});
-};
 
 export interface UseSpanSearchQueryBuilderProps {
   initialQuery: string;

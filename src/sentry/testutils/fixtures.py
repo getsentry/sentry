@@ -361,6 +361,11 @@ class Fixtures:
             group = self.group
         return Factories.create_group_activity(group, *args, **kwargs)
 
+    def create_group_owner(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_owner(group, **kwargs)
+
     def create_group_action_log_entry(self, group=None, *args, **kwargs) -> GroupActionLogEntry:
         if group is None:
             group = self.group
@@ -777,6 +782,9 @@ class Fixtures:
     # workflow_engine.models.action
     def create_action(self, *args, **kwargs):
         return Factories.create_action(*args, **kwargs)
+
+    def create_action_invocation(self, *args, **kwargs):
+        return Factories.create_action_invocation(*args, **kwargs)
 
     def create_uptime_subscription(
         self,
