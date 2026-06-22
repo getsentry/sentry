@@ -1096,6 +1096,20 @@ export function SearchQueryBuilderValueCombobox({
               valueType,
             });
 
+  // The input keeps commas between/after entries. Render a styled copy of the
+  // value on top of the input so each entry reads as a highlighted chip while
+  // every comma stays outside the highlight as a plain delimiter.
+  const inputHighlight = inputValue ? (
+    <Fragment>
+      {inputValue.split(',').map((entry, index, entries) => (
+        <Fragment key={index}>
+          {entry ? <HighlightedValue>{entry}</HighlightedValue> : null}
+          {index < entries.length - 1 ? <Delimiter>,</Delimiter> : null}
+        </Fragment>
+      ))}
+    </Fragment>
+  ) : null;
+
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>
       <ValueComboboxMenuContext.Provider value={menuContextValue}>
@@ -1114,6 +1128,7 @@ export function SearchQueryBuilderValueCombobox({
             onCustomValueCommitted={handleInputValueConfirmed}
             onExit={onCommit}
             inputValue={inputValue}
+            inputHighlight={inputHighlight}
             filterValue={filterValue}
             placeholder={placeholder}
             token={token}
@@ -1146,6 +1161,15 @@ export function SearchQueryBuilderValueCombobox({
     </ValueComboboxContext.Provider>
   );
 }
+
+const HighlightedValue = styled('span')`
+  border-radius: ${p => p.theme.radius['2xs']};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+`;
+
+const Delimiter = styled('span')`
+  color: ${p => p.theme.tokens.content.secondary};
+`;
 
 const TrailingWrap = styled('div')`
   display: grid;

@@ -80,6 +80,12 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   description?: ReactNode;
   filterValue?: string;
   /**
+   * A styled, non-interactive copy of the input text rendered directly on top
+   * of the (visually transparent) input. Lets callers highlight parts of the
+   * value, e.g. treating a trailing comma as a delimiter outside the highlight.
+   */
+  inputHighlight?: ReactNode;
+  /**
    * Whether the combobox is loading async items.
    * When true, a loading indicator will be displayed in the dropdown.
    */
@@ -358,6 +364,7 @@ export function SearchQueryBuilderCombobox<
   description,
   items,
   inputValue,
+  inputHighlight,
   filterValue = inputValue,
   placeholder,
   onCustomValueBlurred,
@@ -612,8 +619,10 @@ export function SearchQueryBuilderCombobox<
 
   return (
     <Flex align="stretch" width="100%" height="100%" position="relative">
+      {inputHighlight ? <InputHighlight aria-hidden>{inputHighlight}</InputHighlight> : null}
       <UnstyledInput
         {...inputProps}
+        $hideText={Boolean(inputHighlight)}
         size="md"
         ref={mergeRefs(
           ref,
@@ -672,7 +681,8 @@ export function SearchQueryBuilderCombobox<
   );
 }
 
-const UnstyledInput = styled(Input)`
+const UnstyledInput = styled(Input)<{$hideText?: boolean}>`
+  position: relative;
   background: transparent;
   border: none;
   box-shadow: none;
@@ -684,11 +694,30 @@ const UnstyledInput = styled(Input)`
   min-width: 1px;
   border-radius: 0;
 
+  /* Hide the glyphs but keep the caret (which follows \`color\`) visible, so the
+   * coincident InputHighlight layer becomes the visible text. */
+  ${p => (p.$hideText ? '-webkit-text-fill-color: transparent;' : '')}
+
   &:focus {
     outline: none;
     border: none;
     box-shadow: none;
   }
+`;
+
+const InputHighlight = styled('div')`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: pre;
+  pointer-events: none;
+  color: ${p => p.theme.tokens.content.primary};
+  font-family: ${p => p.theme.font.family.sans};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.form.md.fontSize};
+  line-height: ${p => p.theme.form.md.lineHeight};
 `;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
