@@ -35,6 +35,7 @@ from sentry.tasks.assemble import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.redis import use_redis_cluster
+from sentry.testutils.objectstore import debug_files_test_both_backends
 
 
 class BaseAssembleTest(TestCase):
@@ -46,6 +47,7 @@ class BaseAssembleTest(TestCase):
         )
 
 
+@debug_files_test_both_backends
 class AssembleDifTest(BaseAssembleTest):
     def test_wrong_dif(self) -> None:
         content1 = b"foo"

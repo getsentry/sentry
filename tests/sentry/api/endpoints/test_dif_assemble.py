@@ -20,9 +20,11 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.silo import assume_test_silo_mode
 
 
+@debug_files_test_both_backends
 class DifAssembleEndpoint(APITestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)

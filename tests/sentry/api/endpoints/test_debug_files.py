@@ -11,6 +11,7 @@ from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
+from sentry.testutils.objectstore import debug_files_test_both_backends
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -51,6 +52,7 @@ class DebugFilesTestCases(APITestCase):
         )
 
 
+@debug_files_test_both_backends
 class DebugFilesTest(DebugFilesTestCases):
     def test_simple_proguard_upload(self) -> None:
         response = self._upload_proguard(self.url, PROGUARD_UUID)
@@ -330,6 +332,7 @@ class DebugFilesTest(DebugFilesTestCases):
         close_streaming_response(response)
 
 
+@debug_files_test_both_backends
 class AssociateDebugFilesTest(DebugFilesTestCases):
     def setUp(self) -> None:
         super().setUp()
