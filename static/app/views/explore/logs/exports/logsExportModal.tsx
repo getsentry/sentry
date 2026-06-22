@@ -145,7 +145,7 @@ export function LogsExportModal({
         <Stack gap="xl">
           <Text>
             {t(
-              'When a high number of rows is selected and entries are large, the results may be sent to your email.'
+              'When a high number of rows is selected and events are large, the results may be sent to your email.'
             )}
           </Text>
           <form.AppField name="columns">
