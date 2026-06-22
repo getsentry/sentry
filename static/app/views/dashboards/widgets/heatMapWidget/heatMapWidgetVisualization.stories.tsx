@@ -26,8 +26,9 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
         <LargeWidget>
           <HeatMapWidgetVisualization plottables={[new HeatMap(sampleLatencyHeatMap)]} />
         </LargeWidget>
+
         <p>
-          <strong>Hint:</strong> clicking on the chart will display the x-, y-, and z-axis
+          <strong>Hint:</strong> clicking on the chart will display the X-, Y-, and Z-axis
           values in the tooltip.
         </p>
       </Fragment>
@@ -103,11 +104,12 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
     );
   });
 
-  story('Tooltip Options', () => {
-    function TooltipOptionsStory() {
+  story('Tooltip Actions', () => {
+    function TooltipActionsStory() {
       const [localFilterQuery, setLocalFilterQuery] = useState<string | undefined>(
         undefined
       );
+
       return (
         <Fragment>
           <p>
@@ -115,19 +117,19 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
             Click a cell to open the tooltip.
           </p>
           <p>
-            Pass <code>renderTooltipActions</code> to add action rows (e.g. an Explore
+            Pass <code>renderTooltipActions</code> to add action rows (e.g., an Explore
             link). It receives the hovered cell's raw bounds — <code>valueMin</code>/
-            <code>valueMax</code> (Y axis) and <code>timestampStart</code>/
-            <code>timestampEnd</code> (X axis) — and returns the extra rows. The caller
-            turns those into whatever query or URL it needs, so the visualization stays
-            agnostic.
+            <code>valueMax</code> (Y-axis) and <code>timestampStart</code>/
+            <code>timestampEnd</code> (X-axis). It should return a React fragment that
+            will be rendered in the tooltip.
           </p>
           <p>
             Because ECharts renders the tooltip to an HTML string, React click handlers
-            don't survive — the visualization routes clicks for you. Use{' '}
-            <code>data-traces-link</code> for navigations, and{' '}
-            <code>data-tooltip-action</code> + <code>data-tooltip-action-value</code> for
-            actions (dispatched to the matching <code>tooltipActionHandlers</code> entry).
+            don't work in that context. Instead, the visualization routes clicks for you.
+            Annotate your links with <code>data-traces-link</code> for navigations, and{' '}
+            <code>data-tooltip-action</code> with <code>data-tooltip-action-value</code>{' '}
+            for actions. These will be dispatched to the matching{' '}
+            <code>tooltipActionHandlers</code> entry.
           </p>
           <p>
             <CodeBlock language="jsx">
@@ -174,7 +176,7 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
         </Fragment>
       );
     }
-    return <TooltipOptionsStory />;
+    return <TooltipActionsStory />;
   });
 });
 
