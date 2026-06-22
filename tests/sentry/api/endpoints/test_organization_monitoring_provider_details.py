@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.identity import Identity, IdentityProvider
+from sentry.users.models.identity import Identity, IdentityProvider, OrganizationIdentity
 
 
 @control_silo_test
@@ -23,10 +23,10 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         assert response.status_code == 404
 
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
+        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.current_step"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
+        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.initialize"
     )
     def test_connect_returns_redirect_url(
         self, mock_initialize: MagicMock, mock_current_step: MagicMock
@@ -43,10 +43,10 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         mock_initialize.assert_called_once()
 
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
+        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.current_step"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
+        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.initialize"
     )
     def test_connect_gcp_creates_identity_provider(
         self, mock_initialize: MagicMock, mock_current_step: MagicMock
@@ -61,13 +61,13 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         assert IdentityProvider.objects.filter(type="gcp").exists()
 
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
+        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.current_step"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
+        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.initialize"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.__init__",
+        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.__init__",
         return_value=None,
     )
     def test_connect_datadog_does_not_create_identity_provider(
@@ -107,13 +107,13 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         assert "Unknown monitoring provider" in response.data["detail"]
 
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
+        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.current_step"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
+        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.initialize"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.__init__",
+        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.__init__",
         return_value=None,
     )
     def test_connect_allowed_for_org_read_member(
@@ -145,63 +145,133 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
         self.login_as(self.user)
 
     def test_disconnect_requires_feature_flag(self) -> None:
-        response = self.get_response(self.organization.slug, "gcp")
+        response = self.get_response(self.organization.slug, "datadog")
         assert response.status_code == 404
 
     def test_disconnect_deletes_identity_datadog(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="dd-org-456")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-123",
             data={"access_token": "token"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            user=self.user,
+            identity=identity,
+            provider_key="datadog",
         )
 
         with self.feature("organizations:seer-infra-telemetry"):
             response = self.get_response(self.organization.slug, "datadog")
 
         assert response.status_code == 204
-        assert not Identity.objects.filter(idp=idp, user=self.user).exists()
+        assert not OrganizationIdentity.objects.filter(
+            organization_id=self.organization.id, user_id=self.user.id, provider_key="datadog"
+        ).exists()
+        assert not Identity.objects.filter(id=identity.id).exists()
 
     def test_disconnect_deletes_identity_gcp(self) -> None:
         idp = self.create_identity_provider(type="gcp")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="google-user-123",
             data={"access_token": "token"},
         )
+        self.create_organization_identity(
+            organization=self.organization,
+            user=self.user,
+            identity=identity,
+            provider_key="gcp",
+        )
 
         with self.feature("organizations:seer-infra-telemetry"):
             response = self.get_response(self.organization.slug, "gcp")
 
         assert response.status_code == 204
-        assert not Identity.objects.filter(idp=idp, user=self.user).exists()
+        assert not OrganizationIdentity.objects.filter(
+            organization_id=self.organization.id, user_id=self.user.id, provider_key="gcp"
+        ).exists()
+        assert not Identity.objects.filter(id=identity.id).exists()
 
     def test_disconnect_only_affects_requesting_user(self) -> None:
         other_user = self.create_user()
         self.create_member(organization=self.organization, user=other_user)
 
-        idp = self.create_identity_provider(type="gcp")
-        self.create_identity(
+        idp = self.create_identity_provider(type="datadog", external_id="dd-org-456")
+        my_identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
-            external_id="google-user-123",
+            external_id="dd-user-123",
             data={"access_token": "token-a"},
         )
         other_identity = self.create_identity(
             user=other_user,
             identity_provider=idp,
-            external_id="google-user-456",
+            external_id="dd-user-456",
             data={"access_token": "token-b"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            user=self.user,
+            identity=my_identity,
+            provider_key="datadog",
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            user=other_user,
+            identity=other_identity,
+            provider_key="datadog",
         )
 
         with self.feature("organizations:seer-infra-telemetry"):
-            response = self.get_response(self.organization.slug, "gcp")
+            response = self.get_response(self.organization.slug, "datadog")
 
         assert response.status_code == 204
-        assert not Identity.objects.filter(idp=idp, user=self.user).exists()
+        assert not OrganizationIdentity.objects.filter(
+            organization_id=self.organization.id, user_id=self.user.id, provider_key="datadog"
+        ).exists()
+        assert OrganizationIdentity.objects.filter(
+            organization_id=self.organization.id, user_id=other_user.id, provider_key="datadog"
+        ).exists()
         assert Identity.objects.filter(id=other_identity.id).exists()
+
+    def test_disconnect_preserves_identity_when_other_org_references_it(self) -> None:
+        org2 = self.create_organization(name="other-org", owner=self.user)
+
+        idp = self.create_identity_provider(type="datadog", external_id="dd-org-456")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-123",
+            data={"access_token": "token"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            user=self.user,
+            identity=identity,
+            provider_key="datadog",
+        )
+        self.create_organization_identity(
+            organization=org2,
+            user=self.user,
+            identity=identity,
+            provider_key="datadog",
+        )
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(self.organization.slug, "datadog")
+
+        assert response.status_code == 204
+        assert not OrganizationIdentity.objects.filter(
+            organization_id=self.organization.id, user_id=self.user.id, provider_key="datadog"
+        ).exists()
+        assert Identity.objects.filter(id=identity.id).exists()
+        assert OrganizationIdentity.objects.filter(
+            organization_id=org2.id, user_id=self.user.id, provider_key="datadog"
+        ).exists()
 
     def test_disconnect_unknown_provider(self) -> None:
         with self.feature("organizations:seer-infra-telemetry"):
@@ -212,7 +282,7 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
 
     def test_disconnect_not_connected(self) -> None:
         with self.feature("organizations:seer-infra-telemetry"):
-            response = self.get_response(self.organization.slug, "gcp")
+            response = self.get_response(self.organization.slug, "datadog")
 
         assert response.status_code == 404
         assert "Not connected to this provider" in response.data["detail"]
@@ -222,11 +292,17 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
         self.create_member(organization=self.organization, user=member_user, role="member")
 
         idp = self.create_identity_provider(type="datadog", external_id="dd-org-789")
-        self.create_identity(
+        identity = self.create_identity(
             user=member_user,
             identity_provider=idp,
             external_id="dd-user-789",
             data={"access_token": "token"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            user=member_user,
+            identity=identity,
+            provider_key="datadog",
         )
 
         self.login_as(member_user)
@@ -235,4 +311,6 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
             response = self.get_response(self.organization.slug, "datadog")
 
         assert response.status_code == 204
-        assert not Identity.objects.filter(idp=idp, user=member_user).exists()
+        assert not OrganizationIdentity.objects.filter(
+            organization_id=self.organization.id, user_id=member_user.id, provider_key="datadog"
+        ).exists()

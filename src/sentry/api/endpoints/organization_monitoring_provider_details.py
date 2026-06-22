@@ -16,9 +16,9 @@ from sentry.api.endpoints.organization_monitoring_provider_index import (
     MonitoringProviderPermission,
 )
 from sentry.identity import default_manager as identity_manager
-from sentry.identity.pipeline import IdentityPipeline
+from sentry.identity.pipeline import MonitoringIdentityPipeline
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.users.models.identity import Identity, IdentityProvider
+from sentry.users.models.identity import IdentityProvider, OrganizationIdentity
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if not provider_type.auto_create_provider_model:
             idp, _ = IdentityProvider.objects.get_or_create(type=provider_key, external_id="")
 
-        pipeline = IdentityPipeline(
+        pipeline = MonitoringIdentityPipeline(
             request=request._request,
             provider_key=provider_key,
             organization=organization,
@@ -80,17 +80,22 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if provider_key not in MONITORING_PROVIDERS:
             return Response({"detail": "Unknown monitoring provider."}, status=400)
 
-        identities = list(
-            Identity.objects.filter(
-                idp__type=provider_key,
+        org_identity = (
+            OrganizationIdentity.objects.filter(
+                organization_id=organization.id,
                 user_id=request.user.id,  # type: ignore[misc]
+                provider_key=provider_key,
             )
+            .select_related("identity")
+            .first()
         )
 
-        if not identities:
+        if not org_identity:
             return Response({"detail": "Not connected to this provider."}, status=404)
 
-        for identity in identities:
+        identity = org_identity.identity
+        org_identity.delete()
+        if not OrganizationIdentity.objects.filter(identity=identity).exists():
             identity.delete()
 
         return Response(status=204)
