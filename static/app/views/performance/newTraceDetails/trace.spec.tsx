@@ -15,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
@@ -1243,6 +1244,7 @@ describe('trace view', () => {
         });
 
         const drawSpy = jest.spyOn(VirtualizedViewManager.prototype, 'draw');
+        const successMessageSpy = jest.spyOn(indicators, 'addSuccessMessage');
 
         try {
           await completeTestSetup({organization});
@@ -1256,11 +1258,13 @@ describe('trace view', () => {
           const compressedTimelineOption = await screen.findByText('Compressed Timeline');
           await userEvent.click(compressedTimelineOption);
 
+          expect(successMessageSpy).toHaveBeenCalledWith('Compressed timeline disabled');
           await waitFor(() => {
             expect(drawSpy).toHaveBeenCalled();
           });
         } finally {
           drawSpy.mockRestore();
+          successMessageSpy.mockRestore();
         }
       });
 

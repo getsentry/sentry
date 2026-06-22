@@ -666,6 +666,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const onCompressedTimelineChange = useCallback(() => {
     const value = !traceState.preferences.compressed_timeline;
 
+    addSuccessMessage(
+      value ? t('Compressed timeline enabled') : t('Compressed timeline disabled')
+    );
     traceAnalytics.trackCompressedTimelinePreferenceChange(props.organization, value);
     traceDispatch({
       type: 'set compressed timeline',
