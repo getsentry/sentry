@@ -4,11 +4,10 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {tct} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import SentryAppExternalForm, {
+import {
+  SentryAppExternalFormNew,
   type SchemaFormConfig,
-} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-import {SentryAppExternalFormNew} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
+} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
 
 type OnSubmitSuccess = (
   response: any,
@@ -34,8 +33,6 @@ export function SentryAppRuleModal({
   resetValues,
   onSubmitSuccess,
 }: Props) {
-  const organization = useOrganization();
-  const useNewForm = organization.features.includes('sentry-app-schema-form-migration');
   const handleSubmitSuccess: OnSubmitSuccess = (...params) => {
     onSubmitSuccess(...params);
     closeModal();
@@ -49,31 +46,15 @@ export function SentryAppRuleModal({
         {config.description && <Description>{config.description}</Description>}
       </Header>
       <Body>
-        {useNewForm ? (
-          <SentryAppExternalFormNew
-            sentryAppInstallationUuid={sentryAppInstallationUuid}
-            appName={appName}
-            config={
-              formConfig as React.ComponentProps<
-                typeof SentryAppExternalFormNew
-              >['config']
-            }
-            element="alert-rule-action"
-            action="create"
-            onSubmitSuccess={handleSubmitSuccess}
-            resetValues={{settings: resetValues?.settings}}
-          />
-        ) : (
-          <SentryAppExternalForm
-            sentryAppInstallationUuid={sentryAppInstallationUuid}
-            appName={appName}
-            config={formConfig}
-            element="alert-rule-action"
-            action="create"
-            onSubmitSuccess={handleSubmitSuccess}
-            resetValues={{settings: resetValues?.settings}}
-          />
-        )}
+        <SentryAppExternalFormNew
+          sentryAppInstallationUuid={sentryAppInstallationUuid}
+          appName={appName}
+          config={formConfig}
+          element="alert-rule-action"
+          action="create"
+          onSubmitSuccess={handleSubmitSuccess}
+          resetValues={{settings: resetValues?.settings}}
+        />
       </Body>
     </Fragment>
   );

@@ -761,9 +761,7 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
         with assume_test_silo_mode_of(Organization):
             assert not Organization.objects.filter(slug="demo-org").exists()
 
-    @override_settings(
-        SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us", SENTRY_LOCAL_CELL="de"
-    )
+    @override_settings(SENTRY_FALLBACK_CELL="us", SENTRY_LOCAL_CELL="de")
     def test_success(self) -> None:
         data = {"name": "hello world", "slug": "slug-world"}
         response = self.get_success_response(**data)

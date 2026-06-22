@@ -165,7 +165,7 @@
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
     "diff": "8.0.3",
-    "dompurify": "3.4.9",
+    "dompurify": "3.4.11",
     "downsample": "1.4.0",
     "echarts": "6.1.0",
     "echarts-for-react": "3.0.6",

@@ -49,6 +49,7 @@ from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.identity import default_manager as identity_manager
+from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
@@ -949,8 +950,12 @@ def refresh_monitoring_provider_token(
     if idp is None or idp.type not in MONITORING_PROVIDERS:
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
 
+    provider = identity_manager.get(idp.type)
+    if not isinstance(provider, OAuth2Provider):
+        # Static-token providers (e.g. Datadog PAT) have no refresh flow.
+        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_not_supported")
+
     try:
-        provider = identity_manager.get(idp.type)
         provider.refresh_identity(identity)
     except IdentityNotValid:
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
