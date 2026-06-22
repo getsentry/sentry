@@ -155,6 +155,9 @@ export function getMutateSeerProjectSettingsOptions({
           jsonUpdates.automationTuning = 'medium';
         }
       }
+      if (data.autoCreatePr !== undefined) {
+        jsonUpdates.autoCreatePr = data.autoCreatePr;
+      }
 
       queryClient.setQueryData(
         queryKey,

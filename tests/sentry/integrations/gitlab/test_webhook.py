@@ -80,7 +80,8 @@ class WebhookTest(GitLabTestCase):
             == "The customer has edited the webhook in Gitlab to include other types of events. We only support these kinds of events: Issue Hook, Merge Request Hook, Note Hook, Push Hook"
         )
 
-    def test_invalid_token(self) -> None:
+    @patch("sentry.integrations.gitlab.webhooks.logger")
+    def test_invalid_token(self, mock_logger: MagicMock) -> None:
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
@@ -90,6 +91,14 @@ class WebhookTest(GitLabTestCase):
         )
         assert response.status_code == 400
         assert response.reason_phrase == "The customer's Secret Token is malformed."
+
+        # The token is malformed so we can't resolve the org, but the payload
+        # body still identifies the source repo/owner — attach it to the log.
+        mock_logger.warning.assert_called_once()
+        extra = mock_logger.warning.call_args.kwargs["extra"]
+        assert extra["webhook.repo.path"] == "cool-group/sentry"
+        assert extra["webhook.repo.web_url"] == "http://example.com/cool-group/sentry"
+        assert extra["webhook.object_kind"] == "push"
 
     def test_valid_id_invalid_secret(self) -> None:
         response = self.client.post(

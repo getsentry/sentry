@@ -178,6 +178,7 @@ class SCIMIndexListTest(SCIMTestCase):
         assert response.status_code == 400, response.data
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "400",
             "scimType": "invalidFilter",
         }
 
@@ -230,7 +231,12 @@ class SCIMIndexCreateTest(SCIMTestCase):
         response = self.get_error_response(
             self.organization.slug, **self.post_data, status_code=409
         )
-        assert response.data["detail"] == "A team with this slug already exists."
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "scimType": "uniqueness",
+            "status": "409",
+            "detail": "A team with this slug already exists.",
+        }
 
     def test_scim_team_invalid_numeric_slug(self) -> None:
         invalid_post_data = {**self.post_data, "displayName": "1234"}

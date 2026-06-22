@@ -398,7 +398,7 @@ describe('SubscriptionHeader', () => {
       },
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -430,7 +430,7 @@ describe('SubscriptionHeader', () => {
       },
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(50, 'days').toISOString(),
+      billingPeriodEnd: now.add(50, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -469,7 +469,7 @@ describe('SubscriptionHeader', () => {
       }),
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -508,7 +508,7 @@ describe('SubscriptionHeader', () => {
       }),
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);

@@ -10,7 +10,7 @@ import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -656,16 +656,6 @@ export const removeHiddenKeys = (
     }
     result[key] = tag;
   }
-  return result;
-};
-
-export const onlyShowKeys = (tagCollection: Tag[], keys: string[]): Tag[] => {
-  const result: Tag[] = [];
-  tagCollection.forEach(tag => {
-    if (keys.includes(tag.key) && tag.name) {
-      result.push(tag);
-    }
-  });
   return result;
 };
 
