@@ -12,14 +12,14 @@ class TestRolloutComparator(SafeRolloutComparator):
 
 TEST_SHOULD_RUN_EXPERIMENT_OPTION = TestRolloutComparator._should_run_experiment_option()
 TEST_EXPERIMENT_SAMPLE_RATE_OPTION = TestRolloutComparator._experiment_sample_rate_option()
-TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION = (
-    TestRolloutComparator._callsite_use_experimental_data_allowlist_option()
-)
 TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION = (
     TestRolloutComparator._callsite_experiment_blocklist_option()
 )
 TEST_CALLSITE_MISMATCH_LOG_ALLOWLIST_OPTION = (
     TestRolloutComparator._callsite_mismatch_log_allowlist_option()
+)
+TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION = (
+    TestRolloutComparator._callsite_use_experimental_data_allowlist_option()
 )
 
 
@@ -33,10 +33,10 @@ class SafeRolloutComparatorTestCase(TestCase):
         option_names = [o.name for o in all_options()]
 
         assert TEST_SHOULD_RUN_EXPERIMENT_OPTION in option_names
-        assert TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION in option_names
-        assert TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION in option_names
         assert TEST_EXPERIMENT_SAMPLE_RATE_OPTION in option_names
+        assert TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION in option_names
         assert TEST_CALLSITE_MISMATCH_LOG_ALLOWLIST_OPTION in option_names
+        assert TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION in option_names
 
     def test_return_as_expected(self) -> None:
         with override_options({TEST_SHOULD_RUN_EXPERIMENT_OPTION: False}):
@@ -45,8 +45,8 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TEST_SHOULD_RUN_EXPERIMENT_OPTION: True,
-                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: ["test_blocked"],
                 TEST_EXPERIMENT_SAMPLE_RATE_OPTION: 1.0,
+                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: ["test_blocked"],
             }
         ):
             assert TestRolloutComparator.should_check_experiment("test_2") is True
@@ -54,8 +54,8 @@ class SafeRolloutComparatorTestCase(TestCase):
 
         with override_options(
             {
-                TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: ["test_allowed"],
                 TEST_CALLSITE_MISMATCH_LOG_ALLOWLIST_OPTION: [],
+                TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: ["test_allowed"],
             }
         ):
             assert TestRolloutComparator.check_and_choose("ctl", "exp", "test_3") == "ctl"
@@ -65,8 +65,8 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TEST_SHOULD_RUN_EXPERIMENT_OPTION: True,
-                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: [],
                 TEST_EXPERIMENT_SAMPLE_RATE_OPTION: 0.5,
+                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: [],
             }
         ):
             with patch("sentry.utils.rollout.random.random", return_value=0.3):
@@ -85,8 +85,8 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TEST_SHOULD_RUN_EXPERIMENT_OPTION: True,
-                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: ["test_blocked"],
                 TEST_EXPERIMENT_SAMPLE_RATE_OPTION: 1.0,
+                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: ["test_blocked"],
             }
         ):
             # Even with 100% sample rate, blocklisted callsites should be blocked
@@ -98,8 +98,8 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TEST_SHOULD_RUN_EXPERIMENT_OPTION: False,
-                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: [],
                 TEST_EXPERIMENT_SAMPLE_RATE_OPTION: 1.0,
+                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: [],
             }
         ):
             assert TestRolloutComparator.should_check_experiment("test_disabled") is False
@@ -126,8 +126,8 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TEST_SHOULD_RUN_EXPERIMENT_OPTION: True,
-                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: [],
                 TEST_EXPERIMENT_SAMPLE_RATE_OPTION: 1.0,
+                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: [],
             }
         ):
             TestRolloutComparator.check_and_choose_with_timings(
