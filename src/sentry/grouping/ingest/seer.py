@@ -353,10 +353,7 @@ def get_seer_similar_issues(
     event_hash = event.get_primary_hash()
     event_fingerprint = event.data.get("fingerprint")
     event_has_hybrid_fingerprint = get_fingerprint_type(event_fingerprint) == "hybrid"
-    event_is_synthetic = get_path(event.data, "exception", "values", -1, "mechanism", "synthetic")
-    event_exception_type = (
-        None if event_is_synthetic else get_path(event.data, "exception", "values", -1, "type")
-    )
+    event_exception_type = _get_event_exception_type(event)
 
     request_data, seer_request_metric_tags = _build_seer_request(event, variants)
 
@@ -492,6 +489,37 @@ def get_seer_similar_issues(
     )
 
     return (stacktrace_distance, winning_parent_grouphash, model_used)
+
+
+def _get_event_exception_type(event: Event) -> str | None:
+    """
+    Get the exception type for the event's main exception, using the same logic as
+    ErrorEvent.extract_metadata (which produces group.data.metadata.type on the parent side).
+
+    Respects main_exception_id for chained/exception-group events, and returns None for
+    synthetic exceptions (matching regular grouping behavior).
+    """
+    exceptions = get_path(event.data, "exception", "values")
+    if not exceptions:
+        return None
+
+    main_exception_id = get_path(event.data, "main_exception_id")
+    exception = None
+    if main_exception_id is not None:
+        exception = next(
+            (
+                exc
+                for exc in exceptions
+                if get_path(exc, "mechanism", "exception_id") == main_exception_id
+            ),
+            None,
+        )
+    if exception is None:
+        exception = get_path(exceptions, -1)
+
+    if not exception or get_path(exception, "mechanism", "synthetic"):
+        return None
+    return get_path(exception, "type")
 
 
 @dataclass(frozen=True)
