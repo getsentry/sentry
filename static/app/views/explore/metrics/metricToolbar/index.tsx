@@ -64,6 +64,10 @@ export function MetricToolbar({
     ? t('Not configurable for Heat Map visualizations')
     : undefined;
 
+  const hasUnresolvedMetrics = metricQueries.some(
+    q => !isVisualizeEquation(q.queryParams.visualizes[0]!) && !q.metric?.name
+  );
+
   // We need at least one metric visualized, but equations should always
   // be removable.
   const canRemoveMetric =
@@ -154,6 +158,7 @@ export function MetricToolbar({
                 referenceMap={referenceMap}
                 handleExpressionChange={handleExpressionChange}
                 onReferenceLabelsChange={handleReferenceLabelsChange}
+                disabled={hasUnresolvedMetrics}
               />
             </Flex>
             <Flex flex="9 1 0" minWidth={0}>
@@ -161,7 +166,11 @@ export function MetricToolbar({
             </Flex>
             {!isNarrow && (
               <Flex flex="30 1 0" minWidth={0}>
-                <Filter traceMetric={traceMetric} skipTraceMetricFilter />
+                <Filter
+                  traceMetric={traceMetric}
+                  disabled={hasUnresolvedMetrics}
+                  skipTraceMetricFilter
+                />
               </Flex>
             )}
           </Flex>
@@ -178,6 +187,7 @@ export function MetricToolbar({
         <Filter
           traceMetric={traceMetric}
           skipTraceMetricFilter={isVisualizeEquation(visualize)}
+          disabled={isVisualizeEquation(visualize) && hasUnresolvedMetrics}
         />
       )}
     </Flex>

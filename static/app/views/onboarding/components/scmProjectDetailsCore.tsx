@@ -1,11 +1,10 @@
 import {useEffect} from 'react';
 
 import {Input} from '@sentry/scraps/input';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {TeamSelector} from 'sentry/components/teamSelector';
-import {IconGroup, IconProject, IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -66,61 +65,71 @@ export function ScmProjectDetailsCore({
 
   return (
     <Stack gap="3xl" width="100%" maxWidth={contentMaxWidth}>
-      <Stack gap="md">
-        <Flex gap="md" align="center">
-          <IconProject size="md" variant="secondary" />
-          <Container>
-            <Text bold size="lg" density="comfortable">
-              {t('Give your project a name')}
-            </Text>
-          </Container>
-        </Flex>
-        <Input
-          type="text"
-          placeholder={t('project-name')}
-          value={projectName}
-          onChange={e => onProjectNameChange(e.target.value)}
-          onBlur={onProjectNameBlur}
-        />
-      </Stack>
-
-      {!isOrgMemberWithNoAccess && (
+      <Grid width="100%" columns={{sm: '1fr', md: '1fr 1fr'}} gap="2xl">
         <Stack gap="md">
-          <Flex gap="md" align="center">
-            <IconGroup size="md" />
+          <Stack gap="xs">
             <Container>
-              <Text bold size="lg" density="comfortable">
-                {t('Assign a team')}
+              <Text bold size="md" density="comfortable">
+                {t('Project name')}
               </Text>
             </Container>
-          </Flex>
-          <TeamSelector
-            allowCreate
-            name="team"
-            aria-label={t('Select a Team')}
-            clearable={false}
-            placeholder={t('Select a Team')}
-            teamFilter={(tm: Team) => tm.access.includes('team:admin')}
-            value={teamSlug}
-            onChange={onTeamChange}
+            <Container>
+              <Text variant="muted" density="comfortable">
+                {t('Slug used in URLs and SDK config')}
+              </Text>
+            </Container>
+          </Stack>
+          <Input
+            type="text"
+            placeholder={t('project-name')}
+            value={projectName}
+            onChange={e => onProjectNameChange(e.target.value)}
+            onBlur={onProjectNameBlur}
           />
         </Stack>
-      )}
+
+        {!isOrgMemberWithNoAccess && (
+          <Stack gap="md">
+            <Stack gap="xs">
+              <Container>
+                <Text bold size="md" density="comfortable">
+                  {t('Team')}
+                </Text>
+              </Container>
+              <Container>
+                <Text variant="muted" density="comfortable">
+                  {t('Set who owns alerts for this project')}
+                </Text>
+              </Container>
+            </Stack>
+            <TeamSelector
+              allowCreate
+              name="team"
+              aria-label={t('Select a Team')}
+              clearable={false}
+              placeholder={t('Select a Team')}
+              teamFilter={(tm: Team) => tm.access.includes('team:admin')}
+              value={teamSlug}
+              onChange={onTeamChange}
+            />
+          </Stack>
+        )}
+      </Grid>
 
       <Stack gap="md">
-        <Flex gap="md" align="center">
-          <IconSiren size="md" />
+        <Stack gap="xs">
           <Container>
-            <Text bold size="lg" density="comfortable">
+            <Text bold size="md" density="comfortable">
               {t('Alert frequency')}
             </Text>
           </Container>
-        </Flex>
-        <Container>
-          <Text variant="muted" size="lg" density="comfortable">
-            {t('Get notified when things go wrong')}
-          </Text>
-        </Container>
+          <Container>
+            <Text variant="muted" density="comfortable">
+              {t('Get notified when things go wrong')}
+            </Text>
+          </Container>
+        </Stack>
+
         <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
       </Stack>
     </Stack>
