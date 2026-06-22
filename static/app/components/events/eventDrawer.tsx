@@ -28,10 +28,21 @@ export const Header = styled('h3')`
 
 export const SearchInput = InputGroup.Input;
 
-export const NavigationCrumbs = styled(NavigationBreadcrumbs)`
+const StyledNavigationCrumbs = styled(NavigationBreadcrumbs)`
   margin: 0;
   padding: 0;
 `;
+
+/**
+ * Standalone breadcrumbs for drawers/panels. Unlike breadcrumbs rendered into
+ * the top bar title (which live inside the page `<h1>`), these are not inside a
+ * heading, so they render as a proper `<nav>` landmark.
+ */
+export function NavigationCrumbs(
+  props: ComponentPropsWithoutRef<typeof NavigationBreadcrumbs>
+) {
+  return <StyledNavigationCrumbs as="nav" {...props} />;
+}
 
 export function CrumbContainer(props: FlexProps) {
   return <Flex align="center" gap="md" {...props} />;

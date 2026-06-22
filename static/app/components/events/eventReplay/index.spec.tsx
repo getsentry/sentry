@@ -18,6 +18,7 @@ import {
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {RawReplayError} from 'sentry/utils/replays/types';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
@@ -151,14 +152,16 @@ describe('EventReplay', () => {
       activateSidebar: jest.fn(),
     });
     render(
-      <EventReplay
-        {...defaultProps}
-        event={EventFixture({
-          entries: [],
-          tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
-          platform: 'javascript',
-        })}
-      />,
+      <GroupIdProvider groupId="1">
+        <EventReplay
+          {...defaultProps}
+          event={EventFixture({
+            entries: [],
+            tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
+            platform: 'javascript',
+          })}
+        />
+      </GroupIdProvider>,
       {organization}
     );
 
@@ -170,19 +173,21 @@ describe('EventReplay', () => {
       activateSidebar: jest.fn(),
     });
     render(
-      <EventReplay
-        {...defaultProps}
-        event={EventFixture({
-          entries: [],
-          tags: [],
-          contexts: {
-            replay: {
-              replay_id: '761104e184c64d439ee1014b72b4d83b',
+      <GroupIdProvider groupId="1">
+        <EventReplay
+          {...defaultProps}
+          event={EventFixture({
+            entries: [],
+            tags: [],
+            contexts: {
+              replay: {
+                replay_id: '761104e184c64d439ee1014b72b4d83b',
+              },
             },
-          },
-          platform: 'javascript',
-        })}
-      />,
+            platform: 'javascript',
+          })}
+        />
+      </GroupIdProvider>,
       {organization}
     );
 
@@ -207,14 +212,16 @@ describe('EventReplay', () => {
     });
 
     render(
-      <EventReplay
-        {...defaultProps}
-        event={EventFixture({
-          entries: [],
-          tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
-          platform: 'javascript',
-        })}
-      />,
+      <GroupIdProvider groupId="1">
+        <EventReplay
+          {...defaultProps}
+          event={EventFixture({
+            entries: [],
+            tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
+            platform: 'javascript',
+          })}
+        />
+      </GroupIdProvider>,
       {organization: orgWithGranularPermissions}
     );
 

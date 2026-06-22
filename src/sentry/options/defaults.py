@@ -246,7 +246,6 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
-
 # User Settings
 register(
     "user-settings.signed-url-confirmation-emails-salt",
@@ -1114,18 +1113,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "seer.severity.cpu-rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.fixability.cpu-rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.night_shift.enable",
     type=Bool,
     default=False,
@@ -1134,6 +1121,12 @@ register(
 register(
     "seer.night_shift.issues_per_org",
     default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.shard_size",
+    type=Int,
+    default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Per-org overrides for night shift run options. Keyed by stringified
@@ -2072,6 +2065,15 @@ register(
 
 register(
     "dynamic-sampling.per_org.project-balancing-debug-project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
+# sample rate comparison. Empty disables the comparison entirely.
+register(
+    "dynamic-sampling.per_org.sliding-window-comparison-org-ids",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3744,6 +3746,13 @@ register(
 
 register(
     "github-enterprise.disallow-domain-mismatch",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "error-embeds.control-silo-address",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

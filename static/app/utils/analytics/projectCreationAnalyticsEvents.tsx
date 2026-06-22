@@ -12,6 +12,12 @@ export type ProjectCreationEventParameters = {
     project_id: string;
   };
   // SCM-first project creation flow (mirrors onboarding.scm_*)
+  'project_creation.scm_connect_integration_selected': {
+    provider: string;
+    // 'default' when the integration was auto-selected on entry, 'manual' when
+    // the user explicitly switched via the selector.
+    source: 'default' | 'manual';
+  };
   'project_creation.scm_connect_repo_selected': {
     provider: string;
     repo: string;
@@ -90,6 +96,8 @@ export const projectCreationEventMap: Record<
     'Project Creation: Data Removal Modal Rendered',
   'project_creation.data_removed': 'Project Creation: Data Removed',
   'project_creation.back_button_clicked': 'Project Creation: Back Button Clicked',
+  'project_creation.scm_connect_integration_selected':
+    'Project Creation: SCM Connect Integration Selected',
   'project_creation.scm_connect_repo_selected':
     'Project Creation: SCM Connect Repo Selected',
   'project_creation.scm_connect_step_viewed': 'Project Creation: SCM Connect Step Viewed',
