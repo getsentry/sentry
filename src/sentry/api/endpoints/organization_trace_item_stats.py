@@ -100,7 +100,9 @@ class TraceItemStatsPaginator:
             raise ValueError(f"invalid limit for paginator, expected >0, got {limit}")
 
         offset = cursor.offset if cursor is not None else 0
-        # Request 1 more than limit so we can tell if there is another page
+        # data_fn returns (payload, total_count), where total_count is the number of
+        # attributes available across all pages. There is a next page whenever the total
+        # extends at least one attribute past the end of the current page (offset + limit).
         data = self.data_fn(offset=offset, limit=limit)
         has_more = data[1] >= offset + limit + 1
 
@@ -240,13 +242,16 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
 
                 sanitized_keys.append(internal_name)
 
-            sanitized_keys = sanitized_keys[offset : offset + limit]
+            # The number of attributes available across all pages drives pagination
+            # (see TraceItemStatsPaginator), so capture the total before slicing.
+            total_attributes = len(sanitized_keys)
+            paginated_keys = sanitized_keys[offset : offset + limit]
 
-            if not sanitized_keys:
-                return {"data": []}, 0
+            if not paginated_keys:
+                return {"data": []}, total_attributes
 
             request_attrs_list = []
-            for requested_key in sanitized_keys:
+            for requested_key in paginated_keys:
                 request_attrs_list.append(
                     AttributeKey(name=requested_key, type=AttributeKey.TYPE_STRING)
                 )
@@ -273,7 +278,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                         for stats_type, data in stats.items():
                             stats_results[stats_type]["data"].update(data["data"])
 
-            return {"data": [{k: v} for k, v in stats_results.items()]}, len(request_attrs_list)
+            return {"data": [{k: v} for k, v in stats_results.items()]}, total_attributes
 
         return self.paginate(
             request=request,

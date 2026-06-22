@@ -1825,6 +1825,20 @@ class TestRefreshMonitoringProviderToken(APITestCase):
         # Not "identity_not_valid" due to KeyError from get_oauth_data before reaching the .get() guard
         assert result == {"error": "refresh_failed"}
 
+    def test_pat_provider_not_refreshable(self) -> None:
+        # Static-token providers (Datadog PAT) have no refresh flow.
+        pat_idp = self.create_identity_provider(type="datadog_pat", external_id="dd-org-pat")
+        pat_identity = self.create_identity(
+            user=self.user,
+            identity_provider=pat_idp,
+            external_id="dd-user-pat",
+            data={"access_token": "pat-tok", "site": "datadoghq.com"},
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=pat_identity.id)
+
+        assert result == {"error": "refresh_not_supported"}
+
 
 @with_feature("organizations:pr-metrics-attribution")
 @cell_silo_test

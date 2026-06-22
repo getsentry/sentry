@@ -4,81 +4,43 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {Placeholder} from 'sentry/components/placeholder';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
-import {
-  IconMerge,
-  IconPullRequest,
-  IconPullRequestClosed,
-  IconRepository,
-} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
-import type {PullRequest} from 'sentry/types/integrations';
+import {GroupActivityType, type Group} from 'sentry/types/group';
+import type {
+  LinkedPullRequest,
+  LinkedPullRequestsResponse,
+} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {
+  getPullRequestStatusLabel,
+  PullRequestStatusBadge,
+} from './pullRequestStatusBadge';
+
 const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
 
-type LinkedPullRequestStatus = 'closed' | 'draft' | 'merged' | 'open' | 'unknown';
-
-type LinkedPullRequest = PullRequest & {
-  dateLinked: string;
-  status: LinkedPullRequestStatus;
-};
-
-type LinkedPullRequestsResponse = {
-  pullRequests: LinkedPullRequest[];
-};
+export function getLinkedPullRequestActivityIds(group: Group) {
+  return new Set(
+    group.activity
+      .filter(
+        activity => activity.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST
+      )
+      .map(activity => activity.data.pullRequest?.id)
+      .filter(id => id !== undefined)
+  );
+}
 
 interface LinkedPullRequestsProps {
   group: Group;
   showEmptyState?: boolean;
-}
-
-type StatusIconConfig = {
-  Icon: React.ComponentType<SVGIconProps>;
-  variant: SVGIconProps['variant'];
-};
-
-const STATUS_ICON_CONFIG = {
-  closed: {Icon: IconPullRequestClosed, variant: 'danger'},
-  draft: {Icon: IconPullRequest, variant: 'muted'},
-  merged: {Icon: IconMerge, variant: 'accent'},
-  open: {Icon: IconPullRequest, variant: 'success'},
-  unknown: {Icon: IconPullRequest, variant: 'muted'},
-} satisfies Record<LinkedPullRequestStatus, StatusIconConfig>;
-
-function getStatusIcon(status: LinkedPullRequestStatus) {
-  const {Icon, variant} = STATUS_ICON_CONFIG[status];
-  return (
-    <Icon
-      aria-hidden
-      data-test-id={`linked-pull-request-status-${status}`}
-      size="xs"
-      variant={variant}
-    />
-  );
-}
-
-function getStatusLabel(status: LinkedPullRequestStatus) {
-  switch (status) {
-    case 'closed':
-      return t('Closed');
-    case 'draft':
-      return t('Draft');
-    case 'merged':
-      return t('Merged');
-    case 'open':
-      return t('Open');
-    case 'unknown':
-      return t('Unknown status');
-    default:
-      return status satisfies never;
-  }
 }
 
 function LinkedPullRequestRow({
@@ -90,61 +52,71 @@ function LinkedPullRequestRow({
 }) {
   const organization = useOrganization();
   const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
-  const statusLabel = getStatusLabel(pullRequest.status);
+  const statusLabel = getPullRequestStatusLabel(pullRequest.status);
+  const pullRequestLabel = t('#%s', pullRequest.id);
 
   return (
-    <PullRequestRow
-      aria-label={t(
-        '%s, pull request #%s, %s in %s',
-        title,
-        pullRequest.id,
-        statusLabel,
-        pullRequest.repository.name
-      )}
-      href={pullRequest.externalUrl}
-      onClick={() =>
-        trackAnalytics('issue_details.external_issue_pull_request_clicked', {
-          organization,
-          pull_request_id: pullRequest.id,
-          pull_request_status: pullRequest.status,
-          repository_id: pullRequest.repository.id,
-          repository_provider: pullRequest.repository.provider.id,
-          ...getAnalyticsDataForGroup(group),
-        })
+    <Tooltip
+      title={
+        <Text as="span" align="left" wordBreak="break-word">
+          {title}
+        </Text>
       }
+      maxWidth={275}
+      skipWrapper
     >
-      <Grid columns="max-content minmax(0, 1fr)" gap="sm" padding="sm">
-        <Flex as="span" aria-hidden align="start" paddingTop="2xs">
-          <RepoProviderIcon
-            provider={pullRequest.repository.provider.id}
-            size="sm"
-            variant="muted"
-          />
-        </Flex>
-        <Flex direction="column" gap="2xs" minWidth={0}>
-          <PullRequestTitle>{title}</PullRequestTitle>
-          <Flex align="center" gap="sm">
-            <Flex as="span" align="center" gap="xs" minWidth={0}>
-              {getStatusIcon(pullRequest.status)}
-              <Text as="span" textWrap="nowrap" variant="muted">
-                #{pullRequest.id}
+      <PullRequestRow
+        aria-label={t(
+          'Pull request #%s in %s, %s, %s',
+          pullRequest.id,
+          pullRequest.repository.name,
+          statusLabel,
+          title
+        )}
+        href={pullRequest.externalUrl}
+        onClick={() =>
+          trackAnalytics('issue_details.external_issue_pull_request_clicked', {
+            organization,
+            pull_request_id: pullRequest.id,
+            pull_request_status: pullRequest.status,
+            repository_id: pullRequest.repository.id,
+            repository_provider: pullRequest.repository.provider.id,
+            ...getAnalyticsDataForGroup(group),
+          })
+        }
+      >
+        <Grid columns="max-content minmax(0, 1fr)" gap="sm" padding="sm">
+          <Flex as="span" aria-hidden align="start">
+            <RepoProviderIcon
+              provider={pullRequest.repository.provider.id}
+              size="sm"
+              variant="muted"
+            />
+          </Flex>
+          <Flex direction="column" gap="xs" minWidth={0}>
+            <PullRequestTitle>
+              <Text as="span" bold textWrap="nowrap">
+                {pullRequestLabel}
               </Text>
-            </Flex>
-            <Flex as="span" align="center" gap="xs" minWidth={0}>
-              <RepositoryIcon size="xs" variant="muted" />
-              <Text
-                as="span"
-                ellipsis
-                title={pullRequest.repository.name}
-                variant="muted"
-              >
+              <Text as="span" ellipsis>
                 {pullRequest.repository.name}
+              </Text>
+            </PullRequestTitle>
+            <Flex align="center" gap="xs">
+              <PullRequestStatusBadge status={pullRequest.status} />
+              <Text as="span" size="sm" variant="muted">
+                <TimeSince
+                  date={pullRequest.dateLinked}
+                  suffix={t('ago')}
+                  tooltipPrefix={t('Linked')}
+                  unitStyle="short"
+                />
               </Text>
             </Flex>
           </Flex>
-        </Flex>
-      </Grid>
-    </PullRequestRow>
+        </Grid>
+      </PullRequestRow>
+    </Tooltip>
   );
 }
 
@@ -168,10 +140,15 @@ export function useLinkedPullRequests({group}: {group: Group}) {
 export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
   const organization = useOrganization();
   const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
-  const {data, isError} = useLinkedPullRequests({group});
+  const {data, isError, isPending} = useLinkedPullRequests({group});
+  const activityPullRequestIds = getLinkedPullRequestActivityIds(group);
 
   if (!hasFeature || isError) {
     return null;
+  }
+
+  if (isPending && activityPullRequestIds.size > 0) {
+    return <Placeholder height="40px" />;
   }
 
   if (data?.pullRequests.length === 0) {
@@ -225,15 +202,11 @@ const EmptyLinksText = styled(Text)`
   margin: 0;
 `;
 
-const RepositoryIcon = styled(IconRepository)`
-  transform: translateY(1px);
-`;
-
 const PullRequestTitle = styled('span')`
-  display: block;
+  align-items: center;
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+  min-width: 0;
   overflow: hidden;
   width: 100%;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  text-overflow: ellipsis;
-  white-space: nowrap;
 `;

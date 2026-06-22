@@ -6,6 +6,7 @@ import secrets
 from typing import Any
 
 import orjson
+import sentry_sdk
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from requests import ConnectionError, HTTPError, Response
@@ -13,6 +14,7 @@ from requests.exceptions import SSLError
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
+from sentry.identity.base import Provider
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import (
     OAuth2CallbackView,
@@ -71,7 +73,11 @@ def get_user_info(access_token: str, mcp_base_url: str) -> dict[str, Any]:
         json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
     )
     init_resp.raise_for_status()
-    headers["Mcp-Session-Id"] = init_resp.headers["mcp-session-id"]
+    try:
+        headers["Mcp-Session-Id"] = init_resp.headers["mcp-session-id"]
+    except KeyError as e:
+        sentry_sdk.capture_message("Datadog MCP initialize response missing session id")
+        raise IdentityNotValid("MCP initialize response missing session id") from e
 
     resp = safe_urlopen(
         url,
@@ -401,3 +407,53 @@ class DatadogIdentityProvider(McpIdentityProvider, OAuth2Provider):
         self.config["client_secret"] = client_secret
 
         super().refresh_identity(identity, **kwargs)
+
+
+class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
+    """Datadog identity backed by a user-supplied read-only personal access token.
+
+    An alternative to the OAuth flow for environments where Datadog's MCP OAuth
+    (loopback-only redirect URIs) cannot be used. The submitted token is used as
+    a Bearer token against the MCP server, identical to an OAuth access token.
+    """
+
+    key = IntegrationProviderSlug.DATADOG_PAT
+    name = "Datadog (Personal Access Token)"
+
+    def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
+        return []
+
+    def build_mcp_url(self, identity_data: dict[str, Any]) -> str | None:
+        """Full MCP endpoint URL for a stored Datadog identity.
+        Returns None when the site is missing or invalid."""
+        base = _mcp_base_url_for_site(identity_data.get("site"))
+        return f"{base}{MCP_ENDPOINT_PATH}" if base else None
+
+    def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
+        access_token = data.get("access_token")
+        if not access_token:
+            raise ValueError("Datadog requires an 'access_token' parameter.")
+
+        site = data.get("site")
+        base = _mcp_base_url_for_site(site)
+        if not site:
+            raise ValueError("Datadog requires a 'site' parameter (e.g. 'datadoghq.com').")
+        elif base is None:
+            raise ValueError(f"Invalid Datadog site: {site}")
+
+        user = get_user_info(access_token, base)
+        if "user_uuid" not in user or "org_uuid" not in user:
+            raise IdentityNotValid(
+                "User info response missing required fields (user_uuid, org_uuid)"
+            )
+
+        return {
+            "type": IntegrationProviderSlug.DATADOG_PAT,
+            "id": user["user_uuid"],
+            "idp_external_id": user["org_uuid"],
+            "idp_config": {"site": site},
+            "email": user.get("user_email"),
+            "name": user.get("user_name"),
+            "scopes": [],
+            "data": {"access_token": access_token, "site": site},
+        }

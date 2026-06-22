@@ -1113,18 +1113,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "seer.severity.cpu-rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.fixability.cpu-rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.night_shift.enable",
     type=Bool,
     default=False,
@@ -1133,6 +1121,12 @@ register(
 register(
     "seer.night_shift.issues_per_org",
     default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.shard_size",
+    type=Int,
+    default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Per-org overrides for night shift run options. Keyed by stringified

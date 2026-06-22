@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {LinkButton} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -12,12 +13,16 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
+import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {
+  GroupDataContextProvider,
+  useGroupData,
+} from 'sentry/views/issueDetails/groupDataContext';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
@@ -57,22 +62,19 @@ export function IssuePreviewDrawer({groupId}: IssuePreviewDrawerProps) {
         {isPending && <LoadingIndicator />}
         {isError && <LoadingError />}
         {group && project && (
-          <ErrorBoundary mini>
-            <IssuePreviewContent group={group} project={project} />
-          </ErrorBoundary>
+          <GroupDataContextProvider group={group} project={project}>
+            <ErrorBoundary mini>
+              <IssuePreviewContent />
+            </ErrorBoundary>
+          </GroupDataContextProvider>
         )}
       </DrawerBody>
     </Fragment>
   );
 }
 
-function IssuePreviewContent({
-  group,
-  project,
-}: {
-  group: NonNullable<ReturnType<typeof useGroup>['data']>;
-  project: Project;
-}) {
+function IssuePreviewContent() {
+  const {group, project} = useGroupData();
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
 
@@ -126,6 +128,32 @@ function IssuePreviewContent({
           </Flex>
         </Flex>
       </Flex>
+      <Container paddingTop="lg">
+        <Container paddingBottom="lg" borderBottom="muted">
+          <Tabs value="activity">
+            <TabList variant="floating">
+              <TabList.Item key="activity">{t('Activity')}</TabList.Item>
+              <TabList.Item key="autofix" disabled>
+                {t('Autofix')}
+              </TabList.Item>
+              <TabList.Item key="details" disabled>
+                {t('Details')}
+              </TabList.Item>
+              <TabList.Item key="events" disabled>
+                {t('Events')}
+              </TabList.Item>
+            </TabList>
+          </Tabs>
+        </Container>
+        <Container paddingTop="lg">
+          <ActivitySection
+            group={group}
+            variant="standalone"
+            size="md"
+            placeholder={t('Add a comment. Tag users with @, or teams with #')}
+          />
+        </Container>
+      </Container>
     </Fragment>
   );
 }
