@@ -133,13 +133,28 @@ table.insert(latency_table, {"redirect_step_latency_ms", redirect_end_time_ms - 
 local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
 local ingested_byte_count = tonumber(redis.call("get", ingested_byte_count_key) or 0)
 
+-- Pre-processing loop runs first to collect all the keys.
+local child_ic_keys = {}
+local child_ibc_keys = {}
 for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     local span_id = ARGV[i]
     if span_id ~= parent_span_id then
         local child_set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
-        local child_ibc_key = string.format("span-buf:ibc:%s", child_set_key)
-        local child_ibc = tonumber(redis.call("get", child_ibc_key) or 0)
-        byte_count = byte_count + child_ibc
+        table.insert(child_ic_keys, string.format("span-buf:ic:%s", child_set_key))
+        table.insert(child_ibc_keys, string.format("span-buf:ibc:%s", child_set_key))
+    end
+end
+
+-- Bulk request is made for child_ic and child_ibc keys. MGET returns in order. Further down we'll use
+-- the array. The merge loop iterates in the same order. We can use its index position to efficiently
+-- retrieve the locally cached value.
+local child_ics = {}
+local child_ibcs = {}
+if #child_ibc_keys > 0 then
+    child_ics = redis.call("mget", unpack(child_ic_keys))
+    child_ibcs = redis.call("mget", unpack(child_ibc_keys))
+    for j = 1, #child_ibcs do
+        byte_count = byte_count + tonumber(child_ibcs[j] or 0)
     end
 end
 
@@ -168,21 +183,25 @@ table.insert(metrics_table, {"detached_segment_locked", segment_locked and 1 or 
 local ingested_count_key = string.format("span-buf:ic:%s", set_key)
 local members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, set_span_id)
 
+-- NOTE: This loop is assumed to match the iteration semantics of the child_ibc cache key
+--       lookup loop. If it doesn't then this will breakerino.
+local child_idx = 0
 for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     local span_id = ARGV[i]
     if span_id ~= parent_span_id then
         local child_set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
+        child_idx = child_idx + 1
 
-        local child_ic_key = string.format("span-buf:ic:%s", child_set_key)
-        local child_ic = redis.call("get", child_ic_key)
+        local child_ic = child_ics[child_idx]
         if child_ic then
+            local child_ic_key = string.format("span-buf:ic:%s", child_set_key)
             redis.call("incrby", ingested_count_key, child_ic)
             redis.call("del", child_ic_key)
         end
 
-        local child_ibc_key = string.format("span-buf:ibc:%s", child_set_key)
-        local child_ibc = redis.call("get", child_ibc_key)
+        local child_ibc = child_ibcs[child_idx]
         if child_ibc then
+            local child_ibc_key = string.format("span-buf:ibc:%s", child_set_key)
             -- byte_count already holds the child's byte count, so we don't need to add again
             redis.call("del", child_ibc_key)
         end
