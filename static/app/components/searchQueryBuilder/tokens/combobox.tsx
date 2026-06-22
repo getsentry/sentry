@@ -86,6 +86,12 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    */
   inputHighlight?: ReactNode;
   /**
+   * Left padding (px) applied to the input to compensate for horizontal padding
+   * in `inputHighlight`, keeping the input's box wide enough for the styled copy
+   * and its caret aligned with the end of the rendered text.
+   */
+  inputOffset?: number;
+  /**
    * Whether the combobox is loading async items.
    * When true, a loading indicator will be displayed in the dropdown.
    */
@@ -365,6 +371,7 @@ export function SearchQueryBuilderCombobox<
   items,
   inputValue,
   inputHighlight,
+  inputOffset,
   filterValue = inputValue,
   placeholder,
   onCustomValueBlurred,
@@ -623,6 +630,7 @@ export function SearchQueryBuilderCombobox<
       <UnstyledInput
         {...inputProps}
         $hideText={Boolean(inputHighlight)}
+        $offset={inputOffset}
         size="md"
         ref={mergeRefs(
           ref,
@@ -681,13 +689,14 @@ export function SearchQueryBuilderCombobox<
   );
 }
 
-const UnstyledInput = styled(Input)<{$hideText?: boolean}>`
+const UnstyledInput = styled(Input)<{$hideText?: boolean; $offset?: number}>`
   position: relative;
   background: transparent;
   border: none;
   box-shadow: none;
   flex-grow: 1;
   padding: 0;
+  padding-left: ${p => p.$offset ?? 0}px;
   height: auto;
   min-height: auto;
   resize: none;

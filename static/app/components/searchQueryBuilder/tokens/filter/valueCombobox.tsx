@@ -1099,9 +1099,10 @@ export function SearchQueryBuilderValueCombobox({
   // The input keeps commas between/after entries. Render a styled copy of the
   // value on top of the input so each entry reads as a highlighted chip while
   // every comma stays outside the highlight as a plain delimiter.
+  const entries = inputValue.split(',');
   const inputHighlight = inputValue ? (
     <Fragment>
-      {inputValue.split(',').map((entry, index, entries) => (
+      {entries.map((entry, index) => (
         <Fragment key={index}>
           {entry ? <HighlightedValue>{entry}</HighlightedValue> : null}
           {index < entries.length - 1 ? <Delimiter>,</Delimiter> : null}
@@ -1109,6 +1110,12 @@ export function SearchQueryBuilderValueCombobox({
       ))}
     </Fragment>
   ) : null;
+
+  // Each chip's horizontal padding shifts the overlay text past the input's
+  // glyphs. Offsetting the input by the total added padding — derived from the
+  // entry count, no measurement — keeps its box wide enough for the padded copy
+  // and realigns the caret at the end of the value, where typing happens.
+  const inputOffset = entries.filter(Boolean).length * VALUE_CHIP_PADDING * 2;
 
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>
@@ -1129,6 +1136,7 @@ export function SearchQueryBuilderValueCombobox({
             onExit={onCommit}
             inputValue={inputValue}
             inputHighlight={inputHighlight}
+            inputOffset={inputOffset}
             filterValue={filterValue}
             placeholder={placeholder}
             token={token}
@@ -1162,16 +1170,14 @@ export function SearchQueryBuilderValueCombobox({
   );
 }
 
+// Horizontal padding inside each highlighted chip, in px (matches space.2xs).
+// Kept as a number so the input offset that compensates for it can be derived.
+const VALUE_CHIP_PADDING = 2;
+
 const HighlightedValue = styled('span')`
   border-radius: ${p => p.theme.radius['2xs']};
   background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
-  /*
-   * Pad the chip without shifting the text (the visible text must stay aligned
-   * with the underlying input's caret), so extend the fill via box-shadow
-   * rather than real padding.
-   */
-  box-shadow: 0 0 0 ${p => p.theme.space['2xs']}
-    ${p => p.theme.tokens.background.transparent.accent.muted};
+  padding: 0 ${VALUE_CHIP_PADDING}px;
 `;
 
 const Delimiter = styled('span')`
