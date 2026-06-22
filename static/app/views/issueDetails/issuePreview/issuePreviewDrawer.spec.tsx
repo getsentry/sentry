@@ -1,3 +1,4 @@
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -36,6 +37,10 @@ describe('IssuePreviewDrawer', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/users/`,
       body: [],
     });
 
@@ -79,6 +84,10 @@ describe('IssuePreviewDrawer', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/users/`,
       body: [],
     });
 

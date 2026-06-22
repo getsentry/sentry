@@ -28,6 +28,10 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assi
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from 'sentry/views/issueDetails/utils';
 
 interface IssuePreviewDrawerProps {
   groupId: string;
@@ -77,6 +81,10 @@ function IssuePreviewContent() {
   const {group, project} = useGroupData();
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
+  const disableActions = [
+    ReprocessingStatus.REPROCESSING,
+    ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
+  ].includes(getGroupReprocessingStatus(group));
 
   return (
     <Fragment>
@@ -112,7 +120,12 @@ function IssuePreviewContent() {
         wrap="wrap"
         gap="md"
       >
-        <GroupActions group={group} project={project} disabled={false} event={null} />
+        <GroupActions
+          group={group}
+          project={project}
+          disabled={disableActions}
+          event={null}
+        />
         <Flex align="center" wrap="wrap" gap="lg">
           <Flex align="center" gap="xs">
             <Text size="sm" variant="muted">
