@@ -688,19 +688,18 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
     else:
         return None
 
-    if not ctx.resolved_issue_urls:
-        group_id_to_group_history: dict[int, GroupHistory] = {}
-        group_id_to_group: dict[int, Group] = {}
-        for project_ctx in user_projects:
-            for group, group_history, _count in project_ctx.key_performance_issues:
-                if group_history:
-                    group_id_to_group_history[group.id] = group_history
-                    group_id_to_group[group.id] = group
-            for group, group_history, _count, _has_link in project_ctx.past_resolved_issues:
-                if group_history:
-                    group_id_to_group_history[group.id] = group_history
-                    group_id_to_group[group.id] = group
-        batch_resolve_group_urls(ctx, group_id_to_group_history, group_id_to_group)
+    group_id_to_group_history: dict[int, GroupHistory] = {}
+    group_id_to_group: dict[int, Group] = {}
+    for project_ctx in user_projects:
+        for group, group_history, _count in project_ctx.key_performance_issues:
+            if group_history and group.id not in ctx.resolved_issue_urls:
+                group_id_to_group_history[group.id] = group_history
+                group_id_to_group[group.id] = group
+        for group, group_history, _count, _has_link in project_ctx.past_resolved_issues:
+            if group_history and group.id not in ctx.resolved_issue_urls:
+                group_id_to_group_history[group.id] = group_history
+                group_id_to_group[group.id] = group
+    batch_resolve_group_urls(ctx, group_id_to_group_history, group_id_to_group)
 
     notification_uuid = str(uuid.uuid4())
     local_start, local_end = get_local_dates(ctx, user_id)
