@@ -547,6 +547,7 @@ export function Trace({
               gap={gap}
               index={i}
               manager={manager}
+              scrollContainer={scrollContainer}
             />
           ))}
         {traceNode && traceStartTimestamp ? (
@@ -723,10 +724,12 @@ function CollapsedGapMarker({
   gap,
   index,
   manager,
+  scrollContainer,
 }: {
   gap: TraceTimeCompressionGap;
   index: number;
   manager: VirtualizedViewManager;
+  scrollContainer: HTMLElement | null;
 }) {
   const registerCollapsedGapMarkerRef = useCallback(
     (ref: HTMLDivElement | null) => {
@@ -736,12 +739,31 @@ function CollapsedGapMarker({
   );
 
   const durationLabel = formatTraceDuration(gap.duration);
+  const onPillWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (!scrollContainer) {
+      return;
+    }
+
+    event.preventDefault();
+    scrollContainer.scrollTop += event.deltaY;
+    scrollContainer.scrollLeft += event.deltaX;
+  };
 
   return (
-    <div ref={registerCollapsedGapMarkerRef} className="TraceCollapsedGapMarker">
+    <div
+      ref={registerCollapsedGapMarkerRef}
+      className="TraceCollapsedGapMarker"
+      style={{pointerEvents: 'none'}}
+    >
       <div className="TraceCollapsedGapMarkerBreak" />
       <Tooltip title={`Skipped ${durationLabel} inactive period`}>
-        <div className="TraceCollapsedGapMarkerPill">{durationLabel}</div>
+        <div
+          className="TraceCollapsedGapMarkerPill"
+          style={{pointerEvents: 'auto'}}
+          onWheel={onPillWheel}
+        >
+          {durationLabel}
+        </div>
       </Tooltip>
     </div>
   );
@@ -972,7 +994,7 @@ const TraceStylingWrapper = styled('div')`
     position: absolute;
     top: 0;
     height: 100%;
-    pointer-events: auto;
+    pointer-events: none;
     z-index: 2;
   }
 

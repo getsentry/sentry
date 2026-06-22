@@ -1283,6 +1283,67 @@ describe('trace view', () => {
         }
       });
 
+      it('renders compressed timeline gap markers as non-interactive overlays', async () => {
+        mockTracePreferences({compressed_timeline: true});
+        const organization = OrganizationFixture({
+          features: ['trace-waterfall-time-compression'],
+        });
+        const compressionSpy = jest
+          .spyOn(TraceTimeCompression, 'FromVisibleItems')
+          .mockImplementation(options => {
+            const [traceStart, traceDuration] = options.traceSpace;
+            return {
+              start: traceStart,
+              duration: traceDuration,
+              compressedDuration: traceDuration,
+              enabled: true,
+              gaps: [
+                {
+                  start: traceStart + 0.5,
+                  end: traceStart + 1,
+                  duration: 0.5,
+                  retainedDuration: 0.1,
+                  compressedStart: 0.5,
+                  compressedEnd: 0.6,
+                },
+              ],
+              toCompressedOffset: (timestamp: number) => timestamp - traceStart,
+              toRealTimestamp: (offset: number) => traceStart + offset,
+            } as TraceTimeCompression;
+          });
+
+        try {
+          const {virtualizedScrollContainer} = await completeTestSetup({organization});
+
+          const marker = await waitFor(() => {
+            const nextMarker = document.querySelector<HTMLElement>(
+              '.TraceCollapsedGapMarker'
+            );
+            if (!nextMarker) {
+              throw new Error('Expected compressed timeline gap marker to render');
+            }
+            return nextMarker;
+          });
+
+          expect(marker).toHaveStyle({pointerEvents: 'none'});
+
+          const pill = marker.querySelector<HTMLElement>('.TraceCollapsedGapMarkerPill');
+          if (!pill) {
+            throw new Error('Expected compressed timeline gap marker pill to render');
+          }
+          expect(pill).toHaveStyle({pointerEvents: 'auto'});
+          fireEvent.wheel(pill, {deltaY: 24});
+          expect(virtualizedScrollContainer.scrollTop).toBe(24);
+
+          await userEvent.hover(pill);
+          expect(
+            await screen.findByText(/Skipped .* inactive period/)
+          ).toBeInTheDocument();
+        } finally {
+          compressionSpy.mockRestore();
+        }
+      });
+
       it('recomputes compressed timeline when expanding or collapsing rows changes visible nodes', async () => {
         mockTracePreferences({compressed_timeline: true});
         mockQueryString('?node=span-span0&node=txn-1');
