@@ -19,8 +19,8 @@ export const GIGABYTE = 10 ** 9;
 
 /**
  * Pseudo-tiers accepted by the customer billing-config endpoint as its `tier`
- * query param. The backend resolves each to a concrete plan tier so the
- * frontend doesn't have to replicate the selection logic. See getsentry's
+ * query param. The backend resolves each server-side so the frontend doesn't
+ * have to replicate the selection logic. See getsentry's
  * `CustomerBillingConfigEndpoint`.
  */
 export enum BillingConfigTier {
@@ -30,11 +30,9 @@ export enum BillingConfigTier {
   CHECKOUT = 'checkout',
   /** The latest tier, independent of the org's current plan. */
   DEFAULT = 'default',
+  /** Plans across all usable tiers (staff/superuser only). */
+  ALL = 'all',
 }
-
-const BASIC_TRIAL_PLANS = ['am1_t', 'am2_t', 'am3_t'];
-const ENTERPRISE_TRIAL_PLANS = ['am1_t_ent', 'am2_t_ent', 'am3_t_ent'];
-export const TRIAL_PLANS = [...BASIC_TRIAL_PLANS, ...ENTERPRISE_TRIAL_PLANS];
 
 // While we no longer offer or support unlimited ondemand we still
 // need to render billing history records that have unlimited ondemand.

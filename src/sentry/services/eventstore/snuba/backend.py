@@ -484,6 +484,7 @@ class SnubaEventStorage(EventStorage):
 
         if group_id is not None:
             sentry_sdk.set_tag("nodestore.event_type", event.get_event_type())
+            sentry_sdk.set_attribute("nodestore.event_type", event.get_event_type())
 
         if group_id is not None and (
             event.get_event_type() == "error"

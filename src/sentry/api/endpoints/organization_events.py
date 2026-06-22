@@ -155,7 +155,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         return all_features
 
     @extend_schema(
-        operation_id="Query Explore Events in Table Format",
+        operation_id="listOrganizationEvents",
+        summary="Query Explore Events in Table Format",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
@@ -246,13 +247,13 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
-            if (
-                referrer is not None
-                and is_valid_referrer(referrer)
-                and referrer.startswith("seer.")
-            ):
-                sentry_sdk.set_tag("query.from_seer", True)
-                sentry_sdk.set_attribute("query.from_seer", True)
+            if referrer is not None and is_valid_referrer(referrer):
+                if referrer.startswith("seer."):
+                    sentry_sdk.set_tag("query.from_seer", True)
+                    sentry_sdk.set_attribute("query.from_seer", True)
+                elif referrer.startswith("api.mcp."):
+                    sentry_sdk.set_tag("query.from_mcp", True)
+                    sentry_sdk.set_attribute("query.from_mcp", True)
             else:
                 referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
         elif referrer is None or not referrer:
@@ -559,9 +560,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == OurLogs:
-                    # ourlogs doesn't have use aggregate conditions
                     return SearchResolverConfig(
-                        use_aggregate_conditions=False,
+                        use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,

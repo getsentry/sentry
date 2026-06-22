@@ -50,7 +50,13 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.release_examples import ReleaseExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    ReleaseParams,
+    VisibilityParams,
+)
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
@@ -358,11 +364,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         )
 
     @extend_schema(
-        operation_id="List an Organization's Releases",
+        operation_id="listOrganizationReleases",
+        summary="List an Organization's Releases",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
             GlobalParams.ENVIRONMENT,
             ReleaseParams.QUERY,
+            VisibilityParams.PER_PAGE,
             CursorQueryParam,
         ],
         responses={
@@ -738,7 +747,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         )
 
     @extend_schema(
-        operation_id="Create a New Release for an Organization",
+        operation_id="createOrganizationRelease",
+        summary="Create a New Release for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=ReleaseSerializerWithProjects,
         responses={

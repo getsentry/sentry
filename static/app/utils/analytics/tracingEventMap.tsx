@@ -50,13 +50,6 @@ export type TracingEventParameters = {
     cross_event_metric_query_count?: number;
     cross_event_span_query_count?: number;
   };
-  'trace.explorer.schema_hints_click': {
-    source: 'list' | 'drawer';
-    hint_key?: string;
-  };
-  'trace.explorer.schema_hints_drawer': {
-    drawer_open: boolean;
-  };
   'trace.explorer.table_pagination': {
     direction: string;
     num_results: number;
@@ -90,6 +83,9 @@ export type TracingEventParameters = {
   'trace.preferences.autogrouping_change': {
     enabled: boolean;
   };
+  'trace.preferences.compressed_timeline_change': {
+    enabled: boolean;
+  };
   'trace.preferences.missing_instrumentation_change': {
     enabled: boolean;
   };
@@ -110,12 +106,16 @@ export type TracingEventParameters = {
     has_logs_details: boolean;
     has_profile_details: boolean;
   };
+  'trace.trace_drawer_details.gen_ai_span_details_viewed': {
+    operation_type: string;
+  };
   'trace.trace_drawer_explore_search': {
     key: string;
     kind: TraceDrawerActionKind;
     source: 'drawer' | 'toolbar_menu';
     value: string | number;
   };
+  'trace.trace_layout.ai_tab_clicked': Record<string, unknown>;
   'trace.trace_layout.change': {
     layout: string;
   };
@@ -168,6 +168,11 @@ export type TracingEventParameters = {
   'trace_explorer.compare_queries': Record<string, unknown>;
   'trace_explorer.delete_query': Record<string, unknown>;
   'trace_explorer.open_in_issues': Record<string, unknown>;
+  'trace_explorer.open_saved_query': {
+    is_prebuilt: boolean;
+    query_name: string;
+    dataset?: string;
+  };
   'trace_explorer.open_trace': {
     source: 'trace explorer' | 'new explore';
   };
@@ -220,16 +225,15 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.cross_event_added': 'Trace Explorer: Cross Event Added',
   'trace.explorer.cross_event_changed': 'Trace Explorer: Cross Event Changed',
   'trace.explorer.cross_event_removed': 'Trace Explorer: Cross Event Removed',
-  'trace.explorer.schema_hints_click':
-    'Improved Trace Explorer: Schema Hints Click Events',
-  'trace.explorer.schema_hints_drawer':
-    'Improved Trace Explorer: Schema Hints Drawer Events',
   'trace.explorer.table_pagination': 'Trace Explorer Table Pagination',
   'trace.explorer.table_tab_changed': 'Trace Explorer: Table Tab Changed',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
   'trace.trace_drawer_details.eap_span_has_details': 'EAP Span has Details',
+  'trace.trace_drawer_details.gen_ai_span_details_viewed':
+    'Viewed Gen AI Span Details in Trace',
+  'trace.trace_layout.ai_tab_clicked': 'Clicked AI Tab in Trace',
   'trace.tracing_onboarding': 'Tracing Onboarding UI',
   'trace.tracing_onboarding_platform_docs_viewed':
     'Viewed Platform Docs for Onboarding UI',
@@ -266,6 +270,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.span_row_click': 'Clicked Span Row in Trace',
   'trace_explorer.add_span_condition': 'Trace Explorer: Add Another Span',
   'trace_explorer.open_in_issues': 'Trace Explorer: Open Trace in Issues',
+  'trace_explorer.open_saved_query': 'Trace Explorer: Open Saved Query',
   'trace_explorer.open_trace': 'Trace Explorer: Open Trace in Trace Viewer',
   'trace_explorer.open_trace_span': 'Trace Explorer: Open Trace Span in Trace Viewer',
   'trace_explorer.remove_span_condition': 'Trace Explorer: Remove Span',
@@ -274,6 +279,8 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace_explorer.search_request': 'Trace Explorer: Search Request',
   'trace_explorer.search_success': 'Trace Explorer: Search Success',
   'trace.preferences.autogrouping_change': 'Changed Autogrouping Preference',
+  'trace.preferences.compressed_timeline_change':
+    'Changed Compressed Timeline Preference',
   'trace.preferences.missing_instrumentation_change':
     'Changed Missing Instrumentation Preference',
   'trace_explorer.save_as': 'Trace Explorer: Save As',

@@ -257,6 +257,10 @@ class DatabaseBackedIntegrationService(IntegrationService):
                         "install.organization": install.organization_id,
                     },
                 )
+                if integration_id is not None:
+                    scope.set_attribute("localscope.integration_id", integration_id)
+                scope.set_attribute("localscope.organization_id", organization_id)
+                scope.set_attribute("localscope.install.organization", install.organization_id)
                 sentry_sdk.capture_message(
                     "integration.installation does not belong to requested_org"
                 )

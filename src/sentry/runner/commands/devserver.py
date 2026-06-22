@@ -181,6 +181,7 @@ def devserver(
 
         for option_name, option_value in passed_options.items():
             sentry_sdk.set_tag(f"devserver.{option_name}", option_value)
+            sentry_sdk.set_attribute(f"devserver.{option_name}", option_value)
 
         if bind is None:
             bind = "127.0.0.1:8000"

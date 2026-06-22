@@ -1,14 +1,11 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
-import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
@@ -25,7 +22,6 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -36,11 +32,7 @@ import {
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import InstalledPlugin from 'sentry/views/settings/organizationIntegrations/installedPlugin';
-import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import {PluginDeprecationAlert} from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
-
-// TODO @sentaur-athena: remove this once we have a solution to deprecate these plugins
-const TEMPORARY_PERMITTED_PLUGINS = new Set(['amazon-sqs']);
 
 function makePluginQueryKey({
   orgSlug,
@@ -58,8 +50,6 @@ function makePluginQueryKey({
 }
 
 function DefaultView() {
-  const {openModal} = useModal();
-
   const tabs: IntegrationTab[] = ['overview', 'configurations'];
   const [activeTab, setActiveTab] = useQueryState(
     'tab',
@@ -68,7 +58,6 @@ function DefaultView() {
 
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
   const {projects} = useProjects();
@@ -198,64 +187,11 @@ function DefaultView() {
     [plugin, organization.slug, integrationSlug, queryClient]
   );
 
-  const handleAddToProject = useCallback(() => {
-    if (!plugin) {
-      return;
-    }
-    trackIntegrationAnalytics('integrations.plugin_add_to_project_clicked', {
-      view: 'integrations_directory_integration_detail',
-      integration: integrationSlug,
-      integration_type: integrationType,
-      already_installed: installationStatus !== 'Not Installed', // pending counts as installed here
-      organization,
-    });
-    openModal(
-      modalProps => (
-        <ContextPickerModal
-          {...modalProps}
-          nextPath={`/settings/${organization.slug}/projects/:projectId/plugins/${plugin.id}/`}
-          needProject
-          needOrg={false}
-          onFinish={to => {
-            modalProps.closeModal();
-            navigate(normalizeUrl(to));
-          }}
-        />
-      ),
-      {closeEvents: 'escape-key'}
-    );
-  }, [integrationSlug, installationStatus, navigate, organization, plugin, openModal]);
-
-  const renderTopButton = useCallback(
-    (disabledFromFeatures: boolean, userHasAccess: boolean) => {
-      if (userHasAccess) {
-        return (
-          <AddButton
-            data-test-id="install-button"
-            disabled={disabledFromFeatures}
-            onClick={handleAddToProject}
-            size="sm"
-            variant="primary"
-          >
-            {t('Add to Project')}
-          </AddButton>
-        );
-      }
-      return (
-        <RequestIntegrationButton
-          name={integrationName}
-          slug={integrationSlug}
-          type={integrationType}
-        />
-      );
-    },
-    [handleAddToProject, integrationName, integrationSlug, integrationType]
-  );
   const renderDeprecatedButton = useCallback(() => {
     return (
       <Tooltip
         title={t(
-          'This Plugin is deprecated and not available to install on new projects.'
+          'This plugin is now deprecated and is not available to install on new projects.'
         )}
         isHoverable
       >
@@ -332,11 +268,7 @@ function DefaultView() {
               featureData={featureData}
               hideButtonIfDisabled={false}
               requiresAccess={false}
-              renderTopButton={
-                TEMPORARY_PERMITTED_PLUGINS.has(plugin.id)
-                  ? renderTopButton
-                  : renderDeprecatedButton
-              }
+              renderTopButton={renderDeprecatedButton}
             />
           }
           additionalCTA={null}
@@ -368,19 +300,12 @@ function DefaultView() {
   );
 }
 
-const AddButton = styled(Button)`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 function PluginDetailedView() {
   const {integrationSlug} = useParams<{integrationSlug: string}>();
   const organization = useOrganization();
   const location = useLocation();
 
-  if (
-    integrationSlug === 'webhooks' &&
-    organization.features.includes('legacy-webhook-ui')
-  ) {
+  if (integrationSlug === 'webhooks') {
     return (
       <Redirect
         to={
