@@ -33,6 +33,7 @@ import {t, tn} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
 interface CodeChangesCardProps {
@@ -125,25 +126,32 @@ function getFinalExplanation(section: AutofixSection): string | null {
 }
 
 export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProps) {
+  const organization = useOrganization();
+  const hasPrIterationFeature = organization.features.includes('autofix-pr-iteration');
+
   // PR iterations are folded into this section's blocks. Surface the feedback
   // that drove each one — the cumulative diff is already merged into the
-  // section's code-change artifact by getOrderedAutofixSections.
+  // section's code-change artifact by getOrderedAutofixSections. Gated behind
+  // the PR iteration feature; when it's off we render the card as if no
+  // iterations exist.
   const feedback = useMemo<IterationFeedback[]>(
     () =>
-      section.blocks.filter(isPrIterationBlock).flatMap(block => {
-        const metadata = block.message.metadata;
-        const value = metadata?.feedback;
-        const iterationIndex = metadata?.iteration_index;
-        if (!value || iterationIndex === undefined) {
-          return [];
-        }
-        const parsed = parseFeedback(value);
-        if (!parsed) {
-          return [];
-        }
-        return [{...parsed, iterationIndex: Number(iterationIndex)}];
-      }),
-    [section.blocks]
+      hasPrIterationFeature
+        ? section.blocks.filter(isPrIterationBlock).flatMap(block => {
+            const metadata = block.message.metadata;
+            const value = metadata?.feedback;
+            const iterationIndex = metadata?.iteration_index;
+            if (!value || iterationIndex === undefined) {
+              return [];
+            }
+            const parsed = parseFeedback(value);
+            if (!parsed) {
+              return [];
+            }
+            return [{...parsed, iterationIndex: Number(iterationIndex)}];
+          })
+        : [],
+    [section.blocks, hasPrIterationFeature]
   );
 
   const latestIterationIndex = useMemo(
@@ -157,7 +165,9 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   );
 
   const isIterating =
-    section.status === 'processing' && section.blocks.some(isPrIterationBlock);
+    hasPrIterationFeature &&
+    section.status === 'processing' &&
+    section.blocks.some(isPrIterationBlock);
 
   // While processing, only replay the assistant output from the current
   // in-progress step. Steps (the original coding step plus each PR iteration)
@@ -191,7 +201,8 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       step: 'code_changes',
     });
 
-  const prIterationEnabled = isRunValidForPrIteration(autofix.runState);
+  const prIterationEnabled =
+    hasPrIterationFeature && isRunValidForPrIteration(autofix.runState);
   const hasPRs = Object.keys(autofix.runState?.repo_pr_states ?? {}).length > 0;
 
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);

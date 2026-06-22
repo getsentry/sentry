@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
@@ -22,6 +24,8 @@ import type {
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   FileDiffViewer: () => <div data-testid="file-diff-viewer" />,
 }));
+
+const prIterationOrganization = OrganizationFixture({features: ['autofix-pr-iteration']});
 
 function makeSection(
   step: string,
@@ -705,11 +709,31 @@ describe('ArtifactCard', () => {
             [[makePatch('org/repo', 'src/app.py')]],
             [makePrIterationBlock(1, {text: 'Add a test for this'})]
           )}
-        />
+        />,
+        {organization: prIterationOrganization}
       );
 
       expect(screen.getByText('Feedback')).toBeInTheDocument();
       expect(screen.getByText('"Add a test for this"')).toBeInTheDocument();
+    });
+
+    it('does not render iteration feedback without the feature flag', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(1, {text: 'Add a test for this'})]
+          )}
+        />
+      );
+
+      expect(screen.queryByText('Feedback')).not.toBeInTheDocument();
+      expect(screen.queryByText('"Add a test for this"')).not.toBeInTheDocument();
+      expect(screen.queryByText(/- Latest/)).not.toBeInTheDocument();
     });
 
     it('renders a one-based version tag for the latest iteration', () => {
@@ -726,7 +750,8 @@ describe('ArtifactCard', () => {
               makePrIterationBlock(1, {text: 'second pass'}),
             ]
           )}
-        />
+        />,
+        {organization: prIterationOrganization}
       );
 
       // iteration_index is zero-based; the latest (1) renders as v2.
@@ -758,7 +783,8 @@ describe('ArtifactCard', () => {
             [],
             [makePrIterationBlock(0, {text: 'keep going'})]
           )}
-        />
+        />,
+        {organization: prIterationOrganization}
       );
 
       expect(screen.getByText('Iterating on PR…')).toBeInTheDocument();
