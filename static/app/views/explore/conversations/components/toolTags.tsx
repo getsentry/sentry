@@ -1,112 +1,114 @@
-import {useEffect, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {t} from 'sentry/locale';
-
-// Height for 2 rows of tags (22px per row + 6px gap)
-const TWO_ROW_HEIGHT = 50;
+import {tn} from 'sentry/locale';
+import type {ToolStat} from 'sentry/views/explore/conversations/hooks/useConversationToolStats';
 
 interface ToolTagsProps {
   toolNames: string[];
+  toolStats?: ToolStat[];
 }
 
-export function ToolTags({toolNames}: ToolTagsProps) {
-  const [expanded, setExpanded] = useState(false);
-  const [hiddenCount, setHiddenCount] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const tagRefs = useRef(new Map<number, HTMLElement>());
-  const toggleButtonRef = useRef<HTMLDivElement>(null);
+function formatDuration(ms: number): string {
+  if (ms < 1000) {
+    return `${Math.round(ms)}ms`;
+  }
+  const seconds = ms / 1000;
+  if (seconds < 60) {
+    return `${seconds.toFixed(1)}s`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.round(seconds % 60);
+  return `${minutes}m ${remainingSeconds}s`;
+}
 
-  // Calculate how many tags are hidden (overflow beyond 2 rows, or overlapped by the "+N more" button)
-  useEffect(() => {
-    const container = containerRef.current;
-    if (expanded || !container) {
-      return;
-    }
-
-    const calculateHidden = () => {
-      const buttonWidth = toggleButtonRef.current?.offsetWidth ?? 0;
-      const containerWidth = container.offsetWidth;
-
-      let hidden = 0;
-      tagRefs.current.forEach(tagEl => {
-        if (tagEl.offsetTop >= TWO_ROW_HEIGHT) {
-          hidden++;
-        } else if (
-          buttonWidth > 0 &&
-          tagEl.offsetLeft + tagEl.offsetWidth > containerWidth - buttonWidth
-        ) {
-          // Tag on the last visible row is partially covered by the "+N more" button
-          hidden++;
-        }
-      });
-      setHiddenCount(hidden);
-    };
-
-    const rafId = requestAnimationFrame(calculateHidden);
-    const observer = new ResizeObserver(() => requestAnimationFrame(calculateHidden));
-    observer.observe(container);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      observer.disconnect();
-    };
-    // hiddenCount is included so we re-check after the button appears (it only renders when hiddenCount > 0)
-  }, [toolNames, expanded, hiddenCount]);
+function ToolDropdown({
+  toolNames,
+  toolStats,
+}: {
+  toolNames: string[];
+  toolStats?: ToolStat[];
+}) {
+  const statsByName = new Map(toolStats?.map(s => [s.name, s]) ?? []);
 
   return (
-    <Flex
-      ref={containerRef}
-      align="center"
-      gap="sm"
-      wrap="wrap"
-      overflow="hidden"
-      position="relative"
-      maxHeight={expanded ? '500px' : `${TWO_ROW_HEIGHT}px`}
-      style={{transition: 'max-height 0.2s ease-in-out'}}
-    >
-      {toolNames.map((toolName, index) => (
-        <Tag
-          key={toolName}
-          ref={el => {
-            if (el) {
-              tagRefs.current.set(index, el);
-            } else {
-              tagRefs.current.delete(index);
-            }
-          }}
-          variant="info"
-          style={{maxWidth: '100%', minWidth: 0}}
-        >
-          {toolName}
-        </Tag>
-      ))}
-      {hiddenCount > 0 && !expanded && (
-        <Flex
-          ref={toggleButtonRef}
-          align="center"
-          position="absolute"
-          right="0"
-          bottom="4px"
-          height="22px"
-          background="primary"
-          paddingLeft="sm"
-        >
-          <Button variant="link" size="xs" onClick={() => setExpanded(prev => !prev)}>
-            {t('+%s more', hiddenCount)}
-          </Button>
-        </Flex>
-      )}
-      {expanded && (
-        <Container flexShrink={0}>
-          <Button variant="link" size="xs" onClick={() => setExpanded(prev => !prev)}>
-            {t('Show less')}
-          </Button>
-        </Container>
-      )}
-    </Flex>
+    <DropdownTable>
+      {toolNames.map(name => {
+        const stat = statsByName.get(name);
+        return (
+          <DropdownRow key={name}>
+            <ToolNameCell>{name}</ToolNameCell>
+            <CallsCell>
+              {stat
+                ? tn('%s call', '%s calls', stat.calls)
+                : tn('%s call', '%s calls', 1)}
+            </CallsCell>
+            <DurationCell>
+              {stat && stat.totalDuration > 0 ? formatDuration(stat.totalDuration) : '—'}
+            </DurationCell>
+          </DropdownRow>
+        );
+      })}
+    </DropdownTable>
   );
 }
+
+export function ToolTags({toolNames, toolStats}: ToolTagsProps) {
+  const statsByName = new Map(toolStats?.map(s => [s.name, s]) ?? []);
+
+  let totalCalls = 0;
+  let totalDuration = 0;
+  for (const name of toolNames) {
+    const stat = statsByName.get(name);
+    totalCalls += stat?.calls ?? 1;
+    totalDuration += stat?.totalDuration ?? 0;
+  }
+
+  return (
+    <Tooltip
+      title={<ToolDropdown toolNames={toolNames} toolStats={toolStats} />}
+      skipWrapper
+      isHoverable
+    >
+      <SummaryText>
+        <Text variant="muted">
+          {tn('%s call', '%s calls', totalCalls)}
+          {totalDuration > 0 ? `  ${formatDuration(totalDuration)}` : ''}
+        </Text>
+      </SummaryText>
+    </Tooltip>
+  );
+}
+
+const SummaryText = styled('div')`
+  cursor: default;
+`;
+
+const DropdownTable = styled('div')`
+  display: grid;
+  grid-template-columns: auto auto auto;
+  gap: 4px 16px;
+  padding: 4px 0;
+  align-items: center;
+`;
+
+const DropdownRow = styled('div')`
+  display: contents;
+`;
+
+const ToolNameCell = styled('span')`
+  font-weight: 600;
+  white-space: nowrap;
+`;
+
+const CallsCell = styled('span')`
+  white-space: nowrap;
+  text-align: right;
+`;
+
+const DurationCell = styled('span')`
+  white-space: nowrap;
+  text-align: right;
+`;

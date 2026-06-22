@@ -5,6 +5,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useToolFilter} from 'sentry/views/explore/conversations/hooks/useToolFilter';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
@@ -21,6 +22,7 @@ export interface Conversation {
   endTimestamp: number;
   errors: number;
   firstInput: string | null;
+  flow: string[];
   lastOutput: string | null;
   llmCalls: number;
   startTimestamp: number;
@@ -47,6 +49,9 @@ export function useConversations() {
   const {cursor, setCursor} = useTableCursor();
   const pageFilters = usePageFilters();
   const combinedQuery = useCombinedQuery();
+  const {toolQuery} = useToolFilter();
+
+  const fullQuery = [combinedQuery, toolQuery].filter(Boolean).join(' ');
 
   const {
     data: response,
@@ -59,7 +64,8 @@ export function useConversations() {
         path: {organizationIdOrSlug: organization.slug},
         query: {
           cursor,
-          query: combinedQuery,
+          per_page: 50,
+          query: fullQuery,
           project: pageFilters.selection.projects,
           environment: pageFilters.selection.environments,
           ...normalizeDateTimeParams(pageFilters.selection.datetime),

@@ -70,13 +70,17 @@ function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
 export function AISpanList({
   nodes,
   selectedNodeKey,
+  hoveredNodeKey,
   onSelectNode,
+  onHoverNode,
   compressGaps = false,
 }: {
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeKey: string | null;
   compressGaps?: boolean;
+  hoveredNodeKey?: string | null;
+  onHoverNode?: (nodeId: string | null) => void;
 }) {
   const nodesByTransaction = useMemo(() => {
     const result = new Map<
@@ -110,6 +114,8 @@ export function AISpanList({
           nodes={transactionNodes}
           onSelectNode={onSelectNode}
           selectedNodeKey={selectedNodeKey}
+          hoveredNodeKey={hoveredNodeKey}
+          onHoverNode={onHoverNode}
           compressGaps={compressGaps}
         />
       ))}
@@ -122,6 +128,8 @@ function TransactionWrapper({
   nodes,
   onSelectNode,
   selectedNodeKey,
+  hoveredNodeKey,
+  onHoverNode,
   transaction,
   compressGaps = false,
 }: {
@@ -131,6 +139,8 @@ function TransactionWrapper({
   selectedNodeKey: string | null;
   transaction: TransactionNode | EapSpanNode | AITraceSpanNode;
   compressGaps?: boolean;
+  hoveredNodeKey?: string | null;
+  onHoverNode?: (nodeId: string | null) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -180,18 +190,18 @@ function TransactionWrapper({
         nodes.map(node => {
           const aiRunNode = nodeAiRunParentsMap[node.id];
 
-          // Only indent if the node is not the ai run node
-          const shouldIndent = aiRunNode && aiRunNode !== node;
-
           const uniqueKey = node.id;
           return (
             <TraceListItem
-              indent={shouldIndent ? 1 : 0}
+              indent={0}
               traceBounds={timeBounds}
               key={uniqueKey}
               node={node}
               onClick={() => onSelectNode(node)}
               isSelected={uniqueKey === selectedNodeKey}
+              isHighlighted={uniqueKey === hoveredNodeKey}
+              onMouseEnter={() => onHoverNode?.(uniqueKey)}
+              onMouseLeave={() => onHoverNode?.(null)}
               compressedStartByNodeId={compressedBounds?.compressedStartByNodeId}
             />
           );
@@ -204,6 +214,9 @@ const TraceListItem = memo(function TraceListItem({
   node,
   onClick,
   isSelected,
+  isHighlighted,
+  onMouseEnter,
+  onMouseLeave,
   traceBounds,
   indent,
   compressedStartByNodeId,
@@ -214,16 +227,19 @@ const TraceListItem = memo(function TraceListItem({
   onClick: () => void;
   traceBounds: TraceBounds;
   compressedStartByNodeId?: Map<string, number>;
+  isHighlighted?: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }) {
   const theme = useTheme();
   const hasErrors = hasError(node);
   const colorByOpType = useMemo(() => {
     const palette = theme.tokens.dataviz.categorical[5];
     return {
-      [GenAiOperationType.AGENT]: palette[0],
-      [GenAiOperationType.AI_CLIENT]: palette[2],
+      [GenAiOperationType.AGENT]: palette[5],
+      [GenAiOperationType.AI_CLIENT]: palette[5],
       [GenAiOperationType.HANDOFF]: palette[4],
-      [GenAiOperationType.TOOL]: palette[5],
+      [GenAiOperationType.TOOL]: palette[0],
       default: palette[1],
       error: theme.tokens.graphics.danger.vibrant,
     };
@@ -240,7 +256,10 @@ const TraceListItem = memo(function TraceListItem({
     <ListItemContainer
       hasErrors={hasErrors}
       isSelected={isSelected}
+      isHighlighted={isHighlighted}
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       indent={indent}
     >
       <Flex align="center" position="relative" style={{color}}>
@@ -528,6 +547,7 @@ function getSpanPresentation(
 const ListItemContainer = styled('div')<{
   hasErrors: boolean;
   indent: number;
+  isHighlighted?: boolean;
   isSelected: boolean;
 }>`
   display: flex;
@@ -538,7 +558,7 @@ const ListItemContainer = styled('div')<{
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   --row-bg: ${p =>
-    p.isSelected
+    p.isSelected || p.isHighlighted
       ? p.theme.tokens.background.secondary
       : p.theme.tokens.background.primary};
   background-color: var(--row-bg);
@@ -547,7 +567,9 @@ const ListItemContainer = styled('div')<{
       ? p.hasErrors
         ? `2px solid ${p.theme.tokens.focus.invalid}`
         : `2px solid ${p.theme.tokens.focus.default}`
-      : 'none'};
+      : p.isHighlighted
+        ? `1px solid ${p.theme.tokens.border.accent.moderate}`
+        : 'none'};
 
   &:hover {
     background-color: ${p =>

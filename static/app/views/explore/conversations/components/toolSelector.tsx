@@ -7,77 +7,67 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
-import {
-  AGENT_NAME_FIELDS,
-  resolveAgentName,
-} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {
-  getAgentNameSearchFilter,
-  getHasAgentNameFilter,
-} from 'sentry/views/insights/pages/agents/utils/query';
+import {getToolSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const LIMIT = 100;
-const AGENT_URL_PARAM = 'agent';
+export const TOOL_URL_PARAM = 'tool';
 
-interface AgentSelectorProps {
+const TOOL_NAME_FIELDS = [SpanFields.GEN_AI_TOOL_NAME] as const;
+
+interface ToolSelectorProps {
   referrer: string;
   storageKeyPrefix: string;
 }
 
-export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) {
+export function ToolSelector({storageKeyPrefix, referrer}: ToolSelectorProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
 
-  // Project-scoped storage key - automatically resets when projects change
   const projectKey = [...pageFilters.selection.projects].sort().join(',');
   const storageKey = `${storageKeyPrefix}:${organization.slug}:${projectKey}`;
 
-  const [storedAgents, setStoredAgents] = useLocalStorageState<string[]>(storageKey, []);
+  const [storedTools, setStoredTools] = useLocalStorageState<string[]>(storageKey, []);
 
-  // Use nuqs to manage both agent and cursor state
-  const [{agent: urlAgents}, setQueryStates] = useQueryStates(
+  const [{tool: urlTools}, setQueryStates] = useQueryStates(
     {
-      [AGENT_URL_PARAM]: parseAsArrayOf(parseAsString),
+      [TOOL_URL_PARAM]: parseAsArrayOf(parseAsString),
       [TableUrlParams.CURSOR]: parseAsString,
     },
     {history: 'replace'}
   );
 
-  // On mount: restore stored agents to URL if URL is empty
   const hasInitialized = useRef(false);
   useEffect(() => {
     if (!hasInitialized.current) {
       hasInitialized.current = true;
-      if (!urlAgents?.length && storedAgents.length > 0) {
-        setQueryStates({[AGENT_URL_PARAM]: storedAgents});
+      if (!urlTools?.length && storedTools.length > 0) {
+        setQueryStates({[TOOL_URL_PARAM]: storedTools});
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reset when project changes
   const prevProjectKey = useRef(projectKey);
   useEffect(() => {
     if (prevProjectKey.current !== projectKey) {
       prevProjectKey.current = projectKey;
-      setQueryStates({[AGENT_URL_PARAM]: null, [TableUrlParams.CURSOR]: null});
+      setQueryStates({[TOOL_URL_PARAM]: null, [TableUrlParams.CURSOR]: null});
     }
   }, [projectKey, setQueryStates]);
 
-  const selectedAgents = useMemo(() => {
-    // Prevent cache pollution during project transitions
+  const selectedTools = useMemo(() => {
     if (prevProjectKey.current !== projectKey) {
       return [];
     }
-    return urlAgents ?? [];
-  }, [urlAgents, projectKey]);
+    return urlTools ?? [];
+  }, [urlTools, projectKey]);
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -90,15 +80,15 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
   );
 
   const query = useMemo(() => {
-    const parts = [getHasAgentNameFilter()];
+    const parts = [getToolSpansFilter(), `has:${SpanFields.GEN_AI_TOOL_NAME}`];
     if (searchQuery) {
-      parts.push(getAgentNameSearchFilter(searchQuery));
+      parts.push(`${SpanFields.GEN_AI_TOOL_NAME}:*${searchQuery}*`);
     }
     return parts.join(' ');
   }, [searchQuery]);
 
   const {
-    data: agentData,
+    data: toolData,
     isPending,
     pageLinks,
   } = useSpans(
@@ -106,7 +96,7 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
       limit: LIMIT,
       search: query,
       sorts: [{field: 'count()', kind: 'desc'}],
-      fields: [...AGENT_NAME_FIELDS, 'count()'],
+      fields: [...TOOL_NAME_FIELDS, 'count()'],
     },
     referrer
   );
@@ -117,39 +107,38 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
     pageLinks,
   });
 
-  const agentList = useMemo(() => {
-    const uniqueAgents = new Set<string>();
+  const toolList = useMemo(() => {
+    const uniqueTools = new Set<string>();
     const list: Array<{label: string; value: string}> = [];
 
-    agentData?.forEach(row => {
-      const agentName = resolveAgentName(row);
-      if (!agentName || uniqueAgents.has(agentName)) {
+    toolData?.forEach(row => {
+      const toolName = row[SpanFields.GEN_AI_TOOL_NAME] as string | undefined;
+      if (!toolName || uniqueTools.has(toolName)) {
         return;
       }
-      uniqueAgents.add(agentName);
-      list.push({label: agentName, value: agentName});
+      uniqueTools.add(toolName);
+      list.push({label: toolName, value: toolName});
     });
 
-    // Ensure selected values are in the list
-    selectedAgents.forEach(agent => {
-      if (agent && !uniqueAgents.has(agent)) {
-        list.push({label: agent, value: agent});
+    selectedTools.forEach(tool => {
+      if (tool && !uniqueTools.has(tool)) {
+        list.push({label: tool, value: tool});
       }
     });
 
     return list;
-  }, [agentData, selectedAgents]);
+  }, [toolData, selectedTools]);
 
   const cacheKey = [...pageFilters.selection.projects].sort().join(' ');
-  const {options} = useCompactSelectOptionsCache(agentList, cacheKey);
+  const {options} = useCompactSelectOptionsCache(toolList, cacheKey);
 
   return (
     <CompactSelect
       multiple
       style={{maxWidth: '200px'}}
-      value={selectedAgents}
+      value={selectedTools}
       options={options}
-      emptyMessage={t('No agents found')}
+      emptyMessage={t('No tools found')}
       loading={isPending}
       search={{
         onChange: newValue => {
@@ -158,36 +147,32 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
           }
         },
       }}
-      menuTitle={t('Agent')}
+      menuTitle={t('Tools called')}
       menuHeaderTrailingItems={
-        selectedAgents.length > 0 ? (
+        selectedTools.length > 0 ? (
           <MenuComponents.ResetButton
             onClick={() => {
-              setStoredAgents([]);
+              setStoredTools([]);
               setQueryStates({
-                [AGENT_URL_PARAM]: null,
+                [TOOL_URL_PARAM]: null,
                 [TableUrlParams.CURSOR]: null,
               });
             }}
           />
         ) : null
       }
-      data-test-id="agent-selector"
+      data-test-id="tool-selector"
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} prefix={t('Agent')}>
-          {selectedAgents.length ? triggerProps.children : t('All')}
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Tools called')}>
+          {selectedTools.length ? triggerProps.children : t('All')}
         </OverlayTrigger.Button>
       )}
       onChange={newValue => {
         const values = newValue.map(v => v.value).filter(Boolean);
-        setStoredAgents(values);
+        setStoredTools(values);
         setQueryStates({
-          [AGENT_URL_PARAM]: values.length > 0 ? values : null,
+          [TOOL_URL_PARAM]: values.length > 0 ? values : null,
           [TableUrlParams.CURSOR]: null,
-        });
-        trackAnalytics('agent-monitoring.page-filter-change', {
-          organization,
-          filter: 'agent',
         });
       }}
     />

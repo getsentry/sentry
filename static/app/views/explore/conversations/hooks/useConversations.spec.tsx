@@ -9,6 +9,7 @@ const BASE_CONVERSATION = {
   duration: 1000,
   endTimestamp: 2000,
   errors: 0,
+  flow: ['Seer Explorer'],
   llmCalls: 1,
   startTimestamp: 1000,
   toolCalls: 0,

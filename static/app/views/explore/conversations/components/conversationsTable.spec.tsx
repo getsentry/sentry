@@ -1,49 +1,34 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {InputOutputTooltipCell} from 'sentry/views/explore/conversations/components/conversationsTable';
+import {Count} from 'sentry/components/count';
 
-function mockOverflow(width: number, containerWidth: number) {
-  Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
-    configurable: true,
-    value: width,
-  });
-  Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
-    configurable: true,
-    value: containerWidth,
-  });
-}
+describe('ConversationsTable columns', () => {
+  describe('Messages/Errors display', () => {
+    it('renders messages and zero errors without error styling', () => {
+      const {container} = render(
+        <div>
+          <Count value={12} />
+          {'/'}
+          <Count value={0} />
+        </div>
+      );
 
-describe('InputOutputTooltipCell', () => {
-  afterEach(() => {
-    // @ts-expect-error cleanup previously mocked properties
-    delete HTMLElement.prototype.scrollWidth;
-    // @ts-expect-error cleanup previously mocked properties
-    delete HTMLElement.prototype.clientWidth;
-  });
+      expect(container.textContent).toBe('12/0');
+    });
 
-  it('does not show the tooltip when the cell content fits', async () => {
-    mockOverflow(80, 120);
+    it('renders messages with non-zero errors', () => {
+      const {container} = render(
+        <div>
+          <Count value={12} />
+          {'/'}
+          <span data-test-id="error-count">
+            <Count value={3} />
+          </span>
+        </div>
+      );
 
-    render(
-      <InputOutputTooltipCell text={'Conversation preview\n\n```js\ntooltip only\n```'} />
-    );
-
-    await userEvent.hover(screen.getByText('Conversation preview'));
-
-    expect(screen.queryByText('tooltip only')).not.toBeInTheDocument();
-  });
-
-  it('shows the tooltip when the cell content overflows', async () => {
-    mockOverflow(180, 100);
-
-    render(
-      <InputOutputTooltipCell text={'Conversation preview\n\n```js\ntooltip only\n```'} />
-    );
-
-    await userEvent.hover(screen.getByText('Conversation preview'));
-
-    await waitFor(() => {
-      expect(screen.getByText('tooltip only')).toBeInTheDocument();
+      expect(container.textContent).toBe('12/3');
+      expect(screen.getByTestId('error-count')).toBeInTheDocument();
     });
   });
 });

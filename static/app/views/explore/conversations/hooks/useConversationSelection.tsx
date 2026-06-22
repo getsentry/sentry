@@ -53,21 +53,20 @@ export function useConversationSelection({
   }, [nodes]);
 
   const selectedNode = useMemo(() => {
-    return (
-      nodes.find(node => node.id === selectedSpanId) ??
-      nodes.find(node => node.id === defaultNodeId)
-    );
-  }, [nodes, selectedSpanId, defaultNodeId]);
+    if (!selectedSpanId) {
+      return undefined;
+    }
+    return nodes.find(node => node.id === selectedSpanId);
+  }, [nodes, selectedSpanId]);
 
   useEffect(() => {
-    if (isLoading || !defaultNodeId || focusedTool) {
+    if (isLoading || !selectedSpanId || focusedTool) {
       return;
     }
 
-    const isCurrentSpanValid =
-      selectedSpanId && nodes.some(node => node.id === selectedSpanId);
+    const isCurrentSpanValid = nodes.some(node => node.id === selectedSpanId);
 
-    if (!isCurrentSpanValid) {
+    if (!isCurrentSpanValid && defaultNodeId) {
       onSelectSpan?.(defaultNodeId);
     }
   }, [isLoading, defaultNodeId, selectedSpanId, nodes, onSelectSpan, focusedTool]);

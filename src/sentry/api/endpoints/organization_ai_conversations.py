@@ -442,10 +442,9 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 if trace_id:
                     traces_by_conversation[conv_id].add(trace_id)
 
-                if row.get("gen_ai.operation.type") == "invoke_agent":
-                    agent_name = row.get("gen_ai.agent.name", "")
-                    if agent_name:
-                        flows_by_conversation[conv_id].append(agent_name)
+                agent_name = row.get("gen_ai.agent.name", "")
+                if agent_name and agent_name not in flows_by_conversation[conv_id]:
+                    flows_by_conversation[conv_id].append(agent_name)
 
                 if row.get("gen_ai.operation.type") == "tool":
                     tool_name = row.get("gen_ai.tool.name")

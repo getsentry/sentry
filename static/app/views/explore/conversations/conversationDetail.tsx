@@ -1,4 +1,3 @@
-import type React from 'react';
 import {useCallback, useEffect, useMemo} from 'react';
 import {parseAsString, useQueryStates} from 'nuqs';
 
@@ -8,8 +7,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
-import {ConversationSummary} from 'sentry/views/explore/conversations/components/conversationSummary';
-import {ConversationViewContent} from 'sentry/views/explore/conversations/components/conversationView';
+import {ConversationHeaderV2} from 'sentry/views/explore/conversations/components/conversationHeaderV2';
+import {ConversationViewV2Content} from 'sentry/views/explore/conversations/components/conversationViewV2';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 
 function useConversationDetailQueryState() {
@@ -35,7 +34,9 @@ function ConversationDetailPage() {
     trackAnalytics('conversations.detail.page-view', {
       organization,
     });
-  }, [organization, conversationId]);
+    setQueryState({spanId: null, focusedTool: null});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
 
   const handleSelectSpan = useCallback(
     (spanId: string) => {
@@ -49,43 +50,30 @@ function ConversationDetailPage() {
 
   return (
     <ViewportConstrainedPage background="secondary">
-      <Stack flex={1} minHeight="0" overflow="hidden" padding="md 2xl" gap="md">
-        <Flex direction="column" gap="md" flexShrink={0}>
-          <ConversationSummary
+      <Stack flex={1} minHeight="0" overflow="hidden" gap="0">
+        <Container
+          background="primary"
+          padding="md 2xl"
+          flexShrink={0}
+          borderBottom="primary"
+        >
+          <ConversationHeaderV2
             nodes={nodes}
-            nodeTraceMap={nodeTraceMap}
             conversationId={conversationId}
+            nodeTraceMap={nodeTraceMap}
             isLoading={isLoading}
           />
-        </Flex>
-        <ConversationViewContainer>
-          <ConversationViewContent
+        </Container>
+        <Flex flex={1} minHeight="0" padding="md 2xl" gap="md" direction="column">
+          <ConversationViewV2Content
             conversation={conversation}
             selectedSpanId={queryState.spanId}
             onSelectSpan={handleSelectSpan}
             focusedTool={queryState.focusedTool}
           />
-        </ConversationViewContainer>
+        </Flex>
       </Stack>
     </ViewportConstrainedPage>
-  );
-}
-
-function ConversationViewContainer({children}: {children: React.ReactNode}) {
-  return (
-    <Container
-      flex={1}
-      minHeight="0"
-      overflow="hidden"
-      border="primary"
-      radius="md"
-      background="primary"
-      display="flex"
-    >
-      <Flex flex={1} minHeight="0" height="100%">
-        {children}
-      </Flex>
-    </Container>
   );
 }
 
