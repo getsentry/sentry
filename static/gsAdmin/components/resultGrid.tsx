@@ -19,6 +19,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
 import type {Cell} from 'sentry/types/system';
 import {getCells} from 'sentry/utils/cells';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -156,6 +157,24 @@ interface ResultGridProps {
    */
   defaultSort?: string;
   /**
+   * Predicate that reports whether a returned row is an *exact* match for the
+   * active search query (e.g. an org whose slug equals the searched term).
+   *
+   * When provided alongside `probeAcrossRegions`, the cross-region probe also
+   * fires when the active region returns only fuzzy/similar matches but no
+   * exact match — not just when it returns zero results. This surfaces the
+   * "this org may live in another region" hint even when a similar slug is
+   * returned in the current region.
+   *
+   * When omitted, cross-region probing falls back to the original behavior of
+   * only probing when the active region returns no results at all.
+   *
+   * `query` is passed pre-normalized: trimmed and lower-cased. Implementations
+   * should compare against an already-normalized field (e.g. an org slug, which
+   * is always lower-case) and must not re-normalize the query themselves.
+   */
+  exactMatchQuery?: (row: any, query: string) => boolean;
+  /**
    * A definition of filters
    */
   filters?: Record<string, FilterDescriptor>;
@@ -245,9 +264,15 @@ export type State = {
   error: boolean;
   filters: Location['query'];
   loading: boolean;
+  /**
+   * Whether the active region returned no exact match for the current search
+   * (either no results at all, or only fuzzy/similar matches). Drives whether
+   * the cross-region hint should be surfaced.
+   */
+  missingExactMatch: boolean;
   pageLinks: string | null;
   /**
-   * Whether we are currently probing other regions after an empty result.
+   * Whether we are currently probing other regions after a missing exact match.
    */
   probingRegions: boolean;
   query: string;
@@ -314,6 +339,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       filters: Object.assign({}, queryParams),
       regionMatches: [],
       probingRegions: false,
+      missingExactMatch: false,
     };
   }
 
@@ -355,6 +381,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
         error: false,
         regionMatches: [],
         probingRegions: false,
+        missingExactMatch: false,
       },
       this.fetchData
     );
@@ -389,8 +416,16 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     // the token) and clear its UI state here, the single entry point for fetches,
     // so it's reset regardless of which caller (refresh/onCursor/onSearch) we hit.
     this.probeToken += 1;
-    if (this.state.probingRegions || this.state.regionMatches.length > 0) {
-      this.setState({probingRegions: false, regionMatches: []});
+    if (
+      this.state.probingRegions ||
+      this.state.regionMatches.length > 0 ||
+      this.state.missingExactMatch
+    ) {
+      this.setState({
+        probingRegions: false,
+        regionMatches: [],
+        missingExactMatch: false,
+      });
     }
 
     // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
@@ -409,33 +444,54 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       data: queryParams,
       success: (data, _, resp) => {
         const rows = this.props.rowsFromData?.(data, this.state.cell) ?? data;
+        const rowsArray = Array.isArray(rows) ? rows : [];
+
+        // The query lives in the URL when useQueryString is on, otherwise in
+        // component state — fall back so probes always carry the search term.
+        const query = queryParams.query ?? this.state.query;
+        // Normalize once (trim + lower-case) so `exactMatchQuery` implementations
+        // can compare against an already-normalized field without re-normalizing.
+        const normalizedQuery = extractQuery(query).trim().toLowerCase();
+
+        const pageLinks = resp?.getResponseHeader('Link') ?? '';
+        // We can only conclude that a region lacks an exact match when we're
+        // looking at its *complete* result set: the first page with no further
+        // pages. If results span multiple pages the exact slug could live on a
+        // page we haven't loaded, which would both produce a misleading "No
+        // exact match" hint and make the hint vanish the moment the user
+        // paginates. An empty result is naturally a complete set.
+        const isFirstPage = !extractQuery(queryParams.cursor);
+        const hasNextPage = parseLinkHeader(pageLinks).next?.results === true;
+        const isCompleteResultSet = isFirstPage && !hasNextPage;
+
+        // Probe other regions whenever the active region lacks an *exact* match
+        // for the search. With an `exactMatchQuery` predicate this includes the
+        // case where the region returns only fuzzy/similar matches (e.g. a
+        // look-alike org slug) but not the exact slug searched. Without the
+        // predicate we fall back to probing only on a completely empty result.
+        const isEmpty = rowsArray.length === 0;
+        const missingExactMatch = Boolean(
+          this.props.probeAcrossRegions &&
+          isCompleteResultSet &&
+          hasSearchQuery(query) &&
+          (this.props.exactMatchQuery
+            ? !rowsArray.some(row => this.props.exactMatchQuery!(row, normalizedQuery))
+            : isEmpty)
+        );
+
         this.setState({
           loading: false,
           error: false,
           rows,
-          pageLinks: resp?.getResponseHeader('Link') ?? '',
+          pageLinks,
           regionMatches: [],
+          missingExactMatch,
         });
         if (this.props.onLoad) {
           this.props.onLoad();
         }
 
-        // When a region-scoped search comes up empty, check whether the org
-        // lives in another data region so we can point the user there.
-        const isEmpty = !Array.isArray(rows) || rows.length === 0;
-        // The query lives in the URL when useQueryString is on, otherwise in
-        // component state — fall back so probes always carry the search term.
-        const query = queryParams.query ?? this.state.query;
-        // Only probe on the first page. A paginated empty page (cursor set) does
-        // not mean the current region has no matches — it has results on earlier
-        // pages — so probing there would falsely report "no results in <region>".
-        const isFirstPage = !extractQuery(queryParams.cursor);
-        if (
-          this.props.probeAcrossRegions &&
-          isEmpty &&
-          isFirstPage &&
-          hasSearchQuery(query)
-        ) {
+        if (missingExactMatch) {
           this.probeOtherRegions({...queryParams, query});
         }
       },
@@ -582,7 +638,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       !this.props.probeAcrossRegions ||
       this.state.loading ||
       this.state.error ||
-      this.state.rows.length > 0
+      !this.state.missingExactMatch
     ) {
       return null;
     }
@@ -596,12 +652,16 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     }
 
     const currentName = this.state.cell?.name ?? 'this region';
+    // The active region returned similar (but not exact) matches — make it
+    // clear the exact record was not found here, rather than implying no
+    // results at all.
+    const leadText = this.state.rows.length > 0 ? 'No exact match in' : 'No results in';
 
     return (
       <RegionHintAlert variant="info" showIcon>
         <Flex align="center" gap="md" wrap="wrap">
           <span>
-            No results in <strong>{currentName}</strong>. Found results in another data
+            {leadText} <strong>{currentName}</strong>. Found results in another data
             region:
           </span>
           {this.state.regionMatches.map(cell => (

@@ -23,6 +23,7 @@ from sentry.identity.datadog.provider import (
     DatadogOAuth2CallbackView,
     DatadogOAuth2DCRView,
     DatadogOAuth2LoginView,
+    DatadogPatIdentityProvider,
     MissingPipelineStateError,
 )
 from sentry.identity.pipeline import IdentityPipeline
@@ -669,6 +670,81 @@ class DatadogIdentityProviderTest(TestCase):
         assert (
             self.provider.build_mcp_url({"site": "datadoghq.eu"})
             == "https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp"
+        )
+
+    def test_build_mcp_url_missing_site(self) -> None:
+        assert self.provider.build_mcp_url({}) is None
+
+    def test_build_mcp_url_invalid_site(self) -> None:
+        assert self.provider.build_mcp_url({"site": "evil.example.com"}) is None
+
+
+@control_silo_test
+class DatadogPatIdentityProviderTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.provider = DatadogPatIdentityProvider()
+
+    def test_no_pipeline_views(self) -> None:
+        assert self.provider.get_pipeline_views() == []
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity(self, mock_get_user_info: MagicMock) -> None:
+        mock_get_user_info.return_value = {
+            "user_uuid": "dd-user-123",
+            "org_uuid": "dd-org-456",
+            "user_email": "user@example.com",
+            "user_name": "Test User",
+        }
+
+        result = self.provider.build_identity({"access_token": "pat-abc", "site": "datadoghq.com"})
+
+        assert result["type"] == "datadog_pat"
+        assert result["id"] == "dd-user-123"
+        assert result["idp_external_id"] == "dd-org-456"
+        assert result["idp_config"] == {"site": "datadoghq.com"}
+        assert result["email"] == "user@example.com"
+        assert result["name"] == "Test User"
+        assert result["scopes"] == []
+        assert result["data"] == {"access_token": "pat-abc", "site": "datadoghq.com"}
+        mock_get_user_info.assert_called_once_with("pat-abc", "https://mcp.datadoghq.com")
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_missing_access_token(self, mock_get_user_info: MagicMock) -> None:
+        with pytest.raises(ValueError, match="requires an 'access_token'"):
+            self.provider.build_identity({"site": "datadoghq.com"})
+        mock_get_user_info.assert_not_called()
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_missing_site(self, mock_get_user_info: MagicMock) -> None:
+        with pytest.raises(ValueError, match="requires a 'site'"):
+            self.provider.build_identity({"access_token": "pat-abc"})
+        mock_get_user_info.assert_not_called()
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_invalid_site(self, mock_get_user_info: MagicMock) -> None:
+        with pytest.raises(ValueError, match="Invalid Datadog site"):
+            self.provider.build_identity({"access_token": "pat-abc", "site": "evil.example.com"})
+        mock_get_user_info.assert_not_called()
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_missing_user_uuid(self, mock_get_user_info: MagicMock) -> None:
+        mock_get_user_info.return_value = {"org_uuid": "dd-org-456"}
+
+        with pytest.raises(IdentityNotValid, match="missing required fields"):
+            self.provider.build_identity({"access_token": "pat-abc", "site": "datadoghq.com"})
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_missing_org_uuid(self, mock_get_user_info: MagicMock) -> None:
+        mock_get_user_info.return_value = {"user_uuid": "dd-user-123"}
+
+        with pytest.raises(IdentityNotValid, match="missing required fields"):
+            self.provider.build_identity({"access_token": "pat-abc", "site": "datadoghq.com"})
+
+    def test_build_mcp_url(self) -> None:
+        assert (
+            self.provider.build_mcp_url({"site": "datadoghq.com"})
+            == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
         )
 
     def test_build_mcp_url_missing_site(self) -> None:
