@@ -2,7 +2,7 @@ import {useCallback, useEffect, useRef} from 'react';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack, type StackProps} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack, type StackProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -191,13 +191,7 @@ export function ScmIntegrationConnect({
       maxWidth={maxWidth}
       paddingTop={allowIntegrationSwitching ? undefined : '2xl'}
     >
-      {allowIntegrationSwitching ? (
-        <ScmIntegrationSelect
-          integrations={activeIntegrations}
-          selectedIntegration={effectiveIntegration}
-          onChange={handleIntegrationSelect}
-        />
-      ) : (
+      {allowIntegrationSwitching ? null : (
         <Text bold size="sm" density="compressed" uppercase>
           {t(
             'Connected to %s / %s',
@@ -206,13 +200,27 @@ export function ScmIntegrationConnect({
           )}
         </Text>
       )}
-      <ScmRepoSelector
-        analyticsFlow={analyticsFlow}
-        integration={effectiveIntegration}
-        selectedRepository={selectedRepository}
-        onRepositoryChange={onRepositoryChange}
-        onClearDerivedState={onClearDerivedState}
-      />
+      <Grid
+        columns={allowIntegrationSwitching ? '1fr min-content' : '1fr'}
+        width="100%"
+        gap="md"
+        align="center"
+      >
+        <ScmRepoSelector
+          analyticsFlow={analyticsFlow}
+          integration={effectiveIntegration}
+          selectedRepository={selectedRepository}
+          onRepositoryChange={onRepositoryChange}
+          onClearDerivedState={onClearDerivedState}
+        />
+        {allowIntegrationSwitching ? (
+          <ScmIntegrationSelect
+            integrations={activeIntegrations}
+            selectedIntegration={effectiveIntegration}
+            onChange={handleIntegrationSelect}
+          />
+        ) : null}
+      </Grid>
     </MotionStack>
   ) : (
     <MotionStack key="without-integration" gap="2xl" width="100%" maxWidth={maxWidth}>

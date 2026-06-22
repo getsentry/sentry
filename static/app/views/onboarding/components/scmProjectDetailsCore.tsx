@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 
 import {Input} from '@sentry/scraps/input';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
@@ -58,9 +58,7 @@ export function ScmProjectDetailsCore({
       <Stack gap="md">
         <Stack gap="xs">
           <Container>
-            <Text bold size="md" density="comfortable">
-              {t('Project name')}
-            </Text>
+            <Heading as="h4">{t('Project name')}</Heading>
           </Container>
           <Container>
             <Text variant="muted" density="comfortable">
@@ -81,9 +79,7 @@ export function ScmProjectDetailsCore({
         <Stack gap="md">
           <Stack gap="xs">
             <Container>
-              <Text bold size="md" density="comfortable">
-                {t('Team')}
-              </Text>
+              <Heading as="h4">{t('Team')}</Heading>
             </Container>
             <Container>
               <Text variant="muted" density="comfortable">

@@ -1,5 +1,5 @@
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
@@ -30,9 +30,7 @@ export function ScmFeatureSelectionCards({
   return (
     <Stack gap="xl" width="100%" justify="center">
       <Flex justify="between" align="center">
-        <Text bold size="md" density="comfortable">
-          {t('What do you want to instrument?')}
-        </Text>
+        <Heading as="h4">{t('What do you want to instrument?')}</Heading>
         {availableFeatures.length > 1 ? (
           <Text size="sm" variant="secondary">
             {t('Choose one or more')}

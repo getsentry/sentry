@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
-import {Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 
 import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -311,9 +311,7 @@ export function ScmPlatformFeaturesCore({
       <Flex justify="between" align="center">
         <Flex align="center" gap="sm">
           <IconBroadcast size="sm" />
-          <Text bold size="md" density="comfortable">
-            {t('Auto-detected from your repository')}
-          </Text>
+          <Heading as="h4">{t('Auto-detected from your repository')}</Heading>
         </Flex>
         <Button size="xs" variant="link" onClick={handleChangePlatformClick}>
           {isDetecting
@@ -330,9 +328,10 @@ export function ScmPlatformFeaturesCore({
           <Grid
             columns={{
               xs: '1fr',
-              md: `repeat(${resolvedPlatforms.length}, minmax(200px, 1fr))`,
+              md: `repeat(${resolvedPlatforms.length}, minmax(100px, 1fr))`,
             }}
-            width="100%"
+            maxWidth="100%"
+            alignSelf="center"
             justify="center"
             gap="md"
             role="radiogroup"
@@ -361,9 +360,7 @@ export function ScmPlatformFeaturesCore({
     >
       <Flex justify="between" align="center">
         <Flex align="center" gap="sm">
-          <Text bold size="md" density="comfortable">
-            {t('Select a platform')}
-          </Text>
+          <Heading as="h4">{t('Select a platform')}</Heading>
         </Flex>
         {hasScmConnected && !isDetectionError && hasDetectedPlatforms && (
           <Button size="xs" variant="link" onClick={handleBackToRecommended}>
