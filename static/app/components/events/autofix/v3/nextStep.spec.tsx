@@ -1,4 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -512,11 +513,15 @@ describe('SeerDrawerNextStep', () => {
   });
 
   describe('PullRequestNextStep', () => {
+    const prIterationOrganization = OrganizationFixture({
+      features: ['autofix-pr-iteration'],
+    });
+
     function makePrIterationAutofix(
       overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
     ) {
       return makeAutofix({
-        runState: {run_id: 1, pr_iteration_enabled: true, blocks: []} as any,
+        runState: {run_id: 1, blocks: []} as any,
         ...overrides,
       });
     }
@@ -545,7 +550,8 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture()}
           sections={[makeSection('pull_request')]}
           autofix={makePrIterationAutofix()}
-        />
+        />,
+        {organization: prIterationOrganization}
       );
       expect(
         screen.getByText('Anything else you want to see on your PR?')
@@ -561,7 +567,8 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture({id: '123'})}
           sections={[makeSection('pull_request')]}
           autofix={autofix}
-        />
+        />,
+        {organization: prIterationOrganization}
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'Add a test for this');
@@ -584,7 +591,8 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture()}
           sections={[makeSection('pull_request')]}
           autofix={autofix}
-        />
+        />,
+        {organization: prIterationOrganization}
       );
 
       const textbox = screen.getByRole('textbox');
@@ -605,7 +613,8 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture()}
           sections={[makeSection('pull_request')]}
           autofix={autofix}
-        />
+        />,
+        {organization: prIterationOrganization}
       );
 
       await userEvent.type(screen.getByRole('textbox'), '{Enter}');

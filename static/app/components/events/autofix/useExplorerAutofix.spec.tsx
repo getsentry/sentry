@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -594,21 +596,13 @@ describe('isPrIterationBlock', () => {
 });
 
 describe('isRunValidForPrIteration', () => {
-  function state(pr_iteration_enabled?: boolean): ExplorerAutofixState {
-    return {
-      run_id: 1,
-      status: 'completed',
-      updated_at: '2026-01-01T00:00:00Z',
-      blocks: [],
-      pr_iteration_enabled,
-    };
-  }
-
-  it('is true only when pr_iteration_enabled is explicitly true', () => {
-    expect(isRunValidForPrIteration(state(true))).toBe(true);
-    expect(isRunValidForPrIteration(state(false))).toBe(false);
-    expect(isRunValidForPrIteration(state(undefined))).toBe(false);
-    expect(isRunValidForPrIteration(null)).toBe(false);
+  it('is true only when the autofix-pr-iteration feature is enabled', () => {
+    expect(
+      isRunValidForPrIteration(
+        OrganizationFixture({features: ['autofix-pr-iteration']})
+      )
+    ).toBe(true);
+    expect(isRunValidForPrIteration(OrganizationFixture({features: []}))).toBe(false);
   });
 });
 

@@ -8,6 +8,7 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseResetAutofixStepOptions {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -22,9 +23,10 @@ export function useResetAutofixStep({
 }: UseResetAutofixStepOptions) {
   const [shouldShowReset, setShouldShowReset] = useState(false);
 
+  const organization = useOrganization();
   const {runState, startStep} = autofix;
   const runId = runState?.run_id;
-  const allowResetAfterPRs = isRunValidForPrIteration(runState);
+  const allowResetAfterPRs = isRunValidForPrIteration(organization);
 
   const handleReset = useMemo(() => {
     return async (userContext?: string) => {

@@ -14,7 +14,6 @@ import {
   getAutofixArtifactFromSection,
   isCodeChangesArtifact,
   isPrIterationBlock,
-  isRunValidForPrIteration,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -201,8 +200,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       step: 'code_changes',
     });
 
-  const prIterationEnabled =
-    hasPrIterationFeature && isRunValidForPrIteration(autofix.runState);
+  const prIterationEnabled = hasPrIterationFeature;
   const hasPRs = Object.keys(autofix.runState?.repo_pr_states ?? {}).length > 0;
 
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);

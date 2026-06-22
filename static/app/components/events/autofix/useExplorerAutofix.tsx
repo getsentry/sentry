@@ -16,6 +16,7 @@ import {
   needsGitHubAuth,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
+import type {Organization} from 'sentry/types/organization';
 import {isArrayOf, isString} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -134,7 +135,6 @@ export interface ExplorerAutofixState {
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
-  pr_iteration_enabled?: boolean;
   repo_pr_states?: Record<string, RepoPRState>;
 }
 
@@ -394,8 +394,8 @@ export function isCodingAgentsSection(section: AutofixSection): boolean {
   return section.step === 'coding_agents';
 }
 
-export function isRunValidForPrIteration(runState: ExplorerAutofixState | null): boolean {
-  return runState?.pr_iteration_enabled === true;
+export function isRunValidForPrIteration(organization: Organization): boolean {
+  return organization.features.includes('autofix-pr-iteration');
 }
 
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {

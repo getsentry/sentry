@@ -105,9 +105,9 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
 }
 
 function PullRequestNextStep({autofix, group, runId, referrer}: NextStepProps) {
-  const {runState} = autofix;
+  const organization = useOrganization();
 
-  if (!isRunValidForPrIteration(runState)) {
+  if (!isRunValidForPrIteration(organization)) {
     return null;
   }
 
