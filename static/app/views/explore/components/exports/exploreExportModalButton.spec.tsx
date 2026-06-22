@@ -29,7 +29,9 @@ function makeConfig(): ExploreExportConfig {
   };
 }
 
-function renderButton(props: Partial<React.ComponentProps<typeof ExploreExportModalButton>> = {}) {
+function renderButton(
+  props: Partial<React.ComponentProps<typeof ExploreExportModalButton>> = {}
+) {
   const onOpen = jest.fn();
   const onClose = jest.fn();
   render(

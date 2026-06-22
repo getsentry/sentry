@@ -14,9 +14,9 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
-import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {TracesExportModalButton} from 'sentry/views/explore/spans/tracesExportModalButton';
+import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 
 jest.mock('sentry/views/discover/utils', () => ({
   ...jest.requireActual('sentry/views/discover/utils'),
