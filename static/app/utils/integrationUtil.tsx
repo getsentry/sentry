@@ -25,7 +25,6 @@ import type {
   IntegrationInstallationStatus,
   IntegrationProvider,
   IntegrationType,
-  PluginNoProject,
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
@@ -142,11 +141,6 @@ export function isDocIntegration(
  */
 export function isScmProvider(provider: IntegrationProvider): boolean {
   return provider.metadata.features.some(f => f.featureGate.includes('commits'));
-}
-
-// Deprecated: will be removed with pluginConfig.tsx
-export function isScmPlugin(plugin: PluginNoProject): boolean {
-  return plugin.features.includes('commits');
 }
 
 export function isExternalActorMapping(
