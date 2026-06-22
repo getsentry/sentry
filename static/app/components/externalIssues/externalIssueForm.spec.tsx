@@ -234,6 +234,76 @@ describe('ExternalIssueForm', () => {
       expect(screen.getByRole('button', {name: 'Link Issue'})).toBeInTheDocument();
     });
 
+    it('should reset shared field names when switching actions', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        body: {
+          createIssueConfig: [
+            {
+              label: 'Title',
+              required: true,
+              type: 'string',
+              name: 'title',
+              default: 'Create default',
+            },
+          ],
+        },
+        match: [MockApiClient.matchQuery({action: 'create'})],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        body: {
+          linkIssueConfig: [
+            {
+              label: 'Title',
+              required: true,
+              type: 'string',
+              name: 'title',
+              default: 'Link default',
+            },
+          ],
+        },
+        match: [MockApiClient.matchQuery({action: 'link'})],
+      });
+
+      render(
+        <ExternalIssueForm
+          Body={ModalBody}
+          Header={makeClosableHeader(closeModal)}
+          Footer={ModalFooter}
+          CloseButton={makeCloseButton(closeModal)}
+          closeModal={closeModal}
+          onChange={onChange}
+          group={group}
+          integration={integration}
+        />,
+        {organization}
+      );
+
+      expect(await screen.findByRole('textbox', {name: 'Title'})).toHaveValue(
+        'Create default'
+      );
+
+      await userEvent.click(screen.getByText('Link'));
+      expect(await screen.findByRole('textbox', {name: 'Title'})).toHaveValue(
+        'Link default'
+      );
+
+      await userEvent.click(screen.getByText('Create'));
+      const titleInput = await screen.findByRole('textbox', {name: 'Title'});
+      expect(titleInput).toHaveValue('Create default');
+      await userEvent.clear(titleInput);
+      await userEvent.type(titleInput, 'Create title');
+
+      await userEvent.click(screen.getByText('Link'));
+
+      expect(await screen.findByRole('textbox', {name: 'Title'})).toHaveValue(
+        'Link default'
+      );
+      expect(screen.getByRole('button', {name: 'Link Issue'})).toBeInTheDocument();
+    });
+
     it('if we have an error fields, we should disable the create button', async () => {
       formConfig = {
         createIssueConfig: [

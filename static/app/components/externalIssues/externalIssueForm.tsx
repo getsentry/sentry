@@ -392,6 +392,7 @@ export function ExternalIssueForm({
           <LoadingError message={errorMessage} />
         ) : (
           <BackendJsonSubmitForm
+            key={action}
             fields={formFields}
             onSubmit={handleSubmit}
             submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
