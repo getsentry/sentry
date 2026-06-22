@@ -23,7 +23,7 @@ class SeerNightShiftRunResultResponse(TypedDict):
     dateAdded: str
 
 
-# TODO(seer): legacy alias for the frontend. Drop this, the `issues` key, and
+# TODO(telkins): legacy alias for the frontend. Drop this, the `issues` key, and
 # `_serialize_legacy_issue` once the UI reads `results` instead (filtering to
 # kind=agentic_triage). The frontend migration must deploy before the removal.
 class SeerNightShiftRunIssueResponse(TypedDict):
