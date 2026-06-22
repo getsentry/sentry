@@ -75,6 +75,54 @@ class SeerRun(DefaultFieldsModel):
 
 
 @cell_silo_model
+class SeerRunPullRequest(DefaultFieldsModel):
+    """Links a Seer run to a pull request it opened.
+
+    Populated from Seer's ``seer.pr_created`` event, independently of the
+    PR-metrics attribution pipeline. Only covers PRs that Seer opens directly
+    (autofix, explorer); PRs opened out-of-band by delegated third-party coding
+    agents are not tracked here.
+
+    Keyed on ``seer_run_state_id`` (Seer's ``DbRunState.id``) rather than a hard
+    ``SeerRun`` FK because the ``SeerRun`` mirror is outbox-backed and may not be
+    LIVE yet when the PR-created event arrives. ``seer_run`` is attached when the
+    mirror row is available and left null otherwise.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    # Seer's DbRunState.id — the authoritative run identifier, matching
+    # SeerRun.seer_run_state_id. Always present even when the mirror lags.
+    seer_run_state_id = BoundedBigIntegerField()
+    # Nullable: the SeerRun mirror may not exist yet when this row is created.
+    seer_run = FlexibleForeignKey(
+        "seer.SeerRun",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="pull_request_links",
+    )
+    pull_request = FlexibleForeignKey(
+        "sentry.PullRequest", on_delete=models.CASCADE, related_name="seer_run_links"
+    )
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_seerrunpullrequest"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["seer_run_state_id", "pull_request"],
+                name="seer_runpr_unique_run_state_pr",
+            ),
+        ]
+        indexes = [
+            # Reverse lookup: which run(s) opened this PR.
+            models.Index(fields=["pull_request"]),
+        ]
+
+    __repr__ = sane_repr("seer_run_state_id", "pull_request_id")
+
+
+@cell_silo_model
 class SeerAgentRun(DefaultFieldsModel):
     """
     Sibling of SeerRun for runs that appear in the agent session-history UI.
