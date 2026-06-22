@@ -560,7 +560,10 @@ def get_group_pull_request_url(group: Group) -> str | None:
     if pull_request is None:
         return None
 
-    return pull_request.get_external_url()
+    try:
+        return pull_request.get_external_url()
+    except Exception:
+        return None
 
 
 def get_group_commit_url(group: Group) -> str | None:
