@@ -247,13 +247,13 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
-            if (
-                referrer is not None
-                and is_valid_referrer(referrer)
-                and referrer.startswith("seer.")
-            ):
-                sentry_sdk.set_tag("query.from_seer", True)
-                sentry_sdk.set_attribute("query.from_seer", True)
+            if referrer is not None and is_valid_referrer(referrer):
+                if referrer.startswith("seer."):
+                    sentry_sdk.set_tag("query.from_seer", True)
+                    sentry_sdk.set_attribute("query.from_seer", True)
+                elif referrer.startswith("api.mcp."):
+                    sentry_sdk.set_tag("query.from_mcp", True)
+                    sentry_sdk.set_attribute("query.from_mcp", True)
             else:
                 referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
         elif referrer is None or not referrer:
