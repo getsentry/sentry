@@ -64,6 +64,8 @@ from sentry.plugins.providers.integration_repository import (
 )
 from sentry.pr_metrics.webhooks import handle_activity as pr_metrics_handle_activity
 from sentry.pr_metrics.webhooks import handle_attribution as pr_metrics_handle_attribution
+from sentry.pr_metrics.webhooks import handle_check_run as pr_metrics_handle_check_run
+from sentry.pr_metrics.webhooks import handle_check_suite as pr_metrics_handle_check_suite
 from sentry.pr_metrics.webhooks import handle_comment as pr_metrics_handle_comment
 from sentry.pr_metrics.webhooks import handle_emission as pr_metrics_handle_emission
 from sentry.pr_metrics.webhooks import handle_metrics as pr_metrics_handle_metrics
@@ -1137,6 +1139,7 @@ class CheckRunEventWebhook(GitHubWebhook):
     WEBHOOK_EVENT_PROCESSORS = (
         code_review_handle_webhook_event,
         handle_preprod_check_run_event,
+        pr_metrics_handle_check_run,
     )
 
 
@@ -1176,7 +1179,7 @@ class PullRequestReviewThreadEventWebhook(GitHubWebhook):
 
 class CheckSuiteWebhook(GitHubWebhook):
     EVENT_TYPE = IntegrationWebhookEventType.CHECK_SUITE
-    WEBHOOK_EVENT_PROCESSORS = ()
+    WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_check_suite,)
 
 
 @all_silo_endpoint
