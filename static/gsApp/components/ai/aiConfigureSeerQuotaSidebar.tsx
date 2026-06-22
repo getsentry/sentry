@@ -17,7 +17,6 @@ export function AiConfigureSeerQuotaSidebar({
   aiConfig,
   group,
   project,
-  event,
 }: AutofixContentProps) {
   const organization = useOrganization();
   const subscription = useSubscription();
@@ -27,9 +26,7 @@ export function AiConfigureSeerQuotaSidebar({
   }
 
   if (aiConfig.hasAutofixQuota) {
-    return (
-      <AutofixContent aiConfig={aiConfig} group={group} project={project} event={event} />
-    );
+    return <AutofixContent aiConfig={aiConfig} group={group} project={project} />;
   }
 
   const hasBillingPerms = hasAccessToSubscriptionOverview(subscription, organization);

@@ -27,9 +27,9 @@ type RowStatus = 'match' | 'mismatch' | 'legacy_only' | 'platform_only';
 type Row = {
   delta_cents: number;
   delta_pct: number | null;
-  legacy_amount: number | null;
   // guid is present only when the side has exactly one invoice in the window
   // (otherwise there's no single invoice to deep-link to).
+  legacy_amount: number | null;
   legacy_invoice_count: number;
   legacy_invoice_guid: string | null;
   organization_id: number;
@@ -43,9 +43,9 @@ type Row = {
 type Summary = {
   end: string;
   legacy_count: number;
-  legacy_total_cents: number;
+  over_threshold_count: number;
+  over_threshold_pct: number;
   platform_count: number;
-  platform_total_cents: number;
   queried_at: string;
   row_count: number;
   rows_page: number;
@@ -93,14 +93,6 @@ function formatDollars(cents: number | null) {
   return `$${dollars.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 }
 
-function formatPercent(pct: number | null) {
-  if (pct === null) {
-    // No legacy baseline — sorts to top of the list.
-    return <em>∞</em>;
-  }
-  return `${(pct * 100).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
-}
-
 // Render a dollar amount, deep-linking to the org-scoped invoice detail page
 // when we have both the org slug and a single invoice's guid. The receipts
 // page (CustomerInvoiceDetailsEndpoint) resolves legacy and platform invoices
@@ -121,6 +113,43 @@ function InvoiceAmount({
     return amount;
   }
   return <a href={`/settings/${orgSlug}/billing/receipts/${guid}/`}>{amount}</a>;
+}
+
+function formatPercent(pct: number | null) {
+  if (pct === null) {
+    // No legacy baseline — sorts to top of the list.
+    return <em>∞</em>;
+  }
+  return `${(pct * 100).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
+}
+
+// `formatPercent` renders ``null`` as ``∞`` because for ``delta_pct`` rows
+// a missing percentage means "undefined drift" (legacy=$0 with non-zero
+// platform — sorts to the top of the list). That semantic doesn't apply
+// to summary ratios like ``over_threshold_pct`` / ``unmatched_invoice_pct``,
+// where a runtime ``null``/``undefined`` would just mean the backend
+// didn't populate the field (deploy-window race, response-shape drift).
+// Render those as ``N/A`` instead of pretending the metric blew up.
+function formatPercentOrNA(pct: number | null | undefined) {
+  if (pct === null || pct === undefined) {
+    return <em>N/A</em>;
+  }
+  return `${(pct * 100).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
+}
+
+// Same deploy-window-race rationale as `formatPercentOrNA`: the type
+// declares these as `number` but a stale-cached response or any future
+// shape drift could leave them runtime-`undefined`, which would render
+// the literal string "undefined" in the UI. NaN is also caught — it
+// shows up when arithmetic propagates an undefined operand (e.g.
+// `legacy_count + platform_count` for the Unmatched denominator).
+// Falling back to an em dash matches the missing-value affordance
+// `formatDollars` already uses.
+function formatCountOrNA(n: number | null | undefined) {
+  if (n === null || n === undefined || Number.isNaN(n)) {
+    return <em>—</em>;
+  }
+  return n.toLocaleString();
 }
 
 // `datetime-local` inputs use the user's local timezone with no offset
@@ -433,11 +462,11 @@ export function InvoiceComparison() {
             <PanelHeader>Summary</PanelHeader>
             <PanelBody withPadding>
               <Grid
-                columns="repeat(7, 1fr)"
+                columns="repeat(4, 1fr)"
                 gap="xl"
                 css={css`
                   @media (max-width: 900px) {
-                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-columns: repeat(2, 1fr);
                   }
                 `}
               >
@@ -446,7 +475,7 @@ export function InvoiceComparison() {
                     Legacy invoices
                   </Text>
                   <Text size="lg" bold>
-                    {data.summary.legacy_count}
+                    {formatCountOrNA(data.summary.legacy_count)}
                   </Text>
                 </Flex>
                 <Flex direction="column">
@@ -454,41 +483,19 @@ export function InvoiceComparison() {
                     Platform invoices
                   </Text>
                   <Text size="lg" bold>
-                    {data.summary.platform_count}
+                    {formatCountOrNA(data.summary.platform_count)}
                   </Text>
                 </Flex>
                 <Flex direction="column">
                   <Text size="sm" variant="muted">
-                    Legacy total
+                    {'>1% diff'}
                   </Text>
                   <Text size="lg" bold>
-                    {formatDollars(data.summary.legacy_total_cents)}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Platform total
-                  </Text>
-                  <Text size="lg" bold>
-                    {formatDollars(data.summary.platform_total_cents)}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Total delta
-                  </Text>
-                  <Text size="lg" bold>
-                    {formatDollars(
-                      data.summary.legacy_total_cents - data.summary.platform_total_cents
-                    )}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Rows
-                  </Text>
-                  <Text size="lg" bold>
-                    {data.summary.row_count}
+                    {formatPercentOrNA(data.summary.over_threshold_pct)}
+                    <TruncatedNote size="sm" variant="muted">
+                      ({formatCountOrNA(data.summary.over_threshold_count)} of{' '}
+                      {formatCountOrNA(data.summary.row_count)})
+                    </TruncatedNote>
                   </Text>
                 </Flex>
                 <Flex direction="column">
@@ -496,10 +503,13 @@ export function InvoiceComparison() {
                     Unmatched
                   </Text>
                   <Text size="lg" bold>
-                    {formatPercent(data.summary.unmatched_invoice_pct)}
+                    {formatPercentOrNA(data.summary.unmatched_invoice_pct)}
                     <TruncatedNote size="sm" variant="muted">
-                      ({data.summary.unmatched_invoice_count} of{' '}
-                      {data.summary.legacy_count + data.summary.platform_count})
+                      ({formatCountOrNA(data.summary.unmatched_invoice_count)} of{' '}
+                      {formatCountOrNA(
+                        data.summary.legacy_count + data.summary.platform_count
+                      )}
+                      )
                     </TruncatedNote>
                   </Text>
                 </Flex>
