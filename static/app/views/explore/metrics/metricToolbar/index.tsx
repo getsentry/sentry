@@ -187,6 +187,7 @@ export function MetricToolbar({
         <Filter
           traceMetric={traceMetric}
           skipTraceMetricFilter={isVisualizeEquation(visualize)}
+          disabled={isVisualizeEquation(visualize) && hasUnresolvedMetrics}
         />
       )}
     </Flex>
