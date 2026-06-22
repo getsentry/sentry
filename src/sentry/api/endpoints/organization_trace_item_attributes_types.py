@@ -8,14 +8,16 @@ class TraceItemAttributeSource(TypedDict):
 
 class TraceItemAttributeContext(TypedDict):
     """
-    Additional, mostly-static metadata about an attribute sourced from the
-    sentry conventions (``sentry_conventions.attributes.ATTRIBUTE_METADATA``).
+    Additional, mostly-static metadata about an attribute.
 
     When ``expand=context`` is requested (and the
     ``data-browsing-attribute-context`` feature is enabled), context is attached
-    to every attribute. Attributes that map to a known sentry convention carry
-    the convention metadata (only the fields actually present are included);
-    custom attributes get an empty context.
+    to every attribute. Today the metadata is sourced from the sentry
+    conventions (``sentry_conventions.attributes.ATTRIBUTE_METADATA``), so
+    attributes that map to a known convention carry that metadata (only the
+    fields actually present are included) while custom attributes get an empty
+    context. Serving context for custom attributes is planned, at which point
+    the empty contexts will start to be populated.
     """
 
     # A short, human-readable description of the attribute. Present for a known
@@ -40,7 +42,8 @@ class TraceItemAttributeKey(TypedDict):
     secondaryAliases: NotRequired[list[str]]
     attributeSource: TraceItemAttributeSource
     attributeType: Literal["string", "number", "boolean"]
-    # Sentry conventions metadata, only present when requested via
-    # ``expand=context`` (and gated behind the feature flag). Attached to every
-    # attribute when requested; empty for custom (non-convention) attributes.
+    # Attribute context, only present when requested via ``expand=context`` (and
+    # gated behind the feature flag). Attached to every attribute when
+    # requested; currently empty for custom (non-convention) attributes, which
+    # will be populated once custom attribute context is served.
     context: NotRequired[TraceItemAttributeContext]

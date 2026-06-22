@@ -535,7 +535,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "isDeprecated": True,
             "replacementAttribute": "sentry.segment.name",
         }
-        # User tags are not sentry conventions, so they get an empty context.
+        # Custom attribute context isn't served yet, so user tags get an empty
+        # context for now.
         assert attributes["foo"]["context"] == {}
         # A user tag whose name collides with a sentry convention still gets an
         # empty context, because only `sentry`-source attributes are expanded.

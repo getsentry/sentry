@@ -397,8 +397,9 @@ def as_attribute_key(
 
     if include_context:
         # When context is requested we always attach it, even for custom
-        # (non-sentry-convention) attributes. Attributes that don't map to a
-        # known convention get an empty context.
+        # (non-sentry-convention) attributes. Today only sentry-convention
+        # attributes have metadata to surface, so custom attributes get an empty
+        # context for now; serving custom attribute context is planned.
         context: TraceItemAttributeContext = {}
         if serialized_source["source_type"] == AttributeSourceType.SENTRY.value:
             context = build_sentry_convention_context(public_name, name) or {}
