@@ -93,6 +93,47 @@ def test_insert_spans_metrics_emits_evalsha_data() -> None:
     )
 
 
+def test_insert_spans_metrics_ignores_unsampled_results() -> None:
+    insert_spans_metrics = InsertSpansMetrics()
+    buffer_logger = mock.Mock()
+
+    # Unsampled call: latency_ms == -1 sentinel with empty metric tables. Should be ignored.
+    insert_spans_metrics.record_evalsha_result(
+        "1:" + "a" * 32,
+        EvalshaResult(
+            segment_key=_segment_id(1, "a" * 32, "a" * 16),
+            has_root_span=False,
+            latency_ms=-1,
+            latency_metrics=[],
+            gauge_metrics=[],
+            merged_segment_span_ids=[],
+        ),
+    )
+    # Sampled call.
+    insert_spans_metrics.record_evalsha_result(
+        "1:" + "b" * 32,
+        EvalshaResult(
+            segment_key=_segment_id(1, "b" * 32, "b" * 16),
+            has_root_span=True,
+            latency_ms=20,
+            latency_metrics=[(b"step", 20.0)],
+            gauge_metrics=[(b"gauge", 2.0)],
+            merged_segment_span_ids=[],
+        ),
+    )
+
+    with mock.patch("sentry.spans.buffer_logger.emit_observability_metrics") as emit_metrics:
+        buffer_logger.log(insert_spans_metrics.evalsha_latency_entries)
+        insert_spans_metrics.emit_metrics()
+
+    buffer_logger.log.assert_called_once_with([("1:" + "b" * 32, 20)])
+    emit_metrics.assert_called_once_with(
+        [[(b"step", 20.0)]],
+        [[(b"gauge", 2.0)]],
+        (20, [(b"step", 20.0)], [(b"gauge", 2.0)]),
+    )
+
+
 def test_insert_spans_metrics_from_inserted_subsegments() -> None:
     trace_id = "a" * 32
     parent_span_id = "b" * 16
