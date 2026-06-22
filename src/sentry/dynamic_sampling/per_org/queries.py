@@ -49,7 +49,7 @@ class ProjectVolume:
     keep: int
     drop: int
     num_distinct_transactions: int = 0
-    last_item_received: datetime | None = None
+    seconds_since_last_item: float | None = None
 
 
 @dataclass(order=True)
@@ -209,7 +209,7 @@ def get_eap_project_volumes(
             continue
 
         received = row.get(DynamicSamplingQueryFields.MAX_RECEIVED)
-        last_item_received = datetime.fromtimestamp(float(received), tz=UTC) if received else None
+        seconds_since_last_item = end_time.timestamp() - float(received) if received else None
 
         project_volumes.append(
             ProjectVolume(
@@ -218,7 +218,7 @@ def get_eap_project_volumes(
                 keep=keep,
                 drop=max(total - keep, 0),
                 num_distinct_transactions=num_distinct_transactions,
-                last_item_received=last_item_received,
+                seconds_since_last_item=seconds_since_last_item,
             )
         )
 

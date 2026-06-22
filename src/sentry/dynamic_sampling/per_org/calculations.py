@@ -222,9 +222,6 @@ def compare_rebalanced_projects_with_cache(
             },
         )
         if project_id in debug_project_ids:
-            last_item_received = (
-                project_volume.last_item_received if project_volume is not None else None
-            )
             _emit_project_balancing_debug_metrics(
                 org_id=config.organization.id,
                 project_id=project_id,
@@ -232,14 +229,10 @@ def compare_rebalanced_projects_with_cache(
                 generic_metrics_sample_rate=generic_metrics_sample_rate,
                 eap_volume=rebalanced_project.count,
                 eap_volume_without_extrapolation=eap_volume_without_extrapolation,
-                seconds_since_last_item=_seconds_since(last_item_received),
+                seconds_since_last_item=(
+                    project_volume.seconds_since_last_item if project_volume is not None else None
+                ),
             )
-
-
-def _seconds_since(received: datetime | None) -> float | None:
-    if received is None:
-        return None
-    return (datetime.now(UTC) - received).total_seconds()
 
 
 def _emit_project_balancing_debug_metrics(

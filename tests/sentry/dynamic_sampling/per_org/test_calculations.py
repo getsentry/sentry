@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, patch
 
 import orjson
@@ -164,7 +163,7 @@ class ProjectBalancingCalculationsTest(TestCase):
                 total=200,
                 keep=100,
                 drop=100,
-                last_item_received=datetime.now(UTC) - timedelta(minutes=2),
+                seconds_since_last_item=120.0,
             )
         ]
 
@@ -182,7 +181,7 @@ class ProjectBalancingCalculationsTest(TestCase):
 
         emitted = {call.args[0]: call.args[1] for call in distribution.call_args_list}
         metric = "dynamic_sampling.per_org.project_balancing_debug.eap_seconds_since_last_item"
-        assert emitted[metric] == pytest.approx(120, abs=10)
+        assert emitted[metric] == 120.0
         for call in distribution.call_args_list:
             assert call.kwargs["tags"] == {"org": str(org.id), "ds_project": str(project.id)}
 
