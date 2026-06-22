@@ -472,7 +472,6 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
   const {heatmapResults, loading, widget, dashboardFilters, selection} = props;
   const organization = useOrganization();
 
-  // The heat map links each cell's tooltip to its metric in Explore.
   const selectedAggregate = getSelectedAggregate(widget);
   const traceMetric = selectedAggregate
     ? extractTraceMetricFromColumn(selectedAggregate)
@@ -500,6 +499,7 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
       <HeatMapWidgetVisualization
         plottables={[new HeatMap(heatmapResults)]}
         scale={HEATMAP_Z_AXIS_SCALE}
+        // The heat map links each cell's tooltip to its metric in Explore.
         renderTooltipActions={({valueMin, valueMax, timestampStart, timestampEnd}) => {
           if (!traceMetric) {
             return null;
