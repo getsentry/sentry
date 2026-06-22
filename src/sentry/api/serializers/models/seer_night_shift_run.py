@@ -3,12 +3,13 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
-from django.db.models import prefetch_related_objects
+from django.db.models import Prefetch, prefetch_related_objects
 
-from sentry.api.serializers import Serializer, register
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
+    SeerNightShiftRunShard,
 )
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 
@@ -33,9 +34,16 @@ class SeerNightShiftRunIssueResponse(TypedDict):
     dateAdded: str
 
 
-# A Seer run dispatched by a night shift run (one per shard), openable in Explorer.
 class SeerNightShiftSeerRunResponse(TypedDict):
-    seerRunId: str
+    seerRunId: str | None
+
+
+class SeerNightShiftShardSerializer(Serializer[SeerNightShiftSeerRunResponse]):
+    def serialize(
+        self, obj: SeerNightShiftRunShard, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+    ) -> SeerNightShiftSeerRunResponse:
+        state_id = obj.seer_run.seer_run_state_id if obj.seer_run is not None else None
+        return {"seerRunId": str(state_id) if state_id is not None else None}
 
 
 class SeerNightShiftRunResponse(TypedDict):
@@ -54,7 +62,14 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
     def get_attrs(
         self, item_list: Sequence[SeerNightShiftRun], user: Any, **kwargs: Any
     ) -> dict[SeerNightShiftRun, dict[str, Any]]:
-        prefetch_related_objects(item_list, "results", "shards__seer_run")
+        prefetch_related_objects(
+            item_list,
+            "results",
+            Prefetch(
+                "shards",
+                queryset=SeerNightShiftRunShard.objects.order_by("id").select_related("seer_run"),
+            ),
+        )
         return {}
 
     def serialize(
@@ -84,7 +99,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
             "errorMessage": extras.get("error_message") or shard_error,
             "results": [_serialize_result(r) for r in all_results],
             "issues": [_serialize_legacy_issue(r) for r in triage_results],
-            "seerRuns": _serialize_seer_runs(obj),
+            "seerRuns": serialize(list(obj.shards.all()), user, SeerNightShiftShardSerializer()),
             # Match the pre-migration column behavior: always "agentic_triage"
             # in this PR. The multi-kind feature PR will refine this once
             # other kinds can produce runs.
@@ -101,16 +116,6 @@ def _serialize_result(result: SeerNightShiftRunResult) -> SeerNightShiftRunResul
         "extras": result.extras or {},
         "dateAdded": result.date_added.isoformat(),
     }
-
-
-def _serialize_seer_runs(run: SeerNightShiftRun) -> list[SeerNightShiftSeerRunResponse]:
-    # sorted() in Python, not .order_by, to keep using the prefetch cache.
-    shards = sorted(run.shards.all(), key=lambda s: s.id)
-    return [
-        {"seerRunId": str(s.seer_run.seer_run_state_id)}
-        for s in shards
-        if s.seer_run is not None and s.seer_run.seer_run_state_id is not None
-    ]
 
 
 def _serialize_legacy_issue(result: SeerNightShiftRunResult) -> SeerNightShiftRunIssueResponse:
