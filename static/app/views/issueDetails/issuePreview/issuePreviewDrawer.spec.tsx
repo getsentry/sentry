@@ -30,6 +30,10 @@ describe('IssuePreviewDrawer', () => {
       url: `/organizations/org-slug/replay-count/`,
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/members/`,
+      body: [],
+    });
 
     render(<IssuePreviewDrawer groupId={group.id} />);
 
@@ -68,6 +72,10 @@ describe('IssuePreviewDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/replay-count/`,
       body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/members/`,
+      body: [],
     });
 
     render(<IssuePreviewDrawer groupId={group.id} />);
