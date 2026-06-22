@@ -353,6 +353,10 @@ def get_seer_similar_issues(
     event_hash = event.get_primary_hash()
     event_fingerprint = event.data.get("fingerprint")
     event_has_hybrid_fingerprint = get_fingerprint_type(event_fingerprint) == "hybrid"
+    event_is_synthetic = get_path(event.data, "exception", "values", -1, "mechanism", "synthetic")
+    event_exception_type = (
+        None if event_is_synthetic else get_path(event.data, "exception", "values", -1, "type")
+    )
 
     request_data, seer_request_metric_tags = _build_seer_request(event, variants)
 
@@ -372,7 +376,7 @@ def get_seer_similar_issues(
     parent_grouphashes = GroupHash.objects.filter(
         hash__in=[result.parent_hash for result in seer_results],
         project_id=event.project.id,
-    )
+    ).select_related("group")
     parent_grouphashes_by_hash = {grouphash.hash: grouphash for grouphash in parent_grouphashes}
 
     parent_grouphashes_checked = 0
@@ -391,6 +395,7 @@ def get_seer_similar_issues(
                 event_grouphash,
                 parent_grouphash,
                 event_has_hybrid_fingerprint,
+                event_exception_type,
                 parent_grouphashes_checked,
             )
             parent_grouphashes_checked += 1
@@ -490,10 +495,14 @@ def _should_use_seer_match_for_grouping(
     event_grouphash: GroupHash,
     parent_grouphash: GroupHash,
     event_has_hybrid_fingerprint: bool,
+    event_exception_type: str | None,
     num_grouphashes_previously_checked: int,
 ) -> bool:
     """
     Determine if a match returned from Seer can be used to group the given event.
+
+    Rejects matches where the exception type differs, since regular Sentry grouping always
+    keeps different exception types in separate groups.
 
     If neither the event nor the Seer match has a hybrid fingerprint, return True. Seer matches
     without the necessary metadata to make a determination are considered non-hybrid.
@@ -502,6 +511,21 @@ def _should_use_seer_match_for_grouping(
 
     If they are both hybrid, return True if their fingerprints match, and False otherwise.
     """
+    parent_group = parent_grouphash.group
+    if parent_group is not None:
+        parent_exception_type = get_path(parent_group.data, "metadata", "type")
+        if (
+            event_exception_type
+            and parent_exception_type
+            and event_exception_type != parent_exception_type
+        ):
+            metrics.incr(
+                "grouping.similarity.exception_type_mismatch",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={"platform": event.platform},
+            )
+            return False
+
     parent_has_hybrid_fingerprint = (
         get_fingerprint_type(parent_grouphash.get_associated_fingerprint()) == "hybrid"
     )

@@ -623,6 +623,197 @@ class ParentGroupFoundTest(TestCase):
             )
 
 
+class ExceptionTypeMismatchTest(TestCase):
+    def _create_existing_event(
+        self,
+        error_type: str = "FailedToFetchError",
+        error_value: str = "Charlie didn't bring the ball back",
+        synthetic: bool = False,
+    ) -> Event:
+        exception_data: dict[str, Any] = {
+            "type": error_type,
+            "value": error_value,
+            "stacktrace": {
+                "frames": [
+                    {
+                        "function": "play_fetch",
+                        "filename": "dogpark.py",
+                        "context_line": f"raise {error_type}('{error_value}')",
+                    }
+                ]
+            },
+        }
+        if synthetic:
+            exception_data["mechanism"] = {"type": "generic", "synthetic": True}
+
+        return save_new_event(
+            {"exception": {"values": [exception_data]}, "platform": "python"},
+            self.project,
+        )
+
+    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    def test_rejects_match_with_different_exception_type(self, mock_incr: MagicMock) -> None:
+        existing_event = self._create_existing_event(error_type="TypeError")
+        existing_hash = existing_event.get_primary_hash()
+        assert existing_event.group_id
+
+        new_event, new_variants, new_grouphash, _ = create_new_event(self.project)
+
+        seer_result_data = [
+            SeerSimilarIssueData(
+                parent_hash=existing_hash,
+                parent_group_id=existing_event.group_id,
+                stacktrace_distance=0.01,
+                should_group=True,
+            )
+        ]
+
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=(seer_result_data, "v1"),
+        ):
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
+                None,
+                None,
+                "v1",
+            )
+
+            mock_incr.assert_any_call(
+                "grouping.similarity.exception_type_mismatch",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={"platform": "python"},
+            )
+
+    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    def test_accepts_match_with_same_exception_type(self, mock_incr: MagicMock) -> None:
+        existing_event = self._create_existing_event(error_type="FailedToFetchError")
+        existing_hash = existing_event.get_primary_hash()
+        existing_grouphash = GroupHash.objects.filter(
+            hash=existing_hash, project_id=self.project.id
+        ).first()
+        assert existing_event.group_id
+
+        new_event, new_variants, new_grouphash, _ = create_new_event(self.project)
+
+        seer_result_data = [
+            SeerSimilarIssueData(
+                parent_hash=existing_hash,
+                parent_group_id=existing_event.group_id,
+                stacktrace_distance=0.01,
+                should_group=True,
+            )
+        ]
+
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=(seer_result_data, "v1"),
+        ):
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
+                0.01,
+                existing_grouphash,
+                "v1",
+            )
+
+    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    def test_skips_check_for_synthetic_incoming_event(self, mock_incr: MagicMock) -> None:
+        """Synthetic exceptions should not be rejected based on type, matching regular grouping."""
+        existing_event = self._create_existing_event(error_type="TypeError")
+        existing_hash = existing_event.get_primary_hash()
+        existing_grouphash = GroupHash.objects.filter(
+            hash=existing_hash, project_id=self.project.id
+        ).first()
+        assert existing_event.group_id
+
+        error_type = "SyntheticError"
+        new_event = Event(
+            project_id=self.project.id,
+            event_id="12312012112120120908201304152013",
+            data={
+                "title": f"{error_type}",
+                "exception": {
+                    "values": [
+                        {
+                            "type": error_type,
+                            "value": "synthetic",
+                            "mechanism": {"type": "generic", "synthetic": True},
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "play_fetch_0",
+                                        "filename": "dogpark0.py",
+                                        "context_line": f"raise {error_type}('synthetic')",
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "platform": "python",
+                "fingerprint": ["{{ default }}"],
+            },
+        )
+        new_variants = new_event.get_grouping_variants()
+        new_grouphash = GroupHash.objects.create(
+            hash=new_event.get_primary_hash(), project_id=self.project.id
+        )
+
+        seer_result_data = [
+            SeerSimilarIssueData(
+                parent_hash=existing_hash,
+                parent_group_id=existing_event.group_id,
+                stacktrace_distance=0.01,
+                should_group=True,
+            )
+        ]
+
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=(seer_result_data, "v1"),
+        ):
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
+                0.01,
+                existing_grouphash,
+                "v1",
+            )
+
+            incr_metrics_recorded = {call.args[0] for call in mock_incr.mock_calls}
+            assert "grouping.similarity.exception_type_mismatch" not in incr_metrics_recorded
+
+    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    def test_skips_check_when_parent_has_no_type(self, mock_incr: MagicMock) -> None:
+        """When the parent group has no stored exception type (e.g. synthetic), skip the check."""
+        existing_event = self._create_existing_event(error_type="Error", synthetic=True)
+        existing_hash = existing_event.get_primary_hash()
+        existing_grouphash = GroupHash.objects.filter(
+            hash=existing_hash, project_id=self.project.id
+        ).first()
+        assert existing_event.group_id
+
+        new_event, new_variants, new_grouphash, _ = create_new_event(self.project)
+
+        seer_result_data = [
+            SeerSimilarIssueData(
+                parent_hash=existing_hash,
+                parent_group_id=existing_event.group_id,
+                stacktrace_distance=0.01,
+                should_group=True,
+            )
+        ]
+
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=(seer_result_data, "v1"),
+        ):
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
+                0.01,
+                existing_grouphash,
+                "v1",
+            )
+
+            incr_metrics_recorded = {call.args[0] for call in mock_incr.mock_calls}
+            assert "grouping.similarity.exception_type_mismatch" not in incr_metrics_recorded
+
+
 class MultipleParentGroupsFoundTest(TestCase):
     @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
