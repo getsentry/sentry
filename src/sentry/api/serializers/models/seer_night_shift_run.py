@@ -9,7 +9,6 @@ from sentry.api.serializers import Serializer, register
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
-    SeerNightShiftRunShard,
 )
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 
@@ -34,9 +33,9 @@ class SeerNightShiftRunIssueResponse(TypedDict):
     dateAdded: str
 
 
-class SeerNightShiftRunShardResponse(TypedDict):
-    id: str
-    seerRunId: str | None  # the shard's seer_run_state_id; the UI's explorerRunId
+# A Seer run dispatched by a night shift run (one per shard), openable in Explorer.
+class SeerNightShiftSeerRunResponse(TypedDict):
+    seerRunId: str
 
 
 class SeerNightShiftRunResponse(TypedDict):
@@ -46,7 +45,7 @@ class SeerNightShiftRunResponse(TypedDict):
     errorMessage: str | None
     results: list[SeerNightShiftRunResultResponse]
     issues: list[SeerNightShiftRunIssueResponse]
-    shards: list[SeerNightShiftRunShardResponse]
+    seerRuns: list[SeerNightShiftSeerRunResponse]
     triageStrategy: str
 
 
@@ -85,8 +84,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
             "errorMessage": extras.get("error_message") or shard_error,
             "results": [_serialize_result(r) for r in all_results],
             "issues": [_serialize_legacy_issue(r) for r in triage_results],
-            # sorted() in Python, not .order_by, to keep using the prefetch cache
-            "shards": [_serialize_shard(s) for s in sorted(obj.shards.all(), key=lambda s: s.id)],
+            "seerRuns": _serialize_seer_runs(obj),
             # Match the pre-migration column behavior: always "agentic_triage"
             # in this PR. The multi-kind feature PR will refine this once
             # other kinds can produce runs.
@@ -105,13 +103,14 @@ def _serialize_result(result: SeerNightShiftRunResult) -> SeerNightShiftRunResul
     }
 
 
-def _serialize_shard(shard: SeerNightShiftRunShard) -> SeerNightShiftRunShardResponse:
-    seer_run = shard.seer_run
-    state_id = seer_run.seer_run_state_id if seer_run is not None else None
-    return {
-        "id": str(shard.id),
-        "seerRunId": str(state_id) if state_id is not None else None,
-    }
+def _serialize_seer_runs(run: SeerNightShiftRun) -> list[SeerNightShiftSeerRunResponse]:
+    # sorted() in Python, not .order_by, to keep using the prefetch cache.
+    shards = sorted(run.shards.all(), key=lambda s: s.id)
+    return [
+        {"seerRunId": str(s.seer_run.seer_run_state_id)}
+        for s in shards
+        if s.seer_run is not None and s.seer_run.seer_run_state_id is not None
+    ]
 
 
 def _serialize_legacy_issue(result: SeerNightShiftRunResult) -> SeerNightShiftRunIssueResponse:
