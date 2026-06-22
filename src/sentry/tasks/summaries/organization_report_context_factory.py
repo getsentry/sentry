@@ -70,7 +70,7 @@ class OrganizationReportContextFactory:
                 if data["category"] == DataCategory.TRANSACTION:
                     project_ctx.accepted_transaction_count += total
                     project_ctx.transaction_count_by_day[timestamp] = total
-                else:
+                elif data["category"] in DataCategory.error_categories():
                     project_ctx.accepted_error_count += total
                     project_ctx.error_count_by_day[timestamp] = (
                         project_ctx.error_count_by_day.get(timestamp, 0) + total
