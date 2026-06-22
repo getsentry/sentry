@@ -159,25 +159,7 @@ export class NormalTraceViewCalculations implements TraceViewCalculations {
     context: TraceViewCalculationContext,
     space: [number, number]
   ): SpanMatrix {
-    const visibleView = context.getCompressedView();
-    const start = context.timeCompression.toCompressedOffset(space[0]);
-    const end = context.timeCompression.toCompressedOffset(space[0] + space[1]);
-    const duration = Math.max(end - start, 0);
-    const scale = duration / visibleView.width;
-    context.spanMatrix[0] = Math.max(scale, context.spanToPx[0] / visibleView.width);
-    context.spanMatrix[4] = (start - visibleView.left) / context.spanToPx[0];
-
-    const traceEnd = context.timeCompression.toCompressedOffset(
-      context.view.to_origin + context.view.trace_space.width
-    );
-    if (
-      space[0] - context.view.to_origin > context.view.trace_space.width / 2 &&
-      (traceEnd - end) / context.spanToPx[0] <= 1
-    ) {
-      context.spanMatrix[4] = context.spanMatrix[4] - 2;
-    }
-
-    return context.spanMatrix;
+    return computeSpanCSSMatrixTransformInVisibleSpace(context, space);
   }
 
   transformXFromTimestamp(
@@ -331,24 +313,7 @@ export class CompressedTraceViewCalculations implements TraceViewCalculations {
     context: TraceViewCalculationContext,
     space: [number, number]
   ): SpanMatrix {
-    const compressedView = context.getCompressedView();
-    const compressedStart = context.timeCompression.toCompressedOffset(space[0]);
-    const compressedEnd = context.timeCompression.toCompressedOffset(space[0] + space[1]);
-    const compressedDuration = Math.max(compressedEnd - compressedStart, 0);
-    const scale = compressedDuration / compressedView.width;
-    context.spanMatrix[0] = Math.max(scale, context.spanToPx[0] / compressedView.width);
-    context.spanMatrix[4] = (compressedStart - compressedView.left) / context.spanToPx[0];
-
-    const compressedTraceEnd = context.timeCompression.toCompressedOffset(
-      context.view.to_origin + context.view.trace_space.width
-    );
-    if (
-      space[0] - context.view.to_origin > context.view.trace_space.width / 2 &&
-      (compressedTraceEnd - compressedEnd) / context.spanToPx[0] <= 1
-    ) {
-      context.spanMatrix[4] = context.spanMatrix[4] - 2;
-    }
-    return context.spanMatrix;
+    return computeSpanCSSMatrixTransformInVisibleSpace(context, space);
   }
 
   transformXFromTimestamp(
@@ -446,19 +411,37 @@ export class CompressedTraceViewCalculations implements TraceViewCalculations {
   }
 }
 
+function computeSpanCSSMatrixTransformInVisibleSpace(
+  context: TraceViewCalculationContext,
+  space: [number, number]
+): SpanMatrix {
+  const visibleView = context.getCompressedView();
+  const start = context.timeCompression.toCompressedOffset(space[0]);
+  const end = context.timeCompression.toCompressedOffset(space[0] + space[1]);
+  const duration = Math.max(end - start, 0);
+  const scale = duration / visibleView.width;
+  context.spanMatrix[0] = Math.max(scale, context.spanToPx[0] / visibleView.width);
+  context.spanMatrix[4] = (start - visibleView.left) / context.spanToPx[0];
+
+  const traceEnd = context.timeCompression.toCompressedOffset(
+    context.view.to_origin + context.view.trace_space.width
+  );
+  if (
+    space[0] - context.view.to_origin > context.view.trace_space.width / 2 &&
+    (traceEnd - end) / context.spanToPx[0] <= 1
+  ) {
+    context.spanMatrix[4] = context.spanMatrix[4] - 2;
+  }
+
+  return context.spanMatrix;
+}
+
 function computeTimelineIntervals(
   view: TraceView,
   targetInterval: number,
   results: Array<number | undefined>
 ): void {
-  const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
-  let interval = minInterval;
-
-  if (targetInterval / interval > 5) {
-    interval *= 5;
-  } else if (targetInterval / interval > 2) {
-    interval *= 2;
-  }
+  const interval = computeTimelineTickInterval(targetInterval);
 
   let x = Math.ceil(view.trace_view.x / interval) * interval;
   let idx = -1;
@@ -470,9 +453,7 @@ function computeTimelineIntervals(
     x += interval;
   }
 
-  while (idx < results.length - 1 && results[idx + 1] !== undefined) {
-    results[++idx] = undefined;
-  }
+  clearRemainingTimelineIntervals(results, idx);
 }
 
 function computeCompressedTimelineIntervals(
@@ -482,14 +463,7 @@ function computeCompressedTimelineIntervals(
   toOrigin: number,
   results: Array<number | undefined>
 ): void {
-  const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
-  let interval = minInterval;
-
-  if (targetInterval / interval > 5) {
-    interval *= 5;
-  } else if (targetInterval / interval > 2) {
-    interval *= 2;
-  }
+  const interval = computeTimelineTickInterval(targetInterval);
 
   let x = Math.ceil(compressedView.left / interval) * interval;
   let idx = -1;
@@ -502,6 +476,26 @@ function computeCompressedTimelineIntervals(
     x += interval;
   }
 
+  clearRemainingTimelineIntervals(results, idx);
+}
+
+function computeTimelineTickInterval(targetInterval: number): number {
+  const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
+  let interval = minInterval;
+
+  if (targetInterval / interval > 5) {
+    interval *= 5;
+  } else if (targetInterval / interval > 2) {
+    interval *= 2;
+  }
+
+  return interval;
+}
+
+function clearRemainingTimelineIntervals(
+  results: Array<number | undefined>,
+  idx: number
+): void {
   while (idx < results.length - 1 && results[idx + 1] !== undefined) {
     results[++idx] = undefined;
   }
