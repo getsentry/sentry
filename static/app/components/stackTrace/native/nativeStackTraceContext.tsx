@@ -3,7 +3,7 @@ import {createContext, useContext, useMemo} from 'react';
 import type {StackTraceView} from 'sentry/components/stackTrace/types';
 import type {Image} from 'sentry/types/debugImage';
 
-export interface NativeDisplayOptionState {
+interface NativeDisplayOptionState {
   absoluteAddresses: boolean;
   absoluteFilePaths: boolean;
   isMinified: boolean;
@@ -87,7 +87,7 @@ export const NativeStackTraceContext = createContext<NativeStackTraceContextValu
   null
 );
 
-export function useOptionalNativeStackTraceContext(): NativeStackTraceContextValue | null {
+function useOptionalNativeStackTraceContext(): NativeStackTraceContextValue | null {
   return useContext(NativeStackTraceContext);
 }
 
