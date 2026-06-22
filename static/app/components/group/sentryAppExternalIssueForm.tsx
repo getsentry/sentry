@@ -13,7 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   SentryAppExternalFormNew,
   type SchemaFormConfig,
-} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
+} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 type Props = {
   action: 'create' | 'link';

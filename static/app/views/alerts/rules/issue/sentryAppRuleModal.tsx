@@ -7,7 +7,7 @@ import {tct} from 'sentry/locale';
 import {
   SentryAppExternalFormNew,
   type SchemaFormConfig,
-} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
+} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 type OnSubmitSuccess = (
   response: any,
