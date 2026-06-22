@@ -69,10 +69,6 @@ class ProjectRepoResponse(TypedDict):
 
 def _serialize_project_repo(project_repo: SeerProjectRepository) -> ProjectRepoResponse:
     repo = project_repo.project_repository.repository
-    # owner/name here are display-only in the settings UI; keep them aligned with
-    # repo.name (the same value the repo picker shows) rather than the URL-safe
-    # path. The URL-safe path matters only when building SCM links to send to
-    # Seer (see get_repo_url_path callers in seer/autofix/utils.py & agent/tools.py).
     name_parts = repo.name.split("/", 1)
     owner = name_parts[0] if len(name_parts) > 1 else ""
     name = name_parts[1] if len(name_parts) > 1 else repo.name
