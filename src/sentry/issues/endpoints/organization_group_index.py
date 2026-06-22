@@ -23,7 +23,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     calculate_stats_period,
-    get_by_short_id,
+    get_by_short_ids,
     schedule_tasks_to_delete_groups,
     track_slo_response,
     update_groups_with_search_fn,
@@ -281,7 +281,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         return search_issues(request, organization, projects, environments, extra_query_kwargs)
 
     @extend_schema(
-        operation_id="List an Organization's Issues",
+        operation_id="listOrganizationIssues",
+        summary="List an Organization's Issues",
         description=(
             "Return a list of issues for an organization. "
             "All parameters are supplied as query string parameters. "
@@ -405,21 +406,23 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                     )
                     return Response(by_event)
 
-            group = get_by_short_id(
+            short_id_groups = get_by_short_ids(
                 organization.id,
                 request.GET.get("shortIdLookup") or "0",
                 query,
                 project_ids=None,
             )
-            if group is not None:
-                # check all projects user has access to
-                if request.access.has_project_access(group.project):
-                    by_short_id: list[StreamGroupSerializerSnubaResponse] = serialize(
-                        [group], request.user, serializer(), request=request
-                    )
-                    response = Response(by_short_id)
+            accessible = [
+                g for g in short_id_groups if request.access.has_project_access(g.project)
+            ]
+            if accessible:
+                by_short_id: list[StreamGroupSerializerSnubaResponse] = serialize(
+                    accessible, request.user, serializer(), request=request
+                )
+                response = Response(by_short_id)
+                if len(accessible) == 1:
                     response["X-Sentry-Direct-Hit"] = "1"
-                    return response
+                return response
 
         # If group ids specified, just ignore any query components
         try:
@@ -474,7 +477,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         return response
 
     @extend_schema(
-        operation_id="Bulk Mutate an Organization's Issues",
+        operation_id="updateOrganizationIssues",
+        summary="Bulk Mutate an Organization's Issues",
         description=(
             "Bulk mutate various attributes on a maxmimum of 1000 issues. \n"
             "- For non-status updates, the `id` query parameter is required. \n"
@@ -521,7 +525,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         return update_groups_with_search_fn(request, ids, projects, organization.id, search_fn)
 
     @extend_schema(
-        operation_id="Bulk Remove an Organization's Issues",
+        operation_id="deleteOrganizationIssues",
+        summary="Bulk Remove an Organization's Issues",
         description=(
             "Permanently remove the given issues. "
             "If IDs are provided, queries and filtering will be ignored. "

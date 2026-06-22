@@ -4,10 +4,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {CronsBillingBanner} from 'getsentry/components/crons/cronsBillingBanner';
-import {PlanTier} from 'getsentry/types';
 
 describe('CronsBillingBanner', () => {
   beforeEach(() => {

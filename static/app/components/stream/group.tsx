@@ -5,9 +5,8 @@ import type {LocationDescriptor} from 'history';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -58,12 +57,17 @@ import {
   useOptionalIssueSelectionActions,
   useOptionalIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
+import {ProgressActivityTooltip} from 'sentry/views/issueList/progressActivityTooltip';
 import {
   createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
   isForReviewQuery,
 } from 'sentry/views/issueList/utils';
-import {formatProgressState} from 'sentry/views/issueList/utils/progress';
+import {
+  formatProgressState,
+  getProgressIcon,
+  ProgressState,
+} from 'sentry/views/issueList/utils/progress';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 const COLUMNS: GroupListColumn[] = [
@@ -83,8 +87,9 @@ type Props = {
   hasGuideAnchor?: boolean;
   memberList?: User[];
   onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
+  onGroupClick?: (group: Group) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
-  progressState?: string | null;
+  progressState?: ProgressState | null;
   query?: string;
   queryFilterDescription?: string;
   showLastTriggered?: boolean;
@@ -292,6 +297,7 @@ export function StreamGroup({
   showLastTriggered = false,
   onPriorityChange,
   onAssigneeChange,
+  onGroupClick,
   progressState,
 }: Props) {
   const issueSelectionSummary = useOptionalIssueSelectionSummary();
@@ -626,6 +632,11 @@ export function StreamGroup({
       return;
     }
 
+    if (onGroupClick) {
+      onGroupClick(group);
+      return;
+    }
+
     navigate(
       normalizeUrl(
         createIssueLink({
@@ -656,7 +667,22 @@ export function StreamGroup({
           />
         )}
         <GroupSummary canSelect={selectionEnabled}>
-          <GroupHeaderRow data={group} query={query} source={referrer} />
+          <GroupHeaderRow
+            data={group}
+            query={query}
+            source={referrer}
+            onClick={
+              onGroupClick
+                ? e => {
+                    // Preserve open in new tab/window behavior for modified clicks
+                    if (!isCtrlKeyPressed(e) && !e.shiftKey) {
+                      e.preventDefault();
+                      onGroupClick(group);
+                    }
+                  }
+                : undefined
+            }
+          />
           <GroupMetaRow data={group} showLifetime={false} />
         </GroupSummary>
       </Fragment>
@@ -725,9 +751,16 @@ export function StreamGroup({
           {withColumns.includes('progress') && (
             <ProgressWrapper breakpoint={COLUMN_BREAKPOINTS.PROGRESS}>
               {progressState ? (
-                <Text>{formatProgressState(progressState)}</Text>
+                <Container position="relative">
+                  <ProgressActivityTooltip group={group}>
+                    <Stack direction="row" align="center" gap="sm">
+                      {getProgressIcon(progressState)}
+                      {formatProgressState(progressState)}
+                    </Stack>
+                  </ProgressActivityTooltip>
+                </Container>
               ) : (
-                <Placeholder height="18px" width="80px" />
+                <Placeholder height="18px" />
               )}
             </ProgressWrapper>
           )}
@@ -981,7 +1014,7 @@ const PriorityWrapper = styled('div')<{breakpoint: string}>`
 `;
 
 const ProgressWrapper = styled('div')<{breakpoint: string}>`
-  width: 90px;
+  width: 124px;
   padding-right: ${p => p.theme.space.xl};
   margin-right: ${p => p.theme.space.xl};
   align-self: center;

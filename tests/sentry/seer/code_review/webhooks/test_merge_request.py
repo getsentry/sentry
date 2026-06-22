@@ -1,9 +1,10 @@
 from collections.abc import Generator
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
+from pydantic import ValidationError
 from scm.types import CreatePullRequestCommentReactionProtocol
 
 from fixtures.gitlab import (
@@ -15,6 +16,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.code_review.models import SeerCodeReviewTaskRequestForPrReview
 from sentry.seer.code_review.webhooks.merge_request import (
     WEBHOOK_NOTE_SEEN_KEY_PREFIX,
     WEBHOOK_SEEN_KEY_PREFIX,
@@ -174,7 +176,45 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
+        assert call_kwargs["path"] == "/v1/code_review/review-request"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-gitlab-support",
+        }
+    )
+    def test_validation_failure_is_captured_and_review_dropped(self) -> None:
+        # A payload that fails SeerCodeReviewTaskRequest validation means the
+        # review is dropped entirely and never reaches Seer, so it must be
+        # escalated via sentry_sdk.capture_exception (not just debug-logged).
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with pytest.raises(ValidationError) as exc_info:
+            SeerCodeReviewTaskRequestForPrReview.parse_obj({})
+        validation_error = exc_info.value
+
+        with (
+            patch(
+                "sentry.seer.code_review.webhooks.merge_request."
+                "SeerCodeReviewTaskRequestForPrReview.parse_obj",
+                side_effect=validation_error,
+            ),
+            patch(
+                "sentry.seer.code_review.webhooks.merge_request.sentry_sdk.capture_exception"
+            ) as mock_capture,
+            self.tasks(),
+        ):
+            self._call_handler(event)
+
+        mock_capture.assert_called_once_with(
+            validation_error,
+            level="warning",
+            contexts={"code_review_validation": {"seer_path": ANY}},
+        )
+        self.mock_seer.assert_not_called()
 
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_skips_when_gitlab_flag_disabled(self) -> None:
@@ -204,7 +244,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/pr-closed"
+        assert call_kwargs["path"] == "/v1/code_review/pr-closed"
 
     @with_feature(
         {
@@ -222,7 +262,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/pr-closed"
+        assert call_kwargs["path"] == "/v1/code_review/pr-closed"
 
     @with_feature(
         {
@@ -240,7 +280,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
+        assert call_kwargs["path"] == "/v1/code_review/review-request"
 
     @with_feature(
         {
@@ -297,7 +337,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
             self._call_handler(event)
 
         self.mock_seer.assert_called_once()
-        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+        assert self.mock_seer.call_args[1]["path"] == "/v1/code_review/review-request"
 
     @with_feature(
         {
@@ -316,7 +356,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
             self._call_handler(event)
 
         self.mock_seer.assert_called_once()
-        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+        assert self.mock_seer.call_args[1]["path"] == "/v1/code_review/review-request"
 
     @with_feature(
         {
@@ -780,6 +820,89 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
             "organizations:seer-gitlab-support",
         }
     )
+    def test_open_with_gitlab_space_utc_timestamp_enqueues(self) -> None:
+        # GitLab serializes merge_request object_attributes timestamps as the
+        # Rails "Time#to_s" default -- e.g. "2026-01-16 05:56:22 UTC" (space
+        # separator, textual "UTC" suffix) -- per the documented payload at
+        # https://docs.gitlab.com/user/project/integrations/webhook_events/.
+        # That form is NOT ISO 8601, so SeerCodeReviewConfig.trigger_at (a
+        # Pydantic v1 datetime) rejects it with value_error.datetime and the
+        # whole review is silently dropped in _schedule_task. The shared fixture
+        # happens to use ISO 8601, so this case is exercised explicitly here.
+        self._setup_code_review()
+        event = _make_event(
+            "open",
+            created_at="2026-01-16 05:56:22 UTC",
+            updated_at="2026-01-16 05:56:25 UTC",
+        )
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        payload = self.mock_seer.call_args[1]["payload"]
+        # updated_at wins over created_at and is normalized to ISO 8601 (UTC).
+        assert payload["data"]["config"]["trigger_at"] == "2026-01-16T05:56:25+00:00"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-gitlab-support",
+        }
+    )
+    def test_open_with_iso8601_timestamp_still_enqueues(self) -> None:
+        # Some GitLab versions/editions emit ISO 8601 for MR events. dateutil
+        # normalization must remain a strict superset and not regress that path.
+        self._setup_code_review()
+        event = _make_event(
+            "open",
+            created_at="2017-09-20T08:31:45.944Z",
+            updated_at="2017-09-28T12:23:42.365Z",
+        )
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        payload = self.mock_seer.call_args[1]["payload"]
+        assert payload["data"]["config"]["trigger_at"] == "2017-09-28T12:23:42.365000+00:00"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-gitlab-support",
+        }
+    )
+    def test_open_with_unparseable_timestamp_captures_and_falls_back(self) -> None:
+        # An unparseable trigger_at is not fatal -- the review proceeds with a
+        # "now" fallback -- but the unhandled format must be escalated to Sentry
+        # so we learn about it instead of silently using the wrong timestamp.
+        self._setup_code_review()
+        event = _make_event("open", created_at="not a timestamp", updated_at="not a timestamp")
+
+        with (
+            patch(
+                "sentry.seer.code_review.webhooks.merge_request.sentry_sdk.capture_exception"
+            ) as mock_capture,
+            self.tasks(),
+        ):
+            self._call_handler(event)
+
+        mock_capture.assert_called_once()
+        # Review still enqueues with a valid ISO 8601 fallback timestamp.
+        self.mock_seer.assert_called_once()
+        trigger_at = self.mock_seer.call_args[1]["payload"]["data"]["config"]["trigger_at"]
+        assert trigger_at.endswith("+00:00")
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-gitlab-support",
+        }
+    )
     def test_duplicate_delivery_within_window_skipped(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -929,7 +1052,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
+        assert call_kwargs["path"] == "/v1/code_review/review-request"
 
     @with_feature(
         {

@@ -5,6 +5,13 @@ from emmett55 import App
 
 # NOTE: this is ugly, but necessary to use django settings and models
 def _patch_sentry_init() -> None:
+    from django.apps import apps
+
+    # Django was already initialized by the host process (e.g. pytest);
+    # don't re-bootstrap sentry on top of it.
+    if apps.ready:
+        return
+
     def _initializer() -> None:
         import sentry.runner.settings as _ss
 
@@ -80,4 +87,4 @@ def load_config(app: App) -> None:
 
     from django.conf import settings
 
-    app.config.cells.default = settings.SENTRY_MONOLITH_REGION
+    app.config.cells.default = settings.SENTRY_FALLBACK_CELL
