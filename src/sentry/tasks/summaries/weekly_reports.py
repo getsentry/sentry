@@ -40,7 +40,12 @@ from sentry.tasks.summaries.metrics import (
 from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
-from sentry.tasks.summaries.utils import ONE_DAY, PAST_ISSUES_LINK_BOOST, OrganizationReportContext
+from sentry.tasks.summaries.utils import (
+    ONE_DAY,
+    PAST_ISSUES_LINK_BOOST,
+    OrganizationReportContext,
+    batch_resolve_group_urls,
+)
 from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
@@ -599,6 +604,20 @@ def get_group_release_url(group: Group, group_history: GroupHistory) -> str | No
     )
 
 
+def get_group_history_status_label(group_history: GroupHistory) -> str:
+    status = group_history.status
+    if status == GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST:
+        return "Resolved in PR"
+    if status == GroupHistoryStatus.SET_RESOLVED_IN_COMMIT:
+        return "Resolved in Commit"
+    if status == GroupHistoryStatus.SET_RESOLVED_IN_RELEASE:
+        return "Resolved in Release"
+
+    choices = GroupHistory._meta.get_field("status").choices
+    label = dict(choices).get(status, status) if choices else status
+    return str(label)
+
+
 def get_group_history_status(group: Group, group_history: GroupHistory) -> tuple[str, str | None]:
     status = group_history.status
     if status == GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST:
@@ -668,6 +687,20 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             return None
     else:
         return None
+
+    if not ctx.resolved_issue_urls:
+        group_id_to_group_history: dict[int, GroupHistory] = {}
+        group_id_to_group: dict[int, Group] = {}
+        for project_ctx in user_projects:
+            for group, group_history, _count in project_ctx.key_performance_issues:
+                if group_history:
+                    group_id_to_group_history[group.id] = group_history
+                    group_id_to_group[group.id] = group
+            for group, group_history, _count, _has_link in project_ctx.past_resolved_issues:
+                if group_history:
+                    group_id_to_group_history[group.id] = group_history
+                    group_id_to_group[group.id] = group
+        batch_resolve_group_urls(ctx, group_id_to_group_history, group_id_to_group)
 
     notification_uuid = str(uuid.uuid4())
     local_start, local_end = get_local_dates(ctx, user_id)
@@ -826,19 +859,16 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                         substatus_color,
                         substatus_text_color,
                     ) = get_group_status_badge(group)
-                    status, status_url = (
-                        get_group_history_status(group, group_history)
-                        if group_history
-                        else ("Unresolved", None)
-                    )
                     if group_history:
+                        status_label = get_group_history_status_label(group_history)
+                        status_url = ctx.resolved_issue_urls.get(group.id)
                         resolved_badge = get_group_status_badge(Group(status=GroupStatus.RESOLVED))
                         yield {
                             "count": count,
                             "group": group,
                             "title": display["title"],
                             "message": display["message"],
-                            "status": status,
+                            "status": status_label,
                             "status_url": status_url,
                             "status_color": resolved_badge[1],
                             "status_text_color": resolved_badge[2],
@@ -873,17 +903,18 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                 ) in project_ctx.past_resolved_issues:
                     display = get_group_display(group)
                     resolved_badge = get_group_status_badge(Group(status=GroupStatus.RESOLVED))
-                    status, status_url = (
-                        get_group_history_status(group, group_history)
+                    status_label = (
+                        get_group_history_status_label(group_history)
                         if group_history
-                        else ("Resolved", None)
+                        else "Resolved"
                     )
+                    status_url = ctx.resolved_issue_urls.get(group.id)
                     yield {
                         "count": count,
                         "group": group,
                         "title": display["title"],
                         "message": display["message"],
-                        "status": status,
+                        "status": status_label,
                         "status_url": status_url,
                         "status_color": resolved_badge[1],
                         "status_text_color": resolved_badge[2],

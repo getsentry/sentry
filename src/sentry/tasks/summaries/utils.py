@@ -20,12 +20,15 @@ from sentry.issues.grouptype import (
     GroupCategory,
     InvalidGroupTypeError,
 )
+from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
-from sentry.models.grouphistory import GroupHistory
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.models.team import TeamStatus
 from sentry.search.eap.occurrences.query_utils import keyed_counts_subset_match
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
@@ -35,6 +38,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_datetime
+from sentry.utils.http import absolute_uri
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
 from sentry.utils.tracing import start_span
@@ -55,6 +59,7 @@ class OrganizationReportContext:
         self.projects_context_map: dict[int, ProjectContext] = {}  # { project_id: ProjectContext }
 
         self.project_ownership: dict[int, set[int]] = {}  # { user_id: set<project_id> }
+        self.resolved_issue_urls: dict[int, str | None] = {}  # { group_id: external_url }
         for project in organization.project_set.all():
             self.projects_context_map[project.id] = ProjectContext(project)
 
@@ -830,6 +835,122 @@ def _past_resolved_perf_counts(
     )
     rows = raw_snql_query(request, referrer=referrer)["data"]
     return {row["group_id"]: row["count()"] for row in rows}
+
+
+def _construct_group_url(
+    group_history: GroupHistory,
+    group: Group,
+    org_slug: str,
+    group_id_to_link: dict[int, GroupLink],
+    prs_by_id: dict[int, PullRequest],
+    commits_by_id: dict[int, Commit],
+    repos_by_id: dict[int, Repository],
+) -> str | None:
+    gid = group.id
+    status = group_history.status
+
+    if status == GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST:
+        gl = group_id_to_link.get(gid)
+        if gl is None:
+            return None
+        pr = prs_by_id.get(gl.linked_id)
+        if pr is None:
+            return None
+        try:
+            return pr.get_external_url()
+        except Exception:
+            return None
+
+    if status == GroupHistoryStatus.SET_RESOLVED_IN_COMMIT:
+        gl = group_id_to_link.get(gid)
+        if gl is None:
+            return None
+        commit = commits_by_id.get(gl.linked_id)
+        if commit is None:
+            return None
+        repo = repos_by_id.get(commit.repository_id)
+        if repo is None or not repo.url:
+            return None
+        return f"{repo.url}/commit/{commit.key}"
+
+    if status == GroupHistoryStatus.SET_RESOLVED_IN_RELEASE:
+        if group_history.release is None:
+            return None
+        return absolute_uri(
+            f"/organizations/{org_slug}/releases/{group_history.release.version}/"
+            f"?project={group.project_id}"
+        )
+
+    return None
+
+
+def batch_resolve_group_urls(
+    ctx: OrganizationReportContext,
+    group_id_to_group_history: dict[int, GroupHistory],
+    group_id_to_group: dict[int, Group],
+) -> None:
+    """Batch-resolve external URLs for resolved groups and store in ctx.resolved_issue_urls."""
+    if not group_id_to_group_history:
+        return
+
+    link_group_ids = [
+        gid
+        for gid, gh in group_id_to_group_history.items()
+        if gh.status
+        in (
+            GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
+            GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+        )
+    ]
+
+    group_id_to_link: dict[int, GroupLink] = {}
+    prs_by_id: dict[int, PullRequest] = {}
+    commits_by_id: dict[int, Commit] = {}
+    repos_by_id: dict[int, Repository] = {}
+
+    if link_group_ids:
+        group_links = list(
+            GroupLink.objects.filter(
+                group_id__in=link_group_ids,
+                linked_type__in=[GroupLink.LinkedType.pull_request, GroupLink.LinkedType.commit],
+            )
+            .order_by("group_id", "-datetime")
+            .distinct("group_id")
+        )
+        group_id_to_link = {gl.group_id: gl for gl in group_links}
+
+        pr_linked_ids = [
+            gl.linked_id
+            for gl in group_links
+            if gl.linked_type == GroupLink.LinkedType.pull_request
+        ]
+        commit_linked_ids = [
+            gl.linked_id for gl in group_links if gl.linked_type == GroupLink.LinkedType.commit
+        ]
+
+        if pr_linked_ids:
+            prs_by_id = {pr.id: pr for pr in PullRequest.objects.filter(id__in=pr_linked_ids)}
+        if commit_linked_ids:
+            commits_by_id = {c.id: c for c in Commit.objects.filter(id__in=commit_linked_ids)}
+            commit_repo_ids = {c.repository_id for c in commits_by_id.values()}
+            if commit_repo_ids:
+                repos_by_id = {r.id: r for r in Repository.objects.filter(id__in=commit_repo_ids)}
+
+    for gid, gh in group_id_to_group_history.items():
+        group = group_id_to_group.get(gid)
+        if group is None:
+            continue
+        url = _construct_group_url(
+            gh,
+            group,
+            ctx.organization.slug,
+            group_id_to_link,
+            prs_by_id,
+            commits_by_id,
+            repos_by_id,
+        )
+        if url:
+            ctx.resolved_issue_urls[gid] = url
 
 
 def enrich_past_resolved_issues(ctx: OrganizationReportContext) -> None:
