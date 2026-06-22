@@ -832,7 +832,7 @@ def _past_resolved_perf_counts(
     return {row["group_id"]: row["count()"] for row in rows}
 
 
-def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
+def enrich_past_resolved_issues(ctx: OrganizationReportContext) -> None:
     all_group_ids: list[int] = []
     for project_ctx in ctx.projects_context_map.values():
         all_group_ids.extend(
@@ -850,10 +850,19 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
         ).values_list("group_id", flat=True)
     )
 
+    group_history_qs = (
+        GroupHistory.objects.filter(group_id__in=all_group_ids, organization_id=ctx.organization.id)
+        .select_related("release")
+        .order_by("group_id", "-date_added")
+        .distinct("group_id")
+        .all()
+    )
+    group_id_to_group_history = {g.group_id: g for g in group_history_qs}
+
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.past_resolved_issues = [
-            (group, history, count, group.id in groups_with_links)
-            for group, history, count, _has_link in project_ctx.past_resolved_issues
+            (group, group_id_to_group_history.get(group.id), count, group.id in groups_with_links)
+            for group, _history, count, _has_link in project_ctx.past_resolved_issues
         ]
 
     # Re-sort with link boost applied, then truncate to top 3
@@ -863,29 +872,3 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
             reverse=True,
         )
         project_ctx.past_resolved_issues = project_ctx.past_resolved_issues[:3]
-
-
-def fetch_past_resolved_issue_group_history(ctx: OrganizationReportContext) -> None:
-    all_group_ids: list[int] = []
-    for project_ctx in ctx.projects_context_map.values():
-        all_group_ids.extend(
-            group.id for group, _history, _count, _has_link in project_ctx.past_resolved_issues
-        )
-
-    if not all_group_ids:
-        return
-
-    group_history = (
-        GroupHistory.objects.filter(group_id__in=all_group_ids, organization_id=ctx.organization.id)
-        .select_related("release")
-        .order_by("group_id", "-date_added")
-        .distinct("group_id")
-        .all()
-    )
-    group_id_to_group_history = {g.group_id: g for g in group_history}
-
-    for project_ctx in ctx.projects_context_map.values():
-        project_ctx.past_resolved_issues = [
-            (group, group_id_to_group_history.get(group.id), count, has_link)
-            for group, _history, count, has_link in project_ctx.past_resolved_issues
-        ]
