@@ -18,13 +18,6 @@ interface UseDiscoverExportEstimatedRowCountOptions {
   location: Location;
 }
 
-/**
- * Estimates the total number of rows a Discover query matches via the
- * `events-meta` endpoint (the same total-count source the results header uses).
- * The export modal uses this to decide whether the async (email) export path is
- * reachable. Falls back to the loaded page length while the count is pending or
- * unavailable.
- */
 export function useDiscoverExportEstimatedRowCount({
   enabled,
   eventView,
