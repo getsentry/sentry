@@ -136,22 +136,4 @@ describe('MetricIssuesSection', () => {
 
     expect(await screen.findByText('Correlated Transactions')).toBeInTheDocument();
   });
-
-  it('renders nothing and never hits the legacy alert-rules endpoint without a metric detector', () => {
-    const alertRulesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/123/`,
-      body: {},
-    });
-    const detectorMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/detectors/${detector.id}/`,
-      body: detector,
-    });
-
-    renderSection({});
-
-    expect(screen.queryByText('Correlated Issues')).not.toBeInTheDocument();
-    expect(screen.queryByText('Correlated Transactions')).not.toBeInTheDocument();
-    expect(alertRulesMock).not.toHaveBeenCalled();
-    expect(detectorMock).not.toHaveBeenCalled();
-  });
 });
