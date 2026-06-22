@@ -116,9 +116,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
 
-    def _get_context_plugins(self, request: Request, group: Group) -> list[dict[str, Any]]:
-        return []
-
     @staticmethod
     def __group_hourly_daily_stats(
         group: Group, environment_ids: Sequence[int]
@@ -312,9 +309,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 {
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
-                    "pluginActions": [],
-                    "pluginIssues": [],
-                    "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "count": get_group_global_count(group),
                 }

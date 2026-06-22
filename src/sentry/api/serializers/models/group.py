@@ -166,9 +166,6 @@ class GroupDetailsResponseOptional(TypedDict, total=False):
 class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOptional):
     activity: list[dict[str, Any]]
     seenBy: list[dict[str, Any]]
-    pluginActions: list[Any]
-    pluginIssues: list[dict[str, Any]]
-    pluginContexts: list[dict[str, Any]]
     userReportCount: int
     participants: list[dict[str, Any]]
 

@@ -1102,7 +1102,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 attrs, "sentry:fingerprinting_rules"
             ),
             "organization": attrs["org"],
-            "plugins": [],
             "platforms": attrs["platforms"],
             "processingIssues": attrs["processing_issues"],
             "defaultEnvironment": attrs["options"].get("sentry:default_environment"),

@@ -287,8 +287,6 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     sessionCount: NotRequired[int]
     inbox: NotRequired[InboxDetails]
     owners: NotRequired[OwnersSerialized]
-    pluginActions: NotRequired[list[tuple[str, str]]]
-    pluginIssues: NotRequired[list[dict[str, Any]]]
     integrationIssues: NotRequired[list[dict[str, Any]]]
     sentryAppIssues: NotRequired[list[dict[str, Any]]]
     latestEventHasAttachments: NotRequired[bool]
@@ -427,14 +425,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             for item in item_list:
                 attrs[item]["owners"] = owner_details.get(item.id)
 
-        if self._expand("pluginActions"):
-            for item in item_list:
-                attrs[item]["pluginActions"] = []
-
-        if self._expand("pluginIssues"):
-            for item in item_list:
-                attrs[item]["pluginIssues"] = []
-
         if self._expand("integrationIssues"):
             for item in item_list:
                 external_issues = ExternalIssue.objects.filter(
@@ -525,12 +515,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("owners"):
             result["owners"] = attrs["owners"]
-
-        if self._expand("pluginActions"):
-            result["pluginActions"] = attrs["pluginActions"]
-
-        if self._expand("pluginIssues"):
-            result["pluginIssues"] = attrs["pluginIssues"]
 
         if self._expand("integrationIssues"):
             result["integrationIssues"] = attrs["integrationIssues"]
