@@ -27,7 +27,7 @@ class IdentityTestCase(TestCase):
 
 @control_silo_test
 class OrganizationIdentityTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.idp = self.create_identity_provider(type="datadog", external_id="dd-org-1")
         self.identity = self.create_identity(
@@ -37,7 +37,7 @@ class OrganizationIdentityTest(TestCase):
             data={"access_token": "dd-token"},
         )
 
-    def test_unique_constraint(self):
+    def test_unique_constraint(self) -> None:
         self.create_organization_identity(
             organization=self.organization,
             user=self.user,
@@ -58,7 +58,7 @@ class OrganizationIdentityTest(TestCase):
                 provider_key="datadog",
             )
 
-    def test_different_orgs_same_user_same_provider(self):
+    def test_different_orgs_same_user_same_provider(self) -> None:
         org2 = self.create_organization(name="other-org", owner=self.user)
         self.create_organization_identity(
             organization=self.organization,
@@ -80,7 +80,7 @@ class OrganizationIdentityTest(TestCase):
         )
         assert org_identity2.organization_id == org2.id
 
-    def test_different_providers_same_org(self):
+    def test_different_providers_same_org(self) -> None:
         gcp_idp = self.create_identity_provider(type="gcp", external_id="gcp-project-1")
         gcp_identity = self.create_identity(
             user=self.user,
@@ -107,7 +107,7 @@ class OrganizationIdentityTest(TestCase):
             == 2
         )
 
-    def test_cascade_on_identity_delete(self):
+    def test_cascade_on_identity_delete(self) -> None:
         self.create_organization_identity(
             organization=self.organization,
             user=self.user,
