@@ -446,6 +446,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/commits/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/create-sample-transaction/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/create-sample/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/$environment/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/'
