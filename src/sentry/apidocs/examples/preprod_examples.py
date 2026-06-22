@@ -361,7 +361,7 @@ class PreprodExamples:
         "vcs_info": _SNAPSHOT_VCS_INFO,
         "app_id": "com.example.app",
         "is_selective": False,
-        "images": [_SNAPSHOT_IMAGE],
+        "images": [],
         "image_count": 1,
         "added": [],
         "added_count": 0,
