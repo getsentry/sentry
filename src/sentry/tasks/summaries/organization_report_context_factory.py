@@ -95,7 +95,7 @@ class OrganizationReportContextFactory:
                 total = data["total"]
                 if data["category"] == DataCategory.TRANSACTION:
                     project_ctx.prev_week_accepted_transaction_count += total
-                else:
+                elif data["category"] in DataCategory.error_categories():
                     project_ctx.prev_week_accepted_error_count += total
 
     @metrics.wraps("weekly_report.create_context.issue_substatus_summaries")
