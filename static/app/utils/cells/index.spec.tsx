@@ -1,6 +1,10 @@
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import {getLocalityUrlOptions, getLocalityNameOptions} from 'sentry/utils/cells';
+import {
+  getLocalityUrlOptions,
+  getLocalityNameOptions,
+  getSignupLocalities,
+} from 'sentry/utils/cells';
 
 describe('getLocalityUrlOptions', () => {
   let configstate: Config;
@@ -80,5 +84,51 @@ describe('getLocalityNameOptions', () => {
     expect(res[2]).toEqual({value: 'de', label: '🇪🇺 European Union (EU)'});
     // No defined label name
     expect(res[3]).toEqual({value: 'ja', label: 'ja'});
+  });
+});
+
+describe('getSignupLocalities', () => {
+  let configstate: Config;
+
+  beforeEach(() => {
+    configstate = ConfigStore.getState();
+  });
+
+  afterEach(() => {
+    ConfigStore.loadInitialData(configstate);
+  });
+  it('returns options', () => {
+    ConfigStore.set('signupLocalities', ['us', 'us2', 'de', 'ja']);
+    ConfigStore.set('localities', [
+      {name: 'us', url: 'https://us.sentry.io'},
+      {name: 'us2', url: 'https://us2.sentry.io'},
+      {name: 'de', url: 'https://de.sentry.io'},
+      {name: 'ja', url: 'https://ja.sentry.io'},
+    ]);
+
+    const res = getSignupLocalities();
+    expect(res).toHaveLength(4);
+
+    expect(res[0]).toEqual({value: 'us', label: '🇺🇸 United States of America (US)'});
+    expect(res[1]).toEqual({value: 'us2', label: '🇺🇸 United States of America (US2)'});
+    expect(res[2]).toEqual({value: 'de', label: '🇪🇺 European Union (EU)'});
+    // No defined label name
+    expect(res[3]).toEqual({value: 'ja', label: 'ja'});
+  });
+
+  it('filters to signupLocalities', () => {
+    ConfigStore.set('signupLocalities', ['us', 'de']);
+    ConfigStore.set('localities', [
+      {name: 'us', url: 'https://us.sentry.io'},
+      {name: 'us2', url: 'https://us2.sentry.io'},
+      {name: 'de', url: 'https://de.sentry.io'},
+      {name: 'ja', url: 'https://ja.sentry.io'},
+    ]);
+
+    const res = getSignupLocalities();
+    expect(res).toHaveLength(2);
+
+    expect(res[0]).toEqual({value: 'us', label: '🇺🇸 United States of America (US)'});
+    expect(res[1]).toEqual({value: 'de', label: '🇪🇺 European Union (EU)'});
   });
 });

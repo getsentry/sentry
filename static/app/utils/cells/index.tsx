@@ -118,6 +118,25 @@ export function getLocalityNameOptions(): Array<SelectValue<string>> {
   });
 }
 
+/**
+ * Get a list of option objects with {label: displayName: value: locality.name}
+ * for all the localities that are available for signups.
+ */
+export function getSignupLocalities(): Array<SelectValue<string>> {
+  const signupLocalities = ConfigStore.get('signupLocalities');
+  const localities = getLocalities();
+
+  return localities
+    .filter(locality => signupLocalities.includes(locality.name))
+    .map(locality => {
+      return {
+        value: locality.name,
+        label:
+          `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`.trim(),
+      };
+    });
+}
+
 export function shouldDisplayLocalities(): boolean {
   return getLocalities().length > 1;
 }
