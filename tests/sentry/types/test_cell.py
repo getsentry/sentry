@@ -21,6 +21,8 @@ from sentry.types.cell import (
     Locality,
     RegionCategory,
     find_all_cell_names,
+    find_all_multitenant_locality_names,
+    find_all_signup_locality_names,
     find_cells_for_sentry_app,
     find_cells_for_user,
     get_cell_by_name,
@@ -338,3 +340,43 @@ class CellDirectoryTest(TestCase):
 
             with pytest.raises(CellResolutionError):
                 get_new_org_cell_for_locality("derp")
+
+    def test_find_all_signup_locality_names(self) -> None:
+        cells = [
+            Cell(
+                name="us",
+                snowflake_id=1,
+                address="10.0.0.1",
+                visible=True,
+            ),
+            Cell(
+                name="de",
+                snowflake_id=3,
+                address="10.0.0.2",
+                visible=True,
+            ),
+        ]
+        localities = [
+            Locality(
+                name="us",
+                cells=frozenset(["us"]),
+                category=RegionCategory.MULTI_TENANT,
+                new_org_cell="us",
+                visible=True,
+            ),
+            Locality(
+                name="de",
+                cells=frozenset(["de"]),
+                category=RegionCategory.MULTI_TENANT,
+                new_org_cell="de",
+                visible=True,
+                signup_visible=False,
+            ),
+        ]
+        with get_test_env_directory().swap_state(cells=cells, localities=localities):
+            all_localities = find_all_multitenant_locality_names()
+            assert all_localities == ["us", "de"]
+
+            # Requires both visible + signup_visible
+            signup_localities = find_all_signup_locality_names()
+            assert signup_localities == ["us"]

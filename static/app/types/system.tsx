@@ -197,6 +197,7 @@ export interface Config {
   // so we can differentiate between "SELF_HOSTED", "SINGLE_TENANT", and "SAAS".
   sentryMode: 'SELF_HOSTED' | 'SINGLE_TENANT' | 'SAAS';
   shouldPreloadData: boolean;
+  signupLocalities: string[];
   singleOrganization: boolean;
   superUserCookieDomain: string | null;
   superUserCookieName: string;
