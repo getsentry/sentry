@@ -46,6 +46,7 @@ import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
+import {buildHeatmapCellQuery} from 'sentry/views/dashboards/widgetCard/buildHeatmapCellQuery';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -504,10 +505,6 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
           if (!traceMetric) {
             return null;
           }
-          const valueQuery =
-            valueMin === valueMax
-              ? `value:<=${valueMin}`
-              : `value:>=${valueMin} value:<${valueMax}`;
           const tracesUrl = buildExploreUrl({
             organization,
             selection: {
@@ -523,7 +520,7 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
               {
                 type: 'metrics',
                 metric: traceMetric,
-                query: [exploreBaseQuery, valueQuery].filter(Boolean).join(' '),
+                query: buildHeatmapCellQuery(exploreBaseQuery, valueMin, valueMax),
               },
             ],
           });
