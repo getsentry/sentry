@@ -1165,6 +1165,13 @@ export function SearchQueryBuilderValueCombobox({
 const HighlightedValue = styled('span')`
   border-radius: ${p => p.theme.radius['2xs']};
   background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+  /*
+   * Pad the chip without shifting the text (the visible text must stay aligned
+   * with the underlying input's caret), so extend the fill via box-shadow
+   * rather than real padding.
+   */
+  box-shadow: 0 0 0 ${p => p.theme.space['2xs']}
+    ${p => p.theme.tokens.background.transparent.accent.muted};
 `;
 
 const Delimiter = styled('span')`
