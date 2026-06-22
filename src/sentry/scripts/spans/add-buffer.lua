@@ -40,6 +40,9 @@ RETURNS:
 - latency_ms -- number -- Milliseconds elapsed during script execution.
 - latency_table -- table -- Per-step latency measurements.
 - metrics_table -- table -- Per-step gauge metrics.
+- merged_segment_span_ids -- str[] -- Span ids of child segments merged into this segment. These were previously
+                                      queued as their own segments, so they are the only stale queue entries the
+                                      caller needs to remove.
 
 ]]--
 
@@ -183,6 +186,8 @@ table.insert(metrics_table, {"detached_segment_locked", segment_locked and 1 or 
 local ingested_count_key = string.format("span-buf:ic:%s", set_key)
 local members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, set_span_id)
 
+local merged_segment_span_ids = {}
+
 -- NOTE: This loop is assumed to match the iteration semantics of the child_ibc cache key
 --       lookup loop. If it doesn't then this will breakerino.
 local child_idx = 0
@@ -212,6 +217,7 @@ for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
             local child_members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, span_id)
             merge_set(child_members_key, members_key)
             redis.call("del", child_members_key)
+            table.insert(merged_segment_span_ids, span_id)
         end
     end
 end
@@ -236,4 +242,4 @@ local end_time_ms = get_time_ms()
 local latency_ms = end_time_ms - start_time_ms
 table.insert(latency_table, {"total_step_latency_ms", latency_ms})
 
-return {set_key, has_root_span, latency_ms, latency_table, metrics_table}
+return {set_key, has_root_span, latency_ms, latency_table, metrics_table, merged_segment_span_ids}
