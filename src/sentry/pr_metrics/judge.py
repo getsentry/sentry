@@ -17,7 +17,7 @@ from typing import Any
 from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Q
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from urllib3.exceptions import HTTPError
 
 from sentry.models.pullrequest import (
@@ -33,6 +33,7 @@ from sentry.net.http import connection_from_url
 from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.emit import (
     CloseAction,
+    PrConversationAnalysis,
     active_attributions,
     emit_pr_metrics_row,
 )
@@ -44,7 +45,7 @@ from sentry.seer.sentry_data_models import (
     UpdatePrMetricsSuccessResponse,
 )
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ RESULT_VERDICTS = frozenset(PullRequestVerdict.values) - {PullRequestVerdict.JUD
 # package or codegen; both sides validate with pydantic, so drift surfaces as a
 # ValidationError here or a 4xx from Seer rather than silent corruption.
 # https://github.com/getsentry/seer/blob/main/src/seer/pr_metrics/models.py
+# TODO move this to a new file "contracts.py" and PrConversationAnalysis there as well
 class PrActivityEvent(BaseModel):
     """One captured ``PullRequestActivity`` row, projected for the judge.
 
@@ -242,13 +244,65 @@ def _parse_attributions(
     return parsed
 
 
+def _parse_conversation_analysis(
+    raw: Mapping[str, Any] | None, log_extra: Mapping[str, Any]
+) -> PrConversationAnalysis | None:
+    """Parse ``conversation_analysis``, or ``None`` if absent or malformed.
+
+    Being BigQuery-only enrichment (unlike ``attributions``, which writes to
+    Postgres), a broken payload degrades gracefully — log + metric, emit without it
+    — rather than 422-ing and blocking the verdict from settling.
+    """
+    if raw is None:
+        return None
+    try:
+        analysis = PrConversationAnalysis.parse_obj(raw)
+        # ``metadata`` is an Any-typed bag emitted verbatim as JSON later, outside
+        # this guard and after the verdict is committed. Round-trip it now so a
+        # non-serializable value is dropped here (honoring the graceful-drop
+        # contract) rather than raising mid-emit. Real RPC payloads are JSON-derived
+        # and so always serializable; this guards direct/synthetic callers.
+        if analysis.metadata is not None:
+            json.dumps(analysis.metadata)
+        return analysis
+    except (ValidationError, TypeError, ValueError):
+        logger.warning("pr_metrics.update.invalid_conversation_analysis", extra=dict(log_extra))
+        metrics.incr("pr_metrics.update.invalid_conversation_analysis")
+        return None
+
+
+def _clean_diagnosis_labels(raw: Any, log_extra: Mapping[str, Any]) -> list[str] | None:
+    """Sanitize ``diagnosis_labels`` (a list of free-string labels) at the boundary.
+
+    Like ``conversation_analysis`` it's BigQuery-only enrichment, so a wrong-typed
+    value (not a list of strings, e.g. a bare string or a mixed-type list) is
+    dropped gracefully — log + metric, emit without it — rather than 422-ing the
+    callback. Only the shape is checked, never the label values, so the shared
+    diagnosis vocabulary can iterate freely. An empty list is valid and returns
+    ``[]`` (the judge ran, found no labels), distinct from ``None`` (none supplied).
+    """
+    if raw is None:
+        return None
+    if (
+        isinstance(raw, Sequence)
+        and not isinstance(raw, str)
+        and all(isinstance(x, str) for x in raw)
+    ):
+        return list(raw)
+    logger.warning("pr_metrics.update.invalid_diagnosis_labels", extra=dict(log_extra))
+    metrics.incr("pr_metrics.update.invalid_diagnosis_labels")
+    return None
+
+
 def update_pr_metrics(
     *,
     pull_request_id: int,
     organization_id: int,
     repository_id: int,
     verdict: str | None = None,
+    diagnosis_labels: Sequence[str] | None = None,
     attributions: Sequence[Mapping[str, Any]] | None = None,
+    conversation_analysis: Mapping[str, Any] | None = None,
 ) -> UpdatePrMetricsSuccessResponse | UpdatePrMetricsErrorResponse:
     """Persist Seer's judge result for a PR and emit the enriched metrics row.
 
@@ -261,6 +315,15 @@ def update_pr_metrics(
     ``attributions`` are new signals Seer surfaced during judging (recorded with
     a ``seer_*`` source), additive to the ones the webhook already detected — not
     an echo or filter of the attributions Sentry forwarded.
+
+    ``conversation_analysis`` is the conversation judge's result — one of several
+    judges (others, e.g. diff-similarity, arrive as their own args). Its semantic
+    outputs become emitted columns; its ``metadata`` rides along as a verbatim JSON
+    blob. ``diagnosis_labels`` is the cross-judge close-reason "why" (a shared
+    vocabulary). Both are optional (null for old Seer pods / the no-judge path →
+    rolling-deploy safe) and BigQuery-only — never persisted. A malformed value is
+    dropped, not rejected — see ``_parse_conversation_analysis`` /
+    ``_clean_diagnosis_labels``.
 
     The PR is located by its Sentry id but constrained to the reported
     ``organization_id``/``repository_id``, so a mismatched id can't reach another
@@ -290,6 +353,9 @@ def update_pr_metrics(
         logger.warning("pr_metrics.update.invalid_attribution", extra=log_extra)
         metrics.incr("pr_metrics.update.skipped", tags={"reason": "invalid_attribution"})
         return UpdatePrMetricsErrorResponse(error="invalid_attribution")
+
+    parsed_conversation_analysis = _parse_conversation_analysis(conversation_analysis, log_extra)
+    clean_diagnosis_labels = _clean_diagnosis_labels(diagnosis_labels, log_extra)
 
     # Scope the lookup to the reported org+repo: the id alone is attacker-influenced
     # (it round-trips through Seer), so trusting it unscoped would be an IDOR.
@@ -341,7 +407,11 @@ def update_pr_metrics(
                 signal_details=signal_details,
             )
 
-    emit_pr_metrics_row(pull_request=pull_request)
+    emit_pr_metrics_row(
+        pull_request=pull_request,
+        conversation_analysis=parsed_conversation_analysis,
+        diagnosis_labels=clean_diagnosis_labels,
+    )
 
     metrics.incr("pr_metrics.update.recorded", tags={"verdict": verdict})
     logger.info("pr_metrics.update.recorded", extra={**log_extra, "verdict": verdict})
