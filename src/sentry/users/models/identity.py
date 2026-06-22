@@ -19,6 +19,7 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.fields.encryption import EncryptedJSONField
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -238,3 +239,23 @@ class Identity(Model):
         from sentry.identity import get
 
         return get(self.idp.type)
+
+
+@control_silo_model
+class OrganizationIdentity(Model):
+    """
+    Links an Identity to a specific organization.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="organization_identities")
+    identity = FlexibleForeignKey("sentry.Identity", on_delete=models.CASCADE)
+    provider_key = models.CharField(max_length=64)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_organizationidentity"
+        unique_together = (("organization_id", "user_id", "provider_key"),)
