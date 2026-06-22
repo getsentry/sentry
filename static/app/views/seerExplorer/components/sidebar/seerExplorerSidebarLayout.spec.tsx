@@ -10,10 +10,7 @@ import * as analytics from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import * as useDimensionsModule from 'sentry/utils/useDimensions';
 import type {OpenSeerExplorerDrawerOptions} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
-import {
-  getSidebarContentLayout,
-  SeerExplorerSidebarLayout,
-} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
+import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
@@ -100,10 +97,11 @@ function renderSidebar(
   );
 }
 
-function dividerDirection() {
-  return document
-    .querySelector('[data-slide-direction]')
-    ?.getAttribute('data-slide-direction');
+// The split divider is a `role="separator"`; its `data-orientation` is the
+// layout orientation (`horizontal` = right dock, `vertical` = bottom dock).
+// Absent when there's no split (Seer closed / not yet measured).
+function splitOrientation() {
+  return screen.queryByRole('separator')?.getAttribute('data-orientation') ?? undefined;
 }
 
 describe('SeerExplorerSidebarLayout', () => {
@@ -146,7 +144,7 @@ describe('SeerExplorerSidebarLayout', () => {
     renderSidebar(orgNoFlag);
 
     expect(await screen.findByText('main app content')).toBeInTheDocument();
-    expect(dividerDirection()).toBeUndefined();
+    expect(splitOrientation()).toBeUndefined();
     expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument();
   });
 
@@ -155,7 +153,7 @@ describe('SeerExplorerSidebarLayout', () => {
 
     expect(await screen.findByText('main app content')).toBeInTheDocument();
     // Closed → no split divider, no Seer content.
-    expect(dividerDirection()).toBeUndefined();
+    expect(splitOrientation()).toBeUndefined();
     expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument();
   });
 
@@ -169,7 +167,7 @@ describe('SeerExplorerSidebarLayout', () => {
 
     expect(await screen.findByText('main app content')).toBeInTheDocument();
     // No split until measured.
-    expect(dividerDirection()).toBeUndefined();
+    expect(splitOrientation()).toBeUndefined();
   });
 
   it('docks Seer to the bottom on a narrow viewport (auto)', async () => {
@@ -179,7 +177,7 @@ describe('SeerExplorerSidebarLayout', () => {
     await userEvent.click(screen.getByText('open-seer'));
 
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
-    expect(dividerDirection()).toBe('updown');
+    expect(splitOrientation()).toBe('vertical');
   });
 
   it('docks Seer to the right on a wide viewport (auto)', async () => {
@@ -189,7 +187,7 @@ describe('SeerExplorerSidebarLayout', () => {
     await userEvent.click(screen.getByText('open-seer'));
 
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
-    expect(dividerDirection()).toBe('leftright');
+    expect(splitOrientation()).toBe('horizontal');
   });
 
   it('lets a persisted position override the viewport default', async () => {
@@ -201,7 +199,7 @@ describe('SeerExplorerSidebarLayout', () => {
     await userEvent.click(screen.getByText('open-seer'));
 
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
-    expect(dividerDirection()).toBe('leftright');
+    expect(splitOrientation()).toBe('horizontal');
   });
 
   it('changes and persists the dock position via the dropdown', async () => {
@@ -209,7 +207,7 @@ describe('SeerExplorerSidebarLayout', () => {
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
     const input = await screen.findByTestId('seer-explorer-input');
-    expect(dividerDirection()).toBe('updown');
+    expect(splitOrientation()).toBe('vertical');
 
     // The content auto-focuses the textarea ~100ms after opening. Wait for that
     // to settle first — otherwise it can steal focus from (and close) the dock
@@ -219,17 +217,38 @@ describe('SeerExplorerSidebarLayout', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Right'}));
 
-    await waitFor(() => expect(dividerDirection()).toBe('leftright'));
+    await waitFor(() => expect(splitOrientation()).toBe('horizontal'));
     await waitFor(() =>
       expect(localStorage.getItem(POSITION_KEY)).toBe(JSON.stringify('right'))
     );
   });
 
-  it('does not persist Seer size on open (only on a user drag)', async () => {
-    // Opening fires a programmatic (non-user) resize. The content size is derived
-    // from the stored Seer size, so persisting it back is pointless — and harmful
-    // when clamped (see the next test). Nothing should be written on open; reads
-    // fall back to the default size.
+  it('persists Seer size from a divider resize', async () => {
+    // Right dock, available width 1200, default Seer 420 → content seeds to 780.
+    // Growing the content pane by one keyboard step (ArrowRight, +10 → 790)
+    // shrinks Seer to 1200 − 790 = 410, which is what we persist.
+    mockWideScreen(true);
+    renderSidebar(orgWithSidebar);
+    await userEvent.click(screen.getByText('open-seer'));
+    const input = await screen.findByTestId('seer-explorer-input');
+
+    // The content auto-focuses the textarea ~100ms after opening; let it settle
+    // before moving focus to the divider so the keypress lands on the separator.
+    await waitFor(() => expect(input).toHaveFocus());
+
+    const separator = screen.getByRole('separator');
+    separator.focus();
+    await userEvent.keyboard('{ArrowRight}');
+
+    await waitFor(() =>
+      expect(localStorage.getItem('seer-explorer-sidebar-seer-size:right')).toBe('410')
+    );
+  });
+
+  it('does not persist Seer size on open (only on a real resize)', async () => {
+    // Persistence runs through `onResizeEnd`, which fires only on a committed
+    // drag/keyboard/double-click — never on open or the measure-driven seed. So
+    // nothing is written on open; reads fall back to the default size.
     mockWideScreen(true);
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
@@ -240,9 +259,8 @@ describe('SeerExplorerSidebarLayout', () => {
 
   it('does not clobber a saved Seer size that no longer fits the viewport', async () => {
     // Bottom dock, viewport too short to fit the saved Seer size (700) alongside
-    // the content minimum. The programmatic resize on open/orientation-change must
-    // not overwrite the saved preference with a clamped (smaller) value, so it is
-    // restored once the viewport has room again.
+    // the content minimum. Opening must not write anything (no committed resize),
+    // so the saved preference survives and is restored once the viewport has room.
     mockWideScreen(false); // auto → bottom
     jest
       .spyOn(useDimensionsModule, 'useDimensions')
@@ -351,41 +369,6 @@ describe('SeerExplorerSidebarLayout', () => {
     await waitFor(() =>
       expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument()
     );
-    expect(dividerDirection()).toBeUndefined();
-  });
-
-  describe('getSidebarContentLayout', () => {
-    it('leaves normal sizing unchanged when both minimums fit', () => {
-      const {size, min, max} = getSidebarContentLayout({
-        available: 1200,
-        seerSize: 420,
-        minContent: 480,
-        minSeer: 320,
-      });
-      expect(size).toBe(780);
-      expect(min).toBe(480);
-      expect(max).toBe(880);
-    });
-
-    it('preserves Seer minimum (no overflow) when the viewport is too small for both', () => {
-      // available (360) < minContent (200) + minSeer (240): the content pane must
-      // not crowd Seer below its minimum, and must never exceed the viewport.
-      const available = 360;
-      const minContent = 200;
-      const minSeer = 240;
-      const {size, max} = getSidebarContentLayout({
-        available,
-        seerSize: 360,
-        minContent,
-        minSeer,
-      });
-
-      // Content capped so Seer keeps at least minSeer.
-      expect(size).toBeLessThanOrEqual(available - minSeer);
-      expect(max).toBeLessThanOrEqual(available - minSeer);
-      // Never overflow the viewport.
-      expect(size).toBeLessThanOrEqual(available);
-      expect(max).toBeLessThanOrEqual(available);
-    });
+    expect(splitOrientation()).toBeUndefined();
   });
 });
