@@ -2865,7 +2865,7 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('string', () => {
-      it('defaults to an empty string when no value is provided', async () => {
+      it('resets to an empty string when the last value is removed', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
         );
@@ -2873,19 +2873,13 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
-        await userEvent.clear(
-          await screen.findByRole('combobox', {name: 'Edit filter value'})
-        );
-        await userEvent.keyboard('{enter}');
 
-        // Should have empty quotes `""`
+        // Removing the only value chip resets the value to empty quotes `""`
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Remove value: firefox'})
+        );
         expect(
           await screen.findByRole('row', {name: 'browser.name:""'})
-        ).toBeInTheDocument();
-        expect(
-          within(
-            screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-          ).getByText('""')
         ).toBeInTheDocument();
       });
 
@@ -2948,12 +2942,11 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
-        // Should start with previous values and an appended ',' for the next value
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            'firefox,'
-          );
-        });
+        // Previous values render as chips and the input starts empty
+        expect(
+          screen.getByRole('button', {name: 'Edit value: firefox'})
+        ).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
 
         // Clicking the "Chrome option should add it to the list and commit changes
         await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
@@ -3049,16 +3042,15 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
-        // Input value should start with previous value and appended ','
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            'firefox,'
-          );
-        });
+        // Previous value renders as a chip and the input starts empty
+        expect(
+          await screen.findByRole('button', {name: 'Edit value: firefox'})
+        ).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
 
         // Toggling off the "firefox" option should:
         // - Commit an empty string as the filter value
-        // - Input value should be cleared
+        // - Remove the firefox chip
         // - Keep focus inside the input
         // - Not call onChange
         await userEvent.click(
@@ -3068,16 +3060,16 @@ describe('SearchQueryBuilder', () => {
           await screen.findByRole('row', {name: 'browser.name:""'})
         ).toBeInTheDocument();
         await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            ''
-          );
+          expect(
+            screen.queryByRole('button', {name: 'Edit value: firefox'})
+          ).not.toBeInTheDocument();
         });
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
         expect(mockOnChange).not.toHaveBeenCalled();
 
         // Toggling on the "Chrome" option should:
         // - Commit the value "Chrome" to the filter
-        // - Input value should be "Chrome,"
+        // - Render a "Chrome" chip
         // - Keep focus inside the input
         // - Still not call onChange
         await userEvent.click(
@@ -3086,11 +3078,9 @@ describe('SearchQueryBuilder', () => {
         expect(
           await screen.findByRole('row', {name: 'browser.name:Chrome'})
         ).toBeInTheDocument();
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            'Chrome,'
-          );
-        });
+        expect(
+          await screen.findByRole('button', {name: 'Edit value: Chrome'})
+        ).toBeInTheDocument();
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
         expect(mockOnChange).not.toHaveBeenCalled();
 
@@ -3125,11 +3115,12 @@ describe('SearchQueryBuilder', () => {
         expect(
           await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
         ).toBeInTheDocument();
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            'firefox,Chrome,'
-          );
-        });
+        expect(
+          await screen.findByRole('button', {name: 'Edit value: firefox'})
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', {name: 'Edit value: Chrome'})
+        ).toBeInTheDocument();
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
 
         // onChange should not be called until exiting edit mode
@@ -3166,11 +3157,12 @@ describe('SearchQueryBuilder', () => {
         expect(
           await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
         ).toBeInTheDocument();
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            'firefox,Chrome,'
-          );
-        });
+        expect(
+          await screen.findByRole('button', {name: 'Edit value: firefox'})
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', {name: 'Edit value: Chrome'})
+        ).toBeInTheDocument();
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
 
         // onChange should not be called until exiting edit mode
@@ -3506,10 +3498,11 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
         );
 
-        // Input value should have the escaped value (with a trailing comma)
-        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-          expected + ','
-        );
+        // The value renders as a chip and the input is empty
+        expect(
+          screen.getByRole('button', {name: `Edit value: ${value}`})
+        ).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
 
         // The original value should be selected in the dropdown
         expect(
@@ -3517,7 +3510,7 @@ describe('SearchQueryBuilder', () => {
         ).toBeChecked();
       });
 
-      it('can replace a value with a new one', async () => {
+      it('can edit a value by clicking its chip', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
         );
@@ -3525,22 +3518,43 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
+
+        // Clicking the "c" chip removes it and lifts its value into the input
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
         await waitFor(() => {
           expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            '1,c,3,'
+            'c'
           );
         });
 
-        // Arrow left three times to put cursor inside "c" value
-        await userEvent.keyboard('{ArrowLeft}{ArrowLeft}{ArrowLeft}');
-
-        // When on c value, should show options matching "c"
-        const chromeOption = await screen.findByRole('option', {name: 'Chrome'});
-
-        // Clicking the "Chrome option should replace "c" with "Chrome" and commit chagnes
-        await userEvent.click(chromeOption);
+        // Selecting the "Chrome" option adds it back as a new value
+        await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
         expect(
-          await screen.findByRole('row', {name: 'browser.name:[1,Chrome,3]'})
+          await screen.findByRole('row', {name: 'browser.name:[1,3,Chrome]'})
+        ).toBeInTheDocument();
+      });
+
+      it('restores a lifted value when canceling a chip edit with Escape', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift "c" into the input, then cancel with Escape
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+            'c'
+          );
+        });
+        await userEvent.keyboard('{Escape}');
+
+        // The value is preserved rather than dropped
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[1,3,c]'})
         ).toBeInTheDocument();
       });
 
@@ -3553,6 +3567,31 @@ describe('SearchQueryBuilder', () => {
         await userEvent.keyboard('foo,bar{enter}');
         expect(
           await screen.findByRole('row', {name: 'browser.name:[foo,bar]'})
+        ).toBeInTheDocument();
+      });
+
+      it('removes the last value chip when pressing backspace in an empty input', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Input is empty, so backspace removes the last value chip
+        await userEvent.keyboard('{Backspace}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:firefox'})
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', {name: 'Edit value: chrome'})
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getByRole('button', {name: 'Edit value: firefox'})
         ).toBeInTheDocument();
       });
 

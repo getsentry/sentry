@@ -29,7 +29,6 @@ import {
   type CustomComboboxMenuProps,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
-import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
 import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
 import {
@@ -72,6 +71,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -172,24 +172,6 @@ export function getSelectedValuesFromText(text: string) {
 
       return {value, text: valueText, selected};
     });
-}
-
-function getValueAtCursorPosition(text: string, cursorPosition: number | null) {
-  if (cursorPosition === null) {
-    return '';
-  }
-
-  const items = text.split(',');
-
-  let characterCount = 0;
-  for (const item of items) {
-    characterCount += item.length + 1;
-    if (characterCount > cursorPosition) {
-      return item.trim();
-    }
-  }
-
-  return '';
 }
 
 function getSuggestionDescription(group: SearchGroup | SearchItem) {
@@ -308,32 +290,6 @@ function keySupportsWildcard(
   valueType: FieldValueType
 ) {
   return valueType === FieldValueType.STRING && fieldDefinition?.allowWildcard !== false;
-}
-
-function useSelectionIndex({
-  inputRef,
-  initialLength,
-}: {
-  initialLength: number;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-}) {
-  const [selectionIndex, setSelectionIndex] = useState<number | null>(
-    () => initialLength
-  );
-
-  const updateSelectionIndex = useCallback(() => {
-    if (inputRef.current?.selectionStart === inputRef.current?.selectionEnd) {
-      setSelectionIndex(inputRef.current?.selectionStart ?? null);
-    } else {
-      setSelectionIndex(null);
-    }
-  }, [inputRef]);
-
-  return {
-    selectionIndex,
-    setSelectionIndex,
-    updateSelectionIndex,
-  };
 }
 
 function sortSuggestionsByFzf(
@@ -699,13 +655,13 @@ export function SearchQueryBuilderValueCombobox({
   const canUseWildcard = disallowWildcard
     ? false
     : keySupportsWildcard(fieldDefinition, valueType);
+  // Multi-select renders committed values as chips, so the input starts empty
+  // and only holds the value being typed.
   const [inputValue, setInputValue] = useState(() =>
-    getInitialInputValue(token, canSelectMultipleValues)
+    canSelectMultipleValues ? '' : getInitialInputValue(token, canSelectMultipleValues)
   );
-  const {selectionIndex, setSelectionIndex, updateSelectionIndex} = useSelectionIndex({
-    inputRef,
-    initialLength: inputValue.length,
-  });
+  // The value lifted out of a chip for editing, so Escape can restore it.
+  const [editingValue, setEditingValue] = useState<string | null>(null);
 
   const [showDatePicker, setShowDatePicker] = useState(() => {
     if (isDateToken(token)) {
@@ -714,15 +670,14 @@ export function SearchQueryBuilderValueCombobox({
     return false;
   });
 
-  const filterValue = unescapeAsteriskSearchValue(
-    canSelectMultipleValues
-      ? getValueAtCursorPosition(inputValue, selectionIndex)
-      : inputValue
-  );
+  const filterValue = unescapeAsteriskSearchValue(inputValue);
 
   const selectedValues = useMemo(
-    () => (canSelectMultipleValues ? getSelectedValuesFromText(inputValue) : []),
-    [canSelectMultipleValues, inputValue]
+    () =>
+      canSelectMultipleValues
+        ? getSelectedValuesFromText(getMultiSelectInputValue(token))
+        : [],
+    [canSelectMultipleValues, token]
   );
 
   const ctrlKeyPressed = useKeyPress(
@@ -738,19 +693,6 @@ export function SearchQueryBuilderValueCombobox({
     [token, ctrlKeyPressed, selectedValueMap]
   );
 
-  useEffect(() => {
-    if (canSelectMultipleValues) {
-      const newInputValue = getMultiSelectInputValue(token);
-      // Batch both updates to avoid an intermediate render where
-      // selectionIndex is stale, which would cause filterValue to
-      // temporarily change and trigger item filtering flicker.
-      setInputValue(newInputValue);
-      setSelectionIndex(newInputValue.length);
-    }
-    // We want to avoid resetting the input value if the token text doesn't actually change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canSelectMultipleValues, token.text]);
-
   // On mount, scroll to the end of the input
   useEffect(() => {
     if (inputRef.current) {
@@ -758,10 +700,21 @@ export function SearchQueryBuilderValueCombobox({
     }
   }, []);
 
+  // While typing, surface the typed text as a custom option so results rank by
+  // relevance; committed chips are pinned to the top only at rest. Checkbox
+  // checked-state comes from `selectedValueMap`, not this list.
+  const suggestionSelectedValues = useMemo(
+    () =>
+      canSelectMultipleValues && filterValue
+        ? [{value: filterValue, selected: false}]
+        : selectedValues,
+    [canSelectMultipleValues, filterValue, selectedValues]
+  );
+
   const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
     filterValue,
-    selectedValues,
+    selectedValues: suggestionSelectedValues,
   });
 
   const analyticsData = useMemo(
@@ -880,42 +833,27 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       if (canSelectMultipleValues) {
-        if (selectedValues.map(v => v.value).includes(value)) {
-          const newValue = prepareInputValueForSaving(
-            getFilterValueType(token, fieldDefinition),
-            selectedValues
-              .filter(v => (v.selected ? v.value !== value : true))
+        // UPDATE_TOKEN_VALUE (rather than TOGGLE_FILTER_VALUE) so the operator
+        // switch (e.g. contains -> is) can ride along via `op`.
+        const alreadySelected = selectedValues.some(v => v.value === value);
+        const newCommaSeparatedValue = alreadySelected
+          ? selectedValues
+              .filter(v => v.value !== value)
               .map(v => v.text)
               .join(',')
-          );
-
-          dispatch({
-            type: 'UPDATE_TOKEN_VALUE',
-            token,
-            value: newValue,
-            op,
-          });
-
-          if (newValue && newValue !== '""' && !ctrlKeyPressed) {
-            onCommit();
-          }
-
-          return true;
-        }
+          : getMultiSelectInputValue(token) + valueForSaving;
 
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token,
           value: prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
-            replaceCommaSeparatedValue(
-              inputValue,
-              selectionIndex,
-              escapeSearchValue ? escapeTagValueForSearch(value) : value
-            )
+            newCommaSeparatedValue
           ),
           op,
         });
+        setInputValue('');
+        setEditingValue(null);
 
         if (!ctrlKeyPressed) {
           onCommit();
@@ -943,8 +881,6 @@ export function SearchQueryBuilderValueCombobox({
       analyticsData,
       selectedValues,
       dispatch,
-      inputValue,
-      selectionIndex,
       ctrlKeyPressed,
       onCommit,
     ]
@@ -989,8 +925,43 @@ export function SearchQueryBuilderValueCombobox({
     [analyticsData, token, updateFilterValue]
   );
 
+  const addTypedValue = useCallback(
+    (rawValue: string) => {
+      const value = rawValue.trim();
+      if (!value) {
+        return;
+      }
+      dispatch({
+        type: 'UPDATE_TOKEN_VALUE',
+        token,
+        value: prepareInputValueForSaving(
+          getFilterValueType(token, fieldDefinition),
+          getMultiSelectInputValue(token) + value
+        ),
+      });
+      setInputValue('');
+      setEditingValue(null);
+    },
+    [dispatch, fieldDefinition, token]
+  );
+
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
+      if (canSelectMultipleValues) {
+        if (value.trim()) {
+          addTypedValue(value);
+          trackAnalytics('search.value_manual_submitted', {
+            ...analyticsData,
+            filter_value: value,
+            invalid: false,
+          });
+        } else {
+          setEditingValue(null);
+        }
+        onCommit();
+        return;
+      }
+
       const isUnchanged = value === getInitialInputValue(token, canSelectMultipleValues);
 
       // If there's no user input and the token has no value, set a default one
@@ -1009,26 +980,6 @@ export function SearchQueryBuilderValueCombobox({
         return;
       }
 
-      if (canSelectMultipleValues) {
-        dispatch({
-          type: 'UPDATE_TOKEN_VALUE',
-          token,
-          value: prepareInputValueForSaving(
-            getFilterValueType(token, fieldDefinition),
-            value
-          ),
-        });
-        onCommit();
-        if (!isUnchanged) {
-          trackAnalytics('search.value_manual_submitted', {
-            ...analyticsData,
-            filter_value: value,
-            invalid: false,
-          });
-        }
-        return;
-      }
-
       const invalid = updateFilterValue(value);
       trackAnalytics('search.value_manual_submitted', {
         ...analyticsData,
@@ -1038,6 +989,7 @@ export function SearchQueryBuilderValueCombobox({
     },
     [
       analyticsData,
+      addTypedValue,
       canSelectMultipleValues,
       dispatch,
       fieldDefinition,
@@ -1046,6 +998,29 @@ export function SearchQueryBuilderValueCombobox({
       updateFilterValue,
     ]
   );
+
+  const removeValue = useCallback(
+    (value: string) => {
+      dispatch({
+        type: 'TOGGLE_FILTER_VALUE',
+        token,
+        value: escapeTagValueForSearch(value),
+      });
+      inputRef.current?.focus();
+    },
+    [dispatch, token]
+  );
+
+  const editValue = (value: string) => {
+    dispatch({
+      type: 'TOGGLE_FILTER_VALUE',
+      token,
+      value: escapeTagValueForSearch(value),
+    });
+    setInputValue(value);
+    setEditingValue(value);
+    inputRef.current?.focus();
+  };
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -1056,12 +1031,29 @@ export function SearchQueryBuilderValueCombobox({
         e.continuePropagation();
       }
 
-      // If there's nothing in the input and we hit a delete key, we should focus the filter
-      if ((e.key === 'Backspace' || e.key === 'Delete') && !inputRef.current?.value) {
+      const currentValue = inputRef.current?.value ?? '';
+
+      // A comma inside an open quote (e.g. `"a,b"`) is part of the value, not a
+      // delimiter, so let it through.
+      if (canSelectMultipleValues && e.key === ',') {
+        const unescaped = currentValue.replace(/\\"/g, '');
+        const insideQuotes = (unescaped.match(/"/g)?.length ?? 0) % 2 === 1;
+        if (!insideQuotes) {
+          e.preventDefault();
+          addTypedValue(currentValue);
+        }
+        return;
+      }
+
+      if ((e.key === 'Backspace' || e.key === 'Delete') && !currentValue) {
+        if (canSelectMultipleValues && selectedValues.length > 0) {
+          removeValue(selectedValues[selectedValues.length - 1]!.value);
+          return;
+        }
         onDelete();
       }
     },
-    [onDelete]
+    [addTypedValue, canSelectMultipleValues, onDelete, removeValue, selectedValues]
   );
 
   // Ensure that the menu stays open when clicking on the selected items
@@ -1101,27 +1093,52 @@ export function SearchQueryBuilderValueCombobox({
       <ValueComboboxMenuContext.Provider value={menuContextValue}>
         <Flex
           align="center"
+          gap="2xs"
           maxWidth="400px"
           height="100%"
           ref={ref}
           data-test-id="filter-value-editing"
         >
+          {selectedValues.map(({value}) => (
+            <ValueChip key={value}>
+              <ValueChipLabel
+                type="button"
+                aria-label={t('Edit value: %s', value)}
+                onClick={() => editValue(value)}
+              >
+                {value}
+              </ValueChipLabel>
+              <ValueChipRemove
+                type="button"
+                aria-label={t('Remove value: %s', value)}
+                onClick={() => removeValue(value)}
+              >
+                <IconClose legacySize="8px" />
+              </ValueChipRemove>
+            </ValueChip>
+          ))}
           <SearchQueryBuilderCombobox
             ref={inputRef}
             items={items}
             onOptionSelected={handleOptionSelected}
             onCustomValueBlurred={handleInputValueConfirmed}
             onCustomValueCommitted={handleInputValueConfirmed}
-            onExit={onCommit}
+            onExit={() => {
+              // Escape cancels an in-progress chip edit by restoring the value
+              // that was lifted out, rather than discarding it.
+              if (editingValue !== null) {
+                addTypedValue(editingValue);
+              }
+              onCommit();
+            }}
             inputValue={inputValue}
             filterValue={filterValue}
             placeholder={placeholder}
             token={token}
             inputLabel={t('Edit filter value')}
+            keepVisibleRef={ref}
             onInputChange={e => setInputValue(e.target.value)}
             onKeyDown={onKeyDown}
-            onKeyUp={updateSelectionIndex}
-            onClick={updateSelectionIndex}
             autoFocus
             maxOptions={50}
             openOnFocus
@@ -1146,6 +1163,38 @@ export function SearchQueryBuilderValueCombobox({
     </ValueComboboxContext.Provider>
   );
 }
+
+const ValueChip = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space['2xs']};
+  border-radius: ${p => p.theme.radius['2xs']};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+  color: ${p => p.theme.tokens.content.accent};
+  padding: 0 ${p => p.theme.space['2xs']};
+  white-space: nowrap;
+`;
+
+const ValueChipLabel = styled('button')`
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+`;
+
+const ValueChipRemove = styled('button')`
+  display: flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  color: ${p => p.theme.tokens.content.secondary};
+  cursor: pointer;
+`;
 
 const TrailingWrap = styled('div')`
   display: grid;
