@@ -222,6 +222,7 @@ def test_update_queue_uses_timeout_for_non_root_segments(storage: SpansBufferSto
         latency_ms=15,
         latency_metrics=[],
         gauge_metrics=[],
+        merged_segment_span_ids=[],
     )
     debug_trace_logger = mock.Mock()
     debug_trace_logger._should_log_trace.return_value = False

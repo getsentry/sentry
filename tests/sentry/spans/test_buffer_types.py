@@ -120,6 +120,7 @@ def test_inserted_subsegment_exposes_queue_and_cleanup_metadata() -> None:
             latency_ms=15,
             latency_metrics=[],
             gauge_metrics=[],
+            merged_segment_span_ids=[],
         ),
     )
     detached = InsertedSubsegment(
@@ -130,6 +131,7 @@ def test_inserted_subsegment_exposes_queue_and_cleanup_metadata() -> None:
             latency_ms=15,
             latency_metrics=[],
             gauge_metrics=[],
+            merged_segment_span_ids=[],
         ),
     )
 

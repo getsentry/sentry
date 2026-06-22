@@ -421,6 +421,7 @@ def test_emit_process_spans_count_metrics() -> None:
                 latency_ms=15,
                 latency_metrics=[],
                 gauge_metrics=[],
+                merged_segment_span_ids=[],
             ),
         )
     ]
