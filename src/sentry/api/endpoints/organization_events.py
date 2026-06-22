@@ -251,7 +251,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 if referrer.startswith("seer."):
                     sentry_sdk.set_tag("query.from_seer", True)
                     sentry_sdk.set_attribute("query.from_seer", True)
-                elif referrer.startswith("mcp."):
+                elif referrer.startswith("api.mcp."):
                     sentry_sdk.set_tag("query.from_mcp", True)
                     sentry_sdk.set_attribute("query.from_mcp", True)
             else:
