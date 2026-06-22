@@ -33,10 +33,6 @@ import {ScmSearchControl} from './scmSearchControl';
 import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
 import {useScmResolvedPlatform} from './useScmResolvedPlatform';
 
-const STEP_VIEWED_EVENT = {
-  onboarding: 'onboarding.scm_platform_features_step_viewed',
-  'project-creation': 'project_creation.scm_platform_features_step_viewed',
-} as const;
 const PLATFORM_SELECTED_EVENT = {
   onboarding: 'onboarding.scm_platform_selected',
   'project-creation': 'project_creation.scm_platform_selected',
@@ -98,7 +94,13 @@ export function ScmPlatformFeaturesCore({
   }, [selectedRepository?.externalId]);
 
   useEffect(() => {
-    trackAnalytics(STEP_VIEWED_EVENT[analyticsFlow], {organization});
+    // Onboarding views this as a discrete step. Single-view project creation
+    // shows all sections at once and fires one page-viewed event in
+    // scmCreateProject, so suppress the per-section step_viewed there.
+    if (analyticsFlow !== 'onboarding') {
+      return;
+    }
+    trackAnalytics('onboarding.scm_platform_features_step_viewed', {organization});
   }, [organization, analyticsFlow]);
 
   const setPlatform = useCallback(

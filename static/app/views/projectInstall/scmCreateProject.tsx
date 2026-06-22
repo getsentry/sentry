@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -94,6 +95,16 @@ export function ScmCreateProject() {
   const location = useLocation();
   const referrer = decodeScalar(location.query.referrer);
   const projectId = decodeScalar(location.query.project);
+
+  // Single page-viewed event for the whole flow. Unlike onboarding's discrete
+  // steps, every section renders at once here, so the per-section step_viewed
+  // events the shared cores fire in onboarding are intentionally suppressed in
+  // this flow. Uses an SCM-specific event (not the classic
+  // project_creation_page.viewed) so the SCM-first funnel stays separable.
+  useRouteAnalyticsEventNames(
+    'project_creation.scm_create_project_viewed',
+    'Project Creation: SCM Create Project Viewed'
+  );
 
   // Snapshot of the last completed wizard session, written when a project is
   // created (see handleComplete in the wizard). Restored when this mount is a
