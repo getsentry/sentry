@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
@@ -180,6 +180,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
                     "count()": 2,
                     "count_sample()": 2,
                     "count_unique(sentry.dsc.transaction)": 7,
+                    "max(received)": 1700000000.0,
                 },
                 {
                     "sentry.dsc.project_id": other_project.id,
@@ -195,7 +196,12 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
 
         assert sorted(project_volumes) == [
             ProjectVolume(
-                project_id=project.id, total=2, keep=2, drop=0, num_distinct_transactions=7
+                project_id=project.id,
+                total=2,
+                keep=2,
+                drop=0,
+                num_distinct_transactions=7,
+                last_item_received=datetime.fromtimestamp(1700000000.0, tz=UTC),
             ),
             ProjectVolume(
                 project_id=other_project.id, total=1, keep=1, drop=0, num_distinct_transactions=1
@@ -213,6 +219,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             DynamicSamplingQueryFields.COUNT,
             DynamicSamplingQueryFields.COUNT_SAMPLE,
             DynamicSamplingQueryFields.COUNT_UNIQUE_TRANSACTIONS,
+            DynamicSamplingQueryFields.MAX_RECEIVED,
         ]
         assert query["orderby"] == [DynamicSamplingQueryFields.DSC_PROJECT_ID]
         assert query["referrer"] == Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value
