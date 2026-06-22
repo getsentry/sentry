@@ -817,12 +817,6 @@ def build_pr_description_suffix(group: Group) -> str | None:
             linear_id = external_issue.display_name.replace("#", "-")
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
 
-    if features.has("organizations:autofix-pr-iteration", group.organization):
-        lines.append(
-            "<sub>💬 Reply to this PR with a comment mentioning `@sentry` and your "
-            "feedback, and Seer will push a commit to address it.</sub>"
-        )
-
     if lines:
         return "\n".join(lines)
 
