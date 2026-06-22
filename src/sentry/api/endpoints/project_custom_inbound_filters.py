@@ -111,27 +111,6 @@ class CustomInboundFilterSerializer(serializers.Serializer):
         return conditions
 
 
-def get_audit_log_data(
-    project: Project,
-    custom_filter: CustomInboundFilter,
-    operation: str,
-    changes: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    data: dict[str, Any] = {
-        "project_slug": project.slug,
-        "filter_id": str(custom_filter.id),
-        "filter_name": custom_filter.name,
-        "active": custom_filter.active,
-        "conditions": custom_filter.conditions,
-        "operation": operation,
-    }
-
-    if changes:
-        data["changes"] = changes
-
-    return data
-
-
 class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (ProjectSettingPermission,)
@@ -143,6 +122,27 @@ class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         return features.has("projects:custom-inbound-filters", project, actor=request.user)
+
+    @staticmethod
+    def get_audit_log_data(
+        project: Project,
+        custom_filter: CustomInboundFilter,
+        operation: str,
+        changes: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "project_slug": project.slug,
+            "filter_id": str(custom_filter.id),
+            "filter_name": custom_filter.name,
+            "active": custom_filter.active,
+            "conditions": custom_filter.conditions,
+            "operation": operation,
+        }
+
+        if changes:
+            data["changes"] = changes
+
+        return data
 
 
 @cell_silo_endpoint
@@ -235,7 +235,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
             organization=project.organization,
             target_object=custom_filter.id,
             event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
-            data=get_audit_log_data(project, custom_filter, "add"),
+            data=self.get_audit_log_data(project, custom_filter, "add"),
         )
 
         return Response(CustomInboundFilterSerializer(custom_filter).data, status=201)
@@ -328,7 +328,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
                 organization=project.organization,
                 target_object=custom_filter.id,
                 event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
-                data=get_audit_log_data(project, custom_filter, "edit", changes),
+                data=self.get_audit_log_data(project, custom_filter, "edit", changes),
             )
 
         return Response(CustomInboundFilterSerializer(custom_filter).data)
@@ -354,7 +354,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
         custom_filter = self.get_custom_inbound_filter(project, filter_id)
-        audit_log_data = get_audit_log_data(project, custom_filter, "remove")
+        audit_log_data = self.get_audit_log_data(project, custom_filter, "remove")
         target_object = custom_filter.id
         custom_filter.delete()
 
