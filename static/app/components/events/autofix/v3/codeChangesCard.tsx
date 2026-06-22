@@ -320,14 +320,24 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
           </Flex>
 
           {shouldShowReset ? (
-            <AutofixResetPrompt
-              onClosePrompt={() => setShouldShowReset(false)}
-              onReset={handleReset}
-              placeholder={t(
-                'Add context that could unblock the change, e.g. the repo or files to edit.'
-              )}
-              prompt={t('What additional context should Seer use?')}
-            />
+            hasPRs && prIterationEnabled ? (
+              <PrIterationFeedbackForm
+                autofix={autofix}
+                groupId={groupId}
+                runId={autofix.runState?.run_id}
+                referrer="code_changes_card_reset"
+                onClose={() => setShouldShowReset(false)}
+              />
+            ) : (
+              <AutofixResetPrompt
+                onClosePrompt={() => setShouldShowReset(false)}
+                onReset={handleReset}
+                placeholder={t(
+                  'Add context that could unblock the change, e.g. the repo or files to edit.'
+                )}
+                prompt={t('What additional context should Seer use?')}
+              />
+            )
           ) : (
             <Flex>
               <Button

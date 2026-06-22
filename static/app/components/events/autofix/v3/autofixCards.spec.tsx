@@ -644,6 +644,52 @@ describe('ArtifactCard', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('opens PR iteration feedback from explanation state when a PR exists', async () => {
+      const startStepMock = jest.fn();
+      const autofixWithPR: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofixWithRunState,
+        startStep: startStepMock,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithPR}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [makeAssistantBlock('The relevant files are not in the connected repo.')]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
+
+      expect(
+        screen.getByText('Anything else you want to see on your PR?')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('What additional context should Seer use?')
+      ).not.toBeInTheDocument();
+
+      await userEvent.type(screen.getByRole('textbox'), 'Try the other repo');
+      await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+
+      expect(startStepMock).toHaveBeenCalledWith('pr_iteration', {
+        runId: 123,
+        userContext: 'Try the other repo',
+      });
+    });
+
     it('falls back to the generic failure copy when there is no explanation', () => {
       render(
         <CodeChangesCard
