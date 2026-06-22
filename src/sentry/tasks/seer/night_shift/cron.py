@@ -536,7 +536,10 @@ def _dispatch_to_seer_feature(
     def _link_shard(created: SeerRun) -> None:
         SeerNightShiftRunShard.objects.create(run=run, seer_run=created)
 
-    shards = list(chunked(scored, options.get("seer.night_shift.shard_size")))
+    # Clamp to >=1: a non-positive shard size makes chunked emit one giant chunk,
+    # silently disabling sharding.
+    shard_size = max(1, options.get("seer.night_shift.shard_size"))
+    shards = list(chunked(scored, shard_size))
     dispatched = 0
     for shard_index, chunk in enumerate(shards):
         payload = _build_triage_payload(chunk, resolved_options)
