@@ -46,7 +46,7 @@ def decode_release_file_id(id: str):
 
 
 @register(ReleaseFile)
-class ReleaseFileSerializer(Serializer):
+class ReleaseFileSerializer(Serializer[ReleaseFileSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> ReleaseFileSerializerResponse:
         dist_name = None
         if obj.dist_id:

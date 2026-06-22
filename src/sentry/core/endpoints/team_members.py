@@ -28,7 +28,7 @@ class OrganizationMemberOnTeamResponse(OrganizationMemberResponse):
 
 
 @register(OrganizationMemberTeam)
-class DetailedOrganizationMemberTeamSerializer(Serializer):
+class DetailedOrganizationMemberTeamSerializer(Serializer[OrganizationMemberOnTeamResponse]):
     def __init__(self, *args, **kwargs):
         self.team = kwargs.pop("team", None)
         super().__init__(*args, **kwargs)
@@ -68,7 +68,8 @@ class TeamMembersEndpoint(TeamEndpoint):
     owner = ApiOwner.FOUNDATIONS
 
     @extend_schema(
-        operation_id="List a Team's Members",
+        operation_id="listTeamMembers",
+        summary="List a Team's Members",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,

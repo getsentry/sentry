@@ -46,6 +46,7 @@ describe('IntegrationListDirectory', () => {
           `/organizations/${organization.slug}/plugins/configs/`,
           PluginListConfigFixture(),
         ],
+        [`/organizations/${organization.slug}/legacy-webhooks/`, {projects: []}],
       ]);
     });
 
@@ -91,6 +92,49 @@ describe('IntegrationListDirectory', () => {
       expect(screen.queryByText('PagerDuty (Legacy)')).not.toBeInTheDocument();
       expect(screen.getByText('Bitbucket')).toBeInTheDocument();
       expect(screen.getByText('La Croix Monitor')).toBeInTheDocument();
+    });
+  });
+
+  describe('Legacy webhook entry', () => {
+    const webhookOrg = OrganizationFixture();
+
+    beforeEach(() => {
+      mockResponse([
+        [`/organizations/${webhookOrg.slug}/config/integrations/`, ProviderListFixture()],
+        [
+          `/organizations/${webhookOrg.slug}/integrations/`,
+          [BitbucketIntegrationConfigFixture()],
+        ],
+        [`/organizations/${webhookOrg.slug}/sentry-apps/`, OrgOwnedAppsFixture()],
+        ['/sentry-apps/', PublishedAppsFixture()],
+        ['/doc-integrations/', [DocIntegrationFixture()]],
+        [
+          `/organizations/${webhookOrg.slug}/sentry-app-installations/`,
+          SentryAppInstallsFixture(),
+        ],
+        [`/organizations/${webhookOrg.slug}/plugins/configs/`, PluginListConfigFixture()],
+      ]);
+    });
+
+    it('shows webhook entry with projects configured', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${webhookOrg.slug}/legacy-webhooks/`,
+        body: {
+          projects: [
+            {
+              projectId: 1,
+              projectSlug: 'my-project',
+              projectName: 'My Project',
+              projectPlatform: 'javascript',
+              enabled: true,
+            },
+          ],
+        },
+      });
+
+      render(<IntegrationListDirectory />, {organization: webhookOrg});
+      expect(await screen.findByText('Webhooks (Legacy)')).toBeInTheDocument();
+      expect(screen.getByTestId('legacy-webhooks')).toBeInTheDocument();
     });
   });
 });

@@ -16,7 +16,6 @@ from sentry.tasks.seer.night_shift.cron import (
     SeerNightShiftRunOptionsPartial,
     run_night_shift_for_org,
 )
-from sentry.tasks.seer.night_shift.tweaks import get_night_shift_tweaks
 
 logger = logging.getLogger("sentry.seer.endpoints.project_seer_night_shift")
 
@@ -34,7 +33,6 @@ class ProjectSeerNightShiftEndpoint(ProjectEndpoint):
             raise NotFound
 
         dry_run = bool(request.data.get("dryRun", False))
-        tweaks = get_night_shift_tweaks(project)
         triggering_user_id = request.user.id if request.user.is_authenticated else None
 
         logger.info(
@@ -45,20 +43,15 @@ class ProjectSeerNightShiftEndpoint(ProjectEndpoint):
                 "organization_id": project.organization_id,
                 "triggering_user_id": triggering_user_id,
                 "dry_run": dry_run,
-                "max_candidates": tweaks.max_candidates,
-                "intelligence_level": tweaks.intelligence_level,
-                "reasoning_effort": tweaks.reasoning_effort,
-                "extra_triage_instructions": tweaks.extra_triage_instructions,
             },
         )
 
+        # The project's tweaks (and any per-org overrides) are resolved by
+        # build_run_options inside run_night_shift_for_org, which scopes them to
+        # the single project_id below.
         options: SeerNightShiftRunOptionsPartial = {
             "source": "manual",
             "dry_run": dry_run,
-            "max_candidates": tweaks.max_candidates,
-            "intelligence_level": tweaks.intelligence_level,
-            "reasoning_effort": tweaks.reasoning_effort,
-            "extra_triage_instructions": tweaks.extra_triage_instructions,
         }
         run_id = run_night_shift_for_org(
             project.organization_id,

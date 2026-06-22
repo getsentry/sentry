@@ -21,7 +21,7 @@ describe('WidgetFrame', () => {
       expect(await screen.findByText('Number of events per second')).toBeInTheDocument();
     });
 
-    it('Catches errors in the visualization', async () => {
+    it('Catches errors in the visualization and hides the internal message', async () => {
       render(
         <WidgetFrame title="Uh Oh">
           <UhOh />
@@ -30,7 +30,12 @@ describe('WidgetFrame', () => {
 
       expect(screen.getByText('Uh Oh')).toBeInTheDocument();
 
-      expect(await screen.findByText(/cannot read properties/i)).toBeInTheDocument();
+      // The raw error is caught and reported to Sentry, but not surfaced to the
+      // user — a friendly message is shown instead.
+      expect(
+        await screen.findByText('Something went wrong displaying this widget.')
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/cannot read properties/i)).not.toBeInTheDocument();
     });
   });
 

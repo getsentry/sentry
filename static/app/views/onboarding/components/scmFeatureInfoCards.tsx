@@ -1,6 +1,6 @@
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -16,6 +16,7 @@ interface ScmFeatureInfoCardsProps {
   featureMeta: Record<ProductSolution, FeatureMeta>;
   isVolumeLoading?: boolean;
   platformName?: string;
+  showVolume?: boolean;
 }
 
 // Informational variant of the SCM feature card list. Renders the products
@@ -29,12 +30,13 @@ export function ScmFeatureInfoCards({
   featureMeta,
   platformName,
   isVolumeLoading,
+  showVolume = true,
 }: ScmFeatureInfoCardsProps) {
   return (
     <Stack gap="xl" width="100%" justify="center">
       <Stack gap="md">
         {platformName ? (
-          <Heading as="h3" size="xl">
+          <Text bold size="md" density="comfortable">
             {tct('Available with [platformName]', {
               platformName: (
                 <Text as="span" bold variant="accent">
@@ -42,9 +44,9 @@ export function ScmFeatureInfoCards({
                 </Text>
               ),
             })}
-          </Heading>
+          </Text>
         ) : null}
-        <Text size="lg" variant="secondary" density="comfortable">
+        <Text size="md" variant="secondary" density="comfortable">
           {t('In the next step, run our setup wizard to choose what to instrument')}
         </Text>
       </Stack>
@@ -101,26 +103,28 @@ export function ScmFeatureInfoCards({
                   >
                     {meta.description}
                   </Text>
-                  <Container>
-                    {isVolumeLoading ? (
-                      <Placeholder height="20px" width="100px" />
-                    ) : (
-                      <Tooltip
-                        title={meta.volumeTooltip}
-                        delay={100}
-                        disabled={isDisabled}
-                      >
-                        <Text
-                          variant="muted"
-                          underline="dotted"
-                          size="sm"
-                          density="comfortable"
+                  {showVolume ? (
+                    <Container>
+                      {isVolumeLoading ? (
+                        <Placeholder height="20px" width="100px" />
+                      ) : (
+                        <Tooltip
+                          title={meta.volumeTooltip}
+                          delay={100}
+                          disabled={isDisabled}
                         >
-                          {meta.volume}
-                        </Text>
-                      </Tooltip>
-                    )}
-                  </Container>
+                          <Text
+                            variant="muted"
+                            underline="dotted"
+                            size="sm"
+                            density="comfortable"
+                          >
+                            {meta.volume}
+                          </Text>
+                        </Tooltip>
+                      )}
+                    </Container>
+                  ) : null}
                 </Stack>
               </Grid>
             </Tooltip>

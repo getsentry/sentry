@@ -16,7 +16,7 @@ class IdentityProviderSerializerResponse(TypedDict):
 
 
 @register(IdentityProvider)
-class IdentityProviderSerializer(Serializer):
+class IdentityProviderSerializer(Serializer[IdentityProviderSerializerResponse]):
     def serialize(
         self,
         obj: IdentityProvider,

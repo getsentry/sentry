@@ -194,7 +194,9 @@ class Organization(ReplicatedCellModel):
         # Require and enforce email verification for all members. (deprecated, not in use)
         require_email_verification: bool
 
-        # Enable codecov integration.
+        # Previously enabled the Codecov integration. (deprecated, not in use)
+        # Retained to preserve bitfield ordering; removing this slot would shift
+        # every subsequent flag bit.
         codecov_access: bool
 
         # Disable org-members from creating new projects
@@ -542,7 +544,9 @@ class Organization(ReplicatedCellModel):
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
-        return self.option_manager.get_value(self, key, default, validate)
+        from sentry.models.options.organization_option import get_option
+
+        return get_option(self.id, key, default, validate)
 
     def update_option(self, key: str, value: Any) -> bool:
         return self.option_manager.set_value(self, key, value)

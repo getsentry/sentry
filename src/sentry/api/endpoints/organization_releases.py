@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta
-from typing import TypedDict
+from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from django.db import IntegrityError
@@ -20,7 +20,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.exceptions import ConflictError, InvalidRepository
+from sentry.api.exceptions import BadRequest, ConflictError, InvalidRepository
 from sentry.api.paginator import (
     MAX_LIMIT,
     BadPaginationError,
@@ -50,7 +50,14 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.release_examples import ReleaseExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    ReleaseParams,
+    VisibilityParams,
+)
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
@@ -65,7 +72,8 @@ from sentry.models.release import (
 )
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.releases.util import SemverFilter
+from sentry.models.releases.util import ReleaseQuerySet, SemverFilter
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.releases.use_cases.release import serialize as release_serializer
 from sentry.search.events.constants import (
@@ -84,6 +92,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cache import cache
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.sdk import bind_organization_context
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
@@ -158,14 +167,15 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == SEMVER_ALIAS:
             queryset = queryset.filter_by_semver(
-                organization.id, parse_semver(search_filter.value.raw_value, search_filter.operator)
+                organization.id,
+                parse_semver(str(search_filter.value.raw_value), search_filter.operator),
             )
 
         if search_filter.key.name == SEMVER_PACKAGE_ALIAS:
             negated = search_filter.operator == "!="
             queryset = queryset.filter_by_semver(
                 organization.id,
-                SemverFilter("exact", [], search_filter.value.raw_value, negated),
+                SemverFilter("exact", [], str(search_filter.value.raw_value), negated),
             )
 
         if search_filter.key.name == RELEASE_STAGE_ALIAS:
@@ -335,7 +345,16 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         ]
     )
 
-    def get_projects(self, request: Request, organization, project_ids=None, project_slugs=None):
+    def get_projects(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization,
+        *,
+        force_global_perms: bool = False,
+        include_all_accessible: bool = False,
+        project_ids: set[int] | None = None,
+        project_slugs: set[str] | None = None,
+    ) -> list[Project]:
         return super().get_projects(
             request,
             organization,
@@ -345,11 +364,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         )
 
     @extend_schema(
-        operation_id="List an Organization's Releases",
+        operation_id="listOrganizationReleases",
+        summary="List an Organization's Releases",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
             GlobalParams.ENVIRONMENT,
             ReleaseParams.QUERY,
+            VisibilityParams.PER_PAGE,
             CursorQueryParam,
         ],
         responses={
@@ -392,8 +414,10 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
 
-        paginator_cls = OffsetPaginator
-        paginator_kwargs = {}
+        paginator_cls: type[OffsetPaginator] | type[ReleasesMergingOffsetPaginator] = (
+            OffsetPaginator
+        )
+        paginator_kwargs: dict[str, Any] = {}
 
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -452,9 +476,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             paginator_kwargs["order_by"] = order_by
         elif sort == "adoption":
             # sort by adoption date (most recently adopted first)
-            order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
-            queryset = queryset.order_by(order_by)
-            paginator_kwargs["order_by"] = order_by
+            adoption_order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
+            queryset = queryset.order_by(adoption_order_by)
+            paginator_kwargs["order_by"] = adoption_order_by
         elif sort in self.SESSION_SORTS:
             if not flatten:
                 return Response(
@@ -477,18 +501,21 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     (
                         filter_params["start"]
                         if filter_params["start"]
-                        else datetime.utcnow() - timedelta(days=90)
+                        else deprecated_utcnow() - timedelta(days=90)
                     ),
-                    filter_params["end"] if filter_params["end"] else datetime.utcnow(),
+                    filter_params["end"] if filter_params["end"] else deprecated_utcnow(),
                 )
                 valid_versions = [
                     rv for rv in release_versions if rv not in releases_with_session_data
                 ]
 
                 results = list(
-                    Release.objects.filter(
-                        organization_id=organization.id,
-                        version__in=valid_versions,
+                    cast(
+                        ReleaseQuerySet,
+                        Release.objects.filter(
+                            organization_id=organization.id,
+                            version__in=valid_versions,
+                        ),
                     ).order_by_recent()[qs_offset : qs_offset + limit]
                 )
                 return results
@@ -564,8 +591,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         if health_stat not in ("sessions", "users"):
             raise ParseError(detail="invalid healthStat")
 
-        paginator_cls = OffsetPaginator
-        paginator_kwargs = {}
+        paginator_cls: type[OffsetPaginator] | type[MergingOffsetPaginator] = OffsetPaginator
+        paginator_kwargs: dict[str, Any] = {}
 
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -627,9 +654,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             paginator_kwargs["order_by"] = order_by
         elif sort == "adoption":
             # sort by adoption date (most recently adopted first)
-            order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
-            queryset = queryset.order_by(order_by)
-            paginator_kwargs["order_by"] = order_by
+            adoption_order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
+            queryset = queryset.order_by(adoption_order_by)
+            paginator_kwargs["order_by"] = adoption_order_by
         elif sort in self.SESSION_SORTS:
             if not flatten:
                 return Response(
@@ -652,18 +679,21 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     (
                         filter_params["start"]
                         if filter_params["start"]
-                        else datetime.utcnow() - timedelta(days=90)
+                        else deprecated_utcnow() - timedelta(days=90)
                     ),
-                    filter_params["end"] if filter_params["end"] else datetime.utcnow(),
+                    filter_params["end"] if filter_params["end"] else deprecated_utcnow(),
                 )
                 valid_versions = [
                     rv for rv in release_versions if rv not in releases_with_session_data
                 ]
 
                 results = list(
-                    Release.objects.filter(
-                        organization_id=organization.id,
-                        version__in=valid_versions,
+                    cast(
+                        ReleaseQuerySet,
+                        Release.objects.filter(
+                            organization_id=organization.id,
+                            version__in=valid_versions,
+                        ),
                     ).order_by_recent()[qs_offset : qs_offset + limit]
                 )
                 return results
@@ -717,7 +747,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         )
 
     @extend_schema(
-        operation_id="Create a New Release for an Organization",
+        operation_id="createOrganizationRelease",
+        summary="Create a New Release for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=ReleaseSerializerWithProjects,
         responses={
@@ -731,7 +762,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         },
         examples=ReleaseExamples.CREATE_RELEASE,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a new release for the given organization. Releases are used by Sentry to
         improve error reporting by correlating first-seen events with the release that may
@@ -749,6 +782,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         if serializer.is_valid():
             result = serializer.validated_data
             scope.set_tag("version", result["version"])
+            scope.set_attribute("version", result["version"])
 
             # Get all projects that are available to the user/token
             # Note: Does not use the "projects" data param from the request
@@ -856,9 +890,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     for r in result.get("headCommits", [])
                 ]
             scope.set_tag("has_refs", bool(refs))
+            scope.set_attribute("has_refs", bool(refs))
             if refs:
                 if not request.user.is_authenticated and not request.auth:
                     scope.set_tag("failure_reason", "user_not_authenticated")
+                    scope.set_attribute("failure_reason", "user_not_authenticated")
                     return Response(
                         {"refs": ["You must use an authenticated API token to fetch refs"]},
                         status=400,
@@ -868,6 +904,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     release.set_refs(refs, request.user.id, fetch=fetch_commits)
                 except InvalidRepository as e:
                     scope.set_tag("failure_reason", "InvalidRepository")
+                    scope.set_attribute("failure_reason", "InvalidRepository")
                     return Response({"refs": [str(e)]}, status=400)
 
             if not created and not new_releaseprojects:
@@ -894,11 +931,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 update_org_auth_token_last_used(request.auth, [project.id for project in projects])
 
             scope.set_tag("success_status", status)
-            return Response(
-                serialize(release, request.user, no_snuba_for_release_creation=True), status=status
+            scope.set_attribute("success_status", status)
+            data: ReleaseSerializerResponse = serialize(
+                release, request.user, no_snuba_for_release_creation=True
             )
+            return Response(data, status=status)
         scope.set_tag("failure_reason", "serializer_error")
-        return Response(serializer.errors, status=400)
+        scope.set_attribute("failure_reason", "serializer_error")
+        return Response(as_validation_errors(serializer), status=400)
 
 
 class OrganizationReleaseTimeseriesData(TypedDict):
@@ -969,10 +1009,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
             try:
                 queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
             except InvalidSearchQuery as e:
-                return Response(
-                    {"detail": str(e)},
-                    status=400,
-                )
+                raise BadRequest(detail=str(e))
 
         return self.paginate(
             request=request,
@@ -1013,7 +1050,7 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
         self.queryset_load_func = queryset_load_func
         self.project_ids = project_ids
 
-    def get_result(self, limit=100, cursor=None):
+    def get_result(self, limit=100, cursor=None):  # type: ignore[override]
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 

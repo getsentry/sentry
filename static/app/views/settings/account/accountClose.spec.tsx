@@ -60,8 +60,13 @@ describe('AccountClose', () => {
     expect(nonSingleOwner).toBeChecked();
 
     // Delete
-    await userEvent.click(screen.getByRole('button', {name: 'Close Account'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Close Account and Delete Organizations'})
+    );
 
+    // Confirm dialog shows account email and orgs to be deleted
+    expect(screen.getByText('foo@example.com')).toBeInTheDocument();
+    expect(screen.getByText(/solo-owner, non-single-owner/)).toBeInTheDocument();
     expect(
       screen.getByText(
         'WARNING! This is permanent and cannot be undone, are you really sure you want to do this?'

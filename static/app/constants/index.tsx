@@ -1,10 +1,13 @@
 /* global process */
 
+import type {Scope} from 'sentry/constants/scopes';
 import {t} from 'sentry/locale';
-import type {DataCategoryInfo, Scope} from 'sentry/types/core';
-import {DataCategory, DataCategoryExact} from 'sentry/types/core';
-import type {PermissionResource} from 'sentry/types/integrations';
-import type {Organization, OrgRole} from 'sentry/types/organization';
+import type {DataCategoryInfo} from 'sentry/types/dataCategory';
+import {DataCategory, DataCategoryExact} from 'sentry/types/dataCategory';
+import type {PermissionResource} from 'sentry/types/permissions';
+import type {OrgRole} from 'sentry/types/roles';
+
+export {API_ACCESS_SCOPES, ALLOWED_SCOPES} from 'sentry/constants/scopes';
 
 /**
  * Common constants here
@@ -32,57 +35,6 @@ export const CUSTOM_REFERRER_KEY = 'customReferrer';
 export const DEFAULT_APP_ROUTE = USING_CUSTOMER_DOMAIN
   ? '/issues/'
   : '/organizations/:orgSlug/issues/';
-
-export const API_ACCESS_SCOPES = [
-  'alerts:read',
-  'alerts:write',
-  'event:admin',
-  'event:read',
-  'event:write',
-  'member:admin',
-  'member:read',
-  'member:write',
-  'org:admin',
-  'org:ci',
-  'org:integrations',
-  'org:read',
-  'org:write',
-  'project:admin',
-  'project:distribution',
-  'project:read',
-  'project:releases',
-  'project:write',
-  'team:admin',
-  'team:read',
-  'team:write',
-] as const;
-
-export const ALLOWED_SCOPES = [
-  'alerts:read',
-  'alerts:write',
-  'event:admin',
-  'event:read',
-  'event:write',
-  'member:admin',
-  'member:invite',
-  'member:read',
-  'member:write',
-  'org:admin',
-  'org:billing',
-  'org:ci',
-  'org:integrations',
-  'org:read',
-  'org:superuser', // not an assignable API access scope
-  'org:write',
-  'project:admin',
-  'project:distribution',
-  'project:read',
-  'project:releases',
-  'project:write',
-  'team:admin',
-  'team:read',
-  'team:write',
-] as const;
 
 // These should only be used in the case where we cannot obtain roles through
 // the members endpoint (primarily in cases where a user is admining a
@@ -697,8 +649,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: false, // TODO(seer): add external stats when ready
     },
-    getProductLink: (organization: Organization) =>
-      `/settings/${organization.slug}/seer/`,
+    getProductLink: organization => `/settings/${organization.slug}/seer/`,
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.SIZE_ANALYSIS]: {

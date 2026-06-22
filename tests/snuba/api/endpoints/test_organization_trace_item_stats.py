@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.urls import reverse
 
 from sentry.testutils.cases import (
@@ -64,6 +66,13 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         self.store_eap_items([occ])
         return occ
+
+    def _parse_links(self, response):
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            attrs["href"] = url
+            links[attrs["rel"]] = attrs
+        return links
 
     def test_no_project(self) -> None:
         response = self.do_request()
@@ -143,6 +152,35 @@ class OrganizationTraceItemsStatsEndpointTest(
         assert "browser.name" in attribute_distribution
         assert "device" not in attribute_distribution
 
+    def test_hidden_api_attributes_filtered(self) -> None:
+        for tag in [
+            {"browser": "chrome", "device": "desktop"},
+            {"browser": "firefox", "device": "mobile"},
+        ]:
+            self._store_span(tags=tag)
+
+        def can_expose_attribute_to_api(attribute, item_type, include_internal=False):
+            return attribute not in {"device", "sentry.device"}
+
+        with mock.patch(
+            "sentry.api.endpoints.organization_trace_item_stats.can_expose_attribute_to_api",
+            can_expose_attribute_to_api,
+        ):
+            response = self.do_request(
+                query={
+                    "statsType": ["attributeDistributions"],
+                    "itemType": "spans",
+                }
+            )
+
+        assert response.status_code == 200, response.data
+        assert len(response.data["data"]) == 1
+        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+
+        assert "browser" in attribute_distribution
+        assert "device" not in attribute_distribution
+        assert "sentry.device" not in attribute_distribution
+
     def test_substring_match_returns_known_public_aliases(self) -> None:
         # Store spans with known sentry attributes (op, description)
         self.store_span(
@@ -208,37 +246,44 @@ class OrganizationTraceItemsStatsEndpointTest(
             item["label"] == "mobile" or item["label"] == "tablet" for item in device_data
         )
 
-    @override_options({"explore.trace-items.keys.max": 3})
-    def test_pagination_with_limit(self) -> None:
-        tags = [
-            {"attr1": "value1"},
-            {"attr2": "value2"},
-            {"attr3": "value3"},
-            {"attr4": "value4"},
-        ]
+    def test_pagination_traverses_all_pages(self) -> None:
+        # Four custom attributes sharing a prefix so substringMatch yields a
+        # deterministic total, independent of the default span attributes.
+        stored_names = ["pageattra", "pageattrb", "pageattrc", "pageattrd"]
+        for name in stored_names:
+            self._store_span(tags={name: "value"})
 
-        for tag in tags:
-            self._store_span(tags=tag)
-
+        # First page: 2 of the 4 attributes, so a next page must be reported.
         response = self.do_request(
             query={
                 "statsType": ["attributeDistributions"],
+                "substringMatch": "pageattr",
+                "limit": 2,
             }
         )
         assert response.status_code == 200, response.data
+        first_page = response.data["data"][0]["attribute_distributions"]["data"]
+        assert len(first_page) == 2
 
-        links = {}
-        if "Link" in response:
-            for url, attrs in parse_link_header(response["Link"]).items():
-                links[attrs["rel"]] = attrs
-                attrs["href"] = url
+        links = self._parse_links(response)
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
 
-            assert links["previous"]["results"] == "false"
+        # Second page: the remaining 2 attributes, with no further pages.
+        next_response = self.client.get(links["next"]["href"], format="json")
+        assert next_response.status_code == 200, next_response.content
+        second_page = next_response.data["data"][0]["attribute_distributions"]["data"]
+        assert len(second_page) == 2
 
-            if links.get("next", {}).get("results") == "true":
-                assert links["next"]["href"] is not None
-                next_response = self.client.get(links["next"]["href"], format="json")
-                assert next_response.status_code == 200, next_response.content
+        next_links = self._parse_links(next_response)
+        assert next_links["previous"]["results"] == "true"
+        assert next_links["next"]["results"] == "false"
+
+        # Together the two pages cover every attribute exactly once. Custom span
+        # tags are exposed under the "sentry." namespace.
+        expected_attributes = {f"sentry.{name}" for name in stored_names}
+        assert set(first_page).isdisjoint(second_page)
+        assert set(first_page) | set(second_page) == expected_attributes
 
     @override_options({"explore.trace-items.keys.max": 2})
     def test_custom_limit_parameter(self) -> None:

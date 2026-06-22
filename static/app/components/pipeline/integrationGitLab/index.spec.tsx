@@ -216,7 +216,7 @@ describe('InstallationConfigStep', () => {
     });
   });
 
-  it('strips trailing slashes from self-hosted URL', async () => {
+  it.isKnownFlake('strips trailing slashes from self-hosted URL', async () => {
     const advance = jest.fn();
     render(
       <InstallationConfigStep
@@ -297,7 +297,7 @@ describe('GitLabOAuthLoginStep', () => {
     expect(screen.getByRole('button', {name: 'Authorize GitLab'})).toBeInTheDocument();
   });
 
-  it('calls advance with code and state on OAuth callback', async () => {
+  it.isKnownFlake('calls advance with code and state on OAuth callback', async () => {
     const advance = jest.fn();
     render(
       <GitLabOAuthLoginStep

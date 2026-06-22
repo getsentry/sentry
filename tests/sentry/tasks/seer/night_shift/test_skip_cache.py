@@ -34,11 +34,11 @@ def test_recently_skipped_empty_input() -> None:
     assert recently_skipped([]) == set()
 
 
-def test_ttl_padded_past_three_days() -> None:
+def test_ttl_padded_past_seven_days() -> None:
     try:
         mark_skipped(305)
         ttl = redis_clusters.get("default").ttl(key(305))
-        assert int(timedelta(days=3).total_seconds()) < ttl <= SKIP_TTL_SECONDS
+        assert int(timedelta(days=7).total_seconds()) < ttl <= SKIP_TTL_SECONDS
     finally:
         _delete(305)
 

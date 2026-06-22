@@ -1,6 +1,5 @@
 import os
 
-from sentry.logging import LoggingFormat
 from sentry.options import register
 from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
@@ -46,7 +45,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
-register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -63,30 +61,6 @@ register(
 register(
     "system.internal-url-prefix",
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Base hostname that account domains are subdomains of.
-register(
-    "system.base-hostname",
-    default=os.environ.get("SENTRY_SYSTEM_BASE_HOSTNAME"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-# The template for organization subdomain hostnames.
-register(
-    "system.organization-base-hostname",
-    default=os.environ.get("SENTRY_ORGANIZATION_BASE_HOSTNAME"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-# Template for organization URL including protocol
-register(
-    "system.organization-url-template",
-    default=os.environ.get("SENTRY_ORGANIZATION_URL_TEMPLATE"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-# Template for region based API URL
-register(
-    "system.region-api-url-template",
-    default=os.environ.get("SENTRY_REGION_API_URL_TEMPLATE"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
 )
 # The region that this instance is currently running in.
 register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
@@ -176,7 +150,6 @@ register(
     default="root@localhost",
     flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
 )
-register("mail.list-namespace", type=String, default="localhost", flags=FLAG_NOSTORE)
 register(
     "mail.enable-replies",
     default=False,
@@ -273,17 +246,11 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
-
 # User Settings
 register(
     "user-settings.signed-url-confirmation-emails-salt",
     type=String,
     default="signed-url-confirmation-emails-salt",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "user-settings.signed-url-confirmation-emails",
-    default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -352,54 +319,6 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Filestore (default)
-register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
-register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
-register("filestore.relocation-backend", default="filesystem", flags=FLAG_NOSTORE)
-register(
-    "filestore.relocation-options",
-    default={"location": "/tmp/sentry-relocation-files"},
-    flags=FLAG_NOSTORE,
-)
-register("filestore.profiles-backend", default="filesystem", flags=FLAG_NOSTORE)
-register(
-    "filestore.profiles-options",
-    default={"location": "/tmp/sentry-profiles", "allow_overwrite": True},
-    flags=FLAG_NOSTORE,
-)
-
-# Filestore for control silo
-register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
-register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
-
-
-# New `objectstore` service configuration. Additional supported options and
-# their defaults:
-#  - propagate_traces: bool = False,
-#  - retries: int | None = None,
-#  - timeout_ms: float | None = None,
-#  - connection_kwargs: Mapping[str, Any] | None = None,
-#  - token_generator: Mapping[str, Any] | None = None,
-#
-# For an always up-to-date list, see:
-# https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
-register(
-    "objectstore.config",
-    default={
-        "base_url": "http://127.0.0.1:8888",
-        # Test-only token generator with no permissions. Only active when no real
-        # objectstore config is deployed. Exists so mint_token() does not raise in
-        # test/dev environments that lack signing keys.
-        "token_generator": {
-            "kid": "test",
-            "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
-            "permissions": [],
-        },
-    },
-    flags=FLAG_NOSTORE,
-)
-
 
 # Symbol server
 register(
@@ -636,11 +555,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Analytics
-register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
-register("analytics.options", default={}, flags=FLAG_NOSTORE)
-
-
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -779,13 +693,6 @@ register("vsts_new.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("vsts-limited.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
-# Azure DevOps Integration Social Login Flow
-register(
-    "vsts.social-auth-migration",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Add consent prompt for Azure DevOps Integration
 register(
@@ -816,6 +723,10 @@ register("discord.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("discord.debug-server", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# GCP MCP Integration
+register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.secret-access-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -837,9 +748,6 @@ register("aws-lambda.python.layer-version", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.host-region", default="us-east-2", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # the number of threads we should use to install Lambdas
 register("aws-lambda.thread-count", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Intercom Integration
-register("intercom.sentry-api-secret", flags=FLAG_NOSTORE | FLAG_CREDENTIAL, default="")
 
 # Snuba
 register(
@@ -902,6 +810,21 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "snuba.search.recommended.assignment-weight",
+    default=0.30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.fixability-weight",
+    default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.agent-weight",
+    default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -951,6 +874,19 @@ register("store.s4s-transaction-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_
 
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+register(
+    "store.ingest-events-raw-task.inline-save-event",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "store.ingest-events-raw-task.inline-save-event-transaction",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # Enable sending the flag to the microservice to tell it to purposefully take longer than our
@@ -1187,6 +1123,23 @@ register(
     default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "seer.night_shift.shard_size",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Per-org overrides for night shift run options. Keyed by stringified
+# organization id; each value is a partial set of run-option overrides (e.g.
+# {"max_candidates": 20}) that layer on top of the global defaults but below
+# any explicit caller-provided options. See
+# sentry.tasks.seer.night_shift.tweaks.get_night_shift_org_tweaks.
+register(
+    "seer.night_shift.org_tweaks",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "seer.supergroups_backfill_lightweight.killswitch",
@@ -1303,7 +1256,9 @@ register(
 
 
 # All Relay options (statically authenticated Relays can be registered here)
-register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
+# Whether Relay requests sent from internal ip addresses should be allowed even if the
+# credentials can not be verified.
+register("relay.allow_internal_ip_auth", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
 # Example value: [{"project_id": 42}, {"project_id": 123}]
@@ -1521,6 +1476,21 @@ register(
 # Used when a deprecation doesn't have a custom key defined.
 register(
     "api.deprecation.brownout-duration",
+    type=Int,
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Brownout schedule for the deprecated alerts API endpoints.
+# 1 minute blackout 6 times a day (every 4 hours, on the hour, UTC).
+register(
+    "api.deprecation.alerts-cron",
+    default="0 */4 * * *",
+    type=String,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "api.deprecation.alerts-duration",
     type=Int,
     default=60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2091,6 +2061,32 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.per_org.project-balancing-debug-project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
+# sample rate comparison. Empty disables the comparison entirely.
+register(
+    "dynamic-sampling.per_org.sliding-window-comparison-org-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Per-project sample rate overrides for custom dynamic sampling. Maps a stringified
+# project id to a fixed sample rate (0.0-1.0) that hard-replaces the rate the custom
+# dynamic sampling path would otherwise compute for that project. Example:
+# {"12345": 0.5}. An empty mapping disables the override.
+register(
+    "dynamic-sampling.sample-rate-override-per-project",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
@@ -2775,6 +2771,14 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Store the regression-triggering event's metadata in the activity data so
+# notifications show the correct title/message instead of stale group data.
+register(
+    "groups.regression-activity-event-metadata",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
@@ -2958,6 +2962,11 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.buffer.use-msgspec-decoder",
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",
@@ -3117,7 +3126,6 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 register(
     "workflow_engine.ensure_detector_association",
     type=Bool,
@@ -3669,7 +3677,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
 # SCM
 
 register(
@@ -3687,15 +3694,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# ViewerContext — unified caller identity for all entrypoints.
-# Set via deploy config (SENTRY_OPTIONS); requires restart to change.
-register(
-    "viewer-context.enabled",
-    default=True,
-    type=Bool,
-    flags=FLAG_NOSTORE,
-)
-
 # Allows the recording of Seer actions as issue activities
 # https://linear.app/getsentry/project/add-seer-actions-to-issue-activityaction-log-0e641e1f5dac/overview
 register(
@@ -3705,13 +3703,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables cell resolver in APIGateway, should be removed after rollout
-register(
-    "apigateway.cell_resolver.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # When True, auto-link-repos-by-name logs matches but does not create ProjectRepository rows.
 register(
@@ -3719,4 +3710,50 @@ register(
     default=True,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to calls of produce_occurrence_to_kafka() from within taskworkers
+register(
+    "tasks.producer.occurrences.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to the clock_pulse task
+register(
+    "tasks.producer.clock-pulse.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to calls of produce_snapshot_to_kafka from within taskworkers
+register(
+    "tasks.producer.snapshots.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to profiling tasks
+register(
+    "tasks.producer.profiles.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "github-enterprise.disallow-domain-mismatch",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "error-embeds.control-silo-address",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

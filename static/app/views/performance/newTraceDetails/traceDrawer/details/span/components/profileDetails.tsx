@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 export function ProfileDetails({

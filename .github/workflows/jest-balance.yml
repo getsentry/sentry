@@ -4,23 +4,98 @@ on:
   schedule:
     - cron: '0 0 1,15 * *'
 jobs:
+  jest-config:
+    name: Configure Jest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      jest_test_matrix: ${{ steps.jest_test_config.outputs.jest_test_matrix }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        name: Checkout sentry
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Jest Test Config
+        id: jest_test_config
+        env:
+          FRONTEND_ALL_FILES: ''
+        run: ./.github/workflows/scripts/jest-test-config.sh
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
+        name: Upload jest test file list
+        with:
+          name: jest-test-files
+          path: jest-test-files.json
+          if-no-files-found: ignore
+          retention-days: 1
+
   jest-balance:
-    # Buckle up, this may take a while
+    needs: jest-config
     timeout-minutes: 60
     # Make sure this matches the runner that runs frontend tests
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix) }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        name: Checkout sentry
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        name: Download jest-test-files.json
+        with:
+          name: jest-test-files
+          path: .
+
+      - name: Download jest-balance.json
+        uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
+        with:
+          workflow: 38531594 # jest-balancer.yml
+          workflow_conclusion: success
+          branch: master
+          name: jest-balance.json
+          name_is_regexp: false
+          path: tests/js/test-balancer/
+          search_artifacts: true
+          if_no_artifact_found: warn
+
+      - name: jest balancer (shard ${{ matrix.index }}/${{ matrix.total }})
+        continue-on-error: true
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_JEST_DSN }}
+
+          CI_NODE_TOTAL: ${{ matrix.total }}
+          CI_NODE_INDEX: ${{ matrix.index }}
+
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+        run: pnpm run test-ci --forceExit --testResultsProcessor ./tests/js/test-balancer/resultsProcessor.ts
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
+        with:
+          name: jest-balance-${{ matrix.index }}
+          path: tests/js/test-balancer/jest-balance.json
+
+  combine-balance:
+    needs: jest-balance
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - uses: ./.github/actions/setup-node-pnpm
 
-      - name: jest balancer
-        env:
-          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-        run: pnpm run test-ci --testResultsProcessor ./tests/js/test-balancer/index.js
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: artifacts
+          pattern: jest-balance-*
+
+      - name: Combine balance files
+        run: node tests/js/test-balancer/combine.ts artifacts
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
         with:
           name: jest-balance.json
-          path: tests/js/test-balancer/jest-balance.json
+          path: jest-balance.json

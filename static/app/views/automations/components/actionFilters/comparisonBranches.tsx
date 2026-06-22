@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {AutomationBuilderNumberInput} from 'sentry/components/workflowEngine/form/automationBuilderNumberInput';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {
   COMPARISON_INTERVAL_CHOICES,
   INTERVAL_CHOICES,
@@ -16,24 +17,34 @@ type IntervalChoice = {label: string; value: Interval};
 
 interface BranchProps {
   intervalChoices?: IntervalChoice[];
+  // Minimum allowed comparison value. Defaults to 0, which lets users alert on
+  // "more than 0" (i.e. 1 or more). Percent-sessions passes 1 since its
+  // validator treats 0 as missing.
+  minValue?: number;
 }
 
-export function CountBranch({intervalChoices = INTERVAL_CHOICES}: BranchProps) {
+export function CountBranch({
+  intervalChoices = INTERVAL_CHOICES,
+  minValue = 0,
+}: BranchProps) {
   return tct('more than [value] [interval]', {
-    value: <ValueField />,
+    value: <ValueField minValue={minValue} />,
     interval: <IntervalField intervalChoices={intervalChoices} />,
   });
 }
 
-export function PercentBranch({intervalChoices = INTERVAL_CHOICES}: BranchProps) {
+export function PercentBranch({
+  intervalChoices = INTERVAL_CHOICES,
+  minValue = 0,
+}: BranchProps) {
   return tct('[value] higher [interval] compared to [comparison_interval]', {
-    value: <PercentValueField />,
+    value: <PercentValueField minValue={minValue} />,
     interval: <IntervalField intervalChoices={intervalChoices} />,
     comparison_interval: <ComparisonIntervalField />,
   });
 }
 
-function ValueField() {
+function ValueField({minValue = 0}: {minValue?: number}) {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
 
@@ -42,7 +53,7 @@ function ValueField() {
       name={`${condition_id}.comparison.value`}
       aria-label={t('Value')}
       value={condition.comparison.value}
-      min={1}
+      min={minValue}
       step={1}
       onChange={(value: number) => {
         onUpdate({comparison: {...condition.comparison, value}});
@@ -52,10 +63,10 @@ function ValueField() {
   );
 }
 
-function PercentValueField() {
+function PercentValueField({minValue = 0}: {minValue?: number}) {
   return (
     <PercentWrapper>
-      <ValueField />%
+      <ValueField minValue={minValue} />%
     </PercentWrapper>
   );
 }

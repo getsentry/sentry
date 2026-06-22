@@ -57,6 +57,34 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
                 "    def __init__(self, data: T, status: int | None = ...) -> None: ...\n"
             )
 
+        # stub for sentry.api.serializers.base.Serializer + free `serialize()` —
+        # mirrors the runtime shape used by the autoderive hook. The free
+        # function has overloads so we can verify end-to-end that an autoderived
+        # `Serializer[T]` flows through to a typed return.
+        api_dir = _fill_init_pyi(tmpdir, "sentry/api/serializers")
+        with open(os.path.join(api_dir, "base.pyi"), "w") as f:
+            f.write(
+                "from collections.abc import Mapping, Sequence\n"
+                "from typing import Any, Generic, TypeVar, overload\n"
+                "T = TypeVar('T', default=Any)\n"
+                "class Serializer(Generic[T]):\n"
+                "    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> T: ...\n"
+                "@overload\n"
+                "def serialize(objects: Any, user: Any = ..., serializer: None = ..., **kwargs: Any) -> Any: ...\n"
+                "@overload\n"
+                "def serialize(objects: Sequence[Any], user: Any = ..., *, serializer: Serializer[T], **kwargs: Any) -> list[T]: ...\n"
+                "@overload\n"
+                "def serialize(objects: Sequence[Any], user: Any, serializer: Serializer[T], **kwargs: Any) -> list[T]: ...\n"
+                "@overload\n"
+                "def serialize(objects: object, user: Any = ..., *, serializer: Serializer[T], **kwargs: Any) -> T: ...\n"
+                "@overload\n"
+                "def serialize(objects: object, user: Any, serializer: Serializer[T], **kwargs: Any) -> T: ...\n"
+            )
+        with open(os.path.join(api_dir, "__init__.pyi"), "w") as f:
+            f.write(
+                "from sentry.api.serializers.base import Serializer as Serializer, serialize as serialize\n"
+            )
+
         ret = subprocess.run(
             (
                 *(sys.executable, "-m", "mypy"),
@@ -716,3 +744,201 @@ def view() -> Response[FooResponse] | Response[StatsPeriodErrorResponse]:
 """
     ret, out = call_mypy(src)
     assert ret == 0, out
+
+
+# -- Serializer auto-derive ----------------------------------------------------
+
+
+def test_serializer_autoderive_typed_return() -> None:
+    """`class Foo(Serializer):` with `serialize(...) -> Concrete` is promoted
+    to `Serializer[Concrete]`, and the free `serialize(obj, user, FooSerializer())`
+    overload resolves to `Concrete` instead of `Any`.
+    """
+    src = """\
+from typing import Any, TypedDict
+from collections.abc import Mapping
+from sentry.api.serializers import Serializer, serialize
+
+class FooResponse(TypedDict):
+    name: str
+
+class FooSerializer(Serializer):
+    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> FooResponse:
+        return {"name": "x"}
+
+reveal_type(serialize(object(), None, FooSerializer()))
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+    assert "FooResponse" in out
+
+
+def test_serializer_autoderive_skipped_when_already_parameterized() -> None:
+    """If the subclass already writes `Serializer[X]`, the hook is a no-op —
+    no double-substitution, no clobbering of an explicit parameterization.
+    """
+    src = """\
+from typing import Any, TypedDict
+from collections.abc import Mapping
+from sentry.api.serializers import Serializer, serialize
+
+class FooResponse(TypedDict):
+    name: str
+
+class FooSerializer(Serializer[FooResponse]):
+    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> FooResponse:
+        return {"name": "x"}
+
+reveal_type(serialize(object(), None, FooSerializer()))
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+    assert "FooResponse" in out
+
+
+def test_serializer_autoderive_skipped_when_serialize_unannotated() -> None:
+    """An unannotated `serialize` keeps `T = Any` — we don't fabricate a type
+    from a missing annotation.
+    """
+    src = """\
+from sentry.api.serializers import Serializer, serialize
+
+class FooSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        return {"name": "x"}
+
+reveal_type(serialize(object(), None, FooSerializer()))
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+    assert 'Revealed type is "Any"' in out
+
+
+def test_serializer_autoderive_denylist_entries_are_fully_qualified() -> None:
+    """Sanity check on `_AUTODERIVE_DENYLIST`: every entry is a dotted module
+    path (no bare class names, no typos like leading/trailing dots). End-to-end
+    denylist behavior is exercised by the full mypy run on `src/` — each
+    denylisted class corresponds to a known caller-drift case the plugin would
+    otherwise surface as a CI failure.
+    """
+    from tools.mypy_helpers.serializer_autoderive import _AUTODERIVE_DENYLIST
+
+    assert _AUTODERIVE_DENYLIST, "denylist should not be empty"
+    for fullname in _AUTODERIVE_DENYLIST:
+        assert "." in fullname, fullname
+        assert not fullname.startswith("."), fullname
+        assert not fullname.endswith("."), fullname
+        # All Sentry serializers live under the `sentry.` namespace; this
+        # catches typos that drop the package prefix.
+        assert fullname.startswith("sentry."), fullname
+
+
+def test_serializer_autoderive_skipped_when_serialize_returns_any() -> None:
+    """Explicit `-> Any` is a deliberate opt-out — the hook respects it."""
+    src = """\
+from typing import Any
+from collections.abc import Mapping
+from sentry.api.serializers import Serializer, serialize
+
+class FooSerializer(Serializer):
+    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> Any:
+        return {"name": "x"}
+
+reveal_type(serialize(object(), None, FooSerializer()))
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+    assert 'Revealed type is "Any' in out
+
+
+def test_serializer_autoderive_typed_dict_remains_indexable() -> None:
+    """An autoderived `Serializer[FooResponse]` (where FooResponse is a
+    TypedDict) must produce a result that supports string-literal indexing —
+    `o["key"]` — and iteration over a list of them must yield TypedDict items.
+    Regression guard: an early implementation produced a TypedDict-via-typevar
+    type that mypy refused to index.
+    """
+    src = """\
+from typing import Any, TypedDict
+from collections.abc import Mapping
+from sentry.api.serializers import Serializer, serialize
+
+class FooResponse(TypedDict):
+    name: str
+    id: str
+
+class FooSerializer(Serializer):
+    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> FooResponse:
+        return {"name": "x", "id": "1"}
+
+single = serialize(object(), None, FooSerializer())
+n = single["name"]
+reveal_type(n)
+
+many = serialize([object()], None, FooSerializer())
+keyed = {(o["id"], o["name"]): o for o in many}
+reveal_type(keyed)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_serializer_autoderive_resolves_forward_reference_in_serialize_return() -> None:
+    """The `serialize()` return annotation can name a type defined *later* in
+    the file (or in a `TYPE_CHECKING` block). At base-class-hook time, that
+    name is an `UnboundType`; the hook routes it through `ctx.api.anal_type`
+    so the resolved `Serializer[T]` ends up as a proper TypedDict, not a
+    `Serializer[UnboundType("FooResponse")]` that mypy renders with `?` and
+    refuses to index. Regression guard for the resolution path.
+    """
+    src = """\
+from __future__ import annotations
+from typing import Any, TypedDict
+from collections.abc import Mapping
+from sentry.api.serializers import Serializer, serialize
+
+class FooSerializer(Serializer):
+    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> FooResponse:
+        return {"name": "x", "id": "1"}
+
+class FooResponse(TypedDict):
+    name: str
+    id: str
+
+result = serialize(object(), None, FooSerializer())
+# If the forward reference was not resolved, `result` would be the unbound
+# `FooResponse?` which mypy refuses to index — this line would error.
+n = result["name"]
+reveal_type(n)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+    # `n` is `str` (the TypedDict's declared value type) — proves the
+    # forward reference resolved to a real `FooResponse` TypedDict.
+    assert 'Revealed type is "str"' in out
+
+
+def test_serializer_autoderive_propagates_through_subclass() -> None:
+    """A subclass of an autoderived `Serializer[T]` inherits the derived `T`
+    without needing its own `serialize` override.
+    """
+    src = """\
+from typing import Any, TypedDict
+from collections.abc import Mapping
+from sentry.api.serializers import Serializer, serialize
+
+class FooResponse(TypedDict):
+    name: str
+
+class FooSerializer(Serializer):
+    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> FooResponse:
+        return {"name": "x"}
+
+class FancyFooSerializer(FooSerializer):
+    pass
+
+reveal_type(serialize(object(), None, FancyFooSerializer()))
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+    assert "FooResponse" in out

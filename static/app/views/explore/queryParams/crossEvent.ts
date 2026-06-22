@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 export type CrossEventType = 'logs' | 'spans' | 'metrics';

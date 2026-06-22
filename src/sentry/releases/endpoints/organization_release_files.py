@@ -87,7 +87,9 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization, version) -> Response:
+    def get(
+        self, request: Request, organization, version
+    ) -> Response[list[ReleaseFileSerializerResponse]]:
         """
         Retrieve a list of files for a given release.
         """
@@ -102,7 +104,8 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
         return self.get_releasefiles(request, release, organization.id)
 
     @extend_schema(
-        operation_id="Upload a New Organization Release File",
+        operation_id="uploadOrganizationReleaseFile",
+        summary="Upload a New Organization Release File",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION],
         request={"multipart/form-data": ReleaseFileUploadSerializer},
         responses={
@@ -116,7 +119,9 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
             409: RESPONSE_CONFLICT,
         },
     )
-    def post(self, request: Request, organization, version) -> Response:
+    def post(
+        self, request: Request, organization, version
+    ) -> Response[ReleaseFileSerializerResponse]:
         """
         Upload a new file for the given release.
 

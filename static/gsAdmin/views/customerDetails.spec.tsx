@@ -9,15 +9,12 @@ import {BillingHistoryFixture} from 'getsentry-test/fixtures/billingHistory';
 import {ChargeFixture} from 'getsentry-test/fixtures/charge';
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {OnboardingTasksFixture} from 'getsentry-test/fixtures/onboardingTasks';
 import {OwnerFixture} from 'getsentry-test/fixtures/owner';
 import {PoliciesFixture} from 'getsentry-test/fixtures/policies';
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
-import {
-  Am3DsEnterpriseSubscriptionFixture,
-  SubscriptionFixture,
-} from 'getsentry-test/fixtures/subscription';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -39,7 +36,7 @@ import type {StatsGroup} from 'admin/components/customers/customerStats';
 import {populateChartData, useSeries} from 'admin/components/customers/customerStats';
 import {CustomerDetails} from 'admin/views/customerDetails';
 import type {Subscription} from 'getsentry/types';
-import {BillingType, PlanTier} from 'getsentry/types';
+import {BillingType} from 'getsentry/types';
 
 const theme = ThemeFixture();
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
@@ -614,11 +611,6 @@ function setUpMocks(
     body: BillingConfigFixture(PlanTier.ALL),
     match: [MockApiClient.matchQuery({tier: 'all'})],
   });
-  // TODO(isabella): remove this once all billing config api calls are updated to use tier=all
-  MockApiClient.addMockResponse({
-    url: `/customers/${organization.slug}/billing-config/?tier=mm2`,
-    body: BillingConfigFixture(PlanTier.MM2),
-  });
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/billing-config/?tier=am1`,
     body: BillingConfigFixture(PlanTier.AM1),
@@ -655,10 +647,6 @@ function setUpMocks(
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/history/`,
     body: [BillingHistoryFixture()],
-  });
-  MockApiClient.addMockResponse({
-    url: `/internal-stats/${organization.slug}/onboarding-tasks/`,
-    body: OnboardingTasksFixture(),
   });
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/policies/`,
@@ -1116,7 +1104,6 @@ describe('Customer Details', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      planTier: 'am3',
     });
     subscription.reservedBudgets = [
       SeerReservedBudgetFixture({
@@ -1886,6 +1873,59 @@ describe('Customer Details', () => {
     });
   });
 
+  describe('recreate billing platform models', () => {
+    const recreateOrg = OrganizationFixture();
+    const mockBillingAdminUser = UserFixture({
+      permissions: new Set(['billing.admin']),
+    });
+
+    it('recreates billing platform models', async () => {
+      ConfigStore.set('user', mockBillingAdminUser);
+      setUpMocks(recreateOrg, {isBillingAdmin: false});
+
+      const updateMock = MockApiClient.addMockResponse({
+        url: `/customers/${recreateOrg.slug}/`,
+        method: 'PUT',
+        body: OrganizationFixture(),
+      });
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${recreateOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: recreateOrg,
+      });
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      await userEvent.click(
+        screen.getAllByRole('button', {
+          name: 'Customers Actions',
+        })[0]!
+      );
+
+      await userEvent.click(screen.getByText('Recreate Billing Platform Models'));
+
+      renderGlobalModal();
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Recreate Billing Platform Models'})
+      );
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledWith(
+          `/customers/${recreateOrg.slug}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: {
+              recreateBillingPlatformModels: true,
+            },
+          })
+        );
+      });
+    });
+  });
+
   describe('close account', () => {
     it('closes an account', async () => {
       setUpMocks(organization);
@@ -2089,7 +2129,7 @@ describe('Customer Details', () => {
 
   describe('fork customer', () => {
     beforeEach(() => {
-      ConfigStore.set('regions', [
+      ConfigStore.set('localities', [
         {
           name: 'foo',
           url: 'https://foo.example.com/api/0/',
@@ -3105,31 +3145,6 @@ describe('Customer Details', () => {
       )
     );
   });
-  it('cannot gift events in different units - SPANS_INDEXED', async () => {
-    const am3Sub = Am3DsEnterpriseSubscriptionFixture({organization});
-    setUpMocks(organization, am3Sub);
-
-    render(<CustomerDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/customers/${organization.slug}`},
-        route: '/customers/:orgId',
-      },
-      organization,
-    });
-
-    await screen.findByRole('heading', {name: 'Customers'});
-
-    renderGlobalModal();
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
-
-    const item = screen.getByTestId(`gift-${DataCategory.SPANS_INDEXED}`);
-    expect(item).toBeInTheDocument();
-    expect(item).toHaveAttribute('aria-disabled', 'true');
-  });
   it('cannot gift events without checkout category - SPANS_INDEXED', async () => {
     const am3Sub = SubscriptionFixture({organization, plan: 'am3_team'});
     setUpMocks(organization, am3Sub);
@@ -3460,29 +3475,6 @@ describe('Customer Details', () => {
   });
 
   describe('AddGiftBudgetAction', () => {
-    it('shows gift budget action when org has reserved budgets', async () => {
-      const am3Sub = Am3DsEnterpriseSubscriptionFixture({
-        organization,
-      });
-      setUpMocks(organization, am3Sub);
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${organization.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
-      );
-
-      expect(screen.getByText('Gift to reserved budget')).toBeInTheDocument();
-    });
-
     it('hides gift budget action when org has no reserved budgets', async () => {
       const nonDsSub = SubscriptionFixture({
         organization,
@@ -3504,63 +3496,6 @@ describe('Customer Details', () => {
       );
 
       expect(screen.queryByText('Gift to reserved budget')).not.toBeInTheDocument();
-    });
-
-    it('can open modal and gift budget', async () => {
-      const am3Sub = Am3DsEnterpriseSubscriptionFixture({
-        organization,
-      });
-      setUpMocks(organization, am3Sub);
-
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/`,
-        method: 'PUT',
-        body: organization,
-      });
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${organization.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-      renderGlobalModal();
-
-      // Open actions dropdown and click gift budget action
-      await userEvent.click(
-        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
-      );
-      await userEvent.click(screen.getByText('Gift to reserved budget'));
-
-      // Fill out form
-      await userEvent.type(
-        screen.getByRole('spinbutton', {name: /gift amount \(\$\)/i}),
-        '500'
-      );
-      await userEvent.type(
-        screen.getByRole('textbox', {name: /ticketurl/i}),
-        'https://example.com'
-      );
-      await userEvent.type(screen.getByRole('textbox', {name: /notes/i}), 'Test notes');
-
-      // Submit form
-      await userEvent.click(screen.getByRole('button', {name: /confirm/i}));
-      await waitFor(() => {
-        expect(updateMock).toHaveBeenCalledWith(
-          `/customers/${organization.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: expect.objectContaining({
-              freeReservedBudget: expect.any(Object),
-              ticketUrl: 'https://example.com',
-              notes: 'Test notes',
-            }),
-          })
-        );
-      });
     });
   });
 

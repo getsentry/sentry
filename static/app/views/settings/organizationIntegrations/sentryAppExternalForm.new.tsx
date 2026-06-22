@@ -11,12 +11,13 @@ import {queryOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 import omitBy from 'lodash/omitBy';
 
 import {Flex} from '@sentry/scraps/layout';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import {t} from 'sentry/locale';
-import type {Choices, Choice, SelectValue} from 'sentry/types/core';
+import type {Choices, Choice} from 'sentry/types/core';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -26,7 +27,7 @@ import {useApi} from 'sentry/utils/useApi';
 const hasValue = (value: unknown) => !!value || value === 0;
 
 // See docs: https://docs.sentry.io/product/integrations/integration-platform/ui-components/formfield/
-type FieldFromSchema = {
+export type FieldFromSchema = {
   label: string;
   name: string;
   type: 'select' | 'textarea' | 'text';
@@ -45,7 +46,7 @@ type FieldFromSchema = {
   uri?: string;
 };
 
-type SchemaFormConfig = {
+export type SchemaFormConfig = {
   uri: string;
   description?: string;
   optional_fields?: FieldFromSchema[];

@@ -1,4 +1,4 @@
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export type SeriesSamplingInfo = {

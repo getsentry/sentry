@@ -349,6 +349,7 @@ def normalize_stacktraces_for_grouping(
 
     platform = data.get("platform", "")
     sentry_sdk.set_tag("platform", platform)
+    sentry_sdk.set_attribute("platform", platform)
 
     # Put the trimmed function names into the frames.  We only do this if
     # the trimming produces a different function than the function we have

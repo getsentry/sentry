@@ -16,7 +16,13 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer, TeamSerializerResponse
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.team_examples import TeamExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, TeamParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    TeamParams,
+    VisibilityParams,
+)
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.integrations.models.external_actor import ExternalActor
@@ -80,11 +86,14 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         return TeamSerializer()
 
     @extend_schema(
-        operation_id="List an Organization's Teams",
+        operation_id="listOrganizationTeams",
+        summary="List an Organization's Teams",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             TeamParams.DETAILED,
             CursorQueryParam,
+            VisibilityParams.PER_PAGE,
+            TeamParams.QUERY,
         ],
         request=None,
         responses={
@@ -165,7 +174,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         return request.user.is_authenticated
 
     @extend_schema(
-        operation_id="Create a New Team",
+        operation_id="createOrganizationTeam",
+        summary="Create a New Team",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
@@ -178,7 +188,9 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         },
         examples=TeamExamples.CREATE_TEAM,
     )
-    def post(self, request: Request, organization, **kwargs) -> Response:
+    def post(
+        self, request: Request, organization, **kwargs
+    ) -> Response[TeamSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a new team bound to an organization. Requires at least one of the `name`
         or `slug` body params to be set.
@@ -235,8 +247,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 event=audit_log.get_event_id("TEAM_ADD"),
                 data=team.get_audit_log_data(),
             )
-            return Response(
-                serialize(team, request.user, self.team_serializer_for_post()),
-                status=201,
+            body: TeamSerializerResponse = serialize(
+                team, request.user, self.team_serializer_for_post()
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(body, status=201)
+        return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)

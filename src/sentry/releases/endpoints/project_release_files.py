@@ -319,7 +319,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, version) -> Response:
+    def get(
+        self, request: Request, project, version
+    ) -> Response[list[ReleaseFileSerializerResponse]]:
         """
         Retrieve a list of files for a given release.
         """
@@ -333,7 +335,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
         return self.get_releasefiles(request, release, project.organization_id)
 
     @extend_schema(
-        operation_id="Upload a New Project Release File",
+        operation_id="uploadProjectReleaseFile",
+        summary="Upload a New Project Release File",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -351,7 +354,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
             409: RESPONSE_CONFLICT,
         },
     )
-    def post(self, request: Request, project, version) -> Response:
+    def post(self, request: Request, project, version) -> Response[ReleaseFileSerializerResponse]:
         """
         Upload a new file for the given release.
 

@@ -57,7 +57,7 @@ class WorkflowSerializerResponse(TypedDict):
 
 
 @register(Workflow)
-class WorkflowSerializer(Serializer):
+class WorkflowSerializer(Serializer[WorkflowSerializerResponse]):
     def get_attrs(
         self, item_list: Sequence[Workflow], user: Any, **kwargs: Any
     ) -> MutableMapping[Workflow, dict[str, Any]]:

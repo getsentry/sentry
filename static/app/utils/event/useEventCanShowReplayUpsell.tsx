@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {projectCanUpsellReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useOrganization} from 'sentry/utils/useOrganization';

@@ -25,7 +25,6 @@ describe('SubscriptionUpsellBanner', () => {
     const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
-      planTier: 'am2',
       plan: 'am2_f',
     });
     render(
@@ -47,7 +46,6 @@ describe('SubscriptionUpsellBanner', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
-      planTier: 'am2',
       plan: 'am2_f',
     });
     render(

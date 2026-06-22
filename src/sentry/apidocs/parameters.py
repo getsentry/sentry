@@ -3,9 +3,9 @@ from typing import Any
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
-from rest_framework import serializers
 
 from sentry import constants
+from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions import STATS_PERIODS
 
@@ -45,7 +45,7 @@ class GlobalParams:
     )
     PROJECT_ID_OR_SLUG = OpenApiParameter(
         name="project_id_or_slug",
-        description="The ID or slug of the project the resource belongs to.",
+        description="The ID or slug of the project the resource belongs to. Project slugs are unique within each organization.",
         required=True,
         type=str,
         location="path",
@@ -144,7 +144,18 @@ class OrganizationParams:
         required=False,
         many=True,
         type=str,
-        description="""The project slugs to filter by. Use `$all` to include all available projects. For example, the following are valid parameters:
+        description="""The legacy project slug filter. Prefer `project`, which accepts project IDs or slugs. Use `$all` to include all available projects. For example, the following are valid parameters:
+- `/?projectSlug=$all`
+- `/?projectSlug=android&projectSlug=javascript-react`
+""",
+    )
+    PROJECT_SLUG = OpenApiParameter(
+        name="projectSlug",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        description="""The project slugs to filter by. This legacy parameter takes precedence over `project` if both are provided. Prefer `project`, which accepts project IDs or slugs. Use `$all` to include all available projects. For example, the following are valid parameters:
 - `/?projectSlug=$all`
 - `/?projectSlug=android&projectSlug=javascript-react`
 """,
@@ -153,11 +164,11 @@ class OrganizationParams:
         name="project",
         location="query",
         required=False,
-        many=True,
-        type=int,
-        description="""The IDs of projects to filter by. `-1` means all available projects.
+        type={"type": "array", "items": PROJECT_ID_OR_SLUG_SCHEMA},
+        description="""The IDs or slugs of projects to filter by. Project slugs are unique within each organization. Omit this parameter to include all accessible projects. `-1` is also accepted to include all accessible projects.
 For example, the following are valid parameters:
 - `/?project=1234&project=56789`
+- `/?project=android&project=javascript-react`
 - `/?project=-1`
 """,
     )
@@ -205,6 +216,14 @@ Valid fields include:
 - `members`: By number of members
 - `events`: By number of events in the past 24 hours
 """,
+    )
+
+    PROJECT_QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="Filter projects by name or slug.",
     )
 
     EXTERNAL_USER_ID = OpenApiParameter(
@@ -708,7 +727,7 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         ],
         # Not every key in DATASET_OPTIONS is listed here — internal,
         # metrics-layer, and deprecated aliases (e.g. "ourlogs",
-        # "metricsEnhanced", "spansIndexed") are intentionally omitted so
+        # "metricsEnhanced") are intentionally omitted so
         # the public API surface stays stable as backends migrate to EAP.
         description="""Which dataset to query. The chosen dataset determines which fields are queryable.
 - `errors` - Error events.
@@ -741,7 +760,22 @@ top events are""",
         location="query",
         required=False,
         type=str,
-        description="The aggregate field to create the timeseries for, defaults to `count()` when not included",
+        description="""The aggregate field to create the timeseries for, defaults to `count()` when
+        not included.
+- `count()` - Total count of events over the period.
+- `avg(field)` - Average value of the field over the period.
+- `pXX(field)` - Percentile value of the field over the period. One of: `p50`, `p75`, `p90`, `p95`, `p99`, `p100`.
+- `sum(field)` - Sum of all values for the field over the period.
+- `min(field)` - Lowest value observed for the field over the period.
+- `max(field)` - Highest value observed for the field over the period.
+- `count_unique(field)` - Count of unique values observed for the field over the period. See *Note:* regarding accuracy on sampled data.
+- `epm` - Average number of events received per minute.
+- `eps` - Average number of events received per second.
+- `failure_rate()` - Percentage of events whose `status` indicates failure.
+- `failure_count()` - Total count of events with an error `status` over period.
+- `performance_score(field)` - Web Vitals performance score for the selected measurement.
+- `opportunity_score(field)` - Web Vitals opportunity score for the selected measurement.
+""",
     )
     DISABLE_AGGREGATE_EXTRAPOLATION = OpenApiParameter(
         name="disableAggregateExtrapolation",
@@ -771,11 +805,15 @@ events that aren't in the top groups.""",
     )
 
 
-class CursorQueryParam(serializers.Serializer):
-    cursor = serializers.CharField(
-        help_text="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
-        required=False,
-    )
+CursorQueryParam = OpenApiParameter(
+    name="cursor",
+    location="query",
+    required=False,
+    type=str,
+    allow_blank=False,
+    description="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
+    extensions={"x-learn-more": "https://docs.sentry.io/api/pagination/"},
+)
 
 
 class MonitorParams:
@@ -952,6 +990,13 @@ keys if not specified.
 
 
 class TeamParams:
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="Filter teams by name or slug.",
+    )
     DETAILED = OpenApiParameter(
         name="detailed",
         location="query",

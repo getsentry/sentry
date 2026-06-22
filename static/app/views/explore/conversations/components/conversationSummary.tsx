@@ -25,6 +25,7 @@ import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
   getNumberAttr,
   getStringAttr,
@@ -153,7 +154,13 @@ export function ConversationAggregatesBar({
       />
       <AggregateItem
         label={t('Cost')}
-        value={formatLLMCosts(aggregates.totalCost)}
+        value={
+          aggregates.totalCost < 0 ? (
+            <NegativeCostInfo cost={aggregates.totalCost} />
+          ) : (
+            formatLLMCosts(aggregates.totalCost)
+          )
+        }
         isLoading={isLoading}
       />
       {lastMessageDate !== undefined && (

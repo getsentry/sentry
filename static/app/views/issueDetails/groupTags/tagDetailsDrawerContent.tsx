@@ -25,9 +25,10 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
-import {escapeIssueTagKey, generateQueryWithTag, percent} from 'sentry/utils';
+import {percent} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -394,10 +395,10 @@ const Header = styled(Body)`
 
 const Row = styled(Body)`
   &:nth-child(even) {
-    background: ${p => p.theme.tokens.background.secondary};
+    background: ${p => p.theme.tokens.background.tertiary};
   }
   align-items: center;
-  border-radius: 4px;
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
 
   .invisible {

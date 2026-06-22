@@ -21,19 +21,23 @@ from sentry.utils.sdk import (
 logger = logging.getLogger(__name__)
 
 
-def clear_tags_and_context() -> None:
+def clear_organization_info() -> None:
     """Clear certain tags and context since it should not be set."""
     reset_values = False
     scope = sentry_sdk.get_isolation_scope()
 
-    for tag in ["organization", "organization.slug"]:
-        if tag in scope._tags:
+    for key in ["organization", "organization.slug"]:
+        scope.remove_attribute(key)
+        if key in scope._tags:
             reset_values = True
-            del scope._tags[tag]
+            del scope._tags[key]
 
     if "organization" in scope._contexts:
         reset_values = True
         del scope._contexts["organization"]
+
+    scope.remove_attribute("organization.multiple_possible")
+    scope.remove_attribute("organization.source")
 
     if reset_values:
         logger.info("We've reset the context and tags.")

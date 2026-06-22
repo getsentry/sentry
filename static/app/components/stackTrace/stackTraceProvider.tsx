@@ -4,7 +4,7 @@ import {isExpandable as frameHasExpandableDetails} from 'sentry/components/event
 import {getLastFrameIndex} from 'sentry/components/events/interfaces/utils';
 import {DEFAULT_STACK_TRACE_ROW_POLICY} from 'sentry/components/stackTrace/rowPolicy';
 import type {Event} from 'sentry/types/event';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {useProjects} from 'sentry/utils/useProjects';
 

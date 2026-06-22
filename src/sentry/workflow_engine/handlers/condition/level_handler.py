@@ -58,7 +58,7 @@ class LevelConditionHandler(DataConditionHandler[WorkflowEventData]):
         return False
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         data = {
             "level": LEVEL_CHOICES[condition_data["level"]],
             "match": LEVEL_MATCH_CHOICES[condition_data["match"]],

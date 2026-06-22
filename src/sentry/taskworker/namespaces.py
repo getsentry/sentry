@@ -82,11 +82,6 @@ hybridcloud_control_tasks = app.taskregistry.create_namespace(
     app_feature="hybrid_cloud",
 )
 
-ingest_profiling_tasks = app.taskregistry.create_namespace(
-    "ingest.profiling",
-    app_feature="profiles",
-)
-
 ingest_profiling_passthrough_tasks = app.taskregistry.create_namespace(
     "ingest.profiling.passthrough",
     app_feature="profiles",
@@ -100,6 +95,11 @@ ingest_transactions_tasks = app.taskregistry.create_namespace(
 ingest_attachments_tasks = app.taskregistry.create_namespace(
     "ingest.attachments",
     app_feature="attachments",
+)
+
+ingest_events_passthrough_tasks = app.taskregistry.create_namespace(
+    "ingest.events.passthrough",
+    app_feature="errors",
 )
 
 ingest_errors_tasks = app.taskregistry.create_namespace(

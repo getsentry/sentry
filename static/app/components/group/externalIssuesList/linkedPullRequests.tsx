@@ -1,0 +1,212 @@
+import styled from '@emotion/styled';
+import {skipToken, useQuery} from '@tanstack/react-query';
+
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Placeholder} from 'sentry/components/placeholder';
+import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
+import {TimeSince} from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
+import {GroupActivityType, type Group} from 'sentry/types/group';
+import type {
+  LinkedPullRequest,
+  LinkedPullRequestsResponse,
+} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {
+  getPullRequestStatusLabel,
+  PullRequestStatusBadge,
+} from './pullRequestStatusBadge';
+
+const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
+
+export function getLinkedPullRequestActivityIds(group: Group) {
+  return new Set(
+    group.activity
+      .filter(
+        activity => activity.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST
+      )
+      .map(activity => activity.data.pullRequest?.id)
+      .filter(id => id !== undefined)
+  );
+}
+
+interface LinkedPullRequestsProps {
+  group: Group;
+  showEmptyState?: boolean;
+}
+
+function LinkedPullRequestRow({
+  group,
+  pullRequest,
+}: {
+  group: Group;
+  pullRequest: LinkedPullRequest;
+}) {
+  const organization = useOrganization();
+  const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
+  const statusLabel = getPullRequestStatusLabel(pullRequest.status);
+  const pullRequestLabel = t('#%s', pullRequest.id);
+
+  return (
+    <Tooltip
+      title={
+        <Text as="span" align="left" wordBreak="break-word">
+          {title}
+        </Text>
+      }
+      maxWidth={275}
+      skipWrapper
+    >
+      <PullRequestRow
+        aria-label={t(
+          'Pull request #%s in %s, %s, %s',
+          pullRequest.id,
+          pullRequest.repository.name,
+          statusLabel,
+          title
+        )}
+        href={pullRequest.externalUrl}
+        onClick={() =>
+          trackAnalytics('issue_details.external_issue_pull_request_clicked', {
+            organization,
+            pull_request_id: pullRequest.id,
+            pull_request_status: pullRequest.status,
+            repository_id: pullRequest.repository.id,
+            repository_provider: pullRequest.repository.provider.id,
+            ...getAnalyticsDataForGroup(group),
+          })
+        }
+      >
+        <Grid columns="max-content minmax(0, 1fr)" gap="sm" padding="sm">
+          <Flex as="span" aria-hidden align="start">
+            <RepoProviderIcon
+              provider={pullRequest.repository.provider.id}
+              size="sm"
+              variant="muted"
+            />
+          </Flex>
+          <Flex direction="column" gap="xs" minWidth={0}>
+            <PullRequestTitle>
+              <Text as="span" bold textWrap="nowrap">
+                {pullRequestLabel}
+              </Text>
+              <Text as="span" ellipsis>
+                {pullRequest.repository.name}
+              </Text>
+            </PullRequestTitle>
+            <Flex align="center" gap="xs">
+              <PullRequestStatusBadge status={pullRequest.status} />
+              <Text as="span" size="sm" variant="muted">
+                <TimeSince
+                  date={pullRequest.dateLinked}
+                  suffix={t('ago')}
+                  tooltipPrefix={t('Linked')}
+                  unitStyle="short"
+                />
+              </Text>
+            </Flex>
+          </Flex>
+        </Grid>
+      </PullRequestRow>
+    </Tooltip>
+  );
+}
+
+export function useLinkedPullRequests({group}: {group: Group}) {
+  const organization = useOrganization();
+  const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
+
+  return useQuery(
+    apiOptions.as<LinkedPullRequestsResponse>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
+      {
+        path: hasFeature
+          ? {organizationIdOrSlug: organization.slug, issueId: group.id}
+          : skipToken,
+        staleTime: 30_000,
+      }
+    )
+  );
+}
+
+export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
+  const organization = useOrganization();
+  const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
+  const {data, isError, isPending} = useLinkedPullRequests({group});
+  const activityPullRequestIds = getLinkedPullRequestActivityIds(group);
+
+  if (!hasFeature || isError) {
+    return null;
+  }
+
+  if (isPending && activityPullRequestIds.size > 0) {
+    return <Placeholder height="40px" />;
+  }
+
+  if (data?.pullRequests.length === 0) {
+    return showEmptyState ? (
+      <EmptyLinksText variant="muted">
+        {t('No linked issues or pull requests')}
+      </EmptyLinksText>
+    ) : null;
+  }
+
+  if (!data?.pullRequests.length) {
+    return null;
+  }
+
+  return (
+    <Flex
+      as="ul"
+      aria-label={t('Linked pull requests')}
+      direction="column"
+      border="primary"
+      radius="md"
+      overflow="hidden"
+      margin="0"
+      padding="0"
+    >
+      {data.pullRequests.map((pullRequest, index) => (
+        <Container
+          as="li"
+          key={`${pullRequest.repository.id}:${pullRequest.id}`}
+          borderTop={index === 0 ? undefined : 'primary'}
+          style={{listStyle: 'none'}}
+        >
+          <LinkedPullRequestRow group={group} pullRequest={pullRequest} />
+        </Container>
+      ))}
+    </Flex>
+  );
+}
+
+const PullRequestRow = styled(ExternalLink)`
+  display: block;
+  color: ${p => p.theme.tokens.content.primary};
+
+  &:hover {
+    color: ${p => p.theme.tokens.content.primary};
+    background: ${p => p.theme.tokens.background.secondary};
+  }
+`;
+
+const EmptyLinksText = styled(Text)`
+  margin: 0;
+`;
+
+const PullRequestTitle = styled('span')`
+  align-items: center;
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
+`;

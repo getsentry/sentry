@@ -38,7 +38,7 @@ class SentryAppFeaturesEndpoint(SentryAppBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, sentry_app) -> Response:
+    def get(self, request: Request, sentry_app) -> Response[list[IntegrationFeatureResponse]]:
         """
         Return the list of features that a custom integration (Sentry App) declares.
         """

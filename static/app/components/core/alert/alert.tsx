@@ -10,7 +10,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {AlertVariant} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';

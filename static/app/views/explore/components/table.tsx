@@ -15,7 +15,7 @@ import {
   GridHeadCell,
   GridRow,
 } from 'sentry/components/tables/gridEditable/styles';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {

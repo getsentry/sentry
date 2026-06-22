@@ -9,7 +9,7 @@ import {
   Parenthesis,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 export function validateTokens(tokens: Token[]): boolean {
   const validator = new ExpressionValidator();

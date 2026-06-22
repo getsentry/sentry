@@ -13,6 +13,8 @@ class IssueResolvedEvent(analytics.Event):
     provider: str | None = None
     issue_category: str | None = None
     issue_type: str | None = None
+    # Only set for commit-based resolutions (in_commit / with_commit); None otherwise.
+    commit_id: int | None = None
 
 
 analytics.register(IssueResolvedEvent)

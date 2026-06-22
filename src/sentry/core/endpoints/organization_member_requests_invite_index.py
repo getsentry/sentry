@@ -22,6 +22,11 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
 from sentry.core.endpoints.organization_member_utils import save_team_assignments
@@ -60,7 +65,9 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[OrganizationMemberWithTeamsResponse]]:
         """
         Return a list of pending invite and join requests for an organization.
         """
@@ -95,7 +102,13 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[OrganizationMemberResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Create an invite request for an organization given an email and suggested
         role / teams.
@@ -106,7 +119,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         if request.access.requires_sso:
             return Response(
@@ -146,4 +159,5 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         async_send_notification(InviteRequestNotification, om, request.user)
 
-        return Response(serialize(om), status=201)
+        data: OrganizationMemberResponse = serialize(om)
+        return Response(data, status=201)

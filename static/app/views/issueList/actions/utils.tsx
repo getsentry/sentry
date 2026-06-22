@@ -14,8 +14,8 @@ import type {Client} from 'sentry/api';
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {defined} from 'sentry/utils/defined';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
@@ -179,6 +179,7 @@ export const COLUMN_BREAKPOINTS = {
   EVENTS: '700px',
   USERS: '900px',
   PRIORITY: '1100px',
+  PROGRESS: '1100px',
   ASSIGNEE: '500px',
 };
 

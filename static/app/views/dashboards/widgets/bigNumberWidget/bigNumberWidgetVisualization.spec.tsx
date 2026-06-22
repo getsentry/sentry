@@ -15,7 +15,7 @@ describe('BigNumberWidgetVisualization', () => {
       jest.resetAllMocks();
     });
 
-    it('Explains non-numeric data', () => {
+    it('Hides the internal error behind a friendly message for non-numeric data', () => {
       render(
         <Widget
           Visualization={
@@ -29,7 +29,13 @@ describe('BigNumberWidgetVisualization', () => {
         />
       );
 
-      expect(screen.getByText('Value is not a finite number.')).toBeInTheDocument();
+      // The non-finite value throws during render. We don't surface the raw
+      // (non-actionable) error message to the user; the Widget's ErrorBoundary
+      // shows a friendly message instead.
+      expect(
+        screen.getByText('Something went wrong displaying this widget.')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Value is not a finite number.')).not.toBeInTheDocument();
     });
 
     it('Formats dates', () => {

@@ -8,6 +8,7 @@ import pytest
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
+    apply_project_sample_rate_overrides,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
     get_cached_rebalanced_project_sample_rates,
@@ -25,6 +26,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
     generate_boost_low_volume_transactions_cache_key,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 
 def _project_volume(project_id: int, total: int = 100, keep: int = 25) -> ProjectVolume:
@@ -71,6 +73,32 @@ class ProjectBalancingCalculationsTest(TestCase):
         ]
         assert result == rebalanced_projects
 
+    def test_apply_project_sample_rate_overrides(self) -> None:
+        overridden_id = 1001
+        normal_id = 1002
+        rebalanced_projects = [
+            RebalancedItem(id=overridden_id, count=100, new_sample_rate=0.25),
+            RebalancedItem(id=normal_id, count=100, new_sample_rate=0.25),
+        ]
+
+        with override_options(
+            {"dynamic-sampling.sample-rate-override-per-project": {str(overridden_id): 0.9}}
+        ):
+            result = apply_project_sample_rate_overrides(rebalanced_projects)
+
+        result_by_id = {item.id: item.new_sample_rate for item in result}
+        # Overridden project gets the option value; the other keeps its balanced rate.
+        assert result_by_id[overridden_id] == 0.9
+        assert result_by_id[normal_id] == 0.25
+
+    def test_apply_project_sample_rate_overrides_noop_without_option(self) -> None:
+        rebalanced_projects = [
+            RebalancedItem(id=2001, count=100, new_sample_rate=0.25),
+        ]
+        # No overrides configured -> the balanced rates are returned untouched.
+        result = apply_project_sample_rate_overrides(rebalanced_projects)
+        assert result == rebalanced_projects
+
     def test_compare_rebalanced_projects_with_cache_logs_per_project(self) -> None:
         org = self.create_organization()
         project_with_volume = self.create_project(organization=org)
@@ -85,9 +113,15 @@ class ProjectBalancingCalculationsTest(TestCase):
             project_with_volume.id: 0.2,
             project_without_volume.id: 0.96,
         }
+        project_volumes = [
+            ProjectVolume(project_id=project_with_volume.id, total=200, keep=100, drop=100),
+            ProjectVolume(project_id=project_without_volume.id, total=0, keep=0, drop=0),
+        ]
 
         with patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info:
-            compare_rebalanced_projects_with_cache(config, rebalanced_projects, cached_sample_rates)
+            compare_rebalanced_projects_with_cache(
+                config, rebalanced_projects, cached_sample_rates, project_volumes
+            )
 
         assert [call.args for call in logger_info.call_args_list] == [
             ("dynamic_sampling.per_org.project_balancing_comparison",),
@@ -96,19 +130,23 @@ class ProjectBalancingCalculationsTest(TestCase):
         assert [call.kwargs["extra"] for call in logger_info.call_args_list] == [
             {
                 "org_id": org.id,
-                "project_id": project_with_volume.id,
+                "ds_proj_id": project_with_volume.id,
                 "generic_metrics_sample_rate": 0.2,
                 "eap_sample_rate": 0.25,
                 "relative_deviation": pytest.approx(0.2),
                 "is_equal": False,
+                "total_volume_eap": 100,
+                "total_volume_eap_without_extrapolation": 100,
             },
             {
                 "org_id": org.id,
-                "project_id": project_without_volume.id,
+                "ds_proj_id": project_without_volume.id,
                 "generic_metrics_sample_rate": 0.96,
                 "eap_sample_rate": 1.0,
                 "relative_deviation": pytest.approx(0.04),
                 "is_equal": True,
+                "total_volume_eap": 0,
+                "total_volume_eap_without_extrapolation": 0,
             },
         ]
 
@@ -278,7 +316,7 @@ class TransactionBalancingCalculationsTest(TestCase):
         assert extras == [
             {
                 "org_id": org.id,
-                "project_id": project.id,
+                "ds_proj_id": project.id,
                 "generic_metrics_implicit_rate": 0.45,
                 "eap_implicit_rate": 0.5,
                 "relative_deviation": pytest.approx(0.1),
@@ -286,7 +324,7 @@ class TransactionBalancingCalculationsTest(TestCase):
             },
             {
                 "org_id": org.id,
-                "project_id": project.id,
+                "ds_proj_id": project.id,
                 "transaction": "checkout",
                 "generic_metrics_sample_rate": 0.2,
                 "eap_sample_rate": 0.25,
@@ -295,7 +333,7 @@ class TransactionBalancingCalculationsTest(TestCase):
             },
             {
                 "org_id": org.id,
-                "project_id": project.id,
+                "ds_proj_id": project.id,
                 "transaction": "cart",
                 "generic_metrics_sample_rate": 1.0,
                 "eap_sample_rate": 0.96,

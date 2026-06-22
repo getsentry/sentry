@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
@@ -23,12 +25,48 @@ jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   FileDiffViewer: () => <div data-testid="file-diff-viewer" />,
 }));
 
+const prIterationOrganization = OrganizationFixture({features: ['autofix-pr-iteration']});
+
 function makeSection(
   step: string,
   status: AutofixSection['status'],
-  artifacts: AutofixArtifact[]
+  artifacts: AutofixArtifact[],
+  blocks: AutofixSection['blocks'] = []
 ): AutofixSection {
-  return {step, artifacts, blocks: [], status};
+  return {step, artifacts, blocks, status};
+}
+
+function makeAssistantBlock(content: string | null): AutofixSection['blocks'][number] {
+  return {
+    id: 'block-1',
+    timestamp: '2026-01-01T00:00:00Z',
+    message: {role: 'assistant', content},
+  };
+}
+
+function makePrIterationBlock(
+  iterationIndex: number,
+  feedback: {text: string; timestamp?: string; user?: any}
+): AutofixSection['blocks'][number] {
+  return {
+    id: `block-pr-${iterationIndex}`,
+    timestamp: '2026-01-01T00:00:00Z',
+    message: {
+      role: 'user',
+      content: null,
+      metadata: {
+        step: 'pr_iteration',
+        iteration_index: String(iterationIndex),
+        feedback: JSON.stringify({
+          text: feedback.text,
+          timestamp: feedback.timestamp,
+          source: feedback.user
+            ? {type: 'user-ui', user: feedback.user}
+            : {type: 'user-ui'},
+        }),
+      },
+    },
+  };
 }
 
 function makePatch(repoName: string, path: string): ExplorerFilePatch {
@@ -345,6 +383,7 @@ describe('ArtifactCard', () => {
     it('renders single file in single repo', () => {
       render(
         <CodeChangesCard
+          groupId="1"
           autofix={mockAutofix}
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
@@ -359,6 +398,7 @@ describe('ArtifactCard', () => {
     it('renders multiple files in single repo', () => {
       render(
         <CodeChangesCard
+          groupId="1"
           autofix={mockAutofix}
           section={makeSection('code_changes', 'completed', [
             [
@@ -376,6 +416,7 @@ describe('ArtifactCard', () => {
     it('renders multiple files in multiple repos', () => {
       render(
         <CodeChangesCard
+          groupId="1"
           autofix={mockAutofix}
           section={makeSection('code_changes', 'completed', [
             [
@@ -393,6 +434,7 @@ describe('ArtifactCard', () => {
     it('renders repository name labels', () => {
       render(
         <CodeChangesCard
+          groupId="1"
           autofix={mockAutofix}
           section={makeSection('code_changes', 'completed', [
             [
@@ -410,6 +452,7 @@ describe('ArtifactCard', () => {
     it('renders card shell when no code changes artifact found', () => {
       render(
         <CodeChangesCard
+          groupId="1"
           autofix={mockAutofix}
           section={makeSection('code_changes', 'completed', [])}
         />
@@ -427,6 +470,7 @@ describe('ArtifactCard', () => {
     it('copies markdown when copy button is clicked', async () => {
       render(
         <CodeChangesCard
+          groupId="1"
           autofix={mockAutofix}
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
@@ -444,6 +488,7 @@ describe('ArtifactCard', () => {
     it('does not show copy button when no patches', () => {
       render(
         <CodeChangesCard
+          groupId="1"
           autofix={mockAutofix}
           section={makeSection('code_changes', 'completed', [])}
         />
@@ -469,6 +514,7 @@ describe('ArtifactCard', () => {
 
       render(
         <CodeChangesCard
+          groupId="1"
           autofix={mockAutofix}
           section={makeSection('code_changes', 'completed', [[emptyPatch]])}
         />
@@ -497,6 +543,7 @@ describe('ArtifactCard', () => {
 
       render(
         <CodeChangesCard
+          groupId="1"
           autofix={autofixWithRunState}
           section={makeSection('code_changes', 'completed', [])}
         />
@@ -512,6 +559,7 @@ describe('ArtifactCard', () => {
     it('renders loading state when processing, not error', () => {
       render(
         <CodeChangesCard
+          groupId="1"
           autofix={mockAutofix}
           section={makeSection('code_changes', 'processing', [])}
         />
@@ -528,12 +576,265 @@ describe('ArtifactCard', () => {
     it('does not render file diff viewers in error state', () => {
       render(
         <CodeChangesCard
+          groupId="1"
           autofix={mockAutofix}
           section={makeSection('code_changes', 'completed', [])}
         />
       );
 
       expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
+    });
+
+    it('surfaces the agent explanation when no patches but a final message exists', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofixWithRunState}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [
+              makeAssistantBlock(
+                'This fix requires a database migration, not a code change.'
+              ),
+            ]
+          )}
+        />
+      );
+
+      expect(
+        screen.getByText("Seer proposed a fix but couldn't apply it automatically")
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('This fix requires a database migration, not a code change.')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Add context & retry'})
+      ).toBeInTheDocument();
+      // The generic "this one is on us" copy should not appear here.
+      expect(
+        screen.queryByText(
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
+      ).not.toBeInTheDocument();
+    });
+
+    it('opens the context prompt from the explanation state', async () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofixWithRunState}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [makeAssistantBlock('The relevant files are not in the connected repo.')]
+          )}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
+
+      expect(
+        screen.getByText('What additional context should Seer use?')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add context & retry'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('opens PR iteration feedback from explanation state when a PR exists', async () => {
+      const startStepMock = jest.fn();
+      const autofixWithPR: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofixWithRunState,
+        startStep: startStepMock,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithPR}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [makeAssistantBlock('The relevant files are not in the connected repo.')]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
+
+      expect(
+        screen.getByText('Anything else you want to see on your PR?')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('What additional context should Seer use?')
+      ).not.toBeInTheDocument();
+
+      await userEvent.type(screen.getByRole('textbox'), 'Try the other repo');
+      await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+
+      expect(startStepMock).toHaveBeenCalledWith('pr_iteration', {
+        runId: 123,
+        userContext: 'Try the other repo',
+      });
+    });
+
+    it('falls back to the generic failure copy when there is no explanation', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [makeAssistantBlock('   ')]
+          )}
+        />
+      );
+
+      expect(
+        screen.getByText(
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText("Seer proposed a fix but couldn't apply it automatically")
+      ).not.toBeInTheDocument();
+    });
+
+    it('silently ignores pr_iteration blocks with an unrecognized source type', () => {
+      const block: AutofixSection['blocks'][number] = {
+        id: 'block-unknown',
+        timestamp: '2026-01-01T00:00:00Z',
+        message: {
+          role: 'user',
+          content: null,
+          metadata: {
+            step: 'pr_iteration',
+            iteration_index: '0',
+            feedback: JSON.stringify({text: 'ignored', source: {type: 'mystery'}}),
+          },
+        },
+      };
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [block]
+          )}
+        />
+      );
+
+      expect(screen.queryByText('Feedback')).not.toBeInTheDocument();
+    });
+
+    it('renders feedback from pr_iteration blocks', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(1, {text: 'Add a test for this'})]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('Feedback')).toBeInTheDocument();
+      expect(screen.getByText('"Add a test for this"')).toBeInTheDocument();
+    });
+
+    it('does not render iteration feedback without the feature flag', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(1, {text: 'Add a test for this'})]
+          )}
+        />
+      );
+
+      expect(screen.queryByText('Feedback')).not.toBeInTheDocument();
+      expect(screen.queryByText('"Add a test for this"')).not.toBeInTheDocument();
+      expect(screen.queryByText(/- Latest/)).not.toBeInTheDocument();
+    });
+
+    it('renders a one-based version tag for the latest iteration', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [
+              makePrIterationBlock(0, {text: 'first pass'}),
+              makePrIterationBlock(1, {text: 'second pass'}),
+            ]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      // iteration_index is zero-based; the latest (1) renders as v2.
+      expect(screen.getByText('v2 - Latest')).toBeInTheDocument();
+    });
+
+    it('does not render a version tag without iterations', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />
+      );
+
+      expect(screen.queryByText(/- Latest/)).not.toBeInTheDocument();
+    });
+
+    it('shows the iterating loading message when processing a pr_iteration', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'processing',
+            [],
+            [makePrIterationBlock(0, {text: 'keep going'})]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('Iterating on PR…')).toBeInTheDocument();
+      expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
     });
   });
 

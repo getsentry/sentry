@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {FieldKind} from 'sentry/utils/fields';
@@ -194,6 +194,18 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.recentSearches).toBeDefined();
   });
 
+  it('passes disabled through to search query builder provider props', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        disabled: true,
+      },
+      organization,
+    });
+
+    expect(result.current.disabled).toBe(true);
+  });
+
   it('getTagKeys fetches keys across string, number, and boolean attributes', async () => {
     const traceItemAttributesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
@@ -230,56 +242,6 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     ]);
   });
 
-  it('calls validateQuery when filter keys change', async () => {
-    const validateMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/validate/',
-      method: 'POST',
-      body: {attributes: {'span.op': {valid: true}}},
-    });
-
-    renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        initialQuery: 'span.op:db',
-      },
-      organization,
-    });
-
-    await waitFor(() => {
-      expect(validateMock).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  it('does not call validateQuery when only filter values change', async () => {
-    const validateMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/validate/',
-      method: 'POST',
-      body: {attributes: {'span.op': {valid: true}}},
-    });
-
-    const {rerender} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        initialQuery: 'span.op:db',
-      },
-      organization,
-    });
-
-    await waitFor(() => {
-      expect(validateMock).toHaveBeenCalledTimes(1);
-    });
-
-    rerender({
-      ...defaultInitialProps,
-      initialQuery: 'span.op:web',
-    });
-
-    // Still only 1 call — value changed but keys didn't (React Query deduplicates)
-    await waitFor(() => {
-      expect(validateMock).toHaveBeenCalledTimes(1);
-    });
-  });
-
   it('uses a custom placeholder when provided', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {
@@ -302,39 +264,5 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     });
 
     expect(result.current.placeholder).toBe('Search for logs, users, tags, and more');
-  });
-
-  it('calls validateQuery when a new filter key is added', async () => {
-    const validateMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/validate/',
-      method: 'POST',
-      body: {
-        attributes: {
-          'span.op': {valid: true},
-          'other.key': {valid: true},
-        },
-      },
-    });
-
-    const {rerender} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        initialQuery: 'span.op:db',
-      },
-      organization,
-    });
-
-    await waitFor(() => {
-      expect(validateMock).toHaveBeenCalledTimes(1);
-    });
-
-    rerender({
-      ...defaultInitialProps,
-      initialQuery: 'span.op:db other.key:val',
-    });
-
-    await waitFor(() => {
-      expect(validateMock).toHaveBeenCalledTimes(2);
-    });
   });
 });

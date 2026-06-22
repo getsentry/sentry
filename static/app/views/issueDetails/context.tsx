@@ -75,6 +75,8 @@ export const enum SectionKey {
   SDK = 'sdk',
   GROUPING_INFO = 'grouping-info',
   PROCESSING_ERROR = 'processing-error',
+  CONFIGURATION_PROBLEM = 'configuration-problem',
+  CONFIGURATION_SOLUTION = 'configuration-solution',
   RRWEB = 'rrweb', // Legacy integration prior to replays
 
   MERGED_ISSUES = 'merged',
