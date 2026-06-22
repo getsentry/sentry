@@ -383,10 +383,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             session = get_preprod_session(organization.id, artifact.project_id)
             get_response = session.get(manifest_key)
             with sentry_sdk.start_span(
+                op="preprod.snapshot.read_manifest", name="read_head_manifest"
+            ):
+                raw_manifest = get_response.payload.read()
+            with sentry_sdk.start_span(
                 op="preprod.snapshot.parse_manifest", name="parse_head_manifest"
             ) as span:
-                manifest_data = orjson.loads(get_response.payload.read())
-                manifest = SnapshotManifest(**manifest_data)
+                manifest = SnapshotManifest(**orjson.loads(raw_manifest))
                 span.set_data("image_count", len(manifest.images))
         except Exception:
             logger.exception(
@@ -431,10 +434,14 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             if comparison_key:
                 try:
                     with sentry_sdk.start_span(
+                        op="preprod.snapshot.read_manifest", name="read_comparison_manifest"
+                    ):
+                        raw_comparison_manifest = session.get(comparison_key).payload.read()
+                    with sentry_sdk.start_span(
                         op="preprod.snapshot.parse_manifest", name="parse_comparison_manifest"
                     ) as span:
                         comparison_manifest = ComparisonManifest(
-                            **orjson.loads(session.get(comparison_key).payload.read())
+                            **orjson.loads(raw_comparison_manifest)
                         )
                         span.set_data("image_count", len(comparison_manifest.images))
                 except Exception:
@@ -451,11 +458,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             if base_manifest_key:
                 try:
                     with sentry_sdk.start_span(
+                        op="preprod.snapshot.read_manifest", name="read_base_manifest"
+                    ):
+                        raw_base_manifest = session.get(base_manifest_key).payload.read()
+                    with sentry_sdk.start_span(
                         op="preprod.snapshot.parse_manifest", name="parse_base_manifest"
                     ) as span:
-                        base_manifest = SnapshotManifest(
-                            **orjson.loads(session.get(base_manifest_key).payload.read())
-                        )
+                        base_manifest = SnapshotManifest(**orjson.loads(raw_base_manifest))
                         span.set_data("image_count", len(base_manifest.images))
                 except Exception:
                     logger.exception(
