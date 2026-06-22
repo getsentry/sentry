@@ -854,13 +854,12 @@ def _get_project_config(
 
     config = cfg["config"]
 
-    if features.has("organizations:ingest-through-trusted-relays-only", project.organization):
-        config["trustedRelaySettings"] = {
-            "verifySignature": project.organization.get_option(
-                "sentry:ingest-through-trusted-relays-only",
-                INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
-            )
-        }
+    config["trustedRelaySettings"] = {
+        "verifySignature": project.organization.get_option(
+            "sentry:ingest-through-trusted-relays-only",
+            INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+        )
+    }
 
     with sentry_sdk.start_span(op="get_exposed_features"):
         if exposed_features := get_exposed_features(project):
