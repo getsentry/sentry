@@ -69,7 +69,7 @@ export default function OrganizationDataForwardingSetup() {
         <Flex align="center" justify="between" gap="2xl">
           <Flex direction="column" gap="sm">
             <Flex align="center" gap="lg">
-              <Heading as="h1">{t('Setup Data Forwarding')}</Heading>
+              <Heading as="h2">{t('Setup Data Forwarding')}</Heading>
             </Flex>
             <Text variant="muted">
               {t('Configure the global settings for your data forwarder.')}

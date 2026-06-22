@@ -39,6 +39,13 @@ TRACE_SPAN = {
     "end_timestamp": "2026-04-15T18:22:31.250000Z",
     "duration": 250.0,
     "measurements": {},
+    "browser_web_vital": {
+        "browser.web_vital.lcp.value": 2807.335,
+        "browser.web_vital.cls.value": 0.0382,
+        "browser.web_vital.inp.value": 120.0,
+        "browser.web_vital.ttfb.value": 450.0,
+        "browser.web_vital.fcp.value": 2258.06,
+    },
     "children": [],
     "errors": [],
     "occurrences": [],

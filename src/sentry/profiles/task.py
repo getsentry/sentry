@@ -28,7 +28,6 @@ from taskbroker_client.retry import Retry
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
-from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import (
@@ -64,7 +63,7 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import ingest_profiling_passthrough_tasks
+from sentry.taskworker.namespaces import ingest_profiling_passthrough_tasks, ingest_profiling_tasks
 from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
@@ -98,50 +97,58 @@ def _get_profiles_producer_from_topic(
     )
 
 
-_task_producer_name = "sentry.profiles.taskproducer"
+def _get_task_producer_name(name: str) -> str:
+    return f"sentry.profiles.{name}.taskproducer"
+
+
 processed_profiles_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES),
     max_futures=settings.SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT,
 )
+processed_profiles_name = _get_task_producer_name("processed")
 processed_profiles_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES, _task_producer_name),
+    processed_profiles_name,
+    lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES, processed_profiles_name),
 )
 
 profile_functions_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE),
     max_futures=settings.SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT,
 )
+profile_functions_name = _get_task_producer_name("functions")
 profile_functions_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE, _task_producer_name),
+    profile_functions_name,
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE, profile_functions_name),
 )
 
 profile_chunks_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS),
     max_futures=settings.SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT,
 )
+profile_chunks_name = _get_task_producer_name("chunks")
 profile_chunks_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS, _task_producer_name),
+    profile_chunks_name,
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS, profile_chunks_name),
 )
 
 profile_occurrences_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES),
     max_futures=settings.SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT,
 )
+profile_occurrences_name = _get_task_producer_name("occurrences")
 profile_occurrences_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES, _task_producer_name),
+    profile_occurrences_name,
+    lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES, profile_occurrences_name),
 )
 
 eap_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS),
     max_futures=settings.SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT,
 )
+profile_eap_name = _get_task_producer_name("eap")
 eap_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS, _task_producer_name),
+    profile_eap_name,
+    lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS, profile_eap_name),
 )
 
 logger = logging.getLogger(__name__)
@@ -150,7 +157,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.profiles.task.process_profile_from_kafka",
     namespace=ingest_profiling_passthrough_tasks,
-    processing_deadline_duration=60,
+    processing_deadline_duration=80,
     retry=Retry(times=2, delay=5),
     compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.CELL,
@@ -161,29 +168,19 @@ def process_profile_from_kafka(
     headers: dict[str, str],
 ) -> None:
     """Process a profile from raw Kafka message bytes (taskbroker passthrough mode)."""
-    if _should_drop(headers):
-        return
+    from sentry.profiles.consumers.process.factory import _process_profile_message
 
-    sampled = _is_sampled(headers)
-
-    if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
-        return
-
-    process_profile_task(payload=message_bytes, sampled=sampled)
+    _process_profile_message(message_bytes, headers, inline=True)
 
 
-def _is_sampled(headers: dict[str, str]) -> bool:
-    return headers.get("sampled", "true") == "true"
-
-
-def _should_drop(headers: dict[str, str]) -> bool:
-    context = {"project_id": headers["project_id"]} if "project_id" in headers else {}
-
-    return bool(context) and killswitch_matches_context(
-        "profiling.killswitch.ingest-profiles", context
-    )
-
-
+@instrumented_task(
+    name="sentry.profiles.task.process_profile",
+    namespace=ingest_profiling_tasks,
+    processing_deadline_duration=80,
+    retry=Retry(times=2, delay=5),
+    compression_type=CompressionType.ZSTD,
+    silo_mode=SiloMode.CELL,
+)
 def process_profile_task(
     profile: Profile | None = None,
     payload: bytes | str | None = None,

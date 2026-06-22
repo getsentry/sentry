@@ -347,6 +347,8 @@ export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
   gauge: 'avg',
 };
 
+export const RATE_AGGREGATES = new Set(['per_second', 'per_minute']);
+
 /**
  * Query parameter key for controlling the metrics drawer state.
  * When this parameter is set to 'true', the metrics drawer should open automatically.
