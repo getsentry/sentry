@@ -20,8 +20,7 @@ import {
 } from 'sentry/utils/useChartInterval';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getHeatmapXAxisBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXAxisBucketInterval';
-import {getHeatmapYAxisBucketCount} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapYAxisBucketCount';
+import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -52,6 +51,7 @@ import {
   useSetMetricVisualizes,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
+import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -122,11 +122,8 @@ export function MetricPanel({
 
   const isHeatmap = visualize.chartType === ChartType.HEATMAP;
 
-  // use the biggest interval for the heat map as this produces better patterns
   const [interval, setInterval, intervalOptions] = useChartInterval({
-    unspecifiedStrategy: isHeatmap
-      ? ChartIntervalUnspecifiedStrategy.USE_BIGGEST
-      : ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
+    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
   });
 
   const [title, setTitle] = useState<string | undefined>(() => {
@@ -158,39 +155,39 @@ export function MetricPanel({
     staleTime: Infinity,
   });
 
-  const hasHeatMap = canUseMetricsHeatMap(organization);
+  const areHeatMapsEnabled = canUseMetricsHeatMap(organization);
 
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
     enabled:
-      !(hasHeatMap && isHeatmap) &&
+      !(areHeatMapsEnabled && isHeatmap) &&
       (!isMetricOptionsEmpty ||
         (isVisualizeEquation(visualize) && Boolean(visualize.expression.text))),
   });
 
+  const contentHeightRef = useRef<number | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const {width: chartContainerWidth} = useDimensions({elementRef: chartContainerRef});
-  const xBucketInterval = getHeatmapXAxisBucketInterval(
+
+  const heatMapBucketDimensions = calculateHeatMapBucketDimensions(
     selection,
-    interval,
-    chartContainerWidth,
-    intervalOptions
-  );
-  const yBuckets = getHeatmapYAxisBucketCount(
-    selection,
-    xBucketInterval,
-    chartContainerWidth
+    {
+      width: chartContainerWidth,
+      height: STACKED_GRAPH_HEIGHT,
+    },
+    intervalOptions.map(intervalOption => intervalOption.value)
   );
 
   const heatmapApiOptions = metricHeatmapApiOptions({
-    traceMetric,
-    enabled: hasHeatMap && isHeatmap && !isMetricOptionsEmpty && yBuckets > 0,
     organization,
     selection,
+    traceMetric,
     query: userQuery,
-    interval: xBucketInterval,
-    yBuckets,
+    interval: heatMapBucketDimensions?.interval,
+    yBuckets: heatMapBucketDimensions?.yBuckets,
+    enabled: areHeatMapsEnabled && isHeatmap && !isMetricOptionsEmpty,
   });
+
   const heatmapResult = useQuery({
     ...heatmapApiOptions,
     select: data => {
@@ -263,7 +260,7 @@ export function MetricPanel({
         onChange={option => handleChartTypeChange(option.value)}
       />
       <CompactSelect
-        value={isHeatmap ? xBucketInterval : interval}
+        value={isHeatmap ? (heatMapBucketDimensions?.interval ?? interval) : interval}
         disabled={isHeatmap}
         onChange={({value}) => setInterval(value)}
         trigger={triggerProps => (
@@ -283,8 +280,6 @@ export function MetricPanel({
       />
     </Fragment>
   );
-
-  const contentHeightRef = useRef<number | null>(null);
 
   return (
     <Panel ref={ref} style={style} {...rest} data-test-id="metric-panel">
@@ -320,7 +315,7 @@ export function MetricPanel({
                 >
                   <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="sm">
                     <Container minWidth="0" ref={chartContainerRef}>
-                      {hasHeatMap && isHeatmap ? (
+                      {areHeatMapsEnabled && isHeatmap ? (
                         <MetricsHeatMap
                           heatmapResult={heatmapResult}
                           actions={actions}

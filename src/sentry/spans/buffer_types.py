@@ -89,6 +89,7 @@ class EvalshaResult(NamedTuple):
     latency_ms: int
     latency_metrics: EvalshaData
     gauge_metrics: EvalshaData
+    merged_segment_span_ids: list[bytes]
 
     @classmethod
     def from_redis_result(cls, result: Sequence[Any]) -> EvalshaResult:
@@ -98,6 +99,7 @@ class EvalshaResult(NamedTuple):
             latency_ms,
             latency_metrics,
             gauge_metrics,
+            merged_segment_span_ids,
         ) = result
         return cls(
             segment_key,
@@ -105,6 +107,7 @@ class EvalshaResult(NamedTuple):
             latency_ms,
             _unflatten_data(latency_metrics),
             _unflatten_data(gauge_metrics),
+            merged_segment_span_ids,
         )
 
 

@@ -4,8 +4,6 @@ import logging
 from typing import Any
 
 from django.conf import settings
-from django.db import router, transaction
-from django.utils.timezone import now
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,21 +13,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.hybridcloud.models.outbox import (
-    CellOutbox,
-    OutboxDatabaseError,
-    OutboxFlushError,
-    outbox_context,
-)
-from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organization import Organization
-from sentry.seer.agent.client_utils import collect_user_org_context
+from sentry.seer.agent.client_utils import collect_user_org_context, enqueue_seer_run
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
-from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
+from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, SeerViewerContext
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -98,41 +88,13 @@ def send_search_agent_start_request(
     if options:
         body["options"] = options
 
-    try:
-        with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=True):
-            run = SeerRun.objects.create(
-                organization=organization,
-                user_id=user_id,
-                type=SeerRunType.ASSISTED_QUERY,
-                last_triggered_at=now(),
-            )
-            CellOutbox(
-                shard_scope=OutboxScope.SEER_SCOPE,
-                shard_identifier=run.id,
-                category=OutboxCategory.SEER_RUN_CREATE,
-                object_identifier=run.id,
-                payload={
-                    "body": dict(body),
-                    "viewer_context": dict(viewer_context) if viewer_context else None,
-                },
-            ).save()
-    except (OutboxFlushError, OutboxDatabaseError):
-        metrics.incr("seer.outbox_flush_error", tags={"type": "assisted_query"})
-        logger.exception(
-            "search_agent.outbox_flush_error",
-            extra={
-                "organization_id": organization.id,
-                "seer_run_id": run.id,
-                "seer_run_uuid": str(run.uuid),
-            },
-        )
-        run.mirror_status = SeerRunMirrorStatus.FAILED
-        run.save(update_fields=["mirror_status"])
-        raise SeerApiError("Outbox flush failed", 500)
-    run.refresh_from_db()
-    if run.mirror_status == SeerRunMirrorStatus.FAILED:
-        raise SeerApiError("Seer run failed during outbox drain", 500)
-    return run
+    return enqueue_seer_run(
+        organization=organization,
+        run_type=SeerRunType.ASSISTED_QUERY,
+        body=body,
+        viewer_context=viewer_context,
+        user_id=user_id,
+    )
 
 
 @cell_silo_endpoint
