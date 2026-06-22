@@ -5,6 +5,8 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+
 import {AttachmentsBadge} from './attachmentsBadge';
 
 describe('AttachmentsBadge', () => {
@@ -26,7 +28,11 @@ describe('AttachmentsBadge', () => {
       body: [],
     });
 
-    const {container} = render(<AttachmentsBadge group={group} />);
+    const {container} = render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <AttachmentsBadge group={group} />
+      </GroupDataContextProvider>
+    );
 
     // Wait for requests to finish
     await act(tick);
@@ -39,7 +45,11 @@ describe('AttachmentsBadge', () => {
       body: [EventAttachmentFixture()],
     });
 
-    render(<AttachmentsBadge group={group} />);
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <AttachmentsBadge group={group} />
+      </GroupDataContextProvider>
+    );
 
     expect(
       await screen.findByRole('button', {name: "View this issue's attachments"})
@@ -56,7 +66,11 @@ describe('AttachmentsBadge', () => {
       },
     });
 
-    render(<AttachmentsBadge group={group} />);
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <AttachmentsBadge group={group} />
+      </GroupDataContextProvider>
+    );
 
     const button = await screen.findByRole('button', {
       name: "View this issue's attachments",

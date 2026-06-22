@@ -12,6 +12,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupActivityType} from 'sentry/types/group';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {IssueDetailsSidebar} from 'sentry/views/issueDetails/sidebar/sidebar';
 
 describe('IssueDetailsSidebar', () => {
@@ -112,9 +113,14 @@ describe('IssueDetailsSidebar', () => {
   });
 
   it('renders all the sections as expected', async () => {
-    render(<IssueDetailsSidebar group={group} project={project} event={event} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <IssueDetailsSidebar group={group} project={project} event={event} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     expect(await screen.findByText('Seer Autofix')).toBeInTheDocument();
 

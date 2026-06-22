@@ -25,6 +25,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 
 interface Props {
   eventData: Event | undefined;
@@ -142,7 +143,11 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
                 </Fragment>
               }
             >
-              <FeedbackActivitySection feedbackItem={feedbackItem as unknown as Group} />
+              <GroupIdProvider groupId={feedbackItem.id}>
+                <FeedbackActivitySection
+                  feedbackItem={feedbackItem as unknown as Group}
+                />
+              </GroupIdProvider>
             </FeedbackItemSection>
           ) : null}
         </OverflowPanelItem>
