@@ -344,6 +344,7 @@ export function TicketRuleModal({
           return field;
         }
 
+        let defaultChoice = prevChoice;
         let shouldDefaultChoice = true;
 
         if (field.type === 'select' || field.type === 'choice') {
@@ -353,9 +354,14 @@ export function TicketRuleModal({
             shouldDefaultChoice = true;
           } else {
             const choices = field.choices || [];
-            shouldDefaultChoice = !!(Array.isArray(prevChoice)
-              ? prevChoice.every(value => choices.some(tuple => tuple[0] === value))
-              : choices.some(item => item[0] === prevChoice));
+            if (Array.isArray(prevChoice)) {
+              defaultChoice = prevChoice.filter(value =>
+                choices.some(tuple => tuple[0] === value)
+              );
+              shouldDefaultChoice = defaultChoice.length > 0;
+            } else {
+              shouldDefaultChoice = choices.some(item => item[0] === prevChoice);
+            }
           }
         }
 
@@ -366,11 +372,11 @@ export function TicketRuleModal({
           if (savedChoices && 'url' in field && field.url) {
             return {
               ...field,
-              default: prevChoice,
+              default: defaultChoice,
               choices: savedChoices as Array<[string, string]>,
             };
           }
-          return {...field, default: prevChoice};
+          return {...field, default: defaultChoice};
         }
 
         return field;
