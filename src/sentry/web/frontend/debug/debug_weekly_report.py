@@ -19,7 +19,12 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
-from sentry.tasks.summaries.weekly_reports import get_group_display, render_template_context
+from sentry.tasks.summaries.weekly_reports import (
+    get_group_display,
+    get_group_history_status,
+    get_group_status_badge,
+    render_template_context,
+)
 from sentry.types.group import GroupSubStatus
 from sentry.utils import loremipsum
 from sentry.utils.auth import AuthenticatedHttpRequest
@@ -210,26 +215,33 @@ class DebugWeeklyReportView(MailPreviewView):
                     (group, group_history, random.randint(100, 1000))
                 )
 
-            project_context.past_resolved_issues = [
-                (
-                    make_debug_group(
-                        group_id=30000 + (project.id * 100) + group_index,
-                        project=project,
-                        title=make_debug_issue_title(
-                            random,
-                            random.choice(["TypeError", "ValueError", "RuntimeError"]),
-                        ),
-                        message=make_debug_issue_message(random),
-                        group_type=ErrorGroupType,
-                        event_type="error",
-                        status=GroupStatus.RESOLVED,
-                        substatus=GroupSubStatus.NEW,
-                    ),
-                    random.randint(100, 5000),
-                    random.choice([True, False]),
-                )
-                for group_index in range(3)
+            resolved_history_statuses: list[int] = [
+                GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
+                GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+                GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
             ]
+            project_context.past_resolved_issues = []
+            for group_index in range(3):
+                group = make_debug_group(
+                    group_id=30000 + (project.id * 100) + group_index,
+                    project=project,
+                    title=make_debug_issue_title(
+                        random,
+                        random.choice(["TypeError", "ValueError", "RuntimeError"]),
+                    ),
+                    message=make_debug_issue_message(random),
+                    group_type=ErrorGroupType,
+                    event_type="error",
+                    status=GroupStatus.RESOLVED,
+                    substatus=GroupSubStatus.NEW,
+                )
+                resolved_gh: GroupHistory | None = GroupHistory(
+                    status=resolved_history_statuses[group_index % len(resolved_history_statuses)],
+                    organization_id=organization.id,
+                )
+                project_context.past_resolved_issues.append(
+                    (group, resolved_gh, random.randint(100, 5000), random.choice([True, False]))
+                )
 
             ctx.projects_context_map[project.id] = project_context
 
@@ -243,14 +255,22 @@ class DebugWeeklyReportView(MailPreviewView):
             context["show_past_issues"] = True
             past_issues: list[dict[str, Any]] = []
             for project_ctx in ctx.projects_context_map.values():
-                for group, count, has_link in project_ctx.past_resolved_issues:
+                for group, gh, count, has_link in project_ctx.past_resolved_issues:
                     display = get_group_display(group)
+                    resolved_badge = get_group_status_badge(Group(status=GroupStatus.RESOLVED))
+                    resolved_label, resolved_url = (
+                        get_group_history_status(group, gh) if gh else ("Resolved", None)
+                    )
                     past_issues.append(
                         {
                             "count": count,
                             "group": group,
                             "title": display["title"],
                             "message": display["message"],
+                            "status": resolved_label,
+                            "status_url": resolved_url,
+                            "status_color": resolved_badge[1],
+                            "status_text_color": resolved_badge[2],
                             "has_linked_pr_or_commit": has_link,
                         }
                     )

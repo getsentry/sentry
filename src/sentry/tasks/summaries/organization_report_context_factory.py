@@ -9,9 +9,9 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.summaries.utils import (
     OrganizationReportContext,
     ProjectContext,
+    enrich_past_resolved_issues,
     fetch_key_error_groups,
     fetch_key_performance_issue_groups,
-    fetch_past_resolved_issue_links,
     org_key_errors,
     organization_project_issue_substatus_summaries,
     project_event_counts_for_organization,
@@ -225,7 +225,7 @@ class OrganizationReportContextFactory:
                 if resolved:
                     project_ctx.past_resolved_issues = resolved
 
-            fetch_past_resolved_issue_links(ctx)
+            enrich_past_resolved_issues(ctx)
 
     def create_context(self) -> OrganizationReportContext:
         ctx = OrganizationReportContext(self.timestamp, self.duration, self.organization)

@@ -862,13 +862,28 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
     def past_issues():
         def all_past_issues():
             for project_ctx in user_projects:
-                for group, count, has_linked_pr_or_commit in project_ctx.past_resolved_issues:
+                for (
+                    group,
+                    group_history,
+                    count,
+                    has_linked_pr_or_commit,
+                ) in project_ctx.past_resolved_issues:
                     display = get_group_display(group)
+                    resolved_badge = get_group_status_badge(Group(status=GroupStatus.RESOLVED))
+                    status, status_url = (
+                        get_group_history_status(group, group_history)
+                        if group_history
+                        else ("Resolved", None)
+                    )
                     yield {
                         "count": count,
                         "group": group,
                         "title": display["title"],
                         "message": display["message"],
+                        "status": status,
+                        "status_url": status_url,
+                        "status_color": resolved_badge[1],
+                        "status_text_color": resolved_badge[2],
                         "has_linked_pr_or_commit": has_linked_pr_or_commit,
                         "_relevance": count
                         * (PAST_ISSUES_LINK_BOOST if has_linked_pr_or_commit else 1),

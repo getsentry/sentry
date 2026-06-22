@@ -503,7 +503,11 @@
         <div title="{{a.message}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: auto; max-width: 100%; max-height: 38px; line-height: 1.2; font-size: 14px; color: #80708F; margin-bottom: 2px;">{{a.message}}</div>
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
-      <span style="background-color: #E3F7E3; color: #008900; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center; line-height: 16px; white-space: nowrap; height: 20px;">Resolved</span>
+      {% if a.status_url %}
+      <a href="{{a.status_url}}" style="background-color: {{a.status_color}}; border-radius: 8px; color: {{a.status_text_color}}; display: inline-block; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; line-height: 1.2; text-align: center; text-decoration: none; width: 96px; white-space: normal; overflow-wrap: break-word;">{{a.status}}</a>
+      {% else %}
+      <span style="background-color: {{a.status_color}}; color: {{a.status_text_color}}; border-radius: 8px; display: inline-block; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; line-height: 1.2; text-align: center; width: 96px; white-space: normal; overflow-wrap: break-word;">{{a.status}}</span>
+      {% endif %}
     </div>
     {% endfor %}
   </div>

@@ -36,7 +36,7 @@ from sentry.tasks.summaries.utils import (
     _project_key_errors_snuba,
     _project_key_performance_issues_eap,
     _project_key_performance_issues_snuba,
-    fetch_past_resolved_issue_links,
+    enrich_past_resolved_issues,
     org_key_errors,
     organization_project_issue_substatus_summaries,
     project_key_errors,
@@ -1952,8 +1952,9 @@ class WeeklyReportsTest(
         )
         assert len(results) == 1
         assert results[0][0].id == group1.id
-        assert results[0][1] >= 1
-        assert results[0][2] is False
+        assert results[0][1] is None
+        assert results[0][2] >= 1
+        assert results[0][3] is False
 
     @mock.patch("sentry.tasks.summaries.utils._past_resolved_perf_counts")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
@@ -1980,7 +1981,7 @@ class WeeklyReportsTest(
             ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
         )
 
-        assert results == [(group, 1, False)]
+        assert results == [(group, None, 1, False)]
         mock_perf_counts.assert_called_once()
         assert mock_perf_counts.call_args.args[2] == [group.id]
 
@@ -2103,10 +2104,10 @@ class WeeklyReportsTest(
         )
         ctx.projects_context_map[self.project.id].past_resolved_issues = results
 
-        fetch_past_resolved_issue_links(ctx)
+        enrich_past_resolved_issues(ctx)
 
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
-        has_link_by_group = {group.id: has_link for group, _count, has_link in updated}
+        has_link_by_group = {group.id: has_link for group, _history, _count, has_link in updated}
         assert has_link_by_group[group1.id] is True
         assert has_link_by_group[group2.id] is False
 

@@ -90,8 +90,8 @@ class ProjectContext:
         self.key_errors_by_group: list[tuple[Group, int]] = []
         # Array of (Group, count)
         self.key_performance_issues = []
-        # Array of (Group, event_count, has_linked_pr_or_commit)
-        self.past_resolved_issues: list[tuple[Group, int, bool]] = []
+        # Array of (Group, GroupHistory | None, event_count, has_linked_pr_or_commit)
+        self.past_resolved_issues: list[tuple[Group, GroupHistory | None, int, bool]] = []
 
         self.key_replay_events = []
 
@@ -684,7 +684,7 @@ PAST_ISSUES_LINK_BOOST = 2
 
 def project_past_resolved_issues(
     ctx: OrganizationReportContext, project: Project, referrer: str
-) -> list[tuple[Group, int, bool]]:
+) -> list[tuple[Group, GroupHistory | None, int, bool]]:
     if not project.first_event:
         return []
 
@@ -744,15 +744,16 @@ def project_past_resolved_issues(
             perf_counts = _past_resolved_perf_counts(ctx, project, perf_group_ids, referrer)
             event_counts.update(perf_counts)
 
-        # has_link is initially False; updated by fetch_past_resolved_issue_links at org level
-        scored = []
+        # has_link and group_history are initially None/False;
+        # updated by enrich_past_resolved_issues at the org level
+        scored: list[tuple[Group, GroupHistory | None, int, bool]] = []
         for group_id, count in event_counts.items():
             group = group_id_to_group.get(group_id)
             if group is None:
                 continue
-            scored.append((group, count, False))
+            scored.append((group, None, count, False))
 
-        scored.sort(key=lambda x: x[1], reverse=True)
+        scored.sort(key=lambda x: x[2], reverse=True)
         return scored
 
 
@@ -835,7 +836,7 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
     all_group_ids: list[int] = []
     for project_ctx in ctx.projects_context_map.values():
         all_group_ids.extend(
-            group.id for group, _count, _has_link in project_ctx.past_resolved_issues
+            group.id for group, _history, _count, _has_link in project_ctx.past_resolved_issues
         )
 
     if not all_group_ids:
@@ -851,14 +852,40 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
 
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.past_resolved_issues = [
-            (group, count, group.id in groups_with_links)
-            for group, count, _has_link in project_ctx.past_resolved_issues
+            (group, history, count, group.id in groups_with_links)
+            for group, history, count, _has_link in project_ctx.past_resolved_issues
         ]
 
     # Re-sort with link boost applied, then truncate to top 3
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.past_resolved_issues.sort(
-            key=lambda x: x[1] * (PAST_ISSUES_LINK_BOOST if x[2] else 1),
+            key=lambda x: x[2] * (PAST_ISSUES_LINK_BOOST if x[3] else 1),
             reverse=True,
         )
         project_ctx.past_resolved_issues = project_ctx.past_resolved_issues[:3]
+
+
+def fetch_past_resolved_issue_group_history(ctx: OrganizationReportContext) -> None:
+    all_group_ids: list[int] = []
+    for project_ctx in ctx.projects_context_map.values():
+        all_group_ids.extend(
+            group.id for group, _history, _count, _has_link in project_ctx.past_resolved_issues
+        )
+
+    if not all_group_ids:
+        return
+
+    group_history = (
+        GroupHistory.objects.filter(group_id__in=all_group_ids, organization_id=ctx.organization.id)
+        .select_related("release")
+        .order_by("group_id", "-date_added")
+        .distinct("group_id")
+        .all()
+    )
+    group_id_to_group_history = {g.group_id: g for g in group_history}
+
+    for project_ctx in ctx.projects_context_map.values():
+        project_ctx.past_resolved_issues = [
+            (group, group_id_to_group_history.get(group.id), count, has_link)
+            for group, _history, count, has_link in project_ctx.past_resolved_issues
+        ]
