@@ -1,5 +1,4 @@
 import {DataConditionFixture} from 'sentry-fixture/automations';
-import {AutomationBuilderTestProvider} from 'sentry-fixture/automationTestUtils';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DataConditionHandlerFixture} from 'sentry-fixture/workflowEngine';
 
@@ -20,6 +19,7 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import {MatchType} from 'sentry/views/automations/components/actionFilters/constants';
 import {DataConditionNodeList} from 'sentry/views/automations/components/dataConditionNodeList';
+import {AutomationBuilderTestProvider} from 'sentry/views/automations/components/testUtils';
 
 const dataConditionHandlers: DataConditionHandler[] = [
   DataConditionHandlerFixture({type: DataConditionType.AGE_COMPARISON}),

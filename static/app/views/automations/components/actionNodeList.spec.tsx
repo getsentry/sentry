@@ -1,5 +1,4 @@
 import {ActionFixture} from 'sentry-fixture/automations';
-import {AutomationBuilderTestProvider} from 'sentry-fixture/automationTestUtils';
 import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ActionHandlerFixture} from 'sentry-fixture/workflowEngine';
@@ -20,6 +19,7 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
 import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
+import {AutomationBuilderTestProvider} from 'sentry/views/automations/components/testUtils';
 
 const slackActionHandler = ActionHandlerFixture();
 const actionHandlers: ActionHandler[] = [
@@ -228,7 +228,7 @@ describe('ActionNodeList', () => {
 
     expect(
       await screen.findByText(
-        'This action may not always fire with the current configuration.'
+        'This action is incompatible with the current configuration.'
       )
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));

@@ -48,7 +48,7 @@ export function AutomationBuilderRow({
             </ul>
           }
         >
-          {t('This action may not always fire with the current configuration.')}
+          {t('This action is incompatible with the current configuration.')}
         </Alert>
       )}
     </Flex>
