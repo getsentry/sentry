@@ -8,8 +8,8 @@ import path from 'node:path';
 
 import * as constants from 'sentry/constants';
 import {getOverride} from 'sentry/overrideRegistry';
-import type {RouteMap} from 'sentry/router/routeMap';
-import {collectRouteMap, ROUTE_OVERRIDE_HOOKS} from 'sentry/router/routeMap';
+import type {RouteMap} from 'sentry/router/routeMapTestUtils';
+import {collectRouteMap, ROUTE_OVERRIDE_HOOKS} from 'sentry/router/routeMapTestUtils';
 import {buildRoutes} from 'sentry/router/routes';
 import type {OverrideName} from 'sentry/types/overrides';
 
@@ -90,7 +90,7 @@ function writeRouteMap(map: RouteMap): string | null {
     console.warn(
       '[generateRouteMap] getsentry route overrides were NOT registered. The ' +
         'emitted map is the open-source subset only. Use the getsentry-context ' +
-        'generator (generateRouteMapGsApp.spec.tsx) for the full SaaS route map.'
+        'generator (static/gsApp/generateRouteMap.spec.tsx) for the full SaaS route map.'
     );
   }
   return outPath;

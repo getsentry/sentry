@@ -7,7 +7,7 @@ import {
   MODULE_PATH_KEY,
   toCustomerDomainForm,
   walkRouteTree,
-} from 'sentry/router/routeMap';
+} from 'sentry/router/routeMapTestUtils';
 
 describe('extractModulePath', () => {
   it('recovers the import target from a require()-compiled thunk', () => {

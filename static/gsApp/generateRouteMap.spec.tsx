@@ -14,8 +14,8 @@ import path from 'node:path';
 
 import * as constants from 'sentry/constants';
 import {getOverride} from 'sentry/overrideRegistry';
-import type {RouteMap} from 'sentry/router/routeMap';
-import {collectRouteMap, ROUTE_OVERRIDE_HOOKS} from 'sentry/router/routeMap';
+import type {RouteMap} from 'sentry/router/routeMapTestUtils';
+import {collectRouteMap, ROUTE_OVERRIDE_HOOKS} from 'sentry/router/routeMapTestUtils';
 import {buildRoutes} from 'sentry/router/routes';
 import type {OverrideName} from 'sentry/types/overrides';
 
