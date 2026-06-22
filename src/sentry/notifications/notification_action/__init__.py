@@ -13,6 +13,7 @@ __all__ = [
     "PagerDutyIssueAlertHandler",
     "SlackIssueAlertHandler",
     "SlackStagingIssueAlertHandler",
+    "PluginIssueAlertHandler",
     "WebhookIssueAlertHandler",
     "DiscordMetricAlertHandler",
     "MSTeamsMetricAlertHandler",
@@ -22,6 +23,7 @@ __all__ = [
     "SlackMetricAlertHandler",
     "SlackStagingMetricAlertHandler",
     "EmailMetricAlertHandler",
+    "PluginActionHandler",
     "WebhookActionHandler",
     "SentryAppActionHandler",
     "SendTestNotification",
@@ -45,6 +47,7 @@ __all__ = [
 ]
 
 from .action_handler_registry import (
+    PluginActionHandler,
     SentryAppActionHandler,
     WebhookActionHandler,
 )
@@ -82,6 +85,7 @@ from .issue_alert_registry import (
     MSTeamsIssueAlertHandler,
     OpsgenieIssueAlertHandler,
     PagerDutyIssueAlertHandler,
+    PluginIssueAlertHandler,
     SlackIssueAlertHandler,
     SlackStagingIssueAlertHandler,
     WebhookIssueAlertHandler,

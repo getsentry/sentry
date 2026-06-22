@@ -16,6 +16,7 @@ from sentry.notifications.notification_action.issue_alert_registry import (
     MSTeamsIssueAlertHandler,
     OpsgenieIssueAlertHandler,
     PagerDutyIssueAlertHandler,
+    PluginIssueAlertHandler,
     SentryAppIssueAlertHandler,
     SlackIssueAlertHandler,
     WebhookIssueAlertHandler,
@@ -627,6 +628,23 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
             )
             blob = self.handler.build_rule_action_blob(action, self.organization.id)
             assert blob == healed
+
+
+class TestPluginIssueAlertHandler(BaseWorkflowTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.handler = PluginIssueAlertHandler()
+        self.detector = self.create_detector(project=self.project)
+        self.action = self.create_action(
+            type=Action.Type.PLUGIN,
+        )
+
+    def test_build_rule_action_blob(self) -> None:
+        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
+
+        assert blob == {
+            "id": ACTION_FIELD_MAPPINGS[Action.Type.PLUGIN]["id"],
+        }
 
 
 class TestWebhookIssueAlertHandler(BaseWorkflowTest):

@@ -289,6 +289,7 @@ PROTECTED_TAG_KEYS = frozenset(["environment", "release", "sentry:release"])
 # the system, access them via the `rules` registry in sentry/rules/__init__.py
 _SENTRY_RULES = (
     "sentry.mail.actions.NotifyEmailAction",
+    "sentry.rules.actions.notify_event.NotifyEventAction",
     "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
     "sentry.rules.actions.sentry_apps.notify_event.NotifyEventSentryAppAction",
     "sentry.rules.conditions.every_event.EveryEventCondition",
