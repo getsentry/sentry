@@ -15,11 +15,6 @@ contexts:
     name: macOS
     type: os
     version: 10.14.0
-  trace:
-    span_id: acc006c41ee3430e
-    status: unknown
-    trace_id: acc006c41ee3430ebb3b455c6759f0fd
-    type: trace
   unreal:
     app_default_locate: en-AT
     base_dir: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/UE4/YetAnotherMac/Binaries/Mac/

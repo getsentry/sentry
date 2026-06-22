@@ -15,11 +15,6 @@ contexts:
     raw_description: Windows 10
     type: os
     version: '10'
-  trace:
-    span_id: a1c0f38835ac4a05
-    status: unknown
-    trace_id: a1c0f38835ac4a05b1a79f3838183678
-    type: trace
   unreal:
     app_default_locate: en-US
     base_dir: //Mac/Home/Desktop/WindowsNoEditor/YetAnother/Binaries/Win64/

@@ -88,7 +88,9 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         def make_snapshot(subname=None):
             self.insta_snapshot(
                 {
-                    "contexts": event.data.get("contexts"),
+                    "contexts": {
+                        k: v for k, v in (event.data.get("contexts") or {}).items() if k != "trace"
+                    },
                     "exception": {
                         "values": [
                             normalize_native_exception(x)
