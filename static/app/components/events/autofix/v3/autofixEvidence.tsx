@@ -3,10 +3,9 @@ import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
 
+import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {IconCompass} from 'sentry/icons/iconCompass';
 import {IconFile} from 'sentry/icons/iconFile';
-import {IconGithub} from 'sentry/icons/iconGithub';
-import {IconGitlab} from 'sentry/icons/iconGitlab';
 import {IconIssues} from 'sentry/icons/iconIssues';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
@@ -310,13 +309,6 @@ function getCodeSearchEvidenceProps({
   return null;
 }
 
-function getScmIcon(provider: string | undefined): ReactNode {
-  if (provider === 'integrations:gitlab') {
-    return <IconGitlab />;
-  }
-  return <IconGithub />;
-}
-
 function getGitSearchEvidenceProps({
   toolLink,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
@@ -334,7 +326,7 @@ function getGitSearchEvidenceProps({
   if (typeof commit_url === 'string' && typeof sha === 'string') {
     return {
       href: commit_url,
-      icon: getScmIcon(provider),
+      icon: <RepoProviderIcon provider={provider ?? 'integrations:github'} />,
       label: t('Commit: %s', truncateText(getShortCommitHash(sha))),
       tooltip: sha,
     };
@@ -350,7 +342,7 @@ function getGitSearchEvidenceProps({
       typeof file_path === 'string' ? extractFileName(file_path) : undefined;
     return {
       href: commits_url,
-      icon: getScmIcon(provider),
+      icon: <RepoProviderIcon provider={provider ?? 'integrations:github'} />,
       label: t('Commits: %s', fileName ? truncateText(fileName) : repo_name),
       tooltip: (
         <Fragment>
