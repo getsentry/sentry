@@ -209,6 +209,29 @@ class SafeRolloutComparator:
         )
 
     @classmethod
+    def _is_valid_sample_rate(cls, value: Any) -> bool:
+        """
+        Checks to make sure the sample rate is valid (a number between 0 and 1) and logs a warning
+        if it's not.
+        """
+        rate_is_numeric = (
+            isinstance(value, (int, float))
+            # Bools are technically special cases of int
+            and not isinstance(value, bool)
+        )
+        if not rate_is_numeric or not (0 <= value <= 1):
+            logger.warning(
+                "saferollout.invalid_callsite_sample_rate",
+                extra={
+                    "rollout_name": cls.ROLLOUT_NAME,
+                    "value": cls._default_serialize_for_log(value),
+                },
+            )
+            return False
+
+        return True
+
+    @classmethod
     def should_check_experiment(cls, callsite: str) -> bool:
         """
         This function controls whether you evaluate your experimental branch at all. Useful for
