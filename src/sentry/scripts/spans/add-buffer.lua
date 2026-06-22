@@ -206,8 +206,10 @@ for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
             redis.call("del", child_ibc_key)
         end
 
-        local child_members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, span_id)
-        if redis.call("exists", child_members_key) == 1 then
+        -- Presence of child_ic implies that this span is a root span. Only root spans have these associations.
+        -- We can skip all the child spans (which will be no-ops) and save some Redis calls.
+        if child_ic then
+            local child_members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, span_id)
             merge_set(child_members_key, members_key)
             redis.call("del", child_members_key)
         end
