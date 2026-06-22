@@ -13,12 +13,15 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {
+  GroupDataContextProvider,
+  useGroupData,
+} from 'sentry/views/issueDetails/groupDataContext';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -56,22 +59,19 @@ export function IssuePreviewDrawer({groupId}: IssuePreviewDrawerProps) {
         {isPending && <LoadingIndicator />}
         {isError && <LoadingError />}
         {group && project && (
-          <ErrorBoundary mini>
-            <IssuePreviewContent group={group} project={project} />
-          </ErrorBoundary>
+          <GroupDataContextProvider group={group} project={project}>
+            <ErrorBoundary mini>
+              <IssuePreviewContent />
+            </ErrorBoundary>
+          </GroupDataContextProvider>
         )}
       </DrawerBody>
     </Fragment>
   );
 }
 
-function IssuePreviewContent({
-  group,
-  project,
-}: {
-  group: NonNullable<ReturnType<typeof useGroup>['data']>;
-  project: Project;
-}) {
+function IssuePreviewContent() {
+  const {group, project} = useGroupData();
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
 
