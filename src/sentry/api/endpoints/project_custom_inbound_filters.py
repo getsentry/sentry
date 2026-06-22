@@ -20,6 +20,9 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.project import Project
 
+MAX_CONDITIONS_PER_FILTER = 10
+MAX_FILTERS_PER_PROJECT = 50
+
 
 class CustomInboundFilterConditionType(StrEnum):
     ERROR_MESSAGE = "error_message"
@@ -62,17 +65,33 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer):
 
 
 class CustomInboundFilterSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
     name = serializers.CharField(
         max_length=256, allow_blank=True, allow_null=True, required=False, trim_whitespace=True
     )
     active = serializers.BooleanField(required=False)
-    conditions = CustomInboundFilterConditionSerializer(many=True, allow_empty=False)
+    conditions = CustomInboundFilterConditionSerializer(
+        many=True,
+        allow_empty=False,
+        max_length=MAX_CONDITIONS_PER_FILTER,
+        help_text=(
+            "Conditions are combined with AND: an event must match every condition to be "
+            "filtered out. There is no OR between conditions, so e.g. two release conditions "
+            "can express a range (>2 AND <4). To broaden matching, widen a condition's values "
+            "or add separate filters."
+        ),
+    )
+    dateCreated = serializers.SerializerMethodField()
+    dateUpdated = serializers.SerializerMethodField()
+
+    def get_dateCreated(self, custom_filter: CustomInboundFilter) -> str:
+        return custom_filter.date_added.isoformat()
+
+    def get_dateUpdated(self, custom_filter: CustomInboundFilter) -> str:
+        return custom_filter.date_updated.isoformat()
 
     def validate_conditions(self, conditions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         condition_types = [condition["type"] for condition in conditions]
-
-        if len(condition_types) != len(set(condition_types)):
-            raise serializers.ValidationError("Condition types must be unique.")
 
         primary_condition_types = PRIMARY_CONDITION_TYPES.intersection(condition_types)
         if len(primary_condition_types) > 1:
@@ -98,26 +117,6 @@ class CustomInboundFilterSerializer(serializers.Serializer):
             )
 
         return conditions
-
-
-def serialize_project_custom_inbound_filter(
-    custom_filter: CustomInboundFilter,
-) -> CustomInboundFilterResponse:
-    return {
-        "id": str(custom_filter.id),
-        "name": custom_filter.name,
-        "active": custom_filter.active,
-        "conditions": custom_filter.conditions,
-        "dateCreated": custom_filter.date_added.isoformat(),
-        "dateUpdated": custom_filter.date_updated.isoformat(),
-    }
-
-
-def get_custom_inbound_filter(project: Project, filter_id: str) -> CustomInboundFilter:
-    try:
-        return CustomInboundFilter.objects.get(id=filter_id, project_id=project.id)
-    except (CustomInboundFilter.DoesNotExist, ValueError):
-        raise ResourceDoesNotExist
 
 
 def feature_access_denied(request: Request, project: Project) -> Response | None:
@@ -156,11 +155,11 @@ def get_audit_log_data(
 @cell_silo_endpoint
 @extend_schema(tags=["Projects"])
 class CustomInboundFiltersEndpoint(ProjectEndpoint):
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (ProjectSettingPermission,)
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
 
     @extend_schema(
@@ -177,6 +176,9 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
         },
     )
     def get(self, request: Request, project: Project) -> Response:
+        """
+        List the custom inbound filters configured for a project.
+        """
         if denied := feature_access_denied(request, project):
             return denied
 
@@ -186,9 +188,7 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
             queryset=filters,
             order_by="id",
             paginator_cls=OffsetPaginator,
-            on_results=lambda results: [
-                serialize_project_custom_inbound_filter(custom_filter) for custom_filter in results
-            ],
+            on_results=lambda results: CustomInboundFilterSerializer(results, many=True).data,
         )
 
     @extend_schema(
@@ -206,8 +206,24 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
         },
     )
     def post(self, request: Request, project: Project) -> Response:
+        """
+        Create a custom inbound filter for a project.
+        """
         if denied := feature_access_denied(request, project):
             return denied
+
+        if CustomInboundFilter.objects.filter(project_id=project.id).count() >= (
+            MAX_FILTERS_PER_PROJECT
+        ):
+            return Response(
+                {
+                    "detail": (
+                        f"A project can have at most {MAX_FILTERS_PER_PROJECT} custom inbound "
+                        "filters."
+                    )
+                },
+                status=400,
+            )
 
         serializer = CustomInboundFilterSerializer(
             data=request.data,
@@ -231,19 +247,25 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
             data=get_audit_log_data(project, custom_filter, "add"),
         )
 
-        return Response(serialize_project_custom_inbound_filter(custom_filter), status=201)
+        return Response(CustomInboundFilterSerializer(custom_filter).data, status=201)
 
 
 @cell_silo_endpoint
 @extend_schema(tags=["Projects"])
 class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (ProjectSettingPermission,)
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
-        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
+
+    def get_custom_inbound_filter(self, project: Project, filter_id: str) -> CustomInboundFilter:
+        try:
+            return CustomInboundFilter.objects.get(id=filter_id, project_id=project.id)
+        except (CustomInboundFilter.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
 
     @extend_schema(
         operation_id="Retrieve a Custom Inbound Filter",
@@ -259,11 +281,14 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
         },
     )
     def get(self, request: Request, project: Project, filter_id: str) -> Response:
+        """
+        Retrieve a single custom inbound filter.
+        """
         if denied := feature_access_denied(request, project):
             return denied
 
-        custom_filter = get_custom_inbound_filter(project, filter_id)
-        return Response(serialize_project_custom_inbound_filter(custom_filter))
+        custom_filter = self.get_custom_inbound_filter(project, filter_id)
+        return Response(CustomInboundFilterSerializer(custom_filter).data)
 
     @extend_schema(
         operation_id="Update a Custom Inbound Filter",
@@ -280,10 +305,13 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
         },
     )
     def put(self, request: Request, project: Project, filter_id: str) -> Response:
+        """
+        Update a custom inbound filter's name, active state, or conditions.
+        """
         if denied := feature_access_denied(request, project):
             return denied
 
-        custom_filter = get_custom_inbound_filter(project, filter_id)
+        custom_filter = self.get_custom_inbound_filter(project, filter_id)
         serializer = CustomInboundFilterSerializer(
             custom_filter,
             data=request.data,
@@ -314,7 +342,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
                 data=get_audit_log_data(project, custom_filter, "edit", changes),
             )
 
-        return Response(serialize_project_custom_inbound_filter(custom_filter))
+        return Response(CustomInboundFilterSerializer(custom_filter).data)
 
     @extend_schema(
         operation_id="Delete a Custom Inbound Filter",
@@ -330,10 +358,13 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
         },
     )
     def delete(self, request: Request, project: Project, filter_id: str) -> Response:
+        """
+        Delete a custom inbound filter.
+        """
         if denied := feature_access_denied(request, project):
             return denied
 
-        custom_filter = get_custom_inbound_filter(project, filter_id)
+        custom_filter = self.get_custom_inbound_filter(project, filter_id)
         audit_log_data = get_audit_log_data(project, custom_filter, "remove")
         target_object = custom_filter.id
         custom_filter.delete()

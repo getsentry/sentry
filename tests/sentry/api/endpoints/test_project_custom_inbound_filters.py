@@ -1,4 +1,7 @@
+from unittest.mock import patch
+
 from sentry import audit_log
+from sentry.api.endpoints.project_custom_inbound_filters import MAX_CONDITIONS_PER_FILTER
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.silo.base import SiloMode
@@ -134,22 +137,24 @@ class CustomInboundFiltersTest(APITestCase):
             == "Only one of error_message, log_message, or metric_name can be used in a filter."
         )
 
-    def test_rejects_duplicate_condition_types(self) -> None:
+    def test_allows_duplicate_condition_types(self) -> None:
         conditions = [
-            {"type": "release", "value": ["1.*"]},
-            {"type": "release", "value": ["2.*"]},
+            {"type": "release", "value": [">2"]},
+            {"type": "release", "value": ["<4"]},
         ]
 
         with self.feature(self.features):
-            response = self.get_error_response(
+            response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
                 method="post",
-                name="Duplicate releases",
+                name="Release range",
                 conditions=conditions,
+                status_code=201,
             )
 
-        assert str(response.data["conditions"][0]) == "Condition types must be unique."
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert custom_filter.conditions == conditions
 
     def test_rejects_empty_conditions_and_values(self) -> None:
         with self.feature(self.features):
@@ -176,35 +181,54 @@ class CustomInboundFiltersTest(APITestCase):
 
         assert str(response.data["conditions"][0]["value"][0]) == "This list may not be empty."
 
-    def test_rejects_log_message_without_logs_feature(self) -> None:
+    def test_rejects_too_many_conditions(self) -> None:
+        conditions = [
+            {"type": "release", "value": [str(i)]} for i in range(MAX_CONDITIONS_PER_FILTER + 1)
+        ]
+
         with self.feature(self.features):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
                 method="post",
-                name="Logs",
-                conditions=[{"type": "log_message", "value": ["Rate limit*"]}],
+                conditions=conditions,
             )
 
-        assert (
-            str(response.data["conditions"][0])
-            == "Log message filters are not enabled for this organization."
-        )
+        assert "no more than" in str(response.data["conditions"]["non_field_errors"][0])
 
-    def test_rejects_metric_name_without_trace_metrics_feature(self) -> None:
+    @patch(
+        "sentry.api.endpoints.project_custom_inbound_filters.MAX_FILTERS_PER_PROJECT",
+        2,
+    )
+    def test_rejects_create_past_project_filter_cap(self) -> None:
+        for _ in range(2):
+            self.create_project_custom_inbound_filter(project=self.project)
+
         with self.feature(self.features):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
                 method="post",
-                name="Metrics",
-                conditions=[{"type": "metric_name", "value": ["counter.*"]}],
+                conditions=[{"type": "release", "value": ["1.*"]}],
             )
 
-        assert (
-            str(response.data["conditions"][0])
-            == "Metric name filters are not enabled for this organization."
-        )
+        assert "at most 2" in response.data["detail"]
+        assert CustomInboundFilter.objects.filter(project_id=self.project.id).count() == 2
+
+    def test_rejects_conditions_without_required_ingestion_feature(self) -> None:
+        cases = [
+            ("log_message", ["Rate limit*"], "Log message filters are not enabled"),
+            ("metric_name", ["counter.*"], "Metric name filters are not enabled"),
+        ]
+        for condition_type, value, expected in cases:
+            with self.feature(self.features):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    conditions=[{"type": condition_type, "value": value}],
+                )
+            assert expected in str(response.data["conditions"][0])
 
 
 class CustomInboundFilterDetailsTest(APITestCase):
