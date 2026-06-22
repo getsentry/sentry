@@ -214,6 +214,11 @@ export function MetricQueryRows({
     }
   }
 
+  // We currently only support labels up to Z and do not have defined behaviour beyond
+  // that, so restrict the UI if they exceed the max number of charts or the Z label is used.
+  const hasMaxMetrics =
+    metricQueries.length >= MAX_METRICS_ALLOWED || referencedLabels.has('Z');
+
   return (
     <Stack gap="lg" flex="1">
       {functionQueries.map(metricQuery => {
@@ -261,7 +266,7 @@ export function MetricQueryRows({
         <Button
           icon={<IconAdd />}
           onClick={addAggregate}
-          disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+          disabled={hasMaxMetrics}
           aria-label={t('Add Metric')}
           variant="link"
         >
