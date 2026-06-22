@@ -29,4 +29,5 @@ def _wrap_test(func: Callable[..., Any], enabled: bool) -> Callable[..., Any]:
         with Feature({_FEATURE_FLAG: enabled}):
             func(self, *args, **kwargs)
 
+    wrapper._snapshot_name = func.__name__  # type: ignore[attr-defined]
     return wrapper
