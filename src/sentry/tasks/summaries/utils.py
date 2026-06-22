@@ -940,7 +940,7 @@ def batch_resolve_group_urls(
         group = group_id_to_group.get(gid)
         if group is None:
             continue
-        url = _construct_group_url(
+        ctx.resolved_issue_urls[gid] = _construct_group_url(
             gh,
             group,
             ctx.organization.slug,
@@ -950,8 +950,6 @@ def batch_resolve_group_urls(
             commits_by_id,
             repos_by_id,
         )
-        if url:
-            ctx.resolved_issue_urls[gid] = url
 
 
 def enrich_past_resolved_issues(ctx: OrganizationReportContext) -> None:
