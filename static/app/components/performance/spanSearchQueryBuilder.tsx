@@ -141,33 +141,21 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     invalidFilterKeys,
   });
 
-  return useMemo(() => {
-    const spanSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = {
-      ...props,
-      itemType: TraceItemDataset.SPANS,
-      booleanAttributes,
-      booleanSecondaryAliases,
-      numberAttributes,
-      stringAttributes,
-      numberSecondaryAliases,
-      stringSecondaryAliases,
-      caseInsensitive: props.caseInsensitive ? true : undefined,
-      invalidFilterKeys,
-    };
-
-    return {
-      spanSearchQueryBuilderProps,
-      spanSearchQueryBuilderProviderProps,
-    };
-  }, [
+  const spanSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = {
+    ...props,
+    itemType: TraceItemDataset.SPANS,
     booleanAttributes,
     booleanSecondaryAliases,
-    invalidFilterKeys,
     numberAttributes,
-    numberSecondaryAliases,
-    props,
-    spanSearchQueryBuilderProviderProps,
     stringAttributes,
+    numberSecondaryAliases,
     stringSecondaryAliases,
-  ]);
+    caseInsensitive: props.caseInsensitive ? true : undefined,
+    invalidFilterKeys,
+  };
+
+  return {
+    spanSearchQueryBuilderProps,
+    spanSearchQueryBuilderProviderProps,
+  };
 }
