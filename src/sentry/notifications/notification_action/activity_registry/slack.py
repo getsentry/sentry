@@ -2,6 +2,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
+from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.staging.spec import SlackStagingMessagingSpec
 from sentry.integrations.slack.utils.channel import is_input_a_user_id
@@ -30,6 +31,7 @@ class SlackActivityHandler(ActivityHandler):
 
     @classmethod
     def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:
+        messaging_spec: MessagingIntegrationSpec
         if invocation.action.type == Action.Type.SLACK_STAGING:
             messaging_spec = SlackStagingMessagingSpec()
             provider_key = NotificationProviderKey.SLACK_STAGING
