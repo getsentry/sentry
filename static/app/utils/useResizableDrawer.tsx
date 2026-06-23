@@ -22,6 +22,16 @@ export interface UseResizableDrawerOptions {
     userEvent: boolean
   ) => void;
   /**
+   * The maximum size the container may be dragged to. Optional — defaults
+   * to no upper bound. Only enforced during drag, mirroring `min`.
+   */
+  max?: number;
+  /**
+   * Fires once when a drag completes (on mouseUp). Receives the size at
+   * the start and end of the drag.
+   */
+  onResizeEnd?: (sizes: {endSize: number; startSize: number}) => void;
+  /**
    * The local storage key used to persist the size of the container
    */
   sizeStorageKey?: string;
@@ -69,18 +79,19 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     return storedSize || options.initialSize;
   });
   const [isHeld, setIsHeld] = useState(false);
+  const optionsRef = useRef(options);
+  useLayoutEffect(() => {
+    optionsRef.current = options;
+  });
 
-  const updateSize = useCallback(
-    (newSize: number, userEvent = false) => {
-      sizeRef.current = newSize;
-      setSize(newSize);
-      options.onResize(newSize, undefined, userEvent);
-      if (options.sizeStorageKey) {
-        localStorage.setItem(options.sizeStorageKey, newSize.toString());
-      }
-    },
-    [options]
-  );
+  const updateSize = useCallback((newSize: number, userEvent = false) => {
+    sizeRef.current = newSize;
+    setSize(newSize);
+    optionsRef.current.onResize(newSize, undefined, userEvent);
+    if (optionsRef.current.sizeStorageKey) {
+      localStorage.setItem(optionsRef.current.sizeStorageKey, newSize.toString());
+    }
+  }, []);
 
   // We intentionally fire this once at mount to ensure the dimensions are set and
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
@@ -127,16 +138,21 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
         currentMouseVectorRaf.current = newPositionVector;
 
-        // Round to 1px precision
+        // Round to 1px precision. Clamp to [min, max].
         const newSize = Math.round(
-          Math.max(options.min, sizeRef.current + positionDelta * (isInverted ? -1 : 1))
+          Math.min(
+            options.max ?? Number.POSITIVE_INFINITY,
+            Math.max(options.min, sizeRef.current + positionDelta * (isInverted ? -1 : 1))
+          )
         );
 
         updateSize(newSize, true);
       });
     },
-    [options.direction, options.min, updateSize]
+    [options.direction, options.min, options.max, updateSize]
   );
+
+  const dragStartSizeRef = useRef<number | null>(null);
 
   const onMouseUp = useCallback(() => {
     document.body.style.pointerEvents = '';
@@ -145,11 +161,19 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
     setIsHeld(false);
-  }, [onMouseMove]);
+    if (dragStartSizeRef.current !== null) {
+      options.onResizeEnd?.({
+        startSize: dragStartSizeRef.current,
+        endSize: sizeRef.current,
+      });
+      dragStartSizeRef.current = null;
+    }
+  }, [onMouseMove, options]);
 
   const onMouseDown = useCallback(
     (evt: React.MouseEvent<HTMLElement>) => {
       setIsHeld(true);
+      dragStartSizeRef.current = sizeRef.current;
       currentMouseVectorRaf.current = [evt.clientX, evt.clientY];
 
       document.addEventListener('mousemove', onMouseMove, {passive: true});

@@ -13,34 +13,37 @@ import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils'
 
 interface MetricHeatmapApiOptions {
   enabled: boolean;
-  interval: string;
   organization: Organization;
   query: string;
   selection: PageFilters;
   traceMetric: TraceMetric;
-  yBuckets: number;
+  interval?: string | null;
+  yBuckets?: number | null;
 }
 
 export function metricHeatmapApiOptions({
-  traceMetric,
-  enabled,
   organization,
   selection,
+  traceMetric,
   query,
+  enabled,
   interval,
   yBuckets,
 }: MetricHeatmapApiOptions) {
   const traceMetricFilter = createTraceMetricEventsFilter([traceMetric]);
   const combinedQuery = query ? `${traceMetricFilter} (${query})` : traceMetricFilter;
 
-  const intervalInMilliseconds = intervalToMilliseconds(interval);
+  const intervalInMilliseconds = defined(interval) ? intervalToMilliseconds(interval) : 0;
+  const valid =
+    defined(interval) && defined(yBuckets) && yBuckets > 0 && intervalInMilliseconds > 0;
+
   const {start, end, statsPeriod} = normalizeDateTimeParams(selection.datetime);
   const usesRelativeDateRange = !defined(start) && !defined(end) && defined(statsPeriod);
 
   return apiOptions.as<HeatMapSeries>()(
     '/organizations/$organizationIdOrSlug/events-heatmap/',
     {
-      path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+      path: !enabled || !valid ? skipToken : {organizationIdOrSlug: organization.slug},
       query: {
         dataset: DiscoverDatasets.TRACEMETRICS,
         xAxis: 'time',
