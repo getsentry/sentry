@@ -78,6 +78,7 @@ def launch_coding_agents(
     provider: str | None = None,
     user_id: int | None = None,
     issue_short_id: str | None = None,
+    issue_url: str | None = None,
 ) -> dict[str, list]:
     """
     Launch coding agents for an agent run.
@@ -93,6 +94,7 @@ def launch_coding_agents(
         provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
         user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
         issue_short_id: Optional Sentry issue short ID for coding agent session naming
+        issue_url: Optional full URL to the Sentry issue for linking in PRs
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -118,6 +120,7 @@ def launch_coding_agents(
             branch_name=sanitize_branch_name(branch_name_base),
             auto_create_pr=auto_create_pr,
             issue_short_id=issue_short_id,
+            issue_url=issue_url,
         )
 
         try:
