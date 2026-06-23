@@ -2,7 +2,6 @@ import 'echarts/lib/chart/heatmap';
 
 import {Fragment, useCallback, useEffect, useRef, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
-import type {XAxisComponentOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -297,7 +296,24 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
           formatter: formatTooltip,
         }}
         series={series}
-        xAxis={xAxisOptions(utc)}
+        xAxis={{
+          type: 'category',
+          animation: false,
+          axisLabel: {
+            formatter: value => {
+              // NOTE: ECharts requires a `"category"` X-axis for heat maps, but we _know_ that we only support time as the X-axis. We need to parse the value here.
+              return formatXAxisTimestamp(parseFloat(value), {
+                utc: utc ?? undefined,
+              });
+            },
+          },
+          axisPointer: {
+            show: false,
+          },
+          splitArea: {
+            show: false,
+          },
+        }}
         yAxis={{
           type: 'category',
           animation: false,
@@ -385,27 +401,6 @@ export const visualMapOptions = (Zmax: number) => {
       },
     },
   ] as VisualMapComponentOption[];
-};
-
-export const xAxisOptions = (utc: boolean | null) => {
-  return {
-    type: 'category',
-    animation: false,
-    axisLabel: {
-      formatter: value => {
-        // NOTE: ECharts requires a `"category"` X-axis for heat maps, but we _know_ that we only support time as the X-axis. We need to parse the value here.
-        return formatXAxisTimestamp(parseFloat(value), {
-          utc: utc ?? undefined,
-        });
-      },
-    },
-    axisPointer: {
-      show: false,
-    },
-    splitArea: {
-      show: false,
-    },
-  } as XAxisComponentOption;
 };
 
 /**
