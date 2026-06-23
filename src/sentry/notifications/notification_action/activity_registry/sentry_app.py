@@ -2,7 +2,6 @@ from enum import StrEnum
 from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -38,8 +37,6 @@ class ActivityAlertType(StrEnum):
     SEER_CODING_STARTED = "seer_coding_started"
     SEER_CODING_COMPLETED = "seer_coding_completed"
     SEER_PR_CREATED = "seer_pr_created"
-    SEER_ITERATION_STARTED = "seer_iteration_started"
-    SEER_ITERATION_COMPLETED = "seer_iteration_completed"
 
 
 ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE: dict[int, ActivityAlertType] = {
@@ -50,14 +47,7 @@ ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE: dict[int, ActivityAlertType] = {
     ActivityType.SEER_CODING_STARTED.value: ActivityAlertType.SEER_CODING_STARTED,
     ActivityType.SEER_CODING_COMPLETED.value: ActivityAlertType.SEER_CODING_COMPLETED,
     ActivityType.SEER_PR_CREATED.value: ActivityAlertType.SEER_PR_CREATED,
-    ActivityType.SEER_ITERATION_STARTED.value: ActivityAlertType.SEER_ITERATION_STARTED,
-    ActivityType.SEER_ITERATION_COMPLETED.value: ActivityAlertType.SEER_ITERATION_COMPLETED,
 }
-
-
-class IssueData(BaseGroupSerializerResponse):
-    url: str
-    webUrl: str
 
 
 class ActivityData(TypedDict):
@@ -67,21 +57,21 @@ class ActivityData(TypedDict):
 
 class WorkflowData(TypedDict):
     id: int
-    name: str
+    title: str
+    sentry_app_id: int
     url: str
-    # If Alert Rule UI Components are specified on the Sentry App, they're included here
-    settings: NotRequired[dict[str, Any]]
+    settings: NotRequired[list[dict[str, Any]]]
 
 
 class ActivityAlertWebhookPayload(TypedDict):
-    issue: IssueData
+    issue: dict[str, Any]
     activity: ActivityData
     alert: WorkflowData
 
 
 def _get_sentry_app_installation(
     action: Action, organization: Organization
-) -> RpcSentryAppInstallation | None:
+) -> RpcSentryAppInstallation:
     target_identifier = require_config(action, "target_identifier")
 
     if action.type == Action.Type.SENTRY_APP:
@@ -107,13 +97,12 @@ def _get_sentry_app_installation(
     return installations[0]
 
 
-def _build_issue_data(group: Group) -> IssueData:
-    serialized_group = serialize(group)  # BaseGroupSerializerResponse
-    return IssueData(
-        url=group.get_absolute_api_url(),
-        webUrl=group.get_absolute_url(),
-        **serialized_group,
-    )
+def _build_issue_data(group: Group) -> dict[str, Any]:
+    return {
+        "url": group.get_absolute_api_url(),
+        "webUrl": group.get_absolute_url(),
+        **serialize(group),
+    }
 
 
 def _build_activity_data(activity: Activity) -> ActivityData:
