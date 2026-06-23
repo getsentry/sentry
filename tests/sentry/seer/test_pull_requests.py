@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 from sentry.models.pullrequest import PullRequest
 from sentry.seer.models.run import SeerRunPullRequest
-from sentry.seer.pr_links import (
+from sentry.seer.pull_requests import (
     link_seer_run_to_pull_requests,
     maybe_link_seer_run_to_pull_requests,
 )
@@ -63,7 +63,7 @@ class LinkSeerRunToPullRequestsTest(TestCase):
         ).exists()
 
     def test_no_links_when_run_not_found(self) -> None:
-        with patch("sentry.seer.pr_links.logger") as mock_logger:
+        with patch("sentry.seer.pull_requests.logger") as mock_logger:
             self._link([_pr()], run_id=999999)
 
         assert not SeerRunPullRequest.objects.exists()
@@ -75,7 +75,7 @@ class LinkSeerRunToPullRequestsTest(TestCase):
         self.create_repo(other_project, name=REPO_NAME, provider="integrations:github")
 
         # self.seer_run (RUN_STATE_ID) belongs to self.organization, not other_org.
-        with patch("sentry.seer.pr_links.logger") as mock_logger:
+        with patch("sentry.seer.pull_requests.logger") as mock_logger:
             link_seer_run_to_pull_requests(
                 organization=other_org, pull_requests=[_pr()], run_id=RUN_STATE_ID
             )
@@ -106,14 +106,14 @@ class LinkSeerRunToPullRequestsTest(TestCase):
         assert SeerRunPullRequest.objects.filter(pull_request=pr).count() == 1
 
     def test_skips_unresolvable_repo(self) -> None:
-        with patch("sentry.seer.pr_links.logger") as mock_logger:
+        with patch("sentry.seer.pull_requests.logger") as mock_logger:
             self._link([_pr(repo_name="getsentry/does-not-exist")])
 
         assert not SeerRunPullRequest.objects.exists()
         assert "seer.pr_link.repo_unresolved" in _warning_events(mock_logger)
 
     def test_skips_entry_missing_fields(self) -> None:
-        with patch("sentry.seer.pr_links.logger") as mock_logger:
+        with patch("sentry.seer.pull_requests.logger") as mock_logger:
             self._link(
                 [
                     {"provider": "unknown", "pull_request": {"pr_number": 1}},  # no repo_name
@@ -156,7 +156,7 @@ class MaybeLinkSeerRunToPullRequestsTest(TestCase):
 
     def test_swallows_exceptions(self) -> None:
         with patch(
-            "sentry.seer.pr_links.link_seer_run_to_pull_requests",
+            "sentry.seer.pull_requests.link_seer_run_to_pull_requests",
             side_effect=RuntimeError("boom"),
         ):
             # Must not raise.

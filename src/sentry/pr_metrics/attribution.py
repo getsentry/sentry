@@ -25,7 +25,7 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
 )
-from sentry.pr_metrics.pull_requests import get_or_create_seer_pull_request
+from sentry.seer.pull_requests import get_or_create_seer_pull_request
 
 logger = logging.getLogger(__name__)
 
