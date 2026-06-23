@@ -8,7 +8,7 @@ import {t, tct} from 'sentry/locale';
 import type {ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
-import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
+import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 export function SentryAppDetails({handler}: {handler: ActionHandler}) {
   const name = handler?.sentryApp?.name || t('unknown SentryApp');

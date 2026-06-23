@@ -1,4 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   act,
@@ -8,6 +9,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {GroupActivityType} from 'sentry/types/group';
 import {useIssuePreviewDrawer} from 'sentry/views/issueList/pages/useIssuePreviewDrawer';
 
 const AWAITING_INPUT_PATH = '/organizations/org-slug/issues/awaiting-input/';
@@ -25,6 +27,10 @@ describe('useIssuePreviewDrawer', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
       body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
     });
   });
 
@@ -54,6 +60,40 @@ describe('useIssuePreviewDrawer', () => {
     expect(
       await screen.findByRole('complementary', {name: 'Issue preview'})
     ).toBeInTheDocument();
+  });
+
+  it('displays the issue activity', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/42/',
+      body: GroupFixture({
+        id: '42',
+        activity: [
+          {
+            id: '1',
+            type: GroupActivityType.NOTE,
+            data: {text: 'This is a comment'},
+            dateCreated: '2024-01-01T00:00:00Z',
+            user: UserFixture(),
+          },
+          {
+            id: '2',
+            type: GroupActivityType.FIRST_SEEN,
+            data: {},
+            dateCreated: '2024-01-01T00:00:00Z',
+            user: null,
+          },
+        ],
+      }),
+    });
+
+    renderHookWithProviders(() => useIssuePreviewDrawer(), {
+      initialRouterConfig: {
+        location: {pathname: AWAITING_INPUT_PATH, query: {preview: '42'}},
+      },
+    });
+
+    expect(await screen.findByText('This is a comment')).toBeInTheDocument();
+    expect(screen.getByText('First Seen')).toBeInTheDocument();
   });
 
   it('removes the preview param when the drawer is closed', async () => {

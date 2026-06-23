@@ -10,7 +10,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Redirect} from 'sentry/components/redirect';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Organization} from 'sentry/types/organization';
@@ -87,12 +86,6 @@ export default function WebhookDetailedView() {
     legacyWebhooksQueryOptions(organization)
   );
 
-  if (!organization.features.includes('legacy-webhook-ui')) {
-    return (
-      <Redirect to={normalizeUrl(`/settings/${organization.slug}/plugins/webhooks/`)} />
-    );
-  }
-
   const webhookProjects = data?.projects ?? [];
   const installationStatus = webhookProjects.length ? INSTALLED : NOT_INSTALLED;
 
@@ -108,7 +101,7 @@ export default function WebhookDetailedView() {
       modalProps => (
         <ContextPickerModal
           {...modalProps}
-          nextPath={`/settings/${organization.slug}/projects/:projectId/plugins/webhooks/`}
+          nextPath={`/settings/${organization.slug}/projects/:projectId/legacy-webhooks/`}
           needProject
           needOrg={false}
           onFinish={to => {

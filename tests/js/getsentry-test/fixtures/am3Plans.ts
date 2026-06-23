@@ -4,7 +4,7 @@ import {SeerReservedBudgetCategoryFixture} from 'getsentry-test/fixtures/reserve
 import {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
-import {CheckoutType, ReservedBudgetCategoryType, type Plan} from 'getsentry/types';
+import {ReservedBudgetCategoryType, type Plan} from 'getsentry/types';
 
 const AM3_CHECKOUT_CATEGORIES = [
   'errors',
@@ -225,27 +225,16 @@ export const SEER_TIERS = {
 
 const BUDGET_TERM = 'pay-as-you-go';
 
-const RETENTION_SETTINGS = Object.fromEntries(
-  AM3_CATEGORIES.map(category => {
-    if (category === 'attachments') {
-      return [category, {standard: 30, downsampled: 0}];
-    }
-    return [category, {standard: 90, downsampled: 0}];
-  })
-);
-
 // TODO(isabella): This probably isn't all the common fields
 const commonFields = {
   addOnCategories: AM3_ADD_ON_CATEGORIES,
   categories: AM3_CATEGORIES,
   categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
   checkoutCategories: AM3_CHECKOUT_CATEGORIES,
-  availableCategories: AM3_CATEGORIES,
   onDemandCategories: AM3_ONDEMAND_CATEGORIES,
   availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES, // TODO(isabella): default budgets for sponsored plans is different
   hasOnDemandModes: false,
   budgetTerm: BUDGET_TERM as 'pay-as-you-go', // for whatever reason TS is unhappy without this
-  retentions: RETENTION_SETTINGS,
 };
 
 export const AM3_PLANS = {
@@ -254,7 +243,6 @@ export const AM3_PLANS = {
     id: 'am3_business',
     isEnterprise: false,
     name: 'Business',
-    description: '',
     price: 8900,
     basePrice: 8900,
     totalPrice: 8900,
@@ -263,14 +251,10 @@ export const AM3_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: true,
-    checkoutType: CheckoutType.STANDARD,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0,
     allowOnDemand: true,
-    reservedMinimum: 50000,
-    allowAdditionalReservedEvents: false,
     dashboardLimit: -1,
     metricDetectorLimit: -1,
     planCategories: {
@@ -989,7 +973,6 @@ export const AM3_PLANS = {
     id: 'am3_business_auf',
     isEnterprise: false,
     name: 'Business',
-    description: '',
     price: 96000,
     basePrice: 96000,
     totalPrice: 96000,
@@ -998,14 +981,10 @@ export const AM3_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: true,
-    checkoutType: CheckoutType.STANDARD,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
     contractInterval: ANNUAL,
-    onDemandEventPrice: 0.1157,
     allowOnDemand: true,
-    reservedMinimum: 50000,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [
         {
@@ -1508,7 +1487,6 @@ export const AM3_PLANS = {
     id: 'am3_business_ent',
     isEnterprise: true,
     name: 'Enterprise (Business)',
-    description: '',
     price: 10_000_00,
     basePrice: 0,
     totalPrice: 10_000_00,
@@ -1517,14 +1495,10 @@ export const AM3_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0.1157,
     allowOnDemand: true,
-    reservedMinimum: UNLIMITED_RESERVED,
-    allowAdditionalReservedEvents: true,
     planCategories: {
       errors: [
         {
@@ -1625,7 +1599,6 @@ export const AM3_PLANS = {
     id: 'am3_business_ent_auf',
     isEnterprise: true,
     name: 'Enterprise (Business)',
-    description: '',
     price: 10_000_00,
     basePrice: 0,
     totalPrice: 10_000_00,
@@ -1634,14 +1607,10 @@ export const AM3_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
     contractInterval: ANNUAL,
-    onDemandEventPrice: 0.1157,
     allowOnDemand: true,
-    reservedMinimum: UNLIMITED_RESERVED,
-    allowAdditionalReservedEvents: true,
     planCategories: {
       errors: [
         {
@@ -1742,7 +1711,6 @@ export const AM3_PLANS = {
     id: 'am3_f',
     isEnterprise: false,
     name: 'Developer',
-    description: '',
     price: 0,
     basePrice: 0,
     totalPrice: 0,
@@ -1751,14 +1719,10 @@ export const AM3_PLANS = {
     retentionDays: 30,
     isTestPlan: false,
     userSelectable: true,
-    checkoutType: CheckoutType.STANDARD,
     features: AM3_FREE_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0,
     allowOnDemand: false,
-    reservedMinimum: 5000,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [
         {
@@ -1859,7 +1823,6 @@ export const AM3_PLANS = {
     id: 'am3_t_ent',
     isEnterprise: true,
     name: 'Enterprise Trial',
-    description: '',
     price: 0,
     basePrice: 0,
     totalPrice: 0,
@@ -1868,14 +1831,10 @@ export const AM3_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0,
     allowOnDemand: false,
-    reservedMinimum: UNLIMITED_RESERVED,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [
         {
@@ -1976,7 +1935,6 @@ export const AM3_PLANS = {
     id: 'am3_team',
     isEnterprise: false,
     name: 'Team',
-    description: '',
     price: 2900,
     basePrice: 2900,
     totalPrice: 2900,
@@ -1985,14 +1943,10 @@ export const AM3_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: true,
-    checkoutType: CheckoutType.STANDARD,
     features: AM3_TEAM_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0.0377,
     allowOnDemand: true,
-    reservedMinimum: 50000,
-    allowAdditionalReservedEvents: false,
     dashboardLimit: 20,
     metricDetectorLimit: 20,
     planCategories: {
@@ -2495,7 +2449,6 @@ export const AM3_PLANS = {
     id: 'am3_team_auf',
     isEnterprise: false,
     name: 'Team',
-    description: '',
     price: 31200,
     basePrice: 31200,
     totalPrice: 31200,
@@ -2504,14 +2457,10 @@ export const AM3_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: true,
-    checkoutType: CheckoutType.STANDARD,
     features: AM3_TEAM_FEATURES,
     billingInterval: ANNUAL,
     contractInterval: ANNUAL,
-    onDemandEventPrice: 0.0377,
     allowOnDemand: true,
-    reservedMinimum: 50000,
-    allowAdditionalReservedEvents: false,
     dashboardLimit: 20,
     metricDetectorLimit: 20,
     planCategories: {
@@ -3014,7 +2963,6 @@ export const AM3_PLANS = {
     id: 'am3_t',
     isEnterprise: false,
     name: 'Trial',
-    description: '',
     price: 0,
     basePrice: 0,
     totalPrice: 0,
@@ -3023,14 +2971,10 @@ export const AM3_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
     features: AM3_TRIAL_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0,
     allowOnDemand: false,
-    reservedMinimum: UNLIMITED_RESERVED,
-    allowAdditionalReservedEvents: false,
     dashboardLimit: 20,
     metricDetectorLimit: 20,
     planCategories: {

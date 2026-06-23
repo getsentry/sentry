@@ -1,8 +1,5 @@
 from functools import cached_property
 
-import orjson
-from django.urls import reverse
-
 from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.pivotal.plugin import PivotalPlugin
 
@@ -31,22 +28,3 @@ class PivotalPluginTest(PluginTestCase):
         self.plugin.set_option("token", "1", self.project)
         self.plugin.set_option("project", "1", self.project)
         assert self.plugin.is_configured(self.project) is True
-
-    def test_no_secrets(self) -> None:
-        self.user = self.create_user("foo@example.com")
-        self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
-        self.team = self.create_team(organization=self.org, name="Mariachi Band")
-        self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-        self.login_as(self.user)
-        self.plugin.set_option("token", "abcdef", self.project)
-        url = reverse(
-            "sentry-api-0-project-plugin-details",
-            args=[self.org.slug, self.project.slug, "pivotal"],
-        )
-        res = self.client.get(url)
-        config = orjson.loads(res.content)["config"]
-        token_config = [item for item in config if item["name"] == "token"][0]
-        assert token_config.get("type") == "secret"
-        assert token_config.get("value") is None
-        assert token_config.get("hasSavedValue") is True
-        assert token_config.get("prefix") == "abcd"

@@ -483,7 +483,9 @@ def detect_platforms_multi(
     languages: dict[str, int] = client.get_languages(repo)
     active_platforms = _select_active_platforms(languages)
 
+    tree_start = time.monotonic()
     entries, is_truncated = _get_tree(client, repo, ref)
+    tree_duration_ms = (time.monotonic() - tree_start) * 1000
     index = _build_tree_index(entries)
 
     results: list[DetectedPlatform] = []
@@ -524,11 +526,13 @@ def detect_platforms_multi(
     # are always within the cap before subdirectory files from monorepo workspaces.
     capped_paths = sorted(needed_paths, key=lambda p: (p.count("/"), p))[:MAX_CONTENT_READS]
 
+    content_reads_start = time.monotonic()
     content_by_path: dict[str, str] = {}
     for path in capped_paths:
         content = _get_repo_file_content(client, repo, path, ref)
         if content is not None:
             content_by_path[path] = content
+    content_reads_duration_ms = (time.monotonic() - content_reads_start) * 1000
 
     manifests_by_path: dict[str, _PackageManifest] = {}
     for path, content in content_by_path.items():
@@ -624,6 +628,21 @@ def detect_platforms_multi(
         f"{_MULTI_METRICS_PREFIX}.k_reads_realized",
         k_reads_realized,
     )
+    sentry_sdk.metrics.distribution(
+        f"{_MULTI_METRICS_PREFIX}.tree.duration",
+        tree_duration_ms,
+        unit="millisecond",
+    )
+    sentry_sdk.metrics.distribution(
+        f"{_MULTI_METRICS_PREFIX}.content_reads.duration",
+        content_reads_duration_ms,
+        unit="millisecond",
+    )
+    for needed_path in needed_paths:
+        sentry_sdk.metrics.distribution(
+            f"{_MULTI_METRICS_PREFIX}.needed_path_depth",
+            needed_path.count("/"),
+        )
     sentry_sdk.metrics.count(
         f"{_MULTI_METRICS_PREFIX}.completed",
         1,

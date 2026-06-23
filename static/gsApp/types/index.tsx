@@ -90,18 +90,6 @@ export type ReservedBudgetCategory = {
    */
   apiName: ReservedBudgetCategoryType;
   /**
-   * The feature flag determining if the product is available for billing
-   */
-  billingFlag: string | null;
-  /**
-   * Backend name of the category (all caps, snake case)
-   */
-  budgetCategoryType: string;
-  /**
-   * whether a customer can use product trials for this budget
-   */
-  canProductTrial: boolean;
-  /**
    * the categories that are included in the budget
    */
   dataCategories: DataCategory[];
@@ -110,10 +98,6 @@ export type ReservedBudgetCategory = {
    */
   defaultBudget: number | null;
   /**
-   * Link to the quotas documentation for the budget
-   */
-  docLink: string;
-  /**
    * Whether the budget is fixed or variable
    */
   isFixed: boolean;
@@ -121,10 +105,6 @@ export type ReservedBudgetCategory = {
    * Display name of the budget
    */
   name: string;
-  /**
-   * The name of the product to display in the checkout flow
-   */
-  productCheckoutName: string;
   /**
    * The name of the product associated with the budget
    */
@@ -138,7 +118,6 @@ export enum AddOnCategory {
 
 export type AddOnCategoryInfo = {
   apiName: AddOnCategory;
-  billingFlag: string | null;
   dataCategories: DataCategory[];
   name: string;
   order: number;
@@ -168,13 +147,7 @@ type RetentionSettings = {
 
 export type Plan = {
   addOnCategories: Partial<Record<AddOnCategory, AddOnCategoryInfo>>;
-  allowAdditionalReservedEvents: boolean;
   allowOnDemand: boolean;
-  /**
-   * All available data categories on the current plan tier.
-   * Can be used for category upsells.
-   */
-  availableCategories: DataCategory[];
   availableReservedBudgetTypes: Partial<
     Record<ReservedBudgetCategoryType, ReservedBudgetCategory>
   >;
@@ -188,7 +161,6 @@ export type Plan = {
   checkoutCategories: DataCategory[];
   contractInterval: 'monthly' | 'annual';
   dashboardLimit: number;
-  description: string;
   features: string[];
 
   hasOnDemandModes: boolean;
@@ -203,11 +175,9 @@ export type Plan = {
   metricDetectorLimit: number;
   name: string;
   onDemandCategories: DataCategory[];
-  onDemandEventPrice: number;
   planCategories: Partial<Record<DataCategory, EventBucket[]>>;
   price: number;
 
-  reservedMinimum: number;
   retentionDays: number;
   totalPrice: number;
   trialPlan: string | null;
@@ -215,8 +185,6 @@ export type Plan = {
   categoryDisplayNames?: Partial<
     Record<DataCategory, {plural: string; singular: string}>
   >;
-  checkoutType?: CheckoutType;
-  retentions?: Partial<Record<DataCategory, RetentionSettings>>;
 };
 
 type PendingChanges = {
@@ -328,9 +296,6 @@ export type Subscription = {
    */
   categories: Partial<Record<DataCategory, BillingMetricHistory>>;
   contractInterval: 'monthly' | 'annual';
-
-  contractPeriodEnd: string;
-  contractPeriodStart: string;
   customPrice: number | null;
   customPricePcss: number | null;
   // Event details
