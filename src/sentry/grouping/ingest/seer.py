@@ -483,7 +483,7 @@ def get_seer_similar_issues(
             "project_id": event.project.id,
             "hash": event_hash,
             "num_seer_matches": len(seer_results),
-            "num_seer_matches_checked": hybrid_fingerprint_checks,
+            "num_hybrid_fingerprint_checks": hybrid_fingerprint_checks,
             "matching_result": matching_seer_result,
             "grouphash_returned": bool(winning_parent_grouphash),
         },
