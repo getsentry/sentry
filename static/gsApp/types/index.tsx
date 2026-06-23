@@ -176,7 +176,6 @@ export type Plan = {
   name: string;
   onDemandCategories: DataCategory[];
   planCategories: Partial<Record<DataCategory, EventBucket[]>>;
-  price: number;
 
   retentionDays: number;
   totalPrice: number;

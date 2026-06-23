@@ -54,7 +54,7 @@ function PlanFeature({subscription, features, organization, children}: Props) {
         // Only recommend business plans if the subscription is sponsored
         (subscription.isSponsored ? isBizPlanFamily(p) : true)
     )
-    .sort((a, b) => a.price - b.price);
+    .sort((a, b) => a.totalPrice - b.totalPrice);
 
   // We try and keep the list of plans as close to the user current plan
   // configuration as we can, however some older plans (mm2) have

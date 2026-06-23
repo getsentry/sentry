@@ -444,7 +444,7 @@ function sortPlansForUpgrade(billingConfig: BillingConfig, subscription: Subscri
   // contract interval. Sorted by price as features will become progressively
   // more available.
   let plans = billingConfig.planList
-    .sort((a, b) => a.price - b.price)
+    .sort((a, b) => a.totalPrice - b.totalPrice)
     .filter(p => p.userSelectable && p.billingInterval === subscription.billingInterval);
 
   // If we're dealing with plans that are *not part of a tier* Then we can
@@ -491,7 +491,7 @@ export function getBestActionToIncreaseEventLimits(
   organization: Organization,
   subscription: Subscription
 ) {
-  const isPaidPlan = subscription.planDetails?.price > 0;
+  const isPaidPlan = subscription.planDetails?.totalPrice > 0;
   const hasBillingPerms = organization.access?.includes('org:billing');
 
   // free orgs can increase event limits by trialing
