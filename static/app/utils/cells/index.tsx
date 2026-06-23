@@ -103,21 +103,6 @@ export function getLocalityUrlOptions(
     });
 }
 
-/**
- * Create a list of option objects with {label: displayName, value: name}
- */
-export function getLocalityNameOptions(): Array<SelectValue<string>> {
-  const localities = getLocalities();
-
-  return localities.map(locality => {
-    return {
-      value: locality.name,
-      label:
-        `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`.trim(),
-    };
-  });
-}
-
 interface LocalitySelectValue extends SelectValue<string> {
   url: string;
 }
