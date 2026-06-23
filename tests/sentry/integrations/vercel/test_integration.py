@@ -578,7 +578,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         with pytest.raises(ValidationError) as exc_info:
             installation.update_organization_config(data)
 
-        assert exc_info.value.detail["project_mappings"] == [conflict_message]
+        assert exc_info.value.detail == {"project_mappings": [conflict_message]}
 
         # the mapping should not be persisted when an env var fails
         org_integration = OrganizationIntegration.objects.get(
