@@ -6,8 +6,6 @@ from typing import Any
 
 from sentry.testutils.skips import requires_objectstore
 
-_FEATURE_FLAG = "organizations:objectstore-debugfiles-write"
-
 
 def debug_files_test_both_backends[T: type](cls: T) -> T:
     if not isinstance(cls, type):
@@ -26,7 +24,7 @@ def _wrap_test(func: Callable[..., Any], enabled: bool) -> Callable[..., Any]:
     def wrapper(self: Any, *args: Any, **kwargs: Any) -> None:
         from sentry.testutils.helpers.features import Feature
 
-        with Feature({_FEATURE_FLAG: enabled}):
+        with Feature({"organizations:objectstore-debugfiles-write": enabled}):
             func(self, *args, **kwargs)
 
     wrapper._snapshot_name = func.__name__  # type: ignore[attr-defined]
