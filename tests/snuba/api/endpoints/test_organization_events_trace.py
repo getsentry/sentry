@@ -70,6 +70,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                     "data": {
                         "gen_ai.request.model": "gpt-4o",
                         "gen_ai.usage.total_tokens": 100,
+                        "browser.web_vital.lcp.value": 2807.335,
+                        "browser.web_vital.cls.value": 0.0382,
+                        "browser.web_vital.inp.value": 120.0,
+                        "browser.web_vital.ttfb.value": 450.0,
+                        "browser.web_vital.fcp.value": 2258.06,
                     },
                 }
                 for i, root_span_id in enumerate(self.root_span_ids)

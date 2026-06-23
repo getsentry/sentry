@@ -143,6 +143,47 @@ describe('MetricsEquationVisualize', () => {
     expect(equationDeleteButton).toBeDisabled();
   });
 
+  it('replaces rate aggregates with defaults and deduplicates', async () => {
+    render(<MetricsEquationVisualize />, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: [
+              'per_second(value,alpha_metric,counter,none)',
+              'per_minute(value,alpha_metric,counter,none)',
+              'per_second(value,beta_metric,counter,none)',
+            ],
+          },
+        },
+      },
+    });
+
+    const toolbars = await screen.findAllByTestId('metric-toolbar');
+    // per_second and per_minute on alpha_metric both collapse to sum → deduplicated to 1 row
+    // per_second on beta_metric collapses to sum → 1 row
+    // + equation row = 3 total
+    expect(toolbars).toHaveLength(3);
+
+    // Row A: alpha_metric with default aggregate (sum for counter)
+    expect(within(toolbars[0]!).getByText('A')).toBeInTheDocument();
+    expect(
+      within(toolbars[0]!).getByRole('button', {name: 'alpha_metric'})
+    ).toBeInTheDocument();
+    expect(within(toolbars[0]!).getByText('sum')).toBeInTheDocument();
+
+    // Row B: beta_metric with default aggregate (sum for counter)
+    expect(within(toolbars[1]!).getByText('B')).toBeInTheDocument();
+    expect(
+      within(toolbars[1]!).getByRole('button', {name: 'beta_metric'})
+    ).toBeInTheDocument();
+    expect(within(toolbars[1]!).getByText('sum')).toBeInTheDocument();
+  });
+
   it('hydrates initial rows from a saved equation widget', async () => {
     render(<MetricsEquationVisualize />, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),

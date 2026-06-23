@@ -904,11 +904,10 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                 obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
             )
 
-        if features.has("organizations:ingest-through-trusted-relays-only", obj):
-            context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
-                "sentry:ingest-through-trusted-relays-only",
-                INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
-            )
+        context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
+            "sentry:ingest-through-trusted-relays-only",
+            INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+        )
 
         context["enabledConsolePlatforms"] = obj.get_option(
             "sentry:enabled_console_platforms",
