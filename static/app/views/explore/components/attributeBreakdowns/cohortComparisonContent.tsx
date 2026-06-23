@@ -46,7 +46,8 @@ export function CohortComparison({
 
   const {breakdownQuery} = useQueryParams();
   const setQueryParams = useSetQueryParams();
-  const debouncedSearchQuery = useDebouncedValue(breakdownQuery, 200);
+  const searchQuery = breakdownQuery ?? '';
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 200);
 
   const {data, isLoading, error} = useAttributeBreakdownComparison({
     aggregateFunction: yAxis,
@@ -101,7 +102,7 @@ export function CohortComparison({
                 breakdownQuery: value,
               });
             }}
-            query={breakdownQuery}
+            query={searchQuery}
             size="sm"
           />
           <AttributeBreakdownsComponent.FeedbackButton />

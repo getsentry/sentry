@@ -42,7 +42,8 @@ export type AttributeDistribution = Array<{
 export function AttributeDistribution() {
   const {breakdownCursor, breakdownQuery, query} = useQueryParams();
   const setQueryParams = useSetQueryParams();
-  const debouncedSearchQuery = useDebouncedValue(breakdownQuery, 200);
+  const searchQuery = breakdownQuery ?? '';
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 200);
 
   const onAction = useAttributeBreakdownsTooltipAction();
 
@@ -94,7 +95,7 @@ export function AttributeDistribution() {
     isLoading: isAttributeBreakdownsLoading,
     error: attributeBreakdownsError,
   } = useAttributeBreakdowns({
-    cursor: breakdownCursor || undefined,
+    cursor: breakdownCursor,
     substringMatch: debouncedSearchQuery,
   });
 
@@ -148,7 +149,7 @@ export function AttributeDistribution() {
                 breakdownCursor: null,
               });
             }}
-            query={breakdownQuery}
+            query={searchQuery}
             size="sm"
           />
           <AttributeBreakdownsComponent.FeedbackButton />

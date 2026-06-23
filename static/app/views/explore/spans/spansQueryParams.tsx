@@ -63,8 +63,8 @@ export function getReadableQueryParamsFromLocation(
   const query = decodeScalar(location.query[SPANS_QUERY_KEY]) ?? '';
 
   const cursor = getCursorFromLocation(location, SPANS_CURSOR_KEY);
-  const breakdownCursor = getCursorFromLocation(location, SPANS_BREAKDOWN_CURSOR_KEY);
-  const breakdownQuery = decodeScalar(location.query[SPANS_BREAKDOWN_QUERY_KEY]) ?? '';
+  const breakdownCursor = decodeScalar(location.query[SPANS_BREAKDOWN_CURSOR_KEY]);
+  const breakdownQuery = decodeScalar(location.query[SPANS_BREAKDOWN_QUERY_KEY]);
   const fields = getFieldsFromLocation(location, SPANS_FIELD_KEY) ?? defaultFields();
   const sortBys =
     getSortBysFromLocation(location, SPANS_SORT_KEY, fields) ?? defaultSortBys(fields);

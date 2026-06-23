@@ -34,8 +34,8 @@ export class ReadableQueryParams {
   readonly fields: string[];
   readonly sortBys: Sort[];
 
-  readonly breakdownCursor: string;
-  readonly breakdownQuery: string;
+  readonly breakdownCursor?: string;
+  readonly breakdownQuery?: string;
 
   readonly aggregateCursor: string;
   readonly aggregateFields: readonly AggregateField[];
@@ -57,8 +57,8 @@ export class ReadableQueryParams {
     this.cursor = options.cursor;
     this.fields = options.fields;
     this.sortBys = options.sortBys;
-    this.breakdownCursor = options.breakdownCursor ?? '';
-    this.breakdownQuery = options.breakdownQuery ?? '';
+    this.breakdownCursor = options.breakdownCursor;
+    this.breakdownQuery = options.breakdownQuery;
 
     this.aggregateCursor = options.aggregateCursor;
     this.aggregateFields = options.aggregateFields;
