@@ -109,6 +109,10 @@ def _build_activity_data(activity: Activity) -> ActivityData:
     activity_alert_type = ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE.get(activity.type)
     if activity_alert_type is None:
         raise ValueError(f"Unrecognized activity type: {activity.type} for activity {activity.id}")
+
+    if not activity.data:
+        return ActivityData(type=str(activity_alert_type), details={})
+
     match activity_alert_type:
         case ActivityAlertType.SEER_RCA_COMPLETED | ActivityAlertType.SEER_SOLUTION_COMPLETED:
             summary = activity.data.get("summary", "")
