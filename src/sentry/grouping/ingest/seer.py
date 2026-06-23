@@ -548,8 +548,8 @@ def _should_use_seer_match_for_grouping(
       Skipped for synthetic exceptions (matching regular grouping behavior).
     - Hybrid fingerprint compatibility: rejects when fingerprint types or values don't match.
     """
-    # Exception type check — reject before hybrid fingerprint logic so mismatches don't
-    # inflate hybrid fingerprint metrics.
+    # Exception type check — log mismatches for now so we can assess how often Seer matches
+    # across different exception types before deciding whether to reject them.
     parent_group = parent_grouphash.group
     if parent_group is not None:
         parent_exception_type = get_path(parent_group.data, "metadata", "type")
@@ -563,7 +563,17 @@ def _should_use_seer_match_for_grouping(
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={"platform": event.platform},
             )
-            return SeerMatchResult(accepted=False, hybrid_related=False)
+            logger.info(
+                "seer.exception_type_mismatch",
+                extra={
+                    "event_id": event.event_id,
+                    "project_id": event.project.id,
+                    "event_exception_type": event_exception_type,
+                    "parent_exception_type": parent_exception_type,
+                    "parent_group_id": parent_group.id,
+                    "parent_hash": parent_grouphash.hash,
+                },
+            )
 
     parent_has_hybrid_fingerprint = (
         get_fingerprint_type(parent_grouphash.get_associated_fingerprint()) == "hybrid"

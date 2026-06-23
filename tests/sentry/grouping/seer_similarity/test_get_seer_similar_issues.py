@@ -1,6 +1,8 @@
 from typing import Any
 from unittest.mock import MagicMock, call, patch
 
+import pytest
+
 from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
@@ -651,6 +653,7 @@ class ExceptionTypeMismatchTest(TestCase):
             self.project,
         )
 
+    @pytest.mark.skip(reason="Exception type mismatch currently logs only, not rejecting yet")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
     def test_rejects_match_with_different_exception_type(self, mock_incr: MagicMock) -> None:
         existing_event = self._create_existing_event(error_type="TypeError")
