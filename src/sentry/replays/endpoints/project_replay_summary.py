@@ -161,6 +161,9 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         with start_span(
             name="replays.endpoints.project_replay_summary.get",
             op="replays.endpoints.project_replay_summary.get",
+            custom_sampling_context=(
+                {"sample_rate": self.sample_rate_get} if self.sample_rate_get else None
+            ),
             transaction=True,
         ):
             self.check_replay_access(request, project)
