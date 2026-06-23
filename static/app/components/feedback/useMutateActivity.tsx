@@ -17,25 +17,24 @@ type DeleteCommentCallback = (
   noteId: string,
   activity: GroupActivity[],
   options?: MutateOptions<TData, TError, TVariables>
-) => void;
+) => Promise<TData>;
 
 type CreateCommentCallback = (
   note: NoteType,
   activity: GroupActivity[],
   options?: MutateOptions<TData, TError, TVariables>
-) => void;
+) => Promise<TData>;
 
 type UpdateCommentCallback = (
   note: NoteType,
   noteId: string,
   activity: GroupActivity[],
   options?: MutateOptions<TData, TError, TVariables>
-) => void;
+) => Promise<TData>;
 
 interface Props {
   group: Group;
   organization: Organization;
-  onMutate?: (variables: TVariables) => unknown | undefined;
   onSettled?:
     | ((
         data: unknown,
@@ -46,9 +45,8 @@ interface Props {
     | undefined;
 }
 
-export function useMutateActivity({organization, group, onMutate, onSettled}: Props) {
-  const {mutate} = useMutation<TData, TError, TVariables>({
-    onMutate: onMutate ?? undefined,
+export function useMutateActivity({organization, group, onSettled}: Props) {
+  const {mutateAsync} = useMutation<TData, TError, TVariables>({
     mutationFn: ([{note, noteId}, method]) => {
       const url =
         method === 'PUT' || method === 'DELETE'
@@ -68,23 +66,23 @@ export function useMutateActivity({organization, group, onMutate, onSettled}: Pr
 
   const handleUpdate = useCallback<UpdateCommentCallback>(
     (note, noteId, activity, options) => {
-      mutate([{note, noteId, activity}, 'PUT'], options);
+      return mutateAsync([{note, noteId, activity}, 'PUT'], options);
     },
-    [mutate]
+    [mutateAsync]
   );
 
   const handleCreate = useCallback<CreateCommentCallback>(
     (note, activity, options) => {
-      mutate([{note, activity}, 'POST'], options);
+      return mutateAsync([{note, activity}, 'POST'], options);
     },
-    [mutate]
+    [mutateAsync]
   );
 
   const handleDelete = useCallback<DeleteCommentCallback>(
     (noteId, activity, options) => {
-      mutate([{noteId, activity}, 'DELETE'], options);
+      return mutateAsync([{noteId, activity}, 'DELETE'], options);
     },
-    [mutate]
+    [mutateAsync]
   );
 
   return {

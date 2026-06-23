@@ -1,3 +1,5 @@
+import {GroupFixture} from 'sentry-fixture/group';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
@@ -26,9 +28,7 @@ describe('NoteInputWithStorage', () => {
   const defaultProps = {
     storageKey: 'storage',
     itemKey: 'item1',
-    group: {project: {}, id: 'groupId'},
-    memberList: [],
-    teams: [],
+    group: GroupFixture(),
   };
 
   it('loads draft item from local storage when mounting', async () => {
