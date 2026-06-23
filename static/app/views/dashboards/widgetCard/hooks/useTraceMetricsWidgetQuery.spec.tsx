@@ -8,6 +8,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {
+  useTraceMetricsHeatmapQuery,
   useTraceMetricsSeriesQuery,
   useTraceMetricsTableQuery,
 } from './useTraceMetricsWidgetQuery';
@@ -288,5 +289,198 @@ describe('useTraceMetricsTableQuery', () => {
         })
       );
     });
+  });
+});
+
+describe('useTraceMetricsHeatmapQuery', () => {
+  const organization = OrganizationFixture();
+  const pageFilters = PageFiltersFixture();
+
+  const heatmapWidget = WidgetFixture({
+    displayType: DisplayType.HEATMAP,
+    queries: [
+      {
+        name: '',
+        fields: ['sum(value,test_metric,millisecond,none)'],
+        aggregates: ['sum(value,test_metric,millisecond,none)'],
+        columns: [],
+        conditions: 'span.op:db',
+        orderby: '',
+      },
+    ],
+  });
+
+  const heatmapResponse = {
+    meta: {
+      xAxis: {valueType: 'date', valueUnit: null},
+      yAxis: {valueType: 'number', valueUnit: null, bucketCount: 10},
+      zAxis: {valueType: 'integer', valueUnit: null},
+    },
+    values: [{xAxis: 1, yAxis: 0, zAxis: 5}],
+  };
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(pageFilters);
+  });
+
+  it('does not fetch until the chart is measured, but reports loading', () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-heatmap/',
+      body: heatmapResponse,
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useTraceMetricsHeatmapQuery({
+        widget: heatmapWidget,
+        organization,
+        pageFilters,
+        enabled: true,
+        widgetInterval: '1h',
+        yBuckets: 0,
+      })
+    );
+
+    // The query stays disabled until the chart is measured, but the hook still
+    // reports loading (like the series/table hooks) so the chart container
+    // doesn't need a heat-map-specific loading branch.
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(result.current.loading).toBe(true);
+    expect(result.current.heatmapResults).toBeUndefined();
+  });
+
+  it('does not fetch without an interval', () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-heatmap/',
+      body: heatmapResponse,
+    });
+
+    renderHookWithProviders(() =>
+      useTraceMetricsHeatmapQuery({
+        widget: heatmapWidget,
+        organization,
+        pageFilters,
+        enabled: true,
+        widgetInterval: '',
+        yBuckets: 10,
+      })
+    );
+
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it('does not fetch when the aggregate does not resolve to a metric', () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-heatmap/',
+      body: heatmapResponse,
+    });
+
+    const misconfiguredWidget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      queries: [
+        {
+          name: '',
+          fields: ['sum(value)'],
+          aggregates: ['sum(value)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    renderHookWithProviders(() =>
+      useTraceMetricsHeatmapQuery({
+        widget: misconfiguredWidget,
+        organization,
+        pageFilters,
+        enabled: true,
+        widgetInterval: '1h',
+        yBuckets: 10,
+      })
+    );
+
+    // The config error (getWidgetConfigError) stops the widget from rendering,
+    // but the fetch-gate also keeps the request from firing without a metric.
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it('fetches the events-heatmap endpoint with the selected metric', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-heatmap/',
+      body: heatmapResponse,
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useTraceMetricsHeatmapQuery({
+        widget: heatmapWidget,
+        organization,
+        pageFilters,
+        enabled: true,
+        widgetInterval: '1h',
+        yBuckets: 10,
+      })
+    );
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-heatmap/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'tracemetrics',
+            xAxis: 'time',
+            yAxis: 'value',
+            zAxis: 'count()',
+            interval: '1h',
+            yBuckets: 10,
+            query: expect.stringContaining('test_metric'),
+          }),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.heatmapResults?.values).toHaveLength(1);
+    });
+  });
+
+  it("patches the Y axis with the selected metric's unit", async () => {
+    const durationWidget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      queries: [
+        {
+          name: '',
+          fields: ['count(value,test_metric,distribution,millisecond)'],
+          aggregates: ['count(value,test_metric,distribution,millisecond)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-heatmap/',
+      body: heatmapResponse,
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useTraceMetricsHeatmapQuery({
+        widget: durationWidget,
+        organization,
+        pageFilters,
+        enabled: true,
+        widgetInterval: '1h',
+        yBuckets: 10,
+      })
+    );
+
+    // The API returns the generic `value` field with no unit; the hook patches
+    // the Y axis from the metric's unit (millisecond -> duration).
+    await waitFor(() => {
+      expect(result.current.heatmapResults?.meta.yAxis.valueUnit).toBe('millisecond');
+    });
+    expect(result.current.heatmapResults?.meta.yAxis.valueType).toBe('duration');
   });
 });

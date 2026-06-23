@@ -100,7 +100,7 @@ export function IssueListTable({
       >
         {tourProps => (
           <div {...tourProps}>
-            <ContainerPanel>
+            <ContainerPanel data-test-id="issue-list">
               <IssueListBulkCommandPaletteActions
                 query={query}
                 queryCount={queryCount}

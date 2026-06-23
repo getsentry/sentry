@@ -29,7 +29,7 @@ export function computeCollapsedBarSpace(nodes: BaseNode[]): Array<[number, numb
       end = next.space[0] + next.space[1];
       i++;
     } else {
-      end = next.space[0] + next.space[1];
+      end = Math.max(end, next.space[0] + next.space[1]);
       i++;
     }
   }

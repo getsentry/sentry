@@ -33,7 +33,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -51,7 +51,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -812,6 +811,7 @@ function ReorderableListItem<T extends {id: string | number}>(
         background={isDragging ? 'secondary' : undefined}
         ref={setNodeRef}
         data-is-dragging={isDragging ? true : undefined}
+        css={reorderableHandleCoordination}
         style={{
           listStyleType: 'none',
           transform: CSS.Transform.toString(transform),
@@ -824,6 +824,33 @@ function ReorderableListItem<T extends {id: string | number}>(
     </ReorderableItemContext.Provider>
   );
 }
+
+// Render the handle as a sibling of the link, not a child. The browser fires a
+// click after a drag, targeted at the common ancestor of mouse-down and mouse-up.
+// Mouse-down is on the handle, so keeping it outside the <a> means that click
+// can never target the link and navigate. The icon/handle hover swap lives on
+// the <li> because it's the only element containing both.
+const reorderableHandleCoordination = css`
+  [data-reorderable-handle-slot] {
+    transition:
+      opacity 150ms ease,
+      scale 150ms ease;
+  }
+
+  &:hover [data-drag-icon],
+  &:has(:focus-visible) [data-drag-icon],
+  &[data-is-dragging] [data-drag-icon] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  &:hover [data-reorderable-handle-slot],
+  &:has(:focus-visible) [data-reorderable-handle-slot],
+  &[data-is-dragging] [data-reorderable-handle-slot] {
+    opacity: 0;
+    scale: 0.95;
+  }
+`;
 
 interface SecondaryNavigationReorderableListProps<T extends {id: string | number}> {
   children: (item: T) => ReactNode;
@@ -911,18 +938,17 @@ function SecondaryNavigationReorderableLink({
 }: SecondaryNavigationReorderableLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const navigate = useNavigate();
   const isActive =
     incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
   const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
-  const {isDragging} = useReorderableItemContext();
   const hasPageFrame = useHasPageFrameFeature();
   const {setView} = useSecondaryNavigation();
   const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
-  function handleNavigate() {
-    if (isDragging) {
+  function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    // Let the browser handle modifier clicks so the view opens in a new tab/window.
+    if (e.metaKey || e.ctrlKey || e.shiftKey) {
       return;
     }
     if (analyticsItemName) {
@@ -940,80 +966,56 @@ function SecondaryNavigationReorderableLink({
     }
 
     onNavigate?.();
-    navigate(to, {state: {source: SIDEBAR_NAVIGATION_SOURCE}});
   }
 
   const sharedProps = {
-    role: 'link' as const,
-    tabIndex: 0,
+    to,
+    state: {source: SIDEBAR_NAVIGATION_SOURCE},
     layout,
-    isDragging,
     'aria-current': isActive ? ('page' as const) : undefined,
-    onClick: handleNavigate,
-    onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
-      // When the grab handle has focus, dnd-kit owns Space/Enter for pick-up
-      // and drop. Without this guard those keys would also trigger navigation
-      // via bubbling, making the drop action unreliable.
-      if ((e.target as HTMLElement).closest('[data-drag-icon]')) {
-        return;
-      }
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        handleNavigate();
-      }
-    },
+    onClick: handleClick,
   };
 
   const content = (
     <Fragment>
-      <Flex justify="center" align="center" position="relative">
-        <GrabHandle />
-        <Flex justify="center" align="center" data-reorderable-handle-slot>
-          {icon}
-        </Flex>
+      <Flex justify="center" align="center" data-reorderable-handle-slot>
+        {icon}
       </Flex>
       {children}
       {trailingItems}
     </Fragment>
   );
 
-  if (hasPageFrame) {
-    return (
-      <StyledPageFrameReorderableFakeLink {...sharedProps} layout="sidebar">
-        {content}
-      </StyledPageFrameReorderableFakeLink>
-    );
-  }
-
-  if (layout === 'mobile') {
-    return (
-      <StyledReorderableFakeLink {...sharedProps}>{content}</StyledReorderableFakeLink>
-    );
-  }
-
   return (
-    <StyledReorderableFakeLink {...sharedProps}>{content}</StyledReorderableFakeLink>
+    <Fragment>
+      {hasPageFrame ? (
+        <StyledPageFrameReorderableLink {...sharedProps} layout="sidebar">
+          {content}
+        </StyledPageFrameReorderableLink>
+      ) : (
+        <StyledReorderableLink {...sharedProps}>{content}</StyledReorderableLink>
+      )}
+      <GrabHandle />
+    </Fragment>
   );
 }
 
-function GrabHandle(props: FlexProps) {
+function GrabHandle() {
   const {attributes, isDragging, listeners, setActivatorNodeRef} =
     useReorderableItemContext();
 
   return (
     <Flex
       radius="xs"
-      width="24px"
-      height="24px"
+      width="18px"
+      height="18px"
       justify="center"
       align="center"
       position="absolute"
       top="50%"
-      left="50%"
     >
       {p => (
         <GrabHandleAnimation
-          {...props}
           {...p}
           {...listeners}
           {...attributes}
@@ -1021,7 +1023,6 @@ function GrabHandle(props: FlexProps) {
           data-drag-icon
           ref={setActivatorNodeRef}
           style={{cursor: isDragging ? 'grabbing' : 'grab'}}
-          onClick={e => e.stopPropagation()}
         >
           <IconGrabbable variant="muted" aria-hidden="true" />
         </GrabHandleAnimation>
@@ -1034,14 +1035,11 @@ const GrabHandleAnimation = styled('div')`
   pointer-events: none;
   opacity: 0;
   z-index: 1;
-  transition:
-    opacity ${p => p.theme.motion.smooth.moderate},
-    transform ${p => p.theme.motion.smooth.moderate};
-  transform: translate(-50%, -50%);
+  /* Overlay the project icon, which sits at the link's left padding. */
+  left: ${p => p.theme.space.lg};
+  transition: opacity ${p => p.theme.motion.smooth.moderate};
+  transform: translateY(-50%);
 
-  &:active {
-    cursor: grabbing;
-  }
   &:focus-visible {
     ${p => p.theme.focusRing()}
   }
@@ -1074,8 +1072,9 @@ const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
   border: 2px solid ${p => p.theme.tokens.border[p.variant].muted};
 `;
 
-const StyledReorderableFakeLink = styled('div')<{
-  isDragging: boolean;
+const StyledReorderableLink = styled(Link, {
+  shouldForwardProp: prop => prop !== 'layout',
+})<{
   layout: 'mobile' | 'sidebar';
 }>`
   ${p => navigationItemStyles(p)}
@@ -1085,50 +1084,11 @@ const StyledReorderableFakeLink = styled('div')<{
   &:focus-visible {
     ${p => p.theme.focusRing()}
   }
-
-  :hover,
-  :has(:focus-visible) {
-    [data-drag-icon] {
-      opacity: 1;
-      scale: 1;
-      pointer-events: auto;
-    }
-  }
-
-  ${p =>
-    p.isDragging &&
-    css`
-      [data-drag-icon] {
-        opacity: 1;
-        scale: 1;
-        pointer-events: auto;
-      }
-    `}
-
-  [data-reorderable-handle-slot] {
-    transition:
-      opacity 150ms ease,
-      scale 150ms ease;
-  }
-
-  :hover [data-reorderable-handle-slot],
-  :has(:focus-visible) [data-reorderable-handle-slot] {
-    opacity: 0;
-    scale: 0.95;
-  }
-
-  ${p =>
-    p.isDragging &&
-    css`
-      [data-reorderable-handle-slot] {
-        opacity: 0;
-        scale: 0.95;
-      }
-    `}
 `;
 
-const StyledPageFrameReorderableFakeLink = styled('div')<{
-  isDragging: boolean;
+const StyledPageFrameReorderableLink = styled(Link, {
+  shouldForwardProp: prop => prop !== 'layout',
+})<{
   layout: 'mobile' | 'sidebar';
 }>`
   display: flex;
@@ -1174,35 +1134,6 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
-  }
-
-  :hover,
-  :has(:focus-visible) {
-    [data-drag-icon] {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-      pointer-events: auto;
-    }
-  }
-
-  [data-reorderable-handle-slot] {
-    transition:
-      opacity ${p => p.theme.motion.smooth.moderate},
-      transform ${p => p.theme.motion.smooth.moderate};
-    opacity: ${p => (p.isDragging ? 0 : undefined)};
-    transform: ${p => (p.isDragging ? 'scale(0.95)' : 'scale(1)')};
-  }
-
-  :hover [data-reorderable-handle-slot],
-  :has(:focus-visible) [data-reorderable-handle-slot] {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  [data-drag-icon] {
-    opacity: ${p => (p.isDragging ? 1 : undefined)};
-    transform: ${p => (p.isDragging ? 'translate(-50%, -50%) scale(1)' : undefined)};
-    pointer-events: ${p => (p.isDragging ? 'auto' : undefined)};
   }
 `;
 

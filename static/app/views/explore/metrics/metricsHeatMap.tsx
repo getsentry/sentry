@@ -1,8 +1,8 @@
-import {useCallback} from 'react';
+import {Fragment, useCallback} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
@@ -25,6 +25,10 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {getExploreUrl, prettifyAggregation} from 'sentry/views/explore/utils';
 
+// Tooltip action id for the "Add to filter" button, wired to a handler via
+// `tooltipActionHandlers`.
+const ADD_TO_FILTER_ACTION = 'add-to-filter';
+
 interface MetricsHeatMapProps {
   actions: React.ReactNode;
   heatmapResult: UseQueryResult<HeatMapSeries>;
@@ -39,8 +43,8 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
   const metric = useTraceMetric();
   const userQuery = useQueryParamsQuery();
   const setMetricQuery = useSetQueryParamsQuery();
-
   const organization = useOrganization();
+  const {selection} = usePageFilters();
 
   const {data: heatMapSeries, isPending, error} = heatmapResult;
 
@@ -49,23 +53,6 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
     visualizes.length > 1
       ? metricName
       : (title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate);
-
-  const getFilteredExploreUrl = useCallback(
-    (query: string, filteredSelection: PageFilters) => {
-      return getExploreUrl({
-        organization,
-        selection: filteredSelection,
-        crossEvents: [
-          {
-            type: 'metrics',
-            metric,
-            query,
-          },
-        ],
-      });
-    },
-    [metric, organization]
-  );
 
   const updateMetricQuery = useCallback(
     (query: string) => {
@@ -90,8 +77,52 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
             <HeatMapWidgetVisualization
               plottables={[new HeatMap(heatMapSeries)]}
               scale={HEATMAP_Z_AXIS_SCALE}
-              makeExploreUrl={getFilteredExploreUrl}
-              updateLocalFilterQuery={updateMetricQuery}
+              tooltipActionHandlers={{[ADD_TO_FILTER_ACTION]: updateMetricQuery}}
+              renderTooltipActions={({
+                valueMin,
+                valueMax,
+                timestampStart,
+                timestampEnd,
+              }) => {
+                const valueQuery =
+                  valueMin === valueMax
+                    ? `value:<=${valueMin}`
+                    : `value:>=${valueMin} value:<${valueMax}`;
+                const tracesUrl = getExploreUrl({
+                  organization,
+                  selection: {
+                    ...selection,
+                    datetime: {
+                      ...selection.datetime,
+                      start: new Date(timestampStart),
+                      end: new Date(timestampEnd),
+                      period: null,
+                    },
+                  },
+                  crossEvents: [{type: 'metrics', metric, query: valueQuery}],
+                });
+                return (
+                  <Fragment>
+                    <div>
+                      <span className="tooltip-label tooltip-label-centered">
+                        <a data-traces-link={tracesUrl} href={tracesUrl}>
+                          {t('View connected spans')}
+                        </a>
+                      </span>
+                    </div>
+                    <div>
+                      <span className="tooltip-label tooltip-label-centered">
+                        <a
+                          data-tooltip-action={ADD_TO_FILTER_ACTION}
+                          data-tooltip-action-value={valueQuery}
+                        >
+                          {t('Add to filter')}
+                        </a>
+                      </span>
+                    </div>
+                  </Fragment>
+                );
+              }}
             />
           )
         }

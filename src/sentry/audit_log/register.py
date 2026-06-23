@@ -105,6 +105,7 @@ default_manager.add(
 )
 default_manager.add(events.ProjectEnableAuditLogEvent())
 default_manager.add(events.ProjectDisableAuditLogEvent())
+default_manager.add(events.CustomInboundFilterAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=40,

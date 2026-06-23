@@ -5,7 +5,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import {getOutputType} from 'sentry/views/explore/replays/detail/network/details/getOutputType';
 import {
   Setup,
@@ -118,7 +117,9 @@ export function NetworkDetailsContent(props: Props) {
   }
 }
 
-const OverflowFluidHeight = styled(FluidHeight)`
+const OverflowFluidHeight = styled('div')`
+  flex-grow: 1;
+  height: 100%;
   overflow: auto;
 `;
 const SectionList = styled('dl')`
