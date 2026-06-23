@@ -3560,7 +3560,7 @@ describe('SearchQueryBuilder', () => {
 
       it('preserves an escaped value when canceling its edit', async () => {
         render(
-          <SearchQueryBuilder {...defaultProps} initialQuery={'browser.name:"foo bar"'} />
+          <SearchQueryBuilder {...defaultProps} initialQuery='browser.name:"foo bar"' />
         );
 
         await userEvent.click(
