@@ -291,7 +291,7 @@ def _detect_performance_problems(
         return
 
     event_data = build_shim_event_data(segment_span, spans)
-    performance_problems = detect_performance_problems(event_data, project, standalone=True)
+    all_control_problems = detect_performance_problems(event_data, project, standalone=True)
 
     if not segment_span.get("_performance_issues_spans"):
         return
@@ -303,7 +303,7 @@ def _detect_performance_problems(
     event_data["spans"] = []
     event_data["timestamp"] = event_data["datetime"]
 
-    for problem in performance_problems:
+    for problem in all_control_problems:
         problem.type = PerformanceStreamedSpansGroupTypeExperimental
         problem.fingerprint = (
             f"{problem.fingerprint}-{PerformanceStreamedSpansGroupTypeExperimental.type_id}"
