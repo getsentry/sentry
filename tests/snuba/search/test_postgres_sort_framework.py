@@ -470,6 +470,35 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
 
         assert self._query(actor=self.user)[0] == self.groups[0]
 
+    def test_proposed_recalibration_lifts_team_assignment_over_lifecycle(self):
+        # Models the proposed automator recalibration: raise assignment-weight (0.15->0.30)
+        # and soften the lifecycle boosts (regressed/newness 0.10->0.05). The intent is that
+        # an issue assigned to the viewer's team should outrank a freshly-regressed or
+        # newly-seen issue, which it does NOT under the current weights.
+        team = self.create_team(organization=self.organization, members=[self.user])
+        # groups[0] has the lowest base score (oldest events) -- the hardest case for it to win.
+        GroupAssignee.objects.assign(self.groups[0], team)  # team relevance = 0.5
+        self.groups[0].update(first_seen=before_now(days=30))  # no stray newness
+        self.groups[1].update(substatus=GroupSubStatus.REGRESSED, first_seen=before_now(days=30))
+        self.groups[2].update(first_seen=before_now(hours=1))  # fresh -> full newness boost
+
+        current = {
+            "snuba.search.recommended.assignment-weight": 0.15,
+            "snuba.search.recommended.regressed-weight": 0.10,
+            "snuba.search.recommended.newness-weight": 0.10,
+        }
+        proposed = {
+            "snuba.search.recommended.assignment-weight": 0.20,
+            "snuba.search.recommended.regressed-weight": 0.05,
+            "snuba.search.recommended.newness-weight": 0.05,
+        }
+        # Current weights: the team-assigned issue loses to the regressed/new ones.
+        with override_options(current):
+            assert self._query(actor=self.user)[0] != self.groups[0]
+        # Proposed weights: team assignment now wins.
+        with override_options(proposed):
+            assert self._query(actor=self.user)[0] == self.groups[0]
+
     def _add_suspect_commit(self, group, user):
         GroupOwner.objects.create(
             group=group,
