@@ -186,15 +186,13 @@ class SentryAppSerializer(Serializer):
 
                 assert application, "Sentry App must have an associated ApiApplication"
 
-                can_view_secrets = elevated_user or (
+                client_secret = MASKED_VALUE
+                if elevated_user or (
                     owner_context
                     and owner_context.member
                     and "org:write" in owner_context.member.scopes
                     and obj.show_auth_info(owner_context.member)
-                )
-
-                client_secret = MASKED_VALUE
-                if can_view_secrets:
+                ):
                     client_secret = application.client_secret
 
                 data.update(
