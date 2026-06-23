@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry import features, options
@@ -7,7 +8,10 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
-from sentry.pr_metrics.attribution import attribute_seer_created_pull_requests
+from sentry.pr_metrics.attribution import (
+    attribute_seer_created_pull_requests,
+    get_or_create_reported_pull_request,
+)
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
@@ -29,7 +33,7 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
 )
 from sentry.seer.models import SeerPermissionError
-from sentry.seer.models.run import SeerRunPullRequest
+from sentry.seer.models.run import SeerRun, SeerRunPullRequest
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
@@ -607,6 +611,87 @@ def _create_seer_activity(
     )
 
 
+def _maybe_link_run_to_pull_requests(
+    *,
+    organization: Organization,
+    pull_requests: Sequence[Mapping[str, Any]],
+    run_id: int,
+) -> None:
+    """Best-effort, killswitch-gated: link each PR a Seer run opened.
+
+    ``pull_requests`` is the ``seer.pr_created`` payload; ``run_id`` is the run's
+    ``seer_run_state_id``. Never raises — runs inline on the webhook path.
+    """
+    if options.get("seer.run-pr-link.killswitch.enabled"):
+        return
+    try:
+        _link_run_to_pull_requests(
+            organization=organization, pull_requests=pull_requests, run_id=run_id
+        )
+    except Exception:
+        logger.exception(
+            "seer.pr_link.failed",
+            extra={"organization_id": organization.id, "seer_run_state_id": run_id},
+        )
+
+
+def _link_run_to_pull_requests(
+    *,
+    organization: Organization,
+    pull_requests: Sequence[Mapping[str, Any]],
+    run_id: int,
+) -> None:
+    run = SeerRun.objects.filter(organization_id=organization.id, seer_run_state_id=run_id).first()
+    if run is None:
+        logger.warning(
+            "seer.pr_link.run_not_found",
+            extra={"organization_id": organization.id, "seer_run_state_id": run_id},
+        )
+        return
+
+    for entry in pull_requests:
+        repo_name = entry.get("repo_name")
+        provider = entry.get("provider")
+        pr_number = (entry.get("pull_request") or {}).get("pr_number")
+        log_context = {
+            "organization_id": organization.id,
+            "seer_run_state_id": run_id,
+            "repo_name": repo_name,
+            "provider": provider,
+            "pr_number": pr_number,
+        }
+        if not repo_name or pr_number is None:
+            logger.warning("seer.pr_link.missing_fields", extra=log_context)
+            continue
+
+        try:
+            resolved = get_or_create_reported_pull_request(
+                organization_id=organization.id,
+                repo_name=repo_name,
+                provider=provider,
+                pr_number=pr_number,
+            )
+            if resolved.pull_request is None:
+                logger.warning(
+                    "seer.pr_link.repo_unresolved",
+                    extra={**log_context, "repo_resolution": resolved.repo_resolution},
+                )
+                continue
+
+            SeerRunPullRequest.objects.get_or_create(
+                seer_run=run, pull_request=resolved.pull_request
+            )
+        except Exception:
+            # Isolate per entry so one bad repo doesn't drop the rest.
+            logger.exception("seer.pr_link.failed", extra=log_context)
+            continue
+
+        logger.info(
+            "seer.pr_link.recorded",
+            extra={**log_context, "pull_request_id": resolved.pull_request.id},
+        )
+
+
 @instrumented_task(
     name="sentry.seer.entrypoints.operator.process_autofix_updates",
     namespace=seer_tasks,
@@ -672,7 +757,7 @@ def process_autofix_updates(
         if event_type == SentryAppEventType.SEER_PR_CREATED:
             pull_requests = event_payload.get("pull_requests", [])
 
-            SeerRunPullRequest.maybe_link_run_to_pull_requests(
+            _maybe_link_run_to_pull_requests(
                 organization=organization,
                 pull_requests=pull_requests,
                 run_id=run_id,

@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, NamedTuple
 
 from django.db.models import Q
 from pydantic import BaseModel
@@ -135,6 +135,50 @@ def recompute_pull_request_attribution(pull_request: PullRequest) -> str | None:
     )
 
 
+class ResolvedPullRequest(NamedTuple):
+    """Result of resolving a Seer-reported PR to its canonical ``PullRequest``."""
+
+    pull_request: PullRequest | None
+    repo_resolution: str  # "resolved" | "not_found" | "ambiguous"
+    provider_recognized: bool
+
+
+def get_or_create_reported_pull_request(
+    *,
+    organization_id: int,
+    repo_name: str,
+    provider: str | None,
+    pr_number: int | str,
+) -> ResolvedPullRequest:
+    """Resolve a reported ``(repo, provider, PR number)`` to its canonical ``PullRequest``.
+
+    A find-or-create here may run before the SCM ``opened`` webhook arrives, so the row
+    can be a shell (no title/body) the webhook fills in later — callers must not
+    overwrite it. ``pull_request`` is None when the repo can't be uniquely resolved;
+    callers log the reason (``repo_resolution`` / ``provider_recognized``) under their
+    own namespace. Shared by attribution and Seer run→PR linking.
+    """
+    normalized_provider = _normalize_provider(provider)
+    provider_recognized = normalized_provider is None or normalized_provider in _KNOWN_SCM_PROVIDERS
+
+    repository, resolution = _resolve_repository(
+        organization_id=organization_id,
+        repo_name=repo_name,
+        normalized_provider=normalized_provider,
+    )
+    if repository is None:
+        return ResolvedPullRequest(None, resolution, provider_recognized)
+
+    # get_or_create is race-safe via the unique constraints — Django retries the
+    # get on IntegrityError.
+    pull_request, _ = PullRequest.objects.get_or_create(
+        organization_id=organization_id,
+        repository_id=repository.id,
+        key=str(pr_number),
+    )
+    return ResolvedPullRequest(pull_request, "resolved", provider_recognized)
+
+
 def _attribute_pull_request(
     *,
     organization_id: int,
@@ -146,48 +190,40 @@ def _attribute_pull_request(
     signal_details: Mapping[str, Any] | None,
     log_context: Mapping[str, Any],
 ) -> None:
-    """Resolve the org-scoped ``Repository`` for a reported PR, find-or-create the
-    canonical ``PullRequest`` row (keyed on PR number), and idempotently record one
-    attribution signal. Shared by the Seer-native and delegated-agent paths.
+    """Resolve a reported PR and idempotently record one attribution signal.
 
-    A find-or-create here may run before the SCM ``opened`` webhook arrives, so the
-    ``PullRequest`` row can be a shell (no title/body); the GitHub webhook fills
-    those in later. We never overwrite them from this path.
-
-    Failures are logged and swallowed rather than raised, so a batch caller's
-    remaining PRs are unaffected.
+    Shared by the Seer-native and delegated-agent paths. Failures are logged and
+    swallowed rather than raised, so a batch caller's remaining PRs are unaffected.
     """
-    normalized_provider = _normalize_provider(provider)
+    try:
+        resolved = get_or_create_reported_pull_request(
+            organization_id=organization_id,
+            repo_name=repo_name,
+            provider=provider,
+            pr_number=pr_number,
+        )
+    except Exception:
+        logger.exception("pr_metrics.attribution.record_failed", extra=log_context)
+        return
+
     # A present-but-unrecognized provider means the source sent something we don't
-    # map — warn so it can be corrected upstream, but still attempt to resolve.
-    if normalized_provider is not None and normalized_provider not in _KNOWN_SCM_PROVIDERS:
+    # map — warn so it can be corrected upstream.
+    if not resolved.provider_recognized:
         logger.warning("pr_metrics.attribution.unrecognized_provider", extra=log_context)
 
-    repository, resolution = _resolve_repository(
-        organization_id=organization_id,
-        repo_name=repo_name,
-        normalized_provider=normalized_provider,
-    )
-    if repository is None:
-        if resolution == "ambiguous":
+    if resolved.pull_request is None:
+        if resolved.repo_resolution == "ambiguous":
             logger.warning("pr_metrics.attribution.repo_ambiguous", extra=log_context)
         else:
             logger.warning("pr_metrics.attribution.repo_not_found", extra=log_context)
         return
 
     # The repo is resolved now, so its id sharpens every log from here on.
-    log_context = {**log_context, "repository_id": repository.id}
+    log_context = {**log_context, "repository_id": resolved.pull_request.repository_id}
 
-    # get_or_create is race-safe via the unique constraints — Django retries the
-    # get on IntegrityError.
     try:
-        pull_request, _ = PullRequest.objects.get_or_create(
-            organization_id=organization_id,
-            repository_id=repository.id,
-            key=str(pr_number),
-        )
         record_attribution_signal(
-            pull_request=pull_request,
+            pull_request=resolved.pull_request,
             signal_type=signal_type,
             source=source,
             signal_details=signal_details,
@@ -198,7 +234,7 @@ def _attribute_pull_request(
 
     logger.info(
         "pr_metrics.attribution.recorded",
-        extra={**log_context, "pull_request_id": pull_request.id},
+        extra={**log_context, "pull_request_id": resolved.pull_request.id},
     )
 
 
