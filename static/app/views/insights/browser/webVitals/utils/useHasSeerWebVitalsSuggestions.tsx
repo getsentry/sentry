@@ -1,5 +1,6 @@
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import {useSeerSupportedProviderIds} from 'sentry/components/events/autofix/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
@@ -9,7 +10,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 // Checks for:
 // - Org has web vitals suggestions feature enabled
 // - Org has ai features enabled and has given consent
-// - Project has a github repository set up
+// - Project has a supported SCM repository set up (GitHub, GitHub Enterprise, or GitLab with feature flag)
 export function useHasSeerWebVitalsSuggestions(selectedProject?: Project) {
   const organization = useOrganization();
 
@@ -25,9 +26,11 @@ export function useHasSeerWebVitalsSuggestions(selectedProject?: Project) {
   const hasConfiguredRepos = Boolean(
     preference?.repositories?.length || codeMappingRepos?.length
   );
-  const hasGithubRepos = Boolean(
-    preference?.repositories?.some(repo => repo.provider.includes('github')) ||
-    codeMappingRepos?.some(repo => repo.provider.includes('github'))
+  const supportedProviderIds = useSeerSupportedProviderIds();
+  const hasSupportedRepos = Boolean(
+    preference?.repositories?.some(repo =>
+      supportedProviderIds.includes(repo.provider)
+    ) || codeMappingRepos?.some(repo => supportedProviderIds.includes(repo.provider))
   );
 
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
@@ -36,6 +39,6 @@ export function useHasSeerWebVitalsSuggestions(selectedProject?: Project) {
     organization.features.includes('performance-web-vitals-seer-suggestions') &&
     areAiFeaturesAllowed &&
     hasConfiguredRepos &&
-    hasGithubRepos
+    hasSupportedRepos
   );
 }

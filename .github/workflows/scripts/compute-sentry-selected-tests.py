@@ -59,10 +59,22 @@ FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     # column-alias enum evaluated at import time; used indirectly by every
     # Snuba query builder so coverage never records per-test contexts for it
     "src/sentry/snuba/events.py",
+    # pure constants/aliases consumed at module level by search field/function
+    # registries — same pattern as constants.py, coverage sees only startup context
+    "src/sentry/search/events/constants.py",
+    # EAP shared column/aggregate definitions; consumed at import time by every
+    # EAP dataset file via module-level list comprehensions — zero coverage data
+    "src/sentry/search/eap/common_columns.py",
+    "src/sentry/search/eap/common_aggregates.py",
     # option defaults registered at startup via initialize_app()
     re.compile(r"^src/sentry/options/"),
     # feature flags registered via manager.add() at import time
     re.compile(r"^src/sentry/features/"),
+    # audit log events registered via default_manager.add() at import time;
+    # 60+ test files consume this via `from sentry import audit_log` (parent-package
+    # import), which the static import scan can't detect — so targeted mapping is
+    # unsafe and the full suite is required
+    re.compile(r"^src/sentry/audit_log/"),
     # signal definitions created at module level; receivers depend on these
     "src/sentry/signals.py",
     # signal handlers registered globally via initialize_receivers()

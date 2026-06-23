@@ -3,9 +3,9 @@ import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
 
+import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {IconCompass} from 'sentry/icons/iconCompass';
 import {IconFile} from 'sentry/icons/iconFile';
-import {IconGithub} from 'sentry/icons/iconGithub';
 import {IconIssues} from 'sentry/icons/iconIssues';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
@@ -312,13 +312,21 @@ function getCodeSearchEvidenceProps({
 function getGitSearchEvidenceProps({
   toolLink,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
-  const {repo_name, commit_url, sha, commits_url, start_date, end_date, file_path} =
-    toolLink?.params ?? {};
+  const {
+    repo_name,
+    commit_url,
+    sha,
+    commits_url,
+    start_date,
+    end_date,
+    file_path,
+    provider,
+  } = toolLink?.params ?? {};
 
   if (typeof commit_url === 'string' && typeof sha === 'string') {
     return {
       href: commit_url,
-      icon: <IconGithub />, // TODO: support other SCMs
+      icon: <RepoProviderIcon provider={provider ?? 'integrations:github'} />,
       label: t('Commit: %s', truncateText(getShortCommitHash(sha))),
       tooltip: sha,
     };
@@ -334,7 +342,7 @@ function getGitSearchEvidenceProps({
       typeof file_path === 'string' ? extractFileName(file_path) : undefined;
     return {
       href: commits_url,
-      icon: <IconGithub />, // TODO: support other SCMs
+      icon: <RepoProviderIcon provider={provider ?? 'integrations:github'} />,
       label: t('Commits: %s', fileName ? truncateText(fileName) : repo_name),
       tooltip: (
         <Fragment>
