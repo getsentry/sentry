@@ -103,6 +103,6 @@ describe('BillingDetailsPanel', () => {
         </ThemeProvider>
       );
     },
-    name => ({tags: {area: 'billing', scenario: name}})
+    () => ({tags: {area: 'billing'}})
   );
 });
