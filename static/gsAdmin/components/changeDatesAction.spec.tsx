@@ -18,8 +18,8 @@ describe('ChangeDatesAction', () => {
     organization,
     onDemandPeriodStart: '2024-01-01',
     onDemandPeriodEnd: '2024-02-01',
-    contractPeriodStart: '2024-03-01',
-    contractPeriodEnd: '2024-04-01',
+    billingPeriodStart: '2024-03-01',
+    billingPeriodEnd: '2024-04-01',
   });
 
   const onSuccess = jest.fn();

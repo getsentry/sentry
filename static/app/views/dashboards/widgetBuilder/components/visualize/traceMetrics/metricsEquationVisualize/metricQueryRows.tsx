@@ -214,6 +214,10 @@ export function MetricQueryRows({
     }
   }
 
+  // If any of the metric names are undefined, then we're still loading in a selection.
+  // Equations should be disabled if there are any unresolved metric selections.
+  const hasUnresolvedMetrics = functionQueries.some(q => !q.metric?.name);
+
   return (
     <Stack gap="lg" flex="1">
       {functionQueries.map(metricQuery => {
@@ -254,6 +258,7 @@ export function MetricQueryRows({
             onRowSelection={onRowSelection}
             onReferenceLabelsChange={setEquationReferencedLabels}
             deleteDisabledReason={t('An equation is required')}
+            disabled={hasUnresolvedMetrics}
           />
         </BuilderStateMetricsQueryParamsProvider>
       )}

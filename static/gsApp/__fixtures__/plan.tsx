@@ -2,9 +2,7 @@ import type {Plan} from 'getsentry/types';
 
 export function PlanFixture(fields: Partial<Plan>): Plan {
   return {
-    allowAdditionalReservedEvents: false,
     allowOnDemand: false,
-    availableCategories: [],
     addOnCategories: {},
     basePrice: 0,
     billingInterval: 'monthly',
@@ -14,7 +12,6 @@ export function PlanFixture(fields: Partial<Plan>): Plan {
     contractInterval: 'monthly',
     dashboardLimit: 10,
     metricDetectorLimit: 20,
-    description: '',
     features: [],
     hasOnDemandModes: false,
     id: 'am3_f',
@@ -23,7 +20,6 @@ export function PlanFixture(fields: Partial<Plan>): Plan {
     maxMembers: 1,
     name: 'Developer',
     onDemandCategories: [],
-    onDemandEventPrice: 0,
     planCategories: {
       errors: [
         {events: 50000, unitPrice: 0.089, price: 0},
@@ -46,7 +42,6 @@ export function PlanFixture(fields: Partial<Plan>): Plan {
       installableBuilds: [{events: 0, unitPrice: 0, price: 0, onDemandPrice: 0}],
     },
     price: 0,
-    reservedMinimum: 0,
     retentionDays: 0,
     totalPrice: 0,
     trialPlan: null,

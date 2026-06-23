@@ -733,6 +733,137 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.data["images"][0]["key"] == "img000"
         assert response.data["images"][9]["key"] == "img009"
 
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
+    def test_get_snapshot_diff_omits_images(self, mock_get_session):
+        from sentry.preprod.snapshots.manifest import (
+            ComparisonImageResult,
+            ComparisonManifest,
+            ComparisonSummary,
+            ImageMetadata,
+            SnapshotManifest,
+        )
+
+        head_images = {
+            "changed.png": {
+                "content_hash": "head_changed",
+                "display_name": "Changed",
+                "width": 100,
+                "height": 100,
+            },
+            "unchanged.png": {
+                "content_hash": "head_unchanged",
+                "display_name": "Unchanged",
+                "width": 100,
+                "height": 100,
+            },
+        }
+        artifact, head_metrics, head_manifest_key, head_manifest_json, _ = (
+            self._create_artifact_with_manifest(images=head_images)
+        )
+
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+            app_id="com.example.app",
+        )
+        base_manifest_key = f"{self.org.id}/{self.project.id}/{base_artifact.id}/manifest.json"
+        PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            image_count=2,
+            extras={"manifest_key": base_manifest_key},
+        )
+        base_manifest_json = orjson.dumps(
+            SnapshotManifest(
+                images={
+                    "changed.png": ImageMetadata(
+                        content_hash="base_changed", width=100, height=100
+                    ),
+                    "unchanged.png": ImageMetadata(
+                        content_hash="head_unchanged", width=100, height=100
+                    ),
+                }
+            ).dict()
+        )
+
+        comparison = self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=PreprodSnapshotMetrics.objects.get(
+                preprod_artifact=base_artifact
+            ),
+            state=PreprodSnapshotComparison.State.SUCCESS,
+            images_changed=1,
+            images_unchanged=1,
+        )
+        comparison_key = (
+            f"{self.org.id}/{self.project.id}/{artifact.id}/{base_artifact.id}/comparison.json"
+        )
+        comparison.extras = {"comparison_key": comparison_key}
+        comparison.save(update_fields=["extras"])
+
+        comparison_manifest_json = orjson.dumps(
+            ComparisonManifest(
+                head_artifact_id=artifact.id,
+                base_artifact_id=base_artifact.id,
+                summary=ComparisonSummary(
+                    total=2,
+                    changed=1,
+                    unchanged=1,
+                    added=0,
+                    removed=0,
+                    errored=0,
+                    renamed=0,
+                    skipped=0,
+                ),
+                images={
+                    "changed.png": ComparisonImageResult(
+                        status="changed",
+                        head_hash="head_changed",
+                        base_hash="base_changed",
+                        changed_pixels=50,
+                        total_pixels=100,
+                        diff_mask_image_id="diff-mask-1",
+                    ),
+                    "unchanged.png": ComparisonImageResult(
+                        status="unchanged",
+                        head_hash="head_unchanged",
+                        base_hash="head_unchanged",
+                    ),
+                },
+            ).dict()
+        )
+
+        manifests_by_key = {
+            head_manifest_key: head_manifest_json,
+            base_manifest_key: base_manifest_json,
+            comparison_key: comparison_manifest_json,
+        }
+
+        def _session_get(key):
+            result = MagicMock()
+            result.payload.read.return_value = manifests_by_key[key]
+            return result
+
+        mock_session = MagicMock()
+        mock_session.get.side_effect = _session_get
+        mock_get_session.return_value = mock_session
+
+        url = self._get_detail_url(artifact.id)
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response.data["comparison_type"] == "diff"
+        # Categorized arrays are still populated...
+        assert response.data["changed_count"] == 1
+        assert len(response.data["changed"]) == 1
+        assert response.data["changed"][0]["head_image"]["image_file_name"] == "changed.png"
+        assert response.data["unchanged_count"] == 1
+        assert response.data["unchanged"][0]["image_file_name"] == "unchanged.png"
+        # ...but the redundant flat images array is dropped in diff mode.
+        assert response.data["images"] == []
+        # image_count is unaffected.
+        assert response.data["image_count"] == 2
+
     def test_get_snapshot_not_found(self) -> None:
         url = self._get_detail_url(99999)
         with self.feature("organizations:preprod-snapshots"):
