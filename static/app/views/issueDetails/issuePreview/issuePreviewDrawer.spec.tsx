@@ -12,6 +12,29 @@ import {IssueCategory} from 'sentry/types/group';
 import {IssuePreviewDrawer} from 'sentry/views/issueDetails/issuePreview/issuePreviewDrawer';
 
 describe('IssuePreviewDrawer', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/replay-count/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/123/tags/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/123/attachments/',
+      body: [],
+    });
+  });
+
   it('renders the issue short ID and title', async () => {
     const project = ProjectFixture();
     const group = GroupFixture({
@@ -28,32 +51,12 @@ describe('IssuePreviewDrawer', () => {
       body: group,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/attachments/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/tags/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
       body: {
         integration: {ok: false, reason: null},
         billing: {hasAutofixQuota: false},
         seerReposLinked: false,
       },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/replay-count/`,
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/users/`,
-      body: [],
     });
 
     render(<IssuePreviewDrawer groupId={group.id} />);
@@ -91,28 +94,12 @@ describe('IssuePreviewDrawer', () => {
       ],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/tags/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
       body: {
         integration: {ok: false, reason: null},
         billing: {hasAutofixQuota: false},
         seerReposLinked: false,
       },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/replay-count/`,
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/users/`,
-      body: [],
     });
 
     render(<IssuePreviewDrawer groupId={group.id} />);
@@ -208,7 +195,7 @@ describe('IssuePreviewDrawer', () => {
     expect(await screen.findAllByText('Resolved')).not.toHaveLength(0);
   });
 
-  it('disables the Autofix tab when AI features are unavailable', async () => {
+  it('does not show the Autofix tab when AI features are unavailable', async () => {
     const project = ProjectFixture();
     const group = GroupFixture({id: '123', shortId: 'JAVASCRIPT-6QS', project});
 
@@ -219,14 +206,6 @@ describe('IssuePreviewDrawer', () => {
       body: group,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/attachments/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/tags/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
       body: {
         integration: {ok: false, reason: null},
@@ -234,21 +213,11 @@ describe('IssuePreviewDrawer', () => {
         seerReposLinked: false,
       },
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/replay-count/`,
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
-      body: [],
-    });
 
     render(<IssuePreviewDrawer groupId={group.id} />);
 
-    expect(await screen.findByRole('tab', {name: 'Autofix'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(await screen.findByRole('tab', {name: 'Activity'})).toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
   });
 
   it('opens the Autofix tab and shows the start state', async () => {
@@ -261,22 +230,6 @@ describe('IssuePreviewDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: group,
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/attachments/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/tags/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/replay-count/`,
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,

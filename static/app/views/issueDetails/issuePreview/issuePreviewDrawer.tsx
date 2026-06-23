@@ -149,7 +149,9 @@ function IssuePreviewContent() {
           <Container paddingBottom="md" borderBottom="muted">
             <TabList variant="floating">
               <TabList.Item key="activity">{t('Activity')}</TabList.Item>
-              {hasAutofix && <TabList.Item key="autofix">{t('Autofix')}</TabList.Item>}
+              {hasAutofix ? (
+                <TabList.Item key="autofix">{t('Autofix')}</TabList.Item>
+              ) : null}
               <TabList.Item key="details" disabled>
                 {t('Details')}
               </TabList.Item>
@@ -169,13 +171,13 @@ function IssuePreviewContent() {
                 />
               </Container>
             </TabPanels.Item>
-            {hasAutofix && (
+            {hasAutofix ? (
               <TabPanels.Item key="autofix">
                 <Container paddingTop="md">
                   <IssuePreviewAutofix group={group} project={project} />
                 </Container>
               </TabPanels.Item>
-            )}
+            ) : null}
             <TabPanels.Item key="details">
               <div />
             </TabPanels.Item>
