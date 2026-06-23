@@ -26,7 +26,7 @@ class DebugFileSerializer(Serializer[DebugFileSerializerResponse]):
         if obj.file is not None:
             headers = obj.file.headers
         elif obj.storage_path is not None:
-            headers = {"Content-Type": obj.content_type()}
+            headers = {"Content-Type": obj.get_content_type()}
         else:
             raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
