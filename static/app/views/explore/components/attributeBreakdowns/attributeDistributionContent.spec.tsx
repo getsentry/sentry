@@ -81,7 +81,7 @@ describe('AttributeDistribution', () => {
       method: 'GET',
       body: makeStatsResponse(makeAttributeDistributions(13, 24)),
       headers: {
-        Link: '<https://sentry.io>; rel="next"; results="false"; cursor="cursor-24"',
+        Link: '<https://sentry.io>; rel="previous"; results="true"; cursor="0:0:1", <https://sentry.io>; rel="next"; results="false"; cursor="cursor-24"',
       },
       match: [
         (_url: string, options: {query?: Record<string, any>}) =>
@@ -136,6 +136,15 @@ describe('AttributeDistribution', () => {
     );
     expect(await screen.findByText('attribute.13')).toBeInTheDocument();
     expect(screen.queryByText('attribute.1')).not.toBeInTheDocument();
+    expect(firstPageRequest).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
+
+    await waitFor(() => {
+      expect(router.location.query.breakdownCursor).toBeUndefined();
+    });
+    expect(await screen.findByText('attribute.1')).toBeInTheDocument();
+    expect(screen.queryByText('attribute.13')).not.toBeInTheDocument();
     expect(firstPageRequest).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByPlaceholderText('Search keys'));

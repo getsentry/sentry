@@ -12,6 +12,7 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {parseCursor} from 'sentry/utils/cursor';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -183,7 +184,9 @@ export function AttributeDistribution() {
               isNextDisabled={!parsedLinks.next?.results}
               onPrevClick={() => {
                 setQueryParams({
-                  breakdownCursor: parsedLinks.previous?.cursor,
+                  breakdownCursor: getPreviousBreakdownCursor(
+                    parsedLinks.previous?.cursor
+                  ),
                 });
               }}
               onNextClick={() => {
@@ -199,6 +202,12 @@ export function AttributeDistribution() {
       </Flex>
     </Panel>
   );
+}
+
+function getPreviousBreakdownCursor(cursor: string | undefined) {
+  const parsedCursor = parseCursor(cursor);
+
+  return parsedCursor?.isPrev && parsedCursor.offset === 0 ? null : cursor;
 }
 
 function ChartSelectionAlert() {
