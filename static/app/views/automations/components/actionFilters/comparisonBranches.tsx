@@ -17,34 +17,32 @@ type IntervalChoice = {label: string; value: Interval};
 
 interface BranchProps {
   intervalChoices?: IntervalChoice[];
-  // Minimum allowed comparison value. Defaults to 0, which lets users alert on
-  // "more than 0" (i.e. 1 or more). Percent-sessions passes 1 since its
-  // validator treats 0 as missing.
-  minValue?: number;
 }
 
 export function CountBranch({
   intervalChoices = INTERVAL_CHOICES,
-  minValue = 0,
-}: BranchProps) {
+  maximumFractionDigits,
+}: BranchProps & {maximumFractionDigits?: number}) {
   return tct('more than [value] [interval]', {
-    value: <ValueField minValue={minValue} />,
+    value: <ValueField maximumFractionDigits={maximumFractionDigits} />,
     interval: <IntervalField intervalChoices={intervalChoices} />,
   });
 }
 
-export function PercentBranch({
-  intervalChoices = INTERVAL_CHOICES,
-  minValue = 0,
-}: BranchProps) {
+export function PercentBranch({intervalChoices = INTERVAL_CHOICES}: BranchProps) {
   return tct('[value] higher [interval] compared to [comparison_interval]', {
-    value: <PercentValueField minValue={minValue} />,
+    value: <PercentValueField />,
     interval: <IntervalField intervalChoices={intervalChoices} />,
     comparison_interval: <ComparisonIntervalField />,
   });
 }
 
-function ValueField({minValue = 0}: {minValue?: number}) {
+// Integer count input by default (min 0, stepping by 1). When
+// maximumFractionDigits is set, the input also accepts decimals: typed values
+// are preserved and rounded to that precision on blur, while the stepper buttons
+// still move by whole units. Used by percent-sessions count, where fractional
+// percentages are meaningful.
+function ValueField({maximumFractionDigits}: {maximumFractionDigits?: number}) {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
 
@@ -53,8 +51,12 @@ function ValueField({minValue = 0}: {minValue?: number}) {
       name={`${condition_id}.comparison.value`}
       aria-label={t('Value')}
       value={condition.comparison.value}
-      min={minValue}
-      step={1}
+      // Omitting `step` keeps typed decimals intact on blur — react-aria only
+      // snaps to a step grid when `step` is defined. The buttons still fall back
+      // to stepping by 1.
+      {...(maximumFractionDigits === undefined
+        ? {step: 1}
+        : {formatOptions: {maximumFractionDigits}})}
       onChange={(value: number) => {
         onUpdate({comparison: {...condition.comparison, value}});
         removeError(condition.id);
@@ -63,10 +65,10 @@ function ValueField({minValue = 0}: {minValue?: number}) {
   );
 }
 
-function PercentValueField({minValue = 0}: {minValue?: number}) {
+function PercentValueField() {
   return (
     <PercentWrapper>
-      <ValueField minValue={minValue} />%
+      <ValueField />%
     </PercentWrapper>
   );
 }

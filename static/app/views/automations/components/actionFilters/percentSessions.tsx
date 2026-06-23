@@ -95,10 +95,12 @@ function ComparisonTypeField() {
   const {removeError} = useAutomationBuilderErrorContext();
 
   if (condition.type === DataConditionType.PERCENT_SESSIONS_COUNT) {
-    return <CountBranch intervalChoices={PERCENT_INTERVAL_CHOICES} minValue={1} />;
+    return (
+      <CountBranch intervalChoices={PERCENT_INTERVAL_CHOICES} maximumFractionDigits={3} />
+    );
   }
   if (condition.type === DataConditionType.PERCENT_SESSIONS_PERCENT) {
-    return <PercentBranch intervalChoices={PERCENT_INTERVAL_CHOICES} minValue={1} />;
+    return <PercentBranch intervalChoices={PERCENT_INTERVAL_CHOICES} />;
   }
 
   return (
@@ -136,8 +138,13 @@ export function validatePercentSessionsCondition({
   if (condition.type === DataConditionType.PERCENT_SESSIONS) {
     return t('You must select a comparison type.');
   }
+  const {value} = condition.comparison;
+  // 0 is a valid threshold for both variants (the backend schema allows it), so
+  // only treat null/undefined/NaN as missing.
   if (
-    !condition.comparison.value ||
+    value === null ||
+    value === undefined ||
+    Number.isNaN(value) ||
     !condition.comparison.interval ||
     (condition.type === DataConditionType.PERCENT_SESSIONS_PERCENT &&
       !condition.comparison.comparisonInterval)
