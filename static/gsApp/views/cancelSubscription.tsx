@@ -198,7 +198,7 @@ function CancelSubscriptionForm() {
               interval: subscription?.contractInterval === ANNUAL ? 'annual' : 'monthly',
               planName: <strong>{subscription?.planDetails?.name}</strong>,
               contractEndDate: (
-                <strong>{moment(subscription.contractPeriodEnd).format('ll')}</strong>
+                <strong>{moment(subscription.billingPeriodEnd).format('ll')}</strong>
               ),
             }
           )}

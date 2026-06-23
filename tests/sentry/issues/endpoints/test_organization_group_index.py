@@ -782,6 +782,17 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(group.id)
         assert response["X-Sentry-Direct-Hit"] == "1"
 
+    def test_lookup_by_multiple_short_ids(self) -> None:
+        group = self.group
+        group2 = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            query=f"{group.qualified_short_id} {group2.qualified_short_id}", shortIdLookup=1
+        )
+        assert {r["id"] for r in response.data} == {str(group.id), str(group2.id)}
+        assert response.get("X-Sentry-Direct-Hit") != "1"
+
     def test_lookup_by_group_id(self) -> None:
         self.login_as(user=self.user)
         response = self.get_success_response(group=self.group.id)

@@ -76,6 +76,7 @@ class SerializedSpan(SerializedEvent):
     duration: float
     end_timestamp: datetime
     measurements: dict[str, Any]
+    browser_web_vital: dict[str, Any]
     op: str
     name: str
     parent_span_id: str | None
@@ -268,6 +269,9 @@ def _serialize_rpc_event(
         end_timestamp=event["precise.finish_ts"],
         measurements={
             key: value for key, value in event.items() if key.startswith("measurements.")
+        },
+        browser_web_vital={
+            key: value for key, value in event.items() if key.startswith("browser.web_vital.")
         },
         duration=event["span.duration"],
         transaction=event["transaction"],
