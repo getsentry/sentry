@@ -44,6 +44,12 @@ export type OnboardingEventParameters = {
     from: string;
     to: string;
   };
+  'onboarding.scm_connect_integration_selected': {
+    provider: string;
+    // 'default' when the integration was auto-selected on entry, 'manual' when
+    // the user explicitly switched via the selector.
+    source: 'default' | 'manual';
+  };
   'onboarding.scm_connect_repo_selected': {
     provider: string;
     repo: string;
@@ -192,6 +198,8 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
   'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',
   'onboarding.scm_back_button_clicked': 'Onboarding: SCM Back Button Clicked',
+  'onboarding.scm_connect_integration_selected':
+    'Onboarding: SCM Connect Integration Selected',
   'onboarding.scm_connect_repo_selected': 'Onboarding: SCM Connect Repo Selected',
   'onboarding.scm_connect_step_viewed': 'Onboarding: SCM Connect Step Viewed',
   'onboarding.scm_data_removal_modal_confirm_button_clicked':

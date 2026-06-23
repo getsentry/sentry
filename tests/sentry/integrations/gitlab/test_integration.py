@@ -1392,3 +1392,82 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         oauth_url = resp.data["data"]["oauthUrl"]
         assert "gitlab.example.com/oauth/authorize" in oauth_url
         assert "///" not in oauth_url
+
+    def _complete_pipeline(self, **config_overrides: Any) -> None:
+        self._stub_gitlab_oauth()
+        self._stub_gitlab_user()
+        self._stub_gitlab_group()
+
+        self._initialize_pipeline()
+        resp = self._submit_config(**config_overrides)
+        pipeline_signature = self._get_pipeline_signature(resp)
+        resp = self._advance_step({"code": "gitlab-auth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+    @responses.activate
+    def test_install_schedules_webhook_refresh(self) -> None:
+        with patch(
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ) as mock_schedule:
+            self._complete_pipeline()
+
+        integration = Integration.objects.get(provider="gitlab")
+        mock_schedule.assert_called_once_with(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+        )
+
+    @responses.activate
+    def test_reinstall_with_new_client_id_rotates_secret_and_reschedules(self) -> None:
+        # First install.
+        self._complete_pipeline()
+        integration = Integration.objects.get(provider="gitlab")
+        original_secret = integration.metadata["webhook_secret"]
+
+        responses.reset()
+
+        # Reinstall against a different OAuth app (new client_id). The external_id
+        # is unchanged, so this upserts the same integration but rotates the secret.
+        self.client_id = "app-id-different-456"
+        with patch(
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ) as mock_schedule:
+            self._complete_pipeline()
+
+        integration.refresh_from_db()
+        assert integration.metadata["webhook_secret"] != original_secret
+        mock_schedule.assert_called_once_with(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+        )
+
+    @responses.activate
+    def test_reinstall_refreshes_all_shared_orgs(self) -> None:
+        # First org installs.
+        self._complete_pipeline()
+        integration = Integration.objects.get(provider="gitlab")
+
+        # A second Sentry org shares the same integration (same hostname:group_id,
+        # so the install pipeline upserts the same Integration row).
+        other_org = self.create_organization()
+        integration.add_organization(other_org)
+
+        responses.reset()
+
+        # Reinstall against a different OAuth app rotates the shared secret.
+        self.client_id = "app-id-different-456"
+        with patch(
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ) as mock_schedule:
+            self._complete_pipeline()
+
+        # Both orgs sharing the integration get a refresh scheduled, not just the
+        # org that ran the reinstall.
+        scheduled_org_ids = {
+            call.kwargs["organization_id"] for call in mock_schedule.call_args_list
+        }
+        assert scheduled_org_ids == {self.organization.id, other_org.id}
+        assert all(
+            call.kwargs["integration_id"] == integration.id for call in mock_schedule.call_args_list
+        )
