@@ -66,6 +66,21 @@ class ShouldSendNudgeBlockTest(TestCase):
         assert cache.get(cache_key(self.channel_id)) == 1
 
     @with_feature(FEATURE_FLAG)
+    def test_key_evicted_between_get_and_incr(self) -> None:
+        # The cached count says we've posted before (so we take the incr branch),
+        # but the key is evicted/expired before the incr runs. incr raises
+        # ValueError on a missing key; we must fall back to set rather than
+        # letting it propagate and drop the alert.
+        cache.set(cache_key(self.channel_id), 2, timeout=7 * 24 * 60 * 60)
+        with patch.object(cache, "incr", side_effect=ValueError("Key not found")):
+            assert (
+                should_send_nudge_block(channel_id=self.channel_id, organization=self.organization)
+                is True
+            )
+        # The fallback re-seeded the counter at count + 1.
+        assert cache.get(cache_key(self.channel_id)) == 3
+
+    @with_feature(FEATURE_FLAG)
     def test_limit_is_per_channel(self) -> None:
         # A different channel has hit the limit this week...
         other_channel_id = "C9999999999"

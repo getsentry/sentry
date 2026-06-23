@@ -28,6 +28,11 @@ def should_send_nudge_block(
     if count == 0:
         cache.set(cache_key, 1, timeout=7 * 24 * 60 * 60)
     else:
-        cache.incr(cache_key)
+        try:
+            cache.incr(cache_key)
+        except ValueError:
+            # The key may have been evicted/expired between the get and the
+            # incr; incr raises ValueError on a missing key, so fall back to set.
+            cache.set(cache_key, count + 1, timeout=7 * 24 * 60 * 60)
 
     return True
