@@ -49,6 +49,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_update_alert_rule,
     dual_write_alert_rule,
 )
+from sentry.workflow_engine.types import AlertRuleNotDualWritten
 
 from .alert_rule_trigger import AlertRuleTriggerSerializer
 
@@ -408,6 +409,10 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             self._handle_triggers(alert_rule, triggers)
             try:
                 dual_update_alert_rule(alert_rule)
+            except AlertRuleNotDualWritten:
+                raise serializers.ValidationError(
+                    "This Alert cannot be modified with the legacy API. See: https://docs.sentry.io/api/monitors/"
+                )
             except Exception:
                 sentry_sdk.capture_exception()
                 raise BadRequest(message="Error when updating alert rule")
