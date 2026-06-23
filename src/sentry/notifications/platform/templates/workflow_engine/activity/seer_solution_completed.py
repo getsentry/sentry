@@ -7,6 +7,7 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
     get_example_template,
     get_issue_description,
     get_seer_link,
+    get_subject,
 )
 from sentry.notifications.platform.types import (
     CodeBlock,
@@ -34,8 +35,9 @@ class SeerSolutionCompletedActivityTemplate(NotificationTemplate[WorkflowEngineA
 
     def render_example(self) -> NotificationRenderedTemplate:
         return get_example_template(
-            subject="Seer has prepared a plan",
+            subject="Seer Solution Completed for EXAMPLE-1",
             body=[
+                *get_example_issue_description(),
                 CodeBlock(
                     blocks=[
                         PlainTextBlock(
@@ -43,18 +45,17 @@ class SeerSolutionCompletedActivityTemplate(NotificationTemplate[WorkflowEngineA
                         )
                     ]
                 ),
-                get_example_issue_description(),
             ],
         )
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
         activity, group, project, organization = extract_models(data)
-        fallback = "Click the link below to view the details in Sentry"
+        fallback = "View the details in Sentry."
         summary_block = PlainTextBlock(text=activity.data.get("summary", fallback))
         return build_template(
             data=data,
-            subject="Seer has prepared a plan",
-            body=[CodeBlock(blocks=[summary_block]), get_issue_description(group)],
+            subject=get_subject("Seer Solution Completed", group),
+            body=[*get_issue_description(group), CodeBlock(blocks=[summary_block])],
             extra_actions=[
                 NotificationRenderedAction(label="View in Sentry", link=get_seer_link(group))
             ],

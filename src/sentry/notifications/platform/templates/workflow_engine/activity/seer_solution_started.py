@@ -6,6 +6,7 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
     get_example_template,
     get_issue_description,
     get_seer_link,
+    get_subject,
 )
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -30,14 +31,14 @@ class SeerSolutionStartedActivityTemplate(NotificationTemplate[WorkflowEngineAct
     )
 
     def render_example(self) -> NotificationRenderedTemplate:
-        return get_example_template("Seer is working on a plan...")
+        return get_example_template("Seer Solution Started for EXAMPLE-1")
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
         activity, group, project, organization = extract_models(data)
         return build_template(
             data=data,
-            subject="Seer is working on a plan...",
-            body=[get_issue_description(group)],
+            subject=get_subject("Seer Solution Started", group),
+            body=get_issue_description(group),
             extra_actions=[
                 NotificationRenderedAction(label="View in Sentry", link=get_seer_link(group))
             ],
