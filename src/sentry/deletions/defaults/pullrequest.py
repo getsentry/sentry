@@ -11,6 +11,7 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
     PullRequestMetrics,
 )
+from sentry.seer.models.run import SeerRunPullRequest
 
 
 class PullRequestDeletionTask(ModelDeletionTask[PullRequest]):
@@ -28,4 +29,5 @@ class PullRequestDeletionTask(ModelDeletionTask[PullRequest]):
             ModelRelation(PullRequestMetrics, {"pull_request_id": instance.id}),
             ModelRelation(PullRequestComment, {"pull_request_id": instance.id}),
             ModelRelation(PullRequestCommit, {"pull_request_id": instance.id}),
+            ModelRelation(SeerRunPullRequest, {"pull_request_id": instance.id}),
         ]
