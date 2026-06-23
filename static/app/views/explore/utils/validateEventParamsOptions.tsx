@@ -10,7 +10,7 @@ import {defined} from 'sentry/utils/defined';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
-const STALE_TIME = 30 * 60 * 1000;
+const STALE_TIME = 5 * 60 * 1000;
 
 // These schemas mirror the response dataclasses in
 // src/sentry/api/endpoints/organization_events_validate.py
