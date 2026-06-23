@@ -265,10 +265,6 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             "organizations:custom-metrics",
             self.context["organization"],
             actor=self.context.get("user", None),
-        ) or features.has(
-            "organizations:insights-alerts",
-            self.context["organization"],
-            actor=self.context.get("user", None),
         )
         allow_eap = dataset == Dataset.EventsAnalyticsPlatform
 
@@ -302,10 +298,6 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         if features.has(
             "organizations:custom-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ) or features.has(
-            "organizations:insights-alerts",
             self.context["organization"],
             actor=self.context.get("user", None),
         ):

@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef, type UIEventHandler} from 'react';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 interface UseAutoScrollOptions {
   enabled: boolean;

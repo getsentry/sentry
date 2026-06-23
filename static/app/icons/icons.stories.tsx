@@ -246,13 +246,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'codecov',
-        groups: ['logo'],
-        keywords: ['coverage', 'testing', 'code'],
-        name: 'Codecov',
-        defaultProps: {},
-      },
-      {
         id: 'bitbucket',
         groups: ['logo'],
         keywords: ['git', 'repository', 'code', 'atlassian'],
@@ -684,7 +677,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'circle',
         groups: ['status'],
-        keywords: ['shape', 'round', 'dot', 'indicator'],
+        keywords: ['shape', 'round', 'dot', 'indicator', 'progress'],
         name: 'Circle',
         defaultProps: {},
       },
@@ -693,6 +686,43 @@ const SECTIONS: TSection[] = [
         groups: ['status'],
         keywords: ['shape', 'round', 'dot', 'indicator', 'filled'],
         name: 'CircleFill',
+        defaultProps: {},
+      },
+      {
+        id: 'pieQuarter',
+        groups: ['status'],
+        keywords: ['circle', 'progress', 'pie', 'quarter'],
+        name: 'PieQuarter',
+        defaultProps: {},
+      },
+      {
+        id: 'pieHalf',
+        groups: ['status'],
+        keywords: ['circle', 'progress', 'pie', 'half'],
+        name: 'PieHalf',
+        defaultProps: {},
+      },
+      {
+        id: 'pieThreeQuarters',
+        groups: ['status'],
+        keywords: ['circle', 'progress', 'pie'],
+        name: 'PieThreeQuarters',
+        defaultProps: {},
+      },
+      {
+        id: 'circleCheckmark',
+        groups: ['status'],
+        keywords: [
+          'check',
+          'done',
+          'complete',
+          'success',
+          'fixed',
+          'circle',
+          'progress',
+          'resolved',
+        ],
+        name: 'CircleCheckmark',
         defaultProps: {},
       },
       {
@@ -1301,6 +1331,13 @@ const SECTIONS: TSection[] = [
         name: 'Graph',
         defaultProps: {
           type: 'scatter',
+        },
+      },
+      {
+        id: 'graph-type-heatmap',
+        name: 'Graph',
+        defaultProps: {
+          type: 'heatmap',
         },
       },
       {

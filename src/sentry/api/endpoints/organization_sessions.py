@@ -39,7 +39,8 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     @extend_schema(
-        operation_id="Retrieve Release Health Session Statistics",
+        operation_id="getOrganizationSessions",
+        summary="Retrieve Release Health Session Statistics",
         parameters=[
             GlobalParams.START,
             GlobalParams.END,
@@ -63,7 +64,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
         },
         examples=SessionExamples.QUERY_SESSIONS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[SessionsQueryResult]:
         """
         Returns a time series of release health session statistics for projects bound to an organization.
 

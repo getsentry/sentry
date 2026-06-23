@@ -30,7 +30,8 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve the custom integrations created by an organization",
+        operation_id="listOrganizationSentryApps",
+        summary="Retrieve the custom integrations created by an organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
@@ -46,7 +47,7 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
         request: Request,
         organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
-    ) -> Response:
+    ) -> Response[list[SentryAppSerializerResponse]]:
         """
         Retrieve the custom integrations for an organization
         """

@@ -13,6 +13,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.api.parsers.email import AllowedEmailField
 from sentry.users.api.serializers.useremail import UserEmailSerializer
@@ -58,32 +60,6 @@ def add_email_signed(email: str, user: User) -> None:
     user.send_signed_url_confirm_email_singular(email, signed_data)
 
 
-def add_email(email: str, user: User) -> UserEmail:
-    """
-    Adds an email to user account
-
-    Can be either primary or secondary
-    """
-
-    # Bad email
-    if email is None:
-        raise InvalidEmailError
-
-    if UserEmail.objects.filter(user=user, email__iexact=email.lower()).exists():
-        raise DuplicateEmailError
-
-    try:
-        with transaction.atomic(using=router.db_for_write(UserEmail)):
-            new_email = UserEmail.objects.create(user=user, email=email)
-    except IntegrityError:
-        raise DuplicateEmailError
-
-    new_email.set_hash()
-    new_email.save()
-    user.send_confirm_email_singular(new_email)
-    return new_email
-
-
 @control_silo_endpoint
 class UserEmailsEndpoint(UserEndpoint):
     publish_status = {
@@ -92,6 +68,15 @@ class UserEmailsEndpoint(UserEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=10, window=60),
+                RateLimitCategory.USER: RateLimit(limit=10, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=60),
+            },
+        }
+    )
     owner = ApiOwner.UNOWNED
 
     def get(self, request: Request, user: User) -> Response:
@@ -119,38 +104,12 @@ class UserEmailsEndpoint(UserEndpoint):
         result = validator.validated_data
         email = result["email"].lower().strip()
 
-        use_signed_urls = options.get("user-settings.signed-url-confirmation-emails")
         try:
-            if use_signed_urls:
-                add_email_signed(email, user)
-                logger.info(
-                    "user.email.add",
-                    extra={
-                        "user_id": user.id,
-                        "ip_address": request.META["REMOTE_ADDR"],
-                        "used_signed_url": True,
-                        "email": email,
-                    },
-                )
-                return self.respond(
-                    {"detail": _("A verification email has been sent. Please check your inbox.")},
-                    status=201,
-                )
-            else:
-                new_useremail = add_email(email, user)
-                logger.info(
-                    "user.email.add",
-                    extra={
-                        "user_id": user.id,
-                        "ip_address": request.META["REMOTE_ADDR"],
-                        "used_signed_url": False,
-                        "email": email,
-                    },
-                )
-                return self.respond(
-                    serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
-                    status=201,
-                )
+            add_email_signed(email, user)
+            return self.respond(
+                {"detail": _("A verification email has been sent. Please check your inbox.")},
+                status=201,
+            )
         except DuplicateEmailError:
             return self.respond(
                 {"detail": _("That email address is already associated with your account.")},
@@ -160,7 +119,8 @@ class UserEmailsEndpoint(UserEndpoint):
     @sudo_required
     def put(self, request: Request, user: User) -> Response:
         """
-        Update a primary email address
+        Update a primary email address.
+        The UI only offers "Set as primary" for emails that are already saved and already verified.
         """
 
         validator = EmailValidator(data=request.data)
@@ -171,28 +131,20 @@ class UserEmailsEndpoint(UserEndpoint):
         old_email = user.email.lower()
         new_email = result["email"].lower()
 
-        new_useremail = user.emails.filter(email__iexact=new_email).first()
+        # defense in depth: UserEmail must already exist and be verified
+        existing_useremail = user.emails.filter(email__iexact=new_email).first()
+        if not existing_useremail or not existing_useremail.is_verified:
+            return self.respond(
+                {
+                    "email": _(
+                        "You must add and verify an email address before marking it as primary."
+                    )
+                },
+                status=400,
+            )
 
-        # If email doesn't exist for user, attempt to add new email
-        if not new_useremail:
-            try:
-                new_useremail = add_email(new_email, user)
-            except DuplicateEmailError:
-                new_useremail = user.emails.get(email__iexact=new_email)
-            else:
-                logger.info(
-                    "user.email.add",
-                    extra={
-                        "user_id": user.id,
-                        "ip_address": request.META["REMOTE_ADDR"],
-                        "email": new_useremail.email,
-                    },
-                )
-                new_email = new_useremail.email
-
-        # Check if email is in use
-        # TODO(dcramer): this needs rate limiting to avoid abuse
-        # TODO(dcramer): this needs a lock/constraint
+        # Check if new_email is the primary email on another User.
+        # User can only see result if they have verified new_email
         if (
             User.objects.filter(Q(email__iexact=new_email) | Q(username__iexact=new_email))
             .exclude(id=user.id)
@@ -203,38 +155,45 @@ class UserEmailsEndpoint(UserEndpoint):
                 status=400,
             )
 
-        if not new_useremail.is_verified:
-            return self.respond(
-                {"email": _("You must verify your email address before marking it as primary.")},
-                status=400,
-            )
-
-        options = UserOption.objects.filter(user=user, key="mail:email")
-        for option in options:
-            if option.value != old_email:
-                continue
-            option.update(value=new_email)
-
-        has_new_username = old_email == user.username
-
         # email_unique mirrors email under a DB-level unique constraint.
         # It is normally synced by User.save(), which this update() bypasses.
         update_kwargs = {"email": new_email, "email_unique": new_email}
 
-        if has_new_username and not User.objects.filter(username__iexact=new_email).exists():
+        # if username is email, update it
+        if old_email == user.username:
             update_kwargs["username"] = new_email
 
-        # NOTE(mattrobenolt): When changing your primary email address,
-        # we explicitly want to invalidate existing lost password hashes,
-        # so that in the event of a compromised inbox, an outstanding
-        # password hash can't be used to gain access. We also feel this
-        # is a large enough of a security concern to force logging
-        # out other current sessions.
-        user.clear_lost_passwords()
-        user.refresh_session_nonce(request._request)
-        update_kwargs["session_nonce"] = user.session_nonce
+        try:
+            with transaction.atomic(using=router.db_for_write(User)):
+                user_options_using_old_email = UserOption.objects.filter(
+                    user=user, key="mail:email", value=old_email
+                )
+                for user_option in user_options_using_old_email:
+                    # do this per-instance .update() to trigger post_save logic
+                    user_option.update(value=new_email)
 
-        user.update(**update_kwargs)
+                # NOTE(mattrobenolt): When changing your primary email address,
+                # we explicitly want to invalidate existing lost password hashes,
+                # so that in the event of a compromised inbox, an outstanding
+                # password hash can't be used to gain access. We also feel this
+                # is a large enough of a security concern to force logging
+                # out other current sessions.
+                user.clear_lost_passwords()
+                user.refresh_session_nonce()
+                update_kwargs["session_nonce"] = user.session_nonce
+
+                user.update(**update_kwargs)
+        except IntegrityError:
+            # The cross-account check above is racy: email_unique and username are
+            # DB-unique, so another account can claim this email between the check
+            # and this write.
+            return self.respond(
+                {"email": _("That email address is already associated with another account.")},
+                status=400,
+            )
+
+        # only update the session if transaction above succeeds
+        request.session["_nonce"] = user.session_nonce
 
         logger.info(
             "user.email.edit",
@@ -246,7 +205,7 @@ class UserEmailsEndpoint(UserEndpoint):
         )
 
         return self.respond(
-            serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
+            serialize(existing_useremail, user=request.user, serializer=UserEmailSerializer()),
             status=200,
         )
 

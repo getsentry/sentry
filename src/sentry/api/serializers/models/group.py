@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Protocol, TypedDict, TypeGuard
+from typing import TYPE_CHECKING, Any, Protocol, TypedDict, TypeGuard
 
 import sentry_sdk
 from django.conf import settings
@@ -59,6 +59,13 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
+
+if TYPE_CHECKING:
+    from sentry.models.groupinbox import InboxDetails
+    from sentry.models.groupowner import OwnersSerialized
+    from sentry.sentry_apps.api.serializers.platform_external_issue import (
+        PlatformExternalIssueSerializerResponse,
+    )
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
@@ -149,11 +156,11 @@ class GroupDetailsResponseOptional(TypedDict, total=False):
     tags: list[dict[str, Any]]
     stats: dict[str, list[list[float]]]
     # Opt-in via `?expand=...`
-    inbox: dict[str, Any] | None
-    owners: list[dict[str, Any]] | None
+    inbox: InboxDetails | None
+    owners: list[OwnersSerialized] | None
     forecast: dict[str, Any]
     integrationIssues: list[dict[str, Any]]
-    sentryAppIssues: list[dict[str, Any]]
+    sentryAppIssues: list[PlatformExternalIssueSerializerResponse]
     latestEventHasAttachments: bool
 
 
@@ -195,7 +202,7 @@ def _make_group_project_response(project: Project) -> GroupProjectResponse:
     }
 
 
-def _get_status_label(group: Group):
+def get_status_label(group: Group):
     status = group.get_status()
 
     if status == GroupStatus.RESOLVED:
@@ -214,7 +221,7 @@ def _get_status_label(group: Group):
     return status_label
 
 
-def _get_substatus_label(group: Group):
+def get_substatus_label(group: Group):
     return SUBSTATUS_TO_STR[group.substatus] if group.substatus else None
 
 
@@ -300,7 +307,10 @@ class GroupSerializerBase(Serializer, ABC):
                 filter={"user_ids": user_ids, "is_active": True},
                 as_user=serialize_generic_user(user),
             )
-            actors = {id: u for id, u in zip(user_ids, serialized_users)}
+            # `serialize_many` may omit user_ids that are inactive or missing in
+            # the control silo; key by the returned id rather than zipping so
+            # drifted users don't silently misalign with the request ordering.
+            actors = {int(u["id"]): u for u in serialized_users}
         else:
             actors = {}
 
@@ -401,7 +411,7 @@ class GroupSerializerBase(Serializer, ABC):
             "level": _get_level_label(obj),
             "status": status_label,
             "statusDetails": status_details,
-            "substatus": _get_substatus_label(obj),
+            "substatus": get_substatus_label(obj),
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": _make_group_project_response(obj.project),
@@ -952,6 +962,7 @@ SKIP_SNUBA_FIELDS = frozenset(
         "issue.type",
         "issue.seer_actionability",
         "issue.seer_last_run",
+        "issue.progress",
     )
 )
 
@@ -1202,7 +1213,7 @@ class SimpleGroupSerializerResponse(TypedDict):
     lastSeen: datetime | None
 
 
-class SimpleGroupSerializer(Serializer):
+class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
     """
     A serializer that only returns the most basic information about a group.
     It should make minimal queries to the database.
@@ -1223,8 +1234,8 @@ class SimpleGroupSerializer(Serializer):
             culprit=obj.culprit,
             shortId=obj.qualified_short_id,
             level=_get_level_label(obj),
-            status=_get_status_label(obj),
-            substatus=_get_substatus_label(obj),
+            status=get_status_label(obj),
+            substatus=get_substatus_label(obj),
             platform=obj.platform,
             project=_make_group_project_response(obj.project),
             type=obj.get_event_type(),

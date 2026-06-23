@@ -8,9 +8,8 @@ description: >-
   URL_NAME_TO_ACTION registry in test_urls.py to zero (with a recipe for each action type),
   rolling deploy safety and the two-phase pattern required by independent sentry/getsentry deploys,
   and the region -> cell rename including what not to rename (DB columns, AWS refs, uptime regions,
-  billing address). Also documents known issues with proposed fixes: org listing and creation
-  without a slug, integration TeamLinkageView routing, Jira cross-cell fan-out, and relocation
-  endpoint routing.
+  billing address). Also documents known issues with proposed fixes: integration TeamLinkageView
+  routing, Jira cross-cell fan-out, and relocation endpoint routing.
 ---
 
 > **Status**: Active migration in progress. Migration-specific sections should be removed once complete, leaving a stable architecture reference.
@@ -244,17 +243,6 @@ the context before renaming.
 ### Known Issues
 
 Specific broken areas with a description of the problem and the proposed fix. Remove each entry once resolved.
-
-#### Org Operations Without an Existing Org Slug
-
-Several org lifecycle operations have no existing org slug to route by, so Synapse can't route them to a specific cell within a locality:
-
-- **Org listing** — the frontend fans out `/organizations/` to each locality URL (`useOrganizationsWithRegion`). `OrganizationIndexEndpoint` is `@cell_silo_endpoint` and queries `Organization.objects.get_for_user_ids()`, so even if it reaches a cell it only returns orgs in that cell.
-- **Org creation** — the user picks a locality but there's no mechanism to select which cell within that locality the new org lands in.
-
-**The fix for listing**: move `OrganizationIndexEndpoint` to `@control_silo_endpoint` and query `OrganizationMemberMapping` (user -> org IDs) joined with `OrganizationMapping` — both already exist on control silo. Some response fields (e.g. avatar, auth provider, features) are not yet in `OrganizationMapping` and would need to be replicated or dropped.
-
-**Org creation**: `Locality.new_org_cell` to route new orgs to the correct cell within the selected locality.
 
 #### Integration Views and Cell Routing
 

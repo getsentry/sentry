@@ -11,7 +11,10 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
@@ -72,7 +75,7 @@ function FilterKeyOperatorLabel({
   includeKeyLabel?: boolean;
   opLabel?: string;
 }) {
-  const {getFieldDefinition} = useSearchQueryBuilder();
+  const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const fieldDefinition = getFieldDefinition(keyValue);
 
   if (!includeKeyLabel) {
@@ -219,15 +222,9 @@ export function getOperatorInfo({
 
 export function FilterOperator({state, item, token, onOpenChange}: FilterOperatorProps) {
   const organization = useOrganization();
-  const {
-    dispatch,
-    searchSource,
-    query,
-    recentSearches,
-    disabled,
-    focusOverride,
-    getFieldDefinition,
-  } = useSearchQueryBuilder();
+  const {dispatch, query, focusOverride} = useSearchQueryBuilderState();
+  const {searchSource, recentSearches, disabled, getFieldDefinition} =
+    useSearchQueryBuilderConfig();
   const filterButtonProps = useFilterButtonProps({state, item});
   const {focusWithinProps} = useFocusWithin({});
 

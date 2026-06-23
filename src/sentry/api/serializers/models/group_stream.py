@@ -329,6 +329,10 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     integrationIssues: NotRequired[list[dict[str, Any]]]
     sentryAppIssues: NotRequired[list[dict[str, Any]]]
     latestEventHasAttachments: NotRequired[bool]
+    # Added post-serialize at the direct-hit path in OrganizationGroupIndexEndpoint /
+    # ProjectGroupIndexEndpoint when a query resolves to a specific event.
+    matchingEventId: NotRequired[str | None]
+    matchingEventEnvironment: NotRequired[str | None]
 
 
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):

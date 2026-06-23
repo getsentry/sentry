@@ -9,11 +9,6 @@ export function IntegrationProviderFixture(
     name: 'Generic Provider',
     canAdd: true,
     features: [],
-    setupDialog: {
-      url: '/generic-provider-setup-uri/',
-      width: 100,
-      height: 100,
-    },
     canDisable: true,
     metadata: {
       description: 'A generic integration provider for testing',

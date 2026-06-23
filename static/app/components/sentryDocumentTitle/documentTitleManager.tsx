@@ -12,11 +12,13 @@ interface TitleEntry {
 
 interface DocumentTitleManager {
   register: (id: string, text: string, order: number, noSuffix: boolean) => void;
+  setPrefix: (id: string, prefix: string) => void;
   unregister: (id: string) => void;
 }
 
 const DocumentTitleContext = createContext<DocumentTitleManager>({
   register: () => {},
+  setPrefix: () => {},
   unregister: () => {},
 });
 
@@ -24,6 +26,8 @@ export const useDocumentTitleManager = () => useContext(DocumentTitleContext);
 
 export function DocumentTitleManager({children}: React.PropsWithChildren) {
   const [entries, setEntries] = useState<TitleEntry[]>([]);
+  // Maps prefix id -> prefix string (e.g. "(3) ") prepended to the document title
+  const [prefixes, setPrefixes] = useState<Record<string, string>>({});
 
   const [manager] = useState<DocumentTitleManager>(() => ({
     register: (id, text, order, noSuffix) => {
@@ -33,6 +37,19 @@ export function DocumentTitleManager({children}: React.PropsWithChildren) {
           return prev.map(e => (e.id === id ? {...e, text, noSuffix} : e));
         }
         return [...prev, {id, text, noSuffix, order}];
+      });
+    },
+    // Set a prefix by id; passing an empty string removes it
+    setPrefix: (id, prefix) => {
+      setPrefixes(prev => {
+        if (!prefix) {
+          const {[id]: _, ...rest} = prev;
+          return rest;
+        }
+        if (prev[id] === prefix) {
+          return prev;
+        }
+        return {...prev, [id]: prefix};
       });
     },
     unregister: id => {
@@ -51,8 +68,10 @@ export function DocumentTitleManager({children}: React.PropsWithChildren) {
     if (!entry?.noSuffix) {
       parts.push(DEFAULT_PAGE_TITLE);
     }
-    return [...new Set([...parts])].join(SEPARATOR);
-  }, [entries]);
+    const base = [...new Set([...parts])].join(SEPARATOR);
+    const prefix = Object.values(prefixes).filter(Boolean).join('');
+    return `${prefix}${base}`;
+  }, [entries, prefixes]);
 
   // write to the DOM title
   useEffect(() => {

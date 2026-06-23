@@ -3,12 +3,12 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Client} from 'sentry/api';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 
 describe('SetSpendLimit', () => {
@@ -53,16 +53,10 @@ describe('SetSpendLimit', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      planTier: PlanTier.AM3,
     });
     SubscriptionStore.set(organization.slug, sub);
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture({})}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-        navigate={jest.fn()}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture({})} api={api} navigate={jest.fn()} />,
       {organization}
     );
 
@@ -91,16 +85,10 @@ describe('SetSpendLimit', () => {
     const sub = SubscriptionFixture({
       organization: preAm3Organization,
       plan: 'am2_team',
-      planTier: PlanTier.AM2,
     });
     SubscriptionStore.set(preAm3Organization.slug, sub);
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-        navigate={jest.fn()}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} api={api} navigate={jest.fn()} />,
       {organization: preAm3Organization}
     );
 

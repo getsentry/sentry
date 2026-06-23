@@ -47,7 +47,8 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
     )
 
     @extend_schema(
-        operation_id="Retrieve Tag Details",
+        operation_id="getOrganizationIssueTag",
+        summary="Retrieve Tag Details",
         description="Return a list of values associated with this key for an issue. When paginated can return at most 1000 values.",
         parameters=[
             IssueParams.ISSUE_ID,
@@ -66,7 +67,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         examples=[TagsExamples.GROUP_TAGKEY_DETAILS],
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-tag-key-details"])
-    def get(self, request: Request, group, key) -> Response:
+    def get(self, request: Request, group, key) -> Response[TagKeySerializerResponse]:
         """
         Returns the values and aggregate details of a given tag key related to an issue.
         """

@@ -6,6 +6,7 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -167,8 +168,8 @@ export function SuperuserWarning({organization, className}: Props) {
 
   return (
     <StyledBadge variant="warning" className={className}>
-      <Tooltip
-        isHoverable
+      <InfoText
+        variant="inherit"
         title={
           <TooltipContent>
             <Content>{WARNING_MESSAGE}</Content>
@@ -177,7 +178,7 @@ export function SuperuserWarning({organization, className}: Props) {
         }
       >
         Superuser
-      </Tooltip>
+      </InfoText>
     </StyledBadge>
   );
 }

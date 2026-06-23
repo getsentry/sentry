@@ -144,5 +144,26 @@ class RepositoryService(RpcService):
         This is used when sync settings change and webhooks need to be updated.
         """
 
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def auto_link_repos_by_name(
+        self,
+        *,
+        organization_id: int,
+        repo_ids: list[int] | None = None,
+        project_ids: list[int] | None = None,
+    ) -> int:
+        """
+        Auto-link repositories to projects based on name matching.
+        Only creates links when neither the repo nor the project
+        already has a ProjectRepository row.
+
+        If repo_ids is provided, only consider those repos. Otherwise all
+        unlinked repos in the org are considered.
+        If project_ids is provided, only consider those projects.
+
+        Returns the number of links created.
+        """
+
 
 repository_service = RepositoryService.create_delegation()

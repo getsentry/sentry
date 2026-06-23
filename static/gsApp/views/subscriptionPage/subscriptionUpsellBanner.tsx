@@ -11,7 +11,6 @@ import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
-import {usePlanMigrations} from 'getsentry/hooks/usePlanMigrations';
 import type {Subscription} from 'getsentry/types';
 import {
   hasPartnerMigrationFeature,
@@ -78,16 +77,9 @@ function useIsSubscriptionUpsellHidden(
   subscription: Subscription,
   organization: Organization
 ): boolean {
-  const {planMigrations, isLoading} = usePlanMigrations();
-  // Hide while loading
-  if (isLoading) {
-    return true;
-  }
-
-  // hide upsell for mmx plans and forced plan migrations
+  // hide upsell for mmx plans
   const isLegacyUpsell =
-    (!hasPerformance(subscription.planDetails) || planMigrations.length > 0) &&
-    !subscription.canTrial;
+    !hasPerformance(subscription.planDetails) && !subscription.canTrial;
 
   // hide upsell for customers on partner plans with flag
   const hasEndingPartnerPlan = hasPartnerMigrationFeature(organization);

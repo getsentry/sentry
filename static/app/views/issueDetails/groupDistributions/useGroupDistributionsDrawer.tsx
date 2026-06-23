@@ -7,11 +7,12 @@ import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {GroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributionsDrawer';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 /**
- * Shared tags and feature flags distributions drawer, used by streamlined issue details UI.
+ * Shared tags and feature flags distributions drawer used by issue details.
  */
 export function useGroupDistributionsDrawer({
   group,
@@ -28,10 +29,12 @@ export function useGroupDistributionsDrawer({
   const openDistributionsDrawer = useCallback(() => {
     openDrawer(
       () => (
-        <GroupDistributionsDrawer
-          group={group}
-          includeFeatureFlagsTab={includeFeatureFlagsTab}
-        />
+        <GroupIdProvider groupId={group.id}>
+          <GroupDistributionsDrawer
+            group={group}
+            includeFeatureFlagsTab={includeFeatureFlagsTab}
+          />
+        </GroupIdProvider>
       ),
       {
         ariaLabel: t('Distributions Drawer'),

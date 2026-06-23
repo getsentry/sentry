@@ -287,7 +287,8 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
     @extend_schema(
-        operation_id="Update a Data Forwarder for an Organization",
+        operation_id="updateOrganizationForwarding",
+        summary="Update a Data Forwarder for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DataForwarderParams.DATA_FORWARDER_ID],
         request=DataForwarderSerializer,
         responses={
@@ -299,7 +300,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     )
     def put(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
-    ) -> Response:
+    ) -> Response[DataForwarderResponse]:
         """
         Updates a data forwarder for an organization or update a project-specific override.
         Updates to the data forwarder's configuration require `org:write` permissions, and the entire
@@ -343,7 +344,8 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
             )
 
     @extend_schema(
-        operation_id="Delete a Data Forwarder for an Organization",
+        operation_id="deleteOrganizationForwarding",
+        summary="Delete a Data Forwarder for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DataForwarderParams.DATA_FORWARDER_ID],
         responses={
             204: RESPONSE_NO_CONTENT,
@@ -352,7 +354,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     )
     def delete(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
-    ) -> Response:
+    ) -> Response[None]:
         """
         Deletes a data forwarder for an organization. All project-specific overrides will be deleted as well.
         """

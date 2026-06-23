@@ -17,6 +17,8 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.auth.staff import is_active_staff
+from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
 from sentry.search.eap.columns import ColumnDefinitions
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
@@ -31,7 +33,8 @@ from sentry.search.eap.spans.attributes import (
     SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.referrer import Referrer
@@ -56,6 +59,7 @@ class TraceItemStatsConfig:
     excluded_attributes: set[str]
     referrer: Referrer
     id_column: str
+    visibility_item_type: SupportedTraceItemType
 
 
 def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsConfig:
@@ -67,6 +71,7 @@ def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsC
             excluded_attributes=OCCURRENCE_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
             referrer=Referrer.API_OCCURRENCES_FREQUENCY_STATS_RPC,
             id_column="id",
+            visibility_item_type=SupportedTraceItemType.OCCURRENCES,
         )
     return TraceItemStatsConfig(
         rpc_class=Spans,
@@ -75,6 +80,7 @@ def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsC
         excluded_attributes=SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
         referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC,
         id_column="span_id",
+        visibility_item_type=SupportedTraceItemType.SPANS,
     )
 
 
@@ -94,7 +100,9 @@ class TraceItemStatsPaginator:
             raise ValueError(f"invalid limit for paginator, expected >0, got {limit}")
 
         offset = cursor.offset if cursor is not None else 0
-        # Request 1 more than limit so we can tell if there is another page
+        # data_fn returns (payload, total_count), where total_count is the number of
+        # attributes available across all pages. There is a next page whenever the total
+        # extends at least one attribute past the end of the current page (offset + limit).
         data = self.data_fn(offset=offset, limit=limit)
         has_more = data[1] >= offset + limit + 1
 
@@ -154,6 +162,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
         value_substring_match = translate_escape_sequences(substring_match)
 
         max_attributes = options.get("explore.trace-items.keys.max")
+        include_internal = is_active_superuser(request) or is_active_staff(request)
 
         def get_table_results():
             with handle_query_errors():
@@ -211,28 +220,44 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 return {"data": []}, 0
 
             sanitized_keys = []
+            visited_public_keys = []
             for internal_name in internal_alias_attr_keys:
                 public_alias = stats_config.alias_mappings.get("string", {}).get(
                     internal_name, internal_name
                 )
 
-                if public_alias in stats_config.excluded_attributes:
+                if (
+                    public_alias in stats_config.excluded_attributes
+                    or public_alias in visited_public_keys
+                ):
+                    continue
+
+                if not can_expose_attribute_to_api(
+                    public_alias,
+                    stats_config.visibility_item_type,
+                    include_internal=include_internal,
+                ):
                     continue
 
                 if value_substring_match:
                     if value_substring_match in public_alias:
+                        visited_public_keys.append(public_alias)
                         sanitized_keys.append(internal_name)
                     continue
 
+                visited_public_keys.append(public_alias)
                 sanitized_keys.append(internal_name)
 
-            sanitized_keys = sanitized_keys[offset : offset + limit]
+            # The number of attributes available across all pages drives pagination
+            # (see TraceItemStatsPaginator), so capture the total before slicing.
+            total_attributes = len(sanitized_keys)
+            paginated_keys = sanitized_keys[offset : offset + limit]
 
-            if not sanitized_keys:
-                return {"data": []}, 0
+            if not paginated_keys:
+                return {"data": []}, total_attributes
 
             request_attrs_list = []
-            for requested_key in sanitized_keys:
+            for requested_key in paginated_keys:
                 request_attrs_list.append(
                     AttributeKey(name=requested_key, type=AttributeKey.TYPE_STRING)
                 )
@@ -259,7 +284,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                         for stats_type, data in stats.items():
                             stats_results[stats_type]["data"].update(data["data"])
 
-            return {"data": [{k: v} for k, v in stats_results.items()]}, len(request_attrs_list)
+            return {"data": [{k: v} for k, v in stats_results.items()]}, total_attributes
 
         return self.paginate(
             request=request,

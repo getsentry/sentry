@@ -49,6 +49,7 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import record_latest_release
+from sentry.event_manager_auto_tags import get_enabled_derivers
 from sentry.eventstream.base import GroupState
 from sentry.eventtypes.base import BaseEvent as EventType
 from sentry.eventtypes.transaction import TransactionEvent
@@ -539,7 +540,7 @@ class EventManager:
             except ProjectKey.DoesNotExist:
                 pass
 
-        _derive_plugin_tags_many(jobs, projects)
+        _derive_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
         _derive_client_error_sampling_rate(jobs, projects)
 
@@ -782,19 +783,17 @@ def _get_event_user_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None
 
 
 @sentry_sdk.tracing.trace
-def _derive_plugin_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    # XXX: We ought to inline or remove this one for sure
-    plugins_for_projects = {p.id: plugins.for_project(p, version=None) for p in projects.values()}
-
+def _derive_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    derivers = get_enabled_derivers()
     for job in jobs:
-        for plugin in plugins_for_projects[job["project_id"]]:
-            added_tags = safe_execute(plugin.get_tags, job["event"])
-            if added_tags:
-                data = job["data"]
-                # plugins should not override user provided tags
-                for key, value in added_tags:
+        data = job["data"]
+        for deriver in derivers:
+            try:
+                for key, value in deriver.get_tags(job["event"]):
                     if get_tag(data, key) is None:
                         set_tag(data, key, value)
+            except Exception:
+                logger.exception("auto_tag.derive_error")
 
 
 def _derive_interface_tags_many(jobs: Sequence[Job]) -> None:
@@ -1120,9 +1119,7 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
         # so new-customer cohorts are fully observable; 1% otherwise.
         processing_errors = job["data"].get("errors", [])
         event = job["event"]
-        if processing_errors and features.has(
-            "organizations:processing-error-analytics", event.project.organization
-        ):
+        if processing_errors:
             org_age = datetime.now(timezone.utc) - event.project.organization.date_added
             sample_rate = 1.0 if org_age < timedelta(days=30) else 0.01
             if random.random() < sample_rate:
@@ -1704,7 +1701,12 @@ def _get_next_short_id(project: Project, delta: int = 1) -> int:
     return short_id
 
 
-def _handle_regression(group: Group, event: BaseEvent, release: Release | None) -> bool | None:
+def _handle_regression(
+    group: Group,
+    event: BaseEvent,
+    release: Release | None,
+    incoming_group_values: Mapping[str, Any] | None = None,
+) -> bool | None:
     if not group.is_resolved():
         return None
 
@@ -1817,10 +1819,15 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             )
 
     if is_regression:
-        activity_data: dict[str, str | bool] = {
+        activity_data: dict[str, Any] = {
             "event_id": event.event_id,
             "version": release.version if release else "",
         }
+        if incoming_group_values:
+            event_data = incoming_group_values.get("data", {})
+            activity_data["event_metadata"] = event_data.get("metadata", {})
+            activity_data["event_title"] = event_data.get("title", "")
+            activity_data["event_type"] = event_data.get("type", "default")
         if resolved_in_activity and release:
             activity_data.update(
                 {
@@ -1918,7 +1925,7 @@ def _process_existing_aggregate(
     if group.first_seen > event.datetime:
         updated_group_values["first_seen"] = event.datetime
 
-    is_regression = _handle_regression(group, event, release)
+    is_regression = _handle_regression(group, event, release, incoming_group_values)
 
     existing_data = group.data
     existing_metadata = group.data.get("metadata", {})
@@ -1956,9 +1963,9 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEER_SCORING_URL,
+    settings.SEER_SUMMARIZATION_URL,
     retries=settings.SEER_SEVERITY_RETRIES,
-    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
+    timeout=settings.SEER_SEVERITY_TIMEOUT,
 )
 
 
@@ -2211,7 +2218,10 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 )
                 viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
                 response = make_severity_score_request(
-                    payload, timeout=timeout, viewer_context=viewer_context
+                    payload,
+                    connection_pool=severity_connection_pool,
+                    timeout=timeout,
+                    viewer_context=viewer_context,
                 )
                 severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
@@ -2744,7 +2754,7 @@ def save_transaction_events(
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
-    _derive_plugin_tags_many(jobs, projects)
+    _derive_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _calculate_span_grouping(jobs, projects)
     _materialize_metadata_many(jobs)
@@ -2783,7 +2793,7 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
-    _derive_plugin_tags_many(jobs, projects)
+    _derive_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)

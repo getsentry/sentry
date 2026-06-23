@@ -77,6 +77,19 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
     if not isinstance(repo.provider, str):
         return None
 
+    provider_name = repo.provider.removeprefix("integrations:")
+    web_base_url: str | None = None
+    if provider_name == "github_enterprise":
+        integration = integration_service.get_integration(
+            integration_id=repo.integration_id,
+            organization_id=organization_id,
+        )
+        if integration:
+            domain_name = integration.metadata.get("domain_name")
+            if domain_name:
+                base_host = domain_name.split("/", 1)[0]
+                web_base_url = f"https://{base_host}"
+
     return cast(
         Repository,
         {
@@ -86,8 +99,8 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             "is_active": repo.status == ObjectStatus.ACTIVE,
             "name": repo.name,
             "organization_id": repo.organization_id,
-            "provider_name": repo.provider.removeprefix("integrations:"),
-            "web_base_url": None,
+            "provider_name": provider_name,
+            "web_base_url": web_base_url,
         },
     )
 

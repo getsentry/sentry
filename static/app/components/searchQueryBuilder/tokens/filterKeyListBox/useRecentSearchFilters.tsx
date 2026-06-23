@@ -1,6 +1,9 @@
 import {useMemo} from 'react';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {useRecentSearches} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useRecentSearches';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -90,7 +93,7 @@ function getFiltersFromRecentSearches(
       const filter = getKeyName(token.key);
       // We want to show recent filters that are not already in the current query
       // and are valid filter keys
-      return !filtersInCurrentQuery.has(filter) && !!filterKeys[filter];
+      return !filtersInCurrentQuery.has(filter) && Object.hasOwn(filterKeys, filter);
     })
     .reduce<FilterCounter>((acc, token) => {
       const filter = getKeyName(token.key);
@@ -103,7 +106,7 @@ function getFiltersFromRecentSearches(
         };
       }
       return acc;
-    }, {});
+    }, Object.create(null));
 
   return Object.entries(filterCounts)
     .sort((a, b) => b[1].count - a[1].count)
@@ -117,8 +120,9 @@ function getFiltersFromRecentSearches(
  * Orders by highest count of filter key occurrences.
  */
 export function useRecentSearchFilters() {
-  const {parsedQuery, filterKeys, getFieldDefinition, filterKeyAliases} =
-    useSearchQueryBuilder();
+  const {parsedQuery} = useSearchQueryBuilderState();
+  const {filterKeys, getFieldDefinition, filterKeyAliases} =
+    useSearchQueryBuilderConfig();
   const {data: recentSearchesData} = useRecentSearches();
 
   const filters = useMemo(

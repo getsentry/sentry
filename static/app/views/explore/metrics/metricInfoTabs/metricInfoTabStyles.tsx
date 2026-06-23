@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {TabPanels} from '@sentry/scraps/tabs';
@@ -5,6 +6,10 @@ import {TabPanels} from '@sentry/scraps/tabs';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import {DetailsWrapper} from 'sentry/views/explore/logs/styles';
+import {
+  isEmbeddedMetricsSamplesTableSource,
+  type MetricsSamplesTableSource,
+} from 'sentry/views/explore/metrics/types';
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
 export const TabListWrapper = styled('div')`
@@ -41,34 +46,60 @@ export const WrappingText = styled('div')`
   align-items: center;
 `;
 
-export const ExpandedRowContainer = styled('div')<{embedded?: boolean}>`
+export const ExpandedRowContainer = styled('div')`
   grid-column: 1 / -1;
 `;
 
 export const StyledSimpleTableRowCell = styled(SimpleTable.RowCell)<{
-  embedded?: boolean;
+  source: MetricsSamplesTableSource;
   noPadding?: boolean;
 }>`
-  padding: ${p => (p.noPadding ? 0 : p.embedded ? p.theme.space.xl : p.theme.space.lg)};
+  padding: ${p =>
+    p.noPadding
+      ? 0
+      : isEmbeddedMetricsSamplesTableSource(p.source)
+        ? p.theme.space.xl
+        : p.theme.space.lg};
   padding-top: ${p =>
-    p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};
+    p.noPadding
+      ? 0
+      : isEmbeddedMetricsSamplesTableSource(p.source)
+        ? p.theme.space.sm
+        : p.theme.space.xs};
   padding-bottom: ${p =>
-    p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};
+    p.noPadding
+      ? 0
+      : isEmbeddedMetricsSamplesTableSource(p.source)
+        ? p.theme.space.sm
+        : p.theme.space.xs};
 
   font-size: ${p => p.theme.font.size.sm};
 `;
 
 export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)<{
-  embedded?: boolean;
+  source: MetricsSamplesTableSource;
   noPadding?: boolean;
 }>`
   font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
-  padding: ${p => (p.noPadding ? 0 : p.embedded ? p.theme.space.xl : p.theme.space.lg)};
+  padding: ${p =>
+    p.noPadding
+      ? 0
+      : isEmbeddedMetricsSamplesTableSource(p.source)
+        ? p.theme.space.xl
+        : p.theme.space.lg};
   padding-top: ${p =>
-    p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};
+    p.noPadding
+      ? 0
+      : isEmbeddedMetricsSamplesTableSource(p.source)
+        ? p.theme.space.sm
+        : p.theme.space.xs};
   padding-bottom: ${p =>
-    p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};
+    p.noPadding
+      ? 0
+      : isEmbeddedMetricsSamplesTableSource(p.source)
+        ? p.theme.space.sm
+        : p.theme.space.xs};
 `;
 
 export const StyledSimpleTableBody = styled('div')`
@@ -95,15 +126,15 @@ export const StickyTableRow = styled(SimpleTable.Row)<{
 }>`
   ${p =>
     p.sticky &&
-    `
-    top: 0px;
-    z-index: 1;
-    background: ${p.theme.tokens.background.primary};
-    position: sticky;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    margin-right: -15px;
-    padding-right: calc(15px);
-  `}
+    css`
+      top: 0px;
+      z-index: 1;
+      background: ${p.theme.tokens.background.primary};
+      position: sticky;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      margin-right: -15px;
+      padding-right: calc(15px);
+    `}
 `;
 
 export const DetailsContent = styled(StyledPanel)`

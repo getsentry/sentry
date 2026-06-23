@@ -1,8 +1,9 @@
 import {useState} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {t} from 'sentry/locale';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import type {Sort} from 'sentry/utils/discover/fields';
+import {type Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,17 +17,20 @@ import {
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 interface WidgetPreviewProps {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
-  isWidgetInvalid?: boolean;
+  isQueryConditionInvalid?: boolean;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   shouldForceDescriptionTooltip?: boolean;
 }
@@ -36,7 +40,7 @@ const MIN_TABLE_COLUMN_WIDTH_PX = 125;
 export function WidgetPreview({
   dashboard,
   dashboardFilters,
-  isWidgetInvalid,
+  isQueryConditionInvalid,
   onDataFetched,
   shouldForceDescriptionTooltip,
 }: WidgetPreviewProps) {
@@ -93,13 +97,46 @@ export function WidgetPreview({
     setTableWidths(widths);
   }
 
+  if (widget.widgetType === WidgetType.TRACEMETRICS) {
+    const hasBlankEquation = getTraceMetricAggregateSource(
+      state.displayType,
+      state.yAxis,
+      state.fields
+    )?.some(
+      aggregate =>
+        aggregate.kind === FieldValueKind.EQUATION && aggregate.field.trim() === ''
+    );
+    if (hasBlankEquation) {
+      return (
+        <Widget
+          Title={<Widget.WidgetTitle title={widget.title} />}
+          Visualization={
+            <Widget.WidgetError error={t('Enter an equation to preview results')} />
+          }
+          noVisualizationPadding
+        />
+      );
+    }
+  }
+
+  if (isQueryConditionInvalid) {
+    return (
+      <Widget
+        Title={<Widget.WidgetTitle title={widget.title} />}
+        Visualization={
+          <Widget.WidgetError error={t('Widget query condition is invalid.')} />
+        }
+        noVisualizationPadding
+      />
+    );
+  }
+
   return (
     <WidgetCard
       disableFullscreen
       borderless
       // need to pass in undefined to avoid tooltip not showing up on hover
       forceDescriptionTooltip={shouldForceDescriptionTooltip ? true : undefined}
-      isWidgetInvalid={isWidgetInvalid}
       shouldResize={state.displayType !== DisplayType.TABLE}
       selection={pageFilters.selection}
       widget={

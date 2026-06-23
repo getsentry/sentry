@@ -5,7 +5,6 @@ from typing import Any
 
 from django.utils import timezone
 
-from sentry import features
 from sentry.api import client
 from sentry.api.base import logger
 from sentry.api.utils import get_datetime_from_stats_period
@@ -210,15 +209,9 @@ def build_metric_alert_chart(
         ),
     }
 
-    allow_mri = features.has(
-        "organizations:insights-alerts",
-        organization,
-        actor=user,
-    )
     aggregate = translate_aggregate_field(
         snuba_query.aggregate,
         reverse=True,
-        allow_mri=allow_mri,
         allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
     )
     # If we allow alerts to be across multiple orgs this will break

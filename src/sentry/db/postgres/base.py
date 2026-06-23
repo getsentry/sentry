@@ -101,7 +101,7 @@ class CursorWrapper:
 
 
 class DatabaseWrapper(DjangoDatabaseWrapper):
-    SchemaEditorClass = DatabaseSchemaEditorProxy
+    SchemaEditorClass = DatabaseSchemaEditorProxy  # type: ignore[assignment]
     queries_limit = 15000
 
     def __init__(self, *args, **kwargs):
@@ -111,7 +111,7 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
 
     @auto_reconnect_connection
     def _cursor(self, *args, **kwargs):
-        return super()._cursor()
+        return super()._cursor()  # type: ignore[misc]
 
     # We're overriding this internal method that's present in Django 1.11+, because
     # things were shuffled around since 1.10 resulting in not constructing a django CursorWrapper
@@ -119,7 +119,7 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
     # not the other way around since then we'll lose things like __enter__ due to the way this
     # wrapper is working (getattr on self.cursor).
     def _prepare_cursor(self, cursor):
-        cursor = super()._prepare_cursor(CursorWrapper(self, cursor))
+        cursor = super()._prepare_cursor(CursorWrapper(self, cursor))  # type: ignore[misc]
         return cursor
 
     def close(self, reconnect=False):

@@ -8,6 +8,7 @@ import {
   getOrderedAutofixSections,
   isCodeChangesSection,
   isCodingAgentsSection,
+  isLastStepPrIteration,
   isPullRequestsSection,
   isRootCauseSection,
   isSolutionSection,
@@ -24,7 +25,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
+import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -58,7 +59,8 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
   return (
     <Flex direction="column" gap="lg">
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
-      {autofix.runState?.status === 'completed' && (
+      {(autofix.runState?.status === 'completed' ||
+        isLastStepPrIteration(autofix.runState)) && (
         <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
       )}
       {autofix.codingAgentErrors.map(({id, message}) => (
@@ -110,7 +112,14 @@ function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsPr
         }
 
         if (isCodeChangesSection(section)) {
-          return <CodeChangesCard key={key} autofix={autofix} section={section} />;
+          return (
+            <CodeChangesCard
+              key={key}
+              autofix={autofix}
+              section={section}
+              groupId={groupId}
+            />
+          );
         }
 
         if (isPullRequestsSection(section)) {

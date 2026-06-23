@@ -9,7 +9,7 @@
     "moduleResolution": "bundler",
 
     // We add esnext to lib to pull in types for all newer ECMAScript features
-    "lib": ["esnext", "dom", "dom.iterable"],
+    "lib": ["esnext", "dom", "dom.iterable", "webworker"],
 
     // Skip type checking of all declaration files
     "skipLibCheck": true,
@@ -81,5 +81,5 @@
     "config",
     "scripts"
   ],
-  "exclude": ["./node_modules"]
+  "exclude": ["./node_modules", "static/app/serviceWorker/worker"]
 }

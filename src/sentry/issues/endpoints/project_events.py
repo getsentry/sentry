@@ -45,7 +45,8 @@ class ProjectEventsEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="List a Project's Error Events",
+        operation_id="listProjectEvents",
+        summary="List a Project's Error Events",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -66,7 +67,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         },
         examples=EventExamples.PROJECT_EVENTS_SIMPLE,
     )
-    def get(self, request: Request, project: Project) -> Response:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[SimpleEventSerializerResponse]]:
         """
         Return a list of events bound to a project.
         """

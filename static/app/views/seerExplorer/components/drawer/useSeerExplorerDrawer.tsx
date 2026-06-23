@@ -9,6 +9,8 @@ import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer
 import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
+export const SEER_EXPLORER_DRAWER_KEY = 'seer-explorer-drawer';
+
 export type OpenSeerExplorerDrawerOptions = {
   /**
    * Optional query string to auto-submit once the drawer opens.
@@ -27,7 +29,7 @@ export type OpenSeerExplorerDrawerOptions = {
   startNewRun?: boolean;
 };
 
-export const useSeerExplorerDrawer = () => {
+export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
   const organization = useOrganization({allowNull: true});
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const dispatch = useSeerExplorerChatDispatch();
@@ -39,8 +41,8 @@ export const useSeerExplorerDrawer = () => {
     isDrawerOpenRef.current = isDrawerOpen;
   }, [isDrawerOpen]);
 
-  // TODO: add effect that opens drawer and seeds run_id from URL, remove from current URL onClose
-  // (useSeerExplorer hook should no longer handle this)
+  const onCloseCallbackRef = useRef(options?.onClose);
+  onCloseCallbackRef.current = options?.onClose;
 
   const onOpen = useCallback(() => {
     trackAnalytics('seer.explorer.global_panel.opened', {
@@ -50,16 +52,20 @@ export const useSeerExplorerDrawer = () => {
     });
   }, [getPageReferrer, organization]);
 
+  const onClose = useCallback(() => {
+    onCloseCallbackRef.current?.();
+  }, []);
+
   const closeSeerExplorerDrawer = useCallback(() => {
-    // Prevent closing the global drawer if another drawer (e.g. autofix) is open
     if (isDrawerOpenRef.current) {
       closeDrawer();
+      onClose();
     }
-  }, [closeDrawer]);
+  }, [closeDrawer, onClose]);
 
   const openSeerExplorerDrawer = useCallback(
-    (options?: OpenSeerExplorerDrawerOptions) => {
-      const {runId: openRunId, startNewRun, initialQuery} = options ?? {};
+    (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
+      const {runId: openRunId, startNewRun, initialQuery} = drawerOptions ?? {};
 
       if (initialQuery) {
         // Always start a fresh session when a query is forwarded so it
@@ -83,15 +89,16 @@ export const useSeerExplorerDrawer = () => {
         ),
         {
           ariaLabel: t('Seer Explorer Drawer'),
-          drawerKey: 'seer-explorer-drawer',
+          drawerKey: SEER_EXPLORER_DRAWER_KEY,
           drawerWidth: '30%',
           resizable: true,
           mode: 'passive',
           onOpen,
+          onClose,
         }
       );
     },
-    [openDrawer, onOpen, dispatch, getPageReferrer]
+    [openDrawer, onOpen, onClose, dispatch, getPageReferrer]
   );
 
   const toggleSeerExplorerDrawer = useCallback(() => {

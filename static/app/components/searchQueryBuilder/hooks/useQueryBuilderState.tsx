@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useReducer, type Reducer} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {
@@ -62,6 +63,7 @@ type UpdateQueryAction = {
   query: string;
   type: 'UPDATE_QUERY';
   focusOverride?: FocusOverride | null;
+  ignoreDisabled?: boolean;
   shouldCommitQuery?: boolean;
 };
 
@@ -823,6 +825,11 @@ function updateFilterKey(
   };
 }
 
+function countWords(text: string): number {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
 /**
  * This function is used to replace free text tokens with the specified
  * `replaceRawSearchKeys` prop from `SearchQueryBuilder`. This function also handles
@@ -838,7 +845,8 @@ function updateFilterKey(
 export function replaceFreeTextTokens(
   currentQuery: string,
   parseQuery: (query: string) => ParseResult | null,
-  replaceRawSearchKeys: string[]
+  replaceRawSearchKeys: string[],
+  searchSource: string
 ) {
   if (
     currentQuery.trim().length === 0 ||
@@ -859,6 +867,8 @@ export function replaceFreeTextTokens(
 
   const primarySearchKey = replaceRawSearchKeys[0] ?? '';
   const replacedQuery: string[] = [];
+  const freeTextTokens: string[] = [];
+
   for (const token of currentQueryTokens) {
     if (token.type === Token.L_PAREN) {
       replacedQuery.push('(');
@@ -883,6 +893,7 @@ export function replaceFreeTextTokens(
     }
 
     const value = escapeTagValue(token.text.trim());
+    freeTextTokens.push(token.text.trim());
 
     // We don't want to break user flows, so if they include an asterisk in their free
     // text value, leave it as an `is` filter.
@@ -905,6 +916,27 @@ export function replaceFreeTextTokens(
     }
   }
 
+  // We're doing an experiment here to see if we can detect natural language queries
+  // and attempt to track them.
+  if (freeTextTokens.length > 0) {
+    const wordCount = freeTextTokens.reduce((acc, value) => acc + countWords(value), 0);
+
+    Sentry.logger.info(Sentry.logger.fmt`Found potential natural language query`, {
+      source: searchSource,
+      wordCount,
+    });
+
+    Sentry.metrics.count('search_query_builder.potential_natural_language_query', 1, {
+      attributes: {source: searchSource},
+    });
+
+    Sentry.metrics.gauge(
+      'search_query_builder.potential_natural_language_query_word_count',
+      wordCount,
+      {attributes: {source: searchSource}}
+    );
+  }
+
   const finalQuery = replacedQuery.join(' ').trim();
   const newParsedQuery = parseQuery(finalQuery) ?? [];
   const focusedToken = newParsedQuery?.findLast(token => token.type === Token.FREE_TEXT);
@@ -922,6 +954,7 @@ function updateFreeTextAndReplaceText(
     | UpdateFreeTextActionOnExit
     | UpdateFreeTextActionOnCommit,
   parseQuery: (query: string) => ParseResult | null,
+  searchSource: string,
   replaceRawSearchKeys?: string[]
 ): QueryBuilderState {
   const newState = updateFreeText(state, action);
@@ -933,7 +966,8 @@ function updateFreeTextAndReplaceText(
   const replacedState = replaceFreeTextTokens(
     newState.query,
     parseQuery,
-    replaceRawSearchKeys ?? []
+    replaceRawSearchKeys ?? [],
+    searchSource
   );
 
   const query = replacedState?.newQuery ? replacedState.newQuery : newState.query;
@@ -979,19 +1013,21 @@ function updateLogicOperator(
 }
 
 export function useQueryBuilderState({
-  initialQuery,
-  getFieldDefinition,
   disabled,
   displayAskSeerFeedback,
-  setDisplayAskSeerFeedback,
-  replaceRawSearchKeys,
+  getFieldDefinition,
+  initialQuery,
   parseQuery,
+  setDisplayAskSeerFeedback,
+  searchSource,
+  replaceRawSearchKeys,
 }: {
   disabled: boolean;
   displayAskSeerFeedback: boolean;
   getFieldDefinition: FieldDefinitionGetter;
   initialQuery: string;
   parseQuery: (query: string) => ParseResult | null;
+  searchSource: string;
   setDisplayAskSeerFeedback: (value: boolean) => void;
   replaceRawSearchKeys?: string[];
 }) {
@@ -1004,7 +1040,7 @@ export function useQueryBuilderState({
 
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
-      if (disabled) {
+      if (disabled && !(action.type === 'UPDATE_QUERY' && action.ignoreDisabled)) {
         return state;
       }
 
@@ -1042,7 +1078,8 @@ export function useQueryBuilderState({
           const replacedState = replaceFreeTextTokens(
             action.query,
             parseQuery,
-            replaceRawSearchKeys
+            replaceRawSearchKeys,
+            searchSource
           );
 
           const query = replacedState?.newQuery ? replacedState.newQuery : action.query;
@@ -1106,6 +1143,7 @@ export function useQueryBuilderState({
             state,
             action,
             parseQuery,
+            searchSource,
             replaceRawSearchKeys
           );
 
@@ -1165,6 +1203,7 @@ export function useQueryBuilderState({
       getFieldDefinition,
       parseQuery,
       replaceRawSearchKeys,
+      searchSource,
     ]
   );
 

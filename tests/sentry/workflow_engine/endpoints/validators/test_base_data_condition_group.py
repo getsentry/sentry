@@ -95,6 +95,26 @@ class TestBaseDataConditionGroupValidator(TestCase):
         validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
 
+    def test_rejects_non_integer_id(self) -> None:
+        self.valid_data["id"] = "not-a-number"
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is False
+        assert "id" in validator.errors
+
+    def test_accepts_integer_id(self) -> None:
+        dcg = self.create_data_condition_group(organization_id=self.organization.id)
+        self.valid_data["id"] = dcg.id
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+        assert validator.validated_data["id"] == dcg.id
+
+    def test_accepts_string_encoded_integer_id(self) -> None:
+        dcg = self.create_data_condition_group(organization_id=self.organization.id)
+        self.valid_data["id"] = str(dcg.id)
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+        assert validator.validated_data["id"] == dcg.id
+
 
 class TestBaseDataConditionGroupValidatorCreate(TestBaseDataConditionGroupValidator):
     def test_create(self) -> None:
@@ -154,6 +174,19 @@ class TestBaseDataConditionGroupValidatorCreate(TestBaseDataConditionGroupValida
         assert condition.type == Condition.FIRST_SEEN_EVENT.value
         assert condition.comparison is True
         assert condition.condition_group == result
+
+    def test_create__missing_conditions(self) -> None:
+        data = {
+            "logicType": DataConditionGroup.Type.ANY,
+            "organizationId": self.organization.id,
+        }
+        validator = BaseDataConditionGroupValidator(data=data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        result = validator.create(validator.validated_data)
+
+        assert result.logic_type == DataConditionGroup.Type.ANY
+        assert result.organization_id == self.organization.id
+        assert result.conditions.count() == 0
 
     def test_create_trigger__invalid_logic_type(self) -> None:
         valid_data = {

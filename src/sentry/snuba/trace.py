@@ -66,7 +66,7 @@ class SerializedIssue(SerializedEvent):
     end_timestamp: NotRequired[float]
     culprit: str | None
     short_id: str | None
-    issue_type: str
+    issue_type: int
 
 
 class SerializedSpan(SerializedEvent):
@@ -76,6 +76,8 @@ class SerializedSpan(SerializedEvent):
     duration: float
     end_timestamp: datetime
     measurements: dict[str, Any]
+    browser_web_vital: dict[str, Any]
+    mobile_app_vital: dict[str, Any]
     op: str
     name: str
     parent_span_id: str | None
@@ -140,8 +142,8 @@ def _serialize_rpc_issue(
         else:
             try:
                 issue = Group.objects.get(id=issue_id, project__id=occurrence.project_id)
-            except Group.DoesNotExist as e:
-                logger.error(e)
+            except Group.DoesNotExist:
+                logger.info("Group %s not found in _serialize_rpc_issue", issue_id)
                 return None
             group_cache[issue_id] = issue
         return SerializedIssue(
@@ -171,8 +173,8 @@ def _serialize_rpc_issue(
         else:
             try:
                 issue = Group.objects.get(id=issue_id, project__id=event["project.id"])
-            except Group.DoesNotExist as e:
-                logger.error(e)
+            except Group.DoesNotExist:
+                logger.info("Group %s not found in _serialize_rpc_issue", issue_id)
                 return None
             group_cache[issue_id] = issue
 
@@ -268,6 +270,12 @@ def _serialize_rpc_event(
         end_timestamp=event["precise.finish_ts"],
         measurements={
             key: value for key, value in event.items() if key.startswith("measurements.")
+        },
+        browser_web_vital={
+            key: value for key, value in event.items() if key.startswith("browser.web_vital.")
+        },
+        mobile_app_vital={
+            key: value for key, value in event.items() if key.startswith("app.vitals.")
         },
         duration=event["span.duration"],
         transaction=event["transaction"],

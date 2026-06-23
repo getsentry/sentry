@@ -31,12 +31,12 @@ def register_permanent_features(manager: FeatureManager) -> None:
     permanent_organization_features = {
         # Enable advanced search features, like negation and wildcard matching.
         "organizations:advanced-search": True,
+        # Denotes organizations on the AM3 billing tier
+        "organizations:am3-tier": False,
         # Enable anomaly detection alerts
         "organizations:anomaly-detection-alerts": False,
         # Enable change alerts for an org
         "organizations:change-alerts": True,
-        # The overall flag for codecov integration, gated by plans.
-        "organizations:codecov-integration": False,
         # Enable alerting based on crash free sessions/users
         "organizations:crash-rate-alerts": True,
         # Allow organizations to configure custom external symbol sources.
@@ -148,10 +148,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:dashboards-import": FlagpoleFeature(default=False, api_expose=True),
         # Enable various explore related dev features, may be used by internal branches for testing.
         "organizations:explore-dev-features": FlagpoleFeature(default=False, api_expose=True),
-        # Enable ingestion through trusted relays only
-        "organizations:ingest-through-trusted-relays-only": FlagpoleFeature(
-            default=False, api_expose=True
-        ),
         # Enable the rendering of @sentry/toolbar inside the sentry app. See `useInitSentryToolbar()`
         "organizations:init-sentry-toolbar": FlagpoleFeature(default=False, api_expose=True),
         # Opt orgs in to logging workflow evaluations (bypasses sample rate when enabled).

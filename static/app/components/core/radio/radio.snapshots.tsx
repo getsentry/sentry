@@ -9,36 +9,52 @@ const themes = {light: lightTheme, dark: darkTheme};
 
 describe('Radio', () => {
   describe.each(['light', 'dark'] as const)('theme-%s', themeName => {
-    it.snapshot.each<'sm' | 'md'>(['sm', 'md'])('size-%s-unchecked', size => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Radio size={size} onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot.each<'sm' | 'md'>(['sm', 'md'])(
+      'size-%s-unchecked',
+      size => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Radio size={size} onChange={() => {}} />
+          </div>
+        </ThemeProvider>
+      ),
+      size => ({tags: {size, area: 'core'}})
+    );
 
-    it.snapshot.each<'sm' | 'md'>(['sm', 'md'])('size-%s-checked', size => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Radio checked size={size} onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot.each<'sm' | 'md'>(['sm', 'md'])(
+      'size-%s-checked',
+      size => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Radio checked size={size} onChange={() => {}} />
+          </div>
+        </ThemeProvider>
+      ),
+      size => ({tags: {size, checked: 'true', area: 'core'}})
+    );
 
-    it.snapshot('disabled-unchecked', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Radio disabled onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot(
+      'disabled-unchecked',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Radio disabled onChange={() => {}} />
+          </div>
+        </ThemeProvider>
+      ),
+      {tags: {disabled: 'true', area: 'core'}}
+    );
 
-    it.snapshot('disabled-checked', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Radio checked disabled onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot(
+      'disabled-checked',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Radio checked disabled onChange={() => {}} />
+          </div>
+        </ThemeProvider>
+      ),
+      {tags: {disabled: 'true', checked: 'true', area: 'core'}}
+    );
   });
 });

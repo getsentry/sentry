@@ -5,12 +5,12 @@ import {BeaconDetails} from 'admin/views/beaconDetails';
 import {Beacons} from 'admin/views/beacons';
 import {BillingAdmins} from 'admin/views/billingAdmins';
 import {BillingPlans} from 'admin/views/billingPlans';
+import {BillingPlatform} from 'admin/views/billingPlatform';
 import {BroadcastDetails} from 'admin/views/broadcastDetails';
 import {Broadcasts} from 'admin/views/broadcasts';
 import {CustomerContractDetails} from 'admin/views/customerContractDetails';
 import {CustomerDetails} from 'admin/views/customerDetails';
 import {Customers} from 'admin/views/customers';
-import {CustomerUpgradeRequest} from 'admin/views/customerUpgradeRequest';
 import {DataRequests} from 'admin/views/dataRequests';
 import {DebuggingTools} from 'admin/views/debuggingTools';
 import {DocIntegrationDetails} from 'admin/views/docIntegrationDetails';
@@ -90,10 +90,6 @@ function buildRoutes() {
               {
                 index: true,
                 component: CustomerDetails,
-              },
-              {
-                path: 'upgrade-request/',
-                component: CustomerUpgradeRequest,
               },
               {
                 path: 'contract/',
@@ -253,6 +249,10 @@ function buildRoutes() {
             component: InvoiceDetails,
           },
         ],
+      },
+      {
+        path: 'billing-platform/',
+        component: BillingPlatform,
       },
       {
         path: 'instance-level-oauth',

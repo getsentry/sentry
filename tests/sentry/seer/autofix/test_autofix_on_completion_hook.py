@@ -99,6 +99,36 @@ def code_changes_memory_block(referrer: str | None = None) -> MemoryBlock:
     )
 
 
+def pr_iteration_memory_block(
+    referrer: str | None = None,
+    iteration_index: int = 1,
+    commit_sha: str | None = None,
+) -> MemoryBlock:
+    metadata: dict[str, str] = {
+        "step": "pr_iteration",
+        "iteration_index": str(iteration_index),
+    }
+    if referrer is not None:
+        metadata["referrer"] = referrer
+    return MemoryBlock(
+        id="block-pr-iteration",
+        message=Message(
+            role="assistant",
+            content="message pr iteration",
+            metadata=metadata,
+        ),
+        timestamp="2026-02-10T00:00:00Z",
+        merged_file_patches=[
+            AgentFilePatch(
+                repo_name="test-repo",
+                diff="diff --git a/test.py b/test.py",
+                patch=FilePatch(path="test.py", type="M", added=2, removed=1),
+            )
+        ],
+        pr_commit_shas={"test-repo": commit_sha} if commit_sha is not None else None,
+    )
+
+
 class TestAutofixOnCompletionHookHelpers(TestCase):
     """Tests for helper methods in AutofixOnCompletionHook."""
 
@@ -178,6 +208,27 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
         """Returns None after CODE_CHANGES (last step)."""
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.CODE_CHANGES)
         assert result is None
+
+    def test_get_next_step_pr_iteration_is_terminal(self) -> None:
+        result = AutofixOnCompletionHook._get_next_step(AutofixStep.PR_ITERATION)
+        assert result is None
+
+    @patch("sentry.seer.autofix.on_completion_hook.introspect_iteration")
+    def test_run_introspection_pr_iteration(self, mock_introspect_iteration) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        group = self.create_group(project=project)
+        state = run_state(blocks=[pr_iteration_memory_block()])
+
+        AutofixOnCompletionHook.run_introspection(
+            organization,
+            123,
+            state,
+            AutofixStep.PR_ITERATION,
+            group,
+        )
+
+        mock_introspect_iteration.assert_called_once_with(organization, 123, state, group)
 
 
 class TestAutofixOnCompletionHookPipeline(TestCase):
@@ -406,6 +457,109 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["added"] == 5
         assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["removed"] == 2
 
+    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
+    @patch("sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_pr_iteration(
+        self, mock_broadcast, mock_has_access, mock_process_autofix_updates, mock_analytics
+    ):
+        mock_has_access.return_value = True
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+                pr_iteration_memory_block(
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value,
+                    commit_sha="synced-sha",
+                ),
+            ]
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="completed",
+                commit_sha="synced-sha",
+            )
+        }
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_called_once()
+        call_kwargs = mock_broadcast.call_args.kwargs
+        assert call_kwargs["event_name"] == SeerActionType.ITERATION_COMPLETED.value
+        assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["path"] == "test.py"
+        assert call_kwargs["payload"]["pull_requests"][0]["pull_request"]["pr_number"] == 7
+        mock_process_autofix_updates.assert_called_once()
+        assert (
+            mock_analytics.call_args.args[0].referrer
+            == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value
+        )
+
+    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_pr_iteration_does_not_emit_pr_created(
+        self, mock_broadcast, mock_analytics
+    ):
+        state = run_state(
+            blocks=[
+                code_changes_memory_block(),
+                pr_iteration_memory_block(commit_sha="synced-sha"),
+            ]
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="completed",
+                commit_sha="synced-sha",
+            )
+        }
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        assert (
+            mock_broadcast.call_args.kwargs["event_name"]
+            == SeerActionType.ITERATION_COMPLETED.value
+        )
+        event_names = [call.args[0].type for call in mock_analytics.call_args_list]
+        assert "ai.autofix.pr_created.completed" not in event_names
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_pr_iteration_skips_until_synced(self, mock_broadcast):
+        """Does not emit iteration_completed until the pushed PR is synced to the iteration."""
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+                pr_iteration_memory_block(
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value,
+                    commit_sha="iteration-sha",
+                ),
+            ]
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="completed",
+                commit_sha="stale-sha",
+            )
+        }
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_not_called()
+
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_no_artifacts_no_webhook(self, mock_broadcast):
         """Does not send webhook when no artifacts or file patches exist."""
@@ -452,8 +606,10 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             auto_create_pr=True,
         )
 
-    @patch("sentry.seer.autofix.on_completion_hook.read_preference_from_sentry_db")
-    def test_get_handoff_config_returns_none_when_not_root_cause_step(self, mock_read_pref) -> None:
+    @patch("sentry.seer.autofix.on_completion_hook.get_automation_handoff")
+    def test_get_handoff_config_returns_none_when_not_root_cause_step(
+        self, mock_get_handoff
+    ) -> None:
         """Returns None without reading preferences when current step is not ROOT_CAUSE."""
         result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
             stopping_point=AutofixStoppingPoint.CODE_CHANGES,
@@ -462,11 +618,11 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         )
 
         assert result is None
-        mock_read_pref.assert_not_called()
+        mock_get_handoff.assert_not_called()
 
-    @patch("sentry.seer.autofix.on_completion_hook.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.on_completion_hook.get_automation_handoff")
     def test_get_handoff_config_returns_none_when_stopping_at_root_cause(
-        self, mock_read_pref
+        self, mock_get_handoff
     ) -> None:
         """Returns None without reading preferences when stopping point is ROOT_CAUSE."""
         result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
@@ -476,7 +632,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         )
 
         assert result is None
-        mock_read_pref.assert_not_called()
+        mock_get_handoff.assert_not_called()
 
     def test_get_handoff_config_returns_none_when_no_handoff_configured(self) -> None:
         """Returns None when project has no automation handoff configured."""
@@ -544,7 +700,6 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_point") is None
         assert self.project.get_option("sentry:seer_automation_handoff_target") is None
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
-        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
     def test_trigger_coding_agent_handoff_calls_function(self, mock_trigger):

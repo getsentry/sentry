@@ -231,7 +231,7 @@ const DeviceAnimation = styled('div')<{activated: boolean}>`
     css`
       filter: blur(8px);
       transition: filter 300ms ease;
-    `};
+    `}
 `;
 
 // XXX(epurkhiser): We are ONLY exporting this as default for the

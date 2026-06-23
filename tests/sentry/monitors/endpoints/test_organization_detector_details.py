@@ -88,7 +88,6 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
             "alertRuleId": None,
             "ruleId": None,
             "latestGroup": None,
-            "openIssues": 0,
         }
 
     def test_update_monitor_incident_detector(self) -> None:

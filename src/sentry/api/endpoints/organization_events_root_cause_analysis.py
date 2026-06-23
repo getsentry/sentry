@@ -8,6 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_spans_performance import EventID, get_span_description
+from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.api.utils import handle_query_errors
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
@@ -35,7 +36,7 @@ RESPONSE_KEYS = [
 
 class RootCauseAnalysisQuerySerializer(serializers.Serializer):
     transaction = serializers.CharField(max_length=200)
-    project = serializers.IntegerField()
+    project = ProjectField(scope="project:read", id_allowed=True)
     breakpoint = serializers.CharField()
     per_page = serializers.IntegerField(min_value=1, max_value=MAX_LIMIT, default=DEFAULT_LIMIT)
     span_score_threshold = serializers.IntegerField(
@@ -203,13 +204,16 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
     }
 
     def get(self, request, organization):
-        serializer = RootCauseAnalysisQuerySerializer(data=request.GET)
+        serializer = RootCauseAnalysisQuerySerializer(
+            data=request.GET,
+            context={"access": request.access, "organization": organization},
+        )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         validated = serializer.validated_data
         transaction_name = validated["transaction"]
-        project_id = validated["project"]
+        project_id = validated["project"].id
         regression_breakpoint = validated["breakpoint"]
         limit = validated["per_page"]
         span_score_threshold = validated["span_score_threshold"]

@@ -92,6 +92,7 @@ export const useSeerExplorerPolling = ({runId}: {runId: number | null}) => {
     retry: false,
     refetchOnWindowFocus: true,
     enabled: !!runId && isSeerExplorerEnabled(organization),
+    refetchIntervalInBackground: true,
     refetchInterval: query => {
       const state = getPollingState(
         runId,

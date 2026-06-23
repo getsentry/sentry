@@ -39,7 +39,7 @@ class OrganizationDetectorTypeIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[list[str]]:
         """
         Returns a list of detector types for a given org
         """

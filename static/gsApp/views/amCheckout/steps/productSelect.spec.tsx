@@ -7,10 +7,11 @@ import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {AddOnCategory, PlanTier} from 'getsentry/types';
+import {AddOnCategory} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
 // XXX(isabella): This tests with both legacy Seer and Seer
@@ -53,11 +54,6 @@ describe('ProductSelect', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-      method: 'GET',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
     });
@@ -72,12 +68,7 @@ describe('ProductSelect', () => {
     SubscriptionStore.set(organization.slug, freeSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -102,12 +93,7 @@ describe('ProductSelect', () => {
     SubscriptionStore.set(organization.slug, unavailableSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -117,12 +103,7 @@ describe('ProductSelect', () => {
 
   it('renders with correct monthly price and credits for products', async () => {
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -139,12 +120,7 @@ describe('ProductSelect', () => {
     SubscriptionStore.set(organization.slug, annualSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -158,12 +134,7 @@ describe('ProductSelect', () => {
     SubscriptionStore.set(organization.slug, seerSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -177,12 +148,7 @@ describe('ProductSelect', () => {
     SubscriptionStore.set(organization.slug, trialSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 

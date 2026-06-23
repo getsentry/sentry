@@ -25,6 +25,7 @@ __all__ = [
     "PercentSessionsPercentHandler",
     "ReappearedEventConditionHandler",
     "RegressionEventConditionHandler",
+    "SeerActivityTriggerHandler",
     "TaggedEventConditionHandler",
 ]
 
@@ -51,4 +52,5 @@ from .level_handler import LevelConditionHandler
 from .new_high_priority_issue_handler import NewHighPriorityIssueConditionHandler
 from .reappeared_event_handler import ReappearedEventConditionHandler
 from .regression_event_handler import RegressionEventConditionHandler
+from .seer_activity_trigger_handler import SeerActivityTriggerHandler
 from .tagged_event_handler import TaggedEventConditionHandler

@@ -32,6 +32,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
@@ -251,7 +252,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         return queryset
 
     @extend_schema(
-        operation_id="Fetch an Organization's Monitors",
+        operation_id="listOrganizationDetectors",
+        summary="Fetch an Organization's Monitors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -270,7 +272,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.LIST_ORG_DETECTORS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[DetectorSerializerResponse]] | Response[DetailResponse]:
         """
         List an Organization's Monitors
         """
@@ -316,7 +320,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Mutate an Organization's Monitors",
+        operation_id="updateOrganizationDetectors",
+        summary="Mutate an Organization's Monitors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -342,7 +347,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.LIST_ORG_DETECTORS,
     )
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> Response[list[DetectorSerializerResponse]] | Response[DetailResponse]:
         """
         Bulk enable or disable an Organization's Monitors
         """
@@ -402,7 +409,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Bulk Delete Monitors",
+        operation_id="deleteOrganizationDetectors",
+        summary="Bulk Delete Monitors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -419,7 +427,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization: Organization) -> Response:
+    def delete(
+        self, request: Request, organization: Organization
+    ) -> Response[None] | Response[DetailResponse]:
         """
         Bulk delete Monitors for a given organization
         """

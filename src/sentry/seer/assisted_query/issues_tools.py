@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any
 
-from sentry.api import client
+from sentry.api.client import ApiClient, ApiError
 from sentry.issues.grouptype import registry as group_type_registry
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
@@ -10,6 +10,15 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.release import Release
 from sentry.models.team import Team, TeamStatus
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.seer.sentry_data_models import (
+    ExecuteIssuesQuerySuccessResponse,
+    ExecuteQueryErrorResponse,
+    FilterKeyValuesResponse,
+    IssueFilterBuiltInField,
+    IssueFilterKeysResponse,
+    IssuesStatsResponse,
+    TagFilterKeyValue,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import PriorityLevel
@@ -418,7 +427,7 @@ def get_issue_filter_keys(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-) -> dict[str, Any] | None:
+) -> IssueFilterKeysResponse | None:
     """
     Get available issue filter keys (tags, feature flags, and built-in fields).
 
@@ -461,7 +470,7 @@ def get_issue_filter_keys(
 
     # Get event tags
     event_params = {**base_params, "dataset": Dataset.Events.value, "useCache": "1"}
-    event_resp = client.get(
+    event_resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/tags/",
@@ -471,7 +480,7 @@ def get_issue_filter_keys(
 
     # Get issue tags (search_issues dataset)
     issue_params = {**base_params, "dataset": Dataset.IssuePlatform.value, "useCache": "1"}
-    issue_resp = client.get(
+    issue_resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/tags/",
@@ -498,7 +507,7 @@ def get_issue_filter_keys(
         "useFlagsBackend": "1",
         "useCache": "1",
     }
-    flags_resp = client.get(
+    flags_resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/tags/",
@@ -510,11 +519,11 @@ def get_issue_filter_keys(
     tag_keys = [tag.get("key") for tag in tags if tag.get("key")]
     built_in_fields = _get_built_in_issue_fields(organization, project_ids, tag_keys)
 
-    return {
-        "tags": tags,
-        "feature_flags": feature_flags,
-        "built_in_fields": built_in_fields,
-    }
+    return IssueFilterKeysResponse(
+        tags=tags,
+        feature_flags=feature_flags,
+        built_in_fields=[IssueFilterBuiltInField(**f) for f in built_in_fields],
+    )
 
 
 def get_filter_key_values(
@@ -526,7 +535,7 @@ def get_filter_key_values(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-) -> list[dict[str, Any]] | None:
+) -> FilterKeyValuesResponse | None:
     """
     Get values for a specific filter key.
 
@@ -568,9 +577,7 @@ def get_filter_key_values(
             org_id=org_id, project_ids=project_ids, stats_period=stats_period, start=start, end=end
         )
         if filter_keys_result:
-            tag_keys = [
-                tag.get("key") for tag in filter_keys_result.get("tags", []) if tag.get("key")
-            ]
+            tag_keys = [key for tag in filter_keys_result.tags if (key := tag.get("key"))]
 
     built_in_values = _get_built_in_field_values(attribute_key, organization, project_ids, tag_keys)
     if built_in_values is not None:
@@ -579,7 +586,7 @@ def get_filter_key_values(
             built_in_values = [
                 val for val in built_in_values if substring.lower() in val.get("value", "").lower()
             ]
-        return built_in_values
+        return FilterKeyValuesResponse(__root__=[TagFilterKeyValue(**v) for v in built_in_values])
 
     # Not a built-in field, query tags endpoint
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
@@ -603,7 +610,7 @@ def get_filter_key_values(
 
     # 1. Try events dataset (regular tags)
     events_params = {**base_params, "dataset": Dataset.Events.value}
-    events_resp = client.get(
+    events_resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
@@ -614,7 +621,7 @@ def get_filter_key_values(
 
     # 2. Try search_issues dataset
     issues_params = {**base_params, "dataset": Dataset.IssuePlatform.value}
-    issues_resp = client.get(
+    issues_resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
@@ -626,7 +633,7 @@ def get_filter_key_values(
     # 3. Try flags backend (feature flags) only if no results were found. This is only enabled for events dataset
     if not all_results:
         flags_params = {**base_params, "dataset": Dataset.Events.value, "useFlagsBackend": "1"}
-        flags_resp = client.get(
+        flags_resp = ApiClient().get(
             auth=api_key,
             user=None,
             path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
@@ -655,7 +662,7 @@ def get_filter_key_values(
 
     result = list(merged.values())
     result.sort(key=lambda x: x["count"], reverse=True)
-    return result
+    return FilterKeyValuesResponse(__root__=[TagFilterKeyValue(**v) for v in result])
 
 
 def execute_issues_query(
@@ -668,7 +675,7 @@ def execute_issues_query(
     end: str | None = None,
     sort: str | None = None,
     limit: int = 25,
-) -> list[dict[str, Any]] | dict[str, Any] | None:
+) -> ExecuteIssuesQuerySuccessResponse | ExecuteQueryErrorResponse | None:
     """
     Execute an issues query by calling the issues endpoint.
 
@@ -711,17 +718,19 @@ def execute_issues_query(
         params["sort"] = sort
 
     try:
-        resp = client.get(
+        resp = ApiClient().get(
             auth=api_key,
             user=None,
             path=f"/organizations/{organization.slug}/issues/",
             params=params,
         )
-        return resp.data
-    except client.ApiError as e:
+        return ExecuteIssuesQuerySuccessResponse(__root__=resp.data)
+    except ApiError as e:
         if e.status_code == 400:
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+            return ExecuteQueryErrorResponse(
+                error=str(error_detail) if error_detail is not None else str(e.body)
+            )
         raise
 
 
@@ -734,7 +743,7 @@ def get_issues_stats(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-) -> list[dict[str, Any]] | None:
+) -> IssuesStatsResponse | None:
     """
     Get stats for specific issues by calling the issues-stats endpoint.
 
@@ -761,7 +770,7 @@ def get_issues_stats(
         return None
 
     if not issue_ids:
-        return []
+        return IssuesStatsResponse(__root__=[])
 
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
@@ -777,11 +786,11 @@ def get_issues_stats(
         params["start"] = start
         params["end"] = end
 
-    resp = client.get(
+    resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/issues-stats/",
         params=params,
     )
 
-    return resp.data
+    return IssuesStatsResponse(__root__=resp.data)

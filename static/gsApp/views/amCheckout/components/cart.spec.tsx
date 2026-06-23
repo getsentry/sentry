@@ -6,6 +6,7 @@ import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {InvoicePreviewFixture} from 'getsentry-test/fixtures/invoicePreview';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -18,12 +19,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PAYG_BUSINESS_DEFAULT} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {
-  AddOnCategory,
-  OnDemandBudgetMode,
-  PlanTier,
-  type Subscription,
-} from 'getsentry/types';
+import {AddOnCategory, OnDemandBudgetMode, type Subscription} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import {Cart} from 'getsentry/views/amCheckout/components/cart';
 import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
@@ -62,11 +58,6 @@ describe('Cart', () => {
     setMockDate(MOCK_TODAY);
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, subscription);
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-      method: 'GET',
-      body: {},
-    });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'GET',
@@ -108,9 +99,7 @@ describe('Cart', () => {
   }
 
   it('renders with default selections', async () => {
-    render(
-      <AMCheckout api={new MockApiClient()} checkoutTier={PlanTier.AM3} {...props} />
-    );
+    render(<AMCheckout api={new MockApiClient()} {...props} />);
     const cart = await screen.findByTestId('cart');
     expect(cart).toHaveTextContent('Business Plan');
     expect(cart).toHaveTextContent('Pay-as-you-go spend limitup to $300/mo');
@@ -451,7 +440,7 @@ describe('Cart', () => {
         },
         name: 'partner',
       },
-      contractPeriodEnd: moment(MOCK_TODAY).add(7, 'days').toISOString(),
+      billingPeriodEnd: moment(MOCK_TODAY).add(7, 'days').toISOString(),
     });
 
     render(

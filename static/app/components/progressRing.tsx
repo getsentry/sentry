@@ -1,5 +1,6 @@
 import type {SerializedStyles, Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -165,7 +166,9 @@ const RingBar = styled('circle')<{
   transform-origin: 50% 50%;
   ${p =>
     p.animate &&
-    `transition:
-    stroke-dashoffset 200ms,
-    stroke 100ms;`}
+    css`
+      transition:
+        stroke-dashoffset 200ms,
+        stroke 100ms;
+    `}
 `;

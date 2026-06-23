@@ -7,11 +7,8 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Access} from 'sentry/components/acl/access';
 import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
-import {Confirm} from 'sentry/components/confirm';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -22,21 +19,19 @@ import {t} from 'sentry/locale';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
-  PluginWithProjectList,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -52,8 +47,7 @@ import {IntegrationExternalUserMappings} from './integrationExternalUserMappings
 import {IntegrationItem} from './integrationItem';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
-const TABS = ['settings', 'codeMappings', 'userMappings', 'teamMappings'] as const;
-type Tab = (typeof TABS)[number];
+type Tab = 'settings' | 'codeMappings' | 'userMappings' | 'teamMappings';
 
 const makeIntegrationQuery = (
   organization: Organization,
@@ -66,22 +60,11 @@ const makeIntegrationQuery = (
   ];
 };
 
-const makePluginQuery = (organization: Organization): ApiQueryKey => {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-  ];
-};
-
 function ConfigureIntegration() {
   const location = useLocation();
   const navigate = useNavigate();
-  const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
-  const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'settings';
   const {integrationId, providerKey} = useParams<{
     integrationId: string;
     providerKey: string;
@@ -110,14 +93,6 @@ function ConfigureIntegration() {
     makeIntegrationQuery(organization, integrationId),
     {staleTime: 0}
   );
-  const {
-    data: plugins,
-    isPending: isLoadingPlugins,
-    isError: isErrorPlugins,
-    refetch: refetchPlugins,
-  } = useApiQuery<PluginWithProjectList[] | null>(makePluginQuery(organization), {
-    staleTime: 0,
-  });
 
   const provider = config.providers.find(p => p.key === integration?.provider.key);
   const {projects} = useProjects();
@@ -155,17 +130,70 @@ function ConfigureIntegration() {
     }
   }, [navigate, organization, providerKey]);
 
-  if (isLoadingConfig || isLoadingIntegration || isLoadingPlugins) {
+  if (isLoadingConfig || isLoadingIntegration) {
     return <LoadingIndicator />;
   }
 
-  if (isErrorConfig || isErrorIntegration || isErrorPlugins) {
+  if (isErrorConfig || isErrorIntegration) {
     return <LoadingError />;
   }
 
   if (!provider || !integration) {
     return null;
   }
+
+  // The Settings tab only has content when there is something to render in
+  // renderMainTab(). When empty, the tab is hidden entirely.
+  const settingsInstructions =
+    integration.dynamicDisplayInformation?.configure_integration?.instructions;
+  const hasSettingsTabContent =
+    integration.configOrganization.length > 0 ||
+    (settingsInstructions?.length ?? 0) > 0 ||
+    provider.features.includes('alert-rule') ||
+    provider.features.includes('serverless');
+
+  const hasStacktraceLinking = provider.features.includes('stacktrace-link');
+  const hasCodeOwners =
+    provider.features.includes('codeowners') &&
+    organization.features.includes('integrations-codeowners');
+  const hasUserMapping = provider.features.includes('user-mapping');
+
+  // The Settings tab is paired with stacktrace linking or user mapping; it is
+  // only shown when renderMainTab() would actually have content.
+  const settingsTabs: Array<[Tab, string]> =
+    hasSettingsTabContent && (hasStacktraceLinking || hasUserMapping)
+      ? [['settings', t('Settings')]]
+      : [];
+
+  const stackTraceLinkingTabs: Array<[Tab, string]> = hasStacktraceLinking
+    ? [['codeMappings', t('Code Mappings')]]
+    : [];
+
+  const codeOwnerTabs: Array<[Tab, string]> = hasCodeOwners
+    ? [
+        ['userMappings', t('User Mappings')],
+        ['teamMappings', t('Team Mappings')],
+      ]
+    : [];
+
+  // User mappings are mutually exclusive with stacktrace linking
+  // and code owners, so only render the main settings tab and user mappings.
+  const userMappingTabs: Array<[Tab, string]> = hasUserMapping
+    ? [['userMappings', t('User Mappings')]]
+    : [];
+
+  const allTabs = [
+    ...settingsTabs,
+    ...stackTraceLinkingTabs,
+    ...codeOwnerTabs,
+    ...userMappingTabs,
+  ];
+
+  const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
+  const tab =
+    tabParam && allTabs.some(([key]) => key === tabParam)
+      ? tabParam
+      : (allTabs[0]?.[0] ?? 'settings');
 
   const onTabChange = (value: Tab) => {
     // XXX: Omit the cursor to prevent paginating the next tab's queries.
@@ -179,9 +207,6 @@ function ConfigureIntegration() {
    * Refetch everything, this could be improved to reload only the right thing
    */
   const onUpdateIntegration = () => {
-    queryClient.removeQueries({queryKey: makePluginQuery(organization)});
-    refetchPlugins();
-
     queryClient.removeQueries({
       queryKey: [`/organizations/${organization.slug}/config/integrations/`],
     });
@@ -193,65 +218,12 @@ function ConfigureIntegration() {
     refetchIntegration();
   };
 
-  const handleOpsgenieMigration = async () => {
-    try {
-      await api.requestPromise(
-        `/organizations/${organization.slug}/integrations/${integrationId}/migrate-opsgenie/`,
-        {
-          method: 'PUT',
-        }
-      );
-      setApiQueryData<PluginWithProjectList[] | null>(
-        queryClient,
-        makePluginQuery(organization),
-        oldData => {
-          return oldData?.filter(({id}) => id === 'opsgenie') ?? [];
-        }
-      );
-      addSuccessMessage(t('Migration in progress.'));
-    } catch (error) {
-      addErrorMessage(t('Something went wrong! Please try again.'));
-    }
-  };
-
-  const handleJiraMigration = async () => {
-    try {
-      await api.requestPromise(
-        `/organizations/${organization.slug}/integrations/${integrationId}/issues/`,
-        {
-          method: 'PUT',
-          data: {},
-        }
-      );
-      setApiQueryData<PluginWithProjectList[] | null>(
-        queryClient,
-        makePluginQuery(organization),
-        oldData => {
-          return oldData?.filter(({id}) => id === 'jira') ?? [];
-        }
-      );
-      addSuccessMessage(t('Migration in progress.'));
-    } catch (error) {
-      addErrorMessage(t('Something went wrong! Please try again.'));
-    }
-  };
-
-  const isOpsgeniePluginInstalled = () => {
-    return (plugins || []).some(
-      p =>
-        p.id === 'opsgenie' &&
-        p.projectList.length >= 1 &&
-        p.projectList.some(({enabled}) => enabled)
-    );
-  };
-
   const getAction = () => {
     if (provider.key === 'pagerduty') {
       return (
         <PagerdutyAddServicesButton
           provider={provider}
           onInstall={onUpdateIntegration}
-          account={integration.domainName}
           organization={organization}
         />
       );
@@ -266,89 +238,6 @@ function ConfigureIntegration() {
         >
           {t('Open in Discord')}
         </LinkButton>
-      );
-    }
-
-    const canMigrateJiraPlugin =
-      ['jira', 'jira_server'].includes(provider.key) &&
-      (plugins || []).find(({id}) => id === 'jira');
-    if (canMigrateJiraPlugin) {
-      return (
-        <Access access={['org:integrations']}>
-          {({hasAccess}) => (
-            <Confirm
-              disabled={!hasAccess}
-              header="Migrate Linked Issues from Jira Plugins"
-              renderMessage={() => (
-                <Fragment>
-                  <p>
-                    {t(
-                      'This will automatically associate all the Linked Issues of your Jira Plugins to this integration.'
-                    )}
-                  </p>
-                  <p>
-                    {t(
-                      'If the Jira Plugins had the option checked to automatically create a Jira ticket for every new Sentry issue checked, you will need to create alert rules to recreate this behavior. Jira Server does not have this feature.'
-                    )}
-                  </p>
-                  <p>
-                    {t(
-                      'Once the migration is complete, your Jira Plugins will be disabled.'
-                    )}
-                  </p>
-                </Fragment>
-              )}
-              onConfirm={() => {
-                handleJiraMigration();
-              }}
-            >
-              <Button variant="primary" disabled={!hasAccess}>
-                {t('Migrate Plugin')}
-              </Button>
-            </Confirm>
-          )}
-        </Access>
-      );
-    }
-
-    const canMigrateOpsgeniePlugin =
-      provider.key === 'opsgenie' && isOpsgeniePluginInstalled();
-    if (canMigrateOpsgeniePlugin) {
-      return (
-        <Access access={['org:integrations']}>
-          {({hasAccess}) => (
-            <Confirm
-              disabled={!hasAccess}
-              header="Migrate API Keys and Alert Rules from Opsgenie"
-              renderMessage={() => (
-                <Fragment>
-                  <p>
-                    {t(
-                      'This will automatically associate all the API keys and Alert Rules of your Opsgenie Plugins to this integration.'
-                    )}
-                  </p>
-                  <p>
-                    {t(
-                      'API keys will be automatically named after one of the projects with which they were associated.'
-                    )}
-                  </p>
-                  <p>
-                    {t(
-                      'Once the migration is complete, your Opsgenie Plugins will be disabled.'
-                    )}
-                  </p>
-                </Fragment>
-              )}
-              onConfirm={() => {
-                handleOpsgenieMigration();
-              }}
-            >
-              <Button variant="primary" disabled={!hasAccess}>
-                {t('Migrate Plugin')}
-              </Button>
-            </Confirm>
-          )}
-        </Access>
       );
     }
 
@@ -458,41 +347,6 @@ function ConfigureIntegration() {
   }
 
   function renderMainContent() {
-    const hasStacktraceLinking = provider!.features.includes('stacktrace-link');
-    const hasCodeOwners =
-      provider!.features.includes('codeowners') &&
-      organization.features.includes('integrations-codeowners');
-    const hasUserMapping = provider!.features.includes('user-mapping');
-
-    const tabs: Array<[Tab, string]> = [];
-    const stackTraceLinkingTabs: Array<[Tab, string]> = hasStacktraceLinking
-      ? [
-          ['settings', t('Settings')],
-          ['codeMappings', t('Code Mappings')],
-        ]
-      : [];
-
-    const codeOwnerTabs: Array<[Tab, string]> = hasCodeOwners
-      ? [
-          ['userMappings', t('User Mappings')],
-          ['teamMappings', t('Team Mappings')],
-        ]
-      : [];
-
-    // User mappings are mutually exclusive with stacktrace linking
-    // and code owners, so only render the main settings tab and user mappings.
-    const userMappingTabs: Array<[Tab, string]> = hasUserMapping
-      ? [
-          ['settings', t('Settings')],
-          ['userMappings', t('User Mappings')],
-        ]
-      : [];
-
-    const allTabs = tabs
-      .concat(stackTraceLinkingTabs)
-      .concat(codeOwnerTabs)
-      .concat(userMappingTabs);
-
     if (allTabs.length === 0) {
       return renderMainTab();
     }
@@ -531,10 +385,8 @@ function ConfigureIntegration() {
 function PagerdutyAddServicesButton({
   provider,
   onInstall,
-  account,
   organization,
 }: {
-  account: string | null;
   onInstall: () => void;
   organization: Organization;
   provider: IntegrationProvider;
@@ -546,7 +398,7 @@ function PagerdutyAddServicesButton({
       variant="primary"
       size="sm"
       icon={<IconAdd />}
-      onClick={() => startFlow({provider, onInstall, account, organization})}
+      onClick={() => startFlow({provider, onInstall, organization})}
     >
       {t('Add Services')}
     </Button>

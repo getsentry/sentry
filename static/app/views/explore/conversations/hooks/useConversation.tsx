@@ -202,7 +202,7 @@ export function useConversation(
       }
     : hasExplicitDatetime
       ? normalizeDateTimeParams(selection.datetime)
-      : {statsPeriod: '30d'};
+      : {};
 
   const project =
     selection.projects.length > 0 ? selection.projects : [ALL_ACCESS_PROJECTS];

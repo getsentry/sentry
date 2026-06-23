@@ -21,11 +21,6 @@ describe('Subscription > Notifications', () => {
       body: {reservedPercent: [90], perProductOndemandPercent: [80, 50]},
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/`,
-      method: 'GET',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
     });

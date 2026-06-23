@@ -29,7 +29,8 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
     }
 
     @extend_schema(
-        operation_id="List a Project's Data Filters",
+        operation_id="listProjectFilters",
+        summary="List a Project's Data Filters",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -42,12 +43,12 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.GET_PROJECT_FILTERS,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[list[ProjectFilterResponse]]:
         """
         Retrieve a list of filters for a given project.
         `active` will be either a boolean or a list for the legacy browser filters.
         """
-        results = []
+        results: list[ProjectFilterResponse] = []
         for flt in inbound_filters.get_all_filter_specs():
             results.append(
                 {

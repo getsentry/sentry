@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
 
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -39,9 +39,12 @@ export function AllocationRow({
         <HalvedWithDivider>
           {allocation.costPerItem === 0 && (
             <Centered>
-              <Tooltip title={t('Cost per event is unavailable for base plans')}>
-                --
-              </Tooltip>
+              <InfoText
+                variant="inherit"
+                title={t('Cost per event is unavailable for base plans')}
+              >
+                N/A
+              </InfoText>
             </Centered>
           )}
           {allocation.costPerItem > 0 && (
@@ -55,9 +58,12 @@ export function AllocationRow({
             <Divider />
           </Centered>
           <Centered>
-            <Tooltip title={allocation.reservedQuantity.toLocaleString()}>
+            <InfoText
+              variant="inherit"
+              title={allocation.reservedQuantity.toLocaleString()}
+            >
               {bigNumFormatter(allocation.reservedQuantity, undefined, metricUnit)}
-            </Tooltip>
+            </InfoText>
           </Centered>
         </HalvedWithDivider>
       </Cell>
@@ -66,9 +72,12 @@ export function AllocationRow({
         <HalvedWithDivider>
           {allocation.costPerItem === 0 && (
             <Centered>
-              <Tooltip title={t('Cost per event is unavailable for base plans')}>
-                --
-              </Tooltip>
+              <InfoText
+                variant="inherit"
+                title={t('Cost per event is unavailable for base plans')}
+              >
+                N/A
+              </InfoText>
             </Centered>
           )}
           {allocation.costPerItem > 0 && (
@@ -82,7 +91,12 @@ export function AllocationRow({
             <Divider />
           </Centered>
           <Centered>
-            <Tooltip
+            <InfoText
+              variant={
+                allocation.consumedQuantity > allocation.reservedQuantity
+                  ? 'danger'
+                  : 'inherit'
+              }
               title={(allocation.consumedQuantity > allocation.reservedQuantity
                 ? `${allocation.consumedQuantity} (${
                     allocation.consumedQuantity - allocation.reservedQuantity
@@ -90,16 +104,8 @@ export function AllocationRow({
                 : allocation.consumedQuantity
               ).toLocaleString()}
             >
-              <span
-                style={
-                  allocation.consumedQuantity > allocation.reservedQuantity
-                    ? {color: theme.colors.red500}
-                    : {}
-                }
-              >
-                {bigNumFormatter(allocation.consumedQuantity, 2, metricUnit)}
-              </span>
-            </Tooltip>
+              {bigNumFormatter(allocation.consumedQuantity, 2, metricUnit)}
+            </InfoText>
           </Centered>
         </HalvedWithDivider>
       </Cell>

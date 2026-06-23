@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
 
 import {Confirm} from 'sentry/components/confirm';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
@@ -54,7 +54,8 @@ export function InviteRequestRow({
         {inviteRequest.inviteStatus === 'requested_to_be_invited' ? (
           inviteRequest.inviterName && (
             <Description>
-              <Tooltip
+              <InfoText
+                variant="inherit"
                 title={t(
                   'An existing member has asked to invite this user to your organization'
                 )}
@@ -62,7 +63,7 @@ export function InviteRequestRow({
                 {tct('Requested by [inviterName]', {
                   inviterName: inviteRequest.inviterName,
                 })}
-              </Tooltip>
+              </InfoText>
             </Description>
           )
         ) : (

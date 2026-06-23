@@ -1,7 +1,12 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {OrganizationAvatar, SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {
+  OrganizationAvatar,
+  SentryAppAvatar,
+  TeamAvatar,
+  UserAvatar,
+} from '@sentry/scraps/avatar';
 import type {AvatarProps} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -22,8 +27,9 @@ import type {
   SentryAppAvatarPhotoType,
   SentryAppAvatar as SentryAppAvatarType,
 } from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
+import type {Organization, Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
 import {AvatarCropper} from './avatarCropper';
@@ -35,29 +41,50 @@ interface SimpleAvatar {
 
 type AvatarType = Avatar['avatarType'];
 
-type AvatarChooserType =
-  | 'user'
-  | 'organization'
-  | 'sentryAppColor'
-  | 'sentryAppSimple'
-  | 'docIntegration';
+type AvatarModel = AvatarUser | Team | Organization | SentryApp | SimpleAvatar;
 
 type DefaultChoice = {
   description?: React.ReactNode;
   label?: string;
 };
 
-interface AvatarChooserProps {
+interface AvatarChooserBaseProps {
   endpoint: string;
-  model: SimpleAvatar | SentryApp;
   supportedTypes: AvatarType[];
   defaultChoice?: DefaultChoice;
   disabled?: boolean;
   help?: React.ReactNode;
-  onSave?: (model: SimpleAvatar) => void;
   title?: string;
-  type?: AvatarChooserType;
 }
+
+type AvatarChooserProps = AvatarChooserBaseProps &
+  (
+    | {
+        model: AvatarUser;
+        type: 'user';
+        onSave?: (model: AvatarUser) => void;
+      }
+    | {
+        model: Team;
+        type: 'team';
+        onSave?: (model: Team) => void;
+      }
+    | {
+        model: Organization;
+        type: 'organization';
+        onSave?: (model: Organization) => void;
+      }
+    | {
+        model: SentryApp;
+        type: 'sentryAppColor' | 'sentryAppSimple';
+        onSave?: (model: SimpleAvatar) => void;
+      }
+    | {
+        model: SimpleAvatar;
+        type: 'docIntegration';
+        onSave?: (model: SimpleAvatar) => void;
+      }
+  );
 
 // These values must be synced with the avatar endpoint in backend.
 const MIN_DIMENSION = 256;
@@ -74,7 +101,7 @@ export function AvatarChooser({
   title,
   help,
   supportedTypes,
-  type = 'user',
+  type,
   onSave,
   defaultChoice = {},
 }: AvatarChooserProps) {
@@ -87,7 +114,7 @@ export function AvatarChooser({
   const isSentryApp = ['sentryAppColor', 'sentryAppSimple'].includes(type);
 
   const replaceAvatar = (avatar: Avatar) => {
-    if (['user', 'organization', 'docIntegration'].includes(type)) {
+    if (['user', 'team', 'organization', 'docIntegration'].includes(type)) {
       setModel(prevModel => ({...prevModel, avatar}));
       return;
     }
@@ -120,7 +147,7 @@ export function AvatarChooser({
     throw new Error('Invalid avatar chooser type');
   };
 
-  const getAvatar = (targetModel: SimpleAvatar | SentryApp) => {
+  const getAvatar = (targetModel: AvatarModel) => {
     if ('avatar' in targetModel) {
       return targetModel.avatar;
     }
@@ -144,7 +171,7 @@ export function AvatarChooser({
     });
   };
 
-  const handleSaveAvatar = () => {
+  const handleSaveAvatar = async () => {
     const avatarType = getAvatar(model)?.avatarType;
     const base64Data = croppedAvatar?.split(',')[1];
     setCroppedAvatar(null);
@@ -162,28 +189,29 @@ export function AvatarChooser({
       data.avatar_photo = base64Data;
     }
 
-    if (type?.startsWith('sentryApp')) {
+    if (type.startsWith('sentryApp')) {
       data.color = type === 'sentryAppColor';
       data.photoType = data.color ? 'logo' : 'icon';
     }
 
-    api.request(endpoint, {
-      method: 'PUT',
-      data,
-      success: resp => {
-        setModel(resp);
-        onSave?.(resp);
-        addSuccessMessage(t('Successfully saved avatar preferences'));
-      },
-      error: resp => {
-        const avatarPhotoErrors = resp?.responseJSON?.avatar_photo || [];
-        if (avatarPhotoErrors.length) {
-          avatarPhotoErrors.map(addErrorMessage);
-        } else {
-          addErrorMessage(t('There was an error saving your preferences.'));
-        }
-      },
-    });
+    try {
+      const resp = await api.requestPromise(endpoint, {
+        method: 'PUT',
+        data,
+      });
+      setModel(resp);
+      onSave?.(resp);
+      addSuccessMessage(t('Successfully saved avatar preferences'));
+    } catch (error) {
+      const requestError = error as RequestError;
+      const avatarPhotoErrors = (requestError?.responseJSON?.avatar_photo ||
+        []) as string[];
+      if (avatarPhotoErrors.length) {
+        avatarPhotoErrors.forEach(msg => addErrorMessage(msg));
+      } else {
+        addErrorMessage(t('There was an error saving your preferences.'));
+      }
+    }
   };
 
   const {fileInput, openUpload, objectUrl} = useUploader({
@@ -230,6 +258,8 @@ export function AvatarChooser({
   const avatarPreview =
     type === 'user' ? (
       <UserAvatar {...sharedAvatarProps} user={model as AvatarUser} />
+    ) : type === 'team' ? (
+      <TeamAvatar {...sharedAvatarProps} team={model as Team} />
     ) : type === 'organization' ? (
       <OrganizationAvatar {...sharedAvatarProps} organization={model as Organization} />
     ) : isSentryApp ? (

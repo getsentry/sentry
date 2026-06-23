@@ -5,9 +5,11 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from sentry_conventions.attributes import ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
-from sentry.api.endpoints.organization_trace_item_attributes import (
+from sentry.api.endpoints.organization_trace_item_attributes import build_sentry_convention_context
+from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeKey,
 )
 from sentry.exceptions import InvalidSearchQuery
@@ -25,6 +27,35 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
+
+
+class TestBuildAttributeContext:
+    def test_lookup_by_public_name(self) -> None:
+        context = build_sentry_convention_context("device.class", "sentry.device.class")
+        assert context is not None
+        assert context["brief"].startswith("The classification of the device.")
+        assert context["isDeprecated"] is False
+
+    def test_falls_back_to_internal_name(self) -> None:
+        # The convention is keyed by the internal name (`sentry.op`), not the
+        # public alias (`span.op`), so the public-name lookup misses and the
+        # fallback must resolve it.
+        assert "span.op" not in ATTRIBUTE_METADATA
+        context = build_sentry_convention_context("span.op", "sentry.op")
+        assert context == {
+            "brief": "The operation of a span.",
+            "examples": ["http.client"],
+            "isDeprecated": False,
+        }
+
+    def test_deprecated_attribute_includes_replacement(self) -> None:
+        context = build_sentry_convention_context("transaction", "sentry.transaction")
+        assert context is not None
+        assert context["isDeprecated"] is True
+        assert context["replacementAttribute"] == "sentry.segment.name"
+
+    def test_unknown_attribute_returns_none(self) -> None:
+        assert build_sentry_convention_context("not.a.convention", "also.not.a.convention") is None
 
 
 class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase):
@@ -401,6 +432,41 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert "tags[feature_enabled,boolean]" in keys
         assert "tags[another_flag,boolean]" in keys
 
+    def test_debug_as_superuser(self) -> None:
+        logs = [
+            self.create_ourlog(
+                extra_data={"body": "log message"},
+                organization=self.organization,
+                project=self.project,
+                attributes={"test.attr": {"string_value": "value"}},
+            ),
+        ]
+        self.store_eap_items(logs)
+
+        superuser = self.create_user(is_superuser=True)
+        self.create_member(user=superuser, organization=self.organization)
+        self.login_as(user=superuser, superuser=True)
+
+        response = self.do_request(query={"attributeType": "string", "debug": "true"})
+        assert response.status_code == 200, response.content
+        assert "data" in response.data
+        assert "debug_info" in response.data
+        assert isinstance(response.data["data"], list)
+        assert isinstance(response.data["debug_info"], list)
+        keys = {item["key"] for item in response.data["data"]}
+        assert "test.attr" in keys
+
+        assert len(response.data["debug_info"]) > 0
+        debug_entry = response.data["debug_info"][0]
+        assert "attribute_type" in debug_entry
+        assert "raw_request" in debug_entry
+        assert "raw_response" in debug_entry
+
+    def test_debug_as_regular_user(self) -> None:
+        response = self.do_request(query={"attributeType": "string", "debug": "true"})
+        assert response.status_code == 200, response.content
+        assert isinstance(response.data, list)
+
 
 class OrganizationTraceItemAttributesEndpointSpansTest(
     OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase, SpanTestCase
@@ -425,6 +491,80 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         response = self.do_request(query={"attributeType": "string"})
         assert response.status_code == 200, response.content
         assert response.data == []
+
+    def _store_basic_segment(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            # `gen_ai.request.model` is a sentry convention name, but as a
+            # user-supplied tag it resolves to a `user` source. It must not pick
+            # up convention metadata.
+            tags={"foo": "foo", "gen_ai.request.model": "gpt-4"},
+        )
+
+    def test_expand_context(self) -> None:
+        self._store_basic_segment()
+
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+
+        # A non-deprecated sentry convention gets brief + examples + isDeprecated.
+        assert attributes["device.class"]["context"] == {
+            "brief": (
+                "The classification of the device. For example, `low`, `medium`, or `high`. "
+                "Typically inferred by Relay - SDKs generally do not need to set this directly."
+            ),
+            "examples": ["medium"],
+            "isDeprecated": False,
+        }
+        # A deprecated convention also surfaces the replacement attribute.
+        assert attributes["transaction"]["context"] == {
+            "brief": "The sentry transaction (segment name).",
+            "examples": ["GET /"],
+            "isDeprecated": True,
+            "replacementAttribute": "sentry.segment.name",
+        }
+        # Custom attribute context isn't served yet, so user tags get an empty
+        # context for now.
+        assert attributes["foo"]["context"] == {}
+        # A user tag whose name collides with a sentry convention still gets an
+        # empty context, because only `sentry`-source attributes are expanded.
+        assert attributes["gen_ai.request.model"]["attributeSource"]["source_type"] == "user"
+        assert attributes["gen_ai.request.model"]["context"] == {}
+
+    def test_expand_context_without_feature_flag(self) -> None:
+        self._store_basic_segment()
+
+        # expand=context is requested, but the gating feature is disabled.
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+        )
+        assert response.status_code == 200, response.data
+        assert all("context" not in item for item in response.data)
+
+    def test_context_not_included_without_expand(self) -> None:
+        self._store_basic_segment()
+
+        response = self.do_request(
+            query={"attributeType": "string"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert all("context" not in item for item in response.data)
 
     def test_tags_list_str(self) -> None:
         for tag in ["foo", "bar", "baz"]:
@@ -539,62 +679,67 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             }
         )
         assert response.status_code == 200, response.data
-        assert response.data == [
-            {
-                "key": "tags[bar,number]",
-                "name": "bar",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "user"},
-            },
-            {
-                "key": "tags[baz,number]",
-                "name": "baz",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "user"},
-            },
-            {
-                "key": "measurements.fcp",
-                "name": "measurements.fcp",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "tags[foo,number]",
-                "name": "foo",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "user"},
-            },
-            {
-                "key": "http.decoded_response_content_length",
-                "name": "http.decoded_response_content_length",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "http.response_content_length",
-                "name": "http.response_content_length",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "http.response_transfer_size",
-                "name": "http.response_transfer_size",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "measurements.lcp",
-                "name": "measurements.lcp",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "span.duration",
-                "name": "span.duration",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-        ]
+        # Don't depend on the order of the values, just that they're all
+        # present. snuba PR getsentry/snuba#8062 changes the default sort.
+        assert sorted(response.data, key=itemgetter("key")) == sorted(
+            [
+                {
+                    "key": "tags[bar,number]",
+                    "name": "bar",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "user"},
+                },
+                {
+                    "key": "tags[baz,number]",
+                    "name": "baz",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "user"},
+                },
+                {
+                    "key": "measurements.fcp",
+                    "name": "measurements.fcp",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "tags[foo,number]",
+                    "name": "foo",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "user"},
+                },
+                {
+                    "key": "http.decoded_response_content_length",
+                    "name": "http.decoded_response_content_length",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "http.response_content_length",
+                    "name": "http.response_content_length",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "http.response_transfer_size",
+                    "name": "http.response_transfer_size",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "measurements.lcp",
+                    "name": "measurements.lcp",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "span.duration",
+                    "name": "span.duration",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+            ],
+            key=itemgetter("key"),
+        )
 
     @override_options({"explore.trace-items.keys.max": 3})
     def test_pagination(self) -> None:
@@ -748,102 +893,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         assert links["previous"]["href"] is not None
 
-    def test_tags_list_sentry_conventions(self) -> None:
-        for tag in [
-            "foo",
-            "bar",
-            "baz",
-            "lcp",
-            "fcp",
-            "http.decoded_response_content_length",
-            "http.response_content_length",
-            "http.response_transfer_size",
-            "http.response.body.size",
-        ]:
-            self.store_segment(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=uuid4().hex[:16],
-                organization_id=self.organization.id,
-                parent_span_id=None,
-                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-                transaction="foo",
-                duration=100,
-                exclusive_time=100,
-                measurements={tag: 0},
-            )
-
-        response = self.do_request(
-            {
-                "attributeType": "number",
-            },
-            features={
-                "organizations:visibility-explore-view": True,
-                "organizations:performance-sentry-conventions-fields": True,
-            },
-        )
-        assert response.status_code == 200, response.data
-        assert sorted(response.data, key=itemgetter("key")) == sorted(
-            [
-                {
-                    "key": "tags[bar,number]",
-                    "name": "bar",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "user"},
-                },
-                {
-                    "key": "tags[baz,number]",
-                    "name": "baz",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "user"},
-                },
-                {
-                    "key": "browser.web_vital.fcp.value",
-                    "name": "browser.web_vital.fcp.value",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "sentry"},
-                },
-                {
-                    "key": "tags[foo,number]",
-                    "name": "foo",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "user"},
-                },
-                {
-                    "key": "http.decoded_response_content_length",
-                    "name": "http.decoded_response_content_length",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "sentry"},
-                },
-                {
-                    "key": "http.response.body.size",
-                    "name": "http.response.body.size",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "sentry"},
-                },
-                {
-                    "key": "http.response.size",
-                    "name": "http.response.size",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "sentry"},
-                },
-                {
-                    "key": "browser.web_vital.lcp.value",
-                    "name": "browser.web_vital.lcp.value",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "sentry"},
-                },
-                {
-                    "key": "span.duration",
-                    "name": "span.duration",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "sentry"},
-                },
-            ],
-            key=itemgetter("key"),
-        )
-
     def test_attribute_collision(self) -> None:
         self.store_segment(
             self.project.id,
@@ -953,6 +1002,52 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "__sentry_internal_span_buffer_outcome" in attribute_names
         assert "__sentry_internal_test" in attribute_names
 
+    def test_internal_convention_attributes_are_hidden(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={
+                "dsc.trace_id": "internal",
+                "normal_attr": "visible",
+            },
+            measurements={
+                "dsc.sample_rate": 1,
+                "normal_measurement": 2,
+            },
+        )
+
+        response = self.do_request(query={"attributeType": "string"})
+        assert response.status_code == 200, response.content
+
+        string_attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in string_attribute_names
+        assert "dsc.trace_id" not in string_attribute_names
+
+        response = self.do_request(query={"attributeType": "number"})
+        assert response.status_code == 200, response.content
+
+        number_attributes = {(attr["key"], attr["name"]) for attr in response.data}
+        assert ("tags[normal_measurement,number]", "normal_measurement") in number_attributes
+        assert ("tags[dsc.sample_rate,number]", "dsc.sample_rate") not in number_attributes
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.do_request(query={"attributeType": "number"})
+        assert response.status_code == 200, response.content
+
+        number_attributes = {(attr["key"], attr["name"]) for attr in response.data}
+        assert ("tags[dsc.sample_rate,number]", "dsc.sample_rate") in number_attributes
+
     def test_boolean_attributes(self) -> None:
         span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
         span1["data"] = {
@@ -985,24 +1080,21 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         response = self.do_request(query={"attributeType": "string", "substringMatch": "span.op"})
         assert response.status_code == 200, response.content
-
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 1
         assert "span.op" in keys
+        assert "transaction.op" not in keys
+        assert "sentry.op" not in keys
 
         response = self.do_request(query={"attributeType": "string", "substringMatch": "op"})
         assert response.status_code == 200, response.content
-
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 2
-        assert "transaction.op" in keys
-        assert "span.op" in keys
+        assert {"span.op", "transaction.op"}.issubset(keys)
+        assert "sentry.op" not in keys
 
         response = self.do_request(query={"attributeType": "string", "substringMatch": "sentry.op"})
         assert response.status_code == 200, response.content
-
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 0
+        assert "sentry.op" not in keys
 
     def test_aliased_attribute_project(self) -> None:
         span1 = self.create_span(
@@ -1112,7 +1204,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "tag.op" in keys
         assert "tag.op2" in keys
 
-    @pytest.mark.skip(reason="Re-enable once Snuba PR #7689 stops boolean double-writing")
     def test_empty_attribute_type_for_all_attribute_types(self) -> None:
         span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
         span1["data"] = {
@@ -1136,7 +1227,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert ("tag.string", "string") in keys
         assert ("tags[tag.number,number]", "number") in keys
 
-    @pytest.mark.skip(reason="Re-enable once Snuba PR #7689 stops boolean double-writing")
     def test_multiple_attribute_types(self) -> None:
         span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
         span1["data"] = {
@@ -1160,6 +1250,32 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert ("tags[tag.boolean,boolean]", "boolean") not in keys
         assert ("tags[tag.number,number]", "number") in keys
         assert ("tag.string", "string") in keys
+
+    def test_sentry_environment_attribute_name(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            environment="prod",
+        )
+
+        response = self.do_request(
+            query={
+                "attributeType": "string",
+                "substringMatch": "environment",
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        names = {item["name"] for item in response.data}
+        assert "environment" in names
 
 
 class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
@@ -1467,7 +1583,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert response.data == [
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "tag",
                 "value": "bar",
                 "name": "bar",
@@ -1475,7 +1591,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "tag",
                 "value": "baz",
                 "name": "baz",
@@ -1483,7 +1599,54 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
+                "key": "tag",
+                "value": "foo",
+                "name": "foo",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+        ]
+
+    def test_tags_keys_with_different_counts(self) -> None:
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        for index, tag in enumerate(["foo", "bar", "baz"]):
+            for _ in range(index + 1):
+                self.store_segment(
+                    self.project.id,
+                    uuid4().hex,
+                    uuid4().hex,
+                    span_id=uuid4().hex[:16],
+                    organization_id=self.organization.id,
+                    parent_span_id=None,
+                    timestamp=timestamp,
+                    transaction="foo",
+                    duration=100,
+                    exclusive_time=100,
+                    tags={"tag": tag},
+                )
+
+        response = self.do_request(key="tag")
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "count": 3,
+                "key": "tag",
+                "value": "baz",
+                "name": "baz",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": 2,
+                "key": "tag",
+                "value": "bar",
+                "name": "bar",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": 1,
                 "key": "tag",
                 "value": "foo",
                 "name": "foo",
@@ -1514,7 +1677,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert response.data == [
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "*bar",
                 "name": "*bar",
@@ -1522,7 +1685,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "*baz",
                 "name": "*baz",
@@ -1530,7 +1693,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "foo",
                 "name": "foo",
@@ -1561,7 +1724,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert response.data == [
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "*bar",
                 "name": "*bar",
@@ -1569,7 +1732,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "*baz",
                 "name": "*baz",
@@ -1600,7 +1763,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert response.data == [
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "*bar",
                 "name": "*bar",
@@ -1608,7 +1771,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "*baz",
                 "name": "*baz",
@@ -1640,7 +1803,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert response.data == [
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "*bar",
                 "name": "*bar",
@@ -1648,7 +1811,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "*baz",
                 "name": "*baz",
@@ -1656,7 +1819,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "foo",
                 "name": "foo",
@@ -1688,7 +1851,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert response.data == [
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "*bar",
                 "name": "*bar",
@@ -1696,7 +1859,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "*baz",
                 "name": "*baz",
@@ -1728,7 +1891,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert response.data == [
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "*bar",
                 "name": "*bar",
@@ -1736,7 +1899,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": key,
                 "value": "*baz",
                 "name": "*baz",
@@ -1796,7 +1959,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             assert response.status_code == 200, response.data
             assert sorted(response.data, key=lambda v: v["value"]) == [
                 {
-                    "count": mock.ANY,
+                    "count": None,
                     "key": key,
                     "value": "bar",
                     "name": "bar",
@@ -1804,7 +1967,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                     "lastSeen": mock.ANY,
                 },
                 {
-                    "count": mock.ANY,
+                    "count": None,
                     "key": key,
                     "value": "baz",
                     "name": "baz",
@@ -1812,7 +1975,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                     "lastSeen": mock.ANY,
                 },
                 {
-                    "count": mock.ANY,
+                    "count": None,
                     "key": key,
                     "value": "foo",
                     "name": "foo",
@@ -1825,7 +1988,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             assert response.status_code == 200, response.data
             assert sorted(response.data, key=lambda v: v["value"]) == [
                 {
-                    "count": mock.ANY,
+                    "count": None,
                     "key": key,
                     "value": "bar",
                     "name": "bar",
@@ -1833,7 +1996,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                     "lastSeen": mock.ANY,
                 },
                 {
-                    "count": mock.ANY,
+                    "count": None,
                     "key": key,
                     "value": "baz",
                     "name": "baz",
@@ -1848,7 +2011,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=lambda v: v["value"]) == [
             {
-                "count": mock.ANY,
+                "count": None,
                 "key": key,
                 "value": "9223372036854775100",
                 "name": "9223372036854775100",
@@ -1856,7 +2019,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": None,
                 "key": key,
                 "value": "9223372036854775299",
                 "name": "9223372036854775299",
@@ -1864,7 +2027,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": None,
                 "key": key,
                 "value": "9223372036854775399",
                 "name": "9223372036854775399",
@@ -1877,7 +2040,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=lambda v: v["value"]) == [
             {
-                "count": mock.ANY,
+                "count": None,
                 "key": key,
                 "value": "9223372036854775299",
                 "name": "9223372036854775299",
@@ -1885,7 +2048,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": None,
                 "key": key,
                 "value": "9223372036854775399",
                 "name": "9223372036854775399",
@@ -1913,7 +2076,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert response.data == [
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "span.status",
                 "value": "internal_error",
                 "name": "internal_error",
@@ -1921,7 +2084,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "span.status",
                 "value": "invalid_argument",
                 "name": "invalid_argument",
@@ -1929,7 +2092,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "span.status",
                 "value": "ok",
                 "name": "ok",
@@ -1942,7 +2105,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert response.data == [
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "span.status",
                 "value": "internal_error",
                 "name": "internal_error",
@@ -1950,7 +2113,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "span.status",
                 "value": "invalid_argument",
                 "name": "invalid_argument",
@@ -2077,7 +2240,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert response.data == [
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "tag",
                 "value": "bar",
                 "name": "bar",
@@ -2085,7 +2248,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "tag",
                 "value": "baz",
                 "name": "baz",
@@ -2108,7 +2271,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.content
         assert response.data == [
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "tag",
                 "value": "foo",
                 "name": "foo",
@@ -2116,7 +2279,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "tag",
                 "value": "qux",
                 "name": "qux",
@@ -2139,7 +2302,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200, response.content
         assert response.data == [
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "tag",
                 "value": "bar",
                 "name": "bar",
@@ -2147,7 +2310,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "tag",
                 "value": "baz",
                 "name": "baz",
@@ -2319,7 +2482,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         response = self.do_request(key="device.class")
         assert response.data == [
             {
-                "count": mock.ANY,
+                "count": 1,
                 "key": "device.class",
                 "value": device_class,
                 "name": device_class,

@@ -38,7 +38,8 @@ class ProjectPreprodSizeAnalysisStatusCheckRulesEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="Retrieve Size Analysis status check rules for a project",
+        operation_id="getProjectPreprodSizeAnalysisStatusCheckRules",
+        summary="Retrieve Size Analysis status check rules for a project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -54,7 +55,9 @@ class ProjectPreprodSizeAnalysisStatusCheckRulesEndpoint(ProjectEndpoint):
         },
         examples=PreprodExamples.GET_SIZE_STATUS_CHECK_RULES,
     )
-    def get(self, request: Request, project: Project) -> Response:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[ProjectSizeStatusCheckRulesResponseDict]:
         r"""
         Retrieve the current Size Analysis status check rules configured for a project.
 

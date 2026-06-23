@@ -1357,6 +1357,37 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
 
+    @patch("sentry.signals.alert_rule_edited.send_robust")
+    def test_cross_org_arw_falls_back_to_legacy_serializer(self, send_robust: MagicMock) -> None:
+        other_org = self.create_organization(owner=self.user)
+        cross_org_workflow = self.create_workflow(organization=other_org)
+
+        arw = AlertRuleWorkflow.objects.get(rule_id=self.rule.id)
+        arw.update(workflow=cross_org_workflow)
+
+        payload = {
+            "name": "updated rule",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": [
+                {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}
+            ],
+        }
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.rule.id,
+                status_code=200,
+                **payload,
+            )
+
+        assert response.data["id"] == str(self.rule.id)
+        cross_org_workflow.refresh_from_db()
+        assert cross_org_workflow.name != "updated rule"
+
 
 class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "DELETE"
@@ -1418,6 +1449,29 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
         assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
         assert not Rule.objects.filter(id=rule.id).exists()
+
+    def test_delete_does_not_cascade_to_cross_org_rule(self) -> None:
+        rule = self.create_project_rule(self.project)
+        arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        workflow = arw.workflow
+
+        other_org = self.create_organization(owner=self.user)
+        other_project = self.create_project(organization=other_org)
+        other_rule = self.create_project_rule(other_project)
+
+        arw.update(rule_id=other_rule.id)
+
+        fake_workflow_id = get_fake_id_from_object_id(workflow.id)
+        self.get_success_response(
+            self.organization.slug, self.project.slug, fake_workflow_id, status_code=202
+        )
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Workflow.objects.filter(id=workflow.id).exists()
+        other_rule.refresh_from_db()
+        assert other_rule.status == ObjectStatus.ACTIVE
 
 
 class GetProjectRuleDetailsDeltaTest(ProjectRuleDetailsBaseTestCase):

@@ -46,6 +46,18 @@ class IntegrationProviderSlug(StrEnum):
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
     PERFORCE = "perforce"
+    DATADOG = "datadog"
+    DATADOG_PAT = "datadog_pat"
+    GCP = "gcp"
+
+
+MONITORING_PROVIDERS: frozenset[str] = frozenset(
+    {
+        IntegrationProviderSlug.DATADOG,
+        IntegrationProviderSlug.DATADOG_PAT,
+        IntegrationProviderSlug.GCP,
+    }
+)
 
 
 class DataForwarderProviderSlug(StrEnum):

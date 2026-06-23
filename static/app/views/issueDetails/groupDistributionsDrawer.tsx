@@ -18,7 +18,7 @@ type Props = {
 };
 
 /**
- * Shared tags and feature flags distributions drawer, used by streamlined issue details UI.
+ * Shared tags and feature flags distributions drawer used by issue details.
  */
 export function GroupDistributionsDrawer({group, includeFeatureFlagsTab}: Props) {
   const organization = useOrganization();

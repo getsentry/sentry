@@ -59,6 +59,10 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
         return (args, kwargs)
 
     def get(self, request: Request, config_id, organization, config) -> Response:
+        project = config.project_repository.project
+        if not request.access.has_project_access(project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
+
         try:
             codeowner_contents = get_codeowner_contents(config)
         except ApiError as e:

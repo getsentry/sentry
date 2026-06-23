@@ -10,7 +10,10 @@ import {CacheProvider} from '@emotion/react';
 import createEmotionServer from '@emotion/server/create-instance';
 import {chromium, type Browser} from 'playwright';
 
-import type {SnapshotImageMetadata} from 'sentry-test/snapshots/snapshot-image-metadata';
+import type {
+  SnapshotImageMetadata,
+  SnapshotTestMetadata,
+} from 'sentry-test/snapshots/snapshot-image-metadata';
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
 const FONTS_DIR = path.resolve(PROJECT_ROOT, 'static/fonts');
@@ -38,7 +41,10 @@ function getFontFaceCSS(): string {
   `;
 }
 
-function renderToHTML(element: ReactElement): string {
+function renderToHTML(
+  element: ReactElement,
+  rootDisplay: 'inline-block' | 'block' = 'inline-block'
+): string {
   const cache = createCache({key: 'snap'});
   const {extractCriticalToChunks, constructStyleTagsFromChunks} =
     createEmotionServer(cache);
@@ -57,7 +63,7 @@ function renderToHTML(element: ReactElement): string {
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; animation: none !important; transition: none !important; }
     body { font-family: 'Rubik', sans-serif; background: transparent; }
-    #root { display: inline-block; }
+    #root { display: ${rootDisplay}; }
   </style>
 </head>
 <body>
@@ -101,9 +107,12 @@ interface TakeSnapshotOptions {
   displayName: string;
   fileSlug: string;
   group: string | null;
-  metadata: Record<string, string>;
+  metadata: SnapshotTestMetadata;
   renderFn: () => ReactElement;
   testFilePath: string;
+  theme: string | undefined;
+  viewport?: {width: number; height?: number};
+  viewportLabel?: string;
 }
 
 export async function takeSnapshot({
@@ -112,14 +121,20 @@ export async function takeSnapshot({
   renderFn,
   testFilePath,
   group,
+  theme,
   metadata,
+  viewport,
+  viewportLabel,
 }: TakeSnapshotOptions): Promise<void> {
   const element = renderFn();
-  const fullHTML = renderToHTML(element);
+  const fullHTML = renderToHTML(element, viewport ? 'block' : 'inline-block');
 
   const browser = await getBrowser();
   const context = await browser.newContext({
     deviceScaleFactor: 2,
+    ...(viewport && {
+      viewport: {width: viewport.width, height: viewport.height ?? 720},
+    }),
   });
 
   try {
@@ -142,10 +157,19 @@ export async function takeSnapshot({
       mkdirSync(outputDir, {recursive: true});
     }
 
+    const autoTags: Record<string, string> = {};
+    if (theme) {
+      autoTags.theme = theme;
+    }
+    if (viewportLabel) {
+      autoTags.viewport = viewportLabel;
+    }
+    const tags = {...autoTags, ...metadata.tags};
+
     const meta: SnapshotImageMetadata = {
-      display_name: displayName,
-      group,
-      ...metadata,
+      display_name: metadata.display_name ?? displayName,
+      group: metadata.group ?? group,
+      tags: Object.keys(tags).length > 0 ? tags : undefined,
       context: {test_file_path: relativePath},
     };
 

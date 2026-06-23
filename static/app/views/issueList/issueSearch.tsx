@@ -1,7 +1,7 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {SavedSearchType} from 'sentry/types/group';
@@ -18,7 +18,7 @@ type IssueSearchProps = {
 
 function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
   const organization = useOrganization();
-  const {displayAskSeer} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer) {
     return <IssueListSeerComboBox />;

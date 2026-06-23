@@ -25,7 +25,8 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint, MonitorCheckInMix
     owner = ApiOwner.CRONS
 
     @extend_schema(
-        operation_id="Retrieve Check-Ins for a Monitor",
+        operation_id="listOrganizationMonitorCheckins",
+        summary="Retrieve Check-Ins for a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
@@ -40,7 +41,9 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint, MonitorCheckInMix
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization, project, monitor) -> Response:
+    def get(
+        self, request: Request, organization, project, monitor
+    ) -> Response[list[MonitorCheckInSerializerResponse]]:
         """
         Retrieve a list of check-ins for a monitor
         """

@@ -78,7 +78,6 @@ class OrganizationDetectorIndexGetTest(BaseDetectorTestCase):
             "alertRuleId": None,
             "ruleId": None,
             "latestGroup": None,
-            "openIssues": 0,
         }
 
 

@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
+from urllib3.connectionpool import HTTPConnectionPool
 
 from sentry import features, quotas
 from sentry.api.serializers import EventSerializer, serialize
@@ -18,10 +19,11 @@ from sentry.constants import DataCategory
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
-from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_legacy_autofix
+from sentry.seer.autofix.autofix import get_trace_tree_for_event
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
+    get_autofix_agent_state,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import (
@@ -32,11 +34,9 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
-    read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
@@ -53,7 +53,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -177,41 +176,17 @@ def _trigger_autofix_task(
             }
         )
 
-        user: User | AnonymousUser | RpcUser | None = None
-        if user_id:
-            user = user_service.get_user(user_id=user_id)
-            if user is None:
-                logger.warning(
-                    "_trigger_autofix_task.user_not_found",
-                    extra={"group_id": group_id, "user_id": user_id},
-                )
-                user = AnonymousUser()
-        else:
-            user = AnonymousUser()
-
-        # Route to agent-based autofix if both feature flags are enabled
         run_id: int | None = None
-        if features.has("organizations:autofix-on-explorer", group.organization):
-            try:
-                run_id = trigger_autofix_agent(
-                    group=group,
-                    step=AutofixStep.ROOT_CAUSE,
-                    referrer=referrer,
-                    run_id=None,
-                    stopping_point=stopping_point,
-                )
-            except NoSeerQuotaException:
-                pass
-        else:
-            response = trigger_legacy_autofix(
+        try:
+            run_id = trigger_autofix_agent(
                 group=group,
-                event_id=event_id,
-                user=user,
+                step=AutofixStep.ROOT_CAUSE,
                 referrer=referrer,
-                auto_run_source=auto_run_source,
+                run_id=None,
                 stopping_point=stopping_point,
             )
-            run_id = response.data.get("run_id")
+        except NoSeerQuotaException:
+            pass
 
         if run_id and SeerAutofixOperator.has_access(organization=group.project.organization):
             SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_id)
@@ -278,8 +253,8 @@ def _call_seer(
     return SummarizeIssueResponse.validate(response.json())
 
 
-fixability_connection_pool_gpu = connection_from_url(
-    settings.SEER_SCORING_URL,
+fixability_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL,
     timeout=settings.SEER_FIXABILITY_TIMEOUT,
 )
 
@@ -294,11 +269,12 @@ class FixabilityScoreRequest(TypedDict):
 
 def make_fixability_score_request(
     body: FixabilityScoreRequest,
+    connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
-        fixability_connection_pool_gpu,
+        connection_pool or fixability_connection_pool,
         "/v1/automation/summarize/fixability",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
@@ -320,7 +296,10 @@ def _generate_fixability_score(
         body["summary"] = summary
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
     response = make_fixability_score_request(
-        body, timeout=settings.SEER_FIXABILITY_TIMEOUT, viewer_context=viewer_context
+        body,
+        connection_pool=fixability_connection_pool,
+        timeout=settings.SEER_FIXABILITY_TIMEOUT,
+        viewer_context=viewer_context,
     )
     if response.status >= 400:
         raise Exception(f"Seer API error: {response.status}")
@@ -412,7 +391,7 @@ def run_automation(
         }
     )
 
-    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
+    autofix_state = get_autofix_agent_state(group.organization, group.id)
     if autofix_state:
         return  # already have an autofix on this issue
 
@@ -423,9 +402,7 @@ def run_automation(
     if is_seer_autotriggered_autofix_rate_limited_and_increment(group.project, group.organization):
         return
 
-    stopping_point = None
-    if is_seer_seat_based_tier_enabled(group.organization):
-        stopping_point = get_automation_stopping_point(group)
+    stopping_point = get_automation_stopping_point(group)
 
     _trigger_autofix_task.delay(
         group_id=group.id,
@@ -464,16 +441,19 @@ def is_group_triggering_automation(group: Group) -> bool:
     return True
 
 
-def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint:
+def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint | None:
     """
     Get the automation stopping point for a group.
     """
-    fixability_score = get_and_update_group_fixability_score(group)
-    fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
+    user_preference = group.project.get_option("sentry:seer_automated_run_stopping_point")
 
-    user_preference = read_preference_from_sentry_db(group.project).automated_run_stopping_point
+    if is_seer_seat_based_tier_enabled(group.organization):
+        fixability_score = get_and_update_group_fixability_score(group)
+        fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
 
-    return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
+        return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
+
+    return AutofixStoppingPoint(user_preference)
 
 
 def _generate_summary(
@@ -493,7 +473,7 @@ def _generate_summary(
     trace_tree = None
     if event:
         try:
-            trace_tree = _get_trace_tree_for_event(event, group.project, timeout=3)
+            trace_tree = get_trace_tree_for_event(event, group.project, timeout=3)
         except Exception:
             logger.warning(
                 "Failed to get trace for event in issue summary",

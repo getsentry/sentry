@@ -24,9 +24,17 @@ from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, CellResolutionError, RegionCategory
+from sentry.types.cell import Cell, CellResolutionError
 
-cell_config = [Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)]
+cell_config = [Cell("us", 1, "http://us.testserver")]
+cell_config_with_gateway = [
+    Cell(
+        name="us",
+        snowflake_id=1,
+        address="http://us.testserver",
+        api_gateway_address="http://sentry-rpc-gateway",
+    )
+]
 
 
 @control_silo_test
@@ -565,6 +573,22 @@ class DrainMailboxTest(TestCase):
         assert hook.attempts == 1
 
         assert len(responses.calls) == 1
+
+    @responses.activate
+    @override_cells(cell_config_with_gateway)
+    @override_options({"apigateway.proxy.cell-rollout": {"us": 1.0}})
+    def test_drain_success_api_gateway_address(self) -> None:
+        responses.add(
+            responses.POST,
+            "http://sentry-rpc-gateway/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        records = create_payloads(3, "github:123")
+        drain_mailbox(records[0].id)
+
+        # Mailbox should be empty
+        assert not WebhookPayload.objects.filter().exists()
 
 
 @control_silo_test

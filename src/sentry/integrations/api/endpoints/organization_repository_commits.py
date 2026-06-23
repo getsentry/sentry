@@ -32,7 +32,8 @@ class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
     }
 
     @extend_schema(
-        operation_id="List a Repository's Commits",
+        operation_id="listOrganizationRepoCommits",
+        summary="List a Repository's Commits",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -69,7 +70,9 @@ class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
             ),
         ],
     )
-    def get(self, request: Request, organization, repo_id) -> Response:
+    def get(
+        self, request: Request, organization, repo_id
+    ) -> Response[list[CommitSerializerResponse]]:
         """
         List a Repository's Commits
         """

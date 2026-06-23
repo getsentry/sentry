@@ -3,7 +3,6 @@ import * as qs from 'query-string';
 import {
   IconAsana,
   IconBitbucket,
-  IconCodecov,
   IconGeneric,
   IconGithub,
   IconGitlab,
@@ -26,8 +25,6 @@ import type {
   IntegrationInstallationStatus,
   IntegrationProvider,
   IntegrationType,
-  PluginNoProject,
-  PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
@@ -119,9 +116,6 @@ export const getCategoriesForIntegration = (
       ? [integration.status]
       : getCategories(integration.featureData);
   }
-  if (isPlugin(integration)) {
-    return getCategories(integration.featureDescriptions);
-  }
   if (isDocIntegration(integration)) {
     return getCategories(integration.features ?? []);
   }
@@ -132,12 +126,6 @@ export function isSentryApp(
   integration: AppOrProviderOrPlugin
 ): integration is SentryApp {
   return !!(integration as SentryApp).uuid;
-}
-
-export function isPlugin(
-  integration: AppOrProviderOrPlugin
-): integration is PluginWithProjectList {
-  return Object.hasOwn(integration, 'shortName');
 }
 
 export function isDocIntegration(
@@ -155,15 +143,6 @@ export function isScmProvider(provider: IntegrationProvider): boolean {
   return provider.metadata.features.some(f => f.featureGate.includes('commits'));
 }
 
-/**
- * True when the plugin declares the `commits` feature gate. The legacy GitHub
- * and Bitbucket plugins both declare this, so they must not be reported as
- * non-SCM to analytics.
- */
-export function isScmPlugin(plugin: PluginNoProject): boolean {
-  return plugin.features.includes('commits');
-}
-
 export function isExternalActorMapping(
   mapping: ExternalActorMappingOrSuggestion
 ): mapping is ExternalActorMapping {
@@ -176,9 +155,6 @@ export const getIntegrationType = (
   if (isSentryApp(integration)) {
     return 'sentry_app';
   }
-  if (isPlugin(integration)) {
-    return 'plugin';
-  }
   if (isDocIntegration(integration)) {
     return 'document';
   }
@@ -186,7 +162,7 @@ export const getIntegrationType = (
 };
 
 export const convertIntegrationTypeToSnakeCase = (
-  type: 'plugin' | 'firstParty' | 'sentryApp' | 'docIntegration'
+  type: 'firstParty' | 'sentryApp' | 'docIntegration'
 ) => {
   switch (type) {
     case 'firstParty':
@@ -230,8 +206,6 @@ export const getIntegrationIcon = (
       return <IconPerforce size={iconSize} />;
     case 'vsts':
       return <IconVsts size={iconSize} />;
-    case 'codecov':
-      return <IconCodecov size={iconSize} />;
     default:
       return <IconGeneric size={iconSize} />;
   }
@@ -257,8 +231,6 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
       return 'Perforce';
     case 'vsts':
       return 'Azure DevOps';
-    case 'codecov':
-      return 'Codeov';
     default:
       return '';
   }
@@ -379,10 +351,6 @@ function getInstallValue({
   integrationInstalls: Integration[];
   sentryAppInstalls: SentryAppInstallation[];
 }) {
-  if (isPlugin(integration)) {
-    return integration.projectList.length > 0 ? 2 : 0;
-  }
-
   if (isSentryApp(integration)) {
     const install = sentryAppInstalls.find(sa => sa.app.slug === integration.slug);
     if (install) {

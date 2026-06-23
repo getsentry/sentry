@@ -4456,10 +4456,7 @@ class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
     def test_validation_errors_recorded_to_analytics(self, mock_random: mock.MagicMock) -> None:
         """Test that validation errors from normalization are also recorded."""
         mock_random.return_value = 0.001
-        with (
-            self.feature("organizations:processing-error-analytics"),
-            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
-        ):
+        with mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record:
             # Create an event with a future timestamp, which produces a validation error
             future = timezone.now() + timedelta(minutes=10)
             event = self.store_event(
@@ -4498,10 +4495,7 @@ class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
         self.organization.date_added = timezone.now() - timedelta(days=60)
         self.organization.save()
         mock_random.return_value = 0.001
-        with (
-            self.feature("organizations:processing-error-analytics"),
-            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
-        ):
+        with mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record:
             future = timezone.now() + timedelta(minutes=10)
             event = self.store_event(
                 data=make_event(
@@ -4539,10 +4533,7 @@ class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
         self.organization.date_added = timezone.now() - timedelta(days=60)
         self.organization.save()
         mock_random.return_value = 0.5
-        with (
-            self.feature("organizations:processing-error-analytics"),
-            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
-        ):
+        with mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record:
             # Create an event with a future timestamp, which produces a validation error
             future = timezone.now() + timedelta(minutes=10)
             self.store_event(
@@ -4566,40 +4557,10 @@ class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
     ) -> None:
         """Test that analytics is not recorded when there are no processing errors."""
         mock_random.return_value = 0.001
-        with (
-            self.feature("organizations:processing-error-analytics"),
-            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
-        ):
+        with mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record:
             self.store_event(
                 data=make_event(platform="python"),
                 project_id=self.project.id,
-            )
-            processing_error_calls = [
-                call
-                for call in spy_analytics_record.call_args_list
-                if isinstance(call[0][0], EventProcessingErrorRecorded)
-            ]
-            assert len(processing_error_calls) == 0
-
-    @mock.patch("sentry.event_manager.random.random")
-    def test_processing_errors_not_recorded_when_feature_disabled(
-        self, mock_random: mock.MagicMock
-    ) -> None:
-        """Test that analytics is not recorded when feature flag is disabled."""
-        mock_random.return_value = 0.001
-        with (
-            self.feature({"organizations:processing-error-analytics": False}),
-            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
-        ):
-            # Create an event with a future timestamp, which produces a validation error
-            future = timezone.now() + timedelta(minutes=10)
-            self.store_event(
-                data=make_event(
-                    platform="python",
-                    timestamp=future.isoformat(),
-                ),
-                project_id=self.project.id,
-                assert_no_errors=False,
             )
             processing_error_calls = [
                 call

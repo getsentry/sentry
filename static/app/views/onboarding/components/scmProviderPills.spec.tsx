@@ -3,6 +3,8 @@ import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegration
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import * as pipelineModal from 'sentry/components/pipeline/modal';
+
 import {ScmProviderPills} from './scmProviderPills';
 
 const bitbucketProvider = GitHubIntegrationProviderFixture({
@@ -92,10 +94,9 @@ describe('ScmProviderPills', () => {
   });
 
   it('triggers install flow when clicking a dropdown item', async () => {
-    const open = jest.spyOn(window, 'open').mockReturnValue({
-      focus: jest.fn(),
-      close: jest.fn(),
-    } as any);
+    const openPipelineModalSpy = jest
+      .spyOn(pipelineModal, 'openPipelineModal')
+      .mockImplementation(() => {});
 
     const providers = [GitHubIntegrationProviderFixture(), gitHubEnterpriseProvider];
 
@@ -104,7 +105,7 @@ describe('ScmProviderPills', () => {
     await userEvent.click(screen.getByRole('button', {name: 'More'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub Enterprise'}));
 
-    expect(open).toHaveBeenCalledTimes(1);
+    expect(openPipelineModalSpy).toHaveBeenCalledTimes(1);
   });
 
   it('does not render "More" dropdown when all providers are primary', () => {

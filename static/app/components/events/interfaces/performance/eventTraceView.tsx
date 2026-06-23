@@ -19,8 +19,8 @@ import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceIssueEvent} from 'sentry/views/issueDetails/traceTimeline/traceIssue';
 import {useTraceTimelineEvents} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 import {IssuesTraceWaterfall} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfall';
@@ -53,6 +53,7 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     parent: true,
     sibling: true,
   },
+  compressed_timeline: false,
   layout: 'drawer bottom',
   list: {
     width: 0.5,
@@ -92,6 +93,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   const rootEventResults = useTraceRootEvent({
     tree,
     logs: undefined,
+    timestamp,
     traceId,
   });
 
@@ -154,7 +156,8 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     () =>
       getInitialTracePreferences(
         TRACE_WATERFALL_PREFERENCES_KEY,
-        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES
+        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
+        'issues'
       ),
     []
   );

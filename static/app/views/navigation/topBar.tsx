@@ -4,10 +4,12 @@ import {useTheme} from '@emotion/react';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {slot, withSlots} from '@sentry/scraps/slot';
+import {Heading} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SearchButton} from 'sentry/views/navigation/searchButton';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
@@ -72,8 +74,21 @@ function TopBarContent() {
       }}
     >
       <SizeProvider size="sm">
+        {/*
+         * The title slot is rendered as a semantic <h1> so the page title
+         * (whatever a view routes into it — breadcrumbs, text, etc.) is exposed
+         * as the page heading. The Heading uses variant="inherit" so it carries
+         * the TopBar typography (no visual weight of its own), and Flex's render
+         * function applies the layout className to that same <h1> element.
+         */}
         <Slot.Outlet name="title">
-          {props => <Flex {...props} align="center" gap="sm" />}
+          {props => (
+            <Flex align="center" gap="sm" minWidth="0">
+              {({className}) => (
+                <Heading as="h1" variant="inherit" className={className} {...props} />
+              )}
+            </Flex>
+          )}
         </Slot.Outlet>
 
         <Flex align="center" gap="sm">
@@ -85,6 +100,7 @@ function TopBarContent() {
             {props => <Flex {...props} align="center" gap="sm" />}
           </Slot.Outlet>
 
+          <SearchButton />
           {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
 
           <Slot.Outlet name="feedback">

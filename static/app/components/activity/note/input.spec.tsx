@@ -104,7 +104,7 @@ describe('NoteInput', () => {
   describe('Existing Item', () => {
     const props = {
       noteId: 'item-id',
-      text: 'an existing item',
+      text: 'an **existing** [item](https://docs.sentry.io/)',
     };
 
     it('edits existing message', async () => {
@@ -114,18 +114,24 @@ describe('NoteInput', () => {
       // Switch to preview
       await userEvent.click(screen.getByRole('radio', {name: 'Preview'}));
 
-      expect(screen.getByText('an existing item')).toBeInTheDocument();
+      expect(screen.getByText('existing').closest('strong')).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'item'})).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/'
+      );
 
       // Switch to edit
       await userEvent.click(screen.getByRole('radio', {name: 'Edit'}));
 
-      expect(screen.getByRole('textbox')).toHaveTextContent('an existing item');
+      expect(screen.getByRole('textbox')).toHaveTextContent(
+        'an **existing** [item](https://docs.sentry.io/)'
+      );
 
       // Can edit text
       await userEvent.type(screen.getByRole('textbox'), ' new content{Control>}{Enter}');
 
       expect(onUpdate).toHaveBeenCalledWith({
-        text: 'an existing item new content',
+        text: 'an **existing** [item](https://docs.sentry.io/) new content',
         mentions: [],
       });
     });

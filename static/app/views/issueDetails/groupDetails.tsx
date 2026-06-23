@@ -25,8 +25,8 @@ import type {Group} from 'sentry/types/group';
 import {GroupStatus, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {
   getAnalyticsDataForEvent,
   getAnalyticsDataForGroup,
@@ -52,21 +52,24 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+import {GroupDetailsLayout} from 'sentry/views/issueDetails/groupDetailsLayout';
 import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import {useIssueActivityDrawer} from 'sentry/views/issueDetails/hooks/useIssueActivityDrawer';
+import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/hooks/useMergedIssuesDrawer';
+import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/hooks/useSimilarIssuesDrawer';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
+  IssueDetailsTourModal,
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
   type IssueDetailsTour,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
-import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
-import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
-import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
-import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
-import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
+import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
 import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -596,7 +599,8 @@ function getIssueDetailContextHint(view: IssueView): string {
   const shortIdNote = 'shortId is the human-readable issue identifier (e.g. PROJ-123). ';
   const tools =
     'You can get issue details for aggregate stats and stack trace, get event details for a specific error event, ' +
-    'and search live telemetry for related spans/errors/logs/metrics.';
+    'and search live telemetry for related spans/errors/logs/metrics. ' +
+    "If an autofix section appears in the page context below, Sentry's Autofix has already analyzed this issue — use that analysis as a starting point if needed.";
   return `${preamble} ${shortIdNote}${tools}`;
 }
 
@@ -617,7 +621,7 @@ function GroupDetailsContentInner({
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
-  const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
+  const {openSeerDrawer} = useOpenSeerDrawer({group, project});
   const {isAnyDrawerOpen} = useDrawer();
 
   const {currentTab} = useGroupDetailsRoute();
@@ -830,20 +834,23 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   }
 
   return (
-    <TourContextProvider<IssueDetailsTour>
-      tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
-      isCompleted={isIssueDetailsTourCompleted}
-      orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
-      TourContext={IssueDetailsTourContext}
-    >
-      <GroupDetailsContent
-        project={projectWithFallback}
-        group={props.group}
-        event={props.event ?? injectedEvent}
+    <GroupDataContextProvider group={props.group} project={projectWithFallback}>
+      <TourContextProvider<IssueDetailsTour>
+        tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
+        isCompleted={isIssueDetailsTourCompleted}
+        orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
+        TourContext={IssueDetailsTourContext}
       >
-        {props.children}
-      </GroupDetailsContent>
-    </TourContextProvider>
+        <IssueDetailsTourModal />
+        <GroupDetailsContent
+          project={projectWithFallback}
+          group={props.group}
+          event={props.event ?? injectedEvent}
+        >
+          {props.children}
+        </GroupDetailsContent>
+      </TourContextProvider>
+    </GroupDataContextProvider>
   );
 }
 
@@ -894,7 +901,17 @@ function GroupDetails() {
   );
 }
 
-export default Sentry.withProfiler(GroupDetails);
+function GroupDetailsContainer() {
+  const params = useParams<{groupId: string}>();
+
+  return (
+    <GroupIdProvider groupId={params.groupId}>
+      <GroupDetails />
+    </GroupIdProvider>
+  );
+}
+
+export default Sentry.withProfiler(GroupDetailsContainer);
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${p => p.theme.space.xl};

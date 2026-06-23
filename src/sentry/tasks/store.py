@@ -13,6 +13,7 @@ from sentry_relay.processing import StoreNormalizer
 from sentry import options, reprocessing2
 from sentry.attachments import delete_cached_and_ratelimited_attachments, get_attachments_for_event
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
+from sentry.event_preprocessors import get_event_preprocessors
 from sentry.feedback.usecases.ingest.save_event_feedback import (
     save_event_feedback as save_event_feedback_impl,
 )
@@ -48,15 +49,11 @@ class RetryProcessing(Exception):
 
 def should_process(data: Mapping[str, Any]) -> bool:
     """Quick check if processing is needed at all."""
-    from sentry.plugins.base import plugins
-
     if data.get("type") == "transaction":
         return False
 
-    for plugin in plugins.all(version=2):
-        processors = safe_execute(plugin.get_event_preprocessors, data=data)
-        if processors:
-            return True
+    if get_event_preprocessors(data):
+        return True
 
     if should_process_for_stacktraces(data):
         return True
@@ -100,6 +97,7 @@ def submit_save_event(
     event_id: str | None,
     start_time: float | None,
     data: MutableMapping[str, Any] | None,
+    inline: bool = False,
 ) -> None:
     if cache_key:
         data = None
@@ -118,7 +116,10 @@ def submit_save_event(
         "project_id": project_id,
     }
 
-    task.delay(**task_kwargs)  # type: ignore[arg-type]
+    if inline:
+        task(**task_kwargs)  # type: ignore[arg-type]
+    else:
+        task.delay(**task_kwargs)  # type: ignore[arg-type]
 
 
 def _do_preprocess_event(
@@ -129,6 +130,7 @@ def _do_preprocess_event(
     from_reprocessing: bool,
     project: Project | None,
     has_attachments: bool = False,
+    inline_save_event: bool = False,
 ) -> None:
     from sentry.stacktraces.processing import find_stacktraces_in_data
     from sentry.tasks.symbolication import (
@@ -230,6 +232,7 @@ def _do_preprocess_event(
         event_id=event_id,
         start_time=start_time,
         data=original_data,
+        inline=inline_save_event,
     )
 
 
@@ -240,6 +243,7 @@ def preprocess_event(
     event_id: str | None = None,
     project: Project | None = None,
     has_attachments: bool = False,
+    inline_save_event: bool = False,
     **kwargs: Any,
 ) -> None:
     return _do_preprocess_event(
@@ -250,6 +254,7 @@ def preprocess_event(
         from_reprocessing=False,
         project=project,
         has_attachments=has_attachments,
+        inline_save_event=inline_save_event,
     )
 
 
@@ -311,8 +316,6 @@ def do_process_event(
     from_symbolicate: bool = False,
     has_attachments: bool = False,
 ) -> None:
-    from sentry.plugins.base import plugins
-
     if data is None:
         data = processing.event_processing_store.get(cache_key)
 
@@ -395,24 +398,22 @@ def do_process_event(
         if new_data is not None:
             data = new_data
 
-    # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
-    for plugin in plugins.all(version=2):
-        with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
-            span.set_data("plugin", plugin.slug)
-            span.set_data("from_symbolicate", from_symbolicate)
-            processors = safe_execute(plugin.get_event_preprocessors, data=data)
-            for processor in processors or ():
-                try:
-                    result = processor(data)
-                except Exception:
-                    error_logger.exception("tasks.store.preprocessors.error")
-                    data.setdefault("_metrics", {})["flag.processing.error"] = True
+    preprocessors = get_event_preprocessors(data)
+
+    with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
+        span.set_data("from_symbolicate", from_symbolicate)
+        for processor in preprocessors:
+            try:
+                result = processor(data)
+            except Exception:
+                error_logger.exception("tasks.store.preprocessors.error")
+                data.setdefault("_metrics", {})["flag.processing.error"] = True
+                has_changed = True
+            else:
+                if result:
+                    data = result
                     has_changed = True
-                else:
-                    if result:
-                        data = result
-                        has_changed = True
 
     assert data["project"] == project_id, "Project cannot be mutated by plugins"
 

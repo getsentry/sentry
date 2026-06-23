@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
+from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashboard
 from sentry.dashboards.on_completion_hook import (
     FIX_PROMPT,
     FIX_PROMPT_SECONDARY,
     MAX_VALIDATION_RETRIES,
     DashboardOnCompletionHook,
+    _format_serializer_errors,
+    _validate_with_serializer,
 )
 from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, SeerRunState
 from sentry.testutils.cases import TestCase
@@ -91,6 +95,67 @@ INVALID_SERIALIZER_ARTIFACT = {
         }
     ],
 }
+
+
+def _make_artifact(**widget_overrides: Any) -> GeneratedDashboard:
+    """Build a minimal valid GeneratedDashboard, applying widget_overrides to the first widget."""
+    widget: dict[str, Any] = {
+        "title": "Widget",
+        "description": "",
+        "display_type": "line",
+        "widget_type": "error-events",
+        "queries": [{"aggregates": ["count()"], "columns": []}],
+        "layout": {"x": 0, "y": 0, "w": 3, "h": 2, "min_h": 2},
+        **widget_overrides,
+    }
+    return GeneratedDashboard(title="Dashboard", widgets=[widget])
+
+
+class TestFormatSerializerErrors(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project  # ensure an active project exists for _validate_with_serializer
+
+    def _real_errors(self, artifact: GeneratedDashboard) -> dict[str, Any]:
+        errors = _validate_with_serializer(artifact, self.organization)
+        assert errors is not None, "expected validation to fail but it passed"
+        return errors
+
+    def test_empty_errors_fallback(self) -> None:
+        assert _format_serializer_errors({}) == str({})
+
+    def test_query_level_error(self) -> None:
+        # nonexistent_function() is not blocklisted by Pydantic, but DRF rejects it.
+        artifact = _make_artifact(queries=[{"aggregates": ["nonexistent_fn()"], "columns": []}])
+        errors = self._real_errors(artifact)
+        result = _format_serializer_errors(errors)
+        assert result.startswith("Widget 0, query 0, fields:")
+        assert "nonexistent_fn" in result
+
+    def test_valid_widget_emits_empty_dict_which_is_skipped(self) -> None:
+        # DRF emits {} for error-free list items; only widget 1 should appear in output.
+        valid_widget: dict[str, Any] = {
+            "title": "Valid",
+            "description": "",
+            "display_type": "line",
+            "widget_type": "error-events",
+            "queries": [{"aggregates": ["count()"], "columns": []}],
+            "layout": {"x": 0, "y": 0, "w": 3, "h": 2, "min_h": 2},
+        }
+        bad_widget: dict[str, Any] = {
+            "title": "Bad",
+            "description": "",
+            "display_type": "line",
+            "widget_type": "error-events",
+            "queries": [{"aggregates": ["bad_fn()"], "columns": []}],
+            "layout": {"x": 3, "y": 0, "w": 3, "h": 2, "min_h": 2},
+        }
+        artifact = GeneratedDashboard(title="Dashboard", widgets=[valid_widget, bad_widget])
+        errors = self._real_errors(artifact)
+        result = _format_serializer_errors(errors)
+        assert "Widget 0" not in result
+        assert result.startswith("Widget 1, query 0, fields:")
+        assert "bad_fn" in result
 
 
 class DashboardOnCompletionHookTest(TestCase):

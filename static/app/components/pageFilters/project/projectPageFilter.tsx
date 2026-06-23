@@ -352,8 +352,8 @@ export function ProjectPageFilter({
       bookmarkedSnapshotRef.current
         ? [
             !lastSelected.includes(parseInt(project.id, 10)),
-            !project.isMember,
             !bookmarkedSnapshotRef.current.has(project.id),
+            !project.isMember,
             project.slug,
           ]
         : [
@@ -574,7 +574,7 @@ export function ProjectPageFilter({
 
   return (
     <CompactSelect
-      grid
+      mode="grid"
       multiple
       {...selectProps}
       {...stagedSelect.compactSelectProps}

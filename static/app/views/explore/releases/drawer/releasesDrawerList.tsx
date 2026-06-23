@@ -30,7 +30,7 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {ReleasesDrawerFeatureFlagsTable} from 'sentry/views/explore/releases/drawer/releasesDrawerFeatureFlagsTable';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
-import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
+import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/eventGraphWidget';
 
 import {ReleasesDrawerTable} from './releasesDrawerTable';
 

@@ -1,6 +1,6 @@
 import type {DataCategory, Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {type Subscription} from 'getsentry/types';
 import {isPartOfReservedBudget} from 'getsentry/utils/dataCategory';

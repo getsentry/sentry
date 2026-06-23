@@ -303,10 +303,6 @@ _POST_PROCESS_FORWARDER_OPTIONS = multiprocessing_options(
 
 # consumer name -> consumer definition
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
-    "ingest-profiles": {
-        "topic": Topic.PROFILES,
-        "strategy_factory": "sentry.profiles.consumers.process.factory.ProcessProfileStrategyFactory",
-    },
     "ingest-replay-recordings": {
         "topic": Topic.INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
@@ -516,7 +512,6 @@ def get_stream_processor(
     consumer_name: str,
     consumer_args: Sequence[str],
     topic: str | None,
-    cluster: str | None,
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
@@ -563,9 +558,6 @@ def get_stream_processor(
     if topic is None:
         topic = real_topic
 
-    if cluster is None:
-        cluster = cluster_from_config
-
     cmd = click.Command(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
     )
@@ -582,12 +574,11 @@ def get_stream_processor(
         **extra_kwargs,
     )
 
-    def build_consumer_config(group_id: str):
-        assert cluster is not None
-
+    def build_consumer_config(group_id: str, topic: Topic | None = consumer_topic):
         consumer_config = build_kafka_consumer_configuration(
             kafka_config.get_kafka_consumer_cluster_options(
-                cluster,
+                cluster_from_config,
+                topic=topic,
             ),
             group_id=group_id,
             auto_offset_reset=auto_offset_reset,
@@ -628,8 +619,15 @@ def get_stream_processor(
         assert synchronize_commit_group is not None
         assert synchronize_commit_log_topic is not None
 
+        # The commit log consumer reads its own topic, so key its per-topic config by that
+        # topic rather than the main consumer's
+        try:
+            commit_log_topic = Topic(synchronize_commit_log_topic)
+        except ValueError:
+            commit_log_topic = None
+
         commit_log_consumer = KafkaConsumer(
-            build_consumer_config(f"sentry-commit-log-{uuid.uuid1().hex}")
+            build_consumer_config(f"sentry-commit-log-{uuid.uuid1().hex}", topic=commit_log_topic)
         )
 
         from sentry.consumers.synchronized import SynchronizedConsumer

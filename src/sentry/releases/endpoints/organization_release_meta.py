@@ -120,7 +120,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "version": release.version,
                 "versionInfo": expose_version_info(release.version_info),
                 "projects": projects,
-                "newGroups": sum(project["newGroups"] for project in projects),
+                "newGroups": sum(project["newGroups"] or 0 for project in projects),
                 "deployCount": release.total_deploys,
                 "commitCount": release.commit_count,
                 "released": release.date_released or release.date_added,

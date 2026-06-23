@@ -58,6 +58,7 @@ from __future__ import annotations
 
 import logging
 import math
+import random
 import time
 from collections.abc import Callable
 from datetime import timedelta
@@ -136,6 +137,7 @@ class CursoredScheduler[M: Model]:
         cycle_duration: timedelta,
         lock_duration: int = DEFAULT_LOCK_DURATION_SECONDS,
         validate_item: Callable[[int], bool] | None = None,
+        shuffle: bool = False,
     ):
         self.name = name
         self.schedule_key = schedule_key
@@ -151,6 +153,7 @@ class CursoredScheduler[M: Model]:
         self.cache_ttl = int(cycle_duration.total_seconds() * 2)
         self.lock_duration = lock_duration
         self.validate_item = validate_item
+        self.shuffle = shuffle
         self._metric_tags = {"scheduler": name}
 
     @property
@@ -232,6 +235,9 @@ class CursoredScheduler[M: Model]:
         init_start = time.time()
 
         all_pks = list(self.queryset.order_by("pk").values_list("pk", flat=True))
+
+        if self.shuffle:
+            random.shuffle(all_pks)
 
         client = self._get_redis_client()
 

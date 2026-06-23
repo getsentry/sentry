@@ -1,7 +1,10 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   BACKEND_OVERVIEW_FIRST_ROW_WIDGETS,
   BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
@@ -13,7 +16,7 @@ import {
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const PATHS_TABLE: Widget = {
+const PATHS_TABLE: PrebuiltWidget = {
   id: 'paths-table',
   title: t('Paths'),
   displayType: DisplayType.TABLE,
@@ -64,7 +67,7 @@ const PATHS_TABLE: Widget = {
   },
 };
 
-const COMMANDS_TABLE: Widget = {
+const COMMANDS_TABLE: PrebuiltWidget = {
   id: 'commands-table',
   title: t('Commands'),
   displayType: DisplayType.TABLE,
@@ -110,7 +113,7 @@ const COMMANDS_TABLE: Widget = {
   },
 };
 
-const JOBS_TABLE: Widget = {
+const JOBS_TABLE: PrebuiltWidget = {
   id: 'jobs-table',
   title: t('Jobs'),
   displayType: DisplayType.TABLE,

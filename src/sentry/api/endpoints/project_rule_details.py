@@ -31,7 +31,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
-from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY, ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
@@ -127,6 +127,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     def get(self, request: Request, project: Project, rule: Workflow) -> Response:
         """
@@ -183,6 +184,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     def put(self, request: Request, project: Project, rule: Rule) -> Response:
         """
@@ -334,7 +336,10 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 "organizations:workflow-engine-issue-alert-endpoints-put", project.organization
             ):
                 try:
-                    workflow = AlertRuleWorkflow.objects.get(rule_id=updated_rule.id).workflow
+                    workflow = AlertRuleWorkflow.objects.get(
+                        rule_id=updated_rule.id,
+                        workflow__organization=project.organization,
+                    ).workflow
                     return Response(
                         serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
                     )
@@ -364,6 +369,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     def delete(self, request: Request, project: Project, rule: Workflow) -> Response:
         """
@@ -390,7 +396,10 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
             transaction_id=scheduled.id,
         )
         try:
-            ard = AlertRuleWorkflow.objects.get(workflow_id=rule.id)
+            ard = AlertRuleWorkflow.objects.get(
+                workflow_id=rule.id,
+                workflow__organization=project.organization,
+            )
             legacy_rule = Rule.objects.get(id=ard.rule_id, project=project)
 
             report_used_legacy_models()

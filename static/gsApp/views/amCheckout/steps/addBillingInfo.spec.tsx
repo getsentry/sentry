@@ -4,10 +4,10 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
 describe('AddBillingInformation', () => {
@@ -42,11 +42,6 @@ describe('AddBillingInformation', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-      method: 'GET',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
       body: {
@@ -76,12 +71,7 @@ describe('AddBillingInformation', () => {
       body: BillingDetailsFixture(),
     });
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-        navigate={jest.fn()}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} api={api} navigate={jest.fn()} />,
       {organization}
     );
 
@@ -99,12 +89,7 @@ describe('AddBillingInformation', () => {
   it('renders heading with partial billing info', async () => {
     // subscription has payment source
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-        navigate={jest.fn()}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} api={api} navigate={jest.fn()} />,
       {organization}
     );
 
@@ -128,12 +113,7 @@ describe('AddBillingInformation', () => {
     SubscriptionStore.set(organization.slug, newSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-        navigate={jest.fn()}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} api={api} navigate={jest.fn()} />,
       {organization}
     );
 

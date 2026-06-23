@@ -25,7 +25,8 @@ class ProjectTeamsEndpoint(ProjectEndpoint):
     owner = ApiOwner.FOUNDATIONS
 
     @extend_schema(
-        operation_id="List a Project's Teams",
+        operation_id="listProjectTeams",
+        summary="List a Project's Teams",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG, CursorQueryParam],
         request=None,
         responses={
@@ -37,7 +38,7 @@ class ProjectTeamsEndpoint(ProjectEndpoint):
         },
         examples=TeamExamples.LIST_PROJECT_TEAMS,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[list[BaseTeamSerializerResponse]]:
         """
         Return a list of teams that have access to this project.
         """

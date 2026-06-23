@@ -41,6 +41,32 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert response.status_code == 404
         assert "The requested preprod artifact does not exist" in response.json()["detail"]
 
+    def test_same_org_artifact_without_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        limited_user = self.create_user()
+        accessible_team = self.create_team(organization=self.organization)
+        self.project.add_team(accessible_team)
+        self.create_member(
+            user=limited_user,
+            organization=self.organization,
+            teams=[accessible_team],
+            has_global_access=False,
+        )
+        restricted_project = self.create_project(organization=self.organization)
+        restricted_file = self.create_file(name="restricted.apk", type="application/octet-stream")
+        restricted_artifact = self.create_preprod_artifact(
+            project=restricted_project,
+            file_id=restricted_file.id,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.restricted.app",
+        )
+
+        self.login_as(user=limited_user)
+        response = self.client.get(self._get_url(artifact_id=restricted_artifact.id))
+
+        assert response.status_code == 404
+
     def test_cross_org_artifact_access(self) -> None:
         other_org = self.create_organization(owner=self.user)
         other_project = self.create_project(organization=other_org)

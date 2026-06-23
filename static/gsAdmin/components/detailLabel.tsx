@@ -43,5 +43,5 @@ const Value = styled('dd')<{multiLine: boolean}>`
       display: flex;
       flex-direction: column;
       gap: ${p.theme.space.xs};
-    `};
+    `}
 `;

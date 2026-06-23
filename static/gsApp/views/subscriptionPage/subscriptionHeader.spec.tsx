@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
@@ -11,7 +12,6 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 import {SubscriptionHeader} from 'getsentry/views/subscriptionPage/subscriptionHeader';
 
 describe('SubscriptionHeader', () => {
@@ -34,12 +34,6 @@ describe('SubscriptionHeader', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/promotions/trigger-check/',
       method: 'POST',
-    });
-    MockApiClient.addMockResponse({
-      url: '/customers/org-slug/plan-migrations/',
-      query: {scheduled: 1, applied: 0},
-      method: 'GET',
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
@@ -392,7 +386,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -405,7 +398,7 @@ describe('SubscriptionHeader', () => {
       },
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -425,7 +418,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -438,7 +430,7 @@ describe('SubscriptionHeader', () => {
       },
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(50, 'days').toISOString(),
+      billingPeriodEnd: now.add(50, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -458,7 +450,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -478,7 +469,7 @@ describe('SubscriptionHeader', () => {
       }),
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -498,7 +489,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -518,7 +508,7 @@ describe('SubscriptionHeader', () => {
       }),
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);

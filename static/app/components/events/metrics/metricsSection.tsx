@@ -20,8 +20,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {METRICS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/metrics/constants';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceViewMetricsProviderWrapper} from 'sentry/views/performance/newTraceDetails/traceMetrics';
 
 import {NUMBER_ABBREVIATED_METRICS} from './useMetricsIssueSection';
@@ -147,7 +147,10 @@ function MetricsSectionContent({
   return (
     <FoldSection sectionKey={SectionKey.METRICS} title={t('Application Metrics')}>
       <Flex direction="column" gap="xl">
-        <MetricsSamplesTable embedded overrideTableData={abbreviatedTableData} />
+        <MetricsSamplesTable
+          source="issueDetails"
+          overrideTableData={abbreviatedTableData}
+        />
         {result.data && result.data.length > NUMBER_ABBREVIATED_METRICS ? (
           <div>
             <Button

@@ -7,8 +7,10 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconSearch} from 'sentry/icons';
+import {IconClose, IconSearch, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {TagChip} from 'sentry/views/preprod/snapshots/tagChip';
+import {useTagFilters} from 'sentry/views/preprod/snapshots/tagFilterContext';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
 interface SidebarGroup {
@@ -24,11 +26,12 @@ export interface SidebarSection {
 
 export const DIFF_TYPE_ORDER: Record<string, number> = {
   [DiffStatus.CHANGED]: 0,
-  [DiffStatus.REMOVED]: 1,
-  [DiffStatus.ADDED]: 2,
-  [DiffStatus.RENAMED]: 3,
-  [DiffStatus.UNCHANGED]: 4,
-  [DiffStatus.SKIPPED]: 5,
+  [DiffStatus.ERRORED]: 1,
+  [DiffStatus.REMOVED]: 2,
+  [DiffStatus.ADDED]: 3,
+  [DiffStatus.RENAMED]: 4,
+  [DiffStatus.UNCHANGED]: 5,
+  [DiffStatus.SKIPPED]: 6,
 };
 
 type StatusCounts = Record<DiffStatus, number>;
@@ -39,8 +42,15 @@ const STATUS_PILLS: ReadonlyArray<{
   color: PillColor;
   label: string;
   status: DiffStatus;
+  icon?: React.ReactNode;
 }> = [
   {status: DiffStatus.CHANGED, color: 'accent', label: t('changed')},
+  {
+    status: DiffStatus.ERRORED,
+    color: 'danger',
+    label: t('errored'),
+    icon: <IconWarning size="xs" variant="danger" />,
+  },
   {status: DiffStatus.REMOVED, color: 'danger', label: t('removed')},
   {status: DiffStatus.ADDED, color: 'success', label: t('added')},
   {status: DiffStatus.RENAMED, color: 'warning', label: t('renamed')},
@@ -54,6 +64,7 @@ const STATUS_META: Record<DiffStatus, {color: PillColor; label: string}> = {
   [DiffStatus.REMOVED]: {color: 'danger', label: t('Removed')},
   [DiffStatus.RENAMED]: {color: 'warning', label: t('Renamed')},
   [DiffStatus.UNCHANGED]: {color: 'muted', label: t('Unchanged')},
+  [DiffStatus.ERRORED]: {color: 'danger', label: t('Errored')},
   [DiffStatus.SKIPPED]: {color: 'muted', label: t('Skipped')},
 };
 
@@ -66,6 +77,7 @@ const SECTION_HEADER_HEIGHT = 28;
 
 interface SnapshotSidebarContentProps {
   activeStatuses: Set<DiffStatus>;
+  availableTags: Map<string, Map<string, number>>;
   onSearchChange: (query: string) => void;
   onSelectItem: (itemKey: string) => void;
   onToggleStatus: (status: DiffStatus) => void;
@@ -84,6 +96,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
   statusCounts,
   activeStatuses,
   onToggleStatus,
+  availableTags,
 }: SnapshotSidebarContentProps) {
   const hasActiveFilter = activeStatuses.size > 0;
   const isStatusActive = (status: DiffStatus) =>
@@ -181,7 +194,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
         </InputGroup>
         {statusCounts && (
           <Flex gap="lg" wrap="wrap">
-            {STATUS_PILLS.map(({status, color, label}) => {
+            {STATUS_PILLS.map(({status, color, label, icon}) => {
               const count = statusCounts[status];
               if (count <= 0) {
                 return null;
@@ -192,6 +205,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
                   color={color}
                   count={count}
                   label={label}
+                  icon={icon}
                   active={isStatusActive(status)}
                   onClick={() => onToggleStatus(status)}
                 />
@@ -200,6 +214,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
           </Flex>
         )}
       </Stack>
+      {availableTags.size > 0 && <TagFilterSection availableTags={availableTags} />}
       <Stack ref={scrollRef} overflow="auto" flex="1" paddingRight="0">
         {hasGroups ? (
           <div
@@ -321,6 +336,7 @@ function StatusPill({
   count,
   label,
   active,
+  icon,
   onClick,
 }: {
   active: boolean;
@@ -328,16 +344,100 @@ function StatusPill({
   count: number;
   label: string;
   onClick: () => void;
+  icon?: React.ReactNode;
 }) {
   return (
     <PillButton type="button" active={active} onClick={onClick}>
-      <Dot pillColor={color} active={active} />
+      {icon ?? <Dot pillColor={color} active={active} />}
       <Text size="xs" variant="muted">
         {count} {label}
       </Text>
     </PillButton>
   );
 }
+
+const TagFilterSection = memo(function TagFilterSection({
+  availableTags,
+}: {
+  availableTags: Map<string, Map<string, number>>;
+}) {
+  const tagFilters = useTagFilters();
+  const sortedKeys = useMemo(() => [...availableTags.keys()].sort(), [availableTags]);
+
+  if (!tagFilters) {
+    return null;
+  }
+  const {activeTagFilters, onToggleTagFilter} = tagFilters;
+  const hasActiveFilter = Object.keys(activeTagFilters).length > 0;
+
+  return (
+    <Stack borderBottom="primary" onClick={e => e.stopPropagation()}>
+      <TagDisclosure size="xs">
+        <Disclosure.Title>
+          <Text size="sm" bold>
+            {t('Tags')}
+          </Text>
+        </Disclosure.Title>
+        <Disclosure.Content>
+          <Stack gap="lg" paddingBottom="lg" style={{maxHeight: 200, overflowY: 'auto'}}>
+            {sortedKeys.map(tagKey => {
+              const values = availableTags.get(tagKey)!;
+              const activeValue = activeTagFilters[tagKey];
+              return (
+                <Stack key={tagKey} gap="xs">
+                  <Text size="xs" variant="muted" bold>
+                    {tagKey}
+                  </Text>
+                  <Flex gap="xs" wrap="wrap">
+                    {[...values.entries()]
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([value, count]) => {
+                        const isActive = activeValue === value;
+                        const isDisabled = count === 0 && !isActive;
+                        return (
+                          <TagChip
+                            key={value}
+                            type="button"
+                            isActive={isActive}
+                            disabled={isDisabled}
+                            onClick={() => onToggleTagFilter(tagKey, value)}
+                          >
+                            <Text size="xs" variant={isActive ? 'accent' : 'muted'}>
+                              {value}
+                            </Text>
+                            <Text size="xs" variant="muted">
+                              {count}
+                            </Text>
+                          </TagChip>
+                        );
+                      })}
+                  </Flex>
+                </Stack>
+              );
+            })}
+          </Stack>
+        </Disclosure.Content>
+      </TagDisclosure>
+      {hasActiveFilter && (
+        <Flex gap="xs" wrap="wrap" padding="sm lg">
+          {Object.entries(activeTagFilters).map(([key, value]) => (
+            <TagChip
+              isActive
+              key={`${key}:${value}`}
+              type="button"
+              onClick={() => onToggleTagFilter(key, value)}
+            >
+              <Text size="xs">
+                {key}={value}
+              </Text>
+              <IconClose size="xs" />
+            </TagChip>
+          ))}
+        </Flex>
+      )}
+    </Stack>
+  );
+});
 
 function setTitleOnOverflow(e: React.PointerEvent<HTMLElement>) {
   const el = e.currentTarget;
@@ -428,6 +528,18 @@ const SectionDisclosure = styled(Disclosure)`
   }
 `;
 
+const TagDisclosure = styled(Disclosure)`
+  width: 100%;
+
+  > :first-child {
+    padding-right: 0;
+    border-radius: 0;
+
+    > button {
+      border-radius: 0;
+    }
+  }
+`;
 const VirtualRowPositioner = styled('div')`
   position: absolute;
   top: 0;

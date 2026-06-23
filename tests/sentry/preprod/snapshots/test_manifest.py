@@ -92,3 +92,45 @@ class TestImageMetadataJsonSchema:
     def test_schema_accepts_numeric_tag_values(self) -> None:
         schema = ImageMetadata.schema()
         jsonschema.validate(_meta(tags={"count": 42}), schema)
+
+
+def test_comparison_plan_round_trip():
+    from sentry.preprod.snapshots.manifest import (
+        ChunkAssignment,
+        ChunkCandidate,
+        ComparisonImageResult,
+        ComparisonPlan,
+    )
+
+    plan = ComparisonPlan(
+        head_artifact_id=1,
+        base_artifact_id=2,
+        chunks=[
+            ChunkAssignment(
+                chunk_index=0,
+                candidates=[
+                    ChunkCandidate(
+                        name="a.png",
+                        head_hash="h",
+                        base_hash="b",
+                        pixel_count=10,
+                        diff_threshold=0.0,
+                    )
+                ],
+            )
+        ],
+        non_diff_images={"x.png": ComparisonImageResult(status="added")},
+    )
+    restored = ComparisonPlan(**plan.dict())
+    assert restored.chunks[0].candidates[0].name == "a.png"
+    assert restored.chunks[0].candidates[0].diff_threshold == 0.0
+    assert restored.non_diff_images["x.png"].status == "added"
+
+
+def test_chunk_result_round_trip():
+    from sentry.preprod.snapshots.manifest import ChunkResult, ComparisonImageResult
+
+    result = ChunkResult(chunk_index=3, images={"a.png": ComparisonImageResult(status="changed")})
+    restored = ChunkResult(**result.dict())
+    assert restored.chunk_index == 3
+    assert restored.images["a.png"].status == "changed"

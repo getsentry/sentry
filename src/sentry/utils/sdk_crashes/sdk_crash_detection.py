@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 from collections.abc import Mapping, Sequence
 from typing import Any
+from uuid import uuid4
 
 from sentry.issues.grouptype import GroupCategory
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -121,6 +122,18 @@ class SDKCrashDetection:
                 value={
                     "original_project_id": event.project.id,
                     "original_event_id": event.event_id,
+                    "original_trace_id": event.trace_id,
+                },
+            )
+
+            # All errors need a trace ID.
+            set_path(
+                sdk_crash_event_data,
+                "contexts",
+                "trace",
+                value={
+                    "trace_id": uuid4().hex,
+                    "span_id": None,
                 },
             )
 

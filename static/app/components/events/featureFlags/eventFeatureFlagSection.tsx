@@ -36,9 +36,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 
 export function EventFeatureFlagSection(props: EventFeatureFlagSectionProps) {
   return (
@@ -176,14 +177,16 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     });
     openDrawer(
       () => (
-        <EventFeatureFlagDrawer
-          group={group}
-          event={event}
-          project={project}
-          hydratedFlags={hydratedFlags}
-          initialOrderBy={orderBy}
-          focusControl={focusControl}
-        />
+        <GroupIdProvider groupId={group.id}>
+          <EventFeatureFlagDrawer
+            group={group}
+            event={event}
+            project={project}
+            hydratedFlags={hydratedFlags}
+            initialOrderBy={orderBy}
+            focusControl={focusControl}
+          />
+        </GroupIdProvider>
       ),
       {
         ariaLabel: t('Feature flags drawer'),

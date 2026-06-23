@@ -6,6 +6,7 @@ import partial from 'lodash/partial';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -28,9 +29,9 @@ import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {toArray} from 'sentry/utils/array/toArray';
+import {defined} from 'sentry/utils/defined';
 import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
@@ -88,6 +89,7 @@ import {
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ArrayValue} from './arrayValue';
+import {emptyValue, emptyStringValue} from './emptyFieldValues';
 import {
   BarContainer,
   Container,
@@ -164,13 +166,6 @@ type FieldFormatters = {
   string: FieldFormatter;
 };
 
-const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
-export const emptyStringValue = (
-  <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>
-);
 const missingUserMisery = tct(
   'We were unable to calculate User Misery. A likely cause of this is that the user was not set. [link:Read the docs]',
   {
@@ -332,9 +327,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       if (data[field] > 0 && data[field] < NUMBER_MIN_VALUE) {
         return (
           <NumberContainer>
-            <Tooltip title={formatTooltipValue(data[field], 'number')}>
+            <InfoText variant="inherit" title={formatTooltipValue(data[field], 'number')}>
               <span>{`<${NUMBER_MIN_VALUE}`}</span>
-            </Tooltip>
+            </InfoText>
           </NumberContainer>
         );
       }
@@ -582,7 +577,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       if (op === ModuleName.DB || op === ModuleName.RESOURCE) {
         return (
           <SpanDescriptionCell
-            description={value ?? ''}
+            description={value}
             moduleName={op}
             projectId={projectId}
             group={spanGroup}

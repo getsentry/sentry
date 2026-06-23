@@ -53,11 +53,16 @@ def test_basic(kafka_slice_id: int | None) -> None:
                             None,
                             orjson.dumps(
                                 {
+                                    "organization_id": 1,
                                     "project_id": 12,
                                     "span_id": "a" * 16,
                                     "trace_id": "b" * 32,
                                     "start_timestamp": 1699999999.0,
                                     "end_timestamp": 1700000000.0,
+                                    "received": 1700000001.0,
+                                    "retention_days": 90,
+                                    "name": "test-span",
+                                    "status": "ok",
                                 }
                             ),
                             [],
@@ -82,6 +87,8 @@ def test_basic(kafka_slice_id: int | None) -> None:
 
             result = orjson.loads(msg.value)
             assert result.pop("flush_id")
+            # The buffered payload is the original raw bytes, enriched by the
+            # buffer with the segment id.
             assert result == {
                 "spans": [
                     {
@@ -89,11 +96,16 @@ def test_basic(kafka_slice_id: int | None) -> None:
                             "sentry.segment.id": {"type": "string", "value": "aaaaaaaaaaaaaaaa"},
                         },
                         "is_segment": True,
+                        "organization_id": 1,
                         "project_id": 12,
                         "span_id": "aaaaaaaaaaaaaaaa",
                         "trace_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
                         "end_timestamp": 1700000000.0,
                         "start_timestamp": 1699999999.0,
+                        "received": 1700000001.0,
+                        "retention_days": 90,
+                        "name": "test-span",
+                        "status": "ok",
                     },
                 ],
             }
@@ -102,7 +114,11 @@ def test_basic(kafka_slice_id: int | None) -> None:
 
 
 @override_options(
-    {**DEFAULT_OPTIONS, "spans.drop-in-buffer": [], "spans.process-segments.schema-validation": 0.0}
+    {
+        **DEFAULT_OPTIONS,
+        "spans.drop-in-buffer": [],
+        "spans.process-segments.schema-validation": 0.0,
+    }
 )
 @pytest.mark.parametrize(
     "field_to_set_none",
@@ -178,7 +194,11 @@ def test_schema_validator_rejects_none_fields(field_to_set_none: str) -> None:
 
 
 @override_options(
-    {**DEFAULT_OPTIONS, "spans.drop-in-buffer": [], "spans.process-segments.schema-validation": 0.0}
+    {
+        **DEFAULT_OPTIONS,
+        "spans.drop-in-buffer": [],
+        "spans.process-segments.schema-validation": 0.0,
+    }
 )
 def test_flusher_processes_limit() -> None:
     """Test that flusher respects the max_processes limit"""
@@ -226,7 +246,11 @@ def test_flusher_processes_limit() -> None:
 
 @django_db_all
 @override_options(
-    {**DEFAULT_OPTIONS, "spans.drop-in-buffer": [], "spans.process-segments.schema-validation": 0.0}
+    {
+        **DEFAULT_OPTIONS,
+        "spans.drop-in-buffer": [],
+        "spans.process-segments.schema-validation": 0.0,
+    }
 )
 @pytest.mark.parametrize("kafka_slice_id", [None, 2])
 def test_produce_to_kafka_exception(kafka_slice_id: int | None) -> None:
@@ -267,11 +291,16 @@ def test_produce_to_kafka_exception(kafka_slice_id: int | None) -> None:
                             None,
                             orjson.dumps(
                                 {
+                                    "organization_id": 1,
                                     "project_id": 12,
                                     "span_id": "a" * 16,
                                     "trace_id": "b" * 32,
                                     "start_timestamp": 1699999999.0,
                                     "end_timestamp": 1700000000.0,
+                                    "received": 1700000001.0,
+                                    "retention_days": 90,
+                                    "name": "test-span",
+                                    "status": "ok",
                                 }
                             ),
                             [],
