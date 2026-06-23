@@ -285,7 +285,15 @@ class JavaScriptSdkLoader(View):
         except ProjectKey.DoesNotExist:
             pass
         else:
-            key.project = Project.objects.get_from_cache(id=key.project_id)
+            try:
+                key.project = Project.objects.get_from_cache(id=key.project_id)
+            except Project.DoesNotExist:
+                # The ProjectKey references a project that no longer exists
+                # (orphaned key, e.g. the project was deleted). Treat this the
+                # same as a missing key so we fall back to the noop SDK template
+                # instead of raising.
+                key = None
+                metrics.incr("js-sdk-loader.orphaned_project_key", skip_internal=False)
 
         sdk_version = get_browser_sdk_version(key) if key else None
         loader_config = self._get_loader_config(key, sdk_version)
