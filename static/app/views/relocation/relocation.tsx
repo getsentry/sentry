@@ -12,7 +12,7 @@ import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {getLocalityUrlOptions} from 'sentry/utils/cells';
+import {getSignupLocalities} from 'sentry/utils/cells';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -76,7 +76,7 @@ export function RelocationOnboarding() {
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
   const api = useApi();
-  const localityOptions = getLocalityUrlOptions();
+  const localityOptions = getSignupLocalities();
   const [existingRelocationState, setExistingRelocationState] = useState(
     LoadingState.FETCHING
   );
@@ -87,7 +87,7 @@ export function RelocationOnboarding() {
     'relocationOnboarding',
     {
       orgSlugs: '',
-      regionUrl: '',
+      localityName: '',
       promoCode: '',
     }
   );
@@ -130,8 +130,8 @@ export function RelocationOnboarding() {
 
         // The user tried to view a later step, but at least one bit of required data was missing in
         // their local storage. Take them back to the first screen.
-        const {orgSlugs, regionUrl} = relocationState;
-        if (stepId !== 'get-started' && (!orgSlugs || !regionUrl)) {
+        const {orgSlugs, localityName} = relocationState;
+        if (stepId !== 'get-started' && (!orgSlugs || !localityName)) {
           navigate('/relocation/get-started/');
         }
 
@@ -263,13 +263,15 @@ export function RelocationOnboarding() {
             stepIndex={stepIndex}
             onUpdateRelocationState={({
               orgSlugs,
-              regionUrl,
+              localityName,
               promoCode,
             }: MaybeUpdateRelocationState) => {
               setRelocationState({
                 orgSlugs: orgSlugs === undefined ? relocationState.orgSlugs : orgSlugs,
-                regionUrl:
-                  regionUrl === undefined ? relocationState.regionUrl : regionUrl,
+                localityName:
+                  localityName === undefined
+                    ? relocationState.localityName
+                    : localityName,
                 promoCode:
                   promoCode === undefined ? relocationState.promoCode : promoCode,
               });
