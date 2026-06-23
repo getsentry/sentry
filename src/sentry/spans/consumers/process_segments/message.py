@@ -330,6 +330,7 @@ def _detect_performance_problems(
         logger.exception("span_first_detector_test.error")
         return
 
+    # This flag is set in Relay (though at the moment it's not turned on)
     if not segment_span.get("_performance_issues_spans"):
         return
 
