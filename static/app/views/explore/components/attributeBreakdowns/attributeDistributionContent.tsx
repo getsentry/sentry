@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
@@ -27,7 +27,7 @@ import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
 import {Chart} from './attributeDistributionChart';
-import {CHART_SELECTION_ALERT_KEY} from './constants';
+import {ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM, CHART_SELECTION_ALERT_KEY} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 import {tooltipActionsHtmlRenderer} from './utils';
 
@@ -37,10 +37,17 @@ export type AttributeDistribution = Array<{
 }>;
 
 export function AttributeDistribution() {
-  const [{breakdownCursor, breakdownQuery}, setQueryParams] = useQueryStates({
-    breakdownQuery: parseAsString.withOptions({shallow: true}).withDefault(''),
-    breakdownCursor: parseAsString.withOptions({shallow: true}),
-  });
+  const [{breakdownCursor, breakdownQuery}, setQueryParams] = useQueryStates(
+    {
+      breakdownQuery: parseAsString.withOptions({shallow: true}).withDefault(''),
+      breakdownCursor: parseAsString.withOptions({shallow: true}),
+    },
+    {
+      urlKeys: {
+        breakdownCursor: ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM,
+      },
+    }
+  );
   const debouncedSearchQuery = useDebouncedValue(breakdownQuery, 200);
 
   const query = useQueryParamsQuery();
@@ -51,6 +58,12 @@ export function AttributeDistribution() {
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
+
+  const breakdownResetKey = useMemo(
+    () => JSON.stringify({debouncedSearchQuery, query, selection}),
+    [debouncedSearchQuery, query, selection]
+  );
+  const previousBreakdownResetKeyRef = useRef(breakdownResetKey);
 
   const cohortCountEventView = useMemo(() => {
     const discoverQuery: NewQuery = {
@@ -106,6 +119,15 @@ export function AttributeDistribution() {
       refetchCohortCount();
     }
   }, [attributeBreakdownsData, isAttributeBreakdownsLoading, refetchCohortCount]);
+
+  useEffect(() => {
+    if (previousBreakdownResetKeyRef.current === breakdownResetKey) {
+      return;
+    }
+
+    previousBreakdownResetKeyRef.current = breakdownResetKey;
+    setQueryParams({breakdownCursor: null});
+  }, [breakdownResetKey, setQueryParams]);
 
   const parsedLinks = parseLinkHeader(attributeBreakdownsPageLinks);
 

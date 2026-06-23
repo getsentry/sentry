@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Grid} from '@sentry/scraps/layout';
 
@@ -70,6 +71,10 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const query = useQueryParamsQuery();
   const crossEvents = useQueryParamsCrossEvents();
   const setQueryParams = useSetQueryParams();
+  const [, setBreakdownCursor] = useQueryState(
+    ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM,
+    parseAsString.withOptions({shallow: true})
+  );
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
   const {selection} = usePageFilters();
 
@@ -103,6 +108,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           query: newQuery,
           fields: newColumns.length ? [...fields, ...newColumns] : undefined,
         });
+        setBreakdownCursor(null);
       },
       searchSource: 'explore',
       getFilterTokenWarning:
@@ -132,6 +138,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       numberAttributes,
       oldSearch,
       query,
+      setBreakdownCursor,
       setCaseInsensitive,
       setQueryParams,
       stringAttributes,
