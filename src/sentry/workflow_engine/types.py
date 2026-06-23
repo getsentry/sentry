@@ -50,6 +50,10 @@ GroupId: TypeAlias = int
 WorkflowId: TypeAlias = int
 
 
+class AlertRuleNotDualWritten(Exception):
+    pass
+
+
 class DetectorException(Exception):
     pass
 
