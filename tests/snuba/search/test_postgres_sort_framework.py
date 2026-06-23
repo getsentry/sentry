@@ -381,7 +381,8 @@ class TestFallbackBehavior(PostgresSortTestBase):
 
 class TestRecommendedV2Sort(PostgresSortTestBase):
     """recommended_v2: Snuba recommended base score plus additive boosts for viewer
-    relevance (assignment or suspect commit), Seer fixability, and Seer agent progress.
+    relevance (assignment or suspect commit), Seer fixability, Seer agent progress,
+    regressed issues, and newly-seen issues.
 
     The base fixture's groups have events ~8d, ~5d, and ~3d old, so the recency-driven
     base score orders them [2, 1, 0] with small (<0.03) differences -- each boost below
@@ -454,6 +455,20 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
         )
 
         assert self._query(actor=self.user) == [self.groups[1], self.groups[2], self.groups[0]]
+
+    def test_regressed_boost(self):
+        # groups[0] has the lowest base score (oldest events); marking it regressed lifts
+        # it above the others, which stay ONGOING.
+        self.groups[0].update(substatus=GroupSubStatus.REGRESSED)
+
+        assert self._query(actor=self.user)[0] == self.groups[0]
+
+    def test_newness_boost(self):
+        # groups[0] is last by activity-based recency, but just appeared for the first time.
+        # The first_seen-based newness boost (distinct from last_seen recency) lifts it up.
+        self.groups[0].update(first_seen=before_now(hours=1))
+
+        assert self._query(actor=self.user)[0] == self.groups[0]
 
     def _add_suspect_commit(self, group, user):
         GroupOwner.objects.create(

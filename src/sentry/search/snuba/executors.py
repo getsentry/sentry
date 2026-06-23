@@ -48,6 +48,7 @@ from sentry.search.eap.occurrences.search_executor import EAP_SORT_STRATEGIES, r
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import (
@@ -977,10 +978,15 @@ def resolve_issue_agent_signal(
 def recommended_v2_strategy() -> PostgresSortStrategy:
     """Recommended sort v2: the Snuba recommended score (recency/spike/severity/user
     impact/event volume) plus additive boosts for viewer relevance (assignment or suspect
-    commit), Seer fixability, and Seer agent progress."""
+    commit), Seer fixability, Seer agent progress, regressed issues, and newly-seen issues."""
     assignment_weight = options.get("snuba.search.recommended.assignment-weight")
     fixability_weight = options.get("snuba.search.recommended.fixability-weight")
     agent_weight = options.get("snuba.search.recommended.agent-weight")
+    regressed_weight = options.get("snuba.search.recommended.regressed-weight")
+    newness_weight = options.get("snuba.search.recommended.newness-weight")
+    newness_halflife_hours = options.get("snuba.search.recommended.newness-halflife-hours")
+    # Captured once per query so every group decays against the same clock.
+    now = timezone.now()
 
     def score_fn(data: dict[str, Any]) -> float:
         # Personal relevance is a max, not a sum: a viewer who is both assignee and suspect
@@ -990,15 +996,29 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
             data.get("assignment", 0.0),
             0.8 * data.get("suspect_commit", 0.0),
         )
+        # Newness decays on first_seen (true first appearance), unlike the base recency
+        # factor which decays on last_seen and can't tell a new issue from an old noisy one.
+        first_seen = data.get("first_seen")
+        newness = 0.0
+        if first_seen is not None and newness_halflife_hours > 0:
+            hours = max(0.0, (now - first_seen).total_seconds() / 3600)
+            newness = 1.0 / 2.0 ** (hours / newness_halflife_hours)
+        regressed = 1.0 if data.get("substatus") == GroupSubStatus.REGRESSED else 0.0
         return (
             (data.get("recommended") or 0.0)
             + assignment_weight * relevance
             + fixability_weight * (data.get("fixability") or 0.0)
             + agent_weight * data.get("agent", 0.0)
+            + regressed_weight * regressed
+            + newness_weight * newness
         )
 
     return PostgresSortStrategy(
-        postgres_fields={"fixability": "seer_fixability_score"},
+        postgres_fields={
+            "fixability": "seer_fixability_score",
+            "substatus": "substatus",
+            "first_seen": "first_seen",
+        },
         snuba_aggregations=["recommended"],
         signal_resolvers={
             "assignment": resolve_assignment_signal,
