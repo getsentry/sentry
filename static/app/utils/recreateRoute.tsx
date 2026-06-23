@@ -38,10 +38,22 @@ type Options =
       stepBack?: -1 | -2 | -3 | -4 | -5 | -6 | -7 | -8 | -9;
     };
 
+// Cache the routes derived from a given `matches` array so that repeated calls
+// (e.g. `useRoutes` building the list and `recreateRoute` resolving `to` within
+// it) return the *same* route object references. Without this, `recreateRoute`
+// would have to fall back to value comparison, which cannot distinguish two
+// pathless layout routes that collapse to the same `{path: ''}` shape.
+const matchesToRoutesCache = new WeakMap<UIMatch[], PlainRoute[]>();
+
 // XXX(epurkhiser): This transforms react-router 6 style matches back to old
 // style react-router 3 route matches.
 export function matchesToRoutes(matches: UIMatch[]): PlainRoute[] {
-  return matches.map<PlainRoute>(match => {
+  const cached = matchesToRoutesCache.get(matches);
+  if (cached) {
+    return cached;
+  }
+
+  const routes = matches.map<PlainRoute>(match => {
     // We put things like `name` (for breadcrumbs) in the handle. Extract
     // it out here
     const extra: any = match.handle;
@@ -59,14 +71,23 @@ export function matchesToRoutes(matches: UIMatch[]): PlainRoute[] {
 
     return {path, ...extra};
   }, []);
+
+  matchesToRoutesCache.set(matches, routes);
+  return routes;
 }
 
-// `to` and the entries of `routes` are both produced by `matchesToRoutes`, so
-// they share the same shape (including the synthesized `path` key) and preserve
-// nested references via the shallow spread. Match by value here rather than by
-// object identity because `recreateRoute` rebuilds `routes` on every call, so
-// the caller's `to` is never reference-equal to the local `routes` entries.
-function findRouteInRoutes(to: PlainRoute, routes: PlainRoute[]): number {
+// Locate `to` within `routes`. Reference identity is preferred because two
+// distinct routes can produce the same shape (pathless layout routes collapse
+// to `{path: ''}`), and only identity resolves them to the correct position.
+// `matchesToRoutes` is memoized so callers that derive `to` from the same
+// `matches` array hit this fast path. Fall back to value comparison so a
+// separately-constructed `to` still resolves instead of silently truncating.
+function findRouteIndex(to: PlainRoute, routes: PlainRoute[]): number {
+  const byReference = routes.indexOf(to);
+  if (byReference !== -1) {
+    return byReference;
+  }
+
   return routes.findIndex(route => {
     const toKeys = Object.keys(to);
     const routeKeys = Object.keys(route);
@@ -101,7 +122,7 @@ export function recreateRoute(to: string | PlainRoute, options: Options): string
     lastRootIndex = paths.findLastIndex((path: any) => path[0] === '/');
   } else {
     routeIndex = options.matches
-      ? findRouteInRoutes(to, routes) + 1
+      ? findRouteIndex(to, routes) + 1
       : routes.indexOf(to) + 1;
     lastRootIndex = paths
       .slice(0, routeIndex)

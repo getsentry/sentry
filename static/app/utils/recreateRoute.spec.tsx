@@ -108,6 +108,28 @@ describe('recreateRoute', () => {
     expect(recreateRoute(r[4]!, {matches: m, params})).toBe('/foo/bar/');
   });
 
+  it('resolves the correct ancestor when pathless layout routes share a shape', () => {
+    // Pathless layout routes (e.g. produced by translateSentryRoute) carry no
+    // `path`, so `matchesToRoutes` collapses each of them to the identical
+    // `{path: ''}` shape. Here indices 2 and 5 are duplicate-shaped pathless
+    // routes, with real path segments (`:orgId/`, `foo/`) in between them.
+    const m: UIMatch[] = [
+      makeMatch('/', {}, {path: '/'}),
+      makeMatch('/settings/', {}, {path: 'settings/'}),
+      makeMatch('/settings/', {}, {}),
+      makeMatch('/settings/org-slug/', {orgId: 'org-slug'}, {path: ':orgId/'}),
+      makeMatch('/settings/org-slug/foo/', {orgId: 'org-slug'}, {path: 'foo/'}),
+      makeMatch('/settings/org-slug/foo/', {orgId: 'org-slug'}, {}),
+    ];
+    const r = matchesToRoutes(m);
+
+    // Targeting the *second* pathless route (index 5) must rebuild the full
+    // path up to it. The duplicate-shaped pathless route at index 2 must not
+    // shadow it, which would otherwise drop the `:orgId/` and `foo/` segments
+    // and produce a truncated ancestor URL.
+    expect(recreateRoute(r[5]!, {matches: m, params})).toBe('/settings/org-slug/foo/');
+  });
+
   it('returns correct path to a string (at the end of the routes)', () => {
     expect(recreateRoute('test/', {matches, location, params})).toBe(
       '/settings/org-slug/api-keys/test/'
