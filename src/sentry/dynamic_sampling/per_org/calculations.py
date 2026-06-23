@@ -27,6 +27,7 @@ from sentry.dynamic_sampling.per_org.queries import (
     ProjectTransactionCounts,
     ProjectVolume,
     get_eap_organization_volume,
+    get_generic_metrics_organization_volume,
     get_outcomes_organization_volume,
 )
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
@@ -66,6 +67,9 @@ def compare_organization_sliding_window_sample_rates(
     end = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
     eap_volume = get_eap_organization_volume(config, time_interval=window, end=end)
     outcomes_volume = get_outcomes_organization_volume(config, time_interval=window, end=end)
+    generic_metrics_volume = get_generic_metrics_organization_volume(
+        config.organization.id, time_interval=window, end=end
+    )
 
     def sample_rate_for(volume: OrganizationDataVolume | None) -> float | None:
         if volume is None:
@@ -79,6 +83,7 @@ def compare_organization_sliding_window_sample_rates(
 
     eap_sample_rate = sample_rate_for(eap_volume)
     outcomes_sample_rate = sample_rate_for(outcomes_volume)
+    generic_metrics_sample_rate = sample_rate_for(generic_metrics_volume)
 
     tags = {"ds_org": str(config.organization.id)}
     if eap_sample_rate is not None:
@@ -95,6 +100,13 @@ def compare_organization_sliding_window_sample_rates(
             sample_rate=1.0,
             tags=tags,
         )
+    if generic_metrics_sample_rate is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.generic_metrics_sample_rate",
+            generic_metrics_sample_rate,
+            sample_rate=1.0,
+            tags=tags,
+        )
     if eap_volume is not None:
         metrics.distribution(
             f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_volume",
@@ -106,6 +118,13 @@ def compare_organization_sliding_window_sample_rates(
         metrics.distribution(
             f"{SLIDING_WINDOW_METRIC_PREFIX}.outcomes_volume",
             outcomes_volume.total,
+            sample_rate=1.0,
+            tags=tags,
+        )
+    if generic_metrics_volume is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.generic_metrics_volume",
+            generic_metrics_volume.total,
             sample_rate=1.0,
             tags=tags,
         )
