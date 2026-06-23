@@ -14,12 +14,10 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from django.db.models import Q
 from pydantic import BaseModel
 
 from sentry import features
 from sentry.constants import ObjectStatus
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
@@ -27,24 +25,9 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
 )
-from sentry.models.repository import Repository
+from sentry.pr_metrics.pull_requests import get_or_create_seer_pull_request
 
 logger = logging.getLogger(__name__)
-
-# SCM providers that can legitimately back a Repository. Seer normalizes its
-# provider to one of these (lowercased, no ``integrations:`` prefix); anything
-# else in the event is a value we don't understand and should be fixed upstream.
-_KNOWN_SCM_PROVIDERS = frozenset(
-    {
-        IntegrationProviderSlug.GITHUB,
-        IntegrationProviderSlug.GITHUB_ENTERPRISE,
-        IntegrationProviderSlug.GITLAB,
-        IntegrationProviderSlug.BITBUCKET,
-        IntegrationProviderSlug.BITBUCKET_SERVER,
-        IntegrationProviderSlug.AZURE_DEVOPS,
-        IntegrationProviderSlug.PERFORCE,
-    }
-)
 
 # Precedence for picking a PR's primary attribution when more than one valid
 # signal is present (highest first): direct agent-authored signals rank above
@@ -157,35 +140,33 @@ def _attribute_pull_request(
     Failures are logged and swallowed rather than raised, so a batch caller's
     remaining PRs are unaffected.
     """
-    normalized_provider = _normalize_provider(provider)
+    try:
+        resolution = get_or_create_seer_pull_request(
+            organization_id=organization_id,
+            repo_name=repo_name,
+            provider=provider,
+            pr_number=pr_number,
+        )
+    except Exception:
+        logger.exception("pr_metrics.attribution.record_failed", extra=log_context)
+        return
+
     # A present-but-unrecognized provider means the source sent something we don't
-    # map — warn so it can be corrected upstream, but still attempt to resolve.
-    if normalized_provider is not None and normalized_provider not in _KNOWN_SCM_PROVIDERS:
+    # map — warn so it can be corrected upstream.
+    if not resolution.provider_recognized:
         logger.warning("pr_metrics.attribution.unrecognized_provider", extra=log_context)
 
-    repository, resolution = _resolve_repository(
-        organization_id=organization_id,
-        repo_name=repo_name,
-        normalized_provider=normalized_provider,
-    )
-    if repository is None:
-        if resolution == "ambiguous":
+    if resolution.pull_request is None:
+        if resolution.repo_status == "ambiguous":
             logger.warning("pr_metrics.attribution.repo_ambiguous", extra=log_context)
         else:
             logger.warning("pr_metrics.attribution.repo_not_found", extra=log_context)
         return
 
-    # The repo is resolved now, so its id sharpens every log from here on.
-    log_context = {**log_context, "repository_id": repository.id}
+    pull_request = resolution.pull_request
+    log_context = {**log_context, "repository_id": pull_request.repository_id}
 
-    # get_or_create is race-safe via the unique constraints — Django retries the
-    # get on IntegrityError.
     try:
-        pull_request, _ = PullRequest.objects.get_or_create(
-            organization_id=organization_id,
-            repository_id=repository.id,
-            key=str(pr_number),
-        )
         record_attribution_signal(
             pull_request=pull_request,
             signal_type=signal_type,
@@ -247,41 +228,6 @@ def attribute_seer_created_pull_requests(
             signal_details={"run_id": run_id, "group_id": group_id, "pr_url": pr_url},
             log_context=log_context,
         )
-
-
-def _resolve_repository(
-    *, organization_id: int, repo_name: str, normalized_provider: str | None
-) -> tuple[Repository | None, str]:
-    """Resolve the org-scoped active repository for a Seer-reported PR.
-
-    Sentry stores the ``integrations:``-prefixed provider while Seer sends the
-    bare form, so we match both shapes — the same mapping
-    ``filter_repo_by_provider`` uses.
-
-    Resolves only when exactly one repo matches. A known provider disambiguates
-    same-named repos across providers; an unknown provider (Seer couldn't match
-    the repo) refuses to guess between them rather than risk mis-attribution.
-
-    Returns ``(repository, reason)`` where reason is ``"resolved"``,
-    ``"not_found"`` (zero matches), or ``"ambiguous"`` (more than one).
-    """
-    candidates = Repository.objects.filter(
-        organization_id=organization_id,
-        name=repo_name,
-        status=ObjectStatus.ACTIVE,
-    )
-
-    if normalized_provider is not None:
-        candidates = candidates.filter(
-            Q(provider=normalized_provider) | Q(provider=f"integrations:{normalized_provider}")
-        )
-
-    # Fetch up to 2 to detect ambiguity — the same name can exist under
-    # multiple providers (e.g. github & gitlab) within one org.
-    matches = list(candidates.order_by("id")[:2])
-    if len(matches) == 1:
-        return matches[0], "resolved"
-    return None, "ambiguous" if matches else "not_found"
 
 
 def attribute_delegated_agent_pull_request(
@@ -355,20 +301,3 @@ def _parse_pr_number(pr_url: str) -> int | None:
     """
     match = re.search(r"/(?:pull|pulls|merge_requests)/(\d+)", pr_url)
     return int(match.group(1)) if match else None
-
-
-def _normalize_provider(provider: str | None) -> str | None:
-    """Normalize Seer's provider to Sentry's unprefixed form, or None if unusable.
-
-    Returns None for the ``"unknown"`` sentinel (Seer couldn't resolve the repo)
-    and for empty values — neither can scope a provider filter. Lowercases before
-    the sentinel check so any casing (e.g. ``UNKNOWN``) is treated as unknown.
-    """
-    if not provider:
-        return None
-    provider = provider.lower()
-    if provider.startswith("integrations:"):
-        provider = provider.split(":", 1)[1]
-    if provider == "unknown":
-        return None
-    return provider
