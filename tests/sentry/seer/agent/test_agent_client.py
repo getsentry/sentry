@@ -1312,7 +1312,9 @@ class TestStartFeatureRun(TestCase):
         client = SeerAgentClient(self.organization, self.user)
         run = client.start_feature_run(feature_id="night_shift", payload={}, flush=False)
 
-        body = self._outbox_for(run).payload["body"]
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
         assert body["agent_run_options"]["is_context_engine_enabled"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
@@ -1322,7 +1324,9 @@ class TestStartFeatureRun(TestCase):
         client = SeerAgentClient(self.organization, self.user)
         run = client.start_feature_run(feature_id="night_shift", payload={}, flush=False)
 
-        body = self._outbox_for(run).payload["body"]
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
         assert body["agent_run_options"]["enable_frontend_code_search"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
@@ -1331,7 +1335,9 @@ class TestStartFeatureRun(TestCase):
         client = SeerAgentClient(self.organization, self.user)
         run = client.start_feature_run(feature_id="night_shift", payload={}, flush=False)
 
-        body = self._outbox_for(run).payload["body"]
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
         assert body["agent_run_options"] == {}
 
 
