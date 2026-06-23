@@ -264,13 +264,15 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         assert response.status_code == 400
 
     def test_deprecated_plugin_returns_400(self) -> None:
+        self.project.update_option("twilio:enabled", True)
+
         action_data = [
             {
                 "type": Action.Type.WEBHOOK.value,
                 "data": {},
                 "config": {
                     "target_identifier": "twilio",
-                    "target_type": "specific",
+                    "target_type": None,
                 },
             }
         ]

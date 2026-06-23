@@ -179,6 +179,8 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         assert mock_notify.call_count == 1
 
     def test_deprecated_plugin_returns_400(self) -> None:
+        self.project.update_option("twilio:enabled", True)
+
         action_data = [
             {
                 "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
