@@ -142,12 +142,7 @@ describe('EventReplay', () => {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
-    render(
-      <GroupIdProvider groupId="1">
-        <EventReplay {...defaultProps} />
-      </GroupIdProvider>,
-      {organization}
-    );
+    render(<EventReplay {...defaultProps} />, {organization});
 
     expect(await screen.findByTestId('replay-inline-onboarding')).toBeInTheDocument();
   });

@@ -31,8 +31,6 @@ import {GroupStatus, IssueCategory, PriorityLevel, type Group} from 'sentry/type
 import * as analytics from 'sentry/utils/analytics';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {GroupActions} from 'sentry/views/issueDetails/actions';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
-import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 const project = ProjectFixture({
@@ -133,9 +131,7 @@ describe('GroupActions', () => {
   describe('render()', () => {
     it('renders correctly', async () => {
       render(
-        <GroupDataContextProvider group={group} project={project}>
-          <GroupActions group={group} project={project} disabled={false} event={null} />
-        </GroupDataContextProvider>,
+        <GroupActions group={group} project={project} disabled={false} event={null} />,
         {
           organization,
         }
@@ -156,9 +152,7 @@ describe('GroupActions', () => {
 
     it('can subscribe', async () => {
       render(
-        <GroupDataContextProvider group={group} project={project}>
-          <GroupActions group={group} project={project} disabled={false} event={null} />
-        </GroupDataContextProvider>,
+        <GroupActions group={group} project={project} disabled={false} event={null} />,
         {
           organization,
         }
@@ -187,9 +181,7 @@ describe('GroupActions', () => {
 
     it('can bookmark', async () => {
       render(
-        <GroupDataContextProvider group={group} project={project}>
-          <GroupActions group={group} project={project} disabled={false} event={null} />
-        </GroupDataContextProvider>,
+        <GroupActions group={group} project={project} disabled={false} event={null} />,
         {
           organization,
         }
@@ -216,9 +208,7 @@ describe('GroupActions', () => {
       });
 
       render(
-        <GroupDataContextProvider group={group} project={project}>
-          <GroupActions group={group} project={project} event={event} disabled={false} />
-        </GroupDataContextProvider>,
+        <GroupActions group={group} project={project} event={event} disabled={false} />,
         {
           organization,
         }
@@ -236,9 +226,7 @@ describe('GroupActions', () => {
       });
 
       render(
-        <GroupDataContextProvider group={group} project={project}>
-          <GroupActions group={group} project={project} event={event} disabled={false} />
-        </GroupDataContextProvider>,
+        <GroupActions group={group} project={project} event={event} disabled={false} />,
         {
           organization,
         }
@@ -278,12 +266,10 @@ describe('GroupActions', () => {
         route: '/organizations/:orgId/issues/:groupId/',
       };
       const {router} = render(
-        <GroupDataContextProvider group={group} project={project}>
-          <Fragment>
-            <GlobalModal />
-            <GroupActions group={group} project={project} disabled={false} event={null} />
-          </Fragment>
-        </GroupDataContextProvider>,
+        <Fragment>
+          <GlobalModal />
+          <GroupActions group={group} project={project} disabled={false} event={null} />
+        </Fragment>,
         {
           organization: org,
           initialRouterConfig,
@@ -331,17 +317,15 @@ describe('GroupActions', () => {
         route: '/organizations/:orgId/issues/:groupId/',
       };
       const {router} = render(
-        <GroupDataContextProvider group={issuePlatformGroup} project={project}>
-          <Fragment>
-            <GlobalModal />
-            <GroupActions
-              group={issuePlatformGroup}
-              project={project}
-              disabled={false}
-              event={null}
-            />
-          </Fragment>
-        </GroupDataContextProvider>,
+        <Fragment>
+          <GlobalModal />
+          <GroupActions
+            group={issuePlatformGroup}
+            project={project}
+            disabled={false}
+            event={null}
+          />
+        </Fragment>,
         {
           organization: org,
           initialRouterConfig,
@@ -396,17 +380,12 @@ describe('GroupActions', () => {
     );
 
     rerender(
-      <GroupDataContextProvider
+      <GroupActions
         group={{...group, status: GroupStatus.RESOLVED, statusDetails: {}}}
         project={project}
-      >
-        <GroupActions
-          group={{...group, status: GroupStatus.RESOLVED, statusDetails: {}}}
-          project={project}
-          disabled={false}
-          event={null}
-        />
-      </GroupDataContextProvider>
+        disabled={false}
+        event={null}
+      />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Unresolve'}));
@@ -480,12 +459,7 @@ describe('GroupActions', () => {
       );
     }
 
-    render(
-      <GroupIdProvider groupId={group.id}>
-        <GroupActionsWrapper />
-      </GroupIdProvider>,
-      {organization}
-    );
+    render(<GroupActionsWrapper />, {organization});
 
     await waitFor(() => {
       expect(groupFetchApi).toHaveBeenCalledTimes(1);
@@ -527,22 +501,20 @@ describe('GroupActions', () => {
         current: Array<CollectionTreeNode<CMDKActionData>>;
       } = {current: []};
       render(
-        <GroupDataContextProvider group={commandGroup} project={project}>
-          <CommandPaletteProvider>
-            <GroupActions
-              group={commandGroup}
-              project={project}
-              disabled={false}
-              event={null}
-            />
-            <SlotOutlets />
-            <CommandPaletteTree
-              onTree={tree => {
-                treeRef.current = tree;
-              }}
-            />
-          </CommandPaletteProvider>
-        </GroupDataContextProvider>,
+        <CommandPaletteProvider>
+          <GroupActions
+            group={commandGroup}
+            project={project}
+            disabled={false}
+            event={null}
+          />
+          <SlotOutlets />
+          <CommandPaletteTree
+            onTree={tree => {
+              treeRef.current = tree;
+            }}
+          />
+        </CommandPaletteProvider>,
         {organization}
       );
 
