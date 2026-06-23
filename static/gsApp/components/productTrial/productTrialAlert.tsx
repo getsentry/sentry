@@ -60,7 +60,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
     return null;
   }
 
-  const isPaid = subscription.planDetails?.price > 0;
+  const isPaid = subscription.planDetails?.totalPrice > 0;
   const hasBillingRole = organization.access?.includes('org:billing');
   const categoryUsesOnDemand = shouldUseOnDemandCta(trial.category);
 

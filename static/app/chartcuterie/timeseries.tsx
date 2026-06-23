@@ -21,7 +21,7 @@ import {ChartType} from './types';
 /**
  * Font size and spacing scaled for the larger timeseries chart canvas (1200x400).
  */
-const FONT_SIZE = 28;
+export const FONT_SIZE = 28;
 export const CHART_SIZE = {width: 1200, height: 400};
 
 export type TimeseriesChartData = {

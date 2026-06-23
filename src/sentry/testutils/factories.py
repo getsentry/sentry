@@ -76,8 +76,8 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.types import ExternalProviders
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
-from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.grouptype import get_group_type_by_type_id
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -181,7 +181,12 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
-from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.users.models.identity import (
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    OrganizationIdentity,
+)
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.user_option import UserOption
@@ -2081,6 +2086,17 @@ class Factories:
             status=IdentityStatus.VALID,
             scopes=[],
             **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_organization_identity(
+        organization: Organization,
+        identity: Identity,
+    ) -> OrganizationIdentity:
+        return OrganizationIdentity.objects.create(
+            organization_id=organization.id,
+            identity=identity,
         )
 
     @staticmethod

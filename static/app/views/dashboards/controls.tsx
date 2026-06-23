@@ -176,7 +176,7 @@ export function Controls({
                 title: limitMessage,
               }}
             >
-              {t('Add Dashboard')}
+              {t('Save and Finish')}
             </Button>
           )}
         </DashboardCreateLimitWrapper>
