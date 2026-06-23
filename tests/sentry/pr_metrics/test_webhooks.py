@@ -248,8 +248,14 @@ class HandleWebhookForPrMetricsTest(TestCase):
             )
 
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.pr_not_found",
-            extra={"repository_id": self.repo.id, "pr_number": 9999},
+            "pr_metrics.pr_not_found",
+            extra={
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "repo_name": self.repo.name,
+                "pr_number": 9999,
+                "github_delivery_id": None,
+            },
         )
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
 
@@ -261,7 +267,7 @@ CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 
 
 @with_feature("organizations:pr-metrics-emit")
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleWebhookForPrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
@@ -378,6 +384,15 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
     @patch("sentry.analytics.record")
+    def test_skips_emit_when_no_seer_access(self, mock_record: MagicMock) -> None:
+        # Without Seer access, activity rows are not written, so the commits-after-open
+        # signal is absent and select_verdict must defer — same invariant as flag-off.
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+    @patch("sentry.analytics.record")
     def test_skips_untracked_pr(self, mock_record: MagicMock) -> None:
         PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
         self._call(merged=True)
@@ -433,8 +448,14 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
             repo=self.repo,
         )
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.pr_not_found",
-            extra={"repository_id": self.repo.id, "pr_number": 9999},
+            "pr_metrics.pr_not_found",
+            extra={
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "repo_name": self.repo.name,
+                "pr_number": 9999,
+                "github_delivery_id": None,
+            },
         )
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
@@ -523,7 +544,7 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         assert PullRequestMetrics.objects.count() == 0
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleWebhookForPrMetricsActivityTest(TestCase):
     def setUp(self) -> None:
@@ -875,8 +896,14 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_no_seer_access_skips_activity(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call(action="opened")
 
-@with_feature("organizations:pr-metrics-activity")
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -980,8 +1007,15 @@ class HandleCommentForPrMetricsTest(TestCase):
             )
 
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.comment.pr_not_found",
-            extra={"repository_id": self.repo.id, "issue_number": 9999},
+            "pr_metrics.comment.pr_not_found",
+            extra={
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "repo_name": self.repo.name,
+                "pr_number": 9999,
+                "action": "created",
+                "github_delivery_id": "delivery-unknown",
+            },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -1002,8 +1036,14 @@ class HandleCommentForPrMetricsTest(TestCase):
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.payload["is_review"] is False
 
+    def test_no_seer_access_skips_comment(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
 
-@with_feature("organizations:pr-metrics-activity")
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleReviewForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1089,13 +1129,25 @@ class HandleReviewForPrMetricsTest(TestCase):
             )
 
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.pr_not_found",
-            extra={"repository_id": self.repo.id, "pr_number": 9999},
+            "pr_metrics.pr_not_found",
+            extra={
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "repo_name": self.repo.name,
+                "pr_number": 9999,
+                "github_delivery_id": "delivery-x",
+            },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_no_seer_access_skips_review(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
 
-@with_feature("organizations:pr-metrics-activity")
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleReviewCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1182,13 +1234,25 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
             )
 
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.pr_not_found",
-            extra={"repository_id": self.repo.id, "pr_number": 9999},
+            "pr_metrics.pr_not_found",
+            extra={
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "repo_name": self.repo.name,
+                "pr_number": 9999,
+                "github_delivery_id": "delivery-x",
+            },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_no_seer_access_skips_review_comment(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
 
-@with_feature("organizations:pr-metrics-activity")
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleReviewThreadForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1268,15 +1332,27 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
             )
 
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.pr_not_found",
-            extra={"repository_id": self.repo.id, "pr_number": 9999},
+            "pr_metrics.pr_not_found",
+            extra={
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "repo_name": self.repo.name,
+                "pr_number": 9999,
+                "github_delivery_id": "delivery-x",
+            },
         )
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_no_seer_access_skips_thread_event(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
+
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
 @with_feature("organizations:pr-metrics-emit")
 @with_feature("organizations:pr-metrics-activity")
-@with_feature("organizations:pr-metrics-judge")
+@with_feature(["organizations:pr-metrics-judge", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
     """The needs-judge branch with pr-metrics-judge on: claim the sentinel and forward."""
@@ -1387,6 +1463,31 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         # The tracking gate runs before the judge fork: an untracked PR is dropped
         # without claiming the sentinel or forwarding.
         PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
+        self._call()
+        assert mock_delay.call_count == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_no_seer_access_skips_judge(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # Without Seer access the judge path is not eligible regardless of attribution.
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
+        assert mock_delay.call_count == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_ineligible_attribution_skips_judge(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # Only SENTRY_APP and SEER_DELEGATED_* attributions qualify for the judge.
+        # A PR tracked only via MCP or REFERENCED_ISSUE is skipped.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
+            signal_type=PullRequestAttributionSignalType.MCP
+        )
         self._call()
         assert mock_delay.call_count == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None

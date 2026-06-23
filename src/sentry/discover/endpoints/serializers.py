@@ -146,6 +146,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     "org_slug": self.context["organization"].slug,
                 },
             )
+            sentry_sdk.set_attribute("discover.org_slug", self.context["organization"].slug)
             sentry_sdk.capture_message("Created or updated saved query with discover dataset.")
             raise serializers.ValidationError(
                 "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"

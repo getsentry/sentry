@@ -920,6 +920,39 @@ describe('TraceTree', () => {
       );
     });
 
+    it('falls back to browser web vital values for zero measurements', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'eap-span-1',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            measurements: {
+              'measurements.lcp': 0,
+            },
+            browser_web_vital: {
+              'browser.web_vital.lcp.value': 200,
+            },
+            children: [],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const span1 = tree.root.findChild(n => n.id === 'eap-span-1');
+      expect(tree.vitals.get(span1!)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({key: 'lcp', measurement: {value: 200}}),
+        ])
+      );
+      expect(tree.indicators).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({type: 'lcp', measurement: {value: 200}}),
+        ])
+      );
+    });
+
     it('standalone LCP span indicator takes priority over pageload LCP indicator', () => {
       const standaloneStart = start + 1.5;
       const tree = TraceTree.FromTrace(

@@ -38,10 +38,11 @@ export type AutofixAgentSelectOption = 'seer' | `${CodingAgentProvider}::${strin
 // Mirrors python serializer: ProjectSettingsUpdateSerializer
 export type SeerProjectSettingUpdatePayload = {
   agentOption?: AutofixAgentSelectOption;
+  autoCreatePr?: boolean;
   automationTuning?: UserFacingAutomationTuning;
   integrationId?: string;
   scannerAutomation?: boolean;
-  stoppingPoint?: SeerAutofixStoppingPoint; // SeerAutofixStoppingPoint;
+  stoppingPoint?: SeerAutofixStoppingPoint;
 };
 
 // Mirrors python serializer: BulkProjectSettingsUpdateSerializer
@@ -59,4 +60,42 @@ export type SeerProjectSettingResponse = {
   reposCount: number;
   scannerAutomation: boolean;
   stoppingPoint: SeerAutofixStoppingPoint;
+};
+
+type BranchOverrideInput = {
+  branchName: string;
+  tagName: string;
+  tagValue: string;
+};
+
+export type SeerProjectRepoCreateInput = {
+  repositoryId: string;
+  branchName?: string | null;
+  branchOverrides?: BranchOverrideInput[];
+  instructions?: string | null;
+};
+
+export type SeerProjectMutateRepoPayload = {
+  branchName?: string | null;
+  branchOverrides?: BranchOverrideInput[];
+  instructions?: string | null;
+};
+
+export type SeerProjectReposResponse = {
+  branchName: string;
+  branchOverrides: Array<{
+    branchName: string;
+    id: string;
+    tagName: string;
+    tagValue: string;
+  }>;
+  externalId: string;
+  id: string;
+  instructions: string;
+  integrationId: string;
+  name: string;
+  organizationId: string;
+  owner: string;
+  provider: string;
+  repositoryId: string;
 };

@@ -38,7 +38,8 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
 
     @extend_schema(
-        operation_id="List an Organization's Tags",
+        operation_id="listOrganizationTags",
+        summary="List an Organization's Tags",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,

@@ -34,7 +34,6 @@ import {
   hasSomeBillingDetails,
   isBizPlanFamily,
   isTeamPlanFamily,
-  isTrialPlan,
 } from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
@@ -389,7 +388,7 @@ function recordAnalytics(
       productSelectAnalyticsData[targetKey] = {
         enabled: data[key as keyof CheckoutAPIData] as boolean,
         // don't count trial addons
-        previously_enabled: !isTrialPlan(previousData.previous_plan) && previouslyEnabled,
+        previously_enabled: !subscription.onTrialPlan && previouslyEnabled,
       };
     }
   });
@@ -449,7 +448,7 @@ function recordAnalytics(
       subscription,
       organization,
       applyNow: data.applyNow ?? false,
-      daysLeft: moment(subscription.contractPeriodEnd).diff(moment(), 'days'),
+      daysLeft: moment(subscription.billingPeriodEnd).diff(moment(), 'days'),
       partner: subscription.partner?.partnership.id,
     });
   }
@@ -646,7 +645,7 @@ export function useSubmitCheckout({
 
       // seer automation alert
       const alreadyHasSeer =
-        !isTrialPlan(subscription.plan) &&
+        !subscription.onTrialPlan &&
         (subscription.addOns?.seer?.enabled || subscription.addOns?.legacySeer?.enabled);
       const justBoughtSeer =
         (_variables.data.addOnLegacySeer || _variables.data.addOnSeer) && !alreadyHasSeer;

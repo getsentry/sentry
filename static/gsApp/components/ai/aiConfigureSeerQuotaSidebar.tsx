@@ -7,10 +7,8 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  AutofixContent,
-  type AutofixContentProps,
-} from 'sentry/views/issueDetails/sidebar/autofixSection';
+import {AutofixContent} from 'sentry/views/issueDetails/sidebar/autofixSection';
+import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSectionTypes';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
@@ -19,7 +17,6 @@ export function AiConfigureSeerQuotaSidebar({
   aiConfig,
   group,
   project,
-  event,
 }: AutofixContentProps) {
   const organization = useOrganization();
   const subscription = useSubscription();
@@ -29,9 +26,7 @@ export function AiConfigureSeerQuotaSidebar({
   }
 
   if (aiConfig.hasAutofixQuota) {
-    return (
-      <AutofixContent aiConfig={aiConfig} group={group} project={project} event={event} />
-    );
+    return <AutofixContent aiConfig={aiConfig} group={group} project={project} />;
   }
 
   const hasBillingPerms = hasAccessToSubscriptionOverview(subscription, organization);

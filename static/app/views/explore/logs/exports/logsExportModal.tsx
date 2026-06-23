@@ -14,7 +14,6 @@ import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {ExportQueryType, useDataExport} from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatNumber} from 'sentry/utils/number/formatNumber';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {downloadLogs} from 'sentry/views/explore/logs/exports/downloadLogs';
 import {
@@ -68,7 +67,7 @@ export function LogsExportModal({
     }),
     [queryInfo]
   );
-  const handleDataExport = useDataExport();
+  const {mutateAsync: handleDataExport} = useDataExport();
   const {rowCountDefault, rowCountOptions} =
     generateLogExportRowCountOptions(estimatedRowCount);
   const defaultValues: ExportModalFormValues = {
@@ -107,14 +106,20 @@ export function LogsExportModal({
       });
 
       if (isAllColumns || passedSyncLimit) {
-        await handleDataExport({
-          format,
-          queryInfo: isAllColumns ? {...payload.queryInfo, field: []} : payload.queryInfo,
-          queryType: isAllColumns
-            ? ExportQueryType.TRACE_ITEM_FULL_EXPORT
-            : ExportQueryType.EXPLORE,
-          limit: value.limit,
-        });
+        try {
+          await handleDataExport({
+            format,
+            queryInfo: isAllColumns
+              ? {...payload.queryInfo, field: []}
+              : payload.queryInfo,
+            queryType: isAllColumns
+              ? ExportQueryType.TRACE_ITEM_FULL_EXPORT
+              : ExportQueryType.EXPLORE,
+            limit: value.limit,
+          });
+        } catch {
+          // The error message is surfaced by useDataExport's onError handler.
+        }
       } else {
         downloadLogs({
           rows: tableData.slice(0, value.limit),
@@ -140,8 +145,7 @@ export function LogsExportModal({
         <Stack gap="xl">
           <Text>
             {t(
-              'If you select more than %s rows or to export all columns of data your file will be sent to your email address.',
-              formatNumber(ROW_COUNT_VALUE_SYNC_LIMIT)
+              'When a high number of rows is selected and events are large, the results may be sent to your email.'
             )}
           </Text>
           <form.AppField name="columns">

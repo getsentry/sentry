@@ -2,10 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Details} from 'getsentry/components/upsellModal/details';
-import {PlanTier} from 'getsentry/types';
 
 describe('Upsell Modal Details', () => {
   const organization = OrganizationFixture({access: ['org:billing']});

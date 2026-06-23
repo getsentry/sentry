@@ -11,6 +11,7 @@ from sentry.tasks.summaries.utils import (
     ProjectContext,
     fetch_key_error_groups,
     fetch_key_performance_issue_groups,
+    fetch_past_resolved_issue_links,
     org_key_errors,
     organization_project_issue_substatus_summaries,
     project_event_counts_for_organization,
@@ -18,6 +19,7 @@ from sentry.tasks.summaries.utils import (
     project_key_performance_issues,
     project_key_transactions_last_week,
     project_key_transactions_this_week,
+    project_past_resolved_issues,
 )
 from sentry.tasks.summaries.weekly_report_cache import read_project_metrics
 from sentry.utils import metrics
@@ -68,37 +70,13 @@ class OrganizationReportContextFactory:
                 total = data["total"]
                 timestamp = int(parse_snuba_datetime(data["time"]).timestamp())
                 if data["category"] == DataCategory.TRANSACTION:
-                    # Transaction outcome
-                    if (
-                        data["outcome"] == Outcome.RATE_LIMITED
-                        or data["outcome"] == Outcome.FILTERED
-                    ):
-                        project_ctx.dropped_transaction_count += total
-                    else:
-                        project_ctx.accepted_transaction_count += total
-                        project_ctx.transaction_count_by_day[timestamp] = total
-                elif data["category"] == DataCategory.REPLAY:
-                    # Replay outcome
-                    if (
-                        data["outcome"] == Outcome.RATE_LIMITED
-                        or data["outcome"] == Outcome.FILTERED
-                    ):
-                        project_ctx.dropped_replay_count += total
-                    else:
-                        project_ctx.accepted_replay_count += total
-                        project_ctx.replay_count_by_day[timestamp] = total
+                    project_ctx.accepted_transaction_count += total
+                    project_ctx.transaction_count_by_day[timestamp] = total
                 else:
-                    # Error outcome
-                    if (
-                        data["outcome"] == Outcome.RATE_LIMITED
-                        or data["outcome"] == Outcome.FILTERED
-                    ):
-                        project_ctx.dropped_error_count += total
-                    else:
-                        project_ctx.accepted_error_count += total
-                        project_ctx.error_count_by_day[timestamp] = (
-                            project_ctx.error_count_by_day.get(timestamp, 0) + total
-                        )
+                    project_ctx.accepted_error_count += total
+                    project_ctx.error_count_by_day[timestamp] = (
+                        project_ctx.error_count_by_day.get(timestamp, 0) + total
+                    )
 
     @metrics.wraps("weekly_report.create_context.project_event_counts_previous_week")
     def _append_project_event_counts_previous_week(self, ctx: OrganizationReportContext) -> None:
@@ -238,6 +216,21 @@ class OrganizationReportContextFactory:
         with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
             fetch_key_performance_issue_groups(ctx)
 
+    @metrics.wraps("weekly_report.create_context.project_past_resolved_issues")
+    def _append_project_past_resolved_issues(self, ctx: OrganizationReportContext) -> None:
+        with sentry_sdk.start_span(op="weekly_reports.project_past_resolved_issues"):
+            for project in ctx.organization.project_set.all():
+                if project.id not in ctx.projects_context_map:
+                    continue
+                project_ctx = ctx.projects_context_map[project.id]
+                resolved = project_past_resolved_issues(
+                    ctx, project, referrer=Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
+                )
+                if resolved:
+                    project_ctx.past_resolved_issues = resolved
+
+            fetch_past_resolved_issue_links(ctx)
+
     def create_context(self) -> OrganizationReportContext:
         ctx = OrganizationReportContext(self.timestamp, self.duration, self.organization)
 
@@ -258,5 +251,7 @@ class OrganizationReportContextFactory:
                 self._append_project_key_errors(ctx)
                 self._hydrate_key_error_groups(ctx)
                 self._hydrate_key_performance_issue_groups(ctx)
+                if features.has("organizations:weekly-report-past-issues", self.organization):
+                    self._append_project_past_resolved_issues(ctx)
 
         return ctx

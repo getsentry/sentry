@@ -31,7 +31,11 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
-import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  DiffStatus,
+  getImageName,
+  isPairSidebarItem,
+} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -49,6 +53,7 @@ import {
   type SidebarSection,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
+import {buildSoloImages} from './soloImages';
 import {TagFilterProvider} from './tagFilterContext';
 import {narrowItemByTags} from './tagFiltering';
 
@@ -75,20 +80,18 @@ function groupByKey<T>(items: T[], keyOf: (item: T) => string): Map<string, T[]>
 }
 
 function itemVariantCount(item: SidebarItem): number {
-  return item.type === 'changed' || item.type === 'renamed'
-    ? item.pairs.length
-    : item.images.length;
+  return isPairSidebarItem(item) ? item.pairs.length : item.images.length;
 }
 
 function itemImages(item: SidebarItem): SnapshotImage[] {
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     return item.pairs.map(p => p.head_image);
   }
   return item.images;
 }
 
 function snapshotKeyAt(item: SidebarItem, variantIdx: number): string | null {
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     return item.pairs[variantIdx]?.head_image.image_file_name ?? null;
   }
   return item.images[variantIdx]?.image_file_name ?? null;
@@ -100,10 +103,9 @@ function findSnapshotPosition(
 ): {itemIdx: number; variantIdx: number} | null {
   for (let i = 0; i < items.length; i++) {
     const item = items[i]!;
-    const variantIdx =
-      item.type === 'changed' || item.type === 'renamed'
-        ? item.pairs.findIndex(p => p.head_image.image_file_name === snapshotKey)
-        : item.images.findIndex(img => img.image_file_name === snapshotKey);
+    const variantIdx = isPairSidebarItem(item)
+      ? item.pairs.findIndex(p => p.head_image.image_file_name === snapshotKey)
+      : item.images.findIndex(img => img.image_file_name === snapshotKey);
     if (variantIdx !== -1) {
       return {itemIdx: i, variantIdx};
     }
@@ -288,7 +290,10 @@ export default function SnapshotsPage() {
     if (comparisonType === 'diff') {
       const items: SidebarItem[] = [];
 
-      const pushDiffPairs = (pairs: SnapshotDiffPair[], type: 'changed' | 'renamed') => {
+      const pushDiffPairs = (
+        pairs: SnapshotDiffPair[],
+        type: 'changed' | 'renamed' | 'errored'
+      ) => {
         for (const [groupKey, groupedPairs] of groupByKey(pairs, p =>
           imageGroupKey(p.head_image)
         )) {
@@ -319,6 +324,7 @@ export default function SnapshotsPage() {
 
       pushDiffPairs(data.changed, 'changed');
       pushDiffPairs(data.renamed ?? [], 'renamed');
+      pushDiffPairs(data.errored ?? [], 'errored');
       pushImages(data.added, 'added');
       pushImages(data.removed, 'removed');
       pushImages(data.unchanged, 'unchanged');
@@ -331,7 +337,7 @@ export default function SnapshotsPage() {
       return items;
     }
 
-    return [...groupByKey(data.images, imageGroupKey).entries()]
+    return [...groupByKey(buildSoloImages(data), imageGroupKey).entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([groupKey, images]) => ({
         type: 'solo' as const,
@@ -490,6 +496,7 @@ export default function SnapshotsPage() {
 
     const sectionOrder = [
       DiffStatus.CHANGED,
+      DiffStatus.ERRORED,
       DiffStatus.REMOVED,
       DiffStatus.ADDED,
       DiffStatus.RENAMED,
@@ -525,6 +532,7 @@ export default function SnapshotsPage() {
       [DiffStatus.REMOVED]: 0,
       [DiffStatus.RENAMED]: 0,
       [DiffStatus.UNCHANGED]: 0,
+      [DiffStatus.ERRORED]: 0,
       [DiffStatus.SKIPPED]: 0,
     };
     for (const item of tagFilteredItems) {
@@ -938,7 +946,7 @@ function imageSearchKey(image: SnapshotImage): string {
 // Builds one lowercase search key per image/pair, joining all searchable metadata
 function buildMemberSearchKeys(item: SidebarItem): string[] {
   const groupNameLower = item.name ? item.name.toLowerCase() : '';
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     return item.pairs.map(pair => {
       const head = imageSearchKey(pair.head_image);
       const base = imageSearchKey(pair.base_image);
@@ -956,7 +964,7 @@ function narrowItemBySearch(
   memberSearchKeysForItem: string[],
   query: string
 ): SidebarItem | null {
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     const kept: SnapshotDiffPair[] = [];
     let allMatched = true;
     for (let i = 0; i < item.pairs.length; i++) {
