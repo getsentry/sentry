@@ -32,6 +32,18 @@ describe('IssuePreviewDrawer', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/replay-count/`,
       body: {},
     });
@@ -77,6 +89,18 @@ describe('IssuePreviewDrawer', () => {
           event_id: 'abc123',
         },
       ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/replay-count/`,
@@ -182,5 +206,97 @@ describe('IssuePreviewDrawer', () => {
     });
 
     expect(await screen.findAllByText('Resolved')).not.toHaveLength(0);
+  });
+
+  it('disables the Autofix tab when AI features are unavailable', async () => {
+    const project = ProjectFixture();
+    const group = GroupFixture({id: '123', shortId: 'JAVASCRIPT-6QS', project});
+
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: group,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/attachments/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/replay-count/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/members/`,
+      body: [],
+    });
+
+    render(<IssuePreviewDrawer groupId={group.id} />);
+
+    expect(await screen.findByRole('tab', {name: 'Autofix'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it('opens the Autofix tab and shows the start state', async () => {
+    const organization = OrganizationFixture({features: ['gen-ai-features']});
+    const project = ProjectFixture();
+    const group = GroupFixture({id: '123', shortId: 'JAVASCRIPT-6QS', project});
+
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: group,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/attachments/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/replay-count/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: true, reason: null},
+        billing: {hasAutofixQuota: true},
+        seerReposLinked: true,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<IssuePreviewDrawer groupId={group.id} />, {organization});
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Autofix'}));
+
+    expect(
+      await screen.findByRole('button', {name: 'Start Analysis'})
+    ).toBeInTheDocument();
   });
 });
