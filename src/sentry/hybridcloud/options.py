@@ -202,14 +202,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "apigateway.proxy.use_gateway_address",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "hybridcloud.rpc.use_pooling_rate",
     type=Float,
     default=1.0,
+)
+register(
+    "apigateway.proxy.cell-rollout",
+    type=Dict,
+    default={
+        "us": 1.0,
+        "de": 0.0,
+        "us2": 0.0,
+        "s4s2": 0.0,
+    },
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

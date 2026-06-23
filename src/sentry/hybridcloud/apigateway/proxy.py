@@ -5,6 +5,7 @@ Utilities related to proxying a request to a cell
 from __future__ import annotations
 
 import logging
+import random
 from collections.abc import Callable, Generator
 from http.cookiejar import Cookie
 from threading import local
@@ -128,7 +129,12 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     """Take a django request object and proxy it to a cell silo"""
 
     host = cell.address
-    if cell.api_gateway_address and in_random_rollout("apigateway.proxy.use_gateway_address"):
+    rollout_option = options.get("apigateway.proxy.cell-rollout")
+    if (
+        cell.api_gateway_address
+        and isinstance(rollout_option, dict)
+        and random.random() < rollout_option.get(cell.name, 0.0)
+    ):
         host = cell.api_gateway_address
 
     metric_tags = {
