@@ -1,7 +1,11 @@
 import type {ProfilerOnRenderCallback, ReactNode} from 'react';
 import {Fragment, Profiler, useEffect, useRef} from 'react';
-import type {Span} from '@sentry/core';
-import {browserPerformanceTimeOrigin, timestampInSeconds} from '@sentry/core';
+import type {Client, Span} from '@sentry/core';
+import {
+  browserPerformanceTimeOrigin,
+  spanToStreamedSpanJSON,
+  timestampInSeconds,
+} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {useLocation} from 'sentry/utils/useLocation';
@@ -271,6 +275,31 @@ export const setGroupedEntityTag = (
   groups = [...groups, +Infinity];
   Sentry.setTag(`${tagName}.grouped`, `<=${groups.find(g => n <= g)}`);
 };
+
+/**
+ * A temporary util function used for interaction transactions that will attach a tag to the transaction, indicating the element
+ * that was interacted with. This will allow for querying for transactions by a specific element. This is a high cardinality tag, but
+ * it is only temporary for an experiment
+ *
+ * Previously, we added the interactionElement tag to the transaction event in
+ * beforeSendTransaction. For span streaming, we need to do this via the spanStart
+ * hook, since we have no hook anymore where we can add a tag to the root span based
+ * on child spans.
+ */
+export function addUIElementTagToSegmentSpan(client: Client) {
+  client.on('spanStart', span => {
+    const spanJson = spanToStreamedSpanJSON(span);
+    const op = spanJson.attributes?.['sentry.op'];
+
+    if (op === 'ui.action.click') {
+      const segmentSpan = Sentry.getRootSpan(span);
+      const segmentSpanJson = spanToStreamedSpanJSON(segmentSpan);
+      if (segmentSpan && !segmentSpanJson.attributes?.interactionElement) {
+        segmentSpan.setAttribute('interactionElement', spanJson.name);
+      }
+    }
+  });
+}
 
 function supportsINP() {
   return (

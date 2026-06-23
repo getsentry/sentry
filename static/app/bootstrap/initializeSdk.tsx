@@ -5,11 +5,12 @@ import {
   useLocation,
   useNavigationType,
 } from 'react-router-dom';
-import type {Event, Log} from '@sentry/core';
+import {type Event, type Log} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {NODE_ENV, SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import type {Config} from 'sentry/types/system';
+import {addUIElementTagToSegmentSpan} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 const SPA_MODE_ALLOW_URLS = [
@@ -55,7 +56,7 @@ const IGNORED_BREADCRUMB_FETCH_HOSTS = [
 ];
 
 // Ignore analytics in spans — used by the `ignoreSpans` SDK option
-const IGNORED_SPAN_DESCRIPTIONS = ['amplitude.com', 'pendo.io', 'reload.getsentry.net'];
+const IGNORED_SPAN_NAMES = ['amplitude.com', 'pendo.io', 'reload.getsentry.net'];
 
 /**
  * Check if the message is from the console banner in `static/app/bootstrap/printConsoleBanner.ts`.
@@ -114,7 +115,7 @@ export function initializeSdk(config: Config) {
     ? SPA_MODE_TRACE_PROPAGATION_TARGETS
     : [...sentryConfig.tracePropagationTargets];
 
-  Sentry.init({
+  const sentryClient = Sentry.init({
     ...sentryConfig,
     /**
      * For SPA mode, we need a way to overwrite the default DSN from backend
@@ -140,13 +141,14 @@ export function initializeSdk(config: Config) {
       }
       return tracesSampleRate;
     },
-    ignoreSpans: IGNORED_SPAN_DESCRIPTIONS,
+    ignoreSpans: IGNORED_SPAN_NAMES,
 
     beforeSendSpan: Sentry.withStreamedSpan(span => {
       const op = span.attributes?.['sentry.op'];
       if (span.name && (op === 'pageload' || op === 'navigation')) {
         span.name = normalizeUrl(span.name, {forceCustomerDomain: true});
       }
+
       return span;
     }),
 
@@ -243,6 +245,10 @@ export function initializeSdk(config: Config) {
     Sentry.setTag('customerDomain.organizationUrl', customerDomain.organizationUrl);
     Sentry.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
     Sentry.setTag('customerDomain.subdomain', customerDomain.subdomain);
+  }
+
+  if (sentryClient) {
+    addUIElementTagToSegmentSpan(sentryClient);
   }
 }
 
