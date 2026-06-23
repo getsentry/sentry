@@ -4,6 +4,7 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
+import {InfoText, InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -174,11 +175,11 @@ export function LogsExportModal({
           <form.AppField name="columns">
             {field => (
               <field.Layout.Stack
-                label={t('All Columns?')}
-                hintText={
-                  field.state.value === ModalColumnValue.ALL
-                    ? undefined
-                    : t('Defaults to columns visible on table.')
+                label={
+                  <Flex gap="md" align="center">
+                    {t('All Columns?')}
+                    <InfoTip title={t('All columns are only supported by JSONL.')} />
+                  </Flex>
                 }
               >
                 <field.Switch
