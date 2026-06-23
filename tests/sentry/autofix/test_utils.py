@@ -58,6 +58,8 @@ class TestGetRepoFromCodeMappings(TestCase):
             external_id="456",
             integration_id=345,
         )
+        # GitLab repos always have the URL-safe path_with_namespace in config["path"].
+        gitlab_repo.update(config={"path": "getsentry/sentry-gitlab"})
         self.create_code_mapping(
             project=project, repo=gitlab_repo, stack_root="gitlab/", source_root="src/gitlab/"
         )
@@ -83,6 +85,8 @@ class TestGetRepoFromCodeMappings(TestCase):
             external_id="456",
             integration_id=345,
         )
+        # GitLab repos always have the URL-safe path_with_namespace in config["path"].
+        gitlab_repo.update(config={"path": "getsentry/sentry-gitlab"})
         self.create_code_mapping(
             project=project, repo=gitlab_repo, stack_root="gitlab/", source_root="src/gitlab/"
         )

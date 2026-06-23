@@ -257,6 +257,18 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(f"{self.path}?query={short_id}&shortIdLookup=1", format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
+        assert response["X-Sentry-Direct-Hit"] == "1"
+
+    def test_lookup_by_multiple_short_ids(self) -> None:
+        group = self.group
+        group2 = self.create_group(project=self.project)
+
+        self.login_as(user=self.user)
+        query = f"{group.qualified_short_id} {group2.qualified_short_id}"
+        response = self.client.get(f"{self.path}?query={query}&shortIdLookup=1", format="json")
+        assert response.status_code == 200
+        assert {r["id"] for r in response.data} == {str(group.id), str(group2.id)}
+        assert response.get("X-Sentry-Direct-Hit") != "1"
 
     def test_lookup_by_short_id_no_perms(self) -> None:
         organization = self.create_organization()

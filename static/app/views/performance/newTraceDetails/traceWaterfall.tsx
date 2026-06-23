@@ -663,6 +663,19 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.organization,
   ]);
 
+  const onCompressedTimelineChange = useCallback(() => {
+    const value = !traceState.preferences.compressed_timeline;
+
+    addSuccessMessage(
+      value ? t('Compressed timeline enabled') : t('Compressed timeline disabled')
+    );
+    traceAnalytics.trackCompressedTimelinePreferenceChange(props.organization, value);
+    traceDispatch({
+      type: 'set compressed timeline',
+      payload: value,
+    });
+  }, [traceDispatch, traceState.preferences.compressed_timeline, props.organization]);
+
   if (props.tree.type === 'empty' && props.hideIfNoData) {
     return null;
   }
@@ -696,8 +709,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
             traceState.preferences.autogroup.parent &&
             traceState.preferences.autogroup.sibling
           }
+          compressedTimeline={traceState.preferences.compressed_timeline}
           missingInstrumentation={traceState.preferences.missing_instrumentation}
           onAutogroupChange={onAutogroupChange}
+          onCompressedTimelineChange={onCompressedTimelineChange}
           onMissingInstrumentationChange={onMissingInstrumentationChange}
         />
       </Flex>
