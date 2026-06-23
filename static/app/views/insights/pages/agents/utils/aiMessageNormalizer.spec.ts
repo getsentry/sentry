@@ -1,4 +1,5 @@
 import {
+  EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
   normalizeToMessages,
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
@@ -126,6 +127,16 @@ describe('normalizeToMessages', () => {
       const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
 
       expect(messages?.[0]?.content).toBe('part one\npart two');
+    });
+
+    it('renders a placeholder for text parts with no usable text', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', content: [{type: 'text', chars: 56}]},
+      ]);
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'assistant'});
+
+      expect(messages?.[0]?.content).toBe(EMPTY_TEXT_CONTENT);
     });
 
     it('keeps tool role content as-is (not re-rendered)', () => {
@@ -379,6 +390,24 @@ describe('extractAssistantOutput', () => {
         type: 'object',
         data: {k: 'v'},
       });
+    });
+
+    it('returns the placeholder when the only text part has no usable text', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', content: [{type: 'text', chars: 56}]},
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe(EMPTY_TEXT_CONTENT);
+    });
+
+    it('returns the placeholder for empty text parts in parts-format output', () => {
+      const input = JSON.stringify([{role: 'assistant', parts: [{type: 'text'}]}]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe(EMPTY_TEXT_CONTENT);
     });
 
     it('joins text across multiple assistant messages', () => {
