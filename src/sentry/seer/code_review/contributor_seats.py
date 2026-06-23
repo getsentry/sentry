@@ -83,21 +83,6 @@ def should_increment_contributor_seat(
     )
 
 
-def should_record_contributor_action(
-    organization: Organization, repo: Repository, contributor: OrganizationContributors
-) -> bool:
-    """
-    Determines whether a contributor's PR-opened action should be recorded as an
-    OrganizationContributorAction for seat billing.
-    """
-    return (
-        repo.integration_id is not None
-        and not contributor.is_bot
-        and _has_code_review_or_autofix_enabled(organization, repo.id)
-        and features.has("organizations:seat-based-seer-enabled", organization)
-    )
-
-
 def track_contributor_seat(
     *,
     organization: Organization,

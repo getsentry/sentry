@@ -2070,6 +2070,19 @@ class TrackContributorActionProcessorTest(TestCase):
         self._get_contributor()
         assert self._action_count() == 0
 
+    @patch(
+        "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
+        return_value=False,
+    )
+    def test_over_quota_seeds_but_does_not_record(self, mock_quota: MagicMock) -> None:
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+
+        self._call_processor()
+
+        self._get_contributor()
+        assert self._action_count() == 0
+        assert mock_quota.called
+
     def test_bot_author_seeds_but_does_not_record(self) -> None:
         self.create_repository_settings(repository=self.repo, enabled_code_review=True)
 

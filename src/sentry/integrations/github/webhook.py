@@ -78,7 +78,7 @@ from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.seer.code_review.contributor_seats import (
-    should_record_contributor_action,
+    should_increment_contributor_seat,
     track_contributor_seat,
 )
 from sentry.seer.code_review.utils import get_pr_author_id
@@ -183,7 +183,7 @@ def _track_contributor_action_processor(
     )
 
     # Record one row per PR, on the first "opened" action, for billable contributors.
-    if event.get("action") == "opened" and should_record_contributor_action(
+    if event.get("action") == "opened" and should_increment_contributor_seat(
         organization, repo, contributor
     ):
         OrganizationContributorAction.objects.get_or_create(
