@@ -21,13 +21,12 @@ import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {ScmFeatureInfoCards} from './scmFeatureInfoCards';
 import {ScmFeatureSelectionCards} from './scmFeatureSelectionCards';
 import {
+  DEFAULT_SCM_FEATURES,
   FEATURE_DISPLAY_ORDER,
-  getPlatformInfo,
   getPlatformName,
-  type ResolvedPlatform,
 } from './scmPlatformHelpers';
 import {useScmFeatureMeta} from './useScmFeatureMeta';
-import {useScmPlatformDetection} from './useScmPlatformDetection';
+import {useScmResolvedPlatform} from './useScmResolvedPlatform';
 
 const FEATURE_TOGGLED_EVENT = {
   onboarding: 'onboarding.scm_platform_feature_toggled',
@@ -67,27 +66,15 @@ export function ScmFeatureSelectionPanel({
   const isOnboarding = analyticsFlow === 'onboarding';
   const {meta: featureMeta, isLoading: isFeatureMetaLoading} = useScmFeatureMeta();
 
-  const {detectedPlatforms} = useScmPlatformDetection(selectedRepository);
-
   const currentFeatures = useMemo(
-    () => selectedFeatures ?? [ProductSolution.ERROR_MONITORING],
+    () => selectedFeatures ?? DEFAULT_SCM_FEATURES,
     [selectedFeatures]
   );
 
-  // Mirror Core's platform resolution so the cards stay in sync during the brief
-  // window before an auto-detected platform is committed to the host.
-  const detectedPlatformKey = useMemo(
-    () =>
-      detectedPlatforms.reduce<ResolvedPlatform[]>((acc, detected) => {
-        const info = getPlatformInfo(detected.platform);
-        if (info) {
-          acc.push({...detected, info});
-        }
-        return acc;
-      }, [])[0]?.platform,
-    [detectedPlatforms]
-  );
-  const currentPlatformKey = selectedPlatform?.key ?? detectedPlatformKey;
+  const {currentPlatformKey} = useScmResolvedPlatform({
+    selectedPlatform,
+    selectedRepository,
+  });
   const currentPlatformName = getPlatformName(currentPlatformKey);
 
   // Wizard-driven platforms render an informational variant since the wizard CLI

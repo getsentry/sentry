@@ -10,7 +10,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
@@ -23,15 +23,15 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {ScmPlatformCard} from './scmPlatformCard';
 import {
+  DEFAULT_SCM_FEATURES,
   getPlatformInfo,
   platformOptions,
-  type ResolvedPlatform,
   shouldSuggestFramework,
   toSelectedSdk,
 } from './scmPlatformHelpers';
 import {ScmSearchControl} from './scmSearchControl';
 import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
-import {useScmPlatformDetection} from './useScmPlatformDetection';
+import {useScmResolvedPlatform} from './useScmResolvedPlatform';
 
 const STEP_VIEWED_EVENT = {
   onboarding: 'onboarding.scm_platform_features_step_viewed',
@@ -114,26 +114,12 @@ export function ScmPlatformFeaturesCore({
   const hasScmConnected = !!selectedRepository;
 
   const {
-    detectedPlatforms,
-    isPending: isDetecting,
-    isError: isDetectionError,
-  } = useScmPlatformDetection(selectedRepository);
-
-  const resolvedPlatforms = useMemo(
-    () =>
-      detectedPlatforms.reduce<ResolvedPlatform[]>((acc, detected) => {
-        const info = getPlatformInfo(detected.platform);
-        if (info) {
-          acc.push({...detected, info});
-        }
-        return acc;
-      }, []),
-    [detectedPlatforms]
-  );
-
-  const detectedPlatformKey = resolvedPlatforms[0]?.platform;
-  // Derive platform from explicit selection, falling back to first detected
-  const currentPlatformKey = selectedPlatform?.key ?? detectedPlatformKey;
+    resolvedPlatforms,
+    detectedPlatformKey,
+    currentPlatformKey,
+    isDetecting,
+    isDetectionError,
+  } = useScmResolvedPlatform({selectedPlatform, selectedRepository});
 
   // Adopt the first detected platform once per repo when the user hasn't
   // explicitly chosen one: commit it to the host so flows without a Continue
@@ -166,7 +152,7 @@ export function ScmPlatformFeaturesCore({
 
   const applyPlatformSelection = (sdk: OnboardingSelectedSDK) => {
     onPlatformChange(sdk);
-    onFeaturesChange([ProductSolution.ERROR_MONITORING]);
+    onFeaturesChange(DEFAULT_SCM_FEATURES);
     onClearProjectDetailsForm();
   };
 
@@ -226,7 +212,7 @@ export function ScmPlatformFeaturesCore({
     }
 
     setPlatform(platformKey);
-    onFeaturesChange([ProductSolution.ERROR_MONITORING]);
+    onFeaturesChange(DEFAULT_SCM_FEATURES);
     onClearProjectDetailsForm();
 
     trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
@@ -241,7 +227,7 @@ export function ScmPlatformFeaturesCore({
       return;
     }
     setPlatform(platformKey);
-    onFeaturesChange([ProductSolution.ERROR_MONITORING]);
+    onFeaturesChange(DEFAULT_SCM_FEATURES);
     onClearProjectDetailsForm();
 
     trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
@@ -270,7 +256,7 @@ export function ScmPlatformFeaturesCore({
     setShowManualPicker(false);
     if (detectedPlatformKey) {
       setPlatform(detectedPlatformKey);
-      onFeaturesChange([ProductSolution.ERROR_MONITORING]);
+      onFeaturesChange(DEFAULT_SCM_FEATURES);
       onClearProjectDetailsForm();
     }
   }
