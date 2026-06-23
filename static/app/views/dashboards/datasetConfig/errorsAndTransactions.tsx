@@ -19,12 +19,13 @@ import type {
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import {emptyStringValue} from 'sentry/utils/discover/emptyFieldValues';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type {
   FieldFormatterRenderFunctionPartial,
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
-import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   errorsAndTransactionsAggregateFunctionOutputType,

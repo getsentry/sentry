@@ -431,7 +431,7 @@ export function getTrialDaysLeft(subscription: Subscription): number {
  */
 export function getContractDaysLeft(subscription: Subscription): number {
   // contract period end is in the future
-  return -1 * getDaysSinceDate(subscription.contractPeriodEnd ?? '');
+  return -1 * getDaysSinceDate(subscription.billingPeriodEnd ?? '');
 }
 
 /**
@@ -737,7 +737,7 @@ export function partnerPlanEndingModalIsDismissed(
     return false;
   }
 
-  const lastDaysLeft = moment(subscription.contractPeriodEnd).diff(
+  const lastDaysLeft = moment(subscription.billingPeriodEnd).diff(
     moment.unix(time),
     'days'
   );
@@ -994,9 +994,7 @@ export function productIsEnabled(
     return false;
   }
   const hasNonPaygAccess =
-    (metricHistory.prepaid ?? 0) !== 0 ||
-    !!metricHistory.softCapType ||
-    !!subscription.hasSoftCap;
+    (metricHistory.prepaid ?? 0) !== 0 || !!metricHistory.softCapType;
   const hasPaygBudget =
     metricHistory.onDemandBudget > 0 ||
     (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED &&

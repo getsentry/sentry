@@ -38,8 +38,7 @@ describe('Cancel Subscription', () => {
       isFree: false,
       canCancel: true,
       canSelfServe: true,
-      billingPeriodEnd: '2022-09-08',
-      contractPeriodEnd: '2023-09-08',
+      billingPeriodEnd: '2023-09-08',
     });
     openAdminConfirmModal({
       renderModalSpecificContent: deps => (
