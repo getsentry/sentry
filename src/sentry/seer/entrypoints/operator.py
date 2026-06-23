@@ -672,8 +672,6 @@ def process_autofix_updates(
         if event_type == SentryAppEventType.SEER_PR_CREATED:
             pull_requests = event_payload.get("pull_requests", [])
 
-            # Linking runs for all Seer orgs; attribution stays behind its narrow
-            # rollout flag until GA.
             SeerRunPullRequest.maybe_link_run_to_pull_requests(
                 organization=organization,
                 pull_requests=pull_requests,
