@@ -38,6 +38,7 @@ const EMPTY_ALIASES: TagCollection = {};
 
 interface FilterProps {
   traceMetric: TraceMetric;
+  disabled?: boolean;
   environments?: string[];
   portalTarget?: HTMLElement;
   projectIds?: number[];
@@ -68,6 +69,7 @@ export function Filter({
   projectIds,
   environments,
   portalTarget,
+  disabled,
 }: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
@@ -96,7 +98,8 @@ export function Filter({
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
     select: selectTraceItemTagCollection(),
   });
-  const isSearchBarDisabled = isLoading || (!skipTraceMetricFilter && !traceMetricFilter);
+  const isSearchBarDisabled =
+    isLoading || (!skipTraceMetricFilter && !traceMetricFilter) || disabled;
 
   const visibleNumberTags = useMemo(() => {
     const staticNumberTags = SENTRY_TRACEMETRIC_NUMBER_TAGS.reduce<TagCollection>(

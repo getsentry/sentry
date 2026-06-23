@@ -11,6 +11,7 @@ export type QueryKeyEndpointOptions = {
   data?: Record<string, unknown>;
   headers?: Record<string, string>;
   host?: string;
+  includeAllArgs?: boolean;
   method?: RequestMethod;
   query?: Record<string, unknown>;
 };

@@ -201,8 +201,8 @@ CHUNKS_PROJECT_PARAM = OpenApiParameter(
     name="project",
     location="query",
     required=True,
-    type=int,
-    description="The ID of the project to fetch chunks for. Exactly one project must be specified.",
+    type=str,
+    description="The ID or slug of the project to fetch chunks for. Exactly one project must be specified.",
 )
 
 

@@ -121,6 +121,14 @@ class Spans(rpc_dataset_common.RPCBase):
             "measurements.score.ratio.cls",
             "measurements.ttfb",
             "measurements.score.ratio.ttfb",
+            # span v2 web vital values
+            "browser.web_vital.lcp.value",
+            "browser.web_vital.cls.value",
+            "browser.web_vital.inp.value",
+            "browser.web_vital.ttfb.value",
+            "browser.web_vital.fcp.value",
+            # The UI does not currently use FP values, so do not request it yet.
+            # "browser.web_vital.fp.value",
             *additional_attributes,
         ]
         resolver = cls.get_resolver(params=params, config=SearchResolverConfig())
