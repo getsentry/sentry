@@ -27,3 +27,10 @@ export const PIXELS_PER_BUCKET = 15;
  * handles the wide range of counts better than a linear one.
  */
 export const HEATMAP_Z_AXIS_SCALE = 'log' as const;
+
+/**
+ * How long, in milliseconds, to debounce the measured chart dimensions before
+ * refetching. Resizing a widget changes its size every frame, so without this
+ * the heat map would fire a request per pixel.
+ */
+export const HEATMAP_RESIZE_DEBOUNCE_MS = 500;
