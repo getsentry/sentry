@@ -33,13 +33,13 @@ from sentry.seer.entrypoints.operator import (
     process_autofix_updates,
 )
 from sentry.seer.entrypoints.registry import autofix_entrypoint_registry
-from sentry.seer.models.run import SeerRunPullRequest
 from sentry.seer.entrypoints.types import (
     SeerAgentEntrypoint,
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
     SeerOperatorCacheResult,
 )
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
@@ -413,9 +413,7 @@ class SeerOperatorTest(TestCase):
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_process_autofix_updates_links_run_to_pr(self, _mock_has_access):
         repo = self.create_repo(self.project, name="getsentry/sentry")
-        run = self.create_seer_run(
-            organization=self.organization, seer_run_state_id=MOCK_RUN_ID
-        )
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=MOCK_RUN_ID)
 
         with (
             override_options({"issues.record-seer-actions-as-activities": False}),
