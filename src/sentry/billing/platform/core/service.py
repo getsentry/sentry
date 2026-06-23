@@ -103,7 +103,7 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
             )
 
             with sentry_sdk.start_span(
-                op="function", name=f"{service_method}.{service_name}"
+                op="function", name=f"{service_name}.{method_name}"
             ) as cur_span:
                 for k, v in extras.items():
                     cur_span.set_data(k, v)
