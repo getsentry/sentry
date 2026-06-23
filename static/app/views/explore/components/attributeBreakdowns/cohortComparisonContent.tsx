@@ -2,7 +2,6 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
-import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -17,6 +16,10 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useAttributeBreakdownComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFilteredRankedAttributes';
+import {
+  useQueryParams,
+  useSetQueryParams,
+} from 'sentry/views/explore/queryParams/context';
 
 import {Chart} from './cohortComparisonChart';
 import {CHARTS_PER_PAGE} from './constants';
@@ -41,9 +44,8 @@ export function CohortComparison({
   const theme = useTheme();
   const onAction = useAttributeBreakdownsTooltipAction();
 
-  const [{breakdownQuery}, setQueryParams] = useQueryStates({
-    breakdownQuery: parseAsString.withOptions({shallow: true}).withDefault(''),
-  });
+  const {breakdownQuery} = useQueryParams();
+  const setQueryParams = useSetQueryParams();
   const debouncedSearchQuery = useDebouncedValue(breakdownQuery, 200);
 
   const {data, isLoading, error} = useAttributeBreakdownComparison({

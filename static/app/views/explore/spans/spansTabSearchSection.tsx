@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {parseAsString, useQueryState} from 'nuqs';
 
 import {Grid} from '@sentry/scraps/layout';
 
@@ -26,7 +25,6 @@ import {
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {usePrevious} from 'sentry/utils/usePrevious';
-import {ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 import {
   TraceItemSearchQueryBuilder,
   type TraceItemSearchQueryBuilderProps,
@@ -43,6 +41,7 @@ import {
 import {CrossEventQueryingDropdown} from 'sentry/views/explore/spans/crossEvents/crossEventQueryingDropdown';
 import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBars';
 import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
+import {SPANS_BREAKDOWN_CURSOR_KEY} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
@@ -71,10 +70,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const query = useQueryParamsQuery();
   const crossEvents = useQueryParamsCrossEvents();
   const setQueryParams = useSetQueryParams();
-  const [, setBreakdownCursor] = useQueryState(
-    ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM,
-    parseAsString.withOptions({shallow: true})
-  );
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
   const {selection} = usePageFilters();
 
@@ -108,7 +103,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           query: newQuery,
           fields: newColumns.length ? [...fields, ...newColumns] : undefined,
         });
-        setBreakdownCursor(null);
       },
       searchSource: 'explore',
       getFilterTokenWarning:
@@ -138,7 +132,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       numberAttributes,
       oldSearch,
       query,
-      setBreakdownCursor,
       setCaseInsensitive,
       setQueryParams,
       stringAttributes,
@@ -177,14 +170,14 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                 >
                   <StyledPageFilterBar condensed>
                     <ProjectPageFilter
-                      resetParamsOnChange={[ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM]}
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
                     />
                     <EnvironmentPageFilter
-                      resetParamsOnChange={[ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM]}
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
                     />
                     <DatePageFilter
                       {...datePageFilterProps}
-                      resetParamsOnChange={[ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM]}
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
                     />
                   </StyledPageFilterBar>
                   <SpansSearchBar

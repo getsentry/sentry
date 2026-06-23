@@ -1,7 +1,6 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
@@ -23,11 +22,14 @@ import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAt
 import {useAttributeBreakdowns} from 'sentry/views/explore/hooks/useAttributeBreakdowns';
 import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParams,
+  useSetQueryParams,
+} from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
 import {Chart} from './attributeDistributionChart';
-import {ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM, CHART_SELECTION_ALERT_KEY} from './constants';
+import {CHART_SELECTION_ALERT_KEY} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 import {tooltipActionsHtmlRenderer} from './utils';
 
@@ -37,20 +39,10 @@ export type AttributeDistribution = Array<{
 }>;
 
 export function AttributeDistribution() {
-  const [{breakdownCursor, breakdownQuery}, setQueryParams] = useQueryStates(
-    {
-      breakdownQuery: parseAsString.withOptions({shallow: true}).withDefault(''),
-      breakdownCursor: parseAsString.withOptions({shallow: true}),
-    },
-    {
-      urlKeys: {
-        breakdownCursor: ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM,
-      },
-    }
-  );
+  const {breakdownCursor, breakdownQuery, query} = useQueryParams();
+  const setQueryParams = useSetQueryParams();
   const debouncedSearchQuery = useDebouncedValue(breakdownQuery, 200);
 
-  const query = useQueryParamsQuery();
   const onAction = useAttributeBreakdownsTooltipAction();
 
   const dataset = useSpansDataset();
@@ -58,12 +50,6 @@ export function AttributeDistribution() {
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
-
-  const breakdownResetKey = useMemo(
-    () => JSON.stringify({debouncedSearchQuery, query, selection}),
-    [debouncedSearchQuery, query, selection]
-  );
-  const previousBreakdownResetKeyRef = useRef(breakdownResetKey);
 
   const cohortCountEventView = useMemo(() => {
     const discoverQuery: NewQuery = {
@@ -107,7 +93,7 @@ export function AttributeDistribution() {
     isLoading: isAttributeBreakdownsLoading,
     error: attributeBreakdownsError,
   } = useAttributeBreakdowns({
-    cursor: breakdownCursor ?? undefined,
+    cursor: breakdownCursor || undefined,
     substringMatch: debouncedSearchQuery,
   });
 
@@ -119,15 +105,6 @@ export function AttributeDistribution() {
       refetchCohortCount();
     }
   }, [attributeBreakdownsData, isAttributeBreakdownsLoading, refetchCohortCount]);
-
-  useEffect(() => {
-    if (previousBreakdownResetKeyRef.current === breakdownResetKey) {
-      return;
-    }
-
-    previousBreakdownResetKeyRef.current = breakdownResetKey;
-    setQueryParams({breakdownCursor: null});
-  }, [breakdownResetKey, setQueryParams]);
 
   const parsedLinks = parseLinkHeader(attributeBreakdownsPageLinks);
 
