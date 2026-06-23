@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry import ratelimits as ratelimiter
+from sentry.eventtypes.error import ErrorEvent
 from sentry.grouping.fingerprinting.utils import get_fingerprint_type
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.ingest.grouphash_metadata import (
@@ -23,7 +24,10 @@ from sentry.seer.similarity.config import (
     should_skip_seer_fallback,
 )
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
-from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
+from sentry.seer.similarity.types import (
+    SimilarHashMissingGroupError,
+    SimilarIssuesEmbeddingsRequest,
+)
 from sentry.seer.similarity.utils import (
     SEER_INELIGIBLE_EVENT_PLATFORMS,
     ReferrerOptions,
@@ -386,9 +390,7 @@ def get_seer_similar_issues(
         # Similar issues are returned sorted in descending order of similarity, so we want to use
         # the first match we find.
         for seer_result in seer_results:
-            parent_grouphash = parent_grouphashes_by_hash.get(seer_result.parent_hash)
-            if parent_grouphash is None:
-                continue
+            parent_grouphash = parent_grouphashes_by_hash[seer_result.parent_hash]
 
             match_result = _should_use_seer_match_for_grouping(
                 event,
@@ -494,33 +496,16 @@ def get_seer_similar_issues(
 
 def _get_event_exception_type(event: Event) -> str | None:
     """
-    Get the exception type for the event's main exception, using the same logic as
-    ErrorEvent.extract_metadata (which produces group.data.metadata.type on the parent side).
+    Return the event's main exception type, normalized exactly as it is stored in group
+    metadata (``group.data.metadata.type``) — so it compares apples-to-apples with the parent's
+    stored type. Reuses ``ErrorEvent.extract_metadata`` (the same code path that produced the
+    parent's value), which respects ``main_exception_id`` and returns no type for synthetic
+    exceptions. Returns None when there is no exception type to compare.
 
-    Respects main_exception_id for chained/exception-group events, and returns None for
-    synthetic exceptions (matching regular grouping behavior).
+    Note: this reads the exception values directly (via ErrorEvent), so it does not depend on
+    the event's ``type`` discriminator being populated.
     """
-    exceptions = get_path(event.data, "exception", "values")
-    if not exceptions:
-        return None
-
-    main_exception_id = get_path(event.data, "main_exception_id")
-    exception = None
-    if main_exception_id is not None:
-        exception = next(
-            (
-                exc
-                for exc in exceptions
-                if get_path(exc, "mechanism", "exception_id") == main_exception_id
-            ),
-            None,
-        )
-    if exception is None:
-        exception = get_path(exceptions, -1)
-
-    if not exception or get_path(exception, "mechanism", "synthetic"):
-        return None
-    return get_path(exception, "type")
+    return ErrorEvent().extract_metadata(event.data).get("type")
 
 
 @dataclass(frozen=True)
@@ -550,30 +535,34 @@ def _should_use_seer_match_for_grouping(
     """
     # Exception type check — log mismatches for now so we can assess how often Seer matches
     # across different exception types before deciding whether to reject them.
+
     parent_group = parent_grouphash.group
-    if parent_group is not None:
-        parent_exception_type = get_path(parent_group.data, "metadata", "type")
-        if (
-            event_exception_type
-            and parent_exception_type
-            and event_exception_type != parent_exception_type
-        ):
-            metrics.incr(
-                "grouping.similarity.exception_type_mismatch",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={"platform": event.platform},
-            )
-            logger.info(
-                "seer.exception_type_mismatch",
-                extra={
-                    "event_id": event.event_id,
-                    "project_id": event.project.id,
-                    "event_exception_type": event_exception_type,
-                    "parent_exception_type": parent_exception_type,
-                    "parent_group_id": parent_group.id,
-                    "parent_hash": parent_grouphash.hash,
-                },
-            )
+    if parent_group is None:
+        raise SimilarHashMissingGroupError(
+            f"Seer-matched grouphash {parent_grouphash.hash} unexpectedly has no group"
+        )
+    parent_exception_type = get_path(parent_group.data, "metadata", "type")
+    if (
+        event_exception_type
+        and parent_exception_type
+        and event_exception_type != parent_exception_type
+    ):
+        metrics.incr(
+            "grouping.similarity.exception_type_mismatch",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"platform": event.platform},
+        )
+        logger.info(
+            "seer.exception_type_mismatch",
+            extra={
+                "event_id": event.event_id,
+                "project_id": event.project.id,
+                "event_exception_type": event_exception_type,
+                "parent_exception_type": parent_exception_type,
+                "parent_group_id": parent_group.id,
+                "parent_hash": parent_grouphash.hash,
+            },
+        )
 
     parent_has_hybrid_fingerprint = (
         get_fingerprint_type(parent_grouphash.get_associated_fingerprint()) == "hybrid"
