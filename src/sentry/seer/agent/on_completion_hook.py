@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 from sentry import options
 from sentry.models.organization import Organization
-from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.pr_links import link_seer_run_to_pull_request
 
@@ -81,7 +80,6 @@ def call_on_completion_hook(
     module_path: str,
     organization_id: int,
     run_id: int,
-    state: dict | None = None,
     allowed_prefixes: tuple[str, ...] = ("sentry.",),
 ) -> None:
     """Dynamically import and call an on-completion hook class.
@@ -90,8 +88,6 @@ def call_on_completion_hook(
         module_path: Full module path to the hook class (e.g., "sentry.api.MyHook")
         organization_id: Organization ID to load and pass to the hook
         run_id: The run ID that completed
-        state: The completed run's serialized state, if Seer pushed it; lets us
-            skip re-querying Seer for PR linking.
         allowed_prefixes: Tuple of allowed module path prefixes for security
     """
     # Only allow imports from approved package prefixes
@@ -106,7 +102,7 @@ def call_on_completion_hook(
     except Organization.DoesNotExist:
         raise ValueError(f"Organization with id {organization_id} does not exist")
 
-    _link_run_pull_requests(organization, run_id, state)
+    _link_run_pull_requests(organization, run_id)
 
     # Split module path and class name
     parts = module_path.rsplit(".", 1)
@@ -130,19 +126,13 @@ def call_on_completion_hook(
     hook_class.execute(organization, run_id)
 
 
-def _link_run_pull_requests(
-    organization: Organization, run_id: int, state: dict | None
-) -> None:
-    """Record a SeerRunPullRequest for each PR the completed run opened.
-
-    Uses the run state Seer pushed with the hook call; falls back to querying Seer
-    when it wasn't provided.
-    """
+def _link_run_pull_requests(organization: Organization, run_id: int) -> None:
+    """Record a SeerRunPullRequest for each PR the completed run opened."""
     if options.get("seer.run-pr-link.killswitch.enabled"):
         return
 
     try:
-        run_state = SeerRunState(**state) if state is not None else fetch_run_status(run_id, organization)
+        run_state = fetch_run_status(run_id, organization)
     except Exception:
         logger.exception(
             "seer.pr_link.state_unavailable",

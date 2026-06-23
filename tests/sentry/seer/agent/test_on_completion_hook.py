@@ -100,25 +100,6 @@ class OnCompletionHookTest(TestCase):
         assert self.organization.get_option("test_hook_run_id") == 777
 
     @patch("sentry.seer.agent.on_completion_hook.fetch_run_status")
-    def test_links_from_pushed_state_without_querying_seer(self, mock_fetch) -> None:
-        repo = self.create_repo(
-            self.project, name="getsentry/sentry", provider="integrations:github"
-        )
-        run = self.create_seer_run(organization=self.organization, seer_run_state_id=777)
-
-        call_on_completion_hook(
-            module_path=HOOK_PATH,
-            organization_id=self.organization.id,
-            run_id=777,
-            state=_state_with_pr(777, "getsentry/sentry", 5).dict(),
-            allowed_prefixes=("tests.sentry.",),
-        )
-
-        mock_fetch.assert_not_called()
-        pr = PullRequest.objects.get(repository_id=repo.id, key="5")
-        assert SeerRunPullRequest.objects.get(pull_request=pr).seer_run_id == run.id
-
-    @patch("sentry.seer.agent.on_completion_hook.fetch_run_status")
     def test_killswitch_skips_linking_but_runs_hook(self, mock_fetch) -> None:
         self.create_repo(self.project, name="getsentry/sentry", provider="integrations:github")
 
