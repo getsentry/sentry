@@ -203,6 +203,8 @@ export function ResultGrid(props: Props) {
   const [state, setState] = useState(buildDefaultState());
 
   useEffect(() => {
+    let isCancelled = false;
+
     const queryParams = location.query;
     const nextSortBy = (queryParams.sortBy as string | undefined) ?? defaultSort;
 
@@ -229,22 +231,30 @@ export function ResultGrid(props: Props) {
           data: requestParams,
           includeAllArgs: true,
         });
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: false,
-          rows: data,
-          pageLinks: resp?.getResponseHeader('Link') ?? null,
-        }));
+        if (!isCancelled) {
+          setState(prev => ({
+            ...prev,
+            loading: false,
+            error: false,
+            rows: data,
+            pageLinks: resp?.getResponseHeader('Link') ?? null,
+          }));
+        }
       } catch (err) {
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: true,
-        }));
+        if (!isCancelled) {
+          setState(prev => ({
+            ...prev,
+            loading: false,
+            error: true,
+          }));
+        }
       }
     };
     fetchData();
+
+    return () => {
+      isCancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location, endpoint, method, defaultSort, JSON.stringify(defaultParams)]);
 
