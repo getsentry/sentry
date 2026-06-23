@@ -501,6 +501,18 @@ export function CustomerDetails() {
             ...actionRequiresBillingAdmin,
           },
           {
+            key: 'recreateBillingPlatformModels',
+            name: 'Recreate Billing Platform Models',
+            help: 'Delete this org’s billing platform models and recreate them from the legacy subscription state.',
+            confirmModalOpts: {
+              priority: 'danger',
+              confirmText: 'Recreate Billing Platform Models',
+            },
+            onAction: params =>
+              onUpdateMutation.mutate({...params, recreateBillingPlatformModels: true}),
+            ...actionRequiresBillingAdmin,
+          },
+          {
             key: 'convertToSelfServe',
             name: 'Convert to self-serve',
             help: 'Cancel subscription and convert to self-serve.',

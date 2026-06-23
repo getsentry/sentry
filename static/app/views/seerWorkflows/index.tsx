@@ -342,7 +342,7 @@ function SeerWorkflows() {
               ) : (
                 sortedRows.map(row => {
                   const isExpanded = expanded.has(row.id);
-                  const explorerRunId = getExplorerRunId(row);
+                  const explorerRunIds = getExplorerRunIds(row);
                   return (
                     <Fragment key={row.id}>
                       <SimpleTable.Row
@@ -384,7 +384,7 @@ function SeerWorkflows() {
                         <SimpleTable.RowCell>
                           <ResultCell
                             row={row}
-                            explorerRunId={explorerRunId}
+                            explorerRunIds={explorerRunIds}
                             organizationSlug={organization.slug}
                           />
                         </SimpleTable.RowCell>
@@ -514,32 +514,40 @@ function StatusIcon({status}: {status: RunStatus}) {
 
 function ResultCell({
   row,
-  explorerRunId,
+  explorerRunIds,
   organizationSlug,
 }: {
-  explorerRunId: number | string | null;
+  explorerRunIds: Array<number | string>;
   organizationSlug: string;
   row: WorkflowRow;
 }) {
   const content = getResultContent(row);
-  // A failed run shows "Run failed" — don't turn that into a Seer Explorer link
-  // even if the run happens to carry an agent_run_id.
-  if (explorerRunId === null || row.status === 'failed') {
+  // A failed run shows "Run failed" — don't turn that into Seer Explorer links
+  // even if its shards happen to carry run ids.
+  if (explorerRunIds.length === 0 || row.status === 'failed') {
     return content;
   }
+  // Result text once, then one Explorer link per shard.
   return (
-    <Link
-      to={{
-        pathname: `/organizations/${organizationSlug}/issues/autofix/`,
-        query: {explorerRunId},
-      }}
-      onClick={e => e.stopPropagation()}
-    >
-      <Flex gap="sm" align="center">
-        <IconOpen size="xs" variant="accent" aria-hidden />
-        {content}
-      </Flex>
-    </Link>
+    <Flex gap="sm" align="center" wrap="wrap">
+      {content}
+      {explorerRunIds.map((explorerRunId, index) => (
+        <Link
+          key={`${explorerRunId}-${index}`}
+          to={{
+            pathname: `/organizations/${organizationSlug}/issues/autofix/`,
+            query: {explorerRunId},
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          <IconOpen
+            size="xs"
+            variant="accent"
+            aria-label={t('Open run in Seer Explorer')}
+          />
+        </Link>
+      ))}
+    </Flex>
   );
 }
 
@@ -844,6 +852,7 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
       maxCandidates: run.extras.options?.max_candidates,
       dryRun: run.extras.options?.dry_run,
       issues: run.issues,
+      seerRuns: run.seerRuns ?? [],
       agentRunId:
         typeof agentRunId === 'number' || typeof agentRunId === 'string'
           ? agentRunId
@@ -852,12 +861,19 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
   };
 }
 
-function getExplorerRunId(row: WorkflowRow): number | string | null {
+function getExplorerRunIds(row: WorkflowRow): Array<number | string> {
+  const seerRunIds = (row.triage?.seerRuns ?? [])
+    .map(seerRun => seerRun.seerRunId)
+    .filter((id): id is string => id !== null);
+  if (seerRunIds.length > 0) {
+    return seerRunIds;
+  }
+  // Fallback for pre-shard runs, which recorded a single id on the run extras.
   const agentRunId = row.triage?.agentRunId;
   if (typeof agentRunId === 'number' || typeof agentRunId === 'string') {
-    return agentRunId;
+    return [agentRunId];
   }
-  return null;
+  return [];
 }
 
 export default SeerWorkflows;

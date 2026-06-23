@@ -577,6 +577,133 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.query).toEqual(['event.type:test']);
     });
 
+    it('keeps only aggregates and clears sort when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['event.type', 'count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      // Columns are dropped; only the aggregate ("Visualize") remains.
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+      expect(result.current.state.sort).toEqual([]);
+    });
+
+    it('drops equations when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['count()', 'equation|count() * 2'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      // Only the non-equation aggregate survives.
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('normalizes the aggregate to count() when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['sum(value,test_metric,distribution,none)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      // The metric is preserved but the function becomes count() — heat maps
+      // always count the metric's value, so the chosen function is irrelevant.
+      expect(result.current.state.fields).toEqual([
+        {
+          kind: 'function',
+          function: ['count', 'value', 'test_metric', 'distribution', 'none'],
+          alias: undefined,
+        },
+      ]);
+    });
+
+    it('selects the first filter when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['event.type', 'count()'],
+            query: ['event.type:test', 'event.type:test2'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.query).toEqual(['event.type:test', 'event.type:test2']);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      expect(result.current.state.query).toEqual(['event.type:test']);
+    });
+
     it('resets selectedAggregate when the display type is switched', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({query: {selectedAggregate: '0'}})

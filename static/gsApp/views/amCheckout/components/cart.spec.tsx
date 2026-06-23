@@ -440,7 +440,7 @@ describe('Cart', () => {
         },
         name: 'partner',
       },
-      contractPeriodEnd: moment(MOCK_TODAY).add(7, 'days').toISOString(),
+      billingPeriodEnd: moment(MOCK_TODAY).add(7, 'days').toISOString(),
     });
 
     render(
