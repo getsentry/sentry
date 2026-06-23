@@ -334,19 +334,18 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 <Separator orientation="horizontal" />
               </motion.div>
 
-              <motion.div layout="position">
-                <ScmFeatureSelectionPanel
-                  analyticsFlow="project-creation"
-                  selectedRepository={selectedRepository}
-                  selectedPlatform={selectedPlatform}
-                  selectedFeatures={selectedFeatures}
-                  onFeaturesChange={handleFeaturesChange}
-                />
-              </motion.div>
-
-              <motion.div layout="position">
-                <Separator orientation="horizontal" />
-              </motion.div>
+              <ScmFeatureSelectionPanel
+                analyticsFlow="project-creation"
+                selectedRepository={selectedRepository}
+                selectedPlatform={selectedPlatform}
+                selectedFeatures={selectedFeatures}
+                onFeaturesChange={handleFeaturesChange}
+                trailing={
+                  <motion.div layout="position">
+                    <Separator orientation="horizontal" />
+                  </motion.div>
+                }
+              />
 
               <motion.div layout="position">
                 <ScmProjectDetailsCore

@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, type ReactNode, useCallback, useMemo} from 'react';
 import {motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -40,6 +40,10 @@ interface ScmFeatureSelectionPanelProps {
   selectedFeatures: ProductSolution[] | undefined;
   selectedPlatform: OnboardingSelectedSDK | undefined;
   selectedRepository: Repository | undefined;
+  // Optional element rendered as a sibling after the panel content (e.g. a
+  // divider from the host). Dropped together with the panel when there is
+  // nothing to show, so the host never strands an orphaned divider.
+  trailing?: ReactNode;
 }
 
 /**
@@ -57,6 +61,7 @@ export function ScmFeatureSelectionPanel({
   selectedFeatures,
   selectedPlatform,
   selectedRepository,
+  trailing,
 }: ScmFeatureSelectionPanelProps) {
   const organization = useOrganization();
   // Trial/billing framing (the "unlimited volume" banner and per-feature volume
@@ -162,75 +167,81 @@ export function ScmFeatureSelectionPanel({
     ]
   );
 
-  if (featureMode === 'none' && isOnboarding) {
+  // Hide the whole section when a resolved platform has no configurable
+  // products. Before a platform is chosen (no resolved key), keep it visible in
+  // project creation for the select-a-platform prompt; onboarding hides both.
+  if (featureMode === 'none' && (isOnboarding || !!currentPlatformKey)) {
     return null;
   }
 
   return (
-    <MotionStack layout="position" width="100%">
-      <Stack
-        gap={isOnboarding ? '2xl' : 'lg'}
-        paddingTop={isOnboarding ? 'xs' : undefined}
-      >
-        {isOnboarding ? (
-          <Flex
-            padding="lg"
-            background="secondary"
-            border="secondary"
-            radius="md"
-            gap="lg"
-          >
-            <IconBusiness size="lg" variant="accent" />
-            <Text size="md" density="comfortable">
-              {tct(
-                'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
-                {
-                  bold: (
-                    <Text as="span" bold variant="accent">
-                      {null}
-                    </Text>
-                  ),
-                }
+    <Fragment>
+      <MotionStack layout="position" width="100%">
+        <Stack
+          gap={isOnboarding ? '2xl' : 'lg'}
+          paddingTop={isOnboarding ? 'xs' : undefined}
+        >
+          {isOnboarding ? (
+            <Flex
+              padding="lg"
+              background="secondary"
+              border="secondary"
+              radius="md"
+              gap="lg"
+            >
+              <IconBusiness size="lg" variant="accent" />
+              <Text size="md" density="comfortable">
+                {tct(
+                  'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
+                  {
+                    bold: (
+                      <Text as="span" bold variant="accent">
+                        {null}
+                      </Text>
+                    ),
+                  }
+                )}
+              </Text>
+            </Flex>
+          ) : null}
+
+          {isOnboarding ? null : (
+            <Flex justify="between" align="center" gap="md">
+              <Heading as="h4">{t('Products')}</Heading>
+              {currentPlatformKey ? null : (
+                <Tag variant="muted" icon={<IconInfo />} style={{minWidth: 0}}>
+                  <Text ellipsis variant="inherit">
+                    {t('Select a platform to configure products')}
+                  </Text>
+                </Tag>
               )}
-            </Text>
-          </Flex>
-        ) : null}
+            </Flex>
+          )}
 
-        {isOnboarding ? null : (
-          <Flex justify="between" align="center" gap="md">
-            <Heading as="h4">{t('Products')}</Heading>
-            {currentPlatformKey ? null : (
-              <Tag variant="muted" icon={<IconInfo />} style={{minWidth: 0}}>
-                <Text ellipsis variant="inherit">
-                  {t('Select a platform to configure products')}
-                </Text>
-              </Tag>
-            )}
-          </Flex>
-        )}
-
-        {featureMode === 'toggleable' ? (
-          <ScmFeatureSelectionCards
-            availableFeatures={availableFeatures}
-            selectedFeatures={currentFeatures}
-            disabledProducts={disabledProducts}
-            onToggleFeature={handleToggleFeature}
-            featureMeta={featureMeta}
-            isVolumeLoading={isFeatureMetaLoading}
-            isOnboarding={isOnboarding}
-          />
-        ) : featureMode === 'informational' ? (
-          <ScmFeatureInfoCards
-            availableFeatures={availableFeatures}
-            disabledProducts={disabledProducts}
-            featureMeta={featureMeta}
-            platformName={currentPlatformName}
-            isVolumeLoading={isFeatureMetaLoading}
-            isOnboarding={isOnboarding}
-          />
-        ) : null}
-      </Stack>
-    </MotionStack>
+          {featureMode === 'toggleable' ? (
+            <ScmFeatureSelectionCards
+              availableFeatures={availableFeatures}
+              selectedFeatures={currentFeatures}
+              disabledProducts={disabledProducts}
+              onToggleFeature={handleToggleFeature}
+              featureMeta={featureMeta}
+              isVolumeLoading={isFeatureMetaLoading}
+              isOnboarding={isOnboarding}
+            />
+          ) : featureMode === 'informational' ? (
+            <ScmFeatureInfoCards
+              availableFeatures={availableFeatures}
+              disabledProducts={disabledProducts}
+              featureMeta={featureMeta}
+              platformName={currentPlatformName}
+              isVolumeLoading={isFeatureMetaLoading}
+              isOnboarding={isOnboarding}
+            />
+          ) : null}
+        </Stack>
+      </MotionStack>
+      {trailing}
+    </Fragment>
   );
 }
 
