@@ -1,12 +1,21 @@
 from sentry.models.activity import Activity
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.activity_registry.base import (
     NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES,
+    build_activity_data,
     require_config,
     send_activity_notification,
 )
 from sentry.notifications.notification_action.registry import activity_handler_registry
 from sentry.notifications.notification_action.types import ActivityHandler
+from sentry.notifications.platform.service import NotificationService
+from sentry.notifications.platform.strategies.issue_owners import (
+    IssueOwnersActivityAlertStrategy,
+)
 from sentry.notifications.platform.target import GenericNotificationTarget
+from sentry.notifications.platform.templates.workflow_engine import (
+    WorkflowEngineActivityAction,
+)
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
@@ -20,13 +29,23 @@ class EmailActivityHandler(ActivityHandler):
     compatible_activity_types = NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES
 
     @classmethod
+    def invoke_using_issue_owners_strategy(
+        cls, invocation: ActionInvocation, activity: Activity
+    ) -> None:
+        if activity.group is None:
+            return
+        strategy = IssueOwnersActivityAlertStrategy(group=activity.group)
+        data = build_activity_data(invocation, activity)
+        NotificationService[WorkflowEngineActivityAction](data=data).notify_sync(strategy=strategy)
+
+    @classmethod
     def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:
-        action = invocation.action
-        # TODO(leander): handle ISSUE_OWNERS target_type — requires resolving
-        # issue owners and creating a target per owner.
+        if invocation.action.config.get("target_type") == ActionTarget.ISSUE_OWNERS:
+            return cls.invoke_using_issue_owners_strategy(invocation, activity)
+
         target = GenericNotificationTarget(
             provider_key=NotificationProviderKey.EMAIL,
             resource_type=NotificationTargetResourceType.EMAIL,
-            resource_id=require_config(action, "target_identifier"),
+            resource_id=require_config(invocation.action, "target_identifier"),
         )
         send_activity_notification(invocation, activity, target)

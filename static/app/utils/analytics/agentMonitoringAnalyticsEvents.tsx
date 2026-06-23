@@ -1,9 +1,4 @@
 export type AgentMonitoringEventParameters = {
-  'agent-monitoring.column-sort': {
-    column: string;
-    direction: 'asc' | 'desc';
-    table: string;
-  };
   'agent-monitoring.copy-llm-prompt-click': Record<string, unknown>;
   'agent-monitoring.drawer.open': Record<string, unknown>;
   'agent-monitoring.drawer.span-select': Record<string, unknown>;
@@ -11,17 +6,9 @@ export type AgentMonitoringEventParameters = {
   'agent-monitoring.page-filter-change': {
     filter: 'project' | 'environment' | 'date' | 'agent' | 'search';
   };
-  'agent-monitoring.page-view': {
-    isOnboarding: boolean;
-  };
-  'agent-monitoring.table-switch': {
-    newTable: string;
-    previousTable: string;
-  };
   'agent-monitoring.trace.rendered': Record<string, unknown>;
   'agent-monitoring.trace.span-select': Record<string, unknown>;
   'agent-monitoring.trace.view-full-trace-click': Record<string, unknown>;
-
   'agent-monitoring.view-ai-trace-click': Record<string, unknown>;
 };
 
@@ -31,9 +18,6 @@ export const agentMonitoringEventMap: Record<
 > = {
   'agent-monitoring.copy-llm-prompt-click': 'Agent Monitoring: Copy LLM Prompt Click',
   'agent-monitoring.page-filter-change': 'Agent Monitoring: Page Filter Change',
-  'agent-monitoring.page-view': 'Agent Monitoring: Page View',
-  'agent-monitoring.table-switch': 'Agent Monitoring: Table Switch',
-  'agent-monitoring.column-sort': 'Agent Monitoring: Column Sort',
   'agent-monitoring.drawer.open': 'Agent Monitoring: Drawer Open',
   'agent-monitoring.drawer.span-select': 'Agent Monitoring: Span Select',
   'agent-monitoring.drawer.view-full-trace-click':

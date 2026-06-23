@@ -133,7 +133,7 @@ def handle_attribution(
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    pr = _get_pull_request(organization, repo, pull_request)
+    pr = _get_pull_request(organization, repo, pull_request, kwargs.get("github_delivery_id"))
     if pr is None:
         return
 
@@ -205,6 +205,7 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
             "pr_metrics.emit.needs_judge",
             extra={
                 "organization_id": organization.id,
+                "repository_id": pr.repository_id,
                 "pull_request_id": pr.id,
                 "reason": "no_seer_access",
             },
@@ -221,6 +222,7 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
             "pr_metrics.emit.needs_judge",
             extra={
                 "organization_id": organization.id,
+                "repository_id": pr.repository_id,
                 "pull_request_id": pr.id,
                 "reason": "not_agent_attribution",
             },
@@ -233,6 +235,7 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
             "pr_metrics.emit.needs_judge",
             extra={
                 "organization_id": organization.id,
+                "repository_id": pr.repository_id,
                 "pull_request_id": pr.id,
                 "reason": "blocked_by_flag",
             },
@@ -257,7 +260,14 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
             pull_request=pr, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
         ).update(verdict=None)
         metrics.incr("pr_metrics.judge.enqueue_failed")
-        logger.exception("pr_metrics.judge.enqueue_failed", extra={"pull_request_id": pr.id})
+        logger.exception(
+            "pr_metrics.judge.enqueue_failed",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": pr.repository_id,
+                "pull_request_id": pr.id,
+            },
+        )
         return
     metrics.incr("pr_metrics.judge.enqueued")
 
@@ -291,7 +301,9 @@ def handle_emission(
     if not features.has("organizations:pr-metrics-emit", organization):
         return
 
-    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    pr = _get_pull_request(
+        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+    )
     if pr is None:
         return
 
@@ -340,7 +352,7 @@ def handle_metrics(
     if not features.has("organizations:pr-metrics-emit", organization):
         return
 
-    pr = _get_pull_request(organization, repo, pull_request)
+    pr = _get_pull_request(organization, repo, pull_request, kwargs.get("github_delivery_id"))
     if pr is None:
         return
 
@@ -365,7 +377,7 @@ def handle_activity(
     if not action or action not in _ACTIVITY_ACTIONS:
         return
 
-    pr = _get_pull_request(organization, repo, pull_request_data)
+    pr = _get_pull_request(organization, repo, pull_request_data, kwargs.get("github_delivery_id"))
     if pr is None:
         return
 
@@ -401,6 +413,7 @@ def handle_comment(
     if not issue.get("pull_request"):
         return
 
+    webhook_id: str | None = kwargs.get("github_delivery_id")
     try:
         pr = PullRequest.objects.get(
             organization_id=organization.id,
@@ -409,8 +422,15 @@ def handle_comment(
         )
     except PullRequest.DoesNotExist:
         logger.warning(
-            "github.pr_metrics.comment.pr_not_found",
-            extra={"repository_id": repo.id, "issue_number": issue["number"]},
+            "pr_metrics.comment.pr_not_found",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": repo.id,
+                "repo_name": repo.name,
+                "pr_number": issue["number"],
+                "action": action,
+                "github_delivery_id": webhook_id,
+            },
         )
         return
 
@@ -432,7 +452,6 @@ def handle_comment(
             author_association=comment.get("author_association", "NONE"),
         )
 
-    webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
 
@@ -456,7 +475,9 @@ def handle_review(
     if not is_activity_tracking_enabled(organization):
         return
 
-    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    pr = _get_pull_request(
+        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+    )
     if pr is None:
         return
 
@@ -495,7 +516,9 @@ def handle_review_comment(
     if not is_activity_tracking_enabled(organization):
         return
 
-    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    pr = _get_pull_request(
+        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+    )
     if pr is None:
         return
 
@@ -544,7 +567,9 @@ def handle_review_thread(
     if not is_activity_tracking_enabled(organization):
         return
 
-    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    pr = _get_pull_request(
+        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+    )
     if pr is None:
         return
 
@@ -573,13 +598,17 @@ def handle_review_thread(
 
 
 def _get_pull_request(
-    organization: Organization, repo: Repository, pull_request: dict[str, Any] | None
+    organization: Organization,
+    repo: Repository,
+    pull_request: dict[str, Any] | None,
+    github_delivery_id: str | None = None,
 ) -> PullRequest | None:
     """Resolve the canonical PullRequest row for a webhook payload, or None.
 
     Returns None when the event carries no pull_request. Otherwise the row is
     upserted by ``PullRequestEventWebhook._handle`` before processors run, so a
-    miss is unexpected — log it and let the caller bail.
+    miss is unexpected — log it (with the delivery id, to pull the raw payload)
+    and let the caller bail.
     """
     if not pull_request:
         return None
@@ -591,8 +620,14 @@ def _get_pull_request(
         )
     except PullRequest.DoesNotExist:
         logger.warning(
-            "github.pr_metrics.pr_not_found",
-            extra={"repository_id": repo.id, "pr_number": pull_request["number"]},
+            "pr_metrics.pr_not_found",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": repo.id,
+                "repo_name": repo.name,
+                "pr_number": pull_request["number"],
+                "github_delivery_id": github_delivery_id,
+            },
         )
         return None
 

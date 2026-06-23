@@ -38,10 +38,13 @@ RETURNS:
 - set_key -- str -- The key of the segment, used to look up member-keys index and identify the segment in the queue.
 - has_root_span -- bool -- Whether this segment contains a root span.
 - latency_ms -- number -- Milliseconds elapsed during script execution.
-- latency_table -- table -- Per-step latency measurements.
-- metrics_table -- table -- Per-step gauge metrics.
+- latency_table -- table -- Per-step latency measurements, flattened as [key1, value1, key2, value2, ...].
+- metrics_table -- table -- Per-step gauge metrics, flattened as [key1, value1, key2, value2, ...].
+- merged_segment_span_ids -- str[] -- Span ids of child segments merged into this segment. These were previously
+                                      queued as their own segments, so they are the only stale queue entries the
+                                      caller needs to remove.
 
-]]--
+]] --
 
 local project_and_trace = KEYS[1]
 
@@ -102,10 +105,19 @@ for i = 0, 100 do -- Theoretic maximum depth of redirects is 100
     set_span_id = new_set_span
 end
 
+-- latency_table and metrics_table are flattened lists of [key1, value1, key2, value2, ...]
+-- so that the result is a flat array that is trivial to parse in Python, rather than a list
+-- of nested {key, value} pair tables.
 local latency_table = {}
 local metrics_table = {}
-table.insert(metrics_table, {"redirect_table_size", redis.call("hlen", main_redirect_key)})
-table.insert(metrics_table, {"redirect_depth", redirect_depth})
+
+local function insert_metric(t, key, value)
+    table.insert(t, key)
+    table.insert(t, value)
+end
+
+insert_metric(metrics_table, "redirect_table_size", redis.call("hlen", main_redirect_key))
+insert_metric(metrics_table, "redirect_depth", redirect_depth)
 local set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, set_span_id)
 
 -- Reset the set expiry as we saw a new subsegment for this set
@@ -128,18 +140,33 @@ redis.call("hset", main_redirect_key, unpack(hset_args))
 redis.call("expire", main_redirect_key, set_timeout)
 
 local redirect_end_time_ms = get_time_ms()
-table.insert(latency_table, {"redirect_step_latency_ms", redirect_end_time_ms - start_time_ms})
+insert_metric(latency_table, "redirect_step_latency_ms", redirect_end_time_ms - start_time_ms)
 
 local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
 local ingested_byte_count = tonumber(redis.call("get", ingested_byte_count_key) or 0)
 
+-- Pre-processing loop runs first to collect all the keys.
+local child_ic_keys = {}
+local child_ibc_keys = {}
 for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     local span_id = ARGV[i]
     if span_id ~= parent_span_id then
         local child_set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
-        local child_ibc_key = string.format("span-buf:ibc:%s", child_set_key)
-        local child_ibc = tonumber(redis.call("get", child_ibc_key) or 0)
-        byte_count = byte_count + child_ibc
+        table.insert(child_ic_keys, string.format("span-buf:ic:%s", child_set_key))
+        table.insert(child_ibc_keys, string.format("span-buf:ibc:%s", child_set_key))
+    end
+end
+
+-- Bulk request is made for child_ic and child_ibc keys. MGET returns in order. Further down we'll use
+-- the array. The merge loop iterates in the same order. We can use its index position to efficiently
+-- retrieve the locally cached value.
+local child_ics = {}
+local child_ibcs = {}
+if #child_ibc_keys > 0 then
+    child_ics = redis.call("mget", unpack(child_ic_keys))
+    child_ibcs = redis.call("mget", unpack(child_ibc_keys))
+    for j = 1, #child_ibcs do
+        byte_count = byte_count + tonumber(child_ibcs[j] or 0)
     end
 end
 
@@ -162,41 +189,50 @@ if segment_too_large or segment_locked then
     set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, salt)
     ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
 end
-table.insert(metrics_table, {"detached_segment_too_large", segment_too_large and 1 or 0})
-table.insert(metrics_table, {"detached_segment_locked", segment_locked and 1 or 0})
+insert_metric(metrics_table, "detached_segment_too_large", segment_too_large and 1 or 0)
+insert_metric(metrics_table, "detached_segment_locked", segment_locked and 1 or 0)
 
 local ingested_count_key = string.format("span-buf:ic:%s", set_key)
 local members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, set_span_id)
 
+local merged_segment_span_ids = {}
+
+-- NOTE: This loop is assumed to match the iteration semantics of the child_ibc cache key
+--       lookup loop. If it doesn't then this will breakerino.
+local child_idx = 0
 for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     local span_id = ARGV[i]
     if span_id ~= parent_span_id then
         local child_set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
+        child_idx = child_idx + 1
 
-        local child_ic_key = string.format("span-buf:ic:%s", child_set_key)
-        local child_ic = redis.call("get", child_ic_key)
+        local child_ic = child_ics[child_idx]
         if child_ic then
+            local child_ic_key = string.format("span-buf:ic:%s", child_set_key)
             redis.call("incrby", ingested_count_key, child_ic)
             redis.call("del", child_ic_key)
         end
 
-        local child_ibc_key = string.format("span-buf:ibc:%s", child_set_key)
-        local child_ibc = redis.call("get", child_ibc_key)
+        local child_ibc = child_ibcs[child_idx]
         if child_ibc then
+            local child_ibc_key = string.format("span-buf:ibc:%s", child_set_key)
             -- byte_count already holds the child's byte count, so we don't need to add again
             redis.call("del", child_ibc_key)
         end
 
-        local child_members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, span_id)
-        if redis.call("exists", child_members_key) == 1 then
+        -- Presence of child_ic implies that this span is a root span. Only root spans have these associations.
+        -- We can skip all the child spans (which will be no-ops) and save some Redis calls.
+        if child_ic then
+            local child_members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, span_id)
             merge_set(child_members_key, members_key)
             redis.call("del", child_members_key)
+            table.insert(merged_segment_span_ids, span_id)
         end
     end
 end
 
 local merge_payload_keys_end_time_ms = get_time_ms()
-table.insert(latency_table, {"merge_payload_keys_step_latency_ms", merge_payload_keys_end_time_ms - redirect_end_time_ms})
+insert_metric(latency_table, "merge_payload_keys_step_latency_ms", merge_payload_keys_end_time_ms - redirect_end_time_ms)
 
 redis.call("sadd", members_key, salt)
 redis.call("expire", members_key, set_timeout)
@@ -208,11 +244,11 @@ redis.call("expire", ingested_count_key, set_timeout)
 redis.call("expire", ingested_byte_count_key, set_timeout)
 
 local counter_merge_end_time_ms = get_time_ms()
-table.insert(latency_table, {"counter_merge_step_latency_ms", counter_merge_end_time_ms - merge_payload_keys_end_time_ms})
+insert_metric(latency_table, "counter_merge_step_latency_ms", counter_merge_end_time_ms - merge_payload_keys_end_time_ms)
 
 -- Capture end time and calculate latency in milliseconds
 local end_time_ms = get_time_ms()
 local latency_ms = end_time_ms - start_time_ms
-table.insert(latency_table, {"total_step_latency_ms", latency_ms})
+insert_metric(latency_table, "total_step_latency_ms", latency_ms)
 
-return {set_key, has_root_span, latency_ms, latency_table, metrics_table}
+return {set_key, has_root_span, latency_ms, latency_table, metrics_table, merged_segment_span_ids}
