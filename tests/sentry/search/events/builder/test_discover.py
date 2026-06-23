@@ -528,6 +528,57 @@ class DiscoverQueryBuilderTest(TestCase):
             ],
         )
 
+    def test_issue_id_filter_on_transactions_is_coerced_to_string(self) -> None:
+        # The transactions dataset has no group_id column, so issue.id resolves
+        # to a tag (tags[issue.id]). Snuba rejects tag conditions whose value is
+        # not a string, so the value must be coerced to a string.
+        query = DiscoverQueryBuilder(
+            Dataset.Transactions,
+            self.params,
+            query="issue.id:123456",
+            selected_columns=["count()"],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(Column("tags[issue.id]"), Op.EQ, "123456"),
+                *self.default_conditions,
+            ],
+        )
+        query.get_snql_query().validate()
+
+    def test_issue_id_in_filter_on_transactions_is_coerced_to_string(self) -> None:
+        query = DiscoverQueryBuilder(
+            Dataset.Transactions,
+            self.params,
+            query="issue.id:[123,456]",
+            selected_columns=["count()"],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(Column("tags[issue.id]"), Op.IN, ["123", "456"]),
+                *self.default_conditions,
+            ],
+        )
+        query.get_snql_query().validate()
+
+    def test_issue_id_filter_on_discover_uses_group_id_column(self) -> None:
+        # On datasets with a real group_id column the value stays numeric.
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="issue.id:123456",
+            selected_columns=["count()"],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(Column("group_id"), Op.EQ, 123456.0),
+                *self.default_conditions,
+            ],
+        )
+
     def test_not_empty_measurement(self) -> None:
         query = DiscoverQueryBuilder(
             Dataset.Discover,

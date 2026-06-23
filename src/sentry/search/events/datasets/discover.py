@@ -1799,6 +1799,22 @@ class DiscoverDatasetConfig(DatasetConfig):
         lhs = self.builder.column(name)
         rhs = value
 
+        # Datasets without a dedicated group_id column (e.g. transactions)
+        # resolve issue.id to a tag access (tags[issue.id]). Snuba requires tag
+        # conditions to compare against strings, so coerce the value(s)
+        # accordingly. Transactions are never associated with an error issue, so
+        # this matches no rows for an `issue.id:<id>` filter instead of raising a
+        # validation error in Snuba.
+        if isinstance(lhs, Column) and lhs.name.startswith("tags["):
+            values = rhs if isinstance(rhs, (list, tuple)) else [rhs]
+            # issue.id parses as a numeric value, but group ids are integers, so
+            # normalize whole floats (e.g. 123.0 -> "123") before stringifying.
+            stringified = [
+                str(int(v)) if isinstance(v, float) and v.is_integer() else str(v) for v in values
+            ]
+            rhs = stringified if isinstance(rhs, (list, tuple)) else stringified[0]
+            return Condition(lhs, Op(search_filter.operator), rhs)
+
         # Handle "has" queries
         if (
             search_filter.value.raw_value == ""
