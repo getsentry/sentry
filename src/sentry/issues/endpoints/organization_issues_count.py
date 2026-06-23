@@ -44,7 +44,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     def _count(
         self, request: Request, query, organization, projects, environments, extra_query_kwargs=None
     ):
-        with start_span(op="_count"):
+        with start_span(op="_count", name="_count"):
             query_kwargs = {
                 "projects": projects,
                 "referrer": Referrer.API_ORGANIZATION_ISSUES_COUNT,
@@ -67,7 +67,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
             query_kwargs["max_hits"] = ISSUES_COUNT_MAX_HITS_LIMIT
 
             query_kwargs["actor"] = request.user
-        with start_span(op="start_search") as span:
+        with start_span(op="start_search", name="start_search") as span:
             set_span_data(span, "query_kwargs", query_kwargs)
             result = search.backend.query(**query_kwargs)
             return result.hits
