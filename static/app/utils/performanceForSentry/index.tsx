@@ -288,15 +288,21 @@ export const setGroupedEntityTag = (
  */
 export function addUIElementTagToSegmentSpan(client: Client) {
   client.on('spanStart', span => {
-    const spanJson = spanToStreamedSpanJSON(span);
-    const op = spanJson.attributes?.['sentry.op'];
+    const segmentSpan = Sentry.getRootSpan(span);
+    const segmentSpanJson = spanToStreamedSpanJSON(segmentSpan);
 
-    if (op === 'ui.action.click') {
-      const segmentSpan = Sentry.getRootSpan(span);
-      const segmentSpanJson = spanToStreamedSpanJSON(segmentSpan);
-      if (segmentSpan && !segmentSpanJson.attributes?.interactionElement) {
-        segmentSpan.setAttribute('interactionElement', spanJson.name);
-      }
+    if (segmentSpanJson.attributes?.['sentry.op'] !== 'ui.action.click') {
+      return;
+    }
+
+    const spanJson = spanToStreamedSpanJSON(span);
+    const spanOp = spanJson.attributes?.['sentry.op'];
+
+    if (
+      spanOp === 'ui.interaction.click' &&
+      !segmentSpanJson.attributes?.interactionElement
+    ) {
+      segmentSpan.setAttribute('interactionElement', spanJson.name);
     }
   });
 }
