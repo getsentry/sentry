@@ -29,7 +29,7 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
 )
 from sentry.seer.models import SeerPermissionError
-from sentry.seer.pull_requests import maybe_link_seer_run_to_pull_requests
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
@@ -685,11 +685,11 @@ def process_autofix_updates(
                     extra={"group_id": group_id, "run_id": run_id},
                 )
 
-        # Gated separately from attribution above: linking is Seer-owned and runs
-        # for all Seer orgs, while pr-metrics-attribution is a narrowly rolled-out
-        # flag. Fold into one block once that flag is GA.
+        # Gated separately from attribution above: linking runs for all Seer orgs,
+        # while pr-metrics-attribution is a narrowly rolled-out flag. Fold into the
+        # block above once that flag is GA.
         if event_type == SentryAppEventType.SEER_PR_CREATED:
-            maybe_link_seer_run_to_pull_requests(
+            SeerRunPullRequest.maybe_link_run_to_pull_requests(
                 organization=organization,
                 pull_requests=event_payload.get("pull_requests", []),
                 run_id=run_id,

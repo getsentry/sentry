@@ -1,13 +1,23 @@
 from __future__ import annotations
 
+import logging
+from collections.abc import Mapping, Sequence
+from typing import Any
 from uuid import uuid4
 
 from django.db import models
 
+from sentry import options
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
+
+logger = logging.getLogger(__name__)
 
 
 class SeerRunType(models.TextChoices):
@@ -101,6 +111,93 @@ class SeerRunPullRequest(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("seer_run_id", "pull_request_id")
+
+    @classmethod
+    def maybe_link_run_to_pull_requests(
+        cls,
+        *,
+        organization: Organization,
+        pull_requests: Sequence[Mapping[str, Any]],
+        run_id: int,
+    ) -> None:
+        """Best-effort, killswitch-gated: link each PR a Seer run opened.
+
+        ``pull_requests`` is the ``seer.pr_created`` payload; ``run_id`` is the
+        run's ``seer_run_state_id``. Never raises — runs inline on the webhook path.
+        """
+        if options.get("seer.run-pr-link.killswitch.enabled"):
+            return
+        try:
+            cls._record_run_links(
+                organization=organization, pull_requests=pull_requests, run_id=run_id
+            )
+        except Exception:
+            logger.exception(
+                "seer.pr_link.failed",
+                extra={"organization_id": organization.id, "seer_run_state_id": run_id},
+            )
+
+    @classmethod
+    def _record_run_links(
+        cls,
+        *,
+        organization: Organization,
+        pull_requests: Sequence[Mapping[str, Any]],
+        run_id: int,
+    ) -> None:
+        run = SeerRun.objects.filter(
+            organization_id=organization.id, seer_run_state_id=run_id
+        ).first()
+        if run is None:
+            logger.warning(
+                "seer.pr_link.run_not_found",
+                extra={"organization_id": organization.id, "seer_run_state_id": run_id},
+            )
+            return
+
+        for entry in pull_requests:
+            repo_name = entry.get("repo_name")
+            pr_number = (entry.get("pull_request") or {}).get("pr_number")
+            log_context = {
+                "organization_id": organization.id,
+                "seer_run_state_id": run_id,
+                "repo_name": repo_name,
+                "pr_number": pr_number,
+            }
+            if not repo_name or pr_number is None:
+                logger.warning("seer.pr_link.missing_fields", extra=log_context)
+                continue
+
+            try:
+                repos = list(
+                    Repository.objects.filter(
+                        organization_id=organization.id,
+                        name=repo_name,
+                        status=ObjectStatus.ACTIVE,
+                    ).order_by("id")[:2]
+                )
+                if len(repos) != 1:
+                    logger.warning(
+                        "seer.pr_link.repo_unresolved",
+                        extra={**log_context, "repo_matches": len(repos)},
+                    )
+                    continue
+
+                pull_request, _ = PullRequest.objects.get_or_create(
+                    organization_id=organization.id,
+                    repository_id=repos[0].id,
+                    key=str(pr_number),
+                )
+                cls.objects.get_or_create(seer_run=run, pull_request=pull_request)
+            except Exception:
+                # Isolate per entry so one bad repo doesn't drop the rest.
+                logger.exception("seer.pr_link.failed", extra=log_context)
+                continue
+
+            logger.info(
+                "seer.pr_link.recorded",
+                extra={**log_context, "pull_request_id": pull_request.id},
+            )
 
 
 @cell_silo_model
