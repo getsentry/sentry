@@ -159,6 +159,20 @@ export function ScmPlatformFeaturesCore({
     onClearProjectDetailsForm();
   };
 
+  // Inverse of a platform selection: drop the platform and everything derived
+  // from it (the default features and the platform-seeded project name).
+  // Mirrors the repo selector's clearable Select. Only offered when there is no
+  // detected platform to fall back to (see the Select's clearable below):
+  // otherwise currentPlatformKey would keep showing the detected key while the
+  // committed selectedPlatform went empty, desyncing the picker from the form
+  // and stranding Create behind a "select a platform" tooltip. Reverting to a
+  // detected platform is handled by "Back to recommended platforms" instead.
+  const handleClearPlatform = () => {
+    onPlatformChange(undefined);
+    onFeaturesChange(undefined);
+    onClearProjectDetailsForm();
+  };
+
   const handleManualPlatformSelect = async (option: {value: string}) => {
     const platformKey = option.value as PlatformKey;
     if (platformKey === selectedPlatform?.key) {
@@ -263,6 +277,16 @@ export function ScmPlatformFeaturesCore({
       onClearProjectDetailsForm();
     }
   }
+
+  // Shared by both manual-picker variants. A null option is the clear action,
+  // which is only reachable from the clearable variant (no detected fallback).
+  const handleManualPickerChange = (option: (typeof platformOptions)[number] | null) => {
+    if (option) {
+      handleManualPlatformSelect(option);
+    } else {
+      handleClearPlatform();
+    }
+  };
 
   // Ensure the selected platform is always present in the dropdown options
   // so the Select can resolve and display it. When the framework suggestion
@@ -375,22 +399,36 @@ export function ScmPlatformFeaturesCore({
           </Button>
         )}
       </Flex>
-      <Select<(typeof platformOptions)[number]>
-        placeholder={t('Search SDKs...')}
-        options={manualPickerOptions}
-        value={currentPlatformKey ?? null}
-        onChange={option => {
-          if (option) {
-            handleManualPlatformSelect(option);
-          }
-        }}
-        searchable
-        components={{
-          Control: ScmSearchControl,
-          MenuList: ScmVirtualizedMenuList,
-        }}
-        styles={{container: base => ({...base, width: '100%'})}}
-      />
+      {/* Two literal variants instead of clearable={!detectedPlatformKey}: the
+          core Select types `clearable` as a discriminated-union literal (`?: false`
+          vs `: true`, which also selects the onChange signature), so a dynamic
+          boolean is not assignable and will not typecheck. Each branch passes a
+          literal. Clear is only offered when no platform was detected: a detected
+          one re-resolves into currentPlatformKey, so clearing would leave the
+          picker (and the feature panel) showing it while the committed selection
+          is empty. "Back to recommended platforms" covers reverting. */}
+      {detectedPlatformKey ? (
+        <Select<(typeof platformOptions)[number]>
+          placeholder={t('Search SDKs...')}
+          options={manualPickerOptions}
+          value={currentPlatformKey ?? null}
+          onChange={handleManualPickerChange}
+          searchable
+          components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
+          styles={{container: base => ({...base, width: '100%'})}}
+        />
+      ) : (
+        <Select<(typeof platformOptions)[number]>
+          placeholder={t('Search SDKs...')}
+          options={manualPickerOptions}
+          value={currentPlatformKey ?? null}
+          onChange={handleManualPickerChange}
+          clearable
+          searchable
+          components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
+          styles={{container: base => ({...base, width: '100%'})}}
+        />
+      )}
     </MotionStack>
   );
 }
