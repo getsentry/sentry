@@ -44,7 +44,12 @@ export function ScmAlertFrequencySection({
       [RuleAction.CREATE_ALERT_LATER]: [t('Off'), 'muted'],
     };
 
-    const [label, variant] = alertSettingLabel[alertRuleConfig.alertSetting];
+    // alertRuleConfig can come from restored session storage, so fall back to
+    // the default if alertSetting holds an unknown value (avoids destructuring
+    // undefined).
+    const [label, variant] =
+      alertSettingLabel[alertRuleConfig.alertSetting] ??
+      alertSettingLabel[RuleAction.DEFAULT_ALERT];
 
     return (
       <ScmCollapsibleSection
