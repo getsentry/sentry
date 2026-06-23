@@ -6,11 +6,36 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from sentry import options
 from sentry.models.organization import Organization
 from sentry.pr_metrics.pull_requests import get_or_create_seer_pull_request
 from sentry.seer.models.run import SeerRun, SeerRunPullRequest
 
 logger = logging.getLogger(__name__)
+
+
+def maybe_link_seer_run_to_pull_requests(
+    *,
+    organization: Organization,
+    pull_requests: Sequence[Mapping[str, Any]],
+    run_id: int,
+) -> None:
+    """Killswitch-gated, never-throwing entry point for run→PR linking.
+
+    Callers can fire-and-forget this; the killswitch short-circuits it and any
+    failure is logged rather than propagated.
+    """
+    if options.get("seer.run-pr-link.killswitch.enabled"):
+        return
+    try:
+        link_seer_run_to_pull_requests(
+            organization=organization, pull_requests=pull_requests, run_id=run_id
+        )
+    except Exception:
+        logger.exception(
+            "seer.pr_link.failed",
+            extra={"organization_id": organization.id, "seer_run_state_id": run_id},
+        )
 
 
 def link_seer_run_to_pull_requests(

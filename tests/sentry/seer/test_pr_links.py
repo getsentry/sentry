@@ -3,8 +3,12 @@ from unittest.mock import Mock, patch
 
 from sentry.models.pullrequest import PullRequest
 from sentry.seer.models.run import SeerRunPullRequest
-from sentry.seer.pr_links import link_seer_run_to_pull_requests
+from sentry.seer.pr_links import (
+    link_seer_run_to_pull_requests,
+    maybe_link_seer_run_to_pull_requests,
+)
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 REPO_NAME = "getsentry/sentry"
 RUN_STATE_ID = 4242
@@ -126,3 +130,34 @@ class LinkSeerRunToPullRequestsTest(TestCase):
         assert not PullRequest.objects.filter(key="1").exists()
         pr2 = PullRequest.objects.get(repository_id=self.repo.id, key="2")
         assert SeerRunPullRequest.objects.filter(pull_request=pr2).exists()
+
+
+class MaybeLinkSeerRunToPullRequestsTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(self.project, name=REPO_NAME, provider="integrations:github")
+        self.create_seer_run(organization=self.organization, seer_run_state_id=RUN_STATE_ID)
+
+    def _maybe_link(self) -> None:
+        maybe_link_seer_run_to_pull_requests(
+            organization=self.organization, pull_requests=[_pr()], run_id=RUN_STATE_ID
+        )
+
+    def test_links_when_killswitch_off(self) -> None:
+        self._maybe_link()
+
+        pr = PullRequest.objects.get(repository_id=self.repo.id, key="42")
+        assert SeerRunPullRequest.objects.filter(pull_request=pr).exists()
+
+    def test_killswitch_skips_linking(self) -> None:
+        with override_options({"seer.run-pr-link.killswitch.enabled": True}):
+            self._maybe_link()
+
+        assert not SeerRunPullRequest.objects.exists()
+
+    def test_swallows_exceptions(self) -> None:
+        with patch(
+            "sentry.seer.pr_links.link_seer_run_to_pull_requests",
+            side_effect=RuntimeError("boom"),
+        ):
+            # Must not raise.
+            self._maybe_link()

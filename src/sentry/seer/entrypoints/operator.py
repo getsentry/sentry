@@ -8,7 +8,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.pr_metrics.attribution import attribute_seer_created_pull_requests
-from sentry.seer.pr_links import link_seer_run_to_pull_requests
+from sentry.seer.pr_links import maybe_link_seer_run_to_pull_requests
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
@@ -685,20 +685,12 @@ def process_autofix_updates(
                     extra={"group_id": group_id, "run_id": run_id},
                 )
 
-        if event_type == SentryAppEventType.SEER_PR_CREATED and not options.get(
-            "seer.run-pr-link.killswitch.enabled"
-        ):
-            try:
-                link_seer_run_to_pull_requests(
-                    organization=organization,
-                    pull_requests=event_payload.get("pull_requests", []),
-                    run_id=run_id,
-                )
-            except Exception:
-                logger.exception(
-                    "seer.pr_link.failed",
-                    extra={"group_id": group_id, "run_id": run_id},
-                )
+        if event_type == SentryAppEventType.SEER_PR_CREATED:
+            maybe_link_seer_run_to_pull_requests(
+                organization=organization,
+                pull_requests=event_payload.get("pull_requests", []),
+                run_id=run_id,
+            )
 
         for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {
