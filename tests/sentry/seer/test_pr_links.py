@@ -23,14 +23,14 @@ class LinkSeerRunToPullRequestTest(TestCase):
     def _link(
         self,
         *,
-        run_id: int = RUN_STATE_ID,
+        seer_run_state_id: int = RUN_STATE_ID,
         repo_name: str = REPO_NAME,
         provider: str = "unknown",
         pr_number: int = 42,
     ) -> SeerRunPullRequest | None:
         return link_seer_run_to_pull_request(
             organization=self.organization,
-            run_id=run_id,
+            seer_run_state_id=seer_run_state_id,
             repo_name=repo_name,
             provider=provider,
             pr_number=pr_number,
@@ -45,7 +45,7 @@ class LinkSeerRunToPullRequestTest(TestCase):
 
     def test_returns_none_when_run_not_found(self) -> None:
         with patch("sentry.seer.pr_links.logger") as mock_logger:
-            result = self._link(run_id=999999)
+            result = self._link(seer_run_state_id=999999)
 
         assert result is None
         assert not SeerRunPullRequest.objects.exists()
@@ -115,7 +115,7 @@ class LinkSeerRunToPullRequestTest(TestCase):
 
         link_seer_run_to_pull_request(
             organization=other_org,
-            run_id=5555,
+            seer_run_state_id=5555,
             repo_name=REPO_NAME,
             provider="unknown",
             pr_number=42,

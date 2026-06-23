@@ -127,15 +127,7 @@ def call_on_completion_hook(
 
 
 def _link_run_pull_requests(organization: Organization, run_id: int) -> None:
-    """Record a SeerRunPullRequest for each PR the completed run opened.
-
-    NOTE: this only fires for runs that register a completion hook — Seer calls
-    `call_on_completion_hook` only when a run has one set. A flow that opens a PR
-    without registering any completion hook will not be linked here; such flows
-    must set a completion hook for the run→PR link to be recorded.
-
-    Best-effort and killswitch-gated: never blocks the hook from running.
-    """
+    """Record a SeerRunPullRequest for each PR the completed run opened."""
     if options.get("seer.run-pr-link.killswitch.enabled"):
         return
 
@@ -154,7 +146,7 @@ def _link_run_pull_requests(organization: Organization, run_id: int) -> None:
         try:
             link_seer_run_to_pull_request(
                 organization=organization,
-                run_id=run_id,
+                seer_run_state_id=run_id,
                 repo_name=pr_state.repo_name,
                 provider=None,
                 pr_number=pr_state.pr_number,
