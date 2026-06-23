@@ -48,10 +48,11 @@ describe('ArithmeticBuilder', () => {
     const freeTextTokens = screen.queryAllByRole('combobox', {name: 'Add a term'});
     expect(freeTextTokens).toHaveLength(6);
 
-    // the delete button inside the parenthesis and operation tokens will get the focus
+    // the delete button inside the parenthesis tokens will get the focus
     const openParenToken = screen.queryByRole('gridcell', {name: 'Delete left'});
     const closeParenToken = screen.queryByRole('gridcell', {name: 'Delete right'});
-    const addOpToken = screen.queryByRole('gridcell', {name: 'Delete +'});
+    // the row inside the operation tokens will get the focus
+    const addOpToken = screen.queryByRole('row', {name: '+'});
 
     // the combobox inside the function tokens will get the focus
     const functionTokens = screen.queryAllByRole('combobox', {
@@ -161,10 +162,11 @@ describe('ArithmeticBuilder', () => {
     const freeTextTokens = screen.queryAllByRole('combobox', {name: 'Add a term'});
     expect(freeTextTokens).toHaveLength(6);
 
-    // the delete button inside the parenthesis and operation tokens will get the focus
+    // the delete button inside the parenthesis tokens will get the focus
     const openParenToken = screen.queryByRole('gridcell', {name: 'Delete left'});
     const closeParenToken = screen.queryByRole('gridcell', {name: 'Delete right'});
-    const addOpToken = screen.queryByRole('gridcell', {name: 'Delete +'});
+    // the row inside the operation tokens will get the focus
+    const addOpToken = screen.queryByRole('row', {name: '+'});
 
     // the combobox inside the function tokens will get the focus
     const functionTokens = screen.getAllByRole('combobox', {
@@ -233,7 +235,7 @@ describe('ArithmeticBuilder', () => {
       firstFreeText,
       () => screen.queryByPlaceholderText('span.duration'),
       firstFreeText,
-      () => screen.queryByRole('gridcell', {name: 'Delete +'}),
+      () => screen.queryByRole('row', {name: '+'}),
       firstFreeText,
       () => screen.queryByPlaceholderText('span.op'),
       firstFreeText,
