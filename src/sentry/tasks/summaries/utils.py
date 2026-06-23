@@ -915,6 +915,7 @@ def batch_resolve_group_urls(
             GroupLink.objects.filter(
                 group_id__in=link_group_ids,
                 linked_type__in=[GroupLink.LinkedType.pull_request, GroupLink.LinkedType.commit],
+                relationship=GroupLink.Relationship.resolves,
             )
             .order_by("group_id", "linked_type", "-datetime")
             .distinct("group_id", "linked_type")
