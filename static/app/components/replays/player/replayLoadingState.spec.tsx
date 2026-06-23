@@ -4,6 +4,7 @@ import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoading
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 type ReaderResult = ReturnType<typeof useLoadReplayReader>;
 
@@ -18,7 +19,7 @@ function makeReaderResult(overrides: Partial<ReaderResult> = {}): ReaderResult {
     isPending: false,
     onRetry: jest.fn(),
     projectSlug: 'project-slug',
-    replay: {hasProcessingErrors: () => 0} as unknown as ReplayReader,
+    replay: {hasProcessingErrors: () => 0} as ReplayReader,
     replayId: 'replay-id',
     replayRecord: undefined,
     status: 'success',
@@ -40,6 +41,7 @@ function renderState(readerResult: ReaderResult) {
   return render(
     <ReplayLoadingState
       readerResult={readerResult}
+      renderArchived={() => <div>Archived state</div>}
       renderError={() => <div>Error state</div>}
       renderThrottled={() => <div>Throttled state</div>}
       renderLoading={() => <div>Loading state</div>}
@@ -67,6 +69,17 @@ describe('ReplayLoadingState', () => {
     renderState(makeReaderResult({attachmentError: [requestError(429)]}));
 
     expect(screen.getByText('Throttled state')).toBeInTheDocument();
+  });
+
+  it('renders the archived state when the replay is archived even if a segment fetch failed', () => {
+    renderState(
+      makeReaderResult({
+        attachmentError: [requestError(500)],
+        replayRecord: {is_archived: true} as ReplayRecord,
+      })
+    );
+
+    expect(screen.getByText('Archived state')).toBeInTheDocument();
   });
 
   it('renders the error state when the replay record fetch fails', () => {
