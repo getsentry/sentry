@@ -40,6 +40,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.seer import agent_write_gate
 from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
@@ -119,7 +120,13 @@ class OrganizationPermission(DemoSafePermission):
     ) -> bool:
         self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
-        return any(request.access.has_scope(s) for s in allowed_scopes)
+        allowed = any(request.access.has_scope(s) for s in allowed_scopes)
+        if not allowed and allowed_scopes:
+            # If this denial is only because a Seer agent request was masked to
+            # read-only, raise a structured permission challenge instead of a
+            # generic 403. No-op for non-agent requests.
+            agent_write_gate.maybe_challenge(request, organization, allowed_scopes)
+        return allowed
 
     def is_member_disabled_from_limit(
         self,

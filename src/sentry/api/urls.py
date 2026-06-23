@@ -516,6 +516,7 @@ from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.seer.endpoints.issue_view_title_generate import IssueViewTitleGenerateEndpoint
+from sentry.seer.endpoints.organization_agent_approve import OrganizationAgentApproveEndpoint
 from sentry.seer.endpoints.organization_autofix_automation_settings import (
     OrganizationAutofixAutomationSettingsEndpoint,
 )
@@ -2413,6 +2414,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/setup-check/$",
         OrganizationSeerSetupCheckEndpoint.as_view(),
         name="sentry-api-0-organization-seer-setup-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agent/approve/(?P<nonce>[^/]+)/$",
+        OrganizationAgentApproveEndpoint.as_view(),
+        name="sentry-api-0-organization-agent-approve",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/onboarding-check/$",

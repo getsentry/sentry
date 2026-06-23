@@ -25,6 +25,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.seer import agent_write_gate
 from sentry.utils import auth
 
 logger = logging.getLogger(__name__)
@@ -169,6 +170,13 @@ class SentryPermission(ScopedPermission):
 
         organization = org_context.organization
         extra = {"organization_id": organization.id, "user_id": user_id}
+
+        # Seer agent requests are masked to read-only unless an approved grant
+        # covers the write scope. This short-circuits like the demo-mode path and
+        # is a no-op unless the request is genuine agent traffic with the flag on.
+        if agent_write_gate.should_gate(request, organization):
+            agent_write_gate.apply_scope_mask(request, org_context)
+            return
 
         if request.auth:
             if request.user and request.user.is_authenticated:
