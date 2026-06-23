@@ -528,6 +528,50 @@ class DiscoverQueryBuilderTest(TestCase):
             ],
         )
 
+    def test_issue_id_filter_on_transactions_is_coerced_to_string(self) -> None:
+        # Transactions has no group_id column, so issue.id is a tag and the
+        # value must be a string (Snuba rejects non-string tag conditions).
+        query = DiscoverQueryBuilder(
+            Dataset.Transactions,
+            self.params,
+            query="issue.id:123456",
+            selected_columns=["count()"],
+        )
+        assert Condition(Column("tags[issue.id]"), Op.EQ, "123456") in query.where
+        query.get_snql_query().validate()
+
+    def test_issue_id_in_filter_on_transactions_is_coerced_to_string(self) -> None:
+        query = DiscoverQueryBuilder(
+            Dataset.Transactions,
+            self.params,
+            query="issue.id:[123,456]",
+            selected_columns=["count()"],
+        )
+        assert Condition(Column("tags[issue.id]"), Op.IN, ["123", "456"]) in query.where
+        query.get_snql_query().validate()
+
+    def test_has_issue_id_filter_on_transactions_compares_tag_to_empty_string(self) -> None:
+        # `has:issue.id` compares the tag to '' (matches no transactions), not
+        # the numeric 0 used for group_id -- which would re-trigger the error.
+        query = DiscoverQueryBuilder(
+            Dataset.Transactions,
+            self.params,
+            query="has:issue.id",
+            selected_columns=["count()"],
+        )
+        assert Condition(Column("tags[issue.id]"), Op.NEQ, "") in query.where
+        query.get_snql_query().validate()
+
+    def test_issue_id_filter_on_discover_uses_group_id_column(self) -> None:
+        # On datasets with a real group_id column the value stays numeric.
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="issue.id:123456",
+            selected_columns=["count()"],
+        )
+        assert Condition(Column("group_id"), Op.EQ, 123456.0) in query.where
+
     def test_not_empty_measurement(self) -> None:
         query = DiscoverQueryBuilder(
             Dataset.Discover,
