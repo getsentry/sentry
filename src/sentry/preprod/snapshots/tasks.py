@@ -16,7 +16,9 @@ from objectstore_client import RequestError, Session
 from pydantic import BaseModel, ValidationError
 from taskbroker_client.retry import Retry
 
+from sentry import analytics
 from sentry.objectstore import get_preprod_session
+from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.categorize import categorize_image_sets
 from sentry.preprod.snapshots.constants import (
@@ -409,6 +411,16 @@ def _try_auto_approve_snapshot(
             "auto_approval": True,
             "prev_approved_artifact_id": approved_sibling.id,
         },
+    )
+
+    analytics.record(
+        PreprodStatusCheckApprovalCreatedEvent(
+            organization_id=head_artifact.project.organization_id,
+            project_id=head_artifact.project_id,
+            artifact_id=head_artifact.id,
+            product="snapshots",
+            source="auto",
+        )
     )
 
     logger.info(
