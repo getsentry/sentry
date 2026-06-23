@@ -2092,15 +2092,11 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_organization_identity(
         organization: Organization,
-        user: User | RpcUser,
         identity: Identity,
-        provider_key: str,
     ) -> OrganizationIdentity:
         return OrganizationIdentity.objects.create(
             organization_id=organization.id,
-            user_id=user.id,
             identity=identity,
-            provider_key=provider_key,
         )
 
     @staticmethod

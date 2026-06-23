@@ -38,33 +38,21 @@ class OrganizationIdentityTest(TestCase):
         )
 
     def test_unique_constraint(self) -> None:
-        self.create_organization_identity(
+        org_identity = self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=self.identity,
-            provider_key="datadog",
-        )
-        idp2 = self.create_identity_provider(type="datadog", external_id="dd-org-2")
-        identity2 = self.create_identity(
-            user=self.user,
-            identity_provider=idp2,
-            external_id="dd-user-456",
         )
         with pytest.raises(IntegrityError):
             OrganizationIdentity.objects.create(
                 organization_id=self.organization.id,
-                user_id=self.user.id,
-                identity=identity2,
-                provider_key="datadog",
+                identity=org_identity.identity,
             )
 
     def test_different_orgs_same_user_same_provider(self) -> None:
         org2 = self.create_organization(name="other-org", owner=self.user)
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=self.identity,
-            provider_key="datadog",
         )
         idp2 = self.create_identity_provider(type="datadog", external_id="dd-org-2")
         identity2 = self.create_identity(
@@ -74,45 +62,34 @@ class OrganizationIdentityTest(TestCase):
         )
         org_identity2 = self.create_organization_identity(
             organization=org2,
-            user=self.user,
             identity=identity2,
-            provider_key="datadog",
         )
         assert org_identity2.organization_id == org2.id
 
-    def test_different_providers_same_org(self) -> None:
-        gcp_idp = self.create_identity_provider(type="gcp", external_id="gcp-project-1")
-        gcp_identity = self.create_identity(
-            user=self.user,
-            identity_provider=gcp_idp,
-            external_id="gcp-user-123",
-        )
+    def test_multiple_identities_same_provider_same_org(self) -> None:
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=self.identity,
-            provider_key="datadog",
+        )
+        idp2 = self.create_identity_provider(type="datadog", external_id="dd-org-2")
+        second_datadog_identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp2,
+            external_id="dd-user-456",
         )
         org_identity2 = self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
-            identity=gcp_identity,
-            provider_key="gcp",
+            identity=second_datadog_identity,
         )
-        assert org_identity2.provider_key == "gcp"
+        assert org_identity2.identity_id == second_datadog_identity.id
         assert (
-            OrganizationIdentity.objects.filter(
-                organization_id=self.organization.id, user_id=self.user.id
-            ).count()
-            == 2
+            OrganizationIdentity.objects.filter(organization_id=self.organization.id).count() == 2
         )
 
     def test_cascade_on_identity_delete(self) -> None:
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=self.identity,
-            provider_key="datadog",
         )
         identity_id = self.identity.id
         assert OrganizationIdentity.objects.filter(identity_id=identity_id).exists()
