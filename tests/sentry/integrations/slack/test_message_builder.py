@@ -1277,3 +1277,56 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
             self.endpoint_regression_issue, self.endpoint_regression_issue.get_latest_event()
         )
         assert not tags
+
+
+class SlackAppUpdateNudgeBlockTest(TestCase):
+    channel_id = "C1234567890"
+
+    def _integration_with_scopes(self, scopes: list[str]) -> int:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="TXXXXXXX1",
+                provider="slack",
+                metadata={"scopes": scopes},
+            )
+        return integration.id
+
+    def _build_nudge_text(self, integration_id: int | None) -> str:
+        group = self.create_group(project=self.project)
+        block = SlackIssuesMessageBuilder(
+            group,
+            channel_id=self.channel_id,
+            integration_id=integration_id,
+        ).get_slack_app_update_nudge_block()
+        return block["elements"][0]["text"]
+
+    def test_updated_app_has_app_mentions_scope(self) -> None:
+        # app_mentions:read present (with history scopes deliberately absent) -> app is up to date.
+        integration_id = self._integration_with_scopes(["chat:write", "app_mentions:read"])
+        assert (
+            self._build_nudge_text(integration_id)
+            == "You can tag Sentry directly on any message to help investigate"
+        )
+
+    def test_outdated_app_missing_app_mentions_scope(self) -> None:
+        # Old install: has the optional history scopes but not the mandatory app_mentions:read.
+        integration_id = self._integration_with_scopes(
+            ["chat:write", "channels:history", "groups:history"]
+        )
+        org = self.organization
+        reinstall_url = org.absolute_url(
+            f"/settings/{org.slug}/integrations/slack/", query="showInstallModal=1"
+        )
+        assert self._build_nudge_text(integration_id) == (
+            f"<{reinstall_url}|Reinstall Sentry in Slack> to ask questions and debug faster"
+        )
+
+    def test_no_integration(self) -> None:
+        org = self.organization
+        reinstall_url = org.absolute_url(
+            f"/settings/{org.slug}/integrations/slack/", query="showInstallModal=1"
+        )
+        assert self._build_nudge_text(None) == (
+            f"<{reinstall_url}|Reinstall Sentry in Slack> to ask questions and debug faster"
+        )

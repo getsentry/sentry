@@ -71,6 +71,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         tags: set,
         integration: RpcIntegration,
         notification_uuid: str | None = None,
+        channel_id: str | None = None,
     ) -> tuple[dict[str, Any], str | None]:
         """Build the notification blocks and return the blocks and JSON representation."""
         additional_attachment = get_additional_attachment(integration, self.project.organization)
@@ -80,6 +81,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             tags=tags,
             rules=list(rules),
             notes=self.get_option("notes", ""),
+            channel_id=channel_id,
+            integration_id=integration.id,
         ).build(notification_uuid=notification_uuid)
 
         if additional_attachment:
@@ -164,7 +167,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         """Common logic for sending Slack notifications."""
         rules = [f.rule for f in futures]
         blocks, json_blocks = self._build_notification_blocks(
-            event, rules, tags, integration, notification_uuid
+            event, rules, tags, integration, notification_uuid, channel_id=channel
         )
 
         # If this flow is triggered again for the same issue, we want it to be seen in the main channel

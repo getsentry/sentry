@@ -10,7 +10,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
 from sentry import tagstore
-from sentry.constants import LOG_LEVELS
+from sentry.constants import LOG_LEVELS, ObjectStatus
 from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.integrations.messaging.message_builder import (
     build_attachment_replay_link,
@@ -21,6 +21,7 @@ from sentry.integrations.messaging.message_builder import (
     get_title_link,
     get_title_link_workflow_engine_ui,
 )
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
 from sentry.integrations.slack.message_builder.routing import encode_action_id
@@ -34,10 +35,12 @@ from sentry.integrations.slack.message_builder.types import (
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.util import build_slack_footer
+from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.utils.escape import (
     escape_slack_markdown_text,
     escape_slack_text,
 )
+from sentry.integrations.slack.utils.nudge import should_send_nudge_block
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.endpoints.group_details import get_group_global_count
@@ -423,6 +426,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         is_unfurl: bool = False,
         skip_fallback: bool = False,
         notes: str | None = None,
+        channel_id: str | None = None,
+        integration_id: int | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -438,6 +443,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
         self.notes = notes
+        self.channel_id = channel_id
+        self.integration_id = integration_id
         self._has_autofix = SeerAutofixOperator.has_access(
             organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
         ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
@@ -529,6 +536,33 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             return self.get_context_block(text=footer_text)
         else:
             return self.get_context_block(text=footer, timestamp=timestamp)
+
+    def get_slack_app_update_nudge_block(self) -> SlackBlock:
+        org = self.group.organization
+
+        scopes: set[str] = set()
+        if self.integration_id:
+            integration = integration_service.get_integration(
+                integration_id=self.integration_id, status=ObjectStatus.ACTIVE
+            )
+            if integration:
+                scopes = set(integration.metadata.get("scopes") or [])
+
+        # app_mentions:read is mandatory for every new Slack app installation, so its
+        # presence tells us the app is up to date.
+        # groups/channels:history scopes are optional, so they may not be present in
+        # new Slack app installations.
+        if SlackScope.APP_MENTIONS_READ in scopes:
+            nudge_text = "You can tag Sentry directly on any message to help investigate"
+        else:
+            reinstall_url = org.absolute_url(
+                f"/settings/{org.slug}/integrations/slack/",
+                query="showInstallModal=1",
+            )
+            nudge_text = (
+                f"<{reinstall_url}|Reinstall Sentry in Slack> to ask questions and debug faster"
+            )
+        return self.get_context_block(text=nudge_text)
 
     def build_description_block(self, description_text: str) -> SlackBlock | None:
         text = description_text.lstrip(" ")
@@ -695,6 +729,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.notes:
             notes_text = f"notes: {self.notes}"
             blocks.append(self.get_markdown_block(notes_text))
+
+        if self.channel_id and should_send_nudge_block(
+            channel_id=self.channel_id, organization=self.group.organization
+        ):
+            blocks.append(self.get_slack_app_update_nudge_block())
 
         # build footer block
         blocks.append(self.get_footer())
