@@ -953,7 +953,7 @@ describe('token', () => {
       const operator = screen.getByTestId('icon-add');
       expect(operator).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete +'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove operator +'}));
       expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
@@ -977,7 +977,7 @@ describe('token', () => {
       const operator = screen.getByTestId('icon-subtract');
       expect(operator).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete -'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove operator -'}));
       expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
@@ -1001,7 +1001,7 @@ describe('token', () => {
       const operator = screen.getByTestId('icon-multiply');
       expect(operator).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete *'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove operator *'}));
       expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
@@ -1025,7 +1025,7 @@ describe('token', () => {
       const operator = screen.getByTestId('icon-divide');
       expect(operator).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete /'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove operator /'}));
       expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
