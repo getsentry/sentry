@@ -175,12 +175,8 @@ export function LogsExportModal({
           <form.AppField name="columns">
             {field => (
               <field.Layout.Stack
-                label={
-                  <Flex gap="md" align="center">
-                    {t('All Columns?')}
-                    <InfoTip title={t('All columns are only supported by JSONL.')} />
-                  </Flex>
-                }
+                hintText={t('All columns are only supported by JSONL.')}
+                label={t('All Columns?')}
               >
                 <field.Switch
                   checked={field.state.value === ModalColumnValue.ALL}

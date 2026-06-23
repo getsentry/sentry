@@ -151,19 +151,13 @@ describe('LogsExportModal', () => {
     expect(screen.getByRole('radio', {name: 'JSONL'})).toBeChecked();
   });
 
-  it("shows the column hint when the 'All Columns' switch is off and hides it when on", async () => {
+  it("shows the All Columns hint", async () => {
     mockTimeseriesCount();
     renderModal();
 
     expect(
-      await screen.findByText('Defaults to columns visible on table.')
+      await screen.findByText('All columns are only supported by JSONL.')
     ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('checkbox', {name: 'All Columns?'}));
-
-    expect(
-      screen.queryByText('Defaults to columns visible on table.')
-    ).not.toBeInTheDocument();
   });
 
   it("POSTs with trace_item_full_export query type and jsonl format when the 'All Columns' switch is on", async () => {
