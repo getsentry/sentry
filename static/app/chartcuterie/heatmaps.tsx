@@ -37,6 +37,7 @@ export function buildHeatmapChartOption({
 
   return {
     grid: Grid({left: 10, right: 10, bottom: 10, top: 10}),
+    backgroundColor: theme.tokens.background.primary,
     xAxis: {
       type: 'category',
       axisLabel: {
