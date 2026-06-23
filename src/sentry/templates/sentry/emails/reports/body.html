@@ -12,6 +12,7 @@
     .container {
       padding-top: 18px;
       padding-bottom: 10px;
+      min-width: 360px;
     }
 
     .header td {
@@ -406,18 +407,18 @@
     {% for a in key_errors %}
     <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
-      <div style="width: 65%; min-width: 0;">
+      <div style="width: 65%; min-width: 0; overflow: hidden;">
         {% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug as issue_detail %}
         {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
-        <a title="{{a.title}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: auto; max-width: 100%; font-size: 17px; line-height: 1.2; margin-bottom: 2px;"
+        <a title="{{a.title}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-height: 21px; font-size: 17px; line-height: 1.2; margin-bottom: 2px;"
            href="{% org_url organization issue_detail query=query %}">{{a.title}}</a>
-        <div title="{{a.message}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: auto; max-width: 100%; max-height: 38px; line-height: 1.2; font-size: 14px; color: #80708F; margin-bottom: 2px;">{{a.message}}</div>
+        <div title="{{a.message}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-height: 17px; line-height: 1.2; font-size: 14px; color: #80708F; margin-bottom: 2px;">{{a.message}}</div>
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
       {% if a.group_substatus and a.group_substatus_color %}
-      <span style="background-color: {{a.group_substatus_color}}; color: {{a.group_substatus_text_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center;">{{a.group_substatus}}</span>
+      <span style="background-color: {{a.group_substatus_color}}; color: {{a.group_substatus_text_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center; line-height: 16px; white-space: nowrap; height: 20px;">{{a.group_substatus}}</span>
       {% else %}
-      <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center;">{{a.status}}</span>
+      <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center; line-height: 16px; white-space: nowrap; height: 20px;">{{a.status}}</span>
       {% endif %}
       </div>
     {% endfor %}
@@ -429,18 +430,18 @@
     {% for a in key_performance_issues %}
     <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
-      <div style="width: 65%; min-width: 0;">
+      <div style="width: 65%; min-width: 0; overflow: hidden;">
         {% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug as issue_detail %}
         {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
-        <a title="{{a.title}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: auto; max-width: 100%; font-size: 17px; line-height: 1.2; margin-bottom: 2px;"
+        <a title="{{a.title}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-height: 21px; font-size: 17px; line-height: 1.2; margin-bottom: 2px;"
            href="{% org_url organization issue_detail query=query %}">{{a.title}}</a>
-        <div title="{{a.message}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: auto; max-width: 100%; max-height: 38px; line-height: 1.2; font-size: 14px; color: #80708F; margin-bottom: 2px;">{{a.message}}</div>
+        <div title="{{a.message}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-height: 17px; line-height: 1.2; font-size: 14px; color: #80708F; margin-bottom: 2px;">{{a.message}}</div>
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
       {% if a.group_substatus and a.group_substatus_color %}
-      <span style="background-color: {{a.group_substatus_color}}; color: {{a.group_substatus_text_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center;">{{a.group_substatus}}</span>
+      <span style="background-color: {{a.group_substatus_color}}; color: {{a.group_substatus_text_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center; line-height: 16px; white-space: nowrap; height: 20px;">{{a.group_substatus}}</span>
       {% else %}
-      <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center;">{{a.status}}</span>
+      <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center; line-height: 16px; white-space: nowrap; height: 20px;">{{a.status}}</span>
       {% endif %}
     </div>
     {% endfor %}

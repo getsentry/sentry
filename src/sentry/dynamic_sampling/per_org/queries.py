@@ -39,6 +39,7 @@ class DynamicSamplingQueryFields(StrEnum):
     COUNT = "count()"
     COUNT_SAMPLE = "count_sample()"
     COUNT_UNIQUE_TRANSACTIONS = "count_unique(sentry.dsc.transaction)"
+    MAX_RECEIVED = "max(received)"
 
 
 @dataclass(order=True)
@@ -48,6 +49,7 @@ class ProjectVolume:
     keep: int
     drop: int
     num_distinct_transactions: int = 0
+    seconds_since_last_item: float | None = None
 
 
 @dataclass(order=True)
@@ -186,6 +188,7 @@ def get_eap_project_volumes(
                 DynamicSamplingQueryFields.COUNT,
                 DynamicSamplingQueryFields.COUNT_SAMPLE,
                 DynamicSamplingQueryFields.COUNT_UNIQUE_TRANSACTIONS,
+                DynamicSamplingQueryFields.MAX_RECEIVED,
             ],
             "orderby": [DynamicSamplingQueryFields.DSC_PROJECT_ID],
             "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value,
@@ -205,6 +208,9 @@ def get_eap_project_volumes(
         if dsc_project_id is None:
             continue
 
+        received = row.get(DynamicSamplingQueryFields.MAX_RECEIVED)
+        seconds_since_last_item = end_time.timestamp() - float(received) if received else None
+
         project_volumes.append(
             ProjectVolume(
                 project_id=ProjectId(int(dsc_project_id)),
@@ -212,6 +218,7 @@ def get_eap_project_volumes(
                 keep=keep,
                 drop=max(total - keep, 0),
                 num_distinct_transactions=num_distinct_transactions,
+                seconds_since_last_item=seconds_since_last_item,
             )
         )
 

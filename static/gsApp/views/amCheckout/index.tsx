@@ -802,7 +802,7 @@ function AMCheckout(props: Props) {
             {t(
               'Your promotional plan with %s ends on %s.',
               subscription.partner?.partnership.displayName,
-              moment(subscription.contractPeriodEnd).format('ll')
+              moment(subscription.billingPeriodEnd).format('ll')
             )}
           </Alert>
         </Alert.Container>

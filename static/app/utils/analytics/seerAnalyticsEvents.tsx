@@ -67,6 +67,12 @@ export type SeerAnalyticsEventsParameters = {
     organization: Organization;
     tool_name: string;
   };
+  'autofix.pr_iteration.feedback': {
+    group_id: string;
+    organization: Organization;
+    mode?: 'explorer';
+    referrer?: string;
+  };
   'autofix.root_cause.find_solution': {
     group_id: string;
     organization: Organization;
@@ -175,6 +181,7 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'autofix.code_changes.re_run': 'Autofix: Code Changes Re-run',
   'autofix.create_pr_clicked': 'Autofix: Create PR Setup Clicked',
   'autofix.evidence.clicked': 'Autofix: Evidence Clicked',
+  'autofix.pr_iteration.feedback': 'Autofix: PR Iteration Feedback',
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
   'autofix.root_cause.re_run': 'Autofix: Root Cause Re-run',
   'autofix.solution.code': 'Autofix: Code It Up',
