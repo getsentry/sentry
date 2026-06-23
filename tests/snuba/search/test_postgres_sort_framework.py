@@ -470,6 +470,13 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
 
         assert self._query(actor=self.user)[0] == self.groups[0]
 
+    def test_very_old_first_seen_does_not_overflow(self):
+        # first_seen far enough back that hours/halflife exceeds ~1024 used to overflow
+        # the float in 1.0 / 2.0**x. The query must still succeed (newness underflows to 0).
+        self.groups[0].update(first_seen=before_now(days=3000))
+
+        assert set(self._query(actor=self.user)) == set(self.groups)
+
     def _add_suspect_commit(self, group, user):
         GroupOwner.objects.create(
             group=group,

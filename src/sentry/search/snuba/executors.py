@@ -1002,7 +1002,9 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
         newness = 0.0
         if first_seen is not None and newness_halflife_hours > 0:
             hours = max(0.0, (now - first_seen).total_seconds() / 3600)
-            newness = 1.0 / 2.0 ** (hours / newness_halflife_hours)
+            # Negative exponent so very old issues underflow to 0.0 rather than
+            # overflowing the float (1.0 / 2.0**x blows up once x exceeds ~1024).
+            newness = 2.0 ** -(hours / newness_halflife_hours)
         regressed = 1.0 if data.get("substatus") == GroupSubStatus.REGRESSED else 0.0
         return (
             (data.get("recommended") or 0.0)
