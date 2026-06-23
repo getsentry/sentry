@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1118_add_group_derived_data"),
+        ("sentry", "1119_add_sentryapp_webhook_headers"),
     ]
 
     operations = [

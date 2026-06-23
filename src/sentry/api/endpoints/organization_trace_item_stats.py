@@ -220,12 +220,16 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 return {"data": []}, 0
 
             sanitized_keys = []
+            visited_public_keys = []
             for internal_name in internal_alias_attr_keys:
                 public_alias = stats_config.alias_mappings.get("string", {}).get(
                     internal_name, internal_name
                 )
 
-                if public_alias in stats_config.excluded_attributes:
+                if (
+                    public_alias in stats_config.excluded_attributes
+                    or public_alias in visited_public_keys
+                ):
                     continue
 
                 if not can_expose_attribute_to_api(
@@ -237,9 +241,11 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
 
                 if value_substring_match:
                     if value_substring_match in public_alias:
+                        visited_public_keys.append(public_alias)
                         sanitized_keys.append(internal_name)
                     continue
 
+                visited_public_keys.append(public_alias)
                 sanitized_keys.append(internal_name)
 
             # The number of attributes available across all pages drives pagination

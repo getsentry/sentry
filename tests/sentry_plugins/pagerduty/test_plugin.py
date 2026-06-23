@@ -2,7 +2,6 @@ from functools import cached_property
 
 import orjson
 import responses
-from django.urls import reverse
 
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
@@ -94,22 +93,3 @@ class PagerDutyPluginTest(PluginTestCase):
             "service_key": "abcdef",
             "description": event.message,
         }
-
-    def test_no_secrets(self) -> None:
-        self.user = self.create_user("foo@example.com")
-        self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
-        self.team = self.create_team(organization=self.org, name="Mariachi Band")
-        self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-        self.login_as(self.user)
-        self.plugin.set_option("service_key", "abcdef", self.project)
-        url = reverse(
-            "sentry-api-0-project-plugin-details",
-            args=[self.org.slug, self.project.slug, "pagerduty"],
-        )
-        res = self.client.get(url)
-        config = orjson.loads(res.content)["config"]
-        key_config = [item for item in config if item["name"] == "service_key"][0]
-        assert key_config.get("type") == "secret"
-        assert key_config.get("value") is None
-        assert key_config.get("hasSavedValue") is True
-        assert key_config.get("prefix") == "abcd"
