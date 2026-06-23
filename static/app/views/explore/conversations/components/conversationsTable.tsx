@@ -2,7 +2,7 @@ import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
@@ -28,7 +28,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
-import {ToolTags} from 'sentry/views/explore/conversations/components/toolTags';
 import {
   useConversations,
   type Conversation,
@@ -79,15 +78,14 @@ const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'conversationId', name: t('Conv. ID'), width: 0},
-  {key: 'inputOutput', name: t('First Input / Last Output'), width: COL_WIDTH_UNDEFINED},
   {key: 'user', name: t('User'), width: 120},
+  {key: 'input', name: t('Input'), width: COL_WIDTH_UNDEFINED},
   {key: 'steps', name: t('Steps'), width: 80},
-  {key: 'toolsUsed', name: t('Tools'), width: 140},
-  {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
+  {key: 'cost', name: t('Cost'), width: 120},
   {key: 'timestamp', name: t('Last Message'), width: 120},
 ];
 
-const rightAlignColumns = new Set(['steps', 'tokensAndCost', 'timestamp']);
+const rightAlignColumns = new Set(['steps', 'cost', 'timestamp']);
 
 function ConversationsTableInner() {
   const organization = useOrganization();
@@ -127,7 +125,7 @@ function ConversationsTableInner() {
           column.name
         )}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
-        {column.key === 'inputOutput' && (
+        {column.key === 'input' && (
           // Force the cell to take as much width as possible in the table
           // layout, otherwise GridEditable will let the last column grow.
           <Container width="100vw" />
@@ -250,7 +248,7 @@ const BodyCell = memo(function BodyCell({
     selection.projects
   );
 
-  const navigateToDetail = (source: 'table_input' | 'table_output') => {
+  const navigateToDetail = (source: 'table_input') => {
     trackAnalytics('conversations.table.open', {organization, source});
     navigate(detailUrl);
   };
@@ -294,30 +292,17 @@ const BodyCell = memo(function BodyCell({
         </Tooltip>
       );
     }
-    case 'inputOutput': {
+    case 'input': {
       return (
-        <Stack width="100%">
-          <InputOutputRow type="button" onClick={() => navigateToDetail('table_input')}>
-            <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
-            <Flex flex="1" minWidth="0">
-              {dataRow.firstInput ? (
-                <InputOutputTooltipCell text={dataRow.firstInput} />
-              ) : (
-                <Text variant="muted">&mdash;</Text>
-              )}
-            </Flex>
-          </InputOutputRow>
-          <InputOutputRow type="button" onClick={() => navigateToDetail('table_output')}>
-            <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
-            <Flex flex="1" minWidth="0">
-              {dataRow.lastOutput ? (
-                <InputOutputTooltipCell text={dataRow.lastOutput} />
-              ) : (
-                <Text variant="muted">&mdash;</Text>
-              )}
-            </Flex>
-          </InputOutputRow>
-        </Stack>
+        <InputOutputRow type="button" onClick={() => navigateToDetail('table_input')}>
+          <Flex flex="1" minWidth="0">
+            {dataRow.firstInput ? (
+              <InputOutputTooltipCell text={dataRow.firstInput} />
+            ) : (
+              <Text variant="muted">&mdash;</Text>
+            )}
+          </Flex>
+        </InputOutputRow>
       );
     }
     case 'steps':
@@ -326,15 +311,9 @@ const BodyCell = memo(function BodyCell({
           <Count value={dataRow.llmCalls + dataRow.toolCalls} />
         </Text>
       );
-    case 'toolsUsed':
-      if (dataRow.toolNames.length === 0) {
-        return <Text variant="muted">&mdash;</Text>;
-      }
-      return <ToolTags toolNames={dataRow.toolNames} />;
-    case 'tokensAndCost':
+    case 'cost':
       return (
         <Text as="div" align="right">
-          <Count value={dataRow.totalTokens} /> /{' '}
           {dataRow.totalCost !== null && dataRow.totalCost < 0 ? (
             <NegativeCostInfo cost={dataRow.totalCost} />
           ) : (
@@ -412,10 +391,6 @@ const InputOutputRow = styled('button')`
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.active};
   }
-`;
-
-const InputOutputLabel = styled(Text)`
-  width: 4em;
 `;
 
 const DashedUnderline = styled('span')`
