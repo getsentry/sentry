@@ -25,6 +25,8 @@ import {LaunchpadAdminPage} from 'admin/views/launchpadAdminPage';
 import {Layout} from 'admin/views/layout';
 import {NotFound} from 'admin/views/notFound';
 import {Options} from 'admin/views/options';
+import {PlatformInvoiceDetails} from 'admin/views/platformInvoiceDetails';
+import {PlatformInvoices} from 'admin/views/platformInvoices';
 import {Policies} from 'admin/views/policies';
 import {PolicyDetails} from 'admin/views/policyDetails';
 import {PrivateAPIs} from 'admin/views/privateAPIs';
@@ -102,6 +104,10 @@ function buildRoutes() {
               {
                 path: 'invoices/:region/:invoiceId/',
                 component: InvoiceDetails,
+              },
+              {
+                path: 'platform-invoices/:region/:invoiceId/',
+                component: PlatformInvoiceDetails,
               },
             ],
           },
@@ -247,6 +253,19 @@ function buildRoutes() {
           {
             path: ':invoiceId/',
             component: InvoiceDetails,
+          },
+        ],
+      },
+      {
+        path: 'platform-invoices/',
+        children: [
+          {
+            index: true,
+            component: PlatformInvoices,
+          },
+          {
+            path: ':invoiceId/',
+            component: PlatformInvoiceDetails,
           },
         ],
       },
