@@ -9,7 +9,6 @@ export function PlanFixture(fields: Partial<Plan>): Plan {
     categories: [],
     checkoutCategories: [],
     availableReservedBudgetTypes: {},
-    contractInterval: 'monthly',
     dashboardLimit: 10,
     metricDetectorLimit: 20,
     features: [],

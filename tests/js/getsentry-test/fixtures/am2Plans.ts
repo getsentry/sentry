@@ -145,7 +145,6 @@ export const AM2_PLANS = {
     userSelectable: true,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -879,7 +878,6 @@ export const AM2_PLANS = {
     userSelectable: true,
     features: AM2_FREE_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
       errors: [
@@ -981,7 +979,6 @@ export const AM2_PLANS = {
     userSelectable: true,
     features: AM2_TEAM_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -1715,7 +1712,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_TRIAL_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
       errors: [
@@ -1817,7 +1813,6 @@ export const AM2_PLANS = {
     userSelectable: true,
     features: AM2_TEAM_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -2514,7 +2509,6 @@ export const AM2_PLANS = {
     userSelectable: true,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -3212,7 +3206,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_TEAM_FEATURES,
     billingInterval: 'monthly',
-    contractInterval: 'monthly',
     allowOnDemand: true,
     planCategories: {
       errors: [{events: 5000000, unitPrice: 0.015, price: 0}],
@@ -3246,7 +3239,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_TEAM_FEATURES,
     billingInterval: 'annual',
-    contractInterval: 'annual',
     allowOnDemand: true,
     planCategories: {
       errors: [{events: 50_000, unitPrice: 0.015, price: 0}],
@@ -3280,7 +3272,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -3787,7 +3778,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -4344,7 +4334,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_TEAM_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -4916,7 +4905,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -5017,7 +5005,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [

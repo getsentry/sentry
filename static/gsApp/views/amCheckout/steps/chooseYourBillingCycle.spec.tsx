@@ -152,7 +152,7 @@ describe('ChooseYourBillingCycle', () => {
 
   it('renders for migrating partner customers', async () => {
     const partnerSub = SubscriptionFixture({
-      contractInterval: 'annual',
+      billingInterval: 'annual',
       sponsoredType: 'FOO',
       partner: {
         isActive: true,
