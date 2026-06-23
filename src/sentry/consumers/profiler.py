@@ -18,7 +18,12 @@ class JoinProfiler(ProcessingStrategy[TStrategyPayload]):
         self.__next_step = next_step
 
     def join(self, timeout: float | None = None):
-        with start_span(op="consumer_join", name="consumer.join", transaction=True):
+        with start_span(
+            op="consumer_join",
+            name="consumer.join",
+            custom_sampling_context={"sample_rate": 1.0},
+            transaction=True,
+        ):
             self.__next_step.join(timeout)
 
     def submit(self, message: Message[TStrategyPayload]) -> None:
