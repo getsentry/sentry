@@ -192,11 +192,11 @@ const Wrapper = styled('div')`
 
 const HoverFocusBorder = styled('div')`
   position: absolute;
-  top: 50%;
+  top: 0;
   left: 50%;
-  height: 33px;
-  transform: translate(-50%, -50%);
-  border-radius: 2px 2px 0 0;
+  height: calc(100% + 14px);
+  transform: translateX(-50%);
+  border-radius: 2px;
   min-width: 14px;
   width: calc(100% + 4px);
 
