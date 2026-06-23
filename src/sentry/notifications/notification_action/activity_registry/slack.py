@@ -3,6 +3,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.slack.staging.spec import SlackStagingMessagingSpec
 from sentry.integrations.slack.utils.channel import is_input_a_user_id
 from sentry.models.activity import Activity
 from sentry.notifications.notification_action.activity_registry.base import (
@@ -29,20 +30,21 @@ class SlackActivityHandler(ActivityHandler):
 
     @classmethod
     def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:
+        if invocation.action.type == Action.Type.SLACK_STAGING:
+            messaging_spec = SlackStagingMessagingSpec()
+            provider_key = NotificationProviderKey.SLACK_STAGING
+        else:
+            messaging_spec = SlackMessagingSpec()
+            provider_key = NotificationProviderKey.SLACK
         with MessagingInteractionEvent(
             interaction_type=MessagingInteractionType.SEND_ACTIVITY_ALERT_NOTIFICATION,
-            spec=SlackMessagingSpec(),
+            spec=messaging_spec,
         ).capture():
             resource_id = require_config(invocation.action, "target_identifier")
             resource_type = (
                 NotificationTargetResourceType.DIRECT_MESSAGE
                 if is_input_a_user_id(input_id=resource_id)
                 else NotificationTargetResourceType.CHANNEL
-            )
-            provider_key = (
-                NotificationProviderKey.SLACK
-                if invocation.action.type == Action.Type.SLACK
-                else NotificationProviderKey.SLACK_STAGING
             )
             target = IntegrationNotificationTarget(
                 provider_key=provider_key,
