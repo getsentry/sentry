@@ -1015,8 +1015,7 @@ function NodeActions(props: {
             size="zero"
             aria-label={t('Span JSON (Superuser Only)')}
             icon={<IconTerminal />}
-            target="_blank"
-            rel="noopener noreferrer"
+            external
           />
         </Tooltip>
       ) : null}
