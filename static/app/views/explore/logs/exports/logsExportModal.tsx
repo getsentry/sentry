@@ -7,7 +7,6 @@ import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -87,7 +86,6 @@ export function LogsExportModal({
       const isAllColumns = value.columns === 'all';
       const passedSyncLimit = value.limit > ROW_COUNT_VALUE_SYNC_LIMIT;
 
-      // The backend only supports exporting all columns in JSONL format.
       const format = isAllColumns ? 'jsonl' : value.format;
 
       trackAnalytics('explore.table_exported', {
@@ -163,14 +161,9 @@ export function LogsExportModal({
                 disabled={columnsValue === ModalColumnValue.ALL}
               >
                 <field.Layout.Stack label={t('Format')}>
-                  <Tooltip
-                    title={t('All columns are only supported by JSONL.')}
-                    disabled={columnsValue !== ModalColumnValue.ALL}
-                  >
-                    <field.Radio.Item value={ModalColumnFormat.CSV}>
-                      {t('CSV')}
-                    </field.Radio.Item>
-                  </Tooltip>
+                  <field.Radio.Item value={ModalColumnFormat.CSV}>
+                    {t('CSV')}
+                  </field.Radio.Item>
                   <field.Radio.Item value={ModalColumnFormat.JSONL}>
                     {t('JSONL')}
                   </field.Radio.Item>
