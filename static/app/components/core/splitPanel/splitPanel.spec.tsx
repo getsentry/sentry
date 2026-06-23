@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SplitPanel} from 'sentry/components/splitPanel';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 describe('SplitPanel', () => {
   it('renders both panes and a divider', () => {
@@ -101,7 +101,7 @@ describe('SplitPanel', () => {
         />
       );
 
-      // 600 container − 400 fill min − 1 divider = 199.
+      // 600 container - 400 fill min - 1 divider = 199.
       expect(screen.getByRole('separator')).toHaveAttribute('aria-valuemax', '199');
 
       clientWidth.mockRestore();
