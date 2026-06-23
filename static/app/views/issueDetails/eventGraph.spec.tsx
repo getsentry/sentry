@@ -10,6 +10,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventGraph} from 'sentry/views/issueDetails/eventGraph';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
 
@@ -63,16 +64,21 @@ describe('EventGraph', () => {
   });
 
   it('displays allows toggling data sets', async () => {
-    render(<EventDetailsHeader {...defaultProps} />, {
-      organization,
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <EventDetailsHeader {...defaultProps} />
+      </GroupDataContextProvider>,
+      {
+        organization,
 
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/issues/group-id/',
-          query: {statsPeriod: '14d'},
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/group-id/',
+            query: {statsPeriod: '14d'},
+          },
         },
-      },
-    });
+      }
+    );
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     const eventsToggle = screen.getByRole('button', {
@@ -104,16 +110,21 @@ describe('EventGraph', () => {
   });
 
   it('renders the graph using a discover event stats query', async () => {
-    render(<EventGraph {...defaultProps} />, {
-      organization,
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <EventGraph {...defaultProps} />
+      </GroupDataContextProvider>,
+      {
+        organization,
 
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/issues/group-id/',
-          query: {statsPeriod: '14d'},
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/group-id/',
+            query: {statsPeriod: '14d'},
+          },
         },
-      },
-    });
+      }
+    );
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     expect(mockEventStats).toHaveBeenCalledWith(
@@ -137,16 +148,21 @@ describe('EventGraph', () => {
   });
 
   it('allows filtering by environment, and shows unfiltered stats', async () => {
-    render(<EventDetailsHeader {...defaultProps} />, {
-      organization,
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <EventDetailsHeader {...defaultProps} />
+      </GroupDataContextProvider>,
+      {
+        organization,
 
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/issues/group-id/',
-          query: {statsPeriod: '14d'},
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/group-id/',
+            query: {statsPeriod: '14d'},
+          },
         },
-      },
-    });
+      }
+    );
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
@@ -180,16 +196,21 @@ describe('EventGraph', () => {
     const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
     const query = `${tagKey}:${tagValue}`;
 
-    render(<EventDetailsHeader {...defaultProps} />, {
-      organization,
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <EventDetailsHeader {...defaultProps} />
+      </GroupDataContextProvider>,
+      {
+        organization,
 
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/issues/group-id/',
-          query: {statsPeriod: '14d', query},
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/group-id/',
+            query: {statsPeriod: '14d', query},
+          },
         },
-      },
-    });
+      }
+    );
     await waitFor(() => {
       expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument();
     });
@@ -214,16 +235,21 @@ describe('EventGraph', () => {
   });
 
   it('allows filtering by date', async () => {
-    render(<EventDetailsHeader {...defaultProps} />, {
-      organization,
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <EventDetailsHeader {...defaultProps} />
+      </GroupDataContextProvider>,
+      {
+        organization,
 
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/issues/group-id/',
-          query: {statsPeriod: '14d'},
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/group-id/',
+            query: {statsPeriod: '14d'},
+          },
         },
-      },
-    });
+      }
+    );
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: '14D'}));
@@ -248,16 +274,21 @@ describe('EventGraph', () => {
       statusCode: 400,
     });
 
-    render(<EventDetailsHeader {...defaultProps} />, {
-      organization,
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <EventDetailsHeader {...defaultProps} />
+      </GroupDataContextProvider>,
+      {
+        organization,
 
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/issues/group-id/',
-          query: {statsPeriod: '14d'},
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/group-id/',
+            query: {statsPeriod: '14d'},
+          },
         },
-      },
-    });
+      }
+    );
     await screen.findByRole('button', {name: '14D'});
 
     expect(mockStats).toHaveBeenCalled();

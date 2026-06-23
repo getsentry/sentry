@@ -1,10 +1,8 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {
@@ -12,6 +10,7 @@ import {
   knownAgentIntegrationsQueryOptions,
   parseAgentOption,
 } from 'sentry/utils/seer/preferredAgent';
+import {getSeerProjectReposInfiniteQueryOptions} from 'sentry/utils/seer/seerProjectRepos';
 import {
   getInfiniteSeerProjectsSettingsQueryOptions,
   getSeerProjectSettingsQueryOptions,
@@ -99,14 +98,14 @@ export function useMutateAutofixProject() {
       //    provider/owner/name matching cannot. Its replace-all is transactional,
       //    so if this request fails we abort before touching settings and
       //    nothing is persisted.
+      const reposQueryOptions = getSeerProjectReposInfiniteQueryOptions({
+        organization,
+        project,
+      });
+      const [reposUrl] = reposQueryOptions.queryKey;
       await fetchMutation({
         method: 'PUT',
-        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/repos/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.slug,
-          },
-        }),
+        url: reposUrl,
         data: {repos},
       });
 
@@ -150,9 +149,6 @@ export function useMutateAutofixProject() {
       queryClient.invalidateQueries({
         queryKey: projectSeerPreferencesApiOptions(organization.slug, project.slug)
           .queryKey,
-      });
-      queryClient.invalidateQueries({
-        queryKey: bulkAutofixAutomationSettingsInfiniteOptions({organization}).queryKey,
       });
       queryClient.invalidateQueries({
         queryKey: getSeerProjectSettingsQueryOptions({

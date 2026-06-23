@@ -90,6 +90,7 @@ class OrganizationSummarySerializerTest(TestCase):
             "invite-members",
             "open-membership",
             "relay",
+            "sentry-app-schema-form-migration",
             "session-replay-ui",
             "shared-issues",
             "sso-basic",

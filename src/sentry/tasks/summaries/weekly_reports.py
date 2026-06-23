@@ -36,7 +36,7 @@ from sentry.tasks.summaries.metrics import (
 from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
-from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
+from sentry.tasks.summaries.utils import ONE_DAY, PAST_ISSUES_LINK_BOOST, OrganizationReportContext
 from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
@@ -780,6 +780,23 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
 
+    def past_issues():
+        def all_past_issues():
+            for project_ctx in user_projects:
+                for group, count, has_linked_pr_or_commit in project_ctx.past_resolved_issues:
+                    display = get_group_display(group)
+                    yield {
+                        "count": count,
+                        "group": group,
+                        "title": display["title"],
+                        "message": display["message"],
+                        "has_linked_pr_or_commit": has_linked_pr_or_commit,
+                        "_relevance": count
+                        * (PAST_ISSUES_LINK_BOOST if has_linked_pr_or_commit else 1),
+                    }
+
+        return heapq.nlargest(3, all_past_issues(), lambda d: d["_relevance"])
+
     def issue_summary():
         new_substatus_count = 0
         escalating_substatus_count = 0
@@ -800,6 +817,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             "total_substatus_count": total_substatus_count,
         }
 
+    show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
+
     return {
         "organization": ctx.organization,
         "start": date_format(local_start),
@@ -808,6 +827,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
+        "past_issues": past_issues() if show_past_issues else [],
+        "show_past_issues": show_past_issues,
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
