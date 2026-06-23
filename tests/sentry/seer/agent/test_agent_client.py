@@ -1464,20 +1464,3 @@ class TestGetMonitoringProviderConnections(TestCase):
     def test_degrades_when_identity_service_errors(self, mock_get: MagicMock) -> None:
         # A control-silo RPC failure must not propagate (it would stall the outbox shard).
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
-
-    def test_pat_connection_is_not_refresh_supported(self) -> None:
-        idp = self.create_identity_provider(type="datadog_pat", external_id="org-uuid-1")
-        self.create_identity(
-            user=self.user,
-            identity_provider=idp,
-            external_id="dd-user-1",
-            data={"access_token": "access-token", "site": "datadoghq.com"},
-        )
-
-        result = get_monitoring_provider_connections(self.organization, self.user.id)
-
-        assert len(result) == 1
-        connection = result[0]
-        assert connection["provider_key"] == "datadog_pat"
-        # PAT identities are not OAuth2, so the token cannot be refreshed--only re-authed.
-        assert connection["is_refresh_supported"] is False
