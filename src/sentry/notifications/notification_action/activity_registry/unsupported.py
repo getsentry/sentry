@@ -20,9 +20,7 @@ logger = logging.getLogger(__name__)
 @activity_handler_registry.register(Action.Type.JIRA)
 @activity_handler_registry.register(Action.Type.JIRA_SERVER)
 @activity_handler_registry.register(Action.Type.AZURE_DEVOPS)
-@activity_handler_registry.register(Action.Type.SENTRY_APP)
 @activity_handler_registry.register(Action.Type.PLUGIN)
-@activity_handler_registry.register(Action.Type.WEBHOOK)
 class UnsupportedActivityHandler(ActivityHandler):
     compatible_activity_types = NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES
 
