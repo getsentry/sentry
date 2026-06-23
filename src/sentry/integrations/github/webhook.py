@@ -1018,7 +1018,6 @@ class PullRequestEventWebhook(GitHubWebhook):
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
     WEBHOOK_EVENT_PROCESSORS = (
         _handle_pr_webhook_for_autofix_processor,
-        # Seeds the contributor before code review's preflight; records the PR-opened billing action.
         _track_contributor_action_processor,
         code_review_handle_webhook_event,
         pr_metrics_handle_attribution,
