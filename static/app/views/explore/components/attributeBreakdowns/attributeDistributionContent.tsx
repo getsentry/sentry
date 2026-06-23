@@ -80,7 +80,7 @@ export function AttributeDistribution() {
           disableAggregateExtrapolation: '1',
           sampling: SAMPLING_MODE.NORMAL,
         },
-        staleTime: 0,
+        staleTime: Infinity,
       }
     ),
     select: selectJsonWithHeaders,
