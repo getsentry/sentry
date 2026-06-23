@@ -8,7 +8,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconClock, IconEllipsis, IconExpand, IconGraph} from 'sentry/icons';
+import {IconClock, IconContract, IconEllipsis, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -234,18 +234,20 @@ function Graph({
         menuTitle="Interval"
         options={intervalOptions}
       />
-      <ContextMenu
-        interval={interval}
-        visualize={visualize}
-        setVisible={onChartVisibilityChange}
+      <ContextMenu interval={interval} visualize={visualize} />
+      <Button
+        aria-label={t('Collapse chart')}
+        icon={<IconContract />}
+        onClick={() => onChartVisibilityChange(false)}
+        size="xs"
       />
     </Fragment>
   ) : (
     <Button
-      aria-label="Expand"
+      aria-label={t('Expand chart')}
       icon={<IconExpand />}
       onClick={() => onChartVisibilityChange(true)}
-      size="sm"
+      size="xs"
     />
   );
 
@@ -276,15 +278,7 @@ function Graph({
   );
 }
 
-function ContextMenu({
-  interval,
-  visualize,
-  setVisible,
-}: {
-  interval: string;
-  setVisible: (visible: boolean) => void;
-  visualize: Visualize;
-}) {
+function ContextMenu({interval, visualize}: {interval: string; visualize: Visualize}) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -304,12 +298,6 @@ function ContextMenu({
     const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
     return [
-      {
-        key: 'hide-chart',
-        textValue: t('Collapse Chart'),
-        label: t('Collapse Chart'),
-        onAction: () => setVisible(false),
-      },
       {
         key: 'create-alert',
         textValue: t('Create an Alert'),
@@ -408,7 +396,6 @@ function ContextMenu({
     pageFilters,
     projects,
     search,
-    setVisible,
     visualize.chartType,
     visualize.yAxis,
   ]);
