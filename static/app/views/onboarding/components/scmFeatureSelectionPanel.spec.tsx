@@ -53,10 +53,9 @@ describe('ScmFeatureSelectionPanel', () => {
       {organization}
     );
 
-    // Feature cards still render, just without the trial/billing framing.
-    expect(
-      await screen.findByText('What do you want to instrument?')
-    ).toBeInTheDocument();
+    // Feature cards still render under a Products header, without the
+    // trial/billing framing.
+    expect(await screen.findByText('Products')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeInTheDocument();
 
     expect(screen.queryByText(/unlimited volume for 14 days/)).not.toBeInTheDocument();

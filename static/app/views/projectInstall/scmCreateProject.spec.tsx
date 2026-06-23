@@ -104,7 +104,7 @@ describe('ScmCreateProject', () => {
     // All sections render up front (no progressive disclosure): the repository,
     // platform, and project-details sections are all present at once.
     expect(await screen.findByRole('heading', {name: 'Repository'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Select a platform'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Platform'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Project name'})).toBeInTheDocument();
 
     // Nothing is filled in yet, so the primary action stays disabled.
