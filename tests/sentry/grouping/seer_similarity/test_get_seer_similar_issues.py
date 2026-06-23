@@ -7,7 +7,7 @@ from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
-from sentry.grouping.ingest.seer import _get_event_exception_type, get_seer_similar_issues
+from sentry.grouping.ingest.seer import get_seer_similar_issues
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
@@ -623,60 +623,6 @@ class ParentGroupFoundTest(TestCase):
                 "no_matches_usable",
                 value=1,
             )
-
-
-class GetEventExceptionTypeTest(TestCase):
-    def _event(self, data: dict[str, Any]) -> Event:
-        return Event(project_id=self.project.id, event_id="a" * 32, data=data)
-
-    def test_extracts_type_without_event_type_discriminator(self) -> None:
-        # Events built outside full ingestion have no top-level "type" key. Extraction must still
-        # work by reading the exception values directly (i.e. not depend on the discriminator).
-        event = self._event({"exception": {"values": [{"type": "ValueError", "value": "nope"}]}})
-        assert "type" not in event.data
-        assert _get_event_exception_type(event) == "ValueError"
-
-    def test_returns_none_for_synthetic_exception(self) -> None:
-        event = self._event(
-            {
-                "exception": {
-                    "values": [
-                        {"type": "SystemExit", "mechanism": {"type": "generic", "synthetic": True}}
-                    ]
-                }
-            }
-        )
-        assert _get_event_exception_type(event) is None
-
-    def test_respects_main_exception_id(self) -> None:
-        # The main exception is not the last one in the list; extraction must use the main one,
-        # matching how the parent's stored metadata.type is computed.
-        event = self._event(
-            {
-                "main_exception_id": 1,
-                "exception": {
-                    "values": [
-                        {"type": "MainError", "mechanism": {"type": "chained", "exception_id": 1}},
-                        {"type": "LastError", "mechanism": {"type": "chained", "exception_id": 2}},
-                    ]
-                },
-            }
-        )
-        assert _get_event_exception_type(event) == "MainError"
-
-    def test_returns_none_without_exception(self) -> None:
-        assert _get_event_exception_type(self._event({"message": "no exception here"})) is None
-
-    def test_normalizes_type_like_stored_metadata(self) -> None:
-        # Long types are trimmed exactly as ErrorEvent.extract_metadata stores them on the parent,
-        # so the comparison in _should_use_seer_match_for_grouping stays apples-to-apples (a raw,
-        # untrimmed event-side type would have falsely mismatched the trimmed parent type).
-        long_type = "E" * 200
-        event = self._event({"exception": {"values": [{"type": long_type}]}})
-        result = _get_event_exception_type(event)
-        assert result is not None
-        assert result != long_type
-        assert len(result) <= 128
 
 
 class ExceptionTypeMismatchTest(TestCase):
