@@ -47,7 +47,7 @@ export function ReplayLoadingState({
       <ReplayRequestsThrottledAlert />
     );
   }
-  if (readerResult.fetchError) {
+  if (readerResult.fetchError || readerResult.attachmentError?.length) {
     return renderError ? (
       renderError(readerResult)
     ) : (
