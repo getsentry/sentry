@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry import analytics, features
+from sentry import analytics, features, options
 from sentry.analytics.events.autofix_events import (
     AiAutofixIntrospectionEvent,
     AiAutofixPrCreatedCompletedEvent,
@@ -44,6 +44,7 @@ from sentry.seer.models import (
     SeerAutomationHandoffConfiguration,
     SeerRun,
 )
+from sentry.seer.pr_links import link_seer_run_to_pull_request
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
@@ -126,6 +127,34 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         return None
 
     @classmethod
+    def _link_pull_requests(
+        cls, organization: Organization, run_id: int, state: SeerRunState
+    ) -> None:
+        """Record a SeerRunPullRequest for each PR this run just opened.
+
+        Best-effort and killswitch-gated: a failure here must never break webhook
+        delivery or the autofix pipeline.
+        """
+        if options.get("seer.run-pr-link.killswitch.enabled"):
+            return
+        for pr_state in state.repo_pr_states.values():
+            if pr_state.pr_number is None:
+                continue
+            try:
+                link_seer_run_to_pull_request(
+                    organization=organization,
+                    run_id=run_id,
+                    repo_name=pr_state.repo_name,
+                    provider=None,
+                    pr_number=pr_state.pr_number,
+                )
+            except Exception:
+                logger.exception(
+                    "autofix.on_completion_hook.pr_link_failed",
+                    extra={"run_id": run_id, "organization_id": organization.id},
+                )
+
+    @classmethod
     def _send_step_webhook(
         cls,
         organization: Organization,
@@ -171,6 +200,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 webhook_action_type = SeerActionType.PR_CREATED
                 webhook_payload["pull_requests"] = cls._format_pull_requests_payload(state)
                 is_pr_created = True
+                cls._link_pull_requests(organization, run_id, state)
                 analytics.record(
                     AiAutofixPrCreatedCompletedEvent(
                         organization_id=organization.id,

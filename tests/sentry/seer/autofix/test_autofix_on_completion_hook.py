@@ -1,6 +1,7 @@
 from typing import TypedDict
 from unittest.mock import MagicMock, patch
 
+from sentry.models.pullrequest import PullRequest
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
     Artifact,
@@ -19,9 +20,11 @@ from sentry.seer.autofix.on_completion_hook import (
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 
 
 def run_state(run_id=123, blocks: list[MemoryBlock] | None = None, metadata=None):
@@ -499,6 +502,67 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             mock_analytics.call_args.args[0].referrer
             == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value
         )
+
+    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
+    @patch("sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_pr_created_links_run_to_pr(
+        self, mock_broadcast, mock_has_access, mock_process, mock_analytics
+    ):
+        mock_has_access.return_value = True
+        repo = self.create_repo(self.project, name="test-repo", provider="integrations:github")
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ]
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="completed",
+            )
+        }
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        pr = PullRequest.objects.get(repository_id=repo.id, key="7")
+        link = SeerRunPullRequest.objects.get(pull_request=pr)
+        assert link.seer_run_state_id == 123
+        assert link.seer_run_id == seer_run.id
+
+    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
+    @patch("sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_pr_created_killswitch_skips_link(
+        self, mock_broadcast, mock_has_access, mock_process, mock_analytics
+    ):
+        mock_has_access.return_value = True
+        self.create_repo(self.project, name="test-repo", provider="integrations:github")
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ]
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo", pr_id=77, pr_number=7, pr_creation_status="completed"
+            )
+        }
+
+        with override_options({"seer.run-pr-link.killswitch.enabled": True}):
+            AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        assert not SeerRunPullRequest.objects.exists()
 
     @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")

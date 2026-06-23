@@ -29,7 +29,6 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
 )
 from sentry.seer.models import SeerPermissionError
-from sentry.seer.pr_links import link_seer_run_to_pull_requests
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
@@ -682,21 +681,6 @@ def process_autofix_updates(
             except Exception:
                 logger.exception(
                     "seer.pr_attribution.failed",
-                    extra={"group_id": group_id, "run_id": run_id},
-                )
-
-        if event_type == SentryAppEventType.SEER_PR_CREATED and features.has(
-            "organizations:seer-run-pr-link", organization
-        ):
-            try:
-                link_seer_run_to_pull_requests(
-                    organization=organization,
-                    pull_requests=event_payload.get("pull_requests", []),
-                    run_id=run_id,
-                )
-            except Exception:
-                logger.exception(
-                    "seer.pr_link.failed",
                     extra={"group_id": group_id, "run_id": run_id},
                 )
 
