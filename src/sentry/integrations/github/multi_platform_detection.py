@@ -43,6 +43,7 @@ from sentry.integrations.github.platform_registry import (
 from sentry.integrations.github.platform_registry import (
     _PackageManifest as _PackageManifest,
 )
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 if TYPE_CHECKING:
     from sentry.integrations.github.client import GitHubBaseClient
@@ -626,10 +627,18 @@ def detect_platforms_multi(
 
     content_reads_start = time.monotonic()
     content_by_path: dict[str, str] = {}
-    for path in capped_paths:
-        content = _get_repo_file_content(client, repo, path, ref)
-        if content is not None:
-            content_by_path[path] = content
+    if capped_paths:
+        with ContextPropagatingThreadPoolExecutor(
+            max_workers=min(MAX_CONTENT_READS, len(capped_paths))
+        ) as pool:
+            future_to_path = {
+                pool.submit(_get_repo_file_content, client, repo, path, ref): path
+                for path in capped_paths
+            }
+            for future, path in future_to_path.items():
+                content = future.result()
+                if content is not None:
+                    content_by_path[path] = content
     content_reads_duration_ms = (time.monotonic() - content_reads_start) * 1000
 
     manifests_by_path: dict[str, _PackageManifest] = {}
