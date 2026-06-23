@@ -1,4 +1,5 @@
-import {useRef} from 'react';
+import type {MouseEvent} from 'react';
+import {useCallback, useRef} from 'react';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
@@ -11,6 +12,7 @@ import {
   Row,
 } from 'sentry/components/arithmeticBuilder/token/styles';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
+import {shiftFocusToChild} from 'sentry/components/tokenizedInput/token/utils';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconDivide} from 'sentry/icons/iconDivide';
@@ -36,6 +38,14 @@ export function ArithmeticTokenOperator({
     focusable: true,
   });
 
+  const handleOnClick = useCallback(
+    (evt: MouseEvent<HTMLDivElement>) => {
+      evt.stopPropagation();
+      shiftFocusToChild(evt.currentTarget, item, state);
+    },
+    [item, state]
+  );
+
   const operator =
     token.operator === Operator.PLUS ? (
       <IconAdd size="xs" />
@@ -59,6 +69,7 @@ export function ArithmeticTokenOperator({
       aria-label={token.operator}
       aria-invalid={false}
       withBorder
+      onClick={handleOnClick}
     >
       <LeftGridCell {...gridCellProps}>{operator}</LeftGridCell>
       <GridCell {...gridCellProps}>
@@ -66,6 +77,7 @@ export function ArithmeticTokenOperator({
           token={token}
           focusOverrideKey={state.collection.getKeyBefore(item.key)?.toString() ?? null}
           label={t('Remove operator %s', token.operator)}
+          tabIndex={-1}
         />
       </GridCell>
     </Row>

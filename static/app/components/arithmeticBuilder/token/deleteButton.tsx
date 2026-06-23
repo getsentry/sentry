@@ -12,9 +12,10 @@ interface DeleteButtonProps {
   token: Token;
   focusOverrideKey?: string | null;
   label?: string;
+  tabIndex?: number;
 }
 
-export function DeleteButton({token, focusOverrideKey, label}: DeleteButtonProps) {
+export function DeleteButton({token, focusOverrideKey, label, tabIndex}: DeleteButtonProps) {
   const {dispatch} = useArithmeticBuilder();
 
   const onClick = useCallback(() => {
@@ -26,7 +27,7 @@ export function DeleteButton({token, focusOverrideKey, label}: DeleteButtonProps
   }, [dispatch, token, focusOverrideKey]);
 
   return (
-    <StyledDeleteButton aria-label={label} onClick={onClick}>
+    <StyledDeleteButton aria-label={label} onClick={onClick} tabIndex={tabIndex}>
       <InteractionStateLayer />
       <IconClose legacySize="8px" />
     </StyledDeleteButton>
