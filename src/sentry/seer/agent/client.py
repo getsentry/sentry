@@ -121,6 +121,7 @@ def get_monitoring_provider_connections(
     connections: list[dict[str, Any]] = []
     for provider_type in MONITORING_PROVIDERS:
         provider = identity_manager.get(provider_type)
+        is_oauth_provider = isinstance(provider, OAuth2Provider)
         if not isinstance(provider, McpIdentityProvider):
             continue
 
@@ -158,7 +159,7 @@ def get_monitoring_provider_connections(
                     "url": url,
                     "encrypted_access_token": encrypted_access_token,
                     "identity_id": identity.id,
-                    "auth_method": "oauth" if isinstance(provider, OAuth2Provider) else "pat",
+                    "auth_method": "oauth" if is_oauth_provider else "pat",
                 }
             )
 
