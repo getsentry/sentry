@@ -529,9 +529,8 @@ class DiscoverQueryBuilderTest(TestCase):
         )
 
     def test_issue_id_filter_on_transactions_is_coerced_to_string(self) -> None:
-        # The transactions dataset has no group_id column, so issue.id resolves
-        # to a tag (tags[issue.id]). Snuba rejects tag conditions whose value is
-        # not a string, so the value must be coerced to a string.
+        # Transactions has no group_id column, so issue.id is a tag and the
+        # value must be a string (Snuba rejects non-string tag conditions).
         query = DiscoverQueryBuilder(
             Dataset.Transactions,
             self.params,
@@ -552,10 +551,8 @@ class DiscoverQueryBuilderTest(TestCase):
         query.get_snql_query().validate()
 
     def test_has_issue_id_filter_on_transactions_compares_tag_to_empty_string(self) -> None:
-        # `has:issue.id` on transactions must compare the tag against an empty
-        # string (matching no rows, since transactions have no error issue), not
-        # against the numeric 0 used for the group_id column -- the latter would
-        # re-trigger the Snuba "must be a string" tag validation error.
+        # `has:issue.id` compares the tag to '' (matches no transactions), not
+        # the numeric 0 used for group_id -- which would re-trigger the error.
         query = DiscoverQueryBuilder(
             Dataset.Transactions,
             self.params,
