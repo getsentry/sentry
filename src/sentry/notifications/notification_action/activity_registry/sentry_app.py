@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
@@ -69,6 +69,8 @@ class WorkflowData(TypedDict):
     id: int
     name: str
     url: str
+    # If Alert Rule UI Components are specified on the Sentry App, they're included here
+    settings: NotRequired[dict[str, Any]]
 
 
 class ActivityAlertWebhookPayload(TypedDict):
@@ -138,19 +140,28 @@ def _build_activity_data(activity: Activity) -> ActivityData:
             return ActivityData(type=str(activity_alert_type), details={})
 
 
-def _build_workflow_data(invocation: ActionInvocation, organization: Organization) -> WorkflowData:
+def _build_workflow_data(
+    invocation: ActionInvocation, organization: Organization, install: RpcSentryAppInstallation
+) -> WorkflowData:
     try:
         workflow = Workflow.objects.get(id=invocation.workflow_id, organization_id=organization.id)
     except Workflow.DoesNotExist:
         raise ValueError(f"Workflow not found: {invocation.workflow_id}")
 
-    return WorkflowData(
+    workflow_data = WorkflowData(
         id=workflow.id,
-        name=workflow.name,
+        title=workflow.name,
+        sentry_app_id=install.sentry_app.id,
         url=organization.absolute_url(
             f"organizations/{organization.slug}/monitors/alerts/{workflow.id}/"
         ),
     )
+
+    settings = invocation.action.data.get("settings")
+    if settings:
+        workflow_data["settings"] = settings
+
+    return workflow_data
 
 
 @activity_handler_registry.register(Action.Type.SENTRY_APP)
@@ -186,7 +197,9 @@ class SentryAppActivityHandler(ActivityHandler):
             data = ActivityAlertWebhookPayload(
                 issue=_build_issue_data(group=group),
                 activity=_build_activity_data(activity=activity),
-                alert=_build_workflow_data(invocation=invocation, organization=organization),
+                alert=_build_workflow_data(
+                    invocation=invocation, organization=organization, install=install
+                ),
             )
             request_data = AppPlatformEvent[ActivityAlertWebhookPayload](
                 resource=SentryAppResourceType.ACTIVITY_ALERT,
