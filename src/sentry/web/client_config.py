@@ -491,6 +491,7 @@ class _ClientConfig:
                 "allowUrls": self.allow_list,
                 "tracePropagationTargets": settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS or [],
             },
+            # TODO(cells) remove this after UI changes are out.
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
             "demoMode": is_demo_mode_enabled() and is_demo_user(self.user),
             "enableAnalytics": settings.ENABLE_ANALYTICS,
