@@ -395,10 +395,15 @@ def as_attribute_key(
     if secondary_aliases:
         attribute_key["secondaryAliases"] = sorted(secondary_aliases)
 
-    if include_context and serialized_source["source_type"] == AttributeSourceType.SENTRY.value:
-        context = build_sentry_convention_context(public_name, name)
-        if context is not None:
-            attribute_key["context"] = context
+    if include_context:
+        # When context is requested we always attach it, even for custom
+        # (non-sentry-convention) attributes. Today only sentry-convention
+        # attributes have metadata to surface, so custom attributes get an empty
+        # context for now; serving custom attribute context is planned.
+        context: TraceItemAttributeContext = {}
+        if serialized_source["source_type"] == AttributeSourceType.SENTRY.value:
+            context = build_sentry_convention_context(public_name, name) or {}
+        attribute_key["context"] = context
 
     return attribute_key
 

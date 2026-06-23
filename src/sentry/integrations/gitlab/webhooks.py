@@ -708,8 +708,10 @@ class GitlabWebhookEndpoint(Endpoint):
             "webhook.integration.status": integration.status,  # 0 seems to be active
             # Logs/EAP attributes are scalar-first; a list serializes as an
             # "array" attribute that the Logs explorer won't expose as a
-            # queryable column. Join to a string so it's filterable.
-            "webhook.org_ids": ",".join(str(install.organization_id) for install in installs),
+            # queryable column. Join to a string so it's filterable. Some
+            # integrations are installed on a huge number of orgs, so cap the
+            # list to keep the log attribute from blowing up.
+            "webhook.org_ids": ",".join(str(install.organization_id) for install in installs[:25]),
         }
 
         if not constant_time_compare(secret, integration.metadata["webhook_secret"]):

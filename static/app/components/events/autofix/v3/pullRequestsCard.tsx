@@ -54,7 +54,9 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
         if (pullRequest.pr_creation_status === 'creating') {
           return (
             <Button key={pullRequest.repo_name} variant="primary" disabled>
-              {t('Creating PR in %s', pullRequest.repo_name)}
+              {pullRequest.pr_number
+                ? t('Updating PR in %s', pullRequest.repo_name)
+                : t('Creating PR in %s', pullRequest.repo_name)}
             </Button>
           );
         }
