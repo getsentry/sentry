@@ -7,7 +7,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.activity_registry.base import (
-    NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES,
     extract_models,
     require_config,
 )
@@ -157,7 +156,7 @@ def _build_workflow_data(invocation: ActionInvocation, organization: Organizatio
 @activity_handler_registry.register(Action.Type.SENTRY_APP)
 @activity_handler_registry.register(Action.Type.WEBHOOK)
 class SentryAppActivityHandler(ActivityHandler):
-    compatible_activity_types = NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES
+    compatible_activity_types = [ActivityType(key) for key in ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE]
 
     @classmethod
     def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:
