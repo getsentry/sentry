@@ -277,6 +277,7 @@ def _parse_locality_config(
             cells=frozenset(config_value["cells"]),
             new_org_cell=config_value["new_org_cell"],
             visible=bool(config_value.get("visible", True)),
+            signup_visible=bool(config_value.get("signup_visible", True)),
         )
 
 

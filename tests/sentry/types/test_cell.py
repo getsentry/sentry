@@ -126,6 +126,32 @@ class CellDirectoryTest(TestCase):
             directory = load_from_config(self._INPUTS, [])
         assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
 
+    def test_cell_config_parsing_signup_visibility(self) -> None:
+        cells: list[CellConfig] = [
+            {
+                "name": "us",
+                "snowflake_id": 1,
+                "address": "https://us.testserver",
+            },
+        ]
+        localities: list[LocalityConfig] = [
+            {
+                "name": "us",
+                "cells": ["us"],
+                "category": RegionCategory.MULTI_TENANT.name,
+                "new_org_cell": "us",
+                "visible": False,
+                "signup_visible": False,
+            },
+        ]
+        with override_settings(SENTRY_FALLBACK_CELL="us"):
+            directory = load_from_config(cells, localities)
+
+            locality = directory.get_locality_by_name("us")
+            assert locality
+            assert locality.visible is False
+            assert locality.signup_visible is False
+
     @override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL="us")
     def test_get_local_cell(self) -> None:
         with override_settings(SENTRY_FALLBACK_CELL="us"):
@@ -355,6 +381,12 @@ class CellDirectoryTest(TestCase):
                 address="10.0.0.2",
                 visible=True,
             ),
+            Cell(
+                name="ja",
+                snowflake_id=4,
+                address="10.0.0.3",
+                visible=False,
+            ),
         ]
         localities = [
             Locality(
@@ -372,10 +404,18 @@ class CellDirectoryTest(TestCase):
                 visible=True,
                 signup_visible=False,
             ),
+            Locality(
+                name="ja",
+                cells=frozenset(["ja"]),
+                category=RegionCategory.MULTI_TENANT,
+                new_org_cell="de",
+                visible=False,
+                signup_visible=True,
+            ),
         ]
         with get_test_env_directory().swap_state(cells=cells, localities=localities):
             all_localities = find_all_multitenant_locality_names()
-            assert all_localities == ["us", "de"]
+            assert set(all_localities) == {"us", "de"}
 
             # Requires both visible + signup_visible
             signup_localities = find_all_signup_locality_names()
