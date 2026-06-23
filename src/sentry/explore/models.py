@@ -400,6 +400,28 @@ class TraceItemAttributeTypes(TypesClass):
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
+class TraceMetricTypes(TypesClass):
+    """
+    Integer-backed mirror of ``sentry.search.eap.trace_metrics.types.TraceMetricType``,
+    the metric type of a trace metric value (counter / gauge / distribution).
+
+    The integer ids are stable identifiers and must never be reused or reordered. A
+    test in ``tests/sentry/explore/test_models.py`` guards against drift from
+    ``ALLOWED_METRIC_TYPES``.
+    """
+
+    COUNTER = 0
+    GAUGE = 1
+    DISTRIBUTION = 2
+
+    TYPES = [
+        (COUNTER, "counter"),
+        (GAUGE, "gauge"),
+        (DISTRIBUTION, "distribution"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
 @cell_silo_model
 class TraceItemAttributeContext(DefaultFieldsModel):
     """
@@ -455,3 +477,77 @@ class TraceItemAttributeContext(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("organization_id", "project_id", "item_type", "attribute_key")
+
+
+@cell_silo_model
+class TraceItemAttributeValueContext(DefaultFieldsModel):
+    """
+    Human (and agent) authored context for a trace item attribute *value* (e.g. a
+    specific custom metric). Used to surface descriptions of individual values when
+    building queries.
+
+    Under the hood metric names are attribute values, so for v0 ``attribute_name`` is
+    typically ``metric.name`` and ``attribute_value`` is the metric's name. Context is
+    scoped to an organization and, optionally, a project (a null project means the
+    context applies org-wide).
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    organization = FlexibleForeignKey("sentry.Organization")
+    # A null project means the context applies to the whole organization.
+    project = FlexibleForeignKey("sentry.Project", null=True)
+
+    # The attribute and value this context is for, e.g. "metric.name" / "my.counter".
+    attribute_name = models.CharField()
+    attribute_value = models.CharField()
+    # For metrics this is the metric type (counter / gauge / distribution).
+    attribute_type = BoundedPositiveIntegerField(choices=TraceMetricTypes.as_choices())
+    item_type = BoundedPositiveIntegerField(choices=TraceItemTypes.as_choices())
+
+    # A short, one-line description of the attribute value.
+    brief = models.CharField(max_length=280, null=True)
+    # Longer markdown notes / additional context about the attribute value.
+    additional_context = models.TextField(null=True)
+
+    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    updated_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # When the value was last seen in storage. Used to prune stale entries.
+    last_received = models.DateTimeField(null=True)
+
+    class Meta:
+        app_label = "explore"
+        db_table = "explore_traceitemattributevaluecontext"
+        # project is nullable, so unique_together would treat each null project as
+        # distinct and allow duplicate org-wide rows. Use partial unique constraints
+        # to enforce uniqueness for both the project-scoped and org-wide cases.
+        constraints = [
+            UniqueConstraint(
+                fields=[
+                    "organization",
+                    "project",
+                    "item_type",
+                    "attribute_name",
+                    "attribute_value",
+                    "attribute_type",
+                ],
+                name="explore_traceitemvalue_unique_project_scoped",
+                condition=Q(project__isnull=False),
+            ),
+            UniqueConstraint(
+                fields=[
+                    "organization",
+                    "item_type",
+                    "attribute_name",
+                    "attribute_value",
+                    "attribute_type",
+                ],
+                name="explore_traceitemvalue_unique_org_scoped",
+                condition=Q(project__isnull=True),
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["organization", "item_type", "attribute_name", "attribute_value"]),
+        ]
+
+    __repr__ = sane_repr("organization_id", "project_id", "item_type", "attribute_name")

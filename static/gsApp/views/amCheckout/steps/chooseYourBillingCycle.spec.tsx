@@ -18,7 +18,7 @@ describe('ChooseYourBillingCycle', () => {
   const subscription = SubscriptionFixture({
     organization,
     plan: 'am3_f',
-    contractPeriodEnd: '2025-08-28',
+    billingPeriodEnd: '2025-08-28',
   });
 
   beforeEach(() => {
@@ -124,7 +124,7 @@ describe('ChooseYourBillingCycle', () => {
     const monthlySub = SubscriptionFixture({
       organization,
       plan: 'am3_business',
-      contractPeriodEnd: '2025-08-28',
+      billingPeriodEnd: '2025-08-28',
     });
     SubscriptionStore.set(organization.slug, monthlySub);
     renderCheckout();
@@ -138,8 +138,8 @@ describe('ChooseYourBillingCycle', () => {
   it('renders for monthly downgrade', async () => {
     const annualSub = SubscriptionFixture({
       planDetails: PlanDetailsLookupFixture('am2_business_auf'),
-      contractPeriodStart: '2025-07-16',
-      contractPeriodEnd: '2026-07-15',
+      billingPeriodStart: '2025-07-16',
+      billingPeriodEnd: '2026-07-15',
       organization,
     });
     SubscriptionStore.set(organization.slug, annualSub);

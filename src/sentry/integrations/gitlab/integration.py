@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 from django.db import router, transaction
@@ -13,6 +13,7 @@ from rest_framework.fields import BooleanField, CharField, URLField
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.constants import ObjectStatus
 from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
 from sentry.identity.oauth2 import OAuth2ApiStep
 from sentry.integrations.base import (
@@ -66,6 +67,10 @@ from .issue_sync import GitlabIssueSyncSpec
 from .issues import GitlabIssuesSpec
 from .repository import GitlabRepositoryProvider
 from .utils import parse_gitlab_blob_url
+
+if TYPE_CHECKING:
+    from sentry.integrations.models.integration import Integration
+    from sentry.organizations.services.organization.model import RpcOrganization
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
@@ -746,6 +751,34 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 ),
             },
         }
+
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
+    ) -> None:
+        # Re-push webhook tokens so existing project hooks pick up the current
+        # metadata["webhook_secret"]. On a reinstall against a new OAuth app the
+        # client_id (and therefore the secret) changes; without this, inbound
+        # webhooks keep sending the old token and fail the secret check in
+        # webhooks.py.
+        #
+        # The webhook_secret lives on the shared Integration.metadata, so a
+        # rotation affects every organization that has this integration
+        # installed -- not just the one running the (re)install. Refresh them
+        # all. On a fresh install the installing org has no repos yet, so its
+        # refresh is a harmless no-op.
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        for org_integration in org_integrations:
+            repository_service.schedule_update_gitlab_project_webhooks(
+                organization_id=org_integration.organization_id,
+                integration_id=integration.id,
+            )
 
     def setup(self):
         from sentry.plugins.base import bindings
