@@ -29,14 +29,14 @@ from sentry.issues.derived.framework import (
     StateView,
     aggregator,
 )
-from sentry.issues.derived.groupderiveddata import GroupDerivedData
 from sentry.issues.derived.processing import (
     PIPELINE,
     invalidate_group_derived_data,
     process_group_log,
 )
 from sentry.issues.derived.store import GroupDerivedDataStore
-from sentry.issues.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase

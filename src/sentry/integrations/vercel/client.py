@@ -92,8 +92,9 @@ class VercelClient(ApiClient):
     def get_env_vars(self, vercel_project_id):
         return self.get(self.GET_ENV_VAR_URL % vercel_project_id)
 
-    def create_env_variable(self, vercel_project_id, data):
-        return self.post(self.CREATE_ENV_VAR_URL % vercel_project_id, data=data)
+    def create_env_variable(self, vercel_project_id, data, upsert=False):
+        params = {"upsert": "true"} if upsert else None
+        return self.post(self.CREATE_ENV_VAR_URL % vercel_project_id, data=data, params=params)
 
     def update_env_variable(self, vercel_project_id, env_var_id, data):
         return self.patch(self.UPDATE_ENV_VAR_URL % (vercel_project_id, env_var_id), data=data)

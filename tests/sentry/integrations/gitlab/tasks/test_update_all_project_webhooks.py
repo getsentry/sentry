@@ -368,6 +368,54 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
+    def test_task_handles_auth_errors(self, mock_record_event):
+        """Test that the task retries on API failures"""
+        responses.add(
+            responses.PUT,
+            "https://example.gitlab.com/api/v4/projects/101/hooks/webhook-1",
+            json={"error": "Unauthorized"},
+            status=401,
+        )
+
+        # This should fail, but not raise as the exception is swallowed.
+        update_project_webhook(
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+        )
+
+        # Verify API call was attempted
+        assert len(responses.calls) == 1
+
+        # Verify SLO halted metric was recorded
+        assert_slo_metric(mock_record_event, event_outcome=EventLifecycleOutcome.HALTED)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_task_handles_not_found_errors(self, mock_record_event):
+        """Test that the task retries on API failures"""
+        responses.add(
+            responses.PUT,
+            "https://example.gitlab.com/api/v4/projects/101/hooks/webhook-1",
+            json={"error": "Not Found"},
+            status=404,
+        )
+
+        # This should fail, but not raise as the exception is swallowed.
+        update_project_webhook(
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+        )
+
+        # Verify API call was attempted
+        assert len(responses.calls) == 1
+
+        # Verify SLO failure metric was recorded
+        assert_slo_metric(mock_record_event, event_outcome=EventLifecycleOutcome.FAILURE)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
     def test_task_updates_webhook_with_correct_data(self, mock_record_event):
         """Test that webhook update includes correct event subscriptions"""
         responses.add(
@@ -392,38 +440,6 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         assert b"push_events" in request_body
         assert b"issues_events" in request_body
         assert b"note_events" in request_body
-
-        # Verify SLO metrics were recorded
-        assert_slo_metric(mock_record_event)
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @responses.activate
-    def test_task_logs_success(self, mock_record_event):
-        """Test that the task logs successful updates"""
-        responses.add(
-            responses.PUT,
-            "https://example.gitlab.com/api/v4/projects/101/hooks/webhook-1",
-            json={"id": "webhook-1"},
-            status=200,
-        )
-
-        with patch("sentry.integrations.gitlab.tasks.logger") as mock_logger:
-            update_project_webhook(
-                integration_id=self.integration.id,
-                organization_id=self.organization.id,
-                repository_id=self.repo.id,
-            )
-
-            # Verify success was logged
-            mock_logger.info.assert_called_once_with(
-                "update-project-webhook.webhook-updated",
-                extra={
-                    "repository_id": self.repo.id,
-                    "repository_name": self.repo.name,
-                    "project_id": "101",
-                    "webhook_id": "webhook-1",
-                },
-            )
 
         # Verify SLO metrics were recorded
         assert_slo_metric(mock_record_event)

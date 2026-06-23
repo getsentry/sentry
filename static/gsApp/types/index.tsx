@@ -315,9 +315,7 @@ export type Subscription = {
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
   hasMigratedToBillingPlatform: boolean;
-  hasOverageNotificationsDisabled: boolean;
   hasRestrictedIntegration: boolean | null;
-  hasSoftCap: boolean;
   id: string;
 
   // Added by SubscriptionStore to show/hide a UI element
