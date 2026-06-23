@@ -93,6 +93,7 @@ interface Props {
   clickBehavior?: 'navigate' | 'preview';
   headerActions?: ReactNode;
   initialQuery?: string;
+  initialSort?: IssueSortOptions;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
@@ -141,6 +142,7 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
 
 function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
+  initialSort = DEFAULT_ISSUE_STREAM_SORT,
   shouldFetchOnMount = true,
   title = t('Issues'),
   titleDescription,
@@ -228,9 +230,12 @@ function IssueListOverviewInner({
   const hasRecommendedSort = organization.features.includes(
     'issue-stream-recommended-sort'
   );
-  const defaultSort = hasRecommendedSort
-    ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
-    : DEFAULT_ISSUE_STREAM_SORT;
+  const defaultSort =
+    initialSort === DEFAULT_ISSUE_STREAM_SORT
+      ? hasRecommendedSort
+        ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
+        : DEFAULT_ISSUE_STREAM_SORT
+      : initialSort;
   const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
@@ -705,7 +710,7 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
-    if (hasRecommendedSort) {
+    if (hasRecommendedSort && initialSort === DEFAULT_ISSUE_STREAM_SORT) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});

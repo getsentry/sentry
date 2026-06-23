@@ -126,8 +126,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
 
         url = self._get_url(artifact.id, "components/alert.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -206,8 +205,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(key_to_data)
 
         url = self._get_url(head_artifact.id, "alert.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -267,8 +265,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(key_to_data)
 
         url = self._get_url(head_artifact.id, "new_screen.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -313,8 +310,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(key_to_data)
 
         url = self._get_url(head_artifact.id, "old_screen.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -369,8 +365,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(key_to_data)
 
         url = self._get_url(head_artifact.id, "new_alert.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -414,8 +409,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(key_to_data)
 
         url = self._get_url(head_artifact.id, "stable.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -459,8 +453,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(key_to_data)
 
         url = self._get_url(head_artifact.id, "skipped_screen.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -488,8 +481,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
 
         url = self._get_url(artifact.id, "abc123")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -513,8 +505,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
 
         url = self._get_url(artifact.id, "screen.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         head = response.data["head_image"]

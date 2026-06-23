@@ -10,7 +10,7 @@ from taskbroker_client.retry import Retry
 
 from sentry import eventstream, similarity, tsdb
 from sentry.db.models.base import Model
-from sentry.issues.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation

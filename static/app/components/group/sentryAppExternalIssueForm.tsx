@@ -11,9 +11,9 @@ import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  SentryAppExternalFormNew,
+  SentryAppExternalForm,
   type SchemaFormConfig,
-} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
+} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 type Props = {
   action: 'create' | 'link';
@@ -95,7 +95,7 @@ export function SentryAppExternalIssueForm({
   };
 
   return (
-    <SentryAppExternalFormNew
+    <SentryAppExternalForm
       sentryAppInstallationUuid={sentryAppInstallation.uuid}
       appName={appName}
       config={config}

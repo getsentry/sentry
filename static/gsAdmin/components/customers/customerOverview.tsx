@@ -142,13 +142,6 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
           <OnDemandSummary customer={customer} />
         </DetailLabel>
         <DetailLabel title="Can Trial" yesNo={customer.canTrial} />
-        <DetailLabel title="Legacy Soft Cap" yesNo={customer.hasSoftCap} />
-        {customer.hasSoftCap && (
-          <DetailLabel
-            title="Overage Notifications Disabled"
-            yesNo={customer.hasOverageNotificationsDisabled}
-          />
-        )}
         <DetailLabel title="Soft Cap By Category">
           <SoftCapTypeDetail
             categories={customer.categories}

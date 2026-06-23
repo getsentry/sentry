@@ -721,6 +721,56 @@ class TestTriggerAutofixAgent(TestCase):
 
         assert mock_client_class.call_args.kwargs["code_review_enabled"] is True
 
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_pr_context_tools_disabled_on_non_pr_iteration_step(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
+
+        trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.ROOT_CAUSE,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=None,
+        )
+
+        assert mock_client_class.call_args.kwargs["enable_pr_context_tools"] is False
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_pr_context_tools_enabled_on_pr_iteration_step(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = _state_with_blocks(
+            [_iteration_block(1)],
+            group_id=self.group.id,
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", pr_url="https://example.com/pull/7"
+                )
+            },
+        )
+        mock_client.continue_run.return_value = 67890
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=67890,
+            )
+
+        assert mock_client_class.call_args.kwargs["enable_pr_context_tools"] is True
+
     def _make_repo_and_projectrepo(
         self,
         *,

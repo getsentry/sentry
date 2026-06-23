@@ -550,6 +550,27 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         assert len(shards) == 1
         assert self._shard_group_ids(shards[0]) == [g.id for g in groups]
 
+    def test_non_positive_shard_size_clamps_to_one(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+        groups = [self.create_group(project=project) for _ in range(3)]
+        scored = [ScoredCandidate(group=g, fixability=0.9) for g in groups]
+
+        with (
+            self.options({"seer.night_shift.shard_size": 0}),
+            self.feature("organizations:gen-ai-features"),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                return_value=scored,
+            ),
+        ):
+            run_night_shift_for_org(org.id)
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        shards = list(SeerNightShiftRunShard.objects.filter(run=run))
+        assert len(shards) == 3
+
     def test_dispatches_candidates_to_seer_feature(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
