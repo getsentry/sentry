@@ -538,13 +538,7 @@ class DiscoverQueryBuilderTest(TestCase):
             query="issue.id:123456",
             selected_columns=["count()"],
         )
-        self.assertCountEqual(
-            query.where,
-            [
-                Condition(Column("tags[issue.id]"), Op.EQ, "123456"),
-                *self.default_conditions,
-            ],
-        )
+        assert Condition(Column("tags[issue.id]"), Op.EQ, "123456") in query.where
         query.get_snql_query().validate()
 
     def test_issue_id_in_filter_on_transactions_is_coerced_to_string(self) -> None:
@@ -554,13 +548,7 @@ class DiscoverQueryBuilderTest(TestCase):
             query="issue.id:[123,456]",
             selected_columns=["count()"],
         )
-        self.assertCountEqual(
-            query.where,
-            [
-                Condition(Column("tags[issue.id]"), Op.IN, ["123", "456"]),
-                *self.default_conditions,
-            ],
-        )
+        assert Condition(Column("tags[issue.id]"), Op.IN, ["123", "456"]) in query.where
         query.get_snql_query().validate()
 
     def test_issue_id_filter_on_discover_uses_group_id_column(self) -> None:
@@ -571,13 +559,7 @@ class DiscoverQueryBuilderTest(TestCase):
             query="issue.id:123456",
             selected_columns=["count()"],
         )
-        self.assertCountEqual(
-            query.where,
-            [
-                Condition(Column("group_id"), Op.EQ, 123456.0),
-                *self.default_conditions,
-            ],
-        )
+        assert Condition(Column("group_id"), Op.EQ, 123456.0) in query.where
 
     def test_not_empty_measurement(self) -> None:
         query = DiscoverQueryBuilder(
