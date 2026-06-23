@@ -13,6 +13,7 @@ from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
 from taskbroker_client.registry import TaskNamespace
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -90,6 +91,7 @@ def process_message(
         start_span(
             op="handle_message",
             name="query_subscription_consumer_process_message",
+            custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},
             transaction=True,
         ),
         metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}),
@@ -134,6 +136,7 @@ def _process_subscription_message(message_bytes: bytes, dataset: Dataset) -> Non
         start_span(
             op="handle_message",
             name="query_subscription_consumer_process_message",
+            custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},
             transaction=True,
         ),
         metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}),
