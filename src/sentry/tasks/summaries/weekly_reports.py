@@ -827,7 +827,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
     def top_actionable_issues():
         def all_actionable_issues():
             for project_ctx in user_projects:
-                for group, event_count, user_count, score in project_ctx.top_actionable_issues:
+                for group, score in project_ctx.top_actionable_issues:
                     display = get_group_display(group)
                     (
                         substatus,
@@ -835,8 +835,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                         substatus_text_color,
                     ) = get_group_status_badge(group)
                     yield {
-                        "count": event_count,
-                        "user_count": user_count,
                         "score": score,
                         "group": group,
                         "title": display["title"],

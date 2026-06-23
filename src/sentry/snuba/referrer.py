@@ -785,7 +785,6 @@ class Referrer(StrEnum):
     REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
     FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
     EU_DATA_EXPORT = "sentry.internal.eu-compliance-data-export"
-    REPORTS_TOP_ACTIONABLE_ISSUES = "reports.top_actionable_issues"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_ERRORS_BATCHED = "reports.key_errors.batched"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"

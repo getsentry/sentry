@@ -98,8 +98,8 @@ class ProjectContext:
         self.key_performance_issues = []
         # Array of (Group, event_count, has_linked_pr_or_commit)
         self.past_resolved_issues: list[tuple[Group, int, bool]] = []
-        # Array of (Group, event_count, user_count, actionability_score)
-        self.top_actionable_issues: list[tuple[Group, int, int, float]] = []
+        # Array of (Group, actionability_score)
+        self.top_actionable_issues: list[tuple[Group, float]] = []
 
         self.key_replay_events = []
 
@@ -951,24 +951,18 @@ _SUBSTATUS_SCORE: dict[int, float] = {
     GroupSubStatus.ONGOING: 0.3,
 }
 
-_ACTIONABLE_CANDIDATES_CHUNK_SIZE = 100
-
 
 def compute_actionability_score(
-    event_count: int,
-    user_count: int,
     group: Group,
     window_start: datetime,
     window_end: datetime,
 ) -> float:
     event_volume_weight = options.get("weekly-report.actionability.event-volume-weight")
-    user_impact_weight = options.get("weekly-report.actionability.user-impact-weight")
     recency_weight = options.get("weekly-report.actionability.recency-weight")
     substatus_weight = options.get("weekly-report.actionability.substatus-weight")
     severity_weight = options.get("weekly-report.actionability.severity-weight")
 
-    event_volume = min(1.0, math.log(event_count + 1) / math.log(10001))
-    user_impact = min(1.0, math.log(user_count + 1) / math.log(1001))
+    event_volume = min(1.0, math.log(group.times_seen + 1) / math.log(10001))
 
     window_duration = (window_end - window_start).total_seconds()
     if window_duration > 0 and group.last_seen:
@@ -984,211 +978,42 @@ def compute_actionability_score(
 
     return (
         event_volume_weight * event_volume
-        + user_impact_weight * user_impact
         + recency_weight * recency
         + substatus_weight * substatus
         + severity_weight * severity
     )
 
 
-def _org_actionable_error_candidates_chunk(
-    ctx: OrganizationReportContext,
-    project_ids: Sequence[int],
-    referrer: str,
-    per_project_limit: int,
-) -> dict[int, list[dict[str, Any]]]:
-    events_entity = Entity("events", alias="events")
-    group_attributes_entity = Entity("group_attributes", alias="group_attributes")
-    query = Query(
-        match=Join([Relationship(events_entity, "attributes", group_attributes_entity)]),
-        select=[
-            Column("project_id", entity=events_entity),
-            Column("group_id", entity=events_entity),
-            Function("count", [], alias="count"),
-            Function(
-                "uniq",
-                [Column("tags[sentry:user]", entity=events_entity)],
-                alias="user_count",
-            ),
-        ],
-        where=[
-            Condition(Column("timestamp", entity=events_entity), Op.GTE, ctx.start),
-            Condition(
-                Column("timestamp", entity=events_entity),
-                Op.LT,
-                ctx.end + timedelta(days=1),
-            ),
-            Condition(
-                Column("project_id", entity=events_entity),
-                Op.IN,
-                project_ids,
-            ),
-            Condition(
-                Column("project_id", entity=group_attributes_entity),
-                Op.IN,
-                project_ids,
-            ),
-            Condition(
-                Column("group_status", entity=group_attributes_entity),
-                Op.EQ,
-                GroupStatus.UNRESOLVED,
-            ),
-            Condition(Column("level", entity=events_entity), Op.EQ, "error"),
-        ],
-        groupby=[
-            Column("project_id", entity=events_entity),
-            Column("group_id", entity=events_entity),
-        ],
-        orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limitby=LimitBy([Column("project_id", entity=events_entity)], per_project_limit),
-        limit=Limit(len(project_ids) * per_project_limit),
-    )
-
-    request = Request(
-        dataset=Dataset.Events.value,
-        app_id="reports",
-        query=query,
-        tenant_ids={"organization_id": ctx.organization.id},
-    )
-    rows = raw_snql_query(request, referrer=referrer)["data"]
-
-    results: dict[int, list[dict[str, Any]]] = {}
-    for row in rows:
-        pid = row["events.project_id"]
-        results.setdefault(pid, []).append(
-            {
-                "group_id": row["events.group_id"],
-                "count": row["count"],
-                "user_count": row["user_count"],
-            }
-        )
-    return results
-
-
-def _org_actionable_error_candidates(
-    ctx: OrganizationReportContext,
-    project_ids: Sequence[int],
-    referrer: str,
-) -> dict[int, list[dict[str, Any]]]:
-    per_project_limit = options.get("weekly-report.actionability.candidate-limit")
-    results: dict[int, list[dict[str, Any]]] = {}
-    for i in range(0, len(project_ids), _ACTIONABLE_CANDIDATES_CHUNK_SIZE):
-        chunk = project_ids[i : i + _ACTIONABLE_CANDIDATES_CHUNK_SIZE]
-        chunk_results = _org_actionable_error_candidates_chunk(
-            ctx, chunk, referrer, per_project_limit
-        )
-        results.update(chunk_results)
-    return results
-
-
-def _org_actionable_perf_candidates(
-    ctx: OrganizationReportContext,
-    project_ids: Sequence[int],
-    referrer: str,
-) -> dict[int, list[dict[str, Any]]]:
-    per_project_limit = options.get("weekly-report.actionability.candidate-limit")
-
-    candidate_groups = list(
-        Group.objects.filter(
-            project_id__in=project_ids,
-            status=GroupStatus.UNRESOLVED,
-            last_seen__gte=ctx.end - timedelta(days=30),
-            type__gte=1000,
-            type__lt=2000,
-        ).order_by("-times_seen")[: 50 * len(project_ids)]
-    )
-
-    if not candidate_groups:
-        return {}
-
-    group_id_to_project: dict[int, int] = {g.id: g.project_id for g in candidate_groups}
-    candidate_group_ids = list(group_id_to_project.keys())
-
-    query = Query(
-        match=Entity("search_issues"),
-        select=[
-            Column("project_id"),
-            Column("group_id"),
-            Function("count", [], alias="count"),
-            Function("uniq", [Column("tags[sentry:user]")], alias="user_count"),
-        ],
-        where=[
-            Condition(Column("group_id"), Op.IN, candidate_group_ids),
-            Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("timestamp"), Op.GTE, ctx.start),
-            Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
-        ],
-        groupby=[Column("project_id"), Column("group_id")],
-        orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limitby=LimitBy([Column("project_id")], per_project_limit),
-        limit=Limit(len(project_ids) * per_project_limit),
-    )
-    request = Request(
-        dataset=Dataset.IssuePlatform.value,
-        app_id="reports",
-        query=query,
-        tenant_ids={"organization_id": ctx.organization.id},
-    )
-    rows = raw_snql_query(request, referrer=referrer)["data"]
-
-    results: dict[int, list[dict[str, Any]]] = {}
-    for row in rows:
-        pid = row["project_id"]
-        results.setdefault(pid, []).append(
-            {
-                "group_id": row["group_id"],
-                "count": row["count"],
-                "user_count": row["user_count"],
-            }
-        )
-    return results
-
-
 def org_top_actionable_issues(
     ctx: OrganizationReportContext,
     project_ids: Sequence[int],
 ) -> None:
-    referrer = Referrer.REPORTS_TOP_ACTIONABLE_ISSUES.value
+    per_project_limit = options.get("weekly-report.actionability.candidate-limit")
 
     with sentry_sdk.start_span(op="weekly_reports.org_top_actionable_issues"):
-        error_candidates = _org_actionable_error_candidates(ctx, project_ids, referrer)
-        perf_candidates = _org_actionable_perf_candidates(ctx, project_ids, referrer)
+        candidates = list(
+            Group.objects.filter(
+                project_id__in=project_ids,
+                status=GroupStatus.UNRESOLVED,
+                last_seen__gte=ctx.start,
+            )
+            .order_by("-times_seen")
+            .only("id", "project_id", "times_seen", "level", "substatus", "last_seen")[
+                : per_project_limit * len(project_ids)
+            ]
+        )
 
-        all_group_ids: set[int] = set()
-        for candidates in (error_candidates, perf_candidates):
-            for rows in candidates.values():
-                all_group_ids.update(row["group_id"] for row in rows)
-
-        if not all_group_ids:
+        if not candidates:
             return
 
-        groups_by_id = {g.id: g for g in Group.objects.filter(id__in=all_group_ids)}
-
-        for project_id in project_ids:
-            if project_id not in ctx.projects_context_map:
+        per_project: dict[int, list[tuple[Group, float]]] = {}
+        for group in candidates:
+            if group.project_id not in ctx.projects_context_map:
                 continue
+            score = compute_actionability_score(group, ctx.start, ctx.end)
+            per_project.setdefault(group.project_id, []).append((group, score))
 
-            merged: dict[int, dict[str, Any]] = {}
-            for candidates in (error_candidates, perf_candidates):
-                for row in candidates.get(project_id, []):
-                    gid = row["group_id"]
-                    if gid not in merged:
-                        merged[gid] = row
-
-            scored: list[tuple[Group, int, int, float]] = []
-            for row in merged.values():
-                group = groups_by_id.get(row["group_id"])
-                if group is None:
-                    continue
-                score = compute_actionability_score(
-                    event_count=row["count"],
-                    user_count=row["user_count"],
-                    group=group,
-                    window_start=ctx.start,
-                    window_end=ctx.end,
-                )
-                scored.append((group, row["count"], row["user_count"], score))
-
+        for project_id, scored in per_project.items():
             ctx.projects_context_map[project_id].top_actionable_issues = heapq.nlargest(
-                3, scored, key=lambda x: x[3]
+                3, scored, key=lambda x: x[1]
             )
