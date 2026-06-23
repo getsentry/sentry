@@ -1,3 +1,8 @@
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
+from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.channel import is_input_a_user_id
 from sentry.models.activity import Activity
 from sentry.notifications.notification_action.activity_registry.base import (
@@ -24,23 +29,26 @@ class SlackActivityHandler(ActivityHandler):
 
     @classmethod
     def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:
-        action = invocation.action
-        resource_id = require_config(action, "target_identifier")
-        resource_type = (
-            NotificationTargetResourceType.DIRECT_MESSAGE
-            if is_input_a_user_id(input_id=resource_id)
-            else NotificationTargetResourceType.CHANNEL
-        )
-        provider_key = (
-            NotificationProviderKey.SLACK
-            if action.type == Action.Type.SLACK
-            else NotificationProviderKey.SLACK_STAGING
-        )
-        target = IntegrationNotificationTarget(
-            provider_key=provider_key,
-            resource_type=resource_type,
-            resource_id=resource_id,
-            integration_id=require_integration_id(action),
-            organization_id=invocation.detector.project.organization.id,
-        )
-        send_activity_notification(invocation, activity, target)
+        with MessagingInteractionEvent(
+            interaction_type=MessagingInteractionType.SEND_ACTIVITY_ALERT_NOTIFICATION,
+            spec=SlackMessagingSpec(),
+        ).capture():
+            resource_id = require_config(invocation.action, "target_identifier")
+            resource_type = (
+                NotificationTargetResourceType.DIRECT_MESSAGE
+                if is_input_a_user_id(input_id=resource_id)
+                else NotificationTargetResourceType.CHANNEL
+            )
+            provider_key = (
+                NotificationProviderKey.SLACK
+                if invocation.action.type == Action.Type.SLACK
+                else NotificationProviderKey.SLACK_STAGING
+            )
+            target = IntegrationNotificationTarget(
+                provider_key=provider_key,
+                resource_type=resource_type,
+                resource_id=resource_id,
+                integration_id=require_integration_id(invocation.action),
+                organization_id=invocation.detector.project.organization.id,
+            )
+            send_activity_notification(invocation, activity, target)
