@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.utils import timezone
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.dynamic_sampling.per_org.configuration import (
@@ -18,17 +20,24 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
+    get_generic_metrics_project_volumes,
     get_outcomes_organization_volume,
     run_eap_spans_table_query_in_chunks,
 )
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
-from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, SpanTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+
+GENERIC_METRICS_MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
+    hour=0, minute=0, second=0, microsecond=0
+)
 
 
 class EAPSpansTableQueryChunkingTest(TestCase, SnubaTestCase, SpanTestCase):
@@ -574,3 +583,81 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                 transaction_counts=[("beta", 2)],
             ),
         ]
+
+
+@freeze_time(GENERIC_METRICS_MOCK_DATETIME)
+class GenericMetricsProjectVolumesTest(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    @property
+    def now(self) -> datetime:
+        return GENERIC_METRICS_MOCK_DATETIME
+
+    def store_root_count(
+        self, organization: Organization, project: Project, decision: str, value: int
+    ) -> None:
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": decision, "is_segment": "true"},
+            minutes_before_now=30,
+            value=value,
+            project_id=project.id,
+            org_id=organization.id,
+        )
+
+    def test_returns_keep_and_drop_counts_per_project(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        other_project = self.create_project(organization=organization)
+        other_organization = self.create_organization()
+        other_organization_project = self.create_project(organization=other_organization)
+
+        self.store_root_count(organization, project, decision="keep", value=1)
+        self.store_root_count(organization, project, decision="drop", value=3)
+        self.store_root_count(organization, other_project, decision="keep", value=2)
+        # Other org's volume must not leak into this org's result.
+        self.store_root_count(other_organization, other_organization_project, "keep", value=9)
+
+        config = SimpleNamespace(organization=organization, projects=[project, other_project])
+        project_volumes = get_generic_metrics_project_volumes(
+            config, time_interval=timedelta(hours=1)
+        )
+
+        assert sorted(project_volumes) == [
+            ProjectVolume(project_id=project.id, total=4, keep=1, drop=3),
+            ProjectVolume(project_id=other_project.id, total=2, keep=2, drop=0),
+        ]
+
+    def test_excludes_projects_outside_the_config(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        excluded_project = self.create_project(organization=organization)
+
+        self.store_root_count(organization, project, decision="keep", value=5)
+        self.store_root_count(organization, excluded_project, decision="keep", value=7)
+
+        config = SimpleNamespace(organization=organization, projects=[project])
+        project_volumes = get_generic_metrics_project_volumes(
+            config, time_interval=timedelta(hours=1)
+        )
+
+        assert project_volumes == [ProjectVolume(project_id=project.id, total=5, keep=5, drop=0)]
+
+    def test_without_traffic_returns_empty(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+
+        config = SimpleNamespace(organization=organization, projects=[project])
+        project_volumes = get_generic_metrics_project_volumes(
+            config, time_interval=timedelta(hours=1)
+        )
+
+        assert project_volumes == []
+
+    def test_without_projects_skips_query(self) -> None:
+        organization = self.create_organization()
+
+        config = SimpleNamespace(organization=organization, projects=[])
+        with patch("sentry.dynamic_sampling.per_org.queries.raw_snql_query") as raw_snql_query_mock:
+            project_volumes = get_generic_metrics_project_volumes(config)
+
+        assert project_volumes == []
+        raw_snql_query_mock.assert_not_called()

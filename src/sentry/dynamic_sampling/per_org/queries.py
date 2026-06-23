@@ -229,6 +229,105 @@ def get_generic_metrics_organization_volume(
     return OrganizationDataVolume(org_id=org_id, total=total, indexed=None)
 
 
+def get_generic_metrics_project_volumes(
+    config: OrganizationVolumeConfig,
+    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    end: datetime | None = None,
+) -> list[ProjectVolume]:
+    from snuba_sdk import (
+        Column,
+        Condition,
+        Direction,
+        Entity,
+        Function,
+        Granularity,
+        Op,
+        OrderBy,
+        Query,
+        Request,
+    )
+
+    project_ids = [project.id for project in config.projects]
+    if not project_ids:
+        return []
+
+    end_time = end or datetime.now(UTC)
+    start_time = end_time - time_interval
+
+    measure_config = MEASURE_CONFIGS[SamplingMeasure.SEGMENTS]
+    metric_id = indexer.resolve_shared_org(str(measure_config["mri"]))
+    decision_string_id = indexer.resolve_shared_org("decision")
+    decision_tag = f"tags_raw[{decision_string_id}]"
+
+    where: list[Condition] = [
+        Condition(Column("timestamp"), Op.GTE, start_time),
+        Condition(Column("timestamp"), Op.LT, end_time),
+        Condition(Column("metric_id"), Op.EQ, metric_id),
+        Condition(Column("org_id"), Op.IN, [config.organization.id]),
+        Condition(Column("project_id"), Op.IN, project_ids),
+    ]
+    for tag_name, tag_value in measure_config["tags"].items():
+        tag_string_id = indexer.resolve_shared_org(tag_name)
+        tag_column = f"tags_raw[{tag_string_id}]"
+        where.append(Condition(Column(tag_column), Op.EQ, tag_value))
+
+    query = Query(
+        match=Entity(EntityKey.GenericOrgMetricsCounters.value),
+        select=[
+            Function("sum", [Column("value")], "total_count"),
+            Column("project_id"),
+            Function(
+                "sumIf",
+                [Column("value"), Function("equals", [Column(decision_tag), "keep"])],
+                alias="keep_count",
+            ),
+            Function(
+                "sumIf",
+                [Column("value"), Function("equals", [Column(decision_tag), "drop"])],
+                alias="drop_count",
+            ),
+        ],
+        groupby=[Column("project_id")],
+        where=where,
+        granularity=Granularity(60),
+        orderby=[OrderBy(Column("project_id"), Direction.ASC)],
+    )
+    request = Request(
+        dataset=Dataset.PerformanceMetrics.value,
+        app_id="dynamic_sampling",
+        query=query,
+        tenant_ids={
+            "use_case_id": measure_config["use_case_id"].value,
+            "cross_org_query": 1,
+        },
+    )
+    data = raw_snql_query(
+        request,
+        referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
+    )["data"]
+
+    project_volumes: list[ProjectVolume] = []
+    for row in data:
+        project_id = row.get("project_id")
+        if project_id is None:
+            continue
+
+        total = _get_aggregate_int(row, "total_count")
+        if total <= 0:
+            continue
+
+        project_volumes.append(
+            ProjectVolume(
+                project_id=ProjectId(int(project_id)),
+                total=total,
+                keep=_get_aggregate_int(row, "keep_count"),
+                drop=_get_aggregate_int(row, "drop_count"),
+            )
+        )
+
+    return project_volumes
+
+
 def get_eap_project_volumes(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = timedelta(hours=1),
