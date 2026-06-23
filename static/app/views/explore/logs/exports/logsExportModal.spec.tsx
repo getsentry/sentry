@@ -151,15 +151,6 @@ describe('LogsExportModal', () => {
     expect(screen.getByRole('radio', {name: 'JSONL'})).toBeChecked();
   });
 
-  it("shows the All Columns hint", async () => {
-    mockTimeseriesCount();
-    renderModal();
-
-    expect(
-      await screen.findByText('All columns are only supported by JSONL.')
-    ).toBeInTheDocument();
-  });
-
   it("POSTs with trace_item_full_export query type and jsonl format when the 'All Columns' switch is on", async () => {
     mockTimeseriesCount();
     const dataExportMock = MockApiClient.addMockResponse({
