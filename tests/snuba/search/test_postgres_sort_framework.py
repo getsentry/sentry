@@ -11,6 +11,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.search.snuba.executors import (
     DEFAULT_TRENDS_WEIGHTS,
@@ -380,7 +381,7 @@ class TestFallbackBehavior(PostgresSortTestBase):
 
 class TestRecommendedV2Sort(PostgresSortTestBase):
     """recommended_v2: Snuba recommended base score plus additive boosts for viewer
-    assignment, Seer fixability, and Seer agent progress.
+    relevance (assignment or suspect commit), Seer fixability, and Seer agent progress.
 
     The base fixture's groups have events ~8d, ~5d, and ~3d old, so the recency-driven
     base score orders them [2, 1, 0] with small (<0.03) differences -- each boost below
@@ -454,6 +455,33 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
 
         assert self._query(actor=self.user) == [self.groups[1], self.groups[2], self.groups[0]]
 
+    def _add_suspect_commit(self, group, user):
+        GroupOwner.objects.create(
+            group=group,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=user.id,
+        )
+
+    def test_suspect_commit_boost(self):
+        # groups[0] has the lowest base score; the viewer authored its suspect commit,
+        # which lifts it to the top even though it isn't assigned to them.
+        self._add_suspect_commit(self.groups[0], self.user)
+
+        assert self._query(actor=self.user)[0] == self.groups[0]
+
+    def test_relevance_is_max_not_sum(self):
+        # groups[0] is both assigned to the viewer and authored by them; groups[1] is only
+        # assigned to them. If the two relevance signals summed, groups[0] would win; because
+        # they're combined with max(), both get the same boost and the higher base (groups[1])
+        # stays ahead.
+        GroupAssignee.objects.assign(self.groups[0], self.user)
+        self._add_suspect_commit(self.groups[0], self.user)
+        GroupAssignee.objects.assign(self.groups[1], self.user)
+
+        assert self._query(actor=self.user) == [self.groups[1], self.groups[0], self.groups[2]]
+
 
 class TestProgressSort(PostgresSortTestBase):
     """progress: primary sort by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
@@ -501,7 +529,7 @@ class TestDefaultPostgresSortStrategies(TestCase):
         strategy = strategies["recommended_v2"]
         assert strategy.snuba_aggregations == ["recommended"]
         assert strategy.exclude_null_postgres is False
-        assert set(strategy.signal_resolvers) == {"assignment", "agent"}
+        assert set(strategy.signal_resolvers) == {"assignment", "suspect_commit", "agent"}
 
     def test_progress_registered(self):
         strategies = PostgresSnubaQueryExecutor().postgres_sort_strategies
