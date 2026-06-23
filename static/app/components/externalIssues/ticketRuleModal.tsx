@@ -191,7 +191,7 @@ export function TicketRuleModal({
             query: initialConfigQuery,
           }),
           (existingData: IntegrationIssueConfig | undefined) =>
-            data ? (data as IntegrationIssueConfig) : existingData
+            data ? data : existingData
         );
       } catch (err: any) {
         if (err?.responseText) {
