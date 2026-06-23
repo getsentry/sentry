@@ -55,7 +55,6 @@ def call_endpoint(client, relay, private_key):
             "transactions": "base64",
         },
         "relay.eap-outcomes.rollout-rate": 1.0,
-        "relay.eap-span-outcomes.rollout-rate": 1.0,
     }
 )
 def test_global_config() -> None:

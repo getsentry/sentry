@@ -45,6 +45,13 @@ type PartBuckets = {
 // parsers together whenever adding or changing a supported format.
 
 /**
+ * Rendered when a text content part is structurally present but carries no
+ * usable text (e.g. `{type: "text", chars: 56}`). Matches the product-wide
+ * empty-value convention so the message still renders instead of vanishing.
+ */
+export const EMPTY_TEXT_CONTENT = '(no value)';
+
+/**
  * Normalizes AI attribute values into a list of messages.
  *
  * Accepts every shape the codebase supports on supported attributes:
@@ -359,9 +366,7 @@ function bucketParts(parts: unknown[]): PartBuckets {
     if (partType === 'text') {
       buckets.hasRenderableTextPart = true;
       const text = getTextPartContent(part, {trim: true});
-      if (text) {
-        buckets.textParts.push(text);
-      }
+      buckets.textParts.push(text || EMPTY_TEXT_CONTENT);
       continue;
     }
     if (partType === 'reasoning') {
@@ -448,9 +453,7 @@ function appendOutputFromParts(
     const partType = getPartType(part);
     if (partType === 'text' && isRecord(part)) {
       const text = getStringField(part, 'content') ?? getStringField(part, 'text');
-      if (text) {
-        textParts.push(text);
-      }
+      textParts.push(text ?? EMPTY_TEXT_CONTENT);
       continue;
     }
     if (partType === 'reasoning' && isRecord(part)) {
