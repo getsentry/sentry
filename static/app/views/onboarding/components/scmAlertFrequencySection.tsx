@@ -50,11 +50,15 @@ export function ScmAlertFrequencySection({
       <ScmCollapsibleSection
         title={t('Alert frequency')}
         defaultExpanded={false}
-        trailing={<Tag variant={variant}>{label}</Tag>}
+        trailing={
+          <Tag style={{minWidth: '0px'}} variant={variant}>
+            <Text ellipsis variant="inherit">
+              {label}
+            </Text>
+          </Tag>
+        }
       >
-        <Stack gap="md" width="100%">
-          <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
-        </Stack>
+        <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
       </ScmCollapsibleSection>
     );
   }
