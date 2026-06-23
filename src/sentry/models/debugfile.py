@@ -192,14 +192,6 @@ class ProjectDebugFile(Model):
             return self.file.timestamp
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
-    def get_headers(self) -> dict[str, str]:
-        if self.storage_path is not None:
-            assert self.content_type is not None
-            return {"Content-Type": self.content_type}
-        if self.file is not None:
-            return self.file.headers
-        raise ValueError("ProjectDebugFile has neither file nor storage_path")
-
     @property
     def file_format(self) -> str:
         ct = self.get_content_type().lower()

@@ -277,7 +277,6 @@ class DebugFileObjectstoreTest(TestCase):
         assert dif.get_content_type() == "text/x-proguard+plain"
         assert dif.get_file_size() == 9999
         assert dif.get_date_created() == ts
-        assert dif.get_headers() == {"Content-Type": "text/x-proguard+plain"}
         assert dif.file_format == "proguard"
 
     def test_metadata_reads_from_file_columns_when_file_set(self):
@@ -286,7 +285,6 @@ class DebugFileObjectstoreTest(TestCase):
         assert dif.get_content_type() == "application/x-mach-binary"
         assert dif.get_file_size() == dif.file.size
         assert dif.get_date_created() == dif.file.timestamp
-        assert dif.get_headers() == {"Content-Type": "application/x-mach-binary"}
 
     @requires_objectstore
     def test_get_file(self):
