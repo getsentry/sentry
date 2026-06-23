@@ -22,7 +22,7 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.requests import make_request
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
@@ -1303,6 +1303,42 @@ class TestStartFeatureRun(TestCase):
         with pytest.raises(SeerPermissionError):
             SeerAgentClient(self.organization, self.user)
         assert not SeerRun.objects.filter(organization=self.organization).exists()
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    @with_feature("organizations:seer-added")
+    @override_options({"seer.explorer.context-engine-rollout": 1.0})
+    def test_inherits_context_engine_from_org(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(feature_id="night_shift", payload={}, flush=False)
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["agent_run_options"]["is_context_engine_enabled"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    @with_feature("organizations:seer-agent-source-code-search")
+    def test_inherits_frontend_code_search_from_org(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(feature_id="night_shift", payload={}, flush=False)
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["agent_run_options"]["enable_frontend_code_search"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_agent_run_options_empty_without_org_flags(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(feature_id="night_shift", payload={}, flush=False)
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["agent_run_options"] == {}
 
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
