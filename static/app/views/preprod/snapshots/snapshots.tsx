@@ -53,6 +53,7 @@ import {
   type SidebarSection,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
+import {buildSoloImages} from './soloImages';
 import {TagFilterProvider} from './tagFilterContext';
 import {narrowItemByTags} from './tagFiltering';
 
@@ -336,7 +337,7 @@ export default function SnapshotsPage() {
       return items;
     }
 
-    return [...groupByKey(data.images, imageGroupKey).entries()]
+    return [...groupByKey(buildSoloImages(data), imageGroupKey).entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([groupKey, images]) => ({
         type: 'solo' as const,
