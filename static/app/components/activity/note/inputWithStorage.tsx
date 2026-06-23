@@ -126,6 +126,7 @@ function NoteInputWithStorage({
 
   const handleCreate = useCallback(
     async (data: NoteType) => {
+      save.cancel();
       const result = await mutators.handleCreate(data, group.activity, {
         onSuccess: () => {
           addSuccessMessage(t('Comment posted'));
@@ -150,6 +151,7 @@ function NoteInputWithStorage({
       onCommentCreated?.([result, ...group.activity]);
     },
     [
+      save,
       itemKey,
       storageKey,
       mutators,
