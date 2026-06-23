@@ -48,8 +48,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 200
         assert "artifactId" in response.data
@@ -82,13 +81,12 @@ class ProjectPreprodSnapshotTest(APITestCase):
         url = self._get_create_url()
         body = zstandard.ZstdCompressor().compress(self._compressible_snapshot_payload())
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(
-                url,
-                data=body,
-                content_type="application/json",
-                HTTP_CONTENT_ENCODING="zstd",
-            )
+        response = self.client.post(
+            url,
+            data=body,
+            content_type="application/json",
+            HTTP_CONTENT_ENCODING="zstd",
+        )
 
         assert response.status_code == 200
         assert response.data["imageCount"] == 1
@@ -96,13 +94,12 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_snapshot_upload_invalid_zstd_payload(self) -> None:
         url = self._get_create_url()
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(
-                url,
-                data=b"this is not a zstd payload",
-                content_type="application/json",
-                HTTP_CONTENT_ENCODING="zstd",
-            )
+        response = self.client.post(
+            url,
+            data=b"this is not a zstd payload",
+            content_type="application/json",
+            HTTP_CONTENT_ENCODING="zstd",
+        )
 
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid zstd payload"
@@ -110,13 +107,12 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_snapshot_upload_unsupported_encoding(self) -> None:
         url = self._get_create_url()
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(
-                url,
-                data=b"anything",
-                content_type="application/json",
-                HTTP_CONTENT_ENCODING="br",
-            )
+        response = self.client.post(
+            url,
+            data=b"anything",
+            content_type="application/json",
+            HTTP_CONTENT_ENCODING="br",
+        )
 
         assert response.status_code == 400
         assert response.data["detail"] == "Unsupported Content-Encoding"
@@ -143,8 +139,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 200
 
@@ -173,8 +168,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 200
 
@@ -195,8 +189,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "images": {},
         }
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 200
         assert response.data["imageCount"] == 0
@@ -205,8 +198,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         url = self._get_create_url()
         data: dict[str, str] = {}
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 400
         assert "detail" in response.data
@@ -225,8 +217,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code != 400
 
@@ -242,8 +233,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 400
         assert 'Validation error in image "hash1"' in response.data["detail"]
@@ -260,8 +250,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 400
         assert 'Validation error in image "screen.png"' in response.data["detail"]
@@ -280,8 +269,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 400
         assert 'Validation error in image "login.png"' in response.data["detail"]
@@ -301,29 +289,15 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 400
         assert "detail" in response.data
 
-    def test_snapshot_without_feature_flag(self) -> None:
-        url = self._get_create_url()
-        data = {
-            "app_id": "com.example.app",
-            "images": {},
-        }
-
-        response = self.client.post(url, data, format="json")
-
-        assert response.status_code == 403
-        assert response.data["detail"] == "Feature not enabled"
-
     def test_snapshot_invalid_json(self) -> None:
         url = self._get_create_url()
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, "invalid json", content_type="application/json")
+        response = self.client.post(url, "invalid json", content_type="application/json")
 
         assert response.status_code == 400
         assert "detail" in response.data
@@ -338,8 +312,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "images": {},
         }
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = unauthenticated_client.post(url, data, format="json")
+        response = unauthenticated_client.post(url, data, format="json")
 
         assert response.status_code == 401
 
@@ -353,8 +326,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "images": {},
         }
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 403
 
@@ -366,8 +338,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "images": {},
         }
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 400
 
@@ -387,10 +358,9 @@ class ProjectPreprodSnapshotTest(APITestCase):
         return data
 
     def _post_selective(self, **overrides):
-        with self.feature("organizations:preprod-snapshots"):
-            return self.client.post(
-                self._get_create_url(), self._selective_data(**overrides), format="json"
-            )
+        return self.client.post(
+            self._get_create_url(), self._selective_data(**overrides), format="json"
+        )
 
     def test_all_image_file_names_rejects_empty_list(self):
         response = self._post_selective(images={}, all_image_file_names=[])
@@ -415,8 +385,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_selective_without_all_image_file_names_accepted(self):
         data = self._selective_data()
         del data["all_image_file_names"]
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(self._get_create_url(), data, format="json")
+        response = self.client.post(self._get_create_url(), data, format="json")
         assert response.status_code == 200
 
     def test_selective_with_all_image_file_names_accepted(self):
@@ -485,8 +454,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 200
 
@@ -512,13 +480,12 @@ class ProjectPreprodSnapshotTest(APITestCase):
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.compare_snapshots")
-    def test_selective_base_requires_feature_flag(
+    def test_selective_base_is_matched_for_comparison(
         self, mock_compare_snapshots, mock_get_session
     ) -> None:
         """
-        A SELECTIVE base build must only be matched as a comparison base when the
-        selective-base feature flag is on. With the flag off, the upload endpoint must
-        behave exactly as today: no comparison is dispatched against the selective base.
+        A SELECTIVE base build is matched as a comparison base and a comparison is
+        dispatched against it when an incoming head references it.
         """
         base_sha = "b" * 40
         head_sha = "a" * 40
@@ -570,27 +537,10 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        # Flag OFF: the selective base must NOT be matched, so no comparison is dispatched.
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(url, head_data, format="json")
+        # The selective base IS matched and a comparison is dispatched.
+        response = self.client.post(url, head_data, format="json")
         assert response.status_code == 200
-        head_artifact_off = PreprodArtifact.objects.get(id=response.data["artifactId"])
-        assert not PreprodSnapshotComparison.objects.filter(
-            base_snapshot_metrics__preprod_artifact=base_artifact
-        ).exists()
-        mock_compare_snapshots.apply_async.assert_not_called()
-
-        # Flag ON: the selective base IS matched and a comparison is dispatched.
-        with self.feature(
-            {
-                "organizations:preprod-snapshots": True,
-                "organizations:preprod-selective-base-snapshots": True,
-            }
-        ):
-            response = self.client.post(url, head_data, format="json")
-        assert response.status_code == 200
-        head_artifact_on = PreprodArtifact.objects.get(id=response.data["artifactId"])
-        assert head_artifact_on.id != head_artifact_off.id
+        head_artifact = PreprodArtifact.objects.get(id=response.data["artifactId"])
 
         comparison = PreprodSnapshotComparison.objects.get(
             base_snapshot_metrics__preprod_artifact=base_artifact
@@ -600,7 +550,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             kwargs={
                 "project_id": self.project.id,
                 "org_id": self.org.id,
-                "head_artifact_id": head_artifact_on.id,
+                "head_artifact_id": head_artifact.id,
                 "base_artifact_id": base_artifact.id,
             },
         )
@@ -667,8 +617,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         assert response.data["head_artifact_id"] == str(artifact.id)
@@ -697,8 +646,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         vcs_info = response.data["vcs_info"]
@@ -725,8 +673,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         assert len(response.data["images"]) == 10
@@ -848,8 +795,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_get_session.return_value = mock_session
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         assert response.data["comparison_type"] == "diff"
@@ -866,8 +812,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
     def test_get_snapshot_not_found(self) -> None:
         url = self._get_detail_url(99999)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 404
         assert response.data["detail"] == "Snapshot not found"
@@ -883,19 +828,9 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         )
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
-
-        assert response.status_code == 404
-
-    def test_get_snapshot_without_feature_flag(self) -> None:
-        artifact, _, _, _, _ = self._create_artifact_with_manifest()
-
-        url = self._get_detail_url(artifact.id)
         response = self.client.get(url)
 
-        assert response.status_code == 403
-        assert response.data["detail"] == "Feature not enabled"
+        assert response.status_code == 404
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
     def test_get_snapshot_objectstore_error(self, mock_get_session):
@@ -905,8 +840,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_get_session.return_value = mock_session
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 500
         assert response.data["detail"] == "Internal server error"
@@ -920,8 +854,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         )
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 404
         assert response.data["detail"] == "Snapshot metrics not found"
@@ -936,8 +869,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         self.login_as(user=outsider)
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 404
 
@@ -947,8 +879,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         assert response.data["comparison_state"] is None
@@ -987,8 +918,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         assert response.data["comparison_state"] == "pending"
@@ -1004,8 +934,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         assert response.data["approval_status"] == "approved"
@@ -1023,8 +952,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         assert response.data["approval_status"] == "auto_approved"
@@ -1044,8 +972,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         assert response.data["comparison_state"] == "waiting_for_base"
@@ -1114,11 +1041,10 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         artifact, manifest_key, manifest_json = self._create_base_snapshot()
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(
-                self._get_url(),
-                {"app_id": "com.example.app", "projectSlug": self.project.slug},
-            )
+        response = self.client.get(
+            self._get_url(),
+            {"app_id": "com.example.app", "projectSlug": self.project.slug},
+        )
 
         assert response.status_code == 200
         assert response.data["head_artifact_id"] == str(artifact.id)
@@ -1134,11 +1060,10 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         artifact, _, manifest_json = self._create_base_snapshot()
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(
-                self._get_url(),
-                {"app_id": "com.example.app", "project": self.project.slug},
-            )
+        response = self.client.get(
+            self._get_url(),
+            {"app_id": "com.example.app", "project": self.project.slug},
+        )
 
         assert response.status_code == 200
         assert response.data["head_artifact_id"] == str(artifact.id)
@@ -1152,11 +1077,10 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         artifact, _, manifest_json = self._create_base_snapshot()
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(
-                self._get_url(),
-                {"app_id": "com.example.app", "project": str(self.project.id)},
-            )
+        response = self.client.get(
+            self._get_url(),
+            {"app_id": "com.example.app", "project": str(self.project.id)},
+        )
 
         assert response.status_code == 200
         assert response.data["head_artifact_id"] == str(artifact.id)
@@ -1174,15 +1098,14 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         artifact, _, manifest_json = self._create_base_snapshot(project=other_project)
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(
-                self._get_url(),
-                {
-                    "app_id": "com.example.app",
-                    "project": self.project.slug,
-                    "projectSlug": other_project.slug,
-                },
-            )
+        response = self.client.get(
+            self._get_url(),
+            {
+                "app_id": "com.example.app",
+                "project": self.project.slug,
+                "projectSlug": other_project.slug,
+            },
+        )
 
         assert response.status_code == 200
         assert response.data["head_artifact_id"] == str(artifact.id)
@@ -1190,41 +1113,37 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         mock_get_session.assert_called_once_with(self.org.id, other_project.id)
 
     def test_get_latest_base_snapshot_rejects_all_project_id_sentinel(self):
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(
-                self._get_url(),
-                {"app_id": "com.example.app", "project": "-1"},
-            )
+        response = self.client.get(
+            self._get_url(),
+            {"app_id": "com.example.app", "project": "-1"},
+        )
 
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid project parameter"
 
     def test_get_latest_base_snapshot_rejects_all_project_slug_sentinel(self):
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(
-                self._get_url(),
-                {"app_id": "com.example.app", "project": "$all"},
-            )
+        response = self.client.get(
+            self._get_url(),
+            {"app_id": "com.example.app", "project": "$all"},
+        )
 
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid project parameter"
 
     def test_get_latest_base_snapshot_rejects_project_slug_all_sentinel(self):
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(
-                self._get_url(),
-                {"app_id": "com.example.app", "projectSlug": "$all"},
-            )
+        response = self.client.get(
+            self._get_url(),
+            {"app_id": "com.example.app", "projectSlug": "$all"},
+        )
 
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid project parameter"
 
     def test_get_latest_base_snapshot_rejects_project_slug_id_sentinel(self):
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(
-                self._get_url(),
-                {"app_id": "com.example.app", "projectSlug": "-1"},
-            )
+        response = self.client.get(
+            self._get_url(),
+            {"app_id": "com.example.app", "projectSlug": "-1"},
+        )
 
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid project parameter"
@@ -1266,8 +1185,7 @@ class ProjectPreprodSnapshotDeleteTest(APITestCase):
         self.login_as(user=outsider)
 
         url = self._delete_url(artifact.id)
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.delete(url)
+        response = self.client.delete(url)
 
         assert response.status_code == 404
         assert PreprodArtifact.objects.filter(id=artifact.id).exists()

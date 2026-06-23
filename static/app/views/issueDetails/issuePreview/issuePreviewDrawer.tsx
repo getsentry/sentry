@@ -4,7 +4,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
-import {Heading} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -17,14 +17,21 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {
   GroupDataContextProvider,
   useGroupData,
 } from 'sentry/views/issueDetails/groupDataContext';
+import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
+import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from 'sentry/views/issueDetails/utils';
 
 interface IssuePreviewDrawerProps {
   groupId: string;
@@ -74,6 +81,10 @@ function IssuePreviewContent() {
   const {group, project} = useGroupData();
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
+  const disableActions = [
+    ReprocessingStatus.REPROCESSING,
+    ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
+  ].includes(getGroupReprocessingStatus(group));
 
   return (
     <Fragment>
@@ -100,6 +111,36 @@ function IssuePreviewContent() {
           <GroupStatusSubtitle group={group} project={project} />
         </Flex>
       </Container>
+      <Flex
+        paddingTop="lg"
+        paddingBottom="lg"
+        borderBottom="muted"
+        justify="between"
+        align="center"
+        wrap="wrap"
+        gap="md"
+      >
+        <GroupActions
+          group={group}
+          project={project}
+          disabled={disableActions}
+          event={null}
+        />
+        <Flex align="center" wrap="wrap" gap="lg">
+          <Flex align="center" gap="xs">
+            <Text size="sm" variant="muted">
+              {t('Priority')}
+            </Text>
+            <GroupPriority group={group} />
+          </Flex>
+          <Flex align="center" gap="xs">
+            <Text size="sm" variant="muted">
+              {t('Assignee')}
+            </Text>
+            <GroupHeaderAssigneeSelector group={group} project={project} event={null} />
+          </Flex>
+        </Flex>
+      </Flex>
       <Container paddingTop="lg">
         <Container paddingBottom="lg" borderBottom="muted">
           <Tabs value="activity">
