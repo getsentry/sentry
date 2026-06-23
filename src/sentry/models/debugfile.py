@@ -274,16 +274,16 @@ class ProjectDebugFile(Model):
             tmp_path = None
             try:
                 # Get the payload and save it to a temporary file.
-                contents = self._get_objectstore_session().get(self.storage_path).payload
+                stream = self._get_objectstore_session().get(self.storage_path).payload
                 try:
                     tmp = tempfile.NamedTemporaryFile(dir=base, delete=False)
                     tmp_path = tmp.name
-                    shutil.copyfileobj(contents, tmp)
+                    shutil.copyfileobj(stream, tmp)
                     tmp.flush()
                     tmp.close()
                     tmp = None
                 finally:
-                    contents.close()
+                    stream.close()
 
                 if not os.path.exists(path):
                     os.rename(tmp_path, path)
