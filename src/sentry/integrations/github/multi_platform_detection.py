@@ -61,6 +61,12 @@ MAX_LANGUAGES = 3
 # vast majority of repos while keeping the per-detection API footprint small).
 MAX_CONTENT_READS = 5
 
+# Maximum path depth fetched by the GraphQL tree query.
+# p99 and max of needed_path_depth from the measurement run is 3, so all
+# detection signals are reachable within this depth. Entries in deeper
+# directories are intentionally not fetched.
+MAX_TREE_DEPTH = 3
+
 # Sort key weight for confidence tier: high > medium > low.
 # Ensures a framework match (high) always ranks above a bare-language fallback
 # (medium) regardless of byte count.
@@ -196,25 +202,117 @@ def _path_is_ignored(path: str) -> bool:
     return any(segment in _IGNORED_TREE_SEGMENTS for segment in path.split("/"))
 
 
+def _build_tree_query(
+    owner: str,
+    repo_name: str,
+    expression: str,
+    depth: int = MAX_TREE_DEPTH,
+) -> tuple[str, dict[str, str]]:
+    """Build a depth-bounded GraphQL tree query for a repository.
+
+    Returns (query_string, variables_dict). The query fetches all tree entries
+    up to ``depth`` path segments from the root (e.g. depth=3 covers paths such
+    as ``apps/web/package.json`` which has 2 slashes and is therefore at depth
+    2, or ``a/b/c/file`` at depth 3). Each nesting level adds one slash to the
+    maximum accessible path depth.
+    """
+    # Build from the deepest level outward.
+    # At the leaf we only request path/type/size with no further expansion.
+    block = "{ path type size }"
+    for _ in range(depth):
+        block = "{ path type size object { ... on Tree { entries " + block + " } } }"
+
+    query = (
+        """
+query ($owner: String!, $name: String!, $expression: String!) {
+  repository(owner: $owner, name: $name) {
+    object(expression: $expression) {
+      ... on Tree {
+        entries """
+        + block
+        + """
+      }
+    }
+  }
+}
+"""
+    )
+    variables: dict[str, str] = {
+        "owner": owner,
+        "name": repo_name,
+        "expression": expression,
+    }
+    return query, variables
+
+
+def _flatten_graphql_tree(tree_obj: dict[str, Any]) -> list[dict[str, Any]]:
+    """Flatten a nested GraphQL tree response into the flat {path, type, size} format.
+
+    Walks every level of the nested ``entries / object / entries`` structure and
+    emits one dict per entry, matching the shape that ``_build_tree_index``
+    already consumes. Missing or null ``path``/``type`` entries are skipped.
+    """
+    result: list[dict[str, Any]] = []
+
+    def _walk(entries: list[dict[str, Any]]) -> None:
+        for entry in entries:
+            path = entry.get("path") or ""
+            entry_type = entry.get("type") or ""
+            if not path or not entry_type:
+                continue
+            result.append({"path": path, "type": entry_type, "size": entry.get("size") or 0})
+            obj = entry.get("object")
+            if isinstance(obj, dict):
+                nested = obj.get("entries")
+                if isinstance(nested, list):
+                    _walk(nested)
+
+    entries = tree_obj.get("entries") if isinstance(tree_obj, dict) else None
+    if isinstance(entries, list):
+        _walk(entries)
+    return result
+
+
 def _get_tree(
     client: GitHubBaseClient,
     repo: str,
     ref: str | None = None,
 ) -> tuple[list[dict[str, Any]], bool]:
-    """Fetch the full recursive git tree for a repo.
+    """Fetch repository tree entries up to MAX_TREE_DEPTH via GitHub GraphQL.
 
-    Uses raw client.get() rather than client.get_tree() so that the
-    ``truncated`` flag and per-entry ``size`` fields are preserved.
-    Returns (entries, is_truncated).
+    Returns (entries, is_truncated) where entries is a flat list of
+    {path, type, size} dicts (same shape as the old REST recursive tree) and
+    is_truncated is True when any directory exists at exactly MAX_TREE_DEPTH,
+    meaning deeper content was intentionally not fetched.
     """
-    response = client.get(
-        f"/repos/{repo}/git/trees/{ref or 'HEAD'}",
-        params={"recursive": 1},
+    try:
+        owner, repo_name = repo.split("/", 1)
+    except ValueError:
+        return [], False
+
+    expression = f"{ref or 'HEAD'}:"
+    query, variables = _build_tree_query(owner, repo_name, expression)
+
+    response = client.post(
+        "/graphql",
+        data={"query": query, "variables": variables},
     )
+
     if not isinstance(response, dict):
         return [], False
-    entries: list[dict[str, Any]] = response.get("tree", []) or []
-    is_truncated = bool(response.get("truncated"))
+
+    repo_obj = (response.get("data") or {}).get("repository") or {}
+    tree_obj = repo_obj.get("object")
+    if not isinstance(tree_obj, dict):
+        return [], False
+
+    entries = _flatten_graphql_tree(tree_obj)
+
+    # A tree-type entry at the maximum depth means there are subdirectories
+    # (and their contents) that this query intentionally did not retrieve.
+    is_truncated = any(
+        e["type"] == "tree" and e["path"].count("/") == MAX_TREE_DEPTH for e in entries
+    )
     return entries, is_truncated
 
 
@@ -231,8 +329,8 @@ class _TreeIndex:
         self.files_full_paths_by_basename = files_full_paths_by_basename
         # basename → set of all non-ignored full directory paths with that name.
         self.dirs_full_paths_by_basename = dirs_full_paths_by_basename
-        # Sum of ALL blobs including vendored/build dirs — the true tarball
-        # weight.
+        # Sum of blob sizes within MAX_TREE_DEPTH (depth-capped; no longer the
+        # full tarball weight since the GraphQL tree only reaches depth 3).
         self.full_repo_size_bytes = full_repo_size_bytes
 
 
@@ -289,7 +387,7 @@ class MultiDetectionResult(TypedDict):
         int  # files actually fetched in the content pass (capped at MAX_CONTENT_READS)
     )
     tree_entry_count: int  # total entries returned by GitHub
-    is_truncated: bool  # GitHub truncated the tree at 100k entries / 7MB
+    is_truncated: bool  # tree directory exists at MAX_TREE_DEPTH (deeper content not fetched)
 
 
 def _collect_needed_paths(
