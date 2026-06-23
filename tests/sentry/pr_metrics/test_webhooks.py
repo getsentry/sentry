@@ -248,8 +248,14 @@ class HandleWebhookForPrMetricsTest(TestCase):
             )
 
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.pr_not_found",
-            extra={"repository_id": self.repo.id, "pr_number": 9999},
+            "pr_metrics.pr_not_found",
+            extra={
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "repo_name": self.repo.name,
+                "pr_number": 9999,
+                "github_delivery_id": None,
+            },
         )
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
 
@@ -442,8 +448,14 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
             repo=self.repo,
         )
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.pr_not_found",
-            extra={"repository_id": self.repo.id, "pr_number": 9999},
+            "pr_metrics.pr_not_found",
+            extra={
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "repo_name": self.repo.name,
+                "pr_number": 9999,
+                "github_delivery_id": None,
+            },
         )
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
@@ -995,8 +1007,15 @@ class HandleCommentForPrMetricsTest(TestCase):
             )
 
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.comment.pr_not_found",
-            extra={"repository_id": self.repo.id, "issue_number": 9999},
+            "pr_metrics.comment.pr_not_found",
+            extra={
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "repo_name": self.repo.name,
+                "pr_number": 9999,
+                "action": "created",
+                "github_delivery_id": "delivery-unknown",
+            },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -1110,8 +1129,14 @@ class HandleReviewForPrMetricsTest(TestCase):
             )
 
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.pr_not_found",
-            extra={"repository_id": self.repo.id, "pr_number": 9999},
+            "pr_metrics.pr_not_found",
+            extra={
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "repo_name": self.repo.name,
+                "pr_number": 9999,
+                "github_delivery_id": "delivery-x",
+            },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -1209,8 +1234,14 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
             )
 
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.pr_not_found",
-            extra={"repository_id": self.repo.id, "pr_number": 9999},
+            "pr_metrics.pr_not_found",
+            extra={
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "repo_name": self.repo.name,
+                "pr_number": 9999,
+                "github_delivery_id": "delivery-x",
+            },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -1301,8 +1332,14 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
             )
 
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.pr_not_found",
-            extra={"repository_id": self.repo.id, "pr_number": 9999},
+            "pr_metrics.pr_not_found",
+            extra={
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "repo_name": self.repo.name,
+                "pr_number": 9999,
+                "github_delivery_id": "delivery-x",
+            },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
