@@ -2,7 +2,6 @@ from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.workflow_engine.activity.seer_base import (
     WorkflowEngineActivityAction,
     build_template,
-    extract_models,
     get_example_issue_description,
     get_example_template,
     get_issue_description,
@@ -48,7 +47,9 @@ class SeerCodingCompletedActivityTemplate(NotificationTemplate[WorkflowEngineAct
         )
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
-        activity, group, project, organization = extract_models(data)
+        from sentry.notifications.notification_action.activity_registry.base import extract_models
+
+        activity, group, project, organization = extract_models(activity_id=data.activity_id)
         text_block = PlainTextBlock(text="You can check out the Seer's suggested diff in Sentry.")
         return build_template(
             data=data,

@@ -2,7 +2,6 @@ from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.workflow_engine.activity.seer_base import (
     WorkflowEngineActivityAction,
     build_template,
-    extract_models,
     get_example_actions,
     get_example_issue_description,
     get_example_template,
@@ -58,7 +57,9 @@ class SeerPrCreatedActivityTemplate(NotificationTemplate[WorkflowEngineActivityA
         )
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
-        activity, group, project, organization = extract_models(data)
+        from sentry.notifications.notification_action.activity_registry.base import extract_models
+
+        activity, group, project, organization = extract_models(activity_id=data.activity_id)
         seer_link = get_seer_link(group)
 
         extra_actions = [NotificationRenderedAction(label="View in Sentry", link=seer_link)]
