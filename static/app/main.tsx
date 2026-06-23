@@ -17,12 +17,18 @@ import {SENTRY_RELEASE_VERSION, USE_TANSTACK_DEVTOOL} from 'sentry/constants';
 import {preload} from 'sentry/router/preload';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 import {routes} from 'sentry/router/routes';
+import {configureRequestFetch} from 'sentry/utils/api/requestFetch';
+import {createDefaultErrorHandlers} from 'sentry/utils/api/requestFetchErrorHandlers';
 import {createReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 function buildRouter() {
   const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter);
   const router = sentryCreateBrowserRouter(routes());
-  setApiNavigate(createReactRouter3Navigate(router));
+  const navigate = createReactRouter3Navigate(router);
+  setApiNavigate(navigate);
+  configureRequestFetch({
+    errorHandlers: createDefaultErrorHandlers({navigate}),
+  });
 
   return router;
 }
