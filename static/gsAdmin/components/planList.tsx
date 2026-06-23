@@ -71,17 +71,6 @@ export function PlanList({
     return <CurrentValueText>Current: None</CurrentValueText>;
   };
 
-  // for legacy errors-only plans
-  const formattedReservedMinimum = {
-    6000000: '6M',
-    5000000: '5M',
-    4000000: '4M',
-    3000000: '3M',
-    1500000: '1.5M',
-    500000: '500k',
-    100000: '100K',
-  };
-
   const availableAddOns = useMemo(
     () =>
       Object.values(activePlan?.addOnCategories || {})
@@ -120,13 +109,7 @@ export function PlanList({
             plan.id,
             <PlanLabel key={plan.id} data-test-id={`change-plan-label-${plan.id}`}>
               <div>
-                <strong>
-                  {plan.name}{' '}
-                  {formattedReservedMinimum[
-                    plan.reservedMinimum as keyof typeof formattedReservedMinimum
-                  ] ?? ''}
-                </strong>{' '}
-                <SubText>— {plan.id}</SubText>
+                <strong>{plan.name}</strong> <SubText>— {plan.id}</SubText>
                 <br />
                 <small>
                   {formatCurrency(plan.price)} /{' '}

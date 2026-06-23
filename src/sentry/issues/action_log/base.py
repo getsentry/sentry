@@ -7,11 +7,14 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from enum import StrEnum
 
+from django.db import router, transaction
 from rest_framework.request import Request
 
 from sentry import features
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupAction, GroupActionActor
+from sentry.issues.derived.processing import process_group_log_batch
+from sentry.issues.derived.tasks import process_group_log_task
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.middleware import is_frontend_request
 from sentry.models.project import Project
@@ -229,6 +232,24 @@ def publish_action(
         source=source,
         data=action.dict(),
     )
+
+    # Process derived data after the current transaction commits so the log
+    # entry is visible. Will be replaced by outbox processing later.
+    transaction.on_commit(
+        lambda: _process_derived_data(group_id), using=router.db_for_write(GroupActionLogEntry)
+    )
+
+
+def _process_derived_data(group_id: int) -> None:
+    """Process derived data after a log entry has been committed."""
+    from sentry.models.group import Group
+
+    try:
+        result = process_group_log_batch(group_id)
+    except Group.DoesNotExist:
+        return
+    if not result.caught_up:
+        process_group_log_task.delay(group_id)
 
 
 def publish_action_from_context(

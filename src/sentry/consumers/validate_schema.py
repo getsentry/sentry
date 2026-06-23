@@ -3,7 +3,6 @@ import time
 from typing import Any
 
 import sentry_kafka_schemas
-import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message
@@ -45,10 +44,6 @@ class ValidateSchema(ProcessingStrategy[KafkaPayload]):
         else:
             now = time.time()
             if self.__last_record_time is None or self.__last_record_time + 1.0 < now:
-                with sentry_sdk.isolation_scope() as scope:
-                    scope.add_attachment(bytes=message.payload.value, filename="message.txt")
-                    scope.set_tag("topic", self.__topic)
-
                 if self.__codec is None:
                     logger.warning("No validator configured for topic")
                 else:

@@ -266,9 +266,8 @@ def test_convert_renamed_attribute_meta() -> None:
     [(123, 123), ("123", 123), (None, 0)],
     ids=["int_key_id", "str_key_id", "none_key_id"],
 )
-def test_convert_outcomes_when_not_emitted(key_id, expected_key_id) -> None:
+def test_convert_outcomes(key_id, expected_key_id) -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
-    message["accepted_outcome_emitted"] = False
     message["key_id"] = key_id
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
@@ -285,9 +284,8 @@ def test_convert_outcomes_when_not_emitted(key_id, expected_key_id) -> None:
     )
 
 
-def test_convert_outcomes_when_not_emitted_missing_key_id() -> None:
+def test_convert_outcomes_missing_key_id() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
-    message["accepted_outcome_emitted"] = False
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 
@@ -301,16 +299,3 @@ def test_convert_outcomes_when_not_emitted_missing_key_id() -> None:
             ),
         ],
     )
-
-
-def test_convert_outcomes_when_already_emitted() -> None:
-    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
-    message["accepted_outcome_emitted"] = True
-    item = convert_span_to_item(cast(CompatibleSpan, message))
-    assert not item.HasField("outcomes")
-
-
-def test_convert_outcomes_when_field_missing() -> None:
-    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
-    item = convert_span_to_item(cast(CompatibleSpan, message))
-    assert not item.HasField("outcomes")

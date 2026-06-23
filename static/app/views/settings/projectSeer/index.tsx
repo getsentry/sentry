@@ -17,10 +17,6 @@ import {ClaudeCodeIntegrationCta} from 'sentry/components/events/autofix/claudeC
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
-import {
-  organizationIntegrationsCodingAgents,
-  type CodingAgentIntegration,
-} from 'sentry/components/events/autofix/useAutofix';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -45,7 +41,11 @@ import {
   getInfiniteSeerProjectsSettingsQueryOptions,
   getMutateSeerProjectSettingsOptions,
 } from 'sentry/utils/seer/seerProjectSettings';
-import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
+import type {
+  AgentIntegration,
+  AutofixAgentSelectOption,
+  SeerProjectSettingResponse,
+} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
@@ -110,7 +110,7 @@ function CodingAgentSettings({
   codingAgentIntegrations,
 }: {
   canWriteProject: boolean;
-  codingAgentIntegrations: CodingAgentIntegration[];
+  codingAgentIntegrations: AgentIntegration[];
   handleAutoCreatePrChange: (value: boolean) => void;
   handleIntegrationChange: (integrationId: number) => void;
   isKnownAgentsPending: boolean;
@@ -217,24 +217,19 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
       knownAgents,
     })
   );
-  const {data: codingAgentIntegrations} = useQuery(
-    organizationIntegrationsCodingAgents(organization)
-  );
 
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
 
   const cursorIntegrations =
-    codingAgentIntegrations?.integrations.filter(
-      integration => integration.provider === 'cursor'
+    knownAgents?.filter(
+      i => i.provider === CodingAgentProvider.CURSOR_BACKGROUND_AGENT
     ) ?? [];
 
   // For backwards compatibility, use the first cursor integration as default
   const cursorIntegration = cursorIntegrations[0];
 
   const claudeIntegrations =
-    codingAgentIntegrations?.integrations.filter(
-      integration => integration.provider === 'claude_code'
-    ) ?? [];
+    knownAgents?.filter(i => i.provider === CodingAgentProvider.CLAUDE_CODE_AGENT) ?? [];
 
   const claudeIntegration = claudeIntegrations[0];
 
@@ -279,7 +274,8 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
           user_id: user.id,
         });
         updateSeerSettings({
-          agentOption: `${CodingAgentProvider.CURSOR_BACKGROUND_AGENT}::${cursorIntegration.id}`,
+          agentOption:
+            `${CodingAgentProvider.CURSOR_BACKGROUND_AGENT}::${cursorIntegration.id}` as AutofixAgentSelectOption,
           stoppingPoint: 'root_cause',
           autoCreatePr: false,
         });
@@ -295,7 +291,8 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
           user_id: user.id,
         });
         updateSeerSettings({
-          agentOption: `${CodingAgentProvider.CLAUDE_CODE_AGENT}::${claudeIntegration.id}`,
+          agentOption:
+            `${CodingAgentProvider.CLAUDE_CODE_AGENT}::${claudeIntegration.id}` as AutofixAgentSelectOption,
           stoppingPoint: 'root_cause',
           autoCreatePr: false,
         });
@@ -316,36 +313,27 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
     ]
   );
 
-  // Handler for Cursor's "Auto-Create PR" toggle (from PR #103730)
-  // Controls whether Cursor agent auto-creates PRs
   const handleAutoCreatePrChange = useCallback(
     (value: boolean) => {
       if (!setting || setting.agent === 'seer') {
         return;
       }
-      if (value) {
-        updateSeerSettings({
-          agentOption: `${setting.agent}::${setting.integrationId}`,
-          stoppingPoint: 'open_pr',
-        });
-      } else {
-        updateSeerSettings({
-          agentOption: `${setting.agent}::${setting.integrationId}`,
-          stoppingPoint: 'code_changes',
-        });
-      }
+      updateSeerSettings({
+        agentOption:
+          `${setting.agent}::${setting.integrationId}` as AutofixAgentSelectOption,
+        autoCreatePr: value,
+      });
     },
     [setting, updateSeerSettings]
   );
 
-  // Handler for changing which integration is used for automation handoff
   const handleIntegrationChange = useCallback(
     (integrationId: number) => {
       if (!setting || setting.agent === 'seer') {
         return;
       }
       updateSeerSettings({
-        agentOption: `${setting.agent}::${integrationId}`,
+        agentOption: `${setting.agent}::${integrationId}` as AutofixAgentSelectOption,
         autoCreatePr: setting.autoCreatePr ?? false,
       });
     },
