@@ -551,6 +551,20 @@ class DiscoverQueryBuilderTest(TestCase):
         assert Condition(Column("tags[issue.id]"), Op.IN, ["123", "456"]) in query.where
         query.get_snql_query().validate()
 
+    def test_has_issue_id_filter_on_transactions_compares_tag_to_empty_string(self) -> None:
+        # `has:issue.id` on transactions must compare the tag against an empty
+        # string (matching no rows, since transactions have no error issue), not
+        # against the numeric 0 used for the group_id column -- the latter would
+        # re-trigger the Snuba "must be a string" tag validation error.
+        query = DiscoverQueryBuilder(
+            Dataset.Transactions,
+            self.params,
+            query="has:issue.id",
+            selected_columns=["count()"],
+        )
+        assert Condition(Column("tags[issue.id]"), Op.NEQ, "") in query.where
+        query.get_snql_query().validate()
+
     def test_issue_id_filter_on_discover_uses_group_id_column(self) -> None:
         # On datasets with a real group_id column the value stays numeric.
         query = DiscoverQueryBuilder(
