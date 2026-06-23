@@ -1061,7 +1061,14 @@ export function SearchQueryBuilderValueCombobox({
         onDelete();
       }
     },
-    [addTypedValue, canSelectMultipleValues, committedValues, editingValue, onDelete, removeValue]
+    [
+      addTypedValue,
+      canSelectMultipleValues,
+      committedValues,
+      editingValue,
+      onDelete,
+      removeValue,
+    ]
   );
 
   // Ensure that the menu stays open when clicking on the selected items
