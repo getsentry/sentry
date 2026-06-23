@@ -77,7 +77,9 @@ describe('ReplayLoadingState', () => {
 
   it('falls back to the missing-replay alert when a segment error has no custom error renderer', () => {
     render(
-      <ReplayLoadingState readerResult={makeReaderResult({attachmentError: [requestError(500)]})}>
+      <ReplayLoadingState
+        readerResult={makeReaderResult({attachmentError: [requestError(500)]})}
+      >
         {() => <div>Player</div>}
       </ReplayLoadingState>
     );
