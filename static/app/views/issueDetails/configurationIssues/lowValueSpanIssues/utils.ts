@@ -23,14 +23,13 @@ const JAVASCRIPT_PROJECT_PLATFORMS = new Set<PlatformKey>([
 ]);
 
 export function getSpanLabel(evidenceData: LowValueSpanEvidenceData): string {
-  const {op, description, spanName} = evidenceData;
-  const primary = spanName ?? op;
+  const {op, description} = evidenceData;
 
-  if (primary && description) {
-    return `${primary} - ${description}`;
+  if (op && description) {
+    return `${op} - ${description}`;
   }
-  if (primary) {
-    return primary;
+  if (op) {
+    return op;
   }
   if (description) {
     return description;
@@ -102,21 +101,18 @@ export function getCustomInstrumentationDocsUrl(): string {
 export function getJavaScriptSpanFilterSnippet(
   evidenceData: LowValueSpanEvidenceData
 ): string {
-  const {op, description, spanName} = evidenceData;
-  const matcherName = spanName ?? description;
   const matcherLines: string[] = [];
-
-  if (matcherName === null && op !== null) {
-    matcherLines.push(`      // NOTE: This span has no description or name, so it can`);
+  if (evidenceData.description === null && evidenceData.op !== null) {
+    matcherLines.push(`      // NOTE: This span has no description, so it can only be`);
     matcherLines.push(
-      `      // only be targeted by op. This will also drop other spans with this op.`
+      `      // targeted by op. This will also drop other spans with this op.`
     );
   }
-  if (op !== null) {
-    matcherLines.push(`      op: ${JSON.stringify(op)},`);
+  if (evidenceData.op !== null) {
+    matcherLines.push(`      op: ${JSON.stringify(evidenceData.op)},`);
   }
-  if (matcherName !== null) {
-    matcherLines.push(`      name: ${JSON.stringify(matcherName)},`);
+  if (evidenceData.description !== null) {
+    matcherLines.push(`      name: ${JSON.stringify(evidenceData.description)},`);
   }
 
   return `Sentry.init({
@@ -131,22 +127,18 @@ ${matcherLines.join('\n')}
 export function getPythonSpanFilterSnippet(
   evidenceData: LowValueSpanEvidenceData
 ): string {
-  const {op, description, spanName} = evidenceData;
   const conditions: string[] = [];
-  if (op === null) {
+  if (evidenceData.op === null) {
     conditions.push(`            span.get("op") is None`);
   } else {
-    conditions.push(`            span.get("op") == ${JSON.stringify(op)}`);
+    conditions.push(`            span.get("op") == ${JSON.stringify(evidenceData.op)}`);
   }
-  if (description === null) {
+  if (evidenceData.description === null) {
     conditions.push(`            and span.get("description") is None`);
   } else {
     conditions.push(
-      `            and span.get("description") == ${JSON.stringify(description)}`
+      `            and span.get("description") == ${JSON.stringify(evidenceData.description)}`
     );
-  }
-  if (spanName !== null) {
-    conditions.push(`            and span.get("name") == ${JSON.stringify(spanName)}`);
   }
 
   return `import sentry_sdk

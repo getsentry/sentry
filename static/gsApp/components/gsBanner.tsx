@@ -713,9 +713,6 @@ class GSBanner extends Component<Props, State> {
 
   get overageAlertActive(): Record<EventType, boolean> {
     const {subscription} = this.props;
-    if (subscription.hasOverageNotificationsDisabled) {
-      return ALERTS_OFF;
-    }
     return objectFromBilledCategories(
       c =>
         !this.state.overageAlertDismissed[c.singular as EventType] &&
@@ -726,10 +723,7 @@ class GSBanner extends Component<Props, State> {
   get overageWarningActive(): Record<EventType, boolean> {
     const {subscription} = this.props;
     // disable warnings if org has PAYG
-    if (
-      subscription.hasOverageNotificationsDisabled ||
-      subscription.onDemandMaxSpend > 0
-    ) {
+    if (subscription.onDemandMaxSpend > 0) {
       return ALERTS_OFF;
     }
     return objectFromBilledCategories(

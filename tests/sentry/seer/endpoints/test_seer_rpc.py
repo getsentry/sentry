@@ -27,6 +27,7 @@ from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_monitoring_provider_connections,
     get_organization_features,
     get_project_preferences,
     get_repo_installation_id,
@@ -1695,6 +1696,55 @@ class TestGetOrganizationFeatures(APITestCase):
         with self.feature("organizations:seer-agent-source-code-search"):
             result = get_organization_features(org_id=self.organization.id, user_id=0)
         assert result.dict() == {"features": ["seer-agent-source-code-search"]}
+
+
+@override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+@with_feature("organizations:seer-infra-telemetry")
+@cell_silo_test
+class TestGetMonitoringProviderConnections(APITestCase):
+    def test_returns_connections(self) -> None:
+        idp = self.create_identity_provider(type="datadog", external_id="org-uuid-1")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+
+        result = get_monitoring_provider_connections(
+            organization_id=self.organization.id, user_id=self.user.id
+        )
+
+        assert len(result.connections) == 1
+        connection = result.connections[0]
+        assert connection.provider_key == "datadog"
+        assert connection.url == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
+        assert connection.identity_id == identity.id
+        decrypted = Fernet(TEST_FERNET_KEY.encode("utf-8")).decrypt(
+            connection.encrypted_access_token.encode("utf-8")
+        )
+        assert decrypted.decode("utf-8") == "access-token"
+
+    def test_unknown_organization_returns_empty(self) -> None:
+        result = get_monitoring_provider_connections(organization_id=999999, user_id=self.user.id)
+
+        assert result.connections == []
+
+    def test_non_member_returns_empty(self) -> None:
+        other_org = self.create_organization()
+        idp = self.create_identity_provider(type="datadog", external_id="org-uuid-2")
+        self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-2",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+
+        result = get_monitoring_provider_connections(
+            organization_id=other_org.id, user_id=self.user.id
+        )
+
+        assert result.connections == []
 
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)

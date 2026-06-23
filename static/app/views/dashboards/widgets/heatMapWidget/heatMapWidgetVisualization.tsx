@@ -375,7 +375,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   );
 }
 
-export const visualMapOptions = (Zmax: number) => {
+export const visualMapOptions = (Zmax: number): VisualMapComponentOption[] => {
   return [
     // Zero values are transparent (empty buckets)
     {
@@ -400,7 +400,7 @@ export const visualMapOptions = (Zmax: number) => {
         color: [...HEATMAP_COLORS],
       },
     },
-  ] as VisualMapComponentOption[];
+  ];
 };
 
 /**

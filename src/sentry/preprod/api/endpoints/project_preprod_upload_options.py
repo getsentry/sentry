@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from django.conf import settings
 from django.urls import reverse
 from objectstore_client import TimeToIdle
 from objectstore_client.metadata import format_expiration
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -30,11 +28,6 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project: Project) -> Response:
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", project.organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         organization = project.organization
         session = get_preprod_session(org=organization.id, project=project.id)
 

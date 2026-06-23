@@ -34,15 +34,12 @@ class FindBaseSnapshotArtifactTest(TestCase):
             build_configuration=None,
         )
 
-    def test_selective_base_excluded_by_default(self):
-        assert find_base_snapshot_artifact(**self._args()) is None
-
-    def test_selective_base_allowed_when_opted_in(self):
-        result = find_base_snapshot_artifact(**self._args(), allow_selective=True)
+    def test_selective_base_returned(self):
+        result = find_base_snapshot_artifact(**self._args())
         assert result is not None
         assert result.preprodsnapshotmetrics.is_selective is True
 
-    def test_non_selective_base_returned_with_allow_selective(self):
+    def test_non_selective_base_returned(self):
         cc = CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_repo_name="o/r",
@@ -64,6 +61,4 @@ class FindBaseSnapshotArtifactTest(TestCase):
             artifact_type=artifact.artifact_type,
             build_configuration=None,
         )
-        # A normal full base must be returned regardless of allow_selective.
         assert find_base_snapshot_artifact(**args) is not None
-        assert find_base_snapshot_artifact(**args, allow_selective=True) is not None

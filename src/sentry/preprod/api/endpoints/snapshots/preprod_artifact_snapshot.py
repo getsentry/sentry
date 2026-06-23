@@ -9,14 +9,13 @@ import orjson
 import pydantic
 import sentry_sdk
 import zstandard
-from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -251,11 +250,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         This endpoint requires a bearer token with `project:write` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         try:
             artifact = PreprodArtifact.objects.select_related("project").get(
                 id=snapshot_id, project__organization_id=organization.id
@@ -344,20 +338,19 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         Retrieve full details for a snapshot, including categorized image lists
         and comparison status.
 
-        When a comparison exists, images are categorized into `changed`, `added`,
-        `removed`, `renamed`, `unchanged`, `errored`, and `skipped` lists with
-        counts. Without a comparison, only the `images` list is populated.
+        When a comparison exists (`comparison_type` is `diff`), images are
+        categorized into `changed`, `added`, `removed`, `renamed`, `unchanged`,
+        `errored`, and `skipped` lists with counts, and the top-level `images`
+        array is empty because those images are already present in the
+        categorized lists. For `solo` and `waiting_for_base` snapshots the
+        categorized lists are empty and `images` is the only populated source.
+        `image_count` is accurate in all modes.
 
         Use `compact_metadata=1` to strip image objects down to `display_name`,
         `image_file_name`, `group`, and `description` only.
 
         This endpoint requires a bearer token with `project:read` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         compact = request.GET.get("compact_metadata", "0") in ("1", "true")
 
         try:
@@ -499,9 +492,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                         app_id=artifact.app_id,
                         artifact_type=artifact.artifact_type,
                         build_configuration=artifact.build_configuration,
-                        allow_selective=features.has(
-                            "organizations:preprod-selective-base-snapshots", organization
-                        ),
                     )
                     is not None
                 )
@@ -637,7 +627,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 vcs_info=vcs_info,
                 app_id=artifact.app_id,
                 is_selective=snapshot_metrics.is_selective,
-                images=image_list,
+                images=image_list if comparison_type != "diff" else [],
                 image_count=snapshot_metrics.image_count,
                 changed=categorized.changed,
                 changed_count=len(categorized.changed),
@@ -722,11 +712,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         This endpoint requires a bearer token with `project:write` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", project.organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         request_body, decode_error = decode_preprod_snapshot_request_body(request)
         if request_body is None:
             return Response({"detail": decode_error or "Invalid request body"}, status=400)
@@ -750,9 +735,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         pr_number = data.get("pr_number")
 
         selective = data.get("selective", False)
-        allow_selective = features.has(
-            "organizations:preprod-selective-base-snapshots", project.organization
-        )
         all_image_file_names = data.get("all_image_file_names")
 
         if all_image_file_names is not None and not selective:
@@ -903,7 +885,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     app_id=artifact.app_id,
                     artifact_type=artifact.artifact_type,
                     build_configuration=artifact.build_configuration,
-                    allow_selective=allow_selective,
                 )
                 if base_artifact:
                     logger.info(
@@ -967,7 +948,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         # Trigger comparisons for any head artifacts that were uploaded before this base.
         # Handles possible out-of-order uploads where heads arrive before their base build.
-        if commit_comparison is not None and (not selective or allow_selective):
+        if commit_comparison is not None:
             try:
                 waiting_heads = find_head_snapshot_artifacts_awaiting_base(
                     organization_id=project.organization_id,

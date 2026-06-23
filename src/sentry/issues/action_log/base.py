@@ -15,7 +15,7 @@ from sentry.auth.services.auth import AuthenticatedToken
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupAction, GroupActionActor
 from sentry.issues.derived.processing import process_group_log_batch
 from sentry.issues.derived.tasks import process_group_log_task
-from sentry.issues.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.middleware import is_frontend_request
 from sentry.models.project import Project
 from sentry.users.models.user import User

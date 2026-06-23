@@ -29,6 +29,10 @@ describe('useIssuePreviewDrawer', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [],
     });
