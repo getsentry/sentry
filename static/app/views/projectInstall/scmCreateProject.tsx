@@ -310,7 +310,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 />
               </MotionStack>
 
-              <MotionStack layout="position" gap="2xl">
+              <motion.div layout="position">
                 <ScmPlatformFeaturesCore
                   analyticsFlow="project-creation"
                   selectedRepository={selectedRepository}
@@ -319,7 +319,13 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   onFeaturesChange={handleFeaturesChange}
                   onClearProjectDetailsForm={handleClearProjectDetailsForm}
                 />
+              </motion.div>
+
+              <motion.div layout="position">
                 <Separator orientation="horizontal" />
+              </motion.div>
+
+              <motion.div layout="position">
                 <ScmFeatureSelectionPanel
                   analyticsFlow="project-creation"
                   selectedRepository={selectedRepository}
@@ -327,10 +333,13 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   selectedFeatures={selectedFeatures}
                   onFeaturesChange={handleFeaturesChange}
                 />
-              </MotionStack>
+              </motion.div>
 
-              <MotionStack layout="position" gap="2xl">
+              <motion.div layout="position">
                 <Separator orientation="horizontal" />
+              </motion.div>
+
+              <motion.div layout="position">
                 <ScmProjectDetailsCore
                   analyticsFlow="project-creation"
                   projectName={form.projectName}
@@ -340,13 +349,19 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   onTeamChange={form.onTeamChange}
                   isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
                 />
+              </motion.div>
+
+              <motion.div layout="position">
                 <Separator orientation="horizontal" />
+              </motion.div>
+
+              <motion.div layout="position">
                 <ScmAlertFrequencySection
                   analyticsFlow="project-creation"
                   alertRuleConfig={form.alertRuleConfig}
                   onAlertChange={form.onAlertChange}
                 />
-              </MotionStack>
+              </motion.div>
             </LayoutGroup>
           </Stack>
           {/* Page-level CTA: disabled until a platform and project details are
