@@ -874,7 +874,7 @@ class MonitoringProviderConnectionData(BaseModel):
     url: str
     encrypted_access_token: str
     identity_id: int
-    is_refresh_supported: bool
+    auth_method: str
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]

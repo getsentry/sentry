@@ -158,7 +158,7 @@ def get_monitoring_provider_connections(
                     "url": url,
                     "encrypted_access_token": encrypted_access_token,
                     "identity_id": identity.id,
-                    "is_refresh_supported": isinstance(provider, OAuth2Provider),
+                    "auth_method": "oauth" if isinstance(provider, OAuth2Provider) else "pat",
                 }
             )
 

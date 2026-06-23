@@ -1375,7 +1375,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert connection["provider_key"] == "datadog"
         assert connection["url"] == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
         assert connection["identity_id"] == identity.id
-        assert connection["is_refresh_supported"] is True
+        assert connection["auth_method"] == "oauth"
         fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
         decrypted_access_token = fernet.decrypt(
             connection["encrypted_access_token"].encode("utf-8")
