@@ -37,11 +37,7 @@ export function SpanDescriptionCell({
   extraLinkQueryParams,
 }: Props) {
   const formatterDescription = useMemo(() => {
-    if (!rawDescription) {
-      return rawDescription === '' ? emptyStringValue : emptyValue;
-    }
-
-    if (moduleName !== ModuleName.DB) {
+    if (!rawDescription || moduleName !== ModuleName.DB) {
       return rawDescription;
     }
 
@@ -51,6 +47,10 @@ export function SpanDescriptionCell({
 
     return formatter.toSimpleMarkup(rawDescription);
   }, [moduleName, rawDescription, spanAction, system]);
+
+  if (!rawDescription) {
+    return rawDescription === '' ? emptyStringValue : emptyValue;
+  }
 
   const descriptionLink = (
     <SpanGroupDetailsLink
