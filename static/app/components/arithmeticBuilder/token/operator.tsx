@@ -1,8 +1,7 @@
-import {useCallback, useRef} from 'react';
+import {useRef} from 'react';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {Token, TokenOperator} from 'sentry/components/arithmeticBuilder/token';
 import {Operator} from 'sentry/components/arithmeticBuilder/token';
 import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/deleteButton';
@@ -17,7 +16,6 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {IconDivide} from 'sentry/icons/iconDivide';
 import {IconSubtract} from 'sentry/icons/iconSubtract';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 
 interface ArithmeticTokenOperatorProps {
   item: Node<Token>;
@@ -37,7 +35,6 @@ export function ArithmeticTokenOperator({
     state,
     focusable: true,
   });
-  const {dispatch} = useArithmeticBuilder();
 
   const operator =
     token.operator === Operator.PLUS ? (
@@ -53,15 +50,6 @@ export function ArithmeticTokenOperator({
   if (!operator) {
     throw new Error(`Unexpected operator: ${token.operator}`);
   }
-
-  const onDelete = useCallback(() => {
-    const itemKey = state.collection.getKeyBefore(item.key);
-    dispatch({
-      type: 'DELETE_TOKEN',
-      token,
-      focusOverride: defined(itemKey) ? {itemKey} : undefined,
-    });
-  }, [dispatch, token, state, item]);
 
   return (
     <Row
