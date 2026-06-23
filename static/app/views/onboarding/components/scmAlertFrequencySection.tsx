@@ -35,9 +35,6 @@ export function ScmAlertFrequencySection({
     return (
       <ScmCollapsibleSection title={t('Alert frequency')} defaultExpanded={false}>
         <Stack gap="md" width="100%">
-          <Text variant="muted" density="comfortable">
-            {t('Get notified when things go wrong')}
-          </Text>
           <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
         </Stack>
       </ScmCollapsibleSection>

@@ -56,47 +56,49 @@ export function ScmProjectDetailsCore({
   return (
     <Grid width="100%" columns={{sm: '1fr', md: '1fr 1fr'}} gap="2xl">
       <Stack gap="md">
+        <Container>
+          <Heading as="h4">{t('Project name')}</Heading>
+        </Container>
+
         <Stack gap="xs">
+          <Input
+            type="text"
+            placeholder={t('project-name')}
+            value={projectName}
+            onChange={e => onProjectNameChange(e.target.value)}
+            onBlur={onProjectNameBlur}
+          />
           <Container>
-            <Heading as="h4">{t('Project name')}</Heading>
-          </Container>
-          <Container>
-            <Text variant="muted" density="comfortable">
+            <Text variant="muted" density="comfortable" size="sm">
               {t('Slug used in URLs and SDK config')}
             </Text>
           </Container>
         </Stack>
-        <Input
-          type="text"
-          placeholder={t('project-name')}
-          value={projectName}
-          onChange={e => onProjectNameChange(e.target.value)}
-          onBlur={onProjectNameBlur}
-        />
       </Stack>
 
       {!isOrgMemberWithNoAccess && (
         <Stack gap="md">
+          <Container>
+            <Heading as="h4">{t('Team')}</Heading>
+          </Container>
+
           <Stack gap="xs">
+            <TeamSelector
+              allowCreate
+              name="team"
+              aria-label={t('Select a Team')}
+              clearable={false}
+              placeholder={t('Select a Team')}
+              teamFilter={(tm: Team) => tm.access.includes('team:admin')}
+              value={teamSlug}
+              onChange={onTeamChange}
+            />
             <Container>
-              <Heading as="h4">{t('Team')}</Heading>
-            </Container>
-            <Container>
-              <Text variant="muted" density="comfortable">
+              <Text variant="muted" density="comfortable" size="sm">
                 {t('Set who owns alerts for this project')}
               </Text>
             </Container>
           </Stack>
-          <TeamSelector
-            allowCreate
-            name="team"
-            aria-label={t('Select a Team')}
-            clearable={false}
-            placeholder={t('Select a Team')}
-            teamFilter={(tm: Team) => tm.access.includes('team:admin')}
-            value={teamSlug}
-            onChange={onTeamChange}
-          />
         </Stack>
       )}
     </Grid>

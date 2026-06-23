@@ -1,6 +1,7 @@
 import {useCallback, useState} from 'react';
 import {LayoutGroup, motion} from 'framer-motion';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -285,7 +286,17 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
               </Stack>
 
               <MotionStack gap="md" layout="position">
-                <Heading as="h4">{t('Repository')}</Heading>
+                <Flex justify="between" align="center">
+                  <Stack gap="sm">
+                    <Heading as="h4">{t('Repository')}</Heading>
+                    <Text variant="secondary" density="comfortable" size="sm">
+                      {t(
+                        'Source context in stack traces, suspect commits, and deploy tracking'
+                      )}
+                    </Text>
+                  </Stack>
+                  <Tag variant="muted">{t('Optional')}</Tag>
+                </Flex>
 
                 <ScmIntegrationConnect
                   analyticsFlow="project-creation"
@@ -308,6 +319,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   onFeaturesChange={handleFeaturesChange}
                   onClearProjectDetailsForm={handleClearProjectDetailsForm}
                 />
+                <Separator orientation="horizontal" />
                 <ScmFeatureSelectionPanel
                   analyticsFlow="project-creation"
                   selectedRepository={selectedRepository}
@@ -328,6 +340,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   onTeamChange={form.onTeamChange}
                   isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
                 />
+                <Separator orientation="horizontal" />
                 <ScmAlertFrequencySection
                   analyticsFlow="project-creation"
                   alertRuleConfig={form.alertRuleConfig}
