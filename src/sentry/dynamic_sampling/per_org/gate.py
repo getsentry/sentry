@@ -10,6 +10,9 @@ PROJECT_BALANCING_DEBUG_PROJECT_IDS_OPTION = (
     "dynamic-sampling.per_org.project-balancing-debug-project-ids"
 )
 PROJECT_BALANCING_DEBUG_PROJECT_IDS_LIMIT = 100
+SLIDING_WINDOW_COMPARISON_ORG_IDS_OPTION = (
+    "dynamic-sampling.per_org.sliding-window-comparison-org-ids"
+)
 
 
 def is_killswitch_engaged() -> bool:
@@ -42,3 +45,11 @@ def project_balancing_debug_project_ids() -> set[int]:
         elif isinstance(project_id, str) and project_id.isdigit():
             project_ids.add(int(project_id))
     return project_ids
+
+
+def sliding_window_comparison_org_ids() -> set[int]:
+    return {
+        int(org_id)
+        for org_id in options.get(SLIDING_WINDOW_COMPARISON_ORG_IDS_OPTION)
+        if isinstance(org_id, int) or (isinstance(org_id, str) and org_id.isdigit())
+    }

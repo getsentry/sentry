@@ -3,9 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {LinkedPullRequests} from './linkedPullRequests';
+import {GroupActivityType} from 'sentry/types/group';
+
+import {getLinkedPullRequestActivityIds, LinkedPullRequests} from './linkedPullRequests';
 
 const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
 const REPOSITORY_NAME = 'example/widget-app';
@@ -56,7 +58,7 @@ describe('LinkedPullRequests', () => {
 
     const list = await screen.findByRole('list', {name: 'Linked pull requests'});
     const linkedPullRequest = within(list).getByRole('link', {
-      name: /Fix widget crash on startup/,
+      name: /Pull request #123 in example\/widget-app/,
     });
 
     expect(linkedPullRequest).toHaveAttribute(
@@ -64,18 +66,50 @@ describe('LinkedPullRequests', () => {
       'https://github.com/example/widget-app/pull/123'
     );
     expect(linkedPullRequest).toHaveAccessibleName(
-      `Fix widget crash on startup, pull request #123, Merged in ${REPOSITORY_NAME}`
+      `Pull request #123 in ${REPOSITORY_NAME}, Merged, Fix widget crash on startup`
     );
+    await userEvent.hover(within(linkedPullRequest).getByText('#123'));
+    expect(await screen.findByText('Fix widget crash on startup')).toBeInTheDocument();
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     expect(within(list).getByText('#123')).toBeInTheDocument();
     expect(within(list).getByText('#124')).toBeInTheDocument();
     expect(within(list).getAllByText(REPOSITORY_NAME)).toHaveLength(2);
-    expect(
-      within(list).getByTestId('linked-pull-request-status-merged')
-    ).toBeInTheDocument();
-    expect(
-      within(list).getByTestId('linked-pull-request-status-closed')
-    ).toBeInTheDocument();
+    expect(linkedPullRequest.querySelectorAll('svg')).toHaveLength(2);
+    expect(within(list).getByText('Merged')).toBeInTheDocument();
+    expect(within(list).getByText('Closed')).toBeInTheDocument();
+    const mergedStatus = within(list).getByLabelText('Pull request status: Merged');
+    const closedStatus = within(list).getByLabelText('Pull request status: Closed');
+    expect(mergedStatus).toBeInTheDocument();
+    expect(closedStatus).toBeInTheDocument();
+    expect(mergedStatus.querySelector('svg')).toBeInTheDocument();
+    expect(closedStatus.querySelector('svg')).toBeInTheDocument();
     expect(pullRequestsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('deduplicates pull request ids from group activity', () => {
+    const activityGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'activity-1',
+          dateCreated: '2026-06-08T23:11:32.000000Z',
+          data: {
+            pullRequest: PullRequestFixture({id: '123'}),
+          },
+          user: null,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'activity-2',
+          dateCreated: '2026-06-08T23:12:32.000000Z',
+          data: {
+            pullRequest: PullRequestFixture({id: '123'}),
+          },
+          user: null,
+        },
+      ],
+    });
+
+    expect([...getLinkedPullRequestActivityIds(activityGroup)]).toEqual(['123']);
   });
 });
