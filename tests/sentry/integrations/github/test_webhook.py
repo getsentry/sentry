@@ -27,8 +27,12 @@ from sentry.integrations.github.webhook import (
     CheckSuiteWebhook,
     GitHubIntegrationsWebhookEndpoint,
     InstallationRepositoriesEventWebhook,
+    _track_contributor_action_processor,
 )
-from sentry.integrations.github.webhook_types import InstallationRepositoriesEvent
+from sentry.integrations.github.webhook_types import (
+    GithubWebhookType,
+    InstallationRepositoriesEvent,
+)
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -39,11 +43,16 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
+from sentry.models.organizationcontributors import (
+    OrganizationContributorAction,
+    OrganizationContributors,
+)
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
@@ -1950,3 +1959,154 @@ class IssuesEventWebhookTest(APITestCase):
             assert response.status_code == 204
             # Sync should be called for each org that has a linked issue
             assert mock_sync.call_count >= 1
+
+
+@with_feature("organizations:seat-based-seer-enabled")
+class TrackContributorActionProcessorTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github:1",
+        )
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+        )
+        self.rpc_integration = integration_service.get_integration(
+            integration_id=self.integration.id
+        )
+
+    def _call_processor(
+        self,
+        *,
+        action: str = "opened",
+        pr_number: int = 5,
+        user_id: int = 123,
+        user_login: str = "alice",
+    ) -> None:
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={
+                "action": action,
+                "pull_request": {"number": pr_number, "user": {"id": user_id, "login": user_login}},
+            },
+            organization=self.organization,
+            repo=self.repo,
+            integration=self.rpc_integration,
+        )
+
+    def _get_contributor(self, external_identifier: str = "123") -> OrganizationContributors:
+        return OrganizationContributors.objects.get(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=external_identifier,
+        )
+
+    def _action_count(self, pr_number: str = "5") -> int:
+        return OrganizationContributorAction.objects.filter(
+            repository_id=self.repo.id, pr_number=pr_number
+        ).count()
+
+    def test_opened_eligible_code_review_seeds_and_records(self) -> None:
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+
+        self._call_processor()
+
+        contributor = self._get_contributor()
+        assert contributor.alias == "alice"
+        assert contributor.num_actions == 0
+
+        action = OrganizationContributorAction.objects.get(
+            repository_id=self.repo.id, pr_number="5"
+        )
+        assert action.organization_contributor_id == contributor.id
+
+    def test_opened_eligible_autofix_seeds_and_records(self) -> None:
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+
+        self._call_processor()
+
+        contributor = self._get_contributor()
+        assert contributor.alias == "alice"
+        assert contributor.num_actions == 0
+
+        action = OrganizationContributorAction.objects.get(
+            repository_id=self.repo.id, pr_number="5"
+        )
+        assert action.organization_contributor_id == contributor.id
+
+    def test_seeds_and_records_idempotently(self) -> None:
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+
+        self._call_processor()
+        self._call_processor()
+
+        self._get_contributor()
+        assert self._action_count() == 1
+
+    def test_non_opened_action_seeds_but_does_not_record(self) -> None:
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+
+        self._call_processor(action="synchronize")
+
+        self._get_contributor()
+        assert self._action_count() == 0
+
+    def test_seat_based_disabled_seeds_but_does_not_record(self) -> None:
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+
+        with self.feature({"organizations:seat-based-seer-enabled": False}):
+            self._call_processor()
+
+        self._get_contributor()
+        assert self._action_count() == 0
+
+    def test_no_code_review_or_autofix_seeds_but_does_not_record(self) -> None:
+        self._call_processor()
+
+        self._get_contributor()
+        assert self._action_count() == 0
+
+    def test_bot_author_seeds_but_does_not_record(self) -> None:
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+
+        self._call_processor(user_id=999, user_login="dependabot[bot]")
+
+        contributor = self._get_contributor(external_identifier="999")
+        assert contributor.is_bot
+        assert self._action_count() == 0
+
+    def test_no_integration(self) -> None:
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={
+                "action": "opened",
+                "pull_request": {"number": 5, "user": {"id": 123, "login": "alice"}},
+            },
+            organization=self.organization,
+            repo=self.repo,
+            integration=None,
+        )
+
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id
+        ).exists()
+        assert self._action_count() == 0
+
+    def test_missing_pull_request(self) -> None:
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": "opened"},
+            organization=self.organization,
+            repo=self.repo,
+            integration=self.rpc_integration,
+        )
+
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id
+        ).exists()
