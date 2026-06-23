@@ -43,9 +43,9 @@ class OrganizationMonitoringProviderIndexEndpoint(ControlSiloOrganizationEndpoin
         connected_providers = set(
             OrganizationIdentity.objects.filter(
                 organization_id=organization.id,
-                user_id=request.user.id,  # type: ignore[misc]
-                provider_key__in=MONITORING_PROVIDERS.keys(),
-            ).values_list("provider_key", flat=True)
+                identity__user_id=request.user.id,  # type: ignore[misc]
+                identity__idp__type__in=MONITORING_PROVIDERS.keys(),
+            ).values_list("identity__idp__type", flat=True)
         )
 
         providers = []

@@ -1332,9 +1332,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=identity,
-            provider_key="datadog",
         )
 
         result = get_monitoring_provider_connections(self.organization, self.user.id)
@@ -1363,9 +1361,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=identity,
-            provider_key="datadog",
         )
 
         result_org1 = get_monitoring_provider_connections(self.organization, self.user.id)
@@ -1385,9 +1381,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=identity,
-            provider_key="datadog",
         )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
@@ -1402,9 +1396,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=identity,
-            provider_key="datadog",
         )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
@@ -1431,9 +1423,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=identity,
-            provider_key="datadog",
         )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
@@ -1449,9 +1439,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=identity,
-            provider_key="datadog",
         )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []

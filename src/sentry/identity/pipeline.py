@@ -128,11 +128,9 @@ class MonitoringIdentityPipeline(IdentityPipeline):
                 user_id=user.id,
             ).first()
             if identity:
-                OrganizationIdentity.objects.update_or_create(
+                OrganizationIdentity.objects.get_or_create(
                     organization_id=self.organization.id,
-                    user_id=user.id,
-                    provider_key=self.provider.key,
-                    defaults={"identity": identity},
+                    identity=identity,
                 )
 
         return response

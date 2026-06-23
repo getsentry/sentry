@@ -39,9 +39,7 @@ class OrganizationMonitoringProviderIndexEndpointTest(APITestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=identity,
-            provider_key="datadog",
         )
 
         with self.feature("organizations:seer-infra-telemetry"):
@@ -61,9 +59,7 @@ class OrganizationMonitoringProviderIndexEndpointTest(APITestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=identity,
-            provider_key="gcp",
         )
 
         with self.feature("organizations:seer-infra-telemetry"):
@@ -94,9 +90,7 @@ class OrganizationMonitoringProviderIndexEndpointTest(APITestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=other_user,
             identity=identity,
-            provider_key="datadog",
         )
 
         with self.feature("organizations:seer-infra-telemetry"):
@@ -118,9 +112,7 @@ class OrganizationMonitoringProviderIndexEndpointTest(APITestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=identity,
-            provider_key="datadog",
         )
 
         with self.feature("organizations:seer-infra-telemetry"):

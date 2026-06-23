@@ -78,8 +78,8 @@ class DatabaseBackedIdentityService(IdentityService):
     ) -> list[RpcIdentity]:
         org_identities = OrganizationIdentity.objects.filter(
             organization_id=organization_id,
-            user_id=user_id,
-            provider_key=provider_type,
+            identity__user_id=user_id,
+            identity__idp__type=provider_type,
         ).select_related("identity")
         return [serialize_identity(oi.identity) for oi in org_identities]
 

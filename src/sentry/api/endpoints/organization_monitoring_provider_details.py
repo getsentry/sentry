@@ -80,22 +80,21 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if provider_key not in MONITORING_PROVIDERS:
             return Response({"detail": "Unknown monitoring provider."}, status=400)
 
-        org_identity = (
+        org_identities = list(
             OrganizationIdentity.objects.filter(
                 organization_id=organization.id,
-                user_id=request.user.id,  # type: ignore[misc]
-                provider_key=provider_key,
-            )
-            .select_related("identity")
-            .first()
+                identity__user_id=request.user.id,  # type: ignore[misc]
+                identity__idp__type=provider_key,
+            ).select_related("identity")
         )
 
-        if not org_identity:
+        if not org_identities:
             return Response({"detail": "Not connected to this provider."}, status=404)
 
-        identity = org_identity.identity
-        org_identity.delete()
-        if not OrganizationIdentity.objects.filter(identity=identity).exists():
-            identity.delete()
+        for org_identity in org_identities:
+            identity = org_identity.identity
+            org_identity.delete()
+            if not OrganizationIdentity.objects.filter(identity=identity).exists():
+                identity.delete()
 
         return Response(status=204)

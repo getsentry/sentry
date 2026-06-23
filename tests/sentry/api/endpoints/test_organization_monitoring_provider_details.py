@@ -158,9 +158,7 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=identity,
-            provider_key="datadog",
         )
 
         with self.feature("organizations:seer-infra-telemetry"):
@@ -168,7 +166,7 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
 
         assert response.status_code == 204
         assert not OrganizationIdentity.objects.filter(
-            organization_id=self.organization.id, user_id=self.user.id, provider_key="datadog"
+            organization_id=self.organization.id, identity=identity
         ).exists()
         assert not Identity.objects.filter(id=identity.id).exists()
 
@@ -182,9 +180,7 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=identity,
-            provider_key="gcp",
         )
 
         with self.feature("organizations:seer-infra-telemetry"):
@@ -192,7 +188,7 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
 
         assert response.status_code == 204
         assert not OrganizationIdentity.objects.filter(
-            organization_id=self.organization.id, user_id=self.user.id, provider_key="gcp"
+            organization_id=self.organization.id, identity=identity
         ).exists()
         assert not Identity.objects.filter(id=identity.id).exists()
 
@@ -215,15 +211,11 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=my_identity,
-            provider_key="datadog",
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=other_user,
             identity=other_identity,
-            provider_key="datadog",
         )
 
         with self.feature("organizations:seer-infra-telemetry"):
@@ -231,10 +223,10 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
 
         assert response.status_code == 204
         assert not OrganizationIdentity.objects.filter(
-            organization_id=self.organization.id, user_id=self.user.id, provider_key="datadog"
+            organization_id=self.organization.id, identity=my_identity
         ).exists()
         assert OrganizationIdentity.objects.filter(
-            organization_id=self.organization.id, user_id=other_user.id, provider_key="datadog"
+            organization_id=self.organization.id, identity=other_identity
         ).exists()
         assert Identity.objects.filter(id=other_identity.id).exists()
 
@@ -250,15 +242,11 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=self.user,
             identity=identity,
-            provider_key="datadog",
         )
         self.create_organization_identity(
             organization=org2,
-            user=self.user,
             identity=identity,
-            provider_key="datadog",
         )
 
         with self.feature("organizations:seer-infra-telemetry"):
@@ -266,11 +254,11 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
 
         assert response.status_code == 204
         assert not OrganizationIdentity.objects.filter(
-            organization_id=self.organization.id, user_id=self.user.id, provider_key="datadog"
+            organization_id=self.organization.id, identity=identity
         ).exists()
         assert Identity.objects.filter(id=identity.id).exists()
         assert OrganizationIdentity.objects.filter(
-            organization_id=org2.id, user_id=self.user.id, provider_key="datadog"
+            organization_id=org2.id, identity=identity
         ).exists()
 
     def test_disconnect_unknown_provider(self) -> None:
@@ -300,9 +288,7 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
         )
         self.create_organization_identity(
             organization=self.organization,
-            user=member_user,
             identity=identity,
-            provider_key="datadog",
         )
 
         self.login_as(member_user)
@@ -312,5 +298,5 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
 
         assert response.status_code == 204
         assert not OrganizationIdentity.objects.filter(
-            organization_id=self.organization.id, user_id=member_user.id, provider_key="datadog"
+            organization_id=self.organization.id, identity=identity
         ).exists()
