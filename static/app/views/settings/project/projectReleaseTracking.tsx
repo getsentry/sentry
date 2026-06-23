@@ -14,11 +14,9 @@ import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {PluginList} from 'sentry/components/pluginList';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import type {Plugin} from 'sentry/types/integrations';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
@@ -69,17 +67,6 @@ export default function ProjectReleaseTracking() {
     }
   );
 
-  const {data: fetchedPlugins = [], isPending: isPluginsLoading} = useApiQuery<Plugin[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/', {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
-  );
-
   const handleRegenerateToken = () => {
     api.request(`/projects/${organization.slug}/${project.slug}/releases/token/`, {
       method: 'POST',
@@ -121,13 +108,9 @@ export default function ProjectReleaseTracking() {
   }
 
   // Using isFetching instead of isPending to avoid showing loading indicator when 403
-  if (isFetching || isPluginsLoading) {
+  if (isFetching) {
     return <LoadingIndicator />;
   }
-
-  const pluginList = fetchedPlugins.filter(
-    (p: Plugin) => p.type === 'release-tracking' && p.hasConfiguration
-  );
 
   const hasWrite = hasEveryAccess(['project:write'], {organization, project});
   return (
@@ -231,8 +214,6 @@ export default function ProjectReleaseTracking() {
           <CodeBlock language="bash">{getReleaseWebhookInstructions()}</CodeBlock>
         </FieldGroup>
       </FormFieldGroup>
-
-      <PluginList project={project} pluginList={pluginList} />
 
       <FormFieldGroup title={t('API')}>
         <Stack gap="xl">

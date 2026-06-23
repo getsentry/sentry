@@ -524,13 +524,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for moving accepted outcome emission for spans from Relay to the Segment Consumer.
-register(
-    "relay.eap-span-outcomes.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Killswitch for fetching projects in the endpoints.
 register(
@@ -1113,18 +1106,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "seer.severity.cpu-rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.fixability.cpu-rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.night_shift.enable",
     type=Bool,
     default=False,
@@ -1133,6 +1114,12 @@ register(
 register(
     "seer.night_shift.issues_per_org",
     default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.shard_size",
+    type=Int,
+    default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Per-org overrides for night shift run options. Keyed by stringified
@@ -2076,6 +2063,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
+# sample rate comparison. Empty disables the comparison entirely.
+register(
+    "dynamic-sampling.per_org.sliding-window-comparison-org-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Per-project sample rate overrides for custom dynamic sampling. Maps a stringified
 # project id to a fixed sample rate (0.0-1.0) that hard-replaces the rate the custom
 # dynamic sampling path would otherwise compute for that project. Example:
@@ -2764,14 +2760,6 @@ register(
 # Enable sending a post update signal after we update groups using a queryset update
 register(
     "groups.enable-post-update-signal",
-    default=False,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Store the regression-triggering event's metadata in the activity data so
-# notifications show the correct title/message instead of stale group data.
-register(
-    "groups.regression-activity-event-metadata",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3743,6 +3731,13 @@ register(
 
 register(
     "github-enterprise.disallow-domain-mismatch",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "error-embeds.control-silo-address",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

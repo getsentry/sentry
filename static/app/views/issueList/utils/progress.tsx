@@ -1,14 +1,15 @@
 import type {ReactNode} from 'react';
 
 import {IconCircle} from 'sentry/icons/iconCircle';
-import {IconInProgress} from 'sentry/icons/iconInProgress';
-import {IconInReview} from 'sentry/icons/iconInReview';
-import {IconResolved} from 'sentry/icons/iconResolved';
+import {IconCircleCheckmark} from 'sentry/icons/iconCircleCheckmark';
+import {IconPieHalf} from 'sentry/icons/iconPieHalf';
+import {IconPieQuarter} from 'sentry/icons/iconPieQuarter';
+import {IconPieThreeQuarters} from 'sentry/icons/iconPieThreeQuarters';
 import {t} from 'sentry/locale';
 
 export enum ProgressState {
   IDENTIFIED = 'identified',
-  TRIAGED = 'triaged',
+  ASSIGNED = 'assigned',
   DIAGNOSED = 'diagnosed',
   FIX_PROPOSED = 'fix_proposed',
   FIX_APPLIED = 'fix_applied',
@@ -16,7 +17,7 @@ export enum ProgressState {
 
 const PROGRESS_STATE_LABELS: Record<ProgressState, string> = {
   [ProgressState.IDENTIFIED]: t('Identified'),
-  [ProgressState.TRIAGED]: t('Triaged'),
+  [ProgressState.ASSIGNED]: t('Assigned'),
   [ProgressState.DIAGNOSED]: t('Diagnosed'),
   [ProgressState.FIX_PROPOSED]: t('Fix Proposed'),
   [ProgressState.FIX_APPLIED]: t('Fix Applied'),
@@ -31,10 +32,10 @@ export function formatProgressState(state: ProgressState | null): string {
 
 const PROGRESS_STATE_ICONS: Record<ProgressState, ReactNode> = {
   [ProgressState.IDENTIFIED]: <IconCircle size="md" variant="muted" />,
-  [ProgressState.TRIAGED]: <IconCircle size="md" variant="muted" />,
-  [ProgressState.DIAGNOSED]: <IconInProgress size="md" variant="warning" />,
-  [ProgressState.FIX_PROPOSED]: <IconInReview size="md" variant="success" />,
-  [ProgressState.FIX_APPLIED]: <IconResolved size="md" variant="success" />,
+  [ProgressState.ASSIGNED]: <IconPieQuarter size="md" variant="muted" />,
+  [ProgressState.DIAGNOSED]: <IconPieHalf size="md" variant="warning" />,
+  [ProgressState.FIX_PROPOSED]: <IconPieThreeQuarters size="md" variant="success" />,
+  [ProgressState.FIX_APPLIED]: <IconCircleCheckmark size="md" variant="success" />,
 };
 
 export function getProgressIcon(state: ProgressState | null): ReactNode {
