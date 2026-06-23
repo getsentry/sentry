@@ -94,7 +94,7 @@ describe('AttributeDistribution', () => {
       body: {data: [{'count()': 100}]},
     });
 
-    render(<AttributeDistribution />, {
+    const {router} = render(<AttributeDistribution />, {
       additionalWrapper: Wrapper,
       initialRouterConfig: {
         location: {
@@ -123,6 +123,9 @@ describe('AttributeDistribution', () => {
     await waitFor(() => {
       expect(secondPageRequest).toHaveBeenCalledTimes(1);
     });
+    await waitFor(() => {
+      expect(router.location.query.breakdownCursor).toBe('cursor-12');
+    });
     expect(secondPageRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/stats/`,
       expect.objectContaining({
@@ -134,5 +137,13 @@ describe('AttributeDistribution', () => {
     expect(await screen.findByText('attribute.13')).toBeInTheDocument();
     expect(screen.queryByText('attribute.1')).not.toBeInTheDocument();
     expect(firstPageRequest).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByPlaceholderText('Search keys'));
+    await userEvent.paste('duration');
+
+    await waitFor(() => {
+      expect(router.location.query.breakdownCursor).toBeUndefined();
+      expect(router.location.query.breakdownQuery).toBe('duration');
+    });
   });
 });
