@@ -253,6 +253,8 @@ class ProjectDebugFile(Model):
             raise
 
     def get_file(self) -> IO[bytes]:
+        """Returns the underlying contents as a file-like object. The caller is responsible for closing it."""
+
         if self.storage_path is not None:
             try:
                 response = self._get_objectstore_session().get(self.storage_path)

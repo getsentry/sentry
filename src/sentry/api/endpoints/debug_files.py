@@ -274,14 +274,18 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         try:
             fp = debug_file.get_file()
-            response = StreamingHttpResponse(
-                iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
-            )
-            response["Content-Length"] = debug_file.get_file_size()
-            response["Content-Disposition"] = (
-                f'attachment; filename="{posixpath.basename(debug_file.debug_id)}{debug_file.file_extension}"'
-            )
-            return response
+            try:
+                response = StreamingHttpResponse(
+                    iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
+                )
+                response["Content-Length"] = debug_file.get_file_size()
+                response["Content-Disposition"] = (
+                    f'attachment; filename="{posixpath.basename(debug_file.debug_id)}{debug_file.file_extension}"'
+                )
+                return response
+            except Exception:
+                fp.close()
+                raise
         except (OSError, RequestError, Project.DoesNotExist):
             raise Http404
 
