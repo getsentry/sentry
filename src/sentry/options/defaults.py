@@ -524,13 +524,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for moving accepted outcome emission for spans from Relay to the Segment Consumer.
-register(
-    "relay.eap-span-outcomes.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Killswitch for fetching projects in the endpoints.
 register(
@@ -2767,14 +2760,6 @@ register(
 # Enable sending a post update signal after we update groups using a queryset update
 register(
     "groups.enable-post-update-signal",
-    default=False,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Store the regression-triggering event's metadata in the activity data so
-# notifications show the correct title/message instead of stale group data.
-register(
-    "groups.regression-activity-event-metadata",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
