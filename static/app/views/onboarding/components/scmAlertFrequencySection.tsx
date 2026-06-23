@@ -1,8 +1,13 @@
+import {Tag} from '@sentry/scraps/badge';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
+import type {TagVariant} from 'sentry/utils/theme';
+import {
+  type AlertRuleOptions,
+  RuleAction,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {ScmAlertFrequency} from './scmAlertFrequency';
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
@@ -32,8 +37,21 @@ export function ScmAlertFrequencySection({
   const collapsible = analyticsFlow === 'project-creation';
 
   if (collapsible) {
+    // Summarize the current selection in the collapsed header.
+    const alertSettingLabel: Record<RuleAction, [string, TagVariant]> = {
+      [RuleAction.DEFAULT_ALERT]: [t('High priority issues'), 'info'],
+      [RuleAction.CUSTOMIZED_ALERTS]: [t('Custom'), 'info'],
+      [RuleAction.CREATE_ALERT_LATER]: [t('Off'), 'muted'],
+    };
+
+    const [label, variant] = alertSettingLabel[alertRuleConfig.alertSetting];
+
     return (
-      <ScmCollapsibleSection title={t('Alert frequency')} defaultExpanded={false}>
+      <ScmCollapsibleSection
+        title={t('Alert frequency')}
+        defaultExpanded={false}
+        trailing={<Tag variant={variant}>{label}</Tag>}
+      >
         <Stack gap="md" width="100%">
           <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
         </Stack>
