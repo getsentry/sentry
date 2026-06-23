@@ -455,6 +455,17 @@ function useFilterSuggestions({
     enabled: shouldFetchTagKeys,
   });
 
+  // Retain the last non-empty value response. The server filters values by the
+  // typed text, so a typo (e.g. "api.acess") makes it return nothing and the
+  // suggestions vanish. We keep the previous results around to fall back to fuzzy
+  // near-matches once the active search resolves to an empty list (LOGS-876).
+  const lastNonEmptyValuesRef = useRef<typeof data>(undefined);
+  useEffect(() => {
+    if (shouldFetchValues && data && data.length > 0) {
+      lastNonEmptyValuesRef.current = data;
+    }
+  }, [data, shouldFetchValues]);
+
   const createItem = useCallback(
     (suggestion: SuggestionItem) => {
       const label = suggestion.label ?? suggestion.value;
@@ -509,7 +520,7 @@ function useFilterSuggestions({
         })) ?? [];
       groups = [{sectionText: '', suggestions}];
     } else if (shouldFetchValues) {
-      const suggestions = data?.map(item => {
+      const toSuggestion = (item: string | {value: string; count?: number}) => {
         const value = typeof item === 'string' ? item : item.value;
         const count = typeof item === 'string' ? undefined : item.count;
         return {
@@ -524,9 +535,19 @@ function useFilterSuggestions({
               </DeviceName>
             ) : undefined,
         };
-      });
+      };
 
-      groups = [{sectionText: '', suggestions: suggestions ?? []}];
+      let suggestions = data?.map(toSuggestion) ?? [];
+
+      // Fall back to fuzzy near-matches from the last non-empty response.
+      if (suggestions.length === 0 && filterValue && lastNonEmptyValuesRef.current?.length) {
+        const query = filterValue.trim().toLowerCase();
+        suggestions = lastNonEmptyValuesRef.current
+          .map(toSuggestion)
+          .filter(suggestion => fzf(suggestion.value, query, false).end !== -1);
+      }
+
+      groups = [{sectionText: '', suggestions}];
     } else {
       groups = predefinedValues ?? [];
     }

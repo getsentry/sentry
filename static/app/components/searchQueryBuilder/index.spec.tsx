@@ -2419,6 +2419,42 @@ describe('SearchQueryBuilder', () => {
       expect(within(option).getByText('1.2K')).toBeInTheDocument();
     });
 
+    it('keeps fuzzy value suggestions when the search resolves to an empty result', async () => {
+      // Server-side value search: returns the real value while the typed text is a
+      // prefix of it, but nothing once the text becomes a typo ("api.acess").
+      const mockGetTagValues = jest.fn(({searchQuery}: {searchQuery: string}) =>
+        Promise.resolve(
+          'api.access'.includes(searchQuery) ? [{value: 'api.access', count: 3300}] : []
+        )
+      );
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="custom_tag_name:"
+          getTagValues={mockGetTagValues}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+      );
+
+      // Prefix "api.ac" matches -> suggestion shows.
+      await userEvent.type(screen.getByRole('combobox'), 'api.ac');
+      expect(await screen.findByRole('option', {name: /api\.access/})).toBeInTheDocument();
+
+      // Continuing into the typo "api.acess" makes the server return nothing. The
+      // near-match should survive as a fuzzy suggestion rather than disappearing.
+      await userEvent.type(screen.getByRole('combobox'), 'ess');
+
+      await waitFor(() => {
+        expect(mockGetTagValues).toHaveBeenCalledWith(
+          expect.objectContaining({searchQuery: 'api.acess'})
+        );
+      });
+      expect(screen.getByRole('option', {name: /api\.access/})).toBeInTheDocument();
+    });
+
     it('unescapes asterisks before fetching tag value suggestions', async () => {
       const mockGetTagValues = jest.fn().mockResolvedValue([]);
       render(
