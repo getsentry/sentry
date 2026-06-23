@@ -14,10 +14,10 @@ REPO_NAME = "getsentry/sentry"
 RUN_STATE_ID = 4242
 
 
-def _pr(pr_number: int = 42) -> dict[str, Any]:
+def _pr(pr_number: int = 42, repo_name: str = REPO_NAME) -> dict[str, Any]:
     return {
         "provider": "unknown",
-        "repo_name": REPO_NAME,
+        "repo_name": repo_name,
         "pull_request": {"pr_number": pr_number, "pr_url": f"https://x/{pr_number}"},
     }
 
@@ -51,6 +51,24 @@ class LinkSeerRunToPullRequestsTest(TestCase):
 
         pr = PullRequest.objects.get(repository_id=self.repo.id, key="42")
         assert SeerRunPullRequest.objects.filter(pull_request=pr).count() == 1
+
+    def test_links_multiple_prs_for_one_run(self) -> None:
+        """A multi-repo run links each opened PR to the same run."""
+        other_repo = self.create_repo(
+            self.project, name="getsentry/other", provider="integrations:github"
+        )
+
+        link_seer_run_to_pull_requests(
+            organization=self.organization,
+            pull_requests=[_pr(pr_number=1), _pr(pr_number=2, repo_name="getsentry/other")],
+            run_id=RUN_STATE_ID,
+        )
+
+        pr1 = PullRequest.objects.get(repository_id=self.repo.id, key="1")
+        pr2 = PullRequest.objects.get(repository_id=other_repo.id, key="2")
+        assert SeerRunPullRequest.objects.filter(seer_run=self.seer_run).count() == 2
+        assert SeerRunPullRequest.objects.filter(pull_request=pr1).exists()
+        assert SeerRunPullRequest.objects.filter(pull_request=pr2).exists()
 
 
 class MaybeLinkSeerRunToPullRequestsTest(TestCase):
