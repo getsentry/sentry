@@ -67,26 +67,29 @@ export default function ProjectReleaseTracking() {
     }
   );
 
-  const handleRegenerateToken = () => {
-    api.request(`/projects/${organization.slug}/${project.slug}/releases/token/`, {
-      method: 'POST',
-      data: {project: project.slug},
-      success: data => {
-        setApiQueryData<TokenResponse>(
-          queryClient,
-          getReleaseTokenQueryKey(organization.slug, project.slug),
-          data
-        );
-        addSuccessMessage(
-          t(
-            'Your deploy token has been regenerated. You will need to update any existing deploy hooks.'
-          )
-        );
-      },
-      error: () => {
-        addErrorMessage(t('Unable to regenerate deploy token, please try again'));
-      },
-    });
+  const handleRegenerateToken = async () => {
+    try {
+      const [data] = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/releases/token/`,
+        {
+          method: 'POST',
+          data: {project: project.slug},
+          includeAllArgs: true,
+        }
+      );
+      setApiQueryData<TokenResponse>(
+        queryClient,
+        getReleaseTokenQueryKey(organization.slug, project.slug),
+        data
+      );
+      addSuccessMessage(
+        t(
+          'Your deploy token has been regenerated. You will need to update any existing deploy hooks.'
+        )
+      );
+    } catch {
+      addErrorMessage(t('Unable to regenerate deploy token, please try again'));
+    }
   };
 
   function getReleaseWebhookInstructions() {
