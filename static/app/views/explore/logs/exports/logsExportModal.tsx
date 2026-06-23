@@ -4,7 +4,6 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
-import {InfoText, InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
