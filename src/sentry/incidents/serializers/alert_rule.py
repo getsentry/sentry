@@ -55,6 +55,10 @@ from .alert_rule_trigger import AlertRuleTriggerSerializer
 
 logger = logging.getLogger(__name__)
 
+UNSUPPORTED_LEGACY_API = (
+    "This Alert cannot be modified with the legacy API. See: https://docs.sentry.io/api/monitors/"
+)
+
 
 class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRule]):
     """
@@ -410,9 +414,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             try:
                 dual_update_alert_rule(alert_rule)
             except AlertRuleNotDualWritten:
-                raise serializers.ValidationError(
-                    "This Alert cannot be modified with the legacy API. See: https://docs.sentry.io/api/monitors/"
-                )
+                raise serializers.ValidationError(UNSUPPORTED_LEGACY_API)
             except Exception:
                 sentry_sdk.capture_exception()
                 raise BadRequest(message="Error when updating alert rule")
@@ -444,7 +446,11 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             )
             for trigger in triggers_to_delete:
                 with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
-                    dual_delete_migrated_alert_rule_trigger(trigger)
+                    try:
+                        dual_delete_migrated_alert_rule_trigger(trigger)
+                    except AlertRuleNotDualWritten:
+                        raise serializers.ValidationError(UNSUPPORTED_LEGACY_API)
+
                     delete_alert_rule_trigger(trigger)
 
             for trigger_data in triggers:

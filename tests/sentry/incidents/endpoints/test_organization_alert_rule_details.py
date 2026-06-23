@@ -44,6 +44,7 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING, AlertRuleSerializer
+from sentry.incidents.serializers.alert_rule import UNSUPPORTED_LEGACY_API
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
@@ -1014,7 +1015,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 **serialized_alert_rule,
             )
 
-        assert "legacy API" in str(resp.data)
+        assert UNSUPPORTED_LEGACY_API in str(resp.data)
 
     @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
     def test_update_to_count_converts_internally_but_shows_count_on_upsampled_project(
@@ -1247,6 +1248,39 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
 
         assert len(resp.data["triggers"]) == 1
+
+    def test_delete_trigger_not_dual_written_returns_400(self) -> None:
+        """
+        Deleting a trigger on an alert rule that was only partially dual written
+        (AlertRuleDetector exists but AlertRuleWorkflow is missing) makes
+        dual_delete_migrated_alert_rule_trigger raise AlertRuleNotDualWritten.
+        The legacy API must surface this as a 400, not a 500.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        # Drop the "warning" trigger so it lands in triggers_to_delete, which
+        # routes through dual_delete_migrated_alert_rule_trigger.
+        serialized_alert_rule["triggers"].pop(1)
+
+        # Remove only the AlertRuleWorkflow so get_detector_trigger still finds the
+        # detector but get_action_filter raises AlertRuleNotDualWritten.
+        assert AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists()
+        AlertRuleWorkflow.objects.filter(alert_rule_id=alert_rule.id).delete()
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                alert_rule.id,
+                status_code=400,
+                **serialized_alert_rule,
+            )
+
+        assert UNSUPPORTED_LEGACY_API in str(resp.data)
 
     @mock.patch("sentry.incidents.serializers.alert_rule.dual_delete_migrated_alert_rule_trigger")
     def test_dual_delete_trigger(self, mock_dual_delete: MagicMock) -> None:
