@@ -322,6 +322,29 @@ describe('IntegrationDetailedView', () => {
       );
     });
 
+    it('passes the upgrade copy for the Slack provider', async () => {
+      const openPipelineModalSpy = jest
+        .spyOn(pipelineModal, 'openPipelineModal')
+        .mockImplementation(() => {});
+
+      render(<IntegrationDetailedView />, {
+        initialRouterConfig: createRouterConfig('slack', {showInstallModal: '1'}),
+        organization,
+      });
+
+      await waitFor(() => {
+        expect(openPipelineModalSpy).toHaveBeenCalledTimes(1);
+      });
+      expect(openPipelineModalSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: 'slack',
+          title: 'Upgrade Slack Integration',
+          description:
+            'Reauthorize the Sentry app in your Slack Workspace so you can chat with Seer directly.',
+        })
+      );
+    });
+
     it('does not auto-open without the param', async () => {
       const openPipelineModalSpy = jest
         .spyOn(pipelineModal, 'openPipelineModal')

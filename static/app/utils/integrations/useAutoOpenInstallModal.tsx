@@ -1,6 +1,7 @@
 import {useEffect, useRef} from 'react';
 import {useQueryState} from 'nuqs';
 
+import {t} from 'sentry/locale';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
@@ -54,12 +55,19 @@ export function useAutoOpenInstallModal({
 
     autoOpenedForRef.current = provider.key;
 
+    const isSlack = provider.key === 'slack';
     startFlow({
       provider,
       organization,
       onInstall,
       analyticsParams,
       suppressSuccessMessage,
+      ...(isSlack && {
+        modalTitle: t('Upgrade Slack Integration'),
+        modalDescription: t(
+          'Reauthorize the Sentry app in your Slack Workspace so you can chat with Seer directly.'
+        ),
+      }),
     });
 
     setShowInstallModal(null);

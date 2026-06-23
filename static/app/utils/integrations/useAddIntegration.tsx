@@ -27,6 +27,8 @@ export interface AddIntegrationParams {
       | 'test_analytics_onboarding'
       | 'test_analytics_org_selector';
   };
+  modalDescription?: string;
+  modalTitle?: string;
   /**
    * When true, the "%s added" success toast is not shown on install.
    * Use when the surrounding UI already communicates the connected state.
@@ -53,6 +55,8 @@ export function useAddIntegration() {
       analyticsParams,
       suppressSuccessMessage,
       urlParams,
+      modalTitle,
+      modalDescription,
     } = params;
 
     const is_scm = isScmProvider(provider);
@@ -69,6 +73,8 @@ export function useAddIntegration() {
       type: 'integration',
       provider: provider.key as ProvidersByType['integration'],
       initialData: urlParams,
+      title: modalTitle,
+      description: modalDescription,
       onComplete: data => {
         trackIntegrationAnalytics('integrations.installation_complete', {
           integration: provider.key,
