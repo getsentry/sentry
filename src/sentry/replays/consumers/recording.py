@@ -9,6 +9,7 @@ from arroyo.processing.strategies import RunTaskInThreads
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, Message, Partition
+from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import set_tag
@@ -93,6 +94,11 @@ def process_and_commit_message(message: Message[KafkaPayload], context: Processo
         with start_span(
             name="replays.consumer.recording.process_and_commit_message",
             op="replays.consumer.recording.process_and_commit_message",
+            custom_sampling_context={
+                "sample_rate": getattr(
+                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
+                )
+            },
             transaction=True,
         ):
             processed_message = process_message(message.payload.value)
