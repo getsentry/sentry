@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -5,6 +6,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {IconDownload} from 'sentry/icons';
@@ -44,14 +46,21 @@ interface PriceTier {
   volume: number;
 }
 
+type DataSource = 'legacy' | 'platform';
+
 export function BillingPlans() {
+  const [dataSource, setDataSource] = useState<DataSource>('legacy');
+
+  const apiUrl =
+    dataSource === 'platform' ? '/platform-billing-plans/' : '/billing-plans/';
+
   const {
     data: billingPlansResponse = {
       not_live: [],
       data: {},
     },
   } = useQuery(
-    apiOptions.as<BillingPlansResponse>()('/billing-plans/', {
+    apiOptions.as<BillingPlansResponse>()(apiUrl, {
       staleTime: 0,
     })
   );
@@ -180,7 +189,8 @@ export function BillingPlans() {
     const link = document.createElement('a');
     link.href = url;
     const dateTime = new Date().toISOString().replace(/[:.]/g, '-');
-    link.download = `Self-Serve_Price_List_${dateTime}.csv`;
+    const sourceLabel = dataSource === 'platform' ? 'Platform' : 'Legacy';
+    link.download = `Self-Serve_Price_List_${sourceLabel}_${dateTime}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -188,9 +198,20 @@ export function BillingPlans() {
   return (
     <Container padding="xl">
       <h1>Billing Plans</h1>
-      <Button icon={<IconDownload />} onClick={handleDownloadCsv}>
-        Download CSV
-      </Button>
+      <ControlsRow>
+        <SegmentedControl
+          value={dataSource}
+          onChange={setDataSource}
+          aria-label="Data source"
+          size="sm"
+        >
+          <SegmentedControl.Item key="legacy">Legacy</SegmentedControl.Item>
+          <SegmentedControl.Item key="platform">Platform</SegmentedControl.Item>
+        </SegmentedControl>
+        <Button icon={<IconDownload />} onClick={handleDownloadCsv}>
+          Download CSV
+        </Button>
+      </ControlsRow>
       <TableOfContents plans={plans} />
       {Object.entries(plans).map(([planTierId, planTier]) => (
         <PlanTierSection
@@ -203,6 +224,13 @@ export function BillingPlans() {
     </Container>
   );
 }
+
+const ControlsRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.xl};
+`;
 
 function TableOfContents({plans}: {plans: Plans}) {
   return (
