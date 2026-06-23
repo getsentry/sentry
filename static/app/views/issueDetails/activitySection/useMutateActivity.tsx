@@ -35,17 +35,9 @@ type UpdateCommentCallback = (
 interface Props {
   group: Group;
   organization: Organization;
-  onSettled?:
-    | ((
-        data: unknown,
-        error: unknown,
-        variables: TVariables,
-        context: unknown
-      ) => unknown)
-    | undefined;
 }
 
-export function useMutateActivity({organization, group, onSettled}: Props) {
+export function useMutateActivity({organization, group}: Props) {
   const {mutateAsync} = useMutation<TData, TError, TVariables>({
     mutationFn: ([{note, noteId}, method]) => {
       const url =
@@ -60,7 +52,6 @@ export function useMutateActivity({organization, group, onSettled}: Props) {
         data: {text: note?.text, mentions: note?.mentions},
       });
     },
-    onSettled: onSettled ?? undefined,
     gcTime: 0,
   });
 

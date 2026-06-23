@@ -6,7 +6,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {CompactNoteInput} from 'sentry/components/activity/note/compact';
 import {NoteInput} from 'sentry/components/activity/note/input';
 import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
-import {useMutateActivity} from 'sentry/components/feedback/useMutateActivity';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {NoteType} from 'sentry/types/alerts';
@@ -14,6 +13,7 @@ import type {Group, GroupActivityNote} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 
 type InputProps = React.ComponentProps<typeof NoteInput>;
 
