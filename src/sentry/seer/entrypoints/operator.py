@@ -669,31 +669,30 @@ def process_autofix_updates(
                 },
             )
 
-        if event_type == SentryAppEventType.SEER_PR_CREATED and features.has(
-            "organizations:pr-metrics-attribution", organization
-        ):
-            try:
-                attribute_seer_created_pull_requests(
-                    organization=organization,
-                    pull_requests=event_payload.get("pull_requests", []),
-                    run_id=run_id,
-                    group_id=group_id,
-                )
-            except Exception:
-                logger.exception(
-                    "seer.pr_attribution.failed",
-                    extra={"group_id": group_id, "run_id": run_id},
-                )
-
-        # Gated separately from attribution above: linking runs for all Seer orgs,
-        # while pr-metrics-attribution is a narrowly rolled-out flag. Fold into the
-        # block above once that flag is GA.
         if event_type == SentryAppEventType.SEER_PR_CREATED:
+            pull_requests = event_payload.get("pull_requests", [])
+
+            # Linking runs for all Seer orgs; attribution stays behind its narrow
+            # rollout flag until GA.
             SeerRunPullRequest.maybe_link_run_to_pull_requests(
                 organization=organization,
-                pull_requests=event_payload.get("pull_requests", []),
+                pull_requests=pull_requests,
                 run_id=run_id,
             )
+
+            if features.has("organizations:pr-metrics-attribution", organization):
+                try:
+                    attribute_seer_created_pull_requests(
+                        organization=organization,
+                        pull_requests=pull_requests,
+                        run_id=run_id,
+                        group_id=group_id,
+                    )
+                except Exception:
+                    logger.exception(
+                        "seer.pr_attribution.failed",
+                        extra={"group_id": group_id, "run_id": run_id},
+                    )
 
         for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {
