@@ -21,7 +21,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {PlanList} from 'admin/components/planList';
 import {ANNUAL, BillingConfigTier, MONTHLY} from 'getsentry/constants';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
-import {CheckoutType} from 'getsentry/types';
 
 type Props = {
   onSuccess: () => void;
@@ -75,18 +74,16 @@ function ChangePlanAction({
    * Get the selectable plans for the current billing/contract interval.
    */
   const getPlanList = (): BillingConfig['planList'] =>
-    planList
-      .sort((a, b) => a.reservedMinimum - b.reservedMinimum)
-      .filter(
-        plan =>
-          plan.price &&
-          (plan.userSelectable || plan.checkoutType === CheckoutType.BUNDLE) &&
-          plan.billingInterval === billingInterval &&
-          plan.contractInterval === contractInterval &&
-          // Plan id on partner sponsored subscriptions is not modifiable so only
-          // including the existing plan in the list
-          (partnerPlanId === null || partnerPlanId === plan.id)
-      );
+    planList.filter(
+      plan =>
+        plan.price &&
+        plan.userSelectable &&
+        plan.billingInterval === billingInterval &&
+        plan.contractInterval === contractInterval &&
+        // Plan id on partner sponsored subscriptions is not modifiable so only
+        // including the existing plan in the list
+        (partnerPlanId === null || partnerPlanId === plan.id)
+    );
 
   /**
    * Find the closest volume tier in the plan for a given category and current volume

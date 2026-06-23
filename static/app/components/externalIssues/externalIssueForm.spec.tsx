@@ -234,6 +234,76 @@ describe('ExternalIssueForm', () => {
       expect(screen.getByRole('button', {name: 'Link Issue'})).toBeInTheDocument();
     });
 
+    it('should reset shared field names when switching actions', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        body: {
+          createIssueConfig: [
+            {
+              label: 'Title',
+              required: true,
+              type: 'string',
+              name: 'title',
+              default: 'Create default',
+            },
+          ],
+        },
+        match: [MockApiClient.matchQuery({action: 'create'})],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        body: {
+          linkIssueConfig: [
+            {
+              label: 'Title',
+              required: true,
+              type: 'string',
+              name: 'title',
+              default: 'Link default',
+            },
+          ],
+        },
+        match: [MockApiClient.matchQuery({action: 'link'})],
+      });
+
+      render(
+        <ExternalIssueForm
+          Body={ModalBody}
+          Header={makeClosableHeader(closeModal)}
+          Footer={ModalFooter}
+          CloseButton={makeCloseButton(closeModal)}
+          closeModal={closeModal}
+          onChange={onChange}
+          group={group}
+          integration={integration}
+        />,
+        {organization}
+      );
+
+      expect(await screen.findByRole('textbox', {name: 'Title'})).toHaveValue(
+        'Create default'
+      );
+
+      await userEvent.click(screen.getByText('Link'));
+      expect(await screen.findByRole('textbox', {name: 'Title'})).toHaveValue(
+        'Link default'
+      );
+
+      await userEvent.click(screen.getByText('Create'));
+      const titleInput = await screen.findByRole('textbox', {name: 'Title'});
+      expect(titleInput).toHaveValue('Create default');
+      await userEvent.clear(titleInput);
+      await userEvent.type(titleInput, 'Create title');
+
+      await userEvent.click(screen.getByText('Link'));
+
+      expect(await screen.findByRole('textbox', {name: 'Title'})).toHaveValue(
+        'Link default'
+      );
+      expect(screen.getByRole('button', {name: 'Link Issue'})).toBeInTheDocument();
+    });
+
     it('if we have an error fields, we should disable the create button', async () => {
       formConfig = {
         createIssueConfig: [
@@ -546,6 +616,13 @@ describe('ExternalIssueForm', () => {
       await userEvent.type(summaryInput, 'User typed text');
       expect(summaryInput).toHaveValue('User typed text');
 
+      // User picks an issue type that will not exist in the next project config.
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue Type'}),
+        'Story'
+      );
+      expect(screen.getByText('Story')).toBeInTheDocument();
+
       // User changes project (a dynamic field that triggers a refetch)
       await selectEvent.select(
         screen.getByRole('textbox', {name: 'Project'}),
@@ -556,14 +633,11 @@ describe('ExternalIssueForm', () => {
       expect(screen.getByRole('textbox', {name: 'Summary'})).toHaveValue(
         'User typed text'
       );
-      // Issue Type is a dynamic field (updatesForm: true) that was NOT the
-      // trigger for this refetch. It is intentionally excluded from
-      // stableFieldValues, so it picks up the new server default ('Bug') rather
-      // than retaining any previously selected value. We can't assert its
-      // displayed label via toHaveValue because custom selects render the label
-      // in a sibling element, not the input value — the input is the search
-      // query and stays empty. The implementation-level guarantee is that
-      // issuetype is absent from stableFieldValues and lastChangedField.
+
+      // Issue Type is dynamic but did not trigger this refetch, so it should
+      // use the new server default instead of keeping the stale Story value.
+      expect(screen.getByText('Bug')).toBeInTheDocument();
+      expect(screen.queryByText('Story')).not.toBeInTheDocument();
     });
 
     it('should preserve async select value after dynamic refetch when value is not in initial choices', async () => {
