@@ -26,9 +26,6 @@ export const enum SectionKey {
   ASSERTIONS = 'assertions', // Only Uptime issues
   DOWNTIME = 'downtime',
   CRON_TIMELINE = 'cron-timeline', // Only Cron issues
-  CORRELATED_ISSUES = 'correlated-issues', // Only Metric issues
-  CORRELATED_TRANSACTIONS = 'correlated-transactions', // Only Metric issues
-
   HIGHLIGHTS = 'highlights',
   RESOURCES = 'resources', // Position controlled by flag
 

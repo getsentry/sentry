@@ -178,6 +178,24 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
 
         assert mock_notify.call_count == 1
 
+    def test_deprecated_plugin_returns_400(self) -> None:
+        self.project.update_option("twilio:enabled", True)
+
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "twilio",
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, actions=action_data
+        )
+        assert response.status_code == 400
+        assert response.data == {
+            "actions": ["The twilio plugin has been deprecated and cannot send notifications."]
+        }
+
     @mock.patch(
         "sentry.rules.actions.sentry_apps.utils.app_service.trigger_sentry_app_action_creators"
     )

@@ -41,7 +41,7 @@ const getTooltip = ({planDetails, trialPlan}: Subscription) => (
       </Fragment>
     )}
     <dt>Base Price:</dt>
-    <dd>{formatCurrency(planDetails?.price)}</dd>
+    <dd>{formatCurrency(planDetails?.totalPrice)}</dd>
     <dt>Contract:</dt>
     <dd>{planDetails?.contractInterval}</dd>
     <dt>Billed:</dt>

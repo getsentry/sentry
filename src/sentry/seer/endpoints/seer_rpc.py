@@ -62,6 +62,7 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSource,
 )
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import organization_service
 from sentry.pr_metrics.attribution import (
     DELEGATED_SIGNAL_TYPES,
     DelegatedAgentSignalDetails,
@@ -73,6 +74,9 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
+from sentry.seer.agent.client import (
+    get_monitoring_provider_connections as fetch_monitoring_provider_connections,
+)
 from sentry.seer.agent.custom_tool_utils import call_custom_tool
 from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS, FeatureRunStatus
 from sentry.seer.agent.index_data import (
@@ -138,6 +142,7 @@ from sentry.seer.sentry_data_models import (
     GitHubEnterpriseConfigErrorResponse,
     GitHubEnterpriseConfigSuccessResponse,
     HasRepoCodeMappingsResponse,
+    MonitoringProviderConnectionsResponse,
     OrganizationAutofixConsentResponse,
     OrganizationFeaturesResponse,
     OrganizationProject,
@@ -934,6 +939,28 @@ def deliver_feature_result(
     handler(organization_id, run_uuid, status, result, error)
 
 
+def get_monitoring_provider_connections(
+    *, organization_id: int, user_id: int
+) -> MonitoringProviderConnectionsResponse:
+    """Fetch the user's connected monitoring provider identities."""
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return MonitoringProviderConnectionsResponse(connections=[])
+
+    if (
+        organization_service.check_membership_by_id(
+            organization_id=organization_id, user_id=user_id
+        )
+        is None
+    ):
+        return MonitoringProviderConnectionsResponse(connections=[])
+
+    return MonitoringProviderConnectionsResponse(
+        connections=fetch_monitoring_provider_connections(organization, user_id)
+    )
+
+
 def refresh_monitoring_provider_token(
     *, identity_id: int
 ) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
@@ -1149,6 +1176,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "update_pr_metrics": seer_rpc(update_pr_metrics),
     #
     # Monitoring provider tokens (MCP)
+    "get_monitoring_provider_connections": seer_rpc(get_monitoring_provider_connections),
     "refresh_monitoring_provider_token": seer_rpc(refresh_monitoring_provider_token),
     #
     # LLM Proxy

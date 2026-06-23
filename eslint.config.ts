@@ -1212,6 +1212,7 @@ export default typescript.config([
           type: 'test-getsentry',
           pattern: [
             'static/gsApp/**/*.spec.{ts,js,tsx,jsx}',
+            'static/gsApp/**/*.snapshots.tsx',
             'tests/js/getsentry-test/**/*.*',
           ],
           mode: 'full',
