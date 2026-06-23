@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssueListContainer} from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 const TITLE = t('Awaiting Input');
 const QUERY = 'is:unresolved';
@@ -28,6 +29,7 @@ export default function AwaitingInputPage() {
         <NoProjectMessage organization={organization}>
           <IssueListOverview
             initialQuery={QUERY}
+            initialSort={IssueSortOptions.PROGRESS}
             title={TITLE}
             withColumns={COLUMNS}
             clickBehavior="preview"

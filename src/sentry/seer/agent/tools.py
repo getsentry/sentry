@@ -57,6 +57,7 @@ from sentry.seer.agent.utils import (
     get_retention_boundary,
 )
 from sentry.seer.autofix.autofix import get_all_tags_overview
+from sentry.seer.autofix.utils import get_repo_url_path
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     BaselineTagDistributionEntry,
@@ -938,7 +939,9 @@ def get_repository_definition(
         return None
 
     # Use the actual repo name from the database, not the requested name.
-    repo_name_parts = repo.name.split("/")
+    # For GitLab, repo.name is the display name (name_with_namespace, may contain spaces);
+    # get_repo_url_path() returns the URL-safe path_with_namespace instead.
+    repo_name_parts = get_repo_url_path(repo).split("/")
     owner = repo_name_parts[0]
     name = "/".join(repo_name_parts[1:])
 
