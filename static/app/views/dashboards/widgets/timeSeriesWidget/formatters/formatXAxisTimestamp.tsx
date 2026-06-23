@@ -35,7 +35,7 @@ export function formatXAxisTimestamp(value: number, userTimezone: string): strin
     // Start of a year
     format = 'MMM Do YYYY';
   } else if (
-    parsed.day() === 0 &&
+    parsed.date() === 1 &&
     parsed.hour() === 0 &&
     parsed.minute() === 0 &&
     parsed.second() === 0
