@@ -1,17 +1,11 @@
 from __future__ import annotations
 
 import importlib
-import logging
 from abc import ABC, abstractmethod
 
 from pydantic import BaseModel
 
-from sentry import options
 from sentry.models.organization import Organization
-from sentry.seer.agent.client_utils import fetch_run_status
-from sentry.seer.pr_links import link_seer_run_to_pull_request
-
-logger = logging.getLogger(__name__)
 
 
 class OnCompletionHookDefinition(BaseModel):
@@ -102,8 +96,6 @@ def call_on_completion_hook(
     except Organization.DoesNotExist:
         raise ValueError(f"Organization with id {organization_id} does not exist")
 
-    _link_run_pull_requests(organization, run_id)
-
     # Split module path and class name
     parts = module_path.rsplit(".", 1)
     if len(parts) != 2:
@@ -124,35 +116,3 @@ def call_on_completion_hook(
 
     # Execute the hook
     hook_class.execute(organization, run_id)
-
-
-def _link_run_pull_requests(organization: Organization, run_id: int) -> None:
-    """Record a SeerRunPullRequest for each PR the completed run opened."""
-    if options.get("seer.run-pr-link.killswitch.enabled"):
-        return
-
-    try:
-        run_state = fetch_run_status(run_id, organization)
-    except Exception:
-        logger.exception(
-            "seer.pr_link.state_unavailable",
-            extra={"run_id": run_id, "organization_id": organization.id},
-        )
-        return
-
-    for pr_state in run_state.repo_pr_states.values():
-        if pr_state.pr_number is None:
-            continue
-        try:
-            link_seer_run_to_pull_request(
-                organization=organization,
-                seer_run_state_id=run_id,
-                repo_name=pr_state.repo_name,
-                provider=None,
-                pr_number=pr_state.pr_number,
-            )
-        except Exception:
-            logger.exception(
-                "seer.pr_link.failed",
-                extra={"run_id": run_id, "organization_id": organization.id},
-            )
