@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from sentry.options import all as all_options
 from sentry.testutils.helpers import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.rollout import SafeRolloutComparator
 
 
@@ -12,17 +13,19 @@ class TestRolloutComparator(SafeRolloutComparator):
 
 TEST_SHOULD_RUN_EXPERIMENT_OPTION = TestRolloutComparator._should_run_experiment_option()
 TEST_EXPERIMENT_SAMPLE_RATE_OPTION = TestRolloutComparator._experiment_sample_rate_option()
-TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION = (
-    TestRolloutComparator._callsite_use_experimental_data_allowlist_option()
-)
+TEST_CALLSITE_SAMPLE_RATE_OPTION = TestRolloutComparator._callsite_sample_rate_option()
 TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION = (
     TestRolloutComparator._callsite_experiment_blocklist_option()
 )
 TEST_CALLSITE_MISMATCH_LOG_ALLOWLIST_OPTION = (
     TestRolloutComparator._callsite_mismatch_log_allowlist_option()
 )
+TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION = (
+    TestRolloutComparator._callsite_use_experimental_data_allowlist_option()
+)
 
 
+@django_db_all
 class SafeRolloutComparatorTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -33,10 +36,11 @@ class SafeRolloutComparatorTestCase(TestCase):
         option_names = [o.name for o in all_options()]
 
         assert TEST_SHOULD_RUN_EXPERIMENT_OPTION in option_names
-        assert TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION in option_names
-        assert TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION in option_names
         assert TEST_EXPERIMENT_SAMPLE_RATE_OPTION in option_names
+        assert TEST_CALLSITE_SAMPLE_RATE_OPTION in option_names
+        assert TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION in option_names
         assert TEST_CALLSITE_MISMATCH_LOG_ALLOWLIST_OPTION in option_names
+        assert TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION in option_names
 
     def test_return_as_expected(self) -> None:
         with override_options({TEST_SHOULD_RUN_EXPERIMENT_OPTION: False}):
@@ -45,8 +49,8 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TEST_SHOULD_RUN_EXPERIMENT_OPTION: True,
-                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: ["test_blocked"],
                 TEST_EXPERIMENT_SAMPLE_RATE_OPTION: 1.0,
+                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: ["test_blocked"],
             }
         ):
             assert TestRolloutComparator.should_check_experiment("test_2") is True
@@ -54,8 +58,8 @@ class SafeRolloutComparatorTestCase(TestCase):
 
         with override_options(
             {
-                TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: ["test_allowed"],
                 TEST_CALLSITE_MISMATCH_LOG_ALLOWLIST_OPTION: [],
+                TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: ["test_allowed"],
             }
         ):
             assert TestRolloutComparator.check_and_choose("ctl", "exp", "test_3") == "ctl"
@@ -65,8 +69,8 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TEST_SHOULD_RUN_EXPERIMENT_OPTION: True,
-                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: [],
                 TEST_EXPERIMENT_SAMPLE_RATE_OPTION: 0.5,
+                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: [],
             }
         ):
             with patch("sentry.utils.rollout.random.random", return_value=0.3):
@@ -81,12 +85,46 @@ class SafeRolloutComparatorTestCase(TestCase):
             with patch("sentry.utils.rollout.random.random", return_value=0.49999):
                 assert TestRolloutComparator.should_check_experiment("test_just_under") is True
 
+    def test_callsite_sample_rate(self) -> None:
+        with override_options(
+            {
+                TEST_SHOULD_RUN_EXPERIMENT_OPTION: True,
+                TEST_EXPERIMENT_SAMPLE_RATE_OPTION: 0.25,
+                TEST_CALLSITE_SAMPLE_RATE_OPTION: {
+                    "dogs_are_great": 0.5,
+                    "all_dogs_are_good": True,  # invalid value
+                    "roll_over": "good_dog",  # invalid value
+                },
+                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: [],
+            }
+        ):
+            # Value which passes both the general and valid callsite-specific rates
+            with patch("sentry.utils.rollout.random.random", return_value=0.1):
+                assert TestRolloutComparator.should_check_experiment("dogs_are_great") is True
+                assert TestRolloutComparator.should_check_experiment("adopt_dont_shop") is True
+            # Value which passes the `dogs_are_great` rate but not the general one
+            with patch("sentry.utils.rollout.random.random", return_value=0.3):
+                assert TestRolloutComparator.should_check_experiment("dogs_are_great") is True
+                assert TestRolloutComparator.should_check_experiment("adopt_dont_shop") is False
+            # Value which fails both the general and valid callsite-specific rates
+            with patch("sentry.utils.rollout.random.random", return_value=0.75):
+                assert TestRolloutComparator.should_check_experiment("dogs_are_great") is False
+                assert TestRolloutComparator.should_check_experiment("adopt_dont_shop") is False
+            # Value which passes the general rate, applied to callsites with invalid values
+            with patch("sentry.utils.rollout.random.random", return_value=0.1):
+                assert TestRolloutComparator.should_check_experiment("all_dogs_are_good") is True
+                assert TestRolloutComparator.should_check_experiment("roll_over") is True
+            # Value which fails the general rate, applied to callsites with invalid values
+            with patch("sentry.utils.rollout.random.random", return_value=0.3):
+                assert TestRolloutComparator.should_check_experiment("all_dogs_are_good") is False
+                assert TestRolloutComparator.should_check_experiment("roll_over") is False
+
     def test_eval_experimental_respects_blocklist(self) -> None:
         with override_options(
             {
                 TEST_SHOULD_RUN_EXPERIMENT_OPTION: True,
-                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: ["test_blocked"],
                 TEST_EXPERIMENT_SAMPLE_RATE_OPTION: 1.0,
+                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: ["test_blocked"],
             }
         ):
             # Even with 100% sample rate, blocklisted callsites should be blocked
@@ -98,8 +136,8 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TEST_SHOULD_RUN_EXPERIMENT_OPTION: False,
-                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: [],
                 TEST_EXPERIMENT_SAMPLE_RATE_OPTION: 1.0,
+                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: [],
             }
         ):
             assert TestRolloutComparator.should_check_experiment("test_disabled") is False
@@ -126,8 +164,8 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TEST_SHOULD_RUN_EXPERIMENT_OPTION: True,
-                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: [],
                 TEST_EXPERIMENT_SAMPLE_RATE_OPTION: 1.0,
+                TEST_CALLSITE_EXPERIMENT_BLOCKLIST_OPTION: [],
             }
         ):
             TestRolloutComparator.check_and_choose_with_timings(
