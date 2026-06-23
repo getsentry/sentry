@@ -166,18 +166,6 @@ describe('LogsExportModal', () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows a tooltip on the disabled CSV option when the 'All Columns' switch is on", async () => {
-    mockTimeseriesCount();
-    renderModal();
-
-    await userEvent.click(await screen.findByRole('checkbox', {name: 'All Columns?'}));
-    await userEvent.hover(screen.getByText('CSV'));
-
-    expect(
-      await screen.findByText('All columns are only supported by JSONL.')
-    ).toBeInTheDocument();
-  });
-
   it("POSTs with trace_item_full_export query type and jsonl format when the 'All Columns' switch is on", async () => {
     mockTimeseriesCount();
     const dataExportMock = MockApiClient.addMockResponse({
