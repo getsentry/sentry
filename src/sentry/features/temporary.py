@@ -197,18 +197,12 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:preprod-artifact-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable preprod PR comments for build distribution
     manager.add("organizations:preprod-build-distribution-pr-comments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable preprod PR comments for snapshots
-    manager.add("organizations:preprod-snapshot-pr-comments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable enforcement of preprod size quota checks (when disabled, size quota checks always return True)
     manager.add("organizations:preprod-enforce-size-quota", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable enforcement of preprod distribution quota checks (when disabled, distribution quota checks always return True)
     manager.add("organizations:preprod-enforce-distribution-quota", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable preprod size monitors frontend
     manager.add("organizations:preprod-size-monitors-frontend", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable preprod snapshots product feature
-    manager.add("organizations:preprod-snapshots", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable selective snapshot builds to serve as comparison bases for stacked PRs
-    manager.add("organizations:preprod-selective-base-snapshots", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the playstation ingestion in relay
     manager.add("organizations:relay-playstation-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable the new apiFetch implementation that uses cell fetch.
