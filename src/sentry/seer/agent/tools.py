@@ -1407,12 +1407,15 @@ def get_issue_details(
         return None
 
     group: Group
-    if issue_id.isdigit():
-        group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-    else:
-        group = Group.objects.by_qualified_short_id(
-            organization_id, issue_id, project_ids=project_ids
-        )
+    try:
+        if issue_id.isdigit():
+            group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
+        else:
+            group = Group.objects.by_qualified_short_id(
+                organization_id, issue_id, project_ids=project_ids
+            )
+    except Group.DoesNotExist:
+        return None
 
     # Get the issue metadata.
     serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
@@ -1534,12 +1537,15 @@ def get_issue_committers(
         return None
 
     group: Group
-    if issue_id.isdigit():
-        group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-    else:
-        group = Group.objects.by_qualified_short_id(
-            organization_id, issue_id, project_ids=project_ids
-        )
+    try:
+        if issue_id.isdigit():
+            group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
+        else:
+            group = Group.objects.by_qualified_short_id(
+                organization_id, issue_id, project_ids=project_ids
+            )
+    except Group.DoesNotExist:
+        return None
 
     # Precomputed author+commit (one or none) from suspect-commit feature.
     try:
