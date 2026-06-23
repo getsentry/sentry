@@ -440,8 +440,9 @@ def get_seer_similar_issues(
         # event isn't
         or parent_grouphashes_checked > 1
         # This catches cases where we only checked one parent (presumably because there was only one
-        # to check) but we couldn't use it because it was hybrid
-        or seer_match_status == "no_matches_usable"
+        # to check) but we couldn't use it because it was hybrid. The parent_grouphashes_checked
+        # guard ensures we don't flag pure exception-type-mismatch rejections as hybrid cases.
+        or (seer_match_status == "no_matches_usable" and parent_grouphashes_checked > 0)
     )
     metrics_tags = {"platform": event.platform, "result": seer_match_status}
 
