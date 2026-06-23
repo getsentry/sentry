@@ -222,10 +222,13 @@ export function ResultGrid(props: Props) {
       ...queryParams,
     };
 
-    api.request(endpoint, {
-      method: method as RequestOptions['method'],
-      data: requestParams,
-      success: (data, _, resp) => {
+    const fetchData = async () => {
+      try {
+        const [data, _, resp] = await api.requestPromise(endpoint, {
+          method: method as RequestOptions['method'],
+          data: requestParams,
+          includeAllArgs: true,
+        });
         setState(prev => ({
           ...prev,
           loading: false,
@@ -233,15 +236,15 @@ export function ResultGrid(props: Props) {
           rows: data,
           pageLinks: resp?.getResponseHeader('Link') ?? null,
         }));
-      },
-      error: () => {
+      } catch (err) {
         setState(prev => ({
           ...prev,
           loading: false,
           error: true,
         }));
-      },
-    });
+      }
+    };
+    fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location, endpoint, method, defaultSort, JSON.stringify(defaultParams)]);
 
