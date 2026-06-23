@@ -843,8 +843,14 @@ export function SearchQueryBuilderValueCombobox({
       if (canSelectMultipleValues) {
         // UPDATE_TOKEN_VALUE (rather than TOGGLE_FILTER_VALUE) so the operator
         // switch (e.g. contains -> is) can ride along via `op`.
-        const alreadySelected = committedValues.some(v => v.value === value);
-        const newCommaSeparatedValue = alreadySelected
+        //
+        // Clicking an already-selected value toggles it off — but only when not
+        // mid-edit. While editing, selecting a value commits the lifted chip to
+        // it; if it matches another chip they merge (deduped on save) rather
+        // than that other chip being toggled off.
+        const deselecting =
+          editingValue === null && committedValues.some(v => v.value === value);
+        const newCommaSeparatedValue = deselecting
           ? committedValues
               .filter(v => v.value !== value)
               .map(v => v.text)
@@ -888,6 +894,7 @@ export function SearchQueryBuilderValueCombobox({
       canSelectMultipleValues,
       analyticsData,
       committedValues,
+      editingValue,
       dispatch,
       ctrlKeyPressed,
       onCommit,

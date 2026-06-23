@@ -3534,6 +3534,30 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
+      it('merges into the matching chip when a chip edit selects another value', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[Firefox,Safari]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift "Safari" into the input, then clear it to surface all options
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: Safari'}));
+        await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter value'}));
+
+        // Selecting "Firefox" (already a chip) merges the edit into it rather than
+        // toggling it off — both values must not disappear
+        await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:Firefox'})
+        ).toBeInTheDocument();
+      });
+
       it('restores a lifted value when canceling a chip edit with Escape', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
