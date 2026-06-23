@@ -148,7 +148,7 @@ Only cell-scoped API XHRs (`/api/0/organizations/{slug}/*`) cross to Synapse on 
 ### Sending a test envelope
 
 `bin/send-cell-test-event.py` exercises the ingestion path: it resolves a DSN from the
-local dev DB and sends an envelope through the edge relay (`:7901`), which forwards to
+local dev DB and sends an envelope through the edge relay (`:7899`), which forwards to
 relay-cell -> Kafka -> Sentry.
 
 ```bash
