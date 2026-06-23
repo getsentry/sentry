@@ -2,7 +2,7 @@ import {useCallback, useEffect, useRef} from 'react';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack, type StackProps} from '@sentry/scraps/layout';
+import {Flex, Stack, type StackProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -200,11 +200,11 @@ export function ScmIntegrationConnect({
           )}
         </Text>
       )}
-      <Grid
-        columns={allowIntegrationSwitching ? '1fr min-content' : '1fr'}
+      <Flex
+        direction={{sm: 'column-reverse', md: 'row'}}
         width="100%"
         gap="md"
-        align="center"
+        align={{sm: 'start', md: 'center'}}
       >
         <ScmRepoSelector
           analyticsFlow={analyticsFlow}
@@ -220,7 +220,7 @@ export function ScmIntegrationConnect({
             onChange={handleIntegrationSelect}
           />
         ) : null}
-      </Grid>
+      </Flex>
     </MotionStack>
   ) : (
     <MotionStack key="without-integration" gap="2xl" width="100%" maxWidth={maxWidth}>
