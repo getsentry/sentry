@@ -1,22 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from enum import StrEnum
 
 from django.db.models import Max, Q
 
+from sentry.issues.progress_state import IssueProgressState
+
+__all__ = ["IssueProgressState"]
 from sentry.models.activity import Activity
 from sentry.models.groupassignee import GroupAssignee
 from sentry.types.activity import ActivityType
-
-
-class IssueProgressState(StrEnum):
-    IDENTIFIED = "identified"
-    ASSIGNED = "assigned"
-    DIAGNOSED = "diagnosed"
-    FIX_PROPOSED = "fix_proposed"
-    FIX_APPLIED = "fix_applied"
-
 
 ISSUE_PROGRESS_TO_ACTIVITY_TYPES: dict[IssueProgressState, list[int]] = {
     IssueProgressState.DIAGNOSED: [ActivityType.SEER_RCA_COMPLETED.value],
