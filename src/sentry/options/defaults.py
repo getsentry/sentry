@@ -966,8 +966,6 @@ register(
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Killswitch for writing SeerRunPullRequest links reported by Seer on PR creation.
-# False (default) writes the links; set True to stop writes without a deploy.
 register(
     "seer.run-pr-link.killswitch.enabled",
     default=False,

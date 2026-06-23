@@ -76,13 +76,7 @@ class SeerRun(DefaultFieldsModel):
 
 @cell_silo_model
 class SeerRunPullRequest(DefaultFieldsModel):
-    """Links a Seer run to a pull request it opened.
-
-    Written from the on-completion hook dispatcher when a run finishes. By then
-    the SeerRun mirror exists and is LIVE (it is created at run start and its
-    seer_run_state_id is set when the run is dispatched, before the run can open
-    a PR), so the link points straight at the SeerRun.
-    """
+    """Links a Seer run to a pull request it opened."""
 
     __relocation_scope__ = RelocationScope.Excluded
 

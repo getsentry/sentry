@@ -140,8 +140,12 @@ class OnCompletionHookTest(TestCase):
             )
         assert "must start with one of" in str(cm.value)
 
-    def test_call_on_completion_hook_invalid_module(self) -> None:
+    @patch("sentry.seer.agent.on_completion_hook.fetch_run_status")
+    def test_call_on_completion_hook_invalid_module(self, mock_fetch) -> None:
         """Test calling a non-existent hook module."""
+        mock_fetch.return_value = SeerRunState(
+            run_id=123, blocks=[], status="completed", updated_at="2026-02-10T00:00:00Z"
+        )
         with pytest.raises(ValueError) as cm:
             call_on_completion_hook(
                 module_path="sentry.nonexistent.module.Hook",
@@ -150,8 +154,12 @@ class OnCompletionHookTest(TestCase):
             )
         assert "Could not import" in str(cm.value)
 
-    def test_call_on_completion_hook_not_a_hook_class(self) -> None:
+    @patch("sentry.seer.agent.on_completion_hook.fetch_run_status")
+    def test_call_on_completion_hook_not_a_hook_class(self, mock_fetch) -> None:
         """Test calling something that isn't an AgentOnCompletionHook."""
+        mock_fetch.return_value = SeerRunState(
+            run_id=123, blocks=[], status="completed", updated_at="2026-02-10T00:00:00Z"
+        )
         # BaseModel is importable but not an AgentOnCompletionHook
         with pytest.raises(ValueError) as cm:
             call_on_completion_hook(

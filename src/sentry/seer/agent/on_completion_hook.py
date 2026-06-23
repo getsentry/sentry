@@ -102,6 +102,8 @@ def call_on_completion_hook(
     except Organization.DoesNotExist:
         raise ValueError(f"Organization with id {organization_id} does not exist")
 
+    _link_run_pull_requests(organization, run_id)
+
     # Split module path and class name
     parts = module_path.rsplit(".", 1)
     if len(parts) != 2:
@@ -119,8 +121,6 @@ def call_on_completion_hook(
     # Validate it's an AgentOnCompletionHook subclass
     if not isinstance(hook_class, type) or not issubclass(hook_class, AgentOnCompletionHook):
         raise ValueError(f"{module_path} must be a class that inherits from AgentOnCompletionHook")
-
-    _link_run_pull_requests(organization, run_id)
 
     # Execute the hook
     hook_class.execute(organization, run_id)
