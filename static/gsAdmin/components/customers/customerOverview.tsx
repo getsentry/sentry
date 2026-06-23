@@ -121,17 +121,17 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
           <br />
           <small>{customer.billingInterval}</small>
         </DetailLabel>
-        {customer.contractPeriodStart && (
+        {customer.billingPeriodStart && (
           <DetailLabel title="Contract Period">
-            {`${moment(customer.contractPeriodStart).format('ll')} › `}
+            {`${moment(customer.billingPeriodStart).format('ll')} › `}
             {(customer.contractInterval === 'annual' &&
               customer.type === BillingType.INVOICED && (
                 <ChangeContractEndDateAction
-                  contractPeriodEnd={customer.contractPeriodEnd}
+                  contractPeriodEnd={customer.billingPeriodEnd}
                   onAction={onAction}
                 />
               )) ||
-              moment(customer.contractPeriodEnd).format('ll')}
+              moment(customer.billingPeriodEnd).format('ll')}
 
             <br />
             <small>{customer.contractInterval}</small>
@@ -874,21 +874,12 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               <tr>
                 <th>Category</th>
                 <th>Standard</th>
-                <th>Default</th>
                 <th>
                   <InfoText
                     variant="inherit"
                     title="Null means use the Downsample default"
                   >
                     Downsampled
-                  </InfoText>
-                </th>
-                <th>
-                  <InfoText
-                    variant="inherit"
-                    title="Zero means use the standard retention."
-                  >
-                    Downsample Default
                   </InfoText>
                 </th>
               </tr>
@@ -909,14 +900,10 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                         ? 'null'
                         : bmh.retention?.standard}
                     </td>
-                    <td>{customer.planDetails.retentions?.[bmh.category]?.standard}</td>
                     <td>
                       {bmh.retention?.downsampled === null
                         ? 'null'
                         : bmh.retention?.downsampled}
-                    </td>
-                    <td>
-                      {customer.planDetails.retentions?.[bmh.category]?.downsampled}
                     </td>
                   </tr>
                 ))}

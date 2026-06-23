@@ -42,6 +42,7 @@ class GroupHashesResult(TypedDict):
     id: str
     latestEvent: EventSerializerResponse | SimpleEventSerializerResponse | None
     mergedBySeer: bool
+    seerMatchDistance: float | None
 
 
 @extend_schema(tags=["Events"])
@@ -180,15 +181,19 @@ class GroupHashesEndpoint(GroupEndpoint):
         grouphash: GroupHash | None = None,
     ) -> GroupHashesResult:
         event = eventstore.backend.get_event_by_id(project_id, result["event_id"])
-        merged_by_seer = bool(
-            grouphash and grouphash.metadata and grouphash.metadata.seer_matched_grouphash
-        )
+        if grouphash and grouphash.metadata and grouphash.metadata.seer_matched_grouphash:
+            merged_by_seer = True
+            seer_match_distance = grouphash.metadata.seer_match_distance
+        else:
+            merged_by_seer = False
+            seer_match_distance = None
 
         serializer = EventSerializer if full else SimpleEventSerializer
         response: GroupHashesResult = {
             "id": result["primary_hash"],
             "latestEvent": serialize(event, user, serializer()),
             "mergedBySeer": merged_by_seer,
+            "seerMatchDistance": seer_match_distance,
         }
 
         return response

@@ -18,7 +18,6 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
-from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing2 import is_group_finished, start_group_reprocessing
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
@@ -77,18 +76,14 @@ def process_and_save(default_project, task_runner):
 
 
 @pytest.fixture
-def register_event_preprocessor(register_plugin):
-    def inner(f):
-        class ReprocessingTestPlugin(Plugin2):
-            def get_event_preprocessors(self, data):
-                return [f]
+def register_event_preprocessor():
+    with mock.patch("sentry.tasks.store.get_event_preprocessors") as m:
+        m.return_value = []
 
-            def is_enabled(self, project=None) -> bool:
-                return True
+        def inner(f):
+            m.return_value = [f]
 
-        register_plugin(globals(), ReprocessingTestPlugin)
-
-    return inner
+        yield inner
 
 
 @django_db_all

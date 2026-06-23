@@ -69,6 +69,65 @@ describe('useScmProviders', () => {
     expect(result.current.activeIntegrationExisting!.id).toBe('1');
   });
 
+  it('returns every active integration in activeIntegrations', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [
+        OrganizationIntegrationsFixture({
+          id: '1',
+          name: 'getsentry',
+          provider: {
+            key: 'github',
+            slug: 'github',
+            name: 'GitHub',
+            canAdd: true,
+            canDisable: false,
+            features: ['commits'],
+            aspects: {},
+          },
+        }),
+        OrganizationIntegrationsFixture({
+          id: '2',
+          name: 'acme',
+          provider: {
+            key: 'gitlab',
+            slug: 'gitlab',
+            name: 'GitLab',
+            canAdd: true,
+            canDisable: false,
+            features: ['commits'],
+            aspects: {},
+          },
+        }),
+        OrganizationIntegrationsFixture({
+          id: '3',
+          name: 'disabled-org',
+          status: 'disabled',
+          provider: {
+            key: 'github',
+            slug: 'github',
+            name: 'GitHub',
+            canAdd: true,
+            canDisable: false,
+            features: ['commits'],
+            aspects: {},
+          },
+        }),
+      ],
+    });
+
+    const {result} = renderHookWithProviders(() => useScmProviders(), {organization});
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(result.current.activeIntegrations.map(i => i.id)).toEqual(['1', '2']);
+    expect(result.current.activeIntegrationExisting!.id).toBe('1');
+  });
+
   it('excludes non-active integrations from activeIntegrationExisting', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/config/integrations/`,
