@@ -38,11 +38,9 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 pytestmark = [requires_snuba]
 
 
-class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
+class NotifyEventServiceWebhookActionTest(RuleTestCase, BaseWorkflowTest):
     rule_cls = NotifyEventServiceAction
 
-
-class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
     def setUp(self) -> None:
         self.event = self.get_event()
         self.webhook = WebHooksPlugin()
@@ -157,7 +155,9 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
         assert len(responses.calls) == 0
 
 
-class NotifyEventServiceSentryAppActionTest(NotifyEventServiceActionTest):
+class NotifyEventServiceSentryAppActionTest(RuleTestCase, BaseWorkflowTest):
+    rule_cls = NotifyEventServiceAction
+
     def test_applies_correctly_for_sentry_apps(self) -> None:
         event = self.get_event()
 

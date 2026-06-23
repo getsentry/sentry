@@ -365,9 +365,7 @@ class GroupSerializerBase(Serializer, ABC):
                 "is_bookmarked": item.id in bookmarks,
                 "subscription": subscriptions[item.id],
                 "has_seen": seen_groups.get(item.id, active_date) > active_date,
-                "annotations": self._resolve_and_extend_plugin_annotation(
-                    item, annotations_by_group_id[item.id]
-                ),
+                "annotations": annotations_by_group_id[item.id],
                 "ignore_until": ignore_item,
                 "ignore_actor": actors.get(ignore_item.actor_id) if ignore_item else None,
                 "resolution": resolution,
@@ -749,15 +747,6 @@ class GroupSerializerBase(Serializer, ABC):
             integration_annotations.append(local_annotations_by_group_id)
 
         return integration_annotations
-
-    @staticmethod
-    def _resolve_and_extend_plugin_annotation(
-        item: Group, current_annotations: list[Any]
-    ) -> Sequence[Any]:
-        annotations_for_group = []
-        annotations_for_group.extend(current_annotations)
-
-        return annotations_for_group
 
     @staticmethod
     def _get_permalink(attrs, obj: Group) -> str:
