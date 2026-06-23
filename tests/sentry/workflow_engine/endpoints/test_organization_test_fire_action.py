@@ -280,7 +280,9 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         response = self.get_error_response(self.organization.slug, actions=action_data)
         assert response.status_code == 400
         assert response.data == {
-            "actions": ["The twilio plugin has been deprecated and cannot send notifications."]
+            "actions": {
+                "service": ["Select a valid choice. twilio is not one of the available choices."]
+            }
         }
 
     @mock.patch(
