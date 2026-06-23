@@ -323,8 +323,9 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
         _segment_id(1, trace_id, parent_span_id),
         True,
         15,
-        [(b"latency", 1.0)],
-        [(b"gauge", 2.0)],
+        # The Lua script returns flattened [key1, value1, key2, value2, ...] lists.
+        [b"latency", 1.0],
+        [b"gauge", 2.0],
         [],
     ]
     child_result = [

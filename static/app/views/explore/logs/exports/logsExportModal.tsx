@@ -143,7 +143,11 @@ export function LogsExportModal({
       </Header>
       <Body>
         <Stack gap="xl">
-          <Text>{t('Large data export files will be sent to your email address.')}</Text>
+          <Text>
+            {t(
+              'When a high number of rows is selected and events are large, the results may be sent to your email.'
+            )}
+          </Text>
           <form.AppField name="columns">
             {field => (
               <field.Layout.Stack label={t('All Columns?')}>
