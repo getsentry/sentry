@@ -6,7 +6,7 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import WebhookDetailedView from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
 
 describe('WebhookConfigurations', () => {
-  const organization = OrganizationFixture({features: ['legacy-webhook-ui']});
+  const organization = OrganizationFixture();
 
   const configurationsRouterConfig = {
     location: {
@@ -155,7 +155,7 @@ describe('WebhookConfigurations', () => {
     const configureButton = await screen.findByTestId('integration-configure-button');
     expect(configureButton).toHaveAttribute(
       'href',
-      `/settings/${organization.slug}/projects/my-project/plugins/webhooks/`
+      `/settings/${organization.slug}/projects/my-project/legacy-webhooks/`
     );
   });
 });
