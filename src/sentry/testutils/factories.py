@@ -181,7 +181,12 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
-from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.users.models.identity import (
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    OrganizationIdentity,
+)
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.user_option import UserOption
@@ -2081,6 +2086,17 @@ class Factories:
             status=IdentityStatus.VALID,
             scopes=[],
             **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_organization_identity(
+        organization: Organization,
+        identity: Identity,
+    ) -> OrganizationIdentity:
+        return OrganizationIdentity.objects.create(
+            organization_id=organization.id,
+            identity=identity,
         )
 
     @staticmethod

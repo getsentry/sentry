@@ -655,6 +655,9 @@ class Fixtures:
     def create_identity(self, *args, **kwargs):
         return Factories.create_identity(*args, **kwargs)
 
+    def create_organization_identity(self, *args, **kwargs):
+        return Factories.create_organization_identity(*args, **kwargs)
+
     def create_identity_provider(
         self,
         integration: Integration | None = None,
