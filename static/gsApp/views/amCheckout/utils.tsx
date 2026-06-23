@@ -448,7 +448,7 @@ function recordAnalytics(
       subscription,
       organization,
       applyNow: data.applyNow ?? false,
-      daysLeft: moment(subscription.contractPeriodEnd).diff(moment(), 'days'),
+      daysLeft: moment(subscription.billingPeriodEnd).diff(moment(), 'days'),
       partner: subscription.partner?.partnership.id,
     });
   }

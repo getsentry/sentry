@@ -308,7 +308,7 @@ function WidgetBuilderSlideoutInner({
       height="44px"
       padding="0 2xl"
     >
-      <Breadcrumbs crumbs={breadcrumbs} />
+      <Breadcrumbs as="nav" crumbs={breadcrumbs} />
       <CloseButton
         variant="link"
         size="zero"

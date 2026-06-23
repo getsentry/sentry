@@ -3,12 +3,7 @@
 // analytics/insightAnalyticsEvents.tsx
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/platform';
 import type {LandingDisplayField} from 'sentry/views/performance/landing/utils';
-
-type SampleTransactionParam = {
-  platform?: PlatformKey;
-};
 
 type PerformanceTourParams = {
   duration: number;
@@ -25,7 +20,6 @@ export type PerformanceEventParameters = {
     project_platforms: string;
     view_name: string;
   };
-  'performance_views.create_sample_transaction': SampleTransactionParam;
   'performance_views.events.events_tab_clicked': PageLayoutParams;
   'performance_views.filter_dropdown.selection': {
     action: string;
@@ -236,7 +230,6 @@ export type PerformanceEventParameters = {
 type PerformanceEventKey = keyof PerformanceEventParameters;
 
 export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
-  'performance_views.create_sample_transaction': 'Growth: Performance Sample Transaction',
   'performance_views.tour.start': 'Performance Views: Tour Start',
   'performance_views.tour.advance': 'Performance Views: Tour Advance',
   'performance_views.tour.close': 'Performance Views: Tour Close',

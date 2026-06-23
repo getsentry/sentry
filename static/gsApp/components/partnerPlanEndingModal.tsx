@@ -71,7 +71,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
   const isTeam = isTeamPlanFamily(subscription.planDetails);
   const hasBillingAccess = organization.access?.includes('org:billing');
 
-  const endDate = moment(subscription.contractPeriodEnd).add(1, 'days').format('ll');
+  const endDate = moment(subscription.billingPeriodEnd).add(1, 'days').format('ll');
   const lastDay = daysLeft === 0;
 
   const returnPlan = isTeam ? t('Team') : t('Business');
@@ -126,7 +126,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
                 partnerName,
                 date: lastDay
                   ? 'today'
-                  : `on ${moment(subscription.contractPeriodEnd).format('ll')}`,
+                  : `on ${moment(subscription.billingPeriodEnd).format('ll')}`,
                 planName: returnPlan,
               }
             )}

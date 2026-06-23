@@ -14,25 +14,7 @@ env:
   NODE_OPTIONS: '--max-old-space-size=4096'
   SNAPSHOT_OUTPUT_DIR: .artifacts/snapshots
 jobs:
-  files-changed:
-    name: detect what files changed
-    runs-on: ubuntu-24.04
-    timeout-minutes: 3
-    outputs:
-      frontend_all: ${{ steps.changes.outputs.frontend_all }}
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Check for frontend file changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
   snapshots:
-    if: github.event_name != 'pull_request' || needs.files-changed.outputs.frontend_all == 'true'
-    needs: files-changed
     name: snapshot tests
     runs-on: ubuntu-24.04
     timeout-minutes: 20
