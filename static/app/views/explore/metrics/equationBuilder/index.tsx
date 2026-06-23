@@ -21,9 +21,11 @@ export function EquationBuilder({
   referenceMap,
   handleExpressionChange,
   onReferenceLabelsChange,
+  disabled,
 }: {
   expression: string;
   handleExpressionChange: (resolved: Expression, internalText: string) => void;
+  disabled?: boolean;
   onReferenceLabelsChange?: (labels: string[]) => void;
   referenceMap?: Record<string, string>;
 }) {
@@ -67,6 +69,7 @@ export function EquationBuilder({
       getFieldDefinition={() => null}
       references={references}
       setExpression={handleInternalExpressionChange}
+      disabled={disabled}
     />
   );
 }

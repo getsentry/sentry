@@ -66,6 +66,7 @@ def test_insert_spans_metrics_emits_evalsha_data() -> None:
             latency_ms=5,
             latency_metrics=[(b"step", 5.0)],
             gauge_metrics=[(b"gauge", 1.0)],
+            merged_segment_span_ids=[],
         ),
     )
     insert_spans_metrics.record_evalsha_result(
@@ -76,6 +77,7 @@ def test_insert_spans_metrics_emits_evalsha_data() -> None:
             latency_ms=20,
             latency_metrics=latency_metrics,
             gauge_metrics=gauge_metrics,
+            merged_segment_span_ids=[],
         ),
     )
 
@@ -121,6 +123,7 @@ def test_insert_spans_metrics_from_inserted_subsegments() -> None:
                     latency_ms=12,
                     latency_metrics=[(b"step", 12.0)],
                     gauge_metrics=[(b"gauge", 1.0)],
+                    merged_segment_span_ids=[],
                 ),
             )
         ]

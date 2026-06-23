@@ -13,6 +13,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {BackendJsonSubmitForm} from './backendJsonSubmitForm';
+import type {JsonFormAdapterFieldConfig} from './types';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -162,6 +163,34 @@ describe('BackendJsonSubmitForm', () => {
       );
 
       expect(screen.getByRole('textbox', {name: /title/i})).toBeDisabled();
+    });
+
+    it('disables all fields when disabled', () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'title',
+              type: 'string',
+              label: 'Title',
+            },
+            {
+              name: 'priority',
+              type: 'select',
+              label: 'Priority',
+              choices: [['high', 'High']],
+            },
+          ]}
+          onSubmit={onSubmit}
+          submitLabel="Save"
+          disabled
+        />,
+        {organization: org}
+      );
+
+      expect(screen.getByRole('textbox', {name: /title/i})).toBeDisabled();
+      expect(screen.getByRole('textbox', {name: 'Priority'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
     });
 
     it('does not disable field when disabledReason is set without disabled', () => {
@@ -583,6 +612,186 @@ describe('BackendJsonSubmitForm', () => {
       );
 
       expect(onFieldChange).toHaveBeenCalledWith('project', 'proj-1');
+    });
+
+    it('keeps current values when fields change unless a select value is no longer valid', async () => {
+      const firstFields: JsonFormAdapterFieldConfig[] = [
+        {
+          name: 'title',
+          type: 'string' as const,
+          label: 'Title',
+          default: 'Original title',
+        },
+        {
+          name: 'priority',
+          type: 'select' as const,
+          label: 'Priority',
+          choices: [
+            ['low', 'Low'],
+            ['high', 'High'],
+          ],
+          default: 'low',
+        },
+      ];
+      const secondFields: JsonFormAdapterFieldConfig[] = [
+        {
+          name: 'title',
+          type: 'string',
+          label: 'Title',
+          default: 'Server title',
+        },
+        {
+          name: 'priority',
+          type: 'select',
+          label: 'Priority',
+          choices: [['high', 'High']],
+          default: 'high',
+        },
+      ];
+
+      const {rerender} = render(
+        <BackendJsonSubmitForm
+          fields={firstFields}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      const titleInput = screen.getByRole('textbox', {name: /title/i});
+      await userEvent.clear(titleInput);
+      await userEvent.type(titleInput, 'User title');
+
+      rerender(
+        <BackendJsonSubmitForm
+          fields={secondFields}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', {name: /title/i})).toHaveValue('User title');
+      });
+      expect(screen.getByText('High')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({title: 'User title', priority: 'high'})
+        );
+      });
+    });
+
+    it('keeps valid multi-select values when fields change and some selections are no longer valid', async () => {
+      const firstFields: JsonFormAdapterFieldConfig[] = [
+        {
+          name: 'labels',
+          type: 'select',
+          label: 'Labels',
+          multiple: true,
+          choices: [
+            ['bug', 'Bug'],
+            ['feature', 'Feature'],
+            ['docs', 'Docs'],
+          ],
+        },
+      ];
+      const secondFields: JsonFormAdapterFieldConfig[] = [
+        {
+          name: 'labels',
+          type: 'select',
+          label: 'Labels',
+          multiple: true,
+          choices: [
+            ['bug', 'Bug'],
+            ['docs', 'Docs'],
+          ],
+        },
+      ];
+
+      const {rerender} = render(
+        <BackendJsonSubmitForm
+          fields={firstFields}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'Bug');
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'Feature');
+
+      rerender(
+        <BackendJsonSubmitForm
+          fields={secondFields}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({labels: ['bug']}));
+      });
+    });
+
+    it('keeps async select values that are absent from static choices when fields change', async () => {
+      const firstFields: JsonFormAdapterFieldConfig[] = [
+        {
+          name: 'repo',
+          type: 'select' as const,
+          label: 'Repository',
+          url: '/search',
+          choices: [
+            ['initial', 'Initial Repo'],
+            ['async-repo', 'Async Repo'],
+          ],
+          default: 'initial',
+        },
+      ];
+      const secondFields: JsonFormAdapterFieldConfig[] = [
+        {
+          name: 'repo',
+          type: 'select',
+          label: 'Repository',
+          url: '/search',
+          choices: [['other', 'Other Repo']] as Array<[string, string]>,
+          default: 'other',
+        },
+      ];
+
+      const {rerender} = render(
+        <BackendJsonSubmitForm
+          fields={firstFields}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Repository'}),
+        'Async Repo'
+      );
+
+      rerender(
+        <BackendJsonSubmitForm
+          fields={secondFields}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({repo: 'async-repo'})
+        );
+      });
     });
   });
 

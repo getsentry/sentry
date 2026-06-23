@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PluginFixture} from 'sentry-fixture/plugin';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {getProjectSettingsCommandPaletteSections} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
@@ -13,15 +12,6 @@ describe('ProjectSettingsCommandPaletteActions', () => {
     });
     const project = DetailedProjectFixture({
       slug: 'frontend',
-      plugins: [
-        PluginFixture({enabled: true, id: 'github', isDeprecated: false, name: 'GitHub'}),
-        PluginFixture({
-          enabled: true,
-          id: 'legacy',
-          isDeprecated: true,
-          name: 'Legacy Plugin',
-        }),
-      ],
     });
 
     const sections = getProjectSettingsCommandPaletteSections({organization, project});
@@ -53,8 +43,8 @@ describe('ProjectSettingsCommandPaletteActions', () => {
               label: 'SDK setup',
             }),
             expect.objectContaining({
-              display: expect.objectContaining({label: 'Legacy Integrations'}),
-              to: '/settings/acme/projects/frontend/plugins/',
+              display: expect.objectContaining({label: 'Webhooks (Legacy)'}),
+              to: '/settings/acme/projects/frontend/legacy-webhooks/',
             }),
           ]),
         }),
@@ -73,18 +63,6 @@ describe('ProjectSettingsCommandPaletteActions', () => {
                   to: '/settings/acme/projects/frontend/replays/',
                 }),
               ]),
-            }),
-          ]),
-        }),
-      ])
-    );
-
-    expect(sections).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          items: expect.arrayContaining([
-            expect.objectContaining({
-              to: '/settings/acme/projects/frontend/plugins/legacy/',
             }),
           ]),
         }),
