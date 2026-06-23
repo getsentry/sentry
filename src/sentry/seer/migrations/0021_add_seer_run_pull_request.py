@@ -59,9 +59,6 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "seer_seerrunpullrequest",
-                "indexes": [
-                    models.Index(fields=["pull_request"], name="seer_seerru_pull_re_59f664_idx")
-                ],
                 "constraints": [
                     models.UniqueConstraint(
                         fields=("seer_run", "pull_request"), name="seer_runpr_unique_run_pr"

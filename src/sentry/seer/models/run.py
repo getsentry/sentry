@@ -106,9 +106,6 @@ class SeerRunPullRequest(DefaultFieldsModel):
                 name="seer_runpr_unique_run_pr",
             ),
         ]
-        indexes = [
-            models.Index(fields=["pull_request"]),
-        ]
 
     __repr__ = sane_repr("seer_run_id", "pull_request_id")
 
