@@ -25,6 +25,7 @@ import {
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {usePrevious} from 'sentry/utils/usePrevious';
+import {ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 import {
   TraceItemSearchQueryBuilder,
   type TraceItemSearchQueryBuilderProps,
@@ -168,9 +169,16 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                   }}
                 >
                   <StyledPageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter {...datePageFilterProps} />
+                    <ProjectPageFilter
+                      resetParamsOnChange={[ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM]}
+                    />
+                    <EnvironmentPageFilter
+                      resetParamsOnChange={[ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM]}
+                    />
+                    <DatePageFilter
+                      {...datePageFilterProps}
+                      resetParamsOnChange={[ATTRIBUTE_BREAKDOWNS_CURSOR_PARAM]}
+                    />
                   </StyledPageFilterBar>
                   <SpansSearchBar
                     spanSearchQueryBuilderProps={spanSearchQueryBuilderProps}

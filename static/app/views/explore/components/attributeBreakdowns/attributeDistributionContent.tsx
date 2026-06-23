@@ -1,6 +1,7 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {useQueryState} from 'nuqs';
+import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
@@ -11,10 +12,9 @@ import {Panel} from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -37,8 +37,11 @@ export type AttributeDistribution = Array<{
 }>;
 
 export function AttributeDistribution() {
-  const [searchQuery, setSearchQuery] = useQueryState('attributeBreakdownsSearch');
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [{breakdownCursor, breakdownQuery}, setQueryParams] = useQueryStates({
+    breakdownQuery: parseAsString.withOptions({shallow: true}).withDefault(''),
+    breakdownCursor: parseAsString.withOptions({shallow: true}),
+  });
+  const debouncedSearchQuery = useDebouncedValue(breakdownQuery, 200);
 
   const query = useQueryParamsQuery();
   const onAction = useAttributeBreakdownsTooltipAction();
@@ -66,30 +69,24 @@ export function AttributeDistribution() {
     isLoading: isCohortCountLoading,
     error: cohortCountError,
     refetch: refetchCohortCount,
-  } = useApiQuery<{data: Array<{'count()': number}>}>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery({
+    ...apiOptions.as<{data: Array<{'count()': number}>}>()(
+      '/organizations/$organizationIdOrSlug/events/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           ...cohortCountEventView.getEventsAPIPayload(location),
           per_page: 1,
           disableAggregateExtrapolation: '1',
           sampling: SAMPLING_MODE.NORMAL,
         },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
 
-  const cohortCount = cohortCountResponse?.data?.[0]?.['count()'] ?? 0;
-
-  // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 200);
+  const cohortCount = cohortCountResponse?.json?.data?.[0]?.['count()'] ?? 0;
 
   const {
     data: attributeBreakdownsData,
@@ -97,7 +94,7 @@ export function AttributeDistribution() {
     isLoading: isAttributeBreakdownsLoading,
     error: attributeBreakdownsError,
   } = useAttributeBreakdowns({
-    cursor,
+    cursor: breakdownCursor ?? undefined,
     substringMatch: debouncedSearchQuery,
   });
 
@@ -109,11 +106,6 @@ export function AttributeDistribution() {
       refetchCohortCount();
     }
   }, [attributeBreakdownsData, isAttributeBreakdownsLoading, refetchCohortCount]);
-
-  // Reset pagination on any query change
-  useEffect(() => {
-    setCursor(undefined);
-  }, [debouncedSearchQuery, selection, query]);
 
   const parsedLinks = parseLinkHeader(attributeBreakdownsPageLinks);
 
@@ -150,10 +142,13 @@ export function AttributeDistribution() {
         <AttributeBreakdownsComponent.ControlsContainer>
           <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search keys')}
-            onChange={q => {
-              setSearchQuery(q);
+            onChange={value => {
+              setQueryParams({
+                breakdownQuery: value,
+                breakdownCursor: null,
+              });
             }}
-            query={debouncedSearchQuery}
+            query={breakdownQuery}
             size="sm"
           />
           <AttributeBreakdownsComponent.FeedbackButton />
@@ -188,10 +183,14 @@ export function AttributeDistribution() {
               isPrevDisabled={!parsedLinks.previous?.results}
               isNextDisabled={!parsedLinks.next?.results}
               onPrevClick={() => {
-                setCursor(parsedLinks.previous?.cursor);
+                setQueryParams({
+                  breakdownCursor: parsedLinks.previous?.cursor,
+                });
               }}
               onNextClick={() => {
-                setCursor(parsedLinks.next?.cursor);
+                setQueryParams({
+                  breakdownCursor: parsedLinks.next?.cursor,
+                });
               }}
             />
           </Fragment>
