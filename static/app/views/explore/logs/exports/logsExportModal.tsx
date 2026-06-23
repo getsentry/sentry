@@ -67,7 +67,7 @@ export function LogsExportModal({
     }),
     [queryInfo]
   );
-  const handleDataExport = useDataExport();
+  const {mutateAsync: handleDataExport} = useDataExport();
   const {rowCountDefault, rowCountOptions} =
     generateLogExportRowCountOptions(estimatedRowCount);
   const defaultValues: ExportModalFormValues = {
@@ -106,14 +106,20 @@ export function LogsExportModal({
       });
 
       if (isAllColumns || passedSyncLimit) {
-        await handleDataExport({
-          format,
-          queryInfo: isAllColumns ? {...payload.queryInfo, field: []} : payload.queryInfo,
-          queryType: isAllColumns
-            ? ExportQueryType.TRACE_ITEM_FULL_EXPORT
-            : ExportQueryType.EXPLORE,
-          limit: value.limit,
-        });
+        try {
+          await handleDataExport({
+            format,
+            queryInfo: isAllColumns
+              ? {...payload.queryInfo, field: []}
+              : payload.queryInfo,
+            queryType: isAllColumns
+              ? ExportQueryType.TRACE_ITEM_FULL_EXPORT
+              : ExportQueryType.EXPLORE,
+            limit: value.limit,
+          });
+        } catch {
+          // The error message is surfaced by useDataExport's onError handler.
+        }
       } else {
         downloadLogs({
           rows: tableData.slice(0, value.limit),
@@ -137,7 +143,11 @@ export function LogsExportModal({
       </Header>
       <Body>
         <Stack gap="xl">
-          <Text>{t('Large data export files will be sent to your email address.')}</Text>
+          <Text>
+            {t(
+              'When a high number of rows is selected and events are large, the results may be sent to your email.'
+            )}
+          </Text>
           <form.AppField name="columns">
             {field => (
               <field.Layout.Stack label={t('All Columns?')}>

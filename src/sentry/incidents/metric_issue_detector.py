@@ -41,7 +41,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
 from sentry.workflow_engine.endpoints.validators.base.data_condition import (
     BaseDataConditionValidator,
 )
-from sentry.workflow_engine.models import DataSource, Detector
+from sentry.workflow_engine.models import DataCondition, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSourceType
 
@@ -415,9 +415,27 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             validated_data.get("config", {}).get("detection_type") == AlertRuleDetectionType.DYNAMIC
         )
         if not is_currently_dynamic_detector and is_update_dynamic_detector:
-            # Detector has been changed to become a dynamic detector
+            # Detector has been changed to become a dynamic detector. The detector's
+            # persisted conditions still describe its previous (e.g. static) configuration
+            # at this point, so build the anomaly condition to send to Seer from the
+            # incoming payload rather than looking up the (not-yet-written) condition.
+            conditions = validated_data.get("condition_group", {}).get("conditions", [])
+            anomaly_condition_data = next(
+                (c for c in conditions if c.get("type") == Condition.ANOMALY_DETECTION),
+                None,
+            )
+            data_condition = (
+                DataCondition(
+                    type=anomaly_condition_data["type"],
+                    comparison=anomaly_condition_data["comparison"],
+                    condition_result=anomaly_condition_data["condition_result"],
+                    condition_group=instance.workflow_condition_group,
+                )
+                if anomaly_condition_data
+                else None
+            )
             try:
-                update_detector_data(instance, validated_data)
+                update_detector_data(instance, validated_data, data_condition=data_condition)
                 seer_updated = True
             except (TimeoutError, MaxRetryError, ParseError, ValidationError) as e:
                 # Don't update if we failed to send data to Seer
