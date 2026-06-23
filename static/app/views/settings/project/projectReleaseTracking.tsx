@@ -73,7 +73,7 @@ export default function ProjectReleaseTracking() {
         data: {project: project.slug},
       }),
     onSuccess: data => {
-      setApiQueryData<TokenResponse>(
+      setApiQueryData(
         queryClient,
         getReleaseTokenQueryKey(organization.slug, project.slug),
         data
