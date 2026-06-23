@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import logging
 
 from rest_framework import status
@@ -32,6 +33,7 @@ GITLAB_RETRY_CODES = (
     status.HTTP_502_BAD_GATEWAY,
     status.HTTP_503_SERVICE_UNAVAILABLE,
     status.HTTP_504_GATEWAY_TIMEOUT,
+    errno.ECONNRESET,
 )
 
 
