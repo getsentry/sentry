@@ -14,6 +14,7 @@ from sentry.api.serializers.rest_framework import DummyRuleSerializer
 from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY
 from sentry.models.rule import Rule
 from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.plugins import HIDDEN_PLUGINS
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
@@ -123,6 +124,17 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         )
 
         for action_blob in actions_data:
+            if (
+                action_blob.get("id")
+                == "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
+                and action_blob.get("service") in HIDDEN_PLUGINS
+            ):
+                service = action_blob.get("service")
+                action_exceptions.append(
+                    f"The {service} plugin has been deprecated and cannot send notifications."
+                )
+                continue
+
             try:
                 notification_actions_data = translate_rule_data_actions_to_notification_actions(
                     [action_blob], skip_failures=False
