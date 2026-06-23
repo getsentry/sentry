@@ -1,4 +1,4 @@
-import {useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -19,8 +19,7 @@ import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -49,7 +48,6 @@ function getReleaseTokenQueryKey(
 }
 
 export default function ProjectReleaseTracking() {
-  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
@@ -67,17 +65,15 @@ export default function ProjectReleaseTracking() {
     }
   );
 
-  const handleRegenerateToken = async () => {
-    try {
-      const [data] = await api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/releases/token/`,
-        {
-          method: 'POST',
-          data: {project: project.slug},
-          includeAllArgs: true,
-        }
-      );
-      setApiQueryData<TokenResponse>(
+  const {mutate: regenerateToken, isPending: isRegenerating} = useMutation({
+    mutationFn: () =>
+      fetchMutation<TokenResponse>({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${project.slug}/releases/token/`,
+        data: {project: project.slug},
+      }),
+    onSuccess: data => {
+      setApiQueryData(
         queryClient,
         getReleaseTokenQueryKey(organization.slug, project.slug),
         data
@@ -87,10 +83,11 @@ export default function ProjectReleaseTracking() {
           'Your deploy token has been regenerated. You will need to update any existing deploy hooks.'
         )
       );
-    } catch {
+    },
+    onError: () => {
       addErrorMessage(t('Unable to regenerate deploy token, please try again'));
-    }
-  };
+    },
+  });
 
   function getReleaseWebhookInstructions() {
     return (
@@ -179,14 +176,16 @@ export default function ProjectReleaseTracking() {
         >
           <Container>
             <Confirm
-              disabled={!hasWrite}
+              disabled={!hasWrite || isRegenerating}
               priority="danger"
-              onConfirm={handleRegenerateToken}
+              onConfirm={() => regenerateToken()}
               message={t(
                 'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
               )}
             >
-              <Button variant="danger">{t('Regenerate Token')}</Button>
+              <Button variant="danger" busy={isRegenerating}>
+                {t('Regenerate Token')}
+              </Button>
             </Confirm>
           </Container>
         </FieldGroup>
