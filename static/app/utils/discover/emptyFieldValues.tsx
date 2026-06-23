@@ -1,11 +1,14 @@
-import styled from '@emotion/styled';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 
-const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-export const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
+export const emptyValue = (
+  <Text as="span" variant="muted">
+    {t('(no value)')}
+  </Text>
+);
 export const emptyStringValue = (
-  <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>
+  <Text as="span" variant="muted">
+    {t('(empty string)')}
+  </Text>
 );
