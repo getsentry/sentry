@@ -5,6 +5,7 @@ import {RedirectToProjectModal} from 'sentry/components/modals/redirectToProject
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 jest.mock('sentry/utils/recreateRoute', () => ({
+  ...jest.requireActual('sentry/utils/recreateRoute'),
   recreateRoute: jest.fn(() => '/org-slug/new-slug/'),
 }));
 
