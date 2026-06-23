@@ -96,9 +96,7 @@ class OnCompletionHookTest(TestCase):
 
         pr = PullRequest.objects.get(repository_id=repo.id, key="5")
         link = SeerRunPullRequest.objects.get(pull_request=pr)
-        assert link.seer_run_state_id == 777
         assert link.seer_run_id == run.id
-        # Hook still ran.
         assert self.organization.get_option("test_hook_run_id") == 777
 
     @patch("sentry.seer.agent.on_completion_hook.fetch_run_status")
@@ -117,7 +115,9 @@ class OnCompletionHookTest(TestCase):
         mock_fetch.assert_not_called()
         assert self.organization.get_option("test_hook_run_id") == 777
 
-    @patch("sentry.seer.agent.on_completion_hook.fetch_run_status", side_effect=RuntimeError("boom"))
+    @patch(
+        "sentry.seer.agent.on_completion_hook.fetch_run_status", side_effect=RuntimeError("boom")
+    )
     def test_linking_failure_does_not_block_hook(self, mock_fetch) -> None:
         call_on_completion_hook(
             module_path=HOOK_PATH,

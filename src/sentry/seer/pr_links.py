@@ -64,15 +64,11 @@ def link_seer_run_to_pull_request(
 ) -> SeerRunPullRequest | None:
     """Record a ``SeerRunPullRequest`` linking a Seer run to one pull request.
 
-    ``run_id`` is Seer's ``DbRunState.id`` (matching ``SeerRun.seer_run_state_id``).
-    The ``SeerRun`` mirror is attached when it exists; otherwise the link is stored
-    with only ``seer_run_state_id`` and a null FK.
+    ``run_id`` is Seer's ``DbRunState.id``; the run's ``SeerRun`` mirror is looked
+    up by ``seer_run_state_id``. Idempotent on the ``(seer_run, pull_request)``
+    unique constraint.
 
-    Idempotent on the ``(seer_run_state_id, pull_request)`` unique constraint.
-    Uses ``update_or_create`` so a redelivery after the mirror lands self-heals the
-    null FK, without ever nulling an FK that was already attached.
-
-    Returns the link, or None when the repo can't be uniquely resolved.
+    Returns the link, or None when the SeerRun or repo can't be resolved.
     """
     log_context = {
         "organization_id": organization.id,
@@ -81,6 +77,13 @@ def link_seer_run_to_pull_request(
         "provider": provider,
         "pr_number": pr_number,
     }
+
+    seer_run = SeerRun.objects.filter(
+        organization_id=organization.id, seer_run_state_id=run_id
+    ).first()
+    if seer_run is None:
+        logger.warning("seer.pr_link.run_not_found", extra=log_context)
+        return None
 
     repository = _resolve_repository(
         organization_id=organization.id, repo_name=repo_name, provider=provider
@@ -95,15 +98,9 @@ def link_seer_run_to_pull_request(
         key=str(pr_number),
     )
 
-    seer_run = SeerRun.objects.filter(
-        organization_id=organization.id, seer_run_state_id=run_id
-    ).first()
-    defaults = {"seer_run": seer_run} if seer_run is not None else {}
-
-    link, _ = SeerRunPullRequest.objects.update_or_create(
-        seer_run_state_id=run_id,
+    link, _ = SeerRunPullRequest.objects.get_or_create(
+        seer_run=seer_run,
         pull_request=pull_request,
-        defaults=defaults,
     )
     logger.info(
         "seer.pr_link.recorded",

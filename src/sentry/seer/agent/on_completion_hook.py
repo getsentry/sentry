@@ -120,9 +120,6 @@ def call_on_completion_hook(
     if not isinstance(hook_class, type) or not issubclass(hook_class, AgentOnCompletionHook):
         raise ValueError(f"{module_path} must be a class that inherits from AgentOnCompletionHook")
 
-    # Link any PRs this run opened before running the hook. This lives in the
-    # shared dispatcher (not a specific hook class) so every Seer run that opens
-    # a PR gets a SeerRunPullRequest, regardless of which hook it registered.
     _link_run_pull_requests(organization, run_id)
 
     # Execute the hook
