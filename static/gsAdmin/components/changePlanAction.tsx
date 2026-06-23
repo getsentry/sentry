@@ -76,7 +76,7 @@ function ChangePlanAction({
   const getPlanList = (): BillingConfig['planList'] =>
     planList.filter(
       plan =>
-        plan.price &&
+        plan.totalPrice &&
         plan.userSelectable &&
         plan.billingInterval === billingInterval &&
         plan.contractInterval === contractInterval &&

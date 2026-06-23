@@ -445,7 +445,7 @@ class GSBanner extends Component<Props, State> {
     const hasEndingPartnerPlan = hasPartnerMigrationFeature(organization);
     const hasPendingUpgrade =
       subscription.pendingChanges !== null &&
-      subscription.pendingChanges?.planDetails.price > 0;
+      subscription.pendingChanges?.planDetails.totalPrice > 0;
     const daysLeft = getContractDaysLeft(subscription);
 
     const showPartnerPlanEndingNotice =
