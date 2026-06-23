@@ -74,7 +74,6 @@ class LinkSeerRunToPullRequestsTest(TestCase):
         other_project = self.create_project(organization=other_org)
         self.create_repo(other_project, name=REPO_NAME, provider="integrations:github")
 
-        # self.seer_run (RUN_STATE_ID) belongs to self.organization, not other_org.
         with patch("sentry.seer.pull_requests.logger") as mock_logger:
             link_seer_run_to_pull_requests(
                 organization=other_org, pull_requests=[_pr()], run_id=RUN_STATE_ID

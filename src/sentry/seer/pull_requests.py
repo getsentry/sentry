@@ -24,9 +24,7 @@ from sentry.seer.models.run import SeerRun, SeerRunPullRequest
 
 logger = logging.getLogger(__name__)
 
-# SCM providers that can legitimately back a Repository. Seer normalizes its
-# provider to one of these (lowercased, no ``integrations:`` prefix); anything
-# else is a value we don't understand and should be fixed upstream.
+# Providers we recognize; anything else is flagged unrecognized (likely an upstream bug).
 KNOWN_SCM_PROVIDERS = frozenset(
     {
         IntegrationProviderSlug.GITHUB,
@@ -41,10 +39,10 @@ KNOWN_SCM_PROVIDERS = frozenset(
 
 
 def normalize_provider(provider: str | None) -> str | None:
-    """Normalize Seer's provider to Sentry's unprefixed form, or None if unusable.
+    """Normalize Seer's provider to Sentry's unprefixed form.
 
-    Returns None for the ``"unknown"`` sentinel (Seer couldn't resolve the repo)
-    and for empty values — neither can scope a provider filter.
+    Returns None for empty values and the ``"unknown"`` sentinel (Seer couldn't
+    resolve the repo), neither of which can scope a provider filter.
     """
     if not provider:
         return None
@@ -128,11 +126,7 @@ def maybe_link_seer_run_to_pull_requests(
     pull_requests: Sequence[Mapping[str, Any]],
     run_id: int,
 ) -> None:
-    """Killswitch-gated, never-throwing entry point for run→PR linking.
-
-    Callers can fire-and-forget this; the killswitch short-circuits it and any
-    failure is logged rather than propagated.
-    """
+    """Killswitch-gated, never-throwing entry point for run→PR linking."""
     if options.get("seer.run-pr-link.killswitch.enabled"):
         return
     try:
