@@ -22,6 +22,7 @@ import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useAutoOpenInstallModal} from 'sentry/utils/integrations/useAutoOpenInstallModal';
 import {
   getAlertText,
   getIntegrationStatus,
@@ -244,6 +245,8 @@ export default function IntegrationDetailedView() {
     },
     [organization.slug, integrationSlug, navigate, queryClient, provider?.features]
   );
+
+  useAutoOpenInstallModal({provider, organization, onInstall, installationStatus});
 
   const onRemove = useCallback(
     async (integration: Integration) => {

@@ -6,6 +6,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as pipelineModal from 'sentry/components/pipeline/modal';
 import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
 describe('IntegrationDetailedView', () => {
@@ -105,6 +106,10 @@ describe('IntegrationDetailedView', () => {
       match: [MockApiClient.matchQuery({provider_key: 'gitlab', includeConfig: 0})],
       body: [GitLabIntegrationFixture()],
     });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('shows integration name, status, and install button', async () => {
@@ -263,5 +268,100 @@ describe('IntegrationDetailedView', () => {
 
     expect(await screen.findByText('Alert without variant')).toBeInTheDocument();
     expect(await screen.findByText('Alert with explicit variant')).toBeInTheDocument();
+  });
+
+  describe('auto-open install modal via showInstallModal param', () => {
+    it('auto-opens the install modal when the param is set and the user has access', async () => {
+      const openPipelineModalSpy = jest
+        .spyOn(pipelineModal, 'openPipelineModal')
+        .mockImplementation(() => {});
+
+      render(<IntegrationDetailedView />, {
+        initialRouterConfig: createRouterConfig('bitbucket', {showInstallModal: '1'}),
+        organization,
+      });
+
+      expect(await screen.findByText('Bitbucket')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(openPipelineModalSpy).toHaveBeenCalledTimes(1);
+      });
+      expect(openPipelineModalSpy).toHaveBeenCalledWith(
+        expect.objectContaining({type: 'integration', provider: 'bitbucket'})
+      );
+    });
+
+    it('does not auto-open without the param', async () => {
+      const openPipelineModalSpy = jest
+        .spyOn(pipelineModal, 'openPipelineModal')
+        .mockImplementation(() => {});
+
+      render(<IntegrationDetailedView />, {
+        initialRouterConfig: createRouterConfig('bitbucket'),
+        organization,
+      });
+
+      expect(await screen.findByText('Bitbucket')).toBeInTheDocument();
+      expect(openPipelineModalSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not auto-open without integration access', async () => {
+      const openPipelineModalSpy = jest
+        .spyOn(pipelineModal, 'openPipelineModal')
+        .mockImplementation(() => {});
+
+      const lowerAccessOrg = OrganizationFixture({access: ['org:read']});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${lowerAccessOrg.slug}/config/integrations/`,
+        match: [MockApiClient.matchQuery({provider_key: 'bitbucket'})],
+        body: {
+          providers: [
+            {
+              canAdd: true,
+              canDisable: false,
+              features: ['commits', 'issue-basic'],
+              key: 'bitbucket',
+              metadata: {
+                aspects: {},
+                author: 'The Sentry Team',
+                description: 'Connect your Sentry organization to Bitbucket.',
+                features: [],
+                issue_url: 'https://github.com/getsentry/sentry/issues/new',
+                noun: 'Installation',
+                source_url:
+                  'https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket',
+              },
+              name: 'Bitbucket',
+              slug: 'bitbucket',
+            },
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${lowerAccessOrg.slug}/integrations/`,
+        match: [MockApiClient.matchQuery({provider_key: 'bitbucket', includeConfig: 0})],
+        body: [],
+      });
+
+      render(<IntegrationDetailedView />, {
+        initialRouterConfig: createRouterConfig('bitbucket', {showInstallModal: '1'}),
+        organization: lowerAccessOrg,
+      });
+
+      expect(await screen.findByText('Bitbucket')).toBeInTheDocument();
+      expect(openPipelineModalSpy).not.toHaveBeenCalled();
+    });
+
+    it('strips the param after auto-opening', async () => {
+      jest.spyOn(pipelineModal, 'openPipelineModal').mockImplementation(() => {});
+
+      const {router} = render(<IntegrationDetailedView />, {
+        initialRouterConfig: createRouterConfig('bitbucket', {showInstallModal: '1'}),
+        organization,
+      });
+
+      await waitFor(() => {
+        expect(router.location.query.showInstallModal).toBeUndefined();
+      });
+    });
   });
 });
