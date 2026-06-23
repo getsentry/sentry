@@ -76,7 +76,6 @@ export function RelocationOnboarding() {
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
   const api = useApi();
-  const localityOptions = getSignupLocalities();
   const [existingRelocationState, setExistingRelocationState] = useState(
     LoadingState.FETCHING
   );
@@ -91,16 +90,17 @@ export function RelocationOnboarding() {
       promoCode: '',
     }
   );
+  const localityOptions = getSignupLocalities();
 
   const fetchExistingRelocation = useCallback(() => {
     setExistingRelocationState(LoadingState.FETCHING);
     return Promise.all(
-      localityOptions.map(option =>
-        api.requestPromise('/relocations/', {
+      localityOptions.map(option => {
+        return api.requestPromise('/relocations/', {
           method: 'GET',
-          host: option.value,
-        })
-      )
+          host: option.url,
+        });
+      })
     )
       .then(responses => {
         const response = responses.flat(1);
@@ -154,7 +154,7 @@ export function RelocationOnboarding() {
       localityOptions.map(option =>
         api.requestPromise('/publickeys/relocations/', {
           method: 'GET',
-          host: option.value,
+          host: option.url,
         })
       )
     )

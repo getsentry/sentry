@@ -69,11 +69,11 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
 
   const handleStartRelocation = async () => {
     const {orgSlugs, localityName, promoCode} = relocationState;
-    if (!orgSlugs || localityName || !file) {
+    if (!orgSlugs || !localityName || !file) {
       addErrorMessage(DEFAULT_ERROR_MSG);
       return;
     }
-    const locality = getLocalities().find(candidate => candidate.name == localityName);
+    const locality = getLocalities().find(candidate => candidate.name === localityName);
     if (!locality) {
       addErrorMessage(DEFAULT_ERROR_MSG);
       return;
