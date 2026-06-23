@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 
 import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
 import {t} from 'sentry/locale';
-import {GroupActivityType, type Group} from 'sentry/types/group';
+import {GroupActivityType, type Group, type GroupActivity} from 'sentry/types/group';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 
 type Props = {
@@ -12,11 +12,15 @@ type Props = {
 export function FeedbackActivitySection(props: Props) {
   const {feedbackItem} = props;
 
-  const {invalidateCached} = useFeedbackCache();
+  const {updateCached, invalidateCached} = useFeedbackCache();
 
-  const invalidateCache = useCallback(() => {
-    invalidateCached([feedbackItem.id]);
-  }, [invalidateCached, feedbackItem.id]);
+  const handleCommentChange = useCallback(
+    (activity: GroupActivity[]) => {
+      updateCached([feedbackItem.id], {activity});
+      invalidateCached([feedbackItem.id]);
+    },
+    [updateCached, invalidateCached, feedbackItem.id]
+  );
 
   const filteredActivity = feedbackItem.activity.filter(
     a => a.type !== GroupActivityType.FIRST_SEEN
@@ -25,9 +29,9 @@ export function FeedbackActivitySection(props: Props) {
   return (
     <ActivitySection
       group={{...feedbackItem, activity: filteredActivity} as unknown as Group}
-      onCommentCreated={invalidateCache}
-      onCommentDeleted={invalidateCache}
-      onCommentEdited={invalidateCache}
+      onCommentCreated={handleCommentChange}
+      onCommentDeleted={handleCommentChange}
+      onCommentEdited={handleCommentChange}
       variant="standalone"
       placeholder={t(
         'Add details or updates to this feedback, visible only to your organization. \nTag users with @, or teams with #'

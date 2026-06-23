@@ -9,7 +9,7 @@ import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {NoteType} from 'sentry/types/alerts';
-import type {Group, GroupActivityNote} from 'sentry/types/group';
+import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -21,8 +21,8 @@ type Props = {
   group: Group;
   itemKey: string;
   storageKey: string;
-  onCommentCreated?: () => void;
-  onCommentEdited?: () => void;
+  onCommentCreated?: (activity: GroupActivity[]) => void;
+  onCommentEdited?: (activity: GroupActivity[]) => void;
   onLoad?: (data: string) => string;
   onSave?: (data: string) => string;
   text?: string;
@@ -147,7 +147,7 @@ function NoteInputWithStorage({
 
       GroupStore.addActivity(group.id, result);
       trackAnalytics('issue_details.comment_created', {organization});
-      onCommentCreated?.();
+      onCommentCreated?.([result, ...group.activity]);
     },
     [
       itemKey,
@@ -177,7 +177,7 @@ function NoteInputWithStorage({
       const d = result as GroupActivityNote;
       GroupStore.updateActivity(group.id, result.id, {text: d.data.text});
       trackAnalytics('issue_details.comment_updated', {organization});
-      onCommentEdited?.();
+      onCommentEdited?.(group.activity.map(a => (a.id === result.id ? result : a)));
     },
     [mutators, noteId, group.activity, group.id, organization, onCommentEdited]
   );

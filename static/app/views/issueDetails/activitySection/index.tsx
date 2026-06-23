@@ -51,7 +51,7 @@ function TimelineItem({
   item: GroupActivity;
   size: 'sm' | 'md';
   teams: Team[];
-  onCommentEdited?: () => void;
+  onCommentEdited?: (activity: GroupActivity[]) => void;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }) {
   const organization = useOrganization();
@@ -122,8 +122,8 @@ function TimelineItem({
           text={item.data.text}
           noteId={item.id}
           group={group}
-          onCommentEdited={() => {
-            onCommentEdited?.();
+          onCommentEdited={activity => {
+            onCommentEdited?.(activity);
             setEditing(false);
           }}
           onCancel={() => setEditing(false)}
@@ -154,9 +154,9 @@ interface ActivitySectionProps {
    */
   filterComments?: boolean;
   minHeight?: number;
-  onCommentCreated?: () => void;
-  onCommentDeleted?: () => void;
-  onCommentEdited?: () => void;
+  onCommentCreated?: (activity: GroupActivity[]) => void;
+  onCommentDeleted?: (activity: GroupActivity[]) => void;
+  onCommentEdited?: (activity: GroupActivity[]) => void;
   /**
    * Controls layout and input style.
    * - `sidebar` (default): fold section, compact input, collapses at 5 items
@@ -198,18 +198,15 @@ export function ActivitySection({
 
   const handleDelete = useCallback(
     async (item: GroupActivity): Promise<void> => {
-      await mutators.handleDelete(
-        item.id,
-        group.activity.filter(a => a.id !== item.id),
-        {
-          onSuccess: () => {
-            GroupStore.removeActivity(group.id, item.id);
-            trackAnalytics('issue_details.comment_deleted', {organization});
-            addSuccessMessage(t('Comment removed'));
-            onCommentDeleted?.();
-          },
-        }
-      );
+      const filteredActivity = group.activity.filter(a => a.id !== item.id);
+      await mutators.handleDelete(item.id, filteredActivity, {
+        onSuccess: () => {
+          GroupStore.removeActivity(group.id, item.id);
+          trackAnalytics('issue_details.comment_deleted', {organization});
+          addSuccessMessage(t('Comment removed'));
+          onCommentDeleted?.(filteredActivity);
+        },
+      });
     },
     [group.activity, mutators, group.id, organization, onCommentDeleted]
   );
@@ -254,8 +251,8 @@ export function ActivitySection({
       key={inputId}
       storageKey="groupinput:latest"
       itemKey={group.id}
-      onCommentCreated={() => {
-        onCommentCreated?.();
+      onCommentCreated={activity => {
+        onCommentCreated?.(activity);
         setInputId(uniqueId());
       }}
       variant={inputVariant}
