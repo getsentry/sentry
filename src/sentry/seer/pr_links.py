@@ -1,10 +1,12 @@
 """Link a Seer run to a pull request it opened.
 
-Seer records a run→PR association in its own `DbPrIdToAutofixRunIdMapping` table
-whenever it opens a PR (autofix, explorer, and the feature/night-shift runs built
-on explorer). `SeerRunPullRequest` is the Sentry-side mirror of that association;
-Seer reports each one via RPC at PR-creation time so the link exists for every
-PR Seer opens, regardless of feature.
+`SeerRunPullRequest` is the Sentry-side mirror of Seer's own run→PR association
+(`DbPrIdToAutofixRunIdMapping`). The link is written from the shared on-completion
+hook dispatcher (`call_on_completion_hook`) when a run finishes, reading the
+completed run's `repo_pr_states` — so it covers every run that registers a
+completion hook regardless of which hook class it uses (autofix, explorer agent,
+etc.). A run that opens a PR without registering any completion hook is not
+linked; such flows must set a completion hook.
 
 The `PullRequest` find-or-create is keyed on `(organization, repository,
 pr_number)`, so it converges on the same canonical row the SCM webhook and

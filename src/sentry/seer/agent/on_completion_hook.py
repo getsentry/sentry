@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import importlib
+import logging
 from abc import ABC, abstractmethod
 
 from pydantic import BaseModel
 
+from sentry import options
 from sentry.models.organization import Organization
+from sentry.seer.agent.client_utils import fetch_run_status
+from sentry.seer.pr_links import link_seer_run_to_pull_request
+
+logger = logging.getLogger(__name__)
 
 
 class OnCompletionHookDefinition(BaseModel):
@@ -114,5 +120,50 @@ def call_on_completion_hook(
     if not isinstance(hook_class, type) or not issubclass(hook_class, AgentOnCompletionHook):
         raise ValueError(f"{module_path} must be a class that inherits from AgentOnCompletionHook")
 
+    # Link any PRs this run opened before running the hook. This lives in the
+    # shared dispatcher (not a specific hook class) so every Seer run that opens
+    # a PR gets a SeerRunPullRequest, regardless of which hook it registered.
+    _link_run_pull_requests(organization, run_id)
+
     # Execute the hook
     hook_class.execute(organization, run_id)
+
+
+def _link_run_pull_requests(organization: Organization, run_id: int) -> None:
+    """Record a SeerRunPullRequest for each PR the completed run opened.
+
+    NOTE: this only fires for runs that register a completion hook — Seer calls
+    `call_on_completion_hook` only when a run has one set. A flow that opens a PR
+    without registering any completion hook will not be linked here; such flows
+    must set a completion hook for the run→PR link to be recorded.
+
+    Best-effort and killswitch-gated: never blocks the hook from running.
+    """
+    if options.get("seer.run-pr-link.killswitch.enabled"):
+        return
+
+    try:
+        state = fetch_run_status(run_id, organization)
+    except Exception:
+        logger.exception(
+            "seer.pr_link.fetch_state_failed",
+            extra={"run_id": run_id, "organization_id": organization.id},
+        )
+        return
+
+    for pr_state in state.repo_pr_states.values():
+        if pr_state.pr_number is None:
+            continue
+        try:
+            link_seer_run_to_pull_request(
+                organization=organization,
+                run_id=run_id,
+                repo_name=pr_state.repo_name,
+                provider=None,
+                pr_number=pr_state.pr_number,
+            )
+        except Exception:
+            logger.exception(
+                "seer.pr_link.failed",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
