@@ -308,7 +308,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
               padding="xl"
             >
               <Heading as="h3">{t('Project details')}</Heading>
-              <Stack gap="3xl">
+              <Stack gap="2xl">
                 <ScmProjectDetailsCore
                   analyticsFlow="project-creation"
                   projectName={form.projectName}
