@@ -179,19 +179,25 @@ def link_seer_run_to_pull_requests(
             logger.warning("seer.pr_link.missing_fields", extra=log_context)
             continue
 
-        resolution = get_or_create_seer_pull_request(
-            organization_id=organization.id,
-            repo_name=repo_name,
-            provider=provider,
-            pr_number=pr_number,
-        )
-        if resolution.pull_request is None:
-            logger.warning("seer.pr_link.repo_unresolved", extra=log_context)
+        try:
+            resolution = get_or_create_seer_pull_request(
+                organization_id=organization.id,
+                repo_name=repo_name,
+                provider=provider,
+                pr_number=pr_number,
+            )
+            if resolution.pull_request is None:
+                logger.warning("seer.pr_link.repo_unresolved", extra=log_context)
+                continue
+
+            SeerRunPullRequest.objects.get_or_create(
+                seer_run=seer_run, pull_request=resolution.pull_request
+            )
+        except Exception:
+            # Isolate per entry so one bad repo doesn't drop the rest of the batch.
+            logger.exception("seer.pr_link.failed", extra=log_context)
             continue
 
-        SeerRunPullRequest.objects.get_or_create(
-            seer_run=seer_run, pull_request=resolution.pull_request
-        )
         logger.info(
             "seer.pr_link.recorded",
             extra={**log_context, "pull_request_id": resolution.pull_request.id},

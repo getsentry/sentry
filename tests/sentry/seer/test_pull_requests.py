@@ -4,6 +4,7 @@ from unittest.mock import patch
 from sentry.models.pullrequest import PullRequest
 from sentry.seer.models.run import SeerRunPullRequest
 from sentry.seer.pull_requests import (
+    get_or_create_seer_pull_request,
     link_seer_run_to_pull_requests,
     maybe_link_seer_run_to_pull_requests,
 )
@@ -68,6 +69,31 @@ class LinkSeerRunToPullRequestsTest(TestCase):
         pr2 = PullRequest.objects.get(repository_id=other_repo.id, key="2")
         assert SeerRunPullRequest.objects.filter(seer_run=self.seer_run).count() == 2
         assert SeerRunPullRequest.objects.filter(pull_request=pr1).exists()
+        assert SeerRunPullRequest.objects.filter(pull_request=pr2).exists()
+
+    def test_one_failing_entry_does_not_drop_the_rest(self) -> None:
+        other_repo = self.create_repo(
+            self.project, name="getsentry/other", provider="integrations:github"
+        )
+
+        # First entry raises mid-resolve; the second must still get linked.
+        seen: list[str] = []
+
+        def flaky(**kwargs):
+            seen.append(kwargs["repo_name"])
+            if len(seen) == 1:
+                raise RuntimeError("boom")
+            return get_or_create_seer_pull_request(**kwargs)
+
+        with patch("sentry.seer.pull_requests.get_or_create_seer_pull_request", side_effect=flaky):
+            link_seer_run_to_pull_requests(
+                organization=self.organization,
+                pull_requests=[_pr(pr_number=1), _pr(pr_number=2, repo_name="getsentry/other")],
+                run_id=RUN_STATE_ID,
+            )
+
+        assert not PullRequest.objects.filter(key="1").exists()
+        pr2 = PullRequest.objects.get(repository_id=other_repo.id, key="2")
         assert SeerRunPullRequest.objects.filter(pull_request=pr2).exists()
 
 
