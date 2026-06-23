@@ -8,6 +8,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {
   LLMContextProvider,
   useLLMContext,
@@ -63,9 +64,14 @@ describe('AutofixSection', () => {
       body: {whatsWrong: 'Something broke', possibleCause: 'Bad code'},
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <AutofixSection group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
   });
@@ -88,9 +94,14 @@ describe('AutofixSection', () => {
       platform: 'javascript',
     };
 
-    render(<AutofixSection group={performanceGroup} project={javascriptProject} />, {
-      organization: customOrganization,
-    });
+    render(
+      <GroupDataContextProvider group={performanceGroup} project={javascriptProject}>
+        <AutofixSection group={performanceGroup} project={javascriptProject} />
+      </GroupDataContextProvider>,
+      {
+        organization: customOrganization,
+      }
+    );
 
     expect(screen.getByText('Resources')).toBeInTheDocument();
   });
@@ -102,7 +113,9 @@ describe('AutofixSection', () => {
     });
 
     const {container} = render(
-      <AutofixSection group={mockGroup} project={mockProject} />,
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <AutofixSection group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
       {organization: customOrganization}
     );
 
@@ -143,9 +156,14 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <AutofixSection group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
@@ -185,9 +203,14 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <AutofixSection group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     expect(await screen.findByText('Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
@@ -245,9 +268,14 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <AutofixSection group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     expect(await screen.findByText('Code Changes')).toBeInTheDocument();
     expect(screen.getByText('2 files changed in 1 repo')).toBeInTheDocument();
@@ -304,9 +332,14 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <AutofixSection group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     expect(await screen.findByText('Pull Requests')).toBeInTheDocument();
     const link = screen.getByRole('link', {name: 'org/repo#42'});
@@ -321,9 +354,14 @@ describe('AutofixSection', () => {
       statusCode: 200,
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <AutofixSection group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     // The Seer title should still render
     expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
@@ -407,9 +445,14 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <AutofixSection group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Plan')).toBeInTheDocument();
@@ -439,9 +482,14 @@ describe('AutofixSection', () => {
       body: {autofix: null},
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization: seatBasedOrg,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <AutofixSection group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization: seatBasedOrg,
+      }
+    );
 
     expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
     const link = screen.getByRole('button', {name: 'Set Up Seer'});
@@ -471,9 +519,14 @@ describe('AutofixSection', () => {
       body: {autofix: null},
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization: seatBasedOrg,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <AutofixSection group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization: seatBasedOrg,
+      }
+    );
 
     expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
     const link = screen.getByRole('button', {
@@ -502,9 +555,14 @@ describe('AutofixSection', () => {
       body: {autofix: null},
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <AutofixSection group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
     expect(screen.queryByText('Finish Configuring Seer')).not.toBeInTheDocument();
@@ -518,9 +576,14 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <AutofixSection group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
     expect(
@@ -598,10 +661,12 @@ describe('AutofixSection', () => {
     });
 
     render(
-      <LLMContextProvider>
-        <AutofixSection group={mockGroup} project={mockProject} />
-        <ContextCapture />
-      </LLMContextProvider>,
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <LLMContextProvider>
+          <AutofixSection group={mockGroup} project={mockProject} />
+          <ContextCapture />
+        </LLMContextProvider>
+      </GroupDataContextProvider>,
       {organization}
     );
 

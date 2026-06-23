@@ -16,6 +16,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 
 describe('Threads', () => {
   const organization = OrganizationFixture();
@@ -236,9 +237,14 @@ describe('Threads', () => {
       };
 
       it('renders', async () => {
-        render(<Threads {...props} />, {
-          organization,
-        });
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...props} />
+          </GroupIdProvider>,
+          {
+            organization,
+          }
+        );
 
         // Title
         expect(
@@ -262,7 +268,12 @@ describe('Threads', () => {
       });
 
       it('toggle full stack trace button', async () => {
-        render(<Threads {...props} />, {organization});
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...props} />
+          </GroupIdProvider>,
+          {organization}
+        );
 
         expect(screen.queryAllByTestId('line')).toHaveLength(3);
 
@@ -276,7 +287,12 @@ describe('Threads', () => {
       });
 
       it('toggle sort by display option', async () => {
-        render(<Threads {...props} />, {organization});
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...props} />
+          </GroupIdProvider>,
+          {organization}
+        );
 
         expect(
           within(screen.getAllByTestId('line')[0]!).getByText(
@@ -316,7 +332,12 @@ describe('Threads', () => {
       });
 
       it('check display options', async () => {
-        render(<Threads {...props} />, {organization});
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...props} />
+          </GroupIdProvider>,
+          {organization}
+        );
 
         await userEvent.click(screen.getByRole('button', {name: 'Display as'}));
 
@@ -366,9 +387,14 @@ describe('Threads', () => {
             committers,
           },
         });
-        render(<Threads {...props} group={group} />, {
-          organization,
-        });
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...props} group={group} />
+          </GroupIdProvider>,
+          {
+            organization,
+          }
+        );
         expect(await screen.findByText('Stack Trace')).toBeInTheDocument();
 
         // Suspect commits
@@ -915,7 +941,12 @@ describe('Threads', () => {
       };
 
       it('renders', async () => {
-        render(<Threads {...props} />, {organization});
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...props} />
+          </GroupIdProvider>,
+          {organization}
+        );
         // Title
         const threadSelector = await screen.findByTestId('thread-selector');
         expect(threadSelector).toBeInTheDocument();
@@ -945,7 +976,12 @@ describe('Threads', () => {
 
       it('renders thread state and lock reason', async () => {
         const newProps = {...props, organization};
-        render(<Threads {...newProps} />, {organization});
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...newProps} />
+          </GroupIdProvider>,
+          {organization}
+        );
         // Title
         expect(await screen.findByTestId('thread-selector')).toBeInTheDocument();
 
@@ -1019,7 +1055,12 @@ describe('Threads', () => {
             ],
           },
         };
-        render(<Threads {...newProps} />, {organization});
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...newProps} />
+          </GroupIdProvider>,
+          {organization}
+        );
         expect(
           await screen.findByRole('region', {name: 'Stack Trace'})
         ).toBeInTheDocument();
@@ -1075,7 +1116,12 @@ describe('Threads', () => {
         ];
 
         const newProps = {...props, event: newEvent};
-        render(<Threads {...newProps} />, {organization});
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...newProps} />
+          </GroupIdProvider>,
+          {organization}
+        );
         // Title
         expect(await screen.findByTestId('thread-selector')).toBeInTheDocument();
 
@@ -1087,7 +1133,12 @@ describe('Threads', () => {
       });
 
       it('toggle full stack trace button', async () => {
-        render(<Threads {...props} />, {organization});
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...props} />
+          </GroupIdProvider>,
+          {organization}
+        );
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
@@ -1101,7 +1152,12 @@ describe('Threads', () => {
       });
 
       it('toggle sort by option', async () => {
-        render(<Threads {...props} />, {organization});
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...props} />
+          </GroupIdProvider>,
+          {organization}
+        );
 
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[0]!).getByText(
@@ -1146,7 +1202,12 @@ describe('Threads', () => {
       });
 
       it('check display options', async () => {
-        render(<Threads {...props} />, {organization});
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...props} />
+          </GroupIdProvider>,
+          {organization}
+        );
 
         await userEvent.click(screen.getByRole('button', {name: 'Display as'}));
 
@@ -1284,7 +1345,12 @@ describe('Threads', () => {
           },
         ];
         const newProps = {...props, event: newEvent};
-        render(<Threads {...newProps} />, {organization});
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...newProps} />
+          </GroupIdProvider>,
+          {organization}
+        );
         // Title
         const threadSelector = await screen.findByTestId('thread-selector');
         expect(threadSelector).toBeInTheDocument();
@@ -1292,7 +1358,12 @@ describe('Threads', () => {
       });
 
       it('can navigate to next/previous thread', async () => {
-        render(<Threads {...props} />, {organization});
+        render(
+          <GroupIdProvider groupId="1">
+            <Threads {...props} />
+          </GroupIdProvider>,
+          {organization}
+        );
         const threadSelector = await screen.findByTestId('thread-selector');
         expect(threadSelector).toHaveTextContent('Thread #0');
         await userEvent.click(await screen.findByRole('button', {name: 'Next Thread'}));
@@ -1337,7 +1408,9 @@ describe('Threads', () => {
         const threadsEntry = eventWithMinifiedOption.entries[1]!
           .data as React.ComponentProps<typeof Threads>['data'];
         render(
-          <Threads {...props} data={threadsEntry} event={eventWithMinifiedOption} />,
+          <GroupIdProvider groupId="1">
+            <Threads {...props} data={threadsEntry} event={eventWithMinifiedOption} />
+          </GroupIdProvider>,
           {organization}
         );
 

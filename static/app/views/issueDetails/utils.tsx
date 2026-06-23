@@ -19,7 +19,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 export function markEventSeen(
@@ -277,10 +277,8 @@ export function groupEventApiOptions<T = Event>({
 }
 
 export function useIsSampleEvent(): boolean {
-  const params = useParams<{groupId: string}>();
+  const groupId = useGroupId();
   const environments = useEnvironmentsFromUrl();
-
-  const groupId = params.groupId;
 
   const group = GroupStore.get(groupId);
 

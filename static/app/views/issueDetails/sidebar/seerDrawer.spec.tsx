@@ -11,6 +11,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {SeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
 
 function makeExplorerBlock({
@@ -124,9 +125,14 @@ describe('SeerDrawer', () => {
       body: {autofix: null},
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <SeerDrawer group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
 
@@ -141,9 +147,14 @@ describe('SeerDrawer', () => {
       body: {autofix: null},
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <SeerDrawer group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -158,9 +169,14 @@ describe('SeerDrawer', () => {
       body: {autofix: null},
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <SeerDrawer group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -179,9 +195,14 @@ describe('SeerDrawer', () => {
       body: {autofix: null},
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <SeerDrawer group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -202,9 +223,14 @@ describe('SeerDrawer', () => {
       },
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <SeerDrawer group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -225,9 +251,14 @@ describe('SeerDrawer', () => {
       },
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <SeerDrawer group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -254,9 +285,14 @@ describe('SeerDrawer', () => {
       body: {run_id: 2},
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <SeerDrawer group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -305,9 +341,14 @@ describe('SeerDrawer', () => {
       },
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={mockGroup} project={mockProject}>
+        <SeerDrawer group={mockGroup} project={mockProject} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')

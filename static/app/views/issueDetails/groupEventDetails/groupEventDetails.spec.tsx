@@ -20,6 +20,7 @@ import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import type {TraceFullDetailed} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
@@ -381,10 +382,15 @@ describe('groupEventDetails', () => {
       body: props.event,
     });
 
-    const {router} = render(<GroupEventDetails />, {
-      organization: props.organization,
-      initialRouterConfig: eventRouterConfig,
-    });
+    const {router} = render(
+      <GroupIdProvider groupId={props.group.id}>
+        <GroupEventDetails />
+      </GroupIdProvider>,
+      {
+        organization: props.organization,
+        initialRouterConfig: eventRouterConfig,
+      }
+    );
     expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
 
     router.navigate(`${router.location.pathname}?environment=prod`);
@@ -405,10 +411,15 @@ describe('groupEventDetails', () => {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
-    const {router} = render(<GroupEventDetails />, {
-      organization: props.organization,
-      initialRouterConfig: props.initialRouterConfig,
-    });
+    const {router} = render(
+      <GroupIdProvider groupId={props.group.id}>
+        <GroupEventDetails />
+      </GroupIdProvider>,
+      {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      }
+    );
 
     const initialPathname = router.location.pathname;
     router.navigate(`${initialPathname}?environment=`);
@@ -449,10 +460,15 @@ describe('groupEventDetails', () => {
       statusCode: 500,
     });
 
-    render(<GroupEventDetails />, {
-      organization: props.organization,
-      initialRouterConfig: props.initialRouterConfig,
-    });
+    render(
+      <GroupIdProvider groupId={props.group.id}>
+        <GroupEventDetails />
+      </GroupIdProvider>,
+      {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      }
+    );
 
     expect(await screen.findByText(/couldn't track down an event/)).toBeInTheDocument();
   });
@@ -476,10 +492,15 @@ describe('groupEventDetails', () => {
 
     mockGroupApis(props.organization, props.project, group, transactionEvent);
 
-    render(<GroupEventDetails />, {
-      organization: props.organization,
-      initialRouterConfig: props.initialRouterConfig,
-    });
+    render(
+      <GroupIdProvider groupId={props.group.id}>
+        <GroupEventDetails />
+      </GroupIdProvider>,
+      {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      }
+    );
 
     expect(
       await screen.findByRole('region', {name: 'Span Evidence'})
@@ -508,10 +529,15 @@ describe('groupEventDetails', () => {
 
     mockGroupApis(props.organization, props.project, group, transactionEvent);
 
-    render(<GroupEventDetails />, {
-      organization: props.organization,
-      initialRouterConfig: props.initialRouterConfig,
-    });
+    render(
+      <GroupIdProvider groupId={props.group.id}>
+        <GroupEventDetails />
+      </GroupIdProvider>,
+      {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      }
+    );
 
     expect(
       await screen.findByRole('region', {name: 'Function Evidence'})
@@ -525,10 +551,15 @@ describe('groupEventDetails', () => {
     const {organization, project, group, event, initialRouterConfig} =
       makeDefaultMockData();
     mockGroupApis(organization, project, group, event);
-    render(<GroupEventDetails />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(
+      <GroupIdProvider groupId={group.id}>
+        <GroupEventDetails />
+      </GroupIdProvider>,
+      {
+        organization,
+        initialRouterConfig,
+      }
+    );
 
     expect(await screen.findByRole('region', {name: 'Tags'})).toBeInTheDocument();
     const highlights = screen.getByRole('region', {name: 'Highlights'});
@@ -556,10 +587,15 @@ describe('groupEventDetails', () => {
         mockedTrace(props.project)
       );
 
-      render(<GroupEventDetails />, {
-        organization: props.organization,
-        initialRouterConfig: props.initialRouterConfig,
-      });
+      render(
+        <GroupIdProvider groupId={props.group.id}>
+          <GroupEventDetails />
+        </GroupIdProvider>,
+        {
+          organization: props.organization,
+          initialRouterConfig: props.initialRouterConfig,
+        }
+      );
 
       expect(
         await screen.findByRole('region', {name: 'Suspect Root Cause'})
@@ -583,10 +619,15 @@ describe('groupEventDetails', () => {
         mockedTrace(props.project)
       );
 
-      render(<GroupEventDetails />, {
-        organization: props.organization,
-        initialRouterConfig: props.initialRouterConfig,
-      });
+      render(
+        <GroupIdProvider groupId={props.group.id}>
+          <GroupEventDetails />
+        </GroupIdProvider>,
+        {
+          organization: props.organization,
+          initialRouterConfig: props.initialRouterConfig,
+        }
+      );
 
       expect(
         await screen.findByRole('region', {name: 'profile-preview'})
@@ -608,10 +649,15 @@ describe('groupEventDetails', () => {
         mockedTrace(props.project)
       );
 
-      render(<GroupEventDetails />, {
-        organization: props.organization,
-        initialRouterConfig: props.initialRouterConfig,
-      });
+      render(
+        <GroupIdProvider groupId={props.group.id}>
+          <GroupEventDetails />
+        </GroupIdProvider>,
+        {
+          organization: props.organization,
+          initialRouterConfig: props.initialRouterConfig,
+        }
+      );
 
       expect(
         await screen.findByRole('region', {name: 'profile-preview'})
@@ -633,10 +679,15 @@ describe('groupEventDetails', () => {
         mockedTrace(props.project)
       );
 
-      render(<GroupEventDetails />, {
-        organization: props.organization,
-        initialRouterConfig: props.initialRouterConfig,
-      });
+      render(
+        <GroupIdProvider groupId={props.group.id}>
+          <GroupEventDetails />
+        </GroupIdProvider>,
+        {
+          organization: props.organization,
+          initialRouterConfig: props.initialRouterConfig,
+        }
+      );
 
       // Wait for component to render by checking for an element that should be present
       expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
@@ -662,10 +713,15 @@ describe('groupEventDetails', () => {
         }
       );
 
-      render(<GroupEventDetails />, {
-        organization: props.organization,
-        initialRouterConfig: props.initialRouterConfig,
-      });
+      render(
+        <GroupIdProvider groupId={props.group.id}>
+          <GroupEventDetails />
+        </GroupIdProvider>,
+        {
+          organization: props.organization,
+          initialRouterConfig: props.initialRouterConfig,
+        }
+      );
 
       // mechanism: ANR
       expect(await screen.findByText('ANR')).toBeInTheDocument();

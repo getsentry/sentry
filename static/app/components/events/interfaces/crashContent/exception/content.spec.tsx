@@ -19,6 +19,7 @@ import {Content} from 'sentry/components/events/interfaces/crashContent/exceptio
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
 import {StackType, StackView} from 'sentry/types/stacktrace';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 
 describe('Exception Content', () => {
   const organization = OrganizationFixture();
@@ -130,16 +131,18 @@ describe('Exception Content', () => {
     });
 
     render(
-      <Content
-        type={StackType.ORIGINAL}
-        groupingCurrentLevel={0}
-        newestFirst
-        stackView={StackView.APP}
-        event={event}
-        values={event.entries[0]!.data.values}
-        meta={event._meta!.entries[0].data.values}
-        projectSlug={project.slug}
-      />,
+      <GroupIdProvider groupId="1">
+        <Content
+          type={StackType.ORIGINAL}
+          groupingCurrentLevel={0}
+          newestFirst
+          stackView={StackView.APP}
+          event={event}
+          values={event.entries[0]!.data.values}
+          meta={event._meta!.entries[0].data.values}
+          projectSlug={project.slug}
+        />
+      </GroupIdProvider>,
       {
         organization: org,
         initialRouterConfig: {
@@ -205,14 +208,16 @@ describe('Exception Content', () => {
     });
 
     render(
-      <Content
-        type={StackType.ORIGINAL}
-        stackView={StackView.APP}
-        event={event}
-        values={event.entries[0]!.data.values}
-        projectSlug={project.slug}
-        newestFirst
-      />,
+      <GroupIdProvider groupId="1">
+        <Content
+          type={StackType.ORIGINAL}
+          stackView={StackView.APP}
+          event={event}
+          values={event.entries[0]!.data.values}
+          projectSlug={project.slug}
+          newestFirst
+        />
+      </GroupIdProvider>,
       {
         initialRouterConfig: {
           location: {
@@ -283,14 +288,16 @@ describe('Exception Content', () => {
       ],
     });
     render(
-      <Content
-        type={StackType.ORIGINAL}
-        stackView={StackView.APP}
-        event={event}
-        values={event.entries[0]!.data.values}
-        projectSlug={project.slug}
-        newestFirst
-      />,
+      <GroupIdProvider groupId="1">
+        <Content
+          type={StackType.ORIGINAL}
+          stackView={StackView.APP}
+          event={event}
+          values={event.entries[0]!.data.values}
+          projectSlug={project.slug}
+          newestFirst
+        />
+      </GroupIdProvider>,
       {
         initialRouterConfig: {
           location: {
@@ -344,15 +351,20 @@ describe('Exception Content', () => {
     };
 
     it('displays exception group tree under first exception', () => {
-      render(<Content {...defaultProps} />, {
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
+      render(
+        <GroupIdProvider groupId="1">
+          <Content {...defaultProps} />
+        </GroupIdProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {},
+            },
+            route: '/organizations/:orgId/issues/',
           },
-          route: '/organizations/:orgId/issues/',
-        },
-      });
+        }
+      );
 
       expect(
         screen.getByText('There are 4 chained exceptions in this event.')
@@ -368,15 +380,20 @@ describe('Exception Content', () => {
     });
 
     it('displays exception group tree in first frame when there is no other context', () => {
-      render(<Content {...defaultProps} />, {
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
+      render(
+        <GroupIdProvider groupId="1">
+          <Content {...defaultProps} />
+        </GroupIdProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {},
+            },
+            route: '/organizations/:orgId/issues/',
           },
-          route: '/organizations/:orgId/issues/',
-        },
-      });
+        }
+      );
 
       const exceptions = screen.getAllByTestId('exception-value');
 
@@ -387,15 +404,20 @@ describe('Exception Content', () => {
     });
 
     it('hides sub-groups by default', async () => {
-      render(<Content {...defaultProps} />, {
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
+      render(
+        <GroupIdProvider groupId="1">
+          <Content {...defaultProps} />
+        </GroupIdProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {},
+            },
+            route: '/organizations/:orgId/issues/',
           },
-          route: '/organizations/:orgId/issues/',
-        },
-      });
+        }
+      );
 
       // There are 4 values, but 1 should be hidden
       expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
@@ -419,15 +441,20 @@ describe('Exception Content', () => {
     });
 
     it('auto-opens sub-groups when clicking link in tree', async () => {
-      render(<Content {...defaultProps} />, {
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
+      render(
+        <GroupIdProvider groupId="1">
+          <Content {...defaultProps} />
+        </GroupIdProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {},
+            },
+            route: '/organizations/:orgId/issues/',
           },
-          route: '/organizations/:orgId/issues/',
-        },
-      });
+        }
+      );
 
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
 
@@ -476,15 +503,20 @@ describe('Exception Content', () => {
     };
 
     it('only expands the first 3 exceptions by default', () => {
-      render(<Content {...defaultProps} />, {
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
+      render(
+        <GroupIdProvider groupId="1">
+          <Content {...defaultProps} />
+        </GroupIdProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {},
+            },
+            route: '/organizations/:orgId/issues/',
           },
-          route: '/organizations/:orgId/issues/',
-        },
-      });
+        }
+      );
 
       // both toggle headings are visible because they are not exception group chained exceptions
       expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
@@ -501,15 +533,20 @@ describe('Exception Content', () => {
     });
 
     it('can expand and collapse all exceptions', async () => {
-      render(<Content {...defaultProps} />, {
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
+      render(
+        <GroupIdProvider groupId="1">
+          <Content {...defaultProps} />
+        </GroupIdProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {},
+            },
+            route: '/organizations/:orgId/issues/',
           },
-          route: '/organizations/:orgId/issues/',
-        },
-      });
+        }
+      );
 
       const collapseButtons = screen.getAllByRole('button', {name: 'Collapse Section'});
       for (const button of collapseButtons) {
