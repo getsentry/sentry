@@ -40,7 +40,6 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {hasMultipleMetricsSelected} from 'sentry/views/dashboards/widgetBuilder/utils/hasMultipleMetricsSelected';
 import {
-  useTraceMetricsHeatmapQuery,
   useTraceMetricsSeriesQuery,
   useTraceMetricsTableQuery,
 } from 'sentry/views/dashboards/widgetCard/hooks/useTraceMetricsWidgetQuery';
@@ -287,12 +286,10 @@ export const TraceMetricsConfig: DatasetConfig<
     DisplayType.BAR,
     DisplayType.BIG_NUMBER,
     DisplayType.CATEGORICAL_BAR,
-    DisplayType.HEATMAP,
     DisplayType.LINE,
   ],
   useSeriesQuery: useTraceMetricsSeriesQuery,
   useTableQuery: useTraceMetricsTableQuery,
-  useHeatmapQuery: useTraceMetricsHeatmapQuery,
   transformTable: (data, widgetQuery) => {
     const transformedData = transformEventsResponseToTable(data, widgetQuery);
 

@@ -12,7 +12,6 @@ import {
   type QueryFieldValue,
   type Sort,
 } from 'sentry/utils/discover/fields';
-import {AggregationKey} from 'sentry/utils/fields';
 import {
   decodeInteger,
   decodeList,
@@ -44,7 +43,6 @@ import {
   DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
-import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -182,10 +180,6 @@ export interface WidgetBuilderState {
    * - Big Number: aggregate fields
    * - Line, Area, Bar (Time Series): grouping fields (non-aggregates)
    * - Bar (Categorical): one X-axis (FIELD kind) and one or more aggregates (FUNCTION/EQUATION kind)
-   * - Heat Map: one or more aggregates (FUNCTION kind), like Big Number. The
-   *   metric selected by the "Visualize" is the Y axis; the function is always
-   *   count() (the Z axis) and the X axis is always time, so there is no
-   *   grouping/X-axis category. Only a single filter is supported.
    */
   fields?: Column[];
   legendAlias?: string[];
@@ -193,12 +187,6 @@ export interface WidgetBuilderState {
   limit?: number;
   linkedDashboards?: LinkedDashboard[];
   query?: string[];
-  /**
-   * Index into `fields` selecting which single aggregate to plot when a display
-   * type renders one aggregate but several were carried over. Used by Big
-   * Number, Categorical Bar, and Heat Map, and surfaced as a radio in the
-   * builder.
-   */
   selectedAggregate?: number;
   sort?: Sort[];
   textContent?: string;
@@ -206,7 +194,7 @@ export interface WidgetBuilderState {
   title?: string;
   /**
    * Y-axis aggregates for time-series charts (area, bar, line).
-   * Not used by tables, big numbers, categorical bar, or heat map widgets.
+   * Not used by tables, big numbers, or categorical bar widgets.
    */
   yAxis?: Column[];
 }
@@ -410,9 +398,7 @@ export function useWidgetBuilderState(): {
       // if it hasn't been explicitly set.
       // For categorical bar, only count aggregate fields (FUNCTION/EQUATION), not the X-axis FIELD column
       selectedAggregate:
-        (displayType === DisplayType.BIG_NUMBER || displayType === DisplayType.HEATMAP) &&
-        defined(fields) &&
-        fields.length > 1
+        displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
           ? (selectedAggregate ?? fields.length - 1)
           : displayType === DisplayType.CATEGORICAL_BAR && defined(fields)
             ? (() => {
@@ -534,49 +520,14 @@ export function useWidgetBuilderState(): {
                 options
               );
             }
-          } else if (
-            action.payload === DisplayType.BIG_NUMBER ||
-            action.payload === DisplayType.HEATMAP
-          ) {
+          } else if (action.payload === DisplayType.BIG_NUMBER) {
             // TODO: Reset the selected aggregate here for widgets with equations
-            // Heat maps behave like Big Number here: aggregates (the "Visualize")
-            // live in fields with radio selection, there's no grouping/X-axis
-            // category, and only a single filter is supported.
             setLimit(undefined, options);
             setSort([], options);
             setYAxis([], options);
             setLegendAlias([], options);
-            // Columns are ignored because there is no grouping
-            let nextFields = [...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])];
-            if (action.payload === DisplayType.HEATMAP) {
-              // Heat maps always count() the metric's value (the Z axis); the
-              // Visualize only selects the metric (the Y axis). Mirror Explore by
-              // dropping equations and normalizing each aggregate's function to
-              // count() while preserving the metric (the function args).
-              nextFields = nextFields
-                .filter(field => field.kind !== FieldValueKind.EQUATION)
-                .map(field => {
-                  if (
-                    field.kind === FieldValueKind.FUNCTION &&
-                    extractTraceMetricFromColumn(field)
-                  ) {
-                    return {
-                      ...field,
-                      function: [
-                        AggregationKey.COUNT,
-                        field.function[1],
-                        ...field.function.slice(2),
-                      ],
-                    };
-                  }
-                  return field;
-                });
-              // If stripping equations left nothing, fall back to the default.
-              if (nextFields.length === 0) {
-                nextFields.push({...currentDatasetConfig.defaultField, alias: undefined});
-              }
-            }
-            setFields(nextFields, options);
+            // Columns are ignored for big number widgets because there is no grouping
+            setFields([...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])], options);
             setQuery(query?.slice(0, 1), options);
           } else if (action.payload === DisplayType.DETAILS) {
             setLimit(1, options);
@@ -766,8 +717,7 @@ export function useWidgetBuilderState(): {
               options
             );
             setSort(
-              nextDisplayType === DisplayType.BIG_NUMBER ||
-                nextDisplayType === DisplayType.HEATMAP
+              nextDisplayType === DisplayType.BIG_NUMBER
                 ? []
                 : decodeSorts(config.defaultWidgetQuery.orderby),
               options
@@ -1215,12 +1165,11 @@ export function useWidgetBuilderState(): {
             }
           }
 
-          // Adjust selectedAggregate index for Big Number, Categorical Bar, and
-          // Heat Map (the widget types that use radio selection)
+          // Adjust selectedAggregate index for Big Number and Categorical Bar
+          // (these are the widget types that use radio selection)
           if (
             (displayType === DisplayType.BIG_NUMBER ||
-              displayType === DisplayType.CATEGORICAL_BAR ||
-              displayType === DisplayType.HEATMAP) &&
+              displayType === DisplayType.CATEGORICAL_BAR) &&
             selectedAggregate !== undefined
           ) {
             if (deleteIndex < selectedAggregate) {

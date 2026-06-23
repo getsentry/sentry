@@ -300,15 +300,9 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
   const isTableWidget = state.displayType === DisplayType.TABLE;
   const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
-  // Heat maps store their single "Visualize" aggregate in state.fields and use
-  // radio selection, mirroring Big Number.
-  const isHeatmapWidget = state.displayType === DisplayType.HEATMAP;
 
-  // Heat maps don't support equations, so the equation mode toggle and the
-  // "Add Equation" affordances are hidden for them.
   const canShowTraceMetricEquations =
     state.dataset === WidgetType.TRACEMETRICS &&
-    !isHeatmapWidget &&
     canUseMetricsEquationsInDashboards(organization);
 
   const {isEquationMode, handleModeToggle, equationSnapshot} =
@@ -434,7 +428,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
   const canAddFields =
     isTimeSeriesWidget ||
     isTableWidget ||
-    ((isBigNumberWidget || isCategoricalBarWidget || isHeatmapWidget) &&
+    ((isBigNumberWidget || isCategoricalBarWidget) &&
       (datasetConfig.enableEquations || canShowTraceMetricEquations));
   // Determines which action to use for updating visualization fields:
   // - Line, Area, Bar (Time Series): SET_Y_AXIS for Y-axis aggregates
@@ -511,8 +505,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
     fields?.length &&
     fields.length > 1 &&
     state.displayType !== DisplayType.BIG_NUMBER &&
-    state.displayType !== DisplayType.CATEGORICAL_BAR &&
-    state.displayType !== DisplayType.HEATMAP;
+    state.displayType !== DisplayType.CATEGORICAL_BAR;
 
   const draggableFieldIds = fields?.map((_field, index) => index.toString()) ?? [];
 
@@ -584,13 +577,8 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
   }, [isTimeSeriesWidget, isBigNumberWidget, state.dataset, fieldOptions]);
 
   const computedAggregateOptions = useMemo(() => {
-    // Categorical bars and heat maps only allow aggregates, no field columns
-    if (
-      isTimeSeriesWidget ||
-      isBigNumberWidget ||
-      isCategoricalBarWidget ||
-      isHeatmapWidget
-    ) {
+    // Categorical bars only allow aggregates, no field columns
+    if (isTimeSeriesWidget || isBigNumberWidget || isCategoricalBarWidget) {
       return {type: 'chart' as const, options: baseAggregateOptions};
     }
 
@@ -624,7 +612,6 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
     isTimeSeriesWidget,
     isBigNumberWidget,
     isCategoricalBarWidget,
-    isHeatmapWidget,
     state.dataset,
     baseAggregateOptions,
     traceItemColumnOptions,
@@ -788,8 +775,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                           <FieldRow>
                             {fields.length > 1 &&
                               (state.displayType === DisplayType.BIG_NUMBER ||
-                                state.displayType === DisplayType.CATEGORICAL_BAR ||
-                                state.displayType === DisplayType.HEATMAP) && (
+                                state.displayType === DisplayType.CATEGORICAL_BAR) && (
                                 <RadioLineItem
                                   index={index}
                                   role="radio"
@@ -885,12 +871,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                 <Fragment>
                                   {state.dataset === WidgetType.TRACEMETRICS ? (
                                     <MetricSelectRow
-                                      // Heat maps always count() the metric, so
-                                      // the aggregate function is locked (only the
-                                      // metric is selectable), mirroring Explore.
-                                      disabled={
-                                        disableTransactionWidget || isHeatmapWidget
-                                      }
+                                      disabled={disableTransactionWidget}
                                       field={field}
                                       index={index}
                                     />
@@ -984,8 +965,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                               compact={
                                 isTimeSeriesWidget ||
                                 isBigNumberWidget ||
-                                isCategoricalBarWidget ||
-                                isHeatmapWidget
+                                isCategoricalBarWidget
                               }
                             >
                               {canHaveAlias && (
@@ -1101,7 +1081,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                 aria-label={
                   isTimeSeriesWidget
                     ? t('Add Series')
-                    : isBigNumberWidget || isCategoricalBarWidget || isHeatmapWidget
+                    : isBigNumberWidget || isCategoricalBarWidget
                       ? t('Add Field')
                       : t('Add Column')
                 }
@@ -1129,7 +1109,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
               >
                 {isTimeSeriesWidget
                   ? t('+ Add Series')
-                  : isBigNumberWidget || isCategoricalBarWidget || isHeatmapWidget
+                  : isBigNumberWidget || isCategoricalBarWidget
                     ? t('+ Add Field')
                     : t('+ Add Column')}
               </AddButton>

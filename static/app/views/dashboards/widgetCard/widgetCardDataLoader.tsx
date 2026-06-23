@@ -11,7 +11,6 @@ import {widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
 import {SpansWidgetQueries} from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
 import {TraceMetricsWidgetQueries} from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
-import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {IssueWidgetQueries} from './issueWidgetQueries';
 import {LogsWidgetQueries} from './logsWidgetQueries';
@@ -24,7 +23,6 @@ type Results = {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
-  heatmapResults?: HeatMapSeries;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
@@ -60,9 +58,6 @@ type Props = {
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   tableItemLimit?: number;
   widgetInterval?: string;
-  // Number of buckets for a non-time axis. Used by heat maps for the Y-axis
-  // bucket count, derived from the rendered chart height.
-  yBuckets?: number;
 };
 
 export function WidgetCardDataLoader({
@@ -75,7 +70,6 @@ export function WidgetCardDataLoader({
   onWidgetSplitDecision,
   onDataFetchStart,
   widgetInterval,
-  yBuckets,
 }: Props) {
   if (widgetFetchesOwnData(widget.displayType)) {
     return children({loading: false});
@@ -159,7 +153,6 @@ export function WidgetCardDataLoader({
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
         widgetInterval={widgetInterval}
-        yBuckets={yBuckets}
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </TraceMetricsWidgetQueries>

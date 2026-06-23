@@ -626,7 +626,6 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
     DisplayType.RAGE_AND_DEAD_CLICKS,
     DisplayType.AGENTS_TRACES_TABLE,
     DisplayType.TEXT,
-    DisplayType.HEATMAP,
   ].includes(displayType);
 };
 

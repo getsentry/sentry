@@ -344,9 +344,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         Retrieve full details for a snapshot, including categorized image lists
         and comparison status.
 
-        When a comparison exists, images are categorized into `changed`, `added`,
-        `removed`, `renamed`, `unchanged`, `errored`, and `skipped` lists with
-        counts. Without a comparison, only the `images` list is populated.
+        When a comparison exists (`comparison_type` is `diff`), images are
+        categorized into `changed`, `added`, `removed`, `renamed`, `unchanged`,
+        `errored`, and `skipped` lists with counts, and the top-level `images`
+        array is empty because those images are already present in the
+        categorized lists. For `solo` and `waiting_for_base` snapshots the
+        categorized lists are empty and `images` is the only populated source.
+        `image_count` is accurate in all modes.
 
         Use `compact_metadata=1` to strip image objects down to `display_name`,
         `image_file_name`, `group`, and `description` only.
@@ -637,7 +641,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 vcs_info=vcs_info,
                 app_id=artifact.app_id,
                 is_selective=snapshot_metrics.is_selective,
-                images=image_list,
+                images=image_list if comparison_type != "diff" else [],
                 image_count=snapshot_metrics.image_count,
                 changed=categorized.changed,
                 changed_count=len(categorized.changed),

@@ -124,24 +124,6 @@ export type WidgetQueryParams = {
   widgetInterval?: string;
 };
 
-/**
- * Parameters for the heat map query hook — the subset of `WidgetQueryParams`
- * that applies to heat maps, plus `yBuckets` (the Y-axis bucket count derived
- * from the rendered chart height).
- */
-export type HeatmapWidgetQueryParams = Pick<
-  WidgetQueryParams,
-  | 'enabled'
-  | 'organization'
-  | 'pageFilters'
-  | 'widget'
-  | 'dashboardFilters'
-  | 'skipDashboardFilterParens'
-  | 'widgetInterval'
-> & {
-  yBuckets?: number;
-};
-
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
    * Dataset specific search bar for the 'Filter' step in the
@@ -322,13 +304,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     widgetQuery: WidgetQuery,
     organization: Organization
   ) => Series[];
-  /**
-   * Hook-based approach for fetching heat map data. Heat maps fetch from a
-   * dedicated endpoint and need the rendered chart dimensions to size their
-   * X/Y buckets. Only datasets that expose `DisplayType.HEATMAP` in
-   * `supportedDisplayTypes` need to implement this.
-   */
-  useHeatmapQuery?: (params: HeatmapWidgetQueryParams) => HookWidgetQueryResult;
   /**
    * Data provider hook that provides methods
    * to retrieve tags and values for the search bar.
