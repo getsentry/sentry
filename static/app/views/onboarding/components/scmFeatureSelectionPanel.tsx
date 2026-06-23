@@ -199,13 +199,13 @@ export function ScmFeatureSelectionPanel({
         {isOnboarding ? null : (
           <Flex justify="between" align="center" gap="md">
             <Heading as="h4">{t('Products')}</Heading>
-            {featureMode === 'none' ? (
+            {currentPlatformKey ? null : (
               <Tag variant="muted" icon={<IconInfo />} style={{minWidth: 0}}>
                 <Text ellipsis variant="inherit">
                   {t('Select a platform to configure products')}
                 </Text>
               </Tag>
-            ) : null}
+            )}
           </Flex>
         )}
 
