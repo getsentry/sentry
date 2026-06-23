@@ -994,9 +994,7 @@ export function productIsEnabled(
     return false;
   }
   const hasNonPaygAccess =
-    (metricHistory.prepaid ?? 0) !== 0 ||
-    !!metricHistory.softCapType ||
-    !!subscription.hasSoftCap;
+    (metricHistory.prepaid ?? 0) !== 0 || !!metricHistory.softCapType;
   const hasPaygBudget =
     metricHistory.onDemandBudget > 0 ||
     (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED &&
