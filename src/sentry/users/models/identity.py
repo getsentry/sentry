@@ -14,6 +14,7 @@ from sentry import analytics
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
+    DefaultFieldsModel,
     FlexibleForeignKey,
     Model,
     control_silo_model,
@@ -242,7 +243,7 @@ class Identity(Model):
 
 
 @control_silo_model
-class OrganizationIdentity(Model):
+class OrganizationIdentity(DefaultFieldsModel):
     """
     Links an Identity to a specific organization.
     """
@@ -250,12 +251,9 @@ class OrganizationIdentity(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="organization_identities")
     identity = FlexibleForeignKey("sentry.Identity", on_delete=models.CASCADE)
-    provider_key = models.CharField(max_length=64)
-    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationidentity"
-        unique_together = (("organization_id", "user_id", "provider_key"),)
+        unique_together = (("organization_id", "identity_id"),)
