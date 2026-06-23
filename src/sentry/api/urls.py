@@ -26,11 +26,6 @@ from sentry.api.endpoints.organization_monitoring_provider_index import (
     OrganizationMonitoringProviderIndexEndpoint,
 )
 from sentry.api.endpoints.organization_pipeline import OrganizationPipelineEndpoint
-from sentry.api.endpoints.organization_plugin_deprecation_info import (
-    OrganizationPluginDeprecationInfoEndpoint,
-)
-from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
-from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
 from sentry.api.endpoints.organization_project_keys import OrganizationProjectKeysEndpoint
 from sentry.api.endpoints.organization_releases import (
     OrganizationReleasesEndpoint,
@@ -811,15 +806,12 @@ from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundl
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
-from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
 )
-from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
-from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_profiling_profile import (
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawChunkEndpoint,
@@ -2219,16 +2211,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-repository-platforms-test",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/plugins/$",
-        OrganizationPluginsEndpoint.as_view(),
-        name="sentry-api-0-organization-plugins",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/plugins/configs/$",
-        OrganizationPluginsConfigsEndpoint.as_view(),
-        name="sentry-api-0-organization-plugins-configs",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/legacy-webhooks/$",
         OrganizationLegacyWebhooksEndpoint.as_view(),
         name="sentry-api-0-organization-legacy-webhooks",
@@ -2692,11 +2674,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     *workflow_urls.organization_urlpatterns,
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/plugins/(?P<plugin_slug>[^/]+)/deprecation-info/$",
-        OrganizationPluginDeprecationInfoEndpoint.as_view(),
-        name="sentry-api-0-organization-plugin-deprecation-info",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/conduit-demo/$",
         OrganizationConduitDemoEndpoint.as_view(),
         name="sentry-api-0-organization-conduit-demo",
@@ -2739,11 +2716,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/create-sample/$",
         ProjectCreateSampleEndpoint.as_view(),
         name="sentry-api-0-project-create-sample",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/create-sample-transaction/$",
-        ProjectCreateSampleTransactionEndpoint.as_view(),
-        name="sentry-api-0-project-create-sample-transaction",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/environments/$",
@@ -3189,17 +3161,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/legacy-webhooks/$",
         ProjectLegacyWebhooksEndpoint.as_view(),
         name="sentry-api-0-project-legacy-webhooks",
-    ),
-    # Load plugin project urls
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/plugins/$",
-        ProjectPluginsEndpoint.as_view(),
-        name="sentry-api-0-project-plugins",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/plugins/(?P<plugin_id>[^/]+)/$",
-        ProjectPluginDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-plugin-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/cluster-transaction-names/$",

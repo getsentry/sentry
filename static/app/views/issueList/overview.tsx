@@ -70,6 +70,8 @@ import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
   FOR_REVIEW_QUERIES,
+  getStoredIssueSort,
+  setStoredIssueSort,
   isForReviewQuery,
   IssueSortOptions,
   Query,
@@ -91,6 +93,7 @@ interface Props {
   clickBehavior?: 'navigate' | 'preview';
   headerActions?: ReactNode;
   initialQuery?: string;
+  initialSort?: IssueSortOptions;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
@@ -139,6 +142,7 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
 
 function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
+  initialSort = DEFAULT_ISSUE_STREAM_SORT,
   shouldFetchOnMount = true,
   title = t('Issues'),
   titleDescription,
@@ -223,10 +227,16 @@ function IssueListOverviewInner({
   const query = defined(location.query.query)
     ? (decodeScalar(location.query.query) ?? '')
     : initialQuery;
-  const sort = decodeScalar(
-    location.query.sort,
-    DEFAULT_ISSUE_STREAM_SORT
-  ) as IssueSortOptions;
+  const hasRecommendedSort = organization.features.includes(
+    'issue-stream-recommended-sort'
+  );
+  const defaultSort =
+    initialSort === DEFAULT_ISSUE_STREAM_SORT
+      ? hasRecommendedSort
+        ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
+        : DEFAULT_ISSUE_STREAM_SORT
+      : initialSort;
+  const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
     const currentPeriod = decodeScalar(
@@ -258,7 +268,7 @@ function IssueListOverviewInner({
       params.start = getUtcDateString(params.start);
     }
 
-    if (sort !== DEFAULT_ISSUE_STREAM_SORT) {
+    if (sort !== IssueSortOptions.DATE) {
       params.sort = sort;
     }
 
@@ -700,6 +710,9 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
+    if (hasRecommendedSort && initialSort === DEFAULT_ISSUE_STREAM_SORT) {
+      setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
+    }
     transitionTo({sort: newSort});
   };
 

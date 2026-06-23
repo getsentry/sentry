@@ -10,6 +10,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {IssueCategory} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {GroupHeader} from 'sentry/views/issueDetails/header/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
@@ -73,7 +74,9 @@ describe('GroupHeader', () => {
 
     it('shows all elements of header', async () => {
       render(
-        <GroupHeader {...defaultProps} group={group} project={project} event={null} />,
+        <GroupDataContextProvider group={group} project={group.project}>
+          <GroupHeader {...defaultProps} group={group} project={project} event={null} />
+        </GroupDataContextProvider>,
         {
           organization,
         }
@@ -102,12 +105,17 @@ describe('GroupHeader', () => {
 
     it('displays share icon if issue has been shared', async () => {
       render(
-        <GroupHeader
-          {...defaultProps}
+        <GroupDataContextProvider
           group={{...group, isPublic: true, shareId: 'abc123'}}
           project={project}
-          event={null}
-        />,
+        >
+          <GroupHeader
+            {...defaultProps}
+            group={{...group, isPublic: true, shareId: 'abc123'}}
+            project={project}
+            event={null}
+          />
+        </GroupDataContextProvider>,
         {
           organization,
         }

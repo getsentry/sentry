@@ -11,6 +11,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
 
@@ -74,9 +75,14 @@ describe('EventDetailsHeader', () => {
   });
 
   it('renders filters alongside the graph', async () => {
-    render(<EventDetailsHeader {...defaultProps} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <EventDetailsHeader {...defaultProps} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
@@ -101,9 +107,14 @@ describe('EventDetailsHeader', () => {
     const oldGroup = GroupFixture({
       firstSeen: new Date(Date.now() - 91 * 24 * 60 * 60 * 1000).toISOString(),
     });
-    render(<EventDetailsHeader {...defaultProps} group={oldGroup} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={oldGroup} project={oldGroup.project}>
+        <EventDetailsHeader {...defaultProps} group={oldGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
     expect(await screen.findByRole('button', {name: '90D'})).toBeInTheDocument();
   });
 
@@ -127,9 +138,14 @@ describe('EventDetailsHeader', () => {
       method: 'GET',
     });
 
-    render(<EventDetailsHeader {...defaultProps} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <EventDetailsHeader {...defaultProps} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     const search = await screen.findByPlaceholderText('Filter events\u2026');
@@ -144,9 +160,14 @@ describe('EventDetailsHeader', () => {
   }, 20_000);
 
   it('does not render timeline summary if disabled', async () => {
-    render(<EventDetailsHeader {...defaultProps} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <EventDetailsHeader {...defaultProps} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
     expect(screen.queryByText('Duration')).not.toBeInTheDocument();
   });
@@ -156,23 +177,26 @@ describe('EventDetailsHeader', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
       body: {data: event},
     });
+    const uptimeGroup = GroupFixture({
+      issueCategory: IssueCategory.UPTIME,
+      issueType: IssueType.UPTIME_DOMAIN_FAILURE,
+    });
     render(
-      <EventDetailsHeader
-        {...defaultProps}
-        group={GroupFixture({
-          issueCategory: IssueCategory.UPTIME,
-          issueType: IssueType.UPTIME_DOMAIN_FAILURE,
-        })}
-        event={EventFixture({
-          occurrence: {
-            evidenceData: {},
-            evidenceDisplay: [
-              {name: 'Status Code', value: '500'},
-              {name: 'Failure reason', value: 'bad things'},
-            ],
-          },
-        })}
-      />,
+      <GroupDataContextProvider group={uptimeGroup} project={uptimeGroup.project}>
+        <EventDetailsHeader
+          {...defaultProps}
+          group={uptimeGroup}
+          event={EventFixture({
+            occurrence: {
+              evidenceData: {},
+              evidenceDisplay: [
+                {name: 'Status Code', value: '500'},
+                {name: 'Failure reason', value: 'bad things'},
+              ],
+            },
+          })}
+        />
+      </GroupDataContextProvider>,
       {
         organization,
       }
