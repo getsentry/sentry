@@ -42,6 +42,9 @@ class Locality:
     visible: bool = True
     """Whether the locality is visible in API responses."""
 
+    signup_visible: bool = True
+    """Whether or not a locality should be visible for org signup/relocation."""
+
     def to_url(self, path: str) -> str:
         """Resolve a path into a customer facing URL on this locality.
 
@@ -274,6 +277,7 @@ def _parse_locality_config(
             cells=frozenset(config_value["cells"]),
             new_org_cell=config_value["new_org_cell"],
             visible=bool(config_value.get("visible", True)),
+            signup_visible=bool(config_value.get("signup_visible", True)),
         )
 
 
@@ -495,4 +499,15 @@ def find_all_multitenant_locality_names() -> list[str]:
         loc.name
         for loc in get_global_directory().localities
         if loc.category == RegionCategory.MULTI_TENANT and loc.visible
+    ]
+
+
+def find_all_signup_locality_names() -> list[str]:
+    """
+    Return all locality names that are visible to org signup.
+    """
+    return [
+        loc.name
+        for loc in get_global_directory().localities
+        if loc.category == RegionCategory.MULTI_TENANT and loc.visible and loc.signup_visible
     ]

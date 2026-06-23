@@ -5,9 +5,9 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {SentryAppExternalFormNew} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
+import {SentryAppExternalForm} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
-describe('SentryAppExternalFormNew', () => {
+describe('SentryAppExternalForm', () => {
   const sentryApp = SentryAppFixture();
   const sentryAppInstallation = SentryAppInstallationFixture();
   const externalRequestUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`;
@@ -53,7 +53,7 @@ describe('SentryAppExternalFormNew', () => {
       ],
     });
 
-    const config: ComponentProps<typeof SentryAppExternalFormNew>['config'] = {
+    const config: ComponentProps<typeof SentryAppExternalForm>['config'] = {
       uri: '/integrations/sentry/issues/create',
       required_fields: [
         {
@@ -85,7 +85,7 @@ describe('SentryAppExternalFormNew', () => {
     };
 
     render(
-      <SentryAppExternalFormNew
+      <SentryAppExternalForm
         sentryAppInstallationUuid={sentryAppInstallation.uuid}
         appName={sentryApp.name}
         config={config}
@@ -119,7 +119,7 @@ describe('SentryAppExternalFormNew', () => {
       body: {},
     });
 
-    const config: ComponentProps<typeof SentryAppExternalFormNew>['config'] = {
+    const config: ComponentProps<typeof SentryAppExternalForm>['config'] = {
       uri: '/integrations/sentry/issues/create',
       required_fields: [
         {
@@ -135,7 +135,7 @@ describe('SentryAppExternalFormNew', () => {
     };
 
     render(
-      <SentryAppExternalFormNew
+      <SentryAppExternalForm
         sentryAppInstallationUuid={sentryAppInstallation.uuid}
         appName={sentryApp.name}
         config={config}
@@ -170,7 +170,7 @@ describe('SentryAppExternalFormNew', () => {
       body: {},
     });
 
-    const config: ComponentProps<typeof SentryAppExternalFormNew>['config'] = {
+    const config: ComponentProps<typeof SentryAppExternalForm>['config'] = {
       uri: '/integrations/sentry/issues/create',
       required_fields: [{type: 'text', name: 'title', label: 'Title'}],
       optional_fields: [
@@ -187,7 +187,7 @@ describe('SentryAppExternalFormNew', () => {
     };
 
     render(
-      <SentryAppExternalFormNew
+      <SentryAppExternalForm
         sentryAppInstallationUuid={sentryAppInstallation.uuid}
         appName={sentryApp.name}
         config={config}

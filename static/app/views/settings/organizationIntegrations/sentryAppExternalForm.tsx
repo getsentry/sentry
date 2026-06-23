@@ -331,7 +331,7 @@ function getEffectiveFieldValue({
   return getBaseFieldDefaultValue(field, externalDefaultValues, resetValues);
 }
 
-export function SentryAppExternalFormNew({
+export function SentryAppExternalForm({
   action,
   appName,
   config,

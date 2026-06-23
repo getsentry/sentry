@@ -1,3 +1,8 @@
+from sentry.integrations.discord.spec import DiscordMessagingSpec
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.models.activity import Activity
 from sentry.notifications.notification_action.activity_registry.base import (
     NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES,
@@ -22,12 +27,15 @@ class DiscordActivityHandler(ActivityHandler):
 
     @classmethod
     def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:
-        action = invocation.action
-        target = IntegrationNotificationTarget(
-            provider_key=NotificationProviderKey.DISCORD,
-            resource_type=NotificationTargetResourceType.CHANNEL,
-            resource_id=require_config(action, "target_identifier"),
-            integration_id=require_integration_id(action),
-            organization_id=invocation.detector.project.organization.id,
-        )
-        send_activity_notification(invocation, activity, target)
+        with MessagingInteractionEvent(
+            interaction_type=MessagingInteractionType.SEND_ACTIVITY_ALERT_NOTIFICATION,
+            spec=DiscordMessagingSpec(),
+        ).capture():
+            target = IntegrationNotificationTarget(
+                provider_key=NotificationProviderKey.DISCORD,
+                resource_type=NotificationTargetResourceType.CHANNEL,
+                resource_id=require_config(invocation.action, "target_identifier"),
+                integration_id=require_integration_id(invocation.action),
+                organization_id=invocation.detector.project.organization.id,
+            )
+            send_activity_notification(invocation, activity, target)

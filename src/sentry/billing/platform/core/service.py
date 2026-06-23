@@ -6,6 +6,7 @@ import time
 from collections.abc import Callable
 from typing import Any, TypeVar
 
+import sentry_sdk
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import Message
 
@@ -101,7 +102,12 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
                 extra=extras,
             )
 
-            result = func(self, request)
+            with sentry_sdk.start_span(
+                op="function", name=f"{service_name}.{method_name}"
+            ) as cur_span:
+                for k, v in extras.items():
+                    cur_span.set_data(k, v)
+                result = func(self, request)
 
             # Validate output is a protobuf message
             if not isinstance(result, Message):

@@ -894,10 +894,6 @@ def compare_snapshots(
             )
             return
 
-        # Not flag-gated here: a selective base only reaches this task when the
-        # feature flag was on at dispatch (find_base_snapshot_artifact/fan-out are gated),
-        # or via staff recompare. An in-flight comparison should finish correctly.
-        #
         # Gate on the manifest, not base_metrics.is_selective: the manifest is the source of
         # truth (reconstruct_base_manifest distrusts the DB flag because it can drift). If the
         # DB flag drifts to False while the manifest is selective, the DB gate would skip
