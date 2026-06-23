@@ -76,6 +76,7 @@ from sentry.seer.sentry_data_models import (
     ExecuteTimeseriesQuerySuccessResponse,
     GetDsnResponse,
     IssueAndEventDetailsResponse,
+    IssueCommittersResponse,
     IssueDetailsResponse,
     ProfileFlamegraphErrorResponse,
     ProfileFlamegraphMetadata,
@@ -1481,7 +1482,7 @@ def get_issue_committers(
     start: str | None = None,
     end: str | None = None,
     project_slug: str | None = None,
-) -> dict[str, Any] | None:
+) -> IssueCommittersResponse | None:
     """
     Get the likely code authors for an issue from Sentry's ingested commit data.
 
@@ -1626,13 +1627,15 @@ def get_issue_committers(
         )
         release_commits = []
 
-    return {
-        "stack_commits": stack_commits,
-        "suspect_commits": suspect_commits,
-        "release_commits": release_commits,
-        "project_id": group.project_id,
-        "project_slug": group.project.slug,
-    }
+    return IssueCommittersResponse(
+        stack_commits=stack_commits,
+        # `get_serialized_committers` returns a `Sequence[AuthorCommitsSerialized]`
+        # (TypedDicts) backed by a concrete list of serialized dicts at runtime.
+        suspect_commits=cast(list[dict[str, Any]], suspect_commits),
+        release_commits=release_commits,
+        project_id=group.project_id,
+        project_slug=group.project.slug,
+    )
 
 
 def get_event_details(

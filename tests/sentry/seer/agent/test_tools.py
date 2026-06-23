@@ -2089,7 +2089,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
             issue_id=str(group.id),
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
         assert "stack_commits" in result
@@ -2110,7 +2110,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
             issue_id=group.qualified_short_id,
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         assert len(result["suspect_commits"]) == 1
 
     def test_returns_file_committers_from_stacktrace_blame(self):
@@ -2121,7 +2121,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
             issue_id=str(group.id),
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         stack_commits = result["stack_commits"]
         assert len(stack_commits) >= 1
         assert stack_commits[0]["author"]["email"] == self.user.email
@@ -2139,7 +2139,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
             end=(before_now(minutes=0) + timedelta(days=1)).isoformat(),
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         release = result["release_commits"]
         commit = next(c for c in release if c["id"] == "a" * 40)
         assert commit["files_changed_count"] == 1
@@ -2155,7 +2155,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
             issue_id=str(group.id),
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         assert result["stack_commits"] == []
         assert result["suspect_commits"] == []
         assert result["release_commits"] == []
