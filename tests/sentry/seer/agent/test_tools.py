@@ -1785,12 +1785,12 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         other_project = self.create_project(organization=self.organization, name="other project")
 
         # Restricting to a different project must not resolve this project's short ID.
-        with pytest.raises(Group.DoesNotExist):
-            get_issue_details(
-                organization_id=self.organization.id,
-                issue_id=group.qualified_short_id,
-                project_slug=other_project.slug,
-            )
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=group.qualified_short_id,
+            project_slug=other_project.slug,
+        )
+        assert result is None
 
     # --- timeseries ---
 
