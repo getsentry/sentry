@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from pydantic import BaseModel, validator
 from rest_framework.fields import CharField
 
+from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
@@ -367,6 +368,12 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
     def get_client(self) -> Any:
         metadata = self._get_metadata()
         client_class = _get_client_class()
+
+        vault_reuse = features.has(
+            "organizations:claude-code-vault-reuse",
+            self.organization_id,
+        )
+
         return client_class(
             api_key=metadata.api_key,
             environment_id=metadata.environment_id,
@@ -374,8 +381,8 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             agent_id=metadata.agent_id,
             agent_version=metadata.agent_version,
             model=metadata.model,
-            installation_vault_lookup=self.get_vault_id_for_installation,
-            installation_vault_writer=self.set_vault_id_for_installation,
+            installation_vault_lookup=self.get_vault_id_for_installation if vault_reuse else None,
+            installation_vault_writer=self.set_vault_id_for_installation if vault_reuse else None,
         )
 
     def uninstall(self) -> None:
