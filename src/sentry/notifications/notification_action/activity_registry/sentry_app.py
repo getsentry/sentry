@@ -1,3 +1,4 @@
+from enum import StrEnum
 from typing import Any, TypedDict
 
 from sentry.api.serializers import serialize
@@ -22,7 +23,6 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.utils.webhooks import (
     ActivityAlertActionType,
-    IssueAlertActionType,
     SentryAppResourceType,
 )
 from sentry.types.activity import ActivityType
@@ -30,14 +30,29 @@ from sentry.utils.sentry_apps.webhooks import send_and_save_webhook_request
 from sentry.workflow_engine.models import Action, Workflow
 from sentry.workflow_engine.types import ActionInvocation
 
-ACTIVITY_TYPE_TO_ACTION_TYPE: dict[int, ActivityAlertActionType] = {
-    ActivityType.SEER_RCA_STARTED.value: ActivityAlertActionType.SEER_RCA_STARTED,
-    ActivityType.SEER_RCA_COMPLETED.value: ActivityAlertActionType.SEER_RCA_COMPLETED,
-    ActivityType.SEER_SOLUTION_STARTED.value: ActivityAlertActionType.SEER_SOLUTION_STARTED,
-    ActivityType.SEER_SOLUTION_COMPLETED.value: ActivityAlertActionType.SEER_SOLUTION_COMPLETED,
-    ActivityType.SEER_CODING_STARTED.value: ActivityAlertActionType.SEER_CODING_STARTED,
-    ActivityType.SEER_CODING_COMPLETED.value: ActivityAlertActionType.SEER_CODING_COMPLETED,
-    ActivityType.SEER_PR_CREATED.value: ActivityAlertActionType.SEER_PR_CREATED,
+
+class ActivityAlertType(StrEnum):
+    SEER_RCA_STARTED = "seer_root_cause_started"
+    SEER_RCA_COMPLETED = "seer_root_cause_completed"
+    SEER_SOLUTION_STARTED = "seer_solution_started"
+    SEER_SOLUTION_COMPLETED = "seer_solution_completed"
+    SEER_CODING_STARTED = "seer_coding_started"
+    SEER_CODING_COMPLETED = "seer_coding_completed"
+    SEER_PR_CREATED = "seer_pr_created"
+    SEER_ITERATION_STARTED = "seer_iteration_started"
+    SEER_ITERATION_COMPLETED = "seer_iteration_completed"
+
+
+ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE: dict[int, ActivityAlertType] = {
+    ActivityType.SEER_RCA_STARTED.value: ActivityAlertType.SEER_RCA_STARTED,
+    ActivityType.SEER_RCA_COMPLETED.value: ActivityAlertType.SEER_RCA_COMPLETED,
+    ActivityType.SEER_SOLUTION_STARTED.value: ActivityAlertType.SEER_SOLUTION_STARTED,
+    ActivityType.SEER_SOLUTION_COMPLETED.value: ActivityAlertType.SEER_SOLUTION_COMPLETED,
+    ActivityType.SEER_CODING_STARTED.value: ActivityAlertType.SEER_CODING_STARTED,
+    ActivityType.SEER_CODING_COMPLETED.value: ActivityAlertType.SEER_CODING_COMPLETED,
+    ActivityType.SEER_PR_CREATED.value: ActivityAlertType.SEER_PR_CREATED,
+    ActivityType.SEER_ITERATION_STARTED.value: ActivityAlertType.SEER_ITERATION_STARTED,
+    ActivityType.SEER_ITERATION_COMPLETED.value: ActivityAlertType.SEER_ITERATION_COMPLETED,
 }
 
 
@@ -47,7 +62,7 @@ class IssueData(BaseGroupSerializerResponse):
 
 
 class ActivityData(TypedDict):
-    type: str  # str(ActivityAlertActionType)
+    type: str  # str(ActivityAlertType)
     details: dict[str, Any]
 
 
@@ -101,18 +116,14 @@ def _build_issue_data(group: Group) -> IssueData:
 
 
 def _build_activity_data(activity: Activity) -> ActivityData:
-    action_type = ACTIVITY_TYPE_TO_ACTION_TYPE.get(activity.type)
-    if action_type is None:
+    activity_alert_type = ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE.get(activity.type)
+    if activity_alert_type is None:
         raise ValueError(f"Unrecognized activity type: {activity.type} for activity {activity.id}")
-
-    match action_type:
-        case (
-            ActivityAlertActionType.SEER_RCA_COMPLETED,
-            ActivityAlertActionType.SEER_SOLUTION_COMPLETED,
-        ):
+    match activity_alert_type:
+        case ActivityAlertType.SEER_RCA_COMPLETED | ActivityAlertType.SEER_SOLUTION_COMPLETED:
             summary = activity.data.get("summary", "")
-            return ActivityData(type=action_type.value, details={"summary": summary})
-        case ActivityAlertActionType.SEER_PR_CREATED:
+            return ActivityData(type=str(activity_alert_type), details={"summary": summary})
+        case ActivityAlertType.SEER_PR_CREATED:
             pull_requests_data = activity.data.get("pull_requests", [])
             pull_requests = [
                 {
@@ -121,9 +132,11 @@ def _build_activity_data(activity: Activity) -> ActivityData:
                 }
                 for pull_request in pull_requests_data
             ]
-            return ActivityData(type=action_type.value, details={"pull_requests": pull_requests})
+            return ActivityData(
+                type=str(activity_alert_type), details={"pull_requests": pull_requests}
+            )
         case _:
-            return ActivityData(type=action_type.value, details={})
+            return ActivityData(type=str(activity_alert_type), details={})
 
 
 def _build_workflow_data(invocation: ActionInvocation, organization: Organization) -> WorkflowData:
@@ -178,7 +191,7 @@ class SentryAppActivityHandler(ActivityHandler):
             )
             request_data = AppPlatformEvent[ActivityAlertWebhookPayload](
                 resource=SentryAppResourceType.ACTIVITY_ALERT,
-                action=IssueAlertActionType.TRIGGERED,
+                action=ActivityAlertActionType.TRIGGERED,
                 install=install,
                 data=data,
             )

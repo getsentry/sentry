@@ -41,13 +41,7 @@ class IssueAlertActionType(SentryAppActionType):
 
 
 class ActivityAlertActionType(SentryAppActionType):
-    SEER_RCA_STARTED = "seer_root_cause_started"
-    SEER_RCA_COMPLETED = "seer_root_cause_completed"
-    SEER_SOLUTION_STARTED = "seer_solution_started"
-    SEER_SOLUTION_COMPLETED = "seer_solution_completed"
-    SEER_CODING_STARTED = "seer_coding_started"
-    SEER_CODING_COMPLETED = "seer_coding_completed"
-    SEER_PR_CREATED = "seer_pr_created"
+    TRIGGERED = "triggered"
 
 
 class InstallationActionType(SentryAppActionType):
