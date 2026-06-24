@@ -58,25 +58,6 @@ _DEFAULT_INTERVAL_LADDER: tuple[tuple[timedelta, str], ...] = (
     (timedelta(0), "1m"),
 )
 
-# Mirrors the frontend's MAXIUMUM_INTERVAL ladder in
-# static/app/utils/useChartInterval.tsx. Heat maps in particular call
-# `useChartInterval()` with the default `USE_BIGGEST` strategy, so the
-# interval the UI picks when none is in the URL is exactly the value this
-# ladder returns for the selected time range. Keep the thresholds and
-# intervals in sync with that file so unfurled charts bucket data the same
-# way as the live Explore UI.
-_DEFAULT_MAX_INTERVAL_LADDER: tuple[tuple[timedelta, str], ...] = (
-    (timedelta(days=30), "12h"),
-    (timedelta(days=14), "6h"),
-    (timedelta(days=4), "3h"),
-    (timedelta(hours=48), "1h"),
-    (timedelta(hours=12), "30m"),
-    (timedelta(hours=6), "10m"),
-    (timedelta(hours=1), "5m"),
-    (timedelta(minutes=5), "5m"),
-    (timedelta(0), "1m"),
-)
-
 
 def _query_time_range(params: QueryDict) -> timedelta:
     """Return the selected time range, mirroring the frontend's
@@ -94,11 +75,11 @@ def _query_time_range(params: QueryDict) -> timedelta:
     return parsed if parsed is not None else timedelta(0)
 
 
-def _interval_for_query(params: QueryDict, ladder: tuple[tuple[timedelta, str], ...]) -> str:
-    """Pick the interval the given ladder assigns to the query's time range,
-    mirroring the frontend's ``GranularityLadder.getInterval``."""
+def _interval_for_query(params: QueryDict) -> str:
+    """Pick the interval the ladder assigns to the query's time range, mirroring
+    the frontend's ``GranularityLadder.getInterval``."""
     diff = _query_time_range(params)
-    for threshold, interval in ladder:
+    for threshold, interval in _DEFAULT_INTERVAL_LADDER:
         if diff >= threshold:
             return interval
     return "1m"
@@ -166,57 +147,11 @@ def _parse_aggregate_field_entries(
     return y_axes, group_bys, chart_type
 
 
-# Heat map interval options, mirroring the frontend's ALL_INTERVAL_OPTIONS.
-_ALL_INTERVAL_OPTIONS: tuple[str, ...] = ("1m", "5m", "10m", "30m", "1h", "3h", "6h", "12h")
-
-# Target width, in pixels, of a heat map column (frontend's PIXELS_PER_BUCKET).
-_PIXELS_PER_BUCKET = 15
-
-
-def _interval_ms(interval: str) -> float:
-    td = parse_stats_period(interval)
-    return td.total_seconds() * 1000 if td is not None else 0.0
-
-
-def _heatmap_available_intervals(params: QueryDict) -> list[str]:
-    """Options for this range: `_ALL_INTERVAL_OPTIONS` bounded by the min/max
-    ladders, plus `1d` for ranges >= 2 weeks. Mirrors the frontend's
-    getIntervalOptionsForPageFilter."""
-    minimum = _interval_ms(_interval_for_query(params, _DEFAULT_INTERVAL_LADDER))
-    maximum = _interval_ms(_interval_for_query(params, _DEFAULT_MAX_INTERVAL_LADDER))
-    options = [opt for opt in _ALL_INTERVAL_OPTIONS if minimum <= _interval_ms(opt) <= maximum]
-    if _query_time_range(params) >= timedelta(weeks=2):
-        options.append("1d")
-    return options
-
-
-def _heatmap_bucket_dimensions(params: QueryDict) -> tuple[str, int]:
-    """Port of the frontend's `calculateHeatMapBucketDimensions`: snap to the
-    available interval whose column is closest to `_PIXELS_PER_BUCKET` wide on the
-    fixed chartcuterie canvas, then size the Y axis so cells are ~square. Returns
-    ``(interval, yBuckets)``."""
-    width = EXPLORE_CHART_SIZE["width"]
-    height = EXPLORE_CHART_SIZE["height"]
-    time_range_ms = _query_time_range(params).total_seconds() * 1000
-
-    available = _heatmap_available_intervals(params)
-    target_ms = round(time_range_ms / (width / _PIXELS_PER_BUCKET)) if time_range_ms > 0 else 0
-    # Closest option to the target width; ties go to the coarser interval to
-    # match the frontend's max-exclusive boundaries. `available` is never empty.
-    interval = min(
-        available, key=lambda opt: (abs(_interval_ms(opt) - target_ms), -_interval_ms(opt))
-    )
-
-    interval_px = round(_interval_ms(interval) / time_range_ms * width) if time_range_ms > 0 else 0
-    y_buckets = max(1, round(height / interval_px)) if interval_px > 0 else 50
-    return interval, y_buckets
-
-
 def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
     """Assemble the QueryDict sent to the events-heatmap API. Like
     ``_build_timeseries_query`` but adds the heatmap params (xAxis/yAxis/zAxis/
-    yBuckets); interval and yBuckets come from the canvas size (see
-    ``_heatmap_bucket_dimensions``), not the URL."""
+    yBuckets). The interval is the per-range ladder value (the URL interval is
+    ignored); yBuckets is derived from it to keep cells ~square."""
     out = QueryDict(mutable=True)
 
     for param in ("project", "statsPeriod", "start", "end", "environment"):
@@ -241,11 +176,15 @@ def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
     if not out.get("statsPeriod") and not out.get("start"):
         out["statsPeriod"] = DEFAULT_PERIOD
 
-    # Pick the interval and Y-bucket count from the rendered canvas size, the
-    # same way the heat map widget does — the URL interval (which the dataset
-    # parser may have injected) is intentionally ignored.
-    interval, y_buckets = _heatmap_bucket_dimensions(out)
+    # Per-range ladder interval (fine end, for plenty of columns), then size
+    # yBuckets to keep cells roughly square: yBuckets ≈ xBuckets * (height / width).
+    interval = _interval_for_query(out)
     out["interval"] = interval
+    interval_td = parse_stats_period(interval)
+    x_buckets = round(_query_time_range(out) / interval_td) if interval_td else 0
+    y_buckets = max(
+        1, round(x_buckets * EXPLORE_CHART_SIZE["height"] / EXPLORE_CHART_SIZE["width"])
+    )
     out["yBuckets"] = str(y_buckets)
 
     # Fixed axes — the endpoint currently only supports these values.
@@ -363,7 +302,7 @@ def _build_timeseries_query(
     if not out.get("statsPeriod") and not out.get("start"):
         out["statsPeriod"] = DEFAULT_PERIOD
 
-    minimum_interval = _interval_for_query(out, _DEFAULT_INTERVAL_LADDER)
+    minimum_interval = _interval_for_query(out)
     url_interval = out.get("interval")
     out["interval"] = (
         _clamp_interval(url_interval, minimum_interval) if url_interval else minimum_interval
