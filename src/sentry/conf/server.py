@@ -3392,3 +3392,8 @@ if IS_DEV and os.environ.get("SENTRY_CELL_ROUTING"):
     SENTRY_ORGANIZATION_URL_TEMPLATE = "http://{hostname}"
     SENTRY_FEATURES["system:multi-region"] = True
     SENTRY_LOCAL_CELL = SENTRY_LOCAL_CELL or "--monolith--"
+
+    # The browser sits on the org subdomain ({slug}.dev.getsentry.net:8000) while
+    # cell-scoped API XHRs cross to Synapse on :13000, so Django's CSRF origin check
+    # needs the page origin trusted explicitly.
+    CSRF_TRUSTED_ORIGINS = ["http://*.dev.getsentry.net:8000", "http://dev.getsentry.net:8000"]
