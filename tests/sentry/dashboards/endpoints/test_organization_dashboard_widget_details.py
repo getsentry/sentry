@@ -200,6 +200,40 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert "displayType" in response.data, response.data
         assert "preprod-app-size" in str(response.data["displayType"])
 
+    def test_display_type_constraints_are_enforced(self) -> None:
+        # The shipped DISPLAY_TYPE_CONSTRAINTS table is empty, so inject a
+        # temporary entry to prove the framework enforces it end-to-end. Big
+        # number widgets support thresholds today; constraining them here lets
+        # us assert both the enforced and the default (permissive) behavior.
+        data = {
+            "title": "Big Number",
+            "displayType": "big_number",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                    "orderby": "",
+                }
+            ],
+            "thresholds": {"max_values": {"max1": 100, "max2": 200}},
+        }
+
+        # Default (empty table): thresholds are allowed, preserving behavior.
+        response = self.do_request("post", self.url(), data=data)
+        assert response.status_code == 200, response.data
+
+        # With a constraint injected, the same widget is rejected.
+        with mock.patch.dict(
+            "sentry.api.serializers.rest_framework.dashboard.DISPLAY_TYPE_CONSTRAINTS",
+            {DashboardWidgetDisplayTypes.BIG_NUMBER: {"supports_thresholds": False}},
+        ):
+            response = self.do_request("post", self.url(), data=data)
+        assert response.status_code == 400, response.data
+        assert "does not support thresholds" in str(response.data["thresholds"]), response.data
+
     def test_invalid_equation(self) -> None:
         data = {
             "title": "Invalid query",

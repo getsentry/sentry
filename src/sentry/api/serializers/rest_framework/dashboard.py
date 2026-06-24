@@ -181,6 +181,31 @@ DATASET_CONFIG: dict[int, DatasetConfig] = {
 }
 
 
+class DisplayTypeConstraints(TypedDict, total=False):
+    """Declarative capabilities for a widget display type.
+
+    Mirrors the frontend's per-display-type capability predicates (e.g.
+    ``doesDisplayTypeSupportThresholds``). A capability that is omitted — and
+    every display type absent from ``DISPLAY_TYPE_CONSTRAINTS`` entirely — is
+    treated as supported, so adding an entry can only tighten validation, never
+    loosen it.
+    """
+
+    supports_thresholds: bool
+    supports_limit: bool
+    supports_grouping: bool
+    supports_field_aliases: bool
+    supports_sorting: bool
+    supports_multiple_queries: bool
+
+
+# Per-display-type constraints, enforced by
+# ``DashboardWidgetSerializer._validate_display_type_constraints``. Empty for
+# now: every display type keeps its current, unconstrained behavior. Individual
+# display types (e.g. heat map, categorical bar) are added in follow-up changes.
+DISPLAY_TYPE_CONSTRAINTS: dict[int, DisplayTypeConstraints] = {}
+
+
 class WidgetLayoutSerializer(CamelSnakeSerializer[Dashboard]):
     """Widget grid layout position and dimensions.
 
@@ -541,11 +566,51 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return data
 
+    def _validate_display_type_constraints(self, data) -> None:
+        """Enforce per-display-type capability constraints from
+        ``DISPLAY_TYPE_CONSTRAINTS``. A capability is enforced only when an
+        entry explicitly sets it to ``False``; anything else is permissive.
+        """
+        constraints = DISPLAY_TYPE_CONSTRAINTS.get(data.get("display_type"))
+        if not constraints:
+            return
+
+        if constraints.get("supports_thresholds") is False and data.get("thresholds"):
+            raise serializers.ValidationError(
+                {"thresholds": "This visualization does not support thresholds."}
+            )
+        if constraints.get("supports_limit") is False and data.get("limit") is not None:
+            raise serializers.ValidationError(
+                {"limit": "This visualization does not support a limit."}
+            )
+
+        queries = data.get("queries") or []
+        if constraints.get("supports_multiple_queries") is False and len(queries) > 1:
+            raise serializers.ValidationError(
+                {"queries": "This visualization supports only a single query."}
+            )
+
+        for query in queries:
+            if constraints.get("supports_grouping") is False and query.get("columns"):
+                raise serializers.ValidationError(
+                    {"queries": "This visualization does not support grouping."}
+                )
+            if constraints.get("supports_field_aliases") is False and query.get("field_aliases"):
+                raise serializers.ValidationError(
+                    {"queries": "This visualization does not support field aliases."}
+                )
+            if constraints.get("supports_sorting") is False and query.get("orderby"):
+                raise serializers.ValidationError(
+                    {"queries": "This visualization does not support ordering."}
+                )
+
     def validate(self, data):
         self.query_warnings = {"queries": [], "columns": {}}
 
         if data.get("display_type") == DashboardWidgetDisplayTypes.TEXT:
             return self._validate_text_widget(data)
+
+        self._validate_display_type_constraints(data)
 
         query_errors = []
         all_columns: set[str] = set()
