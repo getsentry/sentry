@@ -155,6 +155,9 @@ def record_contributor_action(
     tags: Mapping[str, Any] | None = None,
 ) -> None:
     """Seed a contributor and record the contributor's PR-opened action."""
+    if not features.has("organizations:dual-write-contributor-actions", organization):
+        return
+
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
         integration_id=integration_id,

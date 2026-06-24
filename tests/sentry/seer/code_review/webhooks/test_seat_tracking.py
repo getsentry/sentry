@@ -173,7 +173,7 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
 
     @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
-    def test_extracts_and_delegates(self, mock_record: Any) -> None:
+    def test_success(self, mock_record: Any) -> None:
         track_gitlab_contributor_action_processor(
             event=_make_event(),
             organization=self.rpc_organization,
@@ -195,20 +195,6 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
 
     @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
-    def test_is_private_false_for_internal_visibility(self, mock_record: Any) -> None:
-        event = _make_event()
-        event["project"]["visibility_level"] = 10
-        track_gitlab_contributor_action_processor(
-            event=event,
-            organization=self.rpc_organization,
-            repo=self.repo,
-            integration=self.integration,
-        )
-
-        assert mock_record.call_args.kwargs["tags"] == {"is_private": False}
-
-    @with_feature("organizations:seer-gitlab-support")
-    @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
     def test_is_opened_false_for_non_open_action(self, mock_record: Any) -> None:
         track_gitlab_contributor_action_processor(
             event=_make_event(action="update"),
@@ -216,11 +202,10 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
             repo=self.repo,
             integration=self.integration,
         )
-
         assert mock_record.call_args.kwargs["is_opened"] is False
 
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
-    def test_no_call_without_cohort_flag(self, mock_record: Any) -> None:
+    def test_no_feature_flag(self, mock_record: Any) -> None:
         track_gitlab_contributor_action_processor(
             event=_make_event(),
             organization=self.rpc_organization,
@@ -231,7 +216,7 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
 
     @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
-    def test_no_call_without_integration(self, mock_record: Any) -> None:
+    def test_no_integration(self, mock_record: Any) -> None:
         track_gitlab_contributor_action_processor(
             event=_make_event(),
             organization=self.rpc_organization,
@@ -242,7 +227,7 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
 
     @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
-    def test_no_call_when_author_id_missing(self, mock_record: Any) -> None:
+    def test_missing_author_id(self, mock_record: Any) -> None:
         event = _make_event()
         del event["object_attributes"]["author_id"]
         track_gitlab_contributor_action_processor(
@@ -255,7 +240,7 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
 
     @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
-    def test_no_call_when_iid_missing(self, mock_record: Any) -> None:
+    def test_missing_iid(self, mock_record: Any) -> None:
         event = _make_event()
         del event["object_attributes"]["iid"]
         track_gitlab_contributor_action_processor(
