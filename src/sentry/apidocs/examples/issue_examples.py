@@ -85,8 +85,6 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "type": "default",
     "userCount": 0,
     "integrationIssues": [],
-    "pluginIssues": [],
-    "pluginActions": [],
     "sentryAppIssues": [],
     "isUnhandled": False,
     "issueCategory": "performance",
@@ -179,9 +177,6 @@ GROUP_DETAILS: GroupDetailsResponse = {
         }
     ],
     "seenBy": [],
-    "pluginActions": [],
-    "pluginIssues": [],
-    "pluginContexts": [],
     "userReportCount": 0,
     "participants": [],
     # Default-included unless suppressed via `?collapse=...`

@@ -7,6 +7,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -22,26 +23,33 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
   const location = useLocation();
 
   const openIssueActivityDrawer = useCallback(() => {
-    openDrawer(() => <ActivityDrawer group={group} project={project} />, {
-      ariaLabel: t('Issue Activity'),
-      drawerKey: 'issue-activity-drawer',
-      shouldCloseOnInteractOutside: () => false,
-      onClose: () => {
-        navigate(
-          {
-            pathname: baseUrl,
-            query: {
-              ...location.query,
-              filter: undefined,
+    openDrawer(
+      () => (
+        <GroupIdProvider groupId={group.id}>
+          <ActivityDrawer group={group} project={project} />
+        </GroupIdProvider>
+      ),
+      {
+        ariaLabel: t('Issue Activity'),
+        drawerKey: 'issue-activity-drawer',
+        shouldCloseOnInteractOutside: () => false,
+        onClose: () => {
+          navigate(
+            {
+              pathname: baseUrl,
+              query: {
+                ...location.query,
+                filter: undefined,
+              },
             },
-          },
-          {replace: true, preventScrollReset: true}
-        );
-      },
-      shouldCloseOnLocationChange: newLocation => {
-        return !newLocation.pathname.includes('/activity');
-      },
-    });
+            {replace: true, preventScrollReset: true}
+          );
+        },
+        shouldCloseOnLocationChange: newLocation => {
+          return !newLocation.pathname.includes('/activity');
+        },
+      }
+    );
   }, [openDrawer, baseUrl, navigate, location.query, group, project]);
 
   return {openIssueActivityDrawer};

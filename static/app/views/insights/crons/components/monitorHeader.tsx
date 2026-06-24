@@ -6,7 +6,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {MonitorHeaderActions} from './monitorHeaderActions';
 
@@ -18,7 +17,6 @@ interface Props {
 
 export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
   const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const crumbs = [
     {
       label: t('Alerts'),
@@ -44,15 +42,9 @@ export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
           {monitor.name}
         </Layout.Title>
       </Layout.HeaderContent>
-      {hasPageFrameFeature ? (
-        <TopBar.Slot name="actions">
-          <MonitorHeaderActions orgSlug={orgSlug} monitor={monitor} onUpdate={onUpdate} />
-        </TopBar.Slot>
-      ) : (
-        <Layout.HeaderActions>
-          <MonitorHeaderActions orgSlug={orgSlug} monitor={monitor} onUpdate={onUpdate} />
-        </Layout.HeaderActions>
-      )}
+      <TopBar.Slot name="actions">
+        <MonitorHeaderActions orgSlug={orgSlug} monitor={monitor} onUpdate={onUpdate} />
+      </TopBar.Slot>
     </Layout.Header>
   );
 }

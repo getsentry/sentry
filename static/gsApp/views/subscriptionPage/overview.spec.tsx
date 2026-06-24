@@ -97,7 +97,7 @@ describe('Subscription > Overview', () => {
         additionalWrapper: SecondaryNavigationContextProvider,
       });
 
-      expect(await screen.findByText('Subscription')).toBeInTheDocument();
+      expect(await screen.findByText(/Usage:/)).toBeInTheDocument();
       expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
     });
 

@@ -4,7 +4,7 @@ from datetime import timedelta
 from typing import TypeVar
 
 from redis import StrictRedis
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.utils.kvstore.abstract import KVStorage
 

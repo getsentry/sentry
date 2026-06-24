@@ -32,9 +32,10 @@ class EmailActivityHandler(ActivityHandler):
     def invoke_using_issue_owners_strategy(
         cls, invocation: ActionInvocation, activity: Activity
     ) -> None:
-        if activity.group is None:
-            return
-        strategy = IssueOwnersActivityAlertStrategy(group=activity.group)
+        group = activity.group
+        if group is None:
+            raise ValueError(f"Activity {activity.id} has no associated group")
+        strategy = IssueOwnersActivityAlertStrategy(group=group)
         data = build_activity_data(invocation, activity)
         NotificationService[WorkflowEngineActivityAction](data=data).notify_sync(strategy=strategy)
 

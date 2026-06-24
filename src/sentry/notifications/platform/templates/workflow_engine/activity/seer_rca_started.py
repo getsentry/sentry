@@ -4,11 +4,11 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
     build_template,
     get_example_template,
     get_issue_description,
-    get_seer_link,
+    get_subject,
+    get_view_in_sentry_button,
 )
 from sentry.notifications.platform.types import (
     NotificationCategory,
-    NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
@@ -29,7 +29,7 @@ class SeerRcaStartedActivityTemplate(NotificationTemplate[WorkflowEngineActivity
     )
 
     def render_example(self) -> NotificationRenderedTemplate:
-        return get_example_template("Seer is searching for the root cause...")
+        return get_example_template("Seer RCA Started for EXAMPLE-1")
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
         from sentry.notifications.notification_action.activity_registry.base import (
@@ -41,9 +41,7 @@ class SeerRcaStartedActivityTemplate(NotificationTemplate[WorkflowEngineActivity
         )
         return build_template(
             data=data,
-            subject="Seer is searching for the root cause...",
-            body=[get_issue_description(group)],
-            extra_actions=[
-                NotificationRenderedAction(label="View in Sentry", link=get_seer_link(group))
-            ],
+            subject=get_subject("Seer RCA Started", group),
+            body=get_issue_description(group),
+            extra_actions=[get_view_in_sentry_button(group)],
         )

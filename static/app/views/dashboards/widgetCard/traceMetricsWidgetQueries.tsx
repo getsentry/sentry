@@ -33,6 +33,9 @@ type TraceMetricsWidgetQueriesProps = {
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
   widgetInterval?: string;
+  // Number of buckets for a non-time axis. Used by heat maps for the Y-axis
+  // bucket count, derived from the rendered chart height.
+  yBuckets?: number;
 };
 
 type TraceMetricsWidgetQueriesImplProps = TraceMetricsWidgetQueriesProps & {
@@ -80,6 +83,7 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
   getConfidenceInformation,
   selection,
   widgetInterval,
+  yBuckets,
 }: TraceMetricsWidgetQueriesImplProps) {
   const config = TraceMetricsConfig;
   const [confidence, setConfidence] = useState<Confidence | null>(null);
@@ -140,6 +144,7 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     loading: disabled,
     selection,
     widgetInterval,
+    yBuckets,
   });
 
   return getDynamicText({

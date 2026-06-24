@@ -52,8 +52,6 @@ type Summary = {
   rows_page_size: number;
   rows_total_pages: number;
   start: string;
-  unmatched_invoice_count: number;
-  unmatched_invoice_pct: number;
   unmatched_org_count: number;
   unmatched_page: number;
   unmatched_page_size: number;
@@ -126,10 +124,10 @@ function formatPercent(pct: number | null) {
 // `formatPercent` renders ``null`` as ``∞`` because for ``delta_pct`` rows
 // a missing percentage means "undefined drift" (legacy=$0 with non-zero
 // platform — sorts to the top of the list). That semantic doesn't apply
-// to summary ratios like ``over_threshold_pct`` / ``unmatched_invoice_pct``,
-// where a runtime ``null``/``undefined`` would just mean the backend
-// didn't populate the field (deploy-window race, response-shape drift).
-// Render those as ``N/A`` instead of pretending the metric blew up.
+// to summary ratios like ``over_threshold_pct``, where a runtime
+// ``null``/``undefined`` would just mean the backend didn't populate the
+// field (deploy-window race, response-shape drift). Render those as
+// ``N/A`` instead of pretending the metric blew up.
 function formatPercentOrNA(pct: number | null | undefined) {
   if (pct === null || pct === undefined) {
     return <em>N/A</em>;
@@ -140,11 +138,8 @@ function formatPercentOrNA(pct: number | null | undefined) {
 // Same deploy-window-race rationale as `formatPercentOrNA`: the type
 // declares these as `number` but a stale-cached response or any future
 // shape drift could leave them runtime-`undefined`, which would render
-// the literal string "undefined" in the UI. NaN is also caught — it
-// shows up when arithmetic propagates an undefined operand (e.g.
-// `legacy_count + platform_count` for the Unmatched denominator).
-// Falling back to an em dash matches the missing-value affordance
-// `formatDollars` already uses.
+// the literal string "undefined" in the UI. Falling back to an em dash
+// matches the missing-value affordance `formatDollars` already uses.
 function formatCountOrNA(n: number | null | undefined) {
   if (n === null || n === undefined || Number.isNaN(n)) {
     return <em>—</em>;
@@ -378,12 +373,16 @@ export function InvoiceComparison() {
         Per-org totals comparing legacy <code>Invoice</code> and shadow{' '}
         <code>PlatformInvoice</code> records <strong>generated</strong> in the selected
         window (filtered on <code>date_added</code>, your local time — converted to UTC on
-        submit). The <strong>Unmatched</strong> summary stat is the percent of invoices in
-        the window that belong to one-sided orgs (legacy-only + platform-only / total) —
-        zero means perfect parity. The first table compares orgs with invoices on{' '}
-        <strong>both</strong> sides, sorted by absolute % delta (relative to legacy),
-        largest first. The second table lists one-sided orgs by absolute amount so you can
-        spot-check the worst missing invoices.
+        submit). <strong>Legacy invoices</strong> (count and dollar total) are scoped to
+        orgs that have invoices on both sides — legacy-only orgs haven't been onboarded to
+        the platform yet, so counting them would inflate the parity tallies with orgs that
+        can't be expected to match. <strong>Platform invoices</strong> reflect every{' '}
+        <code>PlatformInvoice</code> in the window; in production milestone-1 those are
+        equivalent to both-sided since <code>InvoicerService</code> only generates
+        platform invoices for orgs with a <code>Contract</code> (which already have a
+        legacy counterpart). The first table compares the both-sided orgs, sorted by
+        absolute % delta (relative to legacy), largest first. The second table lists
+        one-sided orgs by absolute amount so you can see who hasn't been onboarded yet.
       </p>
 
       <Panel>
@@ -462,7 +461,7 @@ export function InvoiceComparison() {
             <PanelHeader>Summary</PanelHeader>
             <PanelBody withPadding>
               <Grid
-                columns="repeat(4, 1fr)"
+                columns="repeat(3, 1fr)"
                 gap="xl"
                 css={css`
                   @media (max-width: 900px) {
@@ -495,21 +494,6 @@ export function InvoiceComparison() {
                     <TruncatedNote size="sm" variant="muted">
                       ({formatCountOrNA(data.summary.over_threshold_count)} of{' '}
                       {formatCountOrNA(data.summary.row_count)})
-                    </TruncatedNote>
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Unmatched
-                  </Text>
-                  <Text size="lg" bold>
-                    {formatPercentOrNA(data.summary.unmatched_invoice_pct)}
-                    <TruncatedNote size="sm" variant="muted">
-                      ({formatCountOrNA(data.summary.unmatched_invoice_count)} of{' '}
-                      {formatCountOrNA(
-                        data.summary.legacy_count + data.summary.platform_count
-                      )}
-                      )
                     </TruncatedNote>
                   </Text>
                 </Flex>

@@ -72,8 +72,8 @@ describe('ReleaseHeader', () => {
     expect(screen.getByText(release.version)).toBeInTheDocument();
   });
 
-  it('renders breadcrumbs with release version in the top bar when page frame is enabled', () => {
-    const pageFrameOrg = OrganizationFixture({features: ['page-frame']});
+  it('renders breadcrumbs with release version in the top bar', () => {
+    const pageFrameOrg = OrganizationFixture();
     renderHeader(pageFrameOrg);
 
     const topbarSlot = screen.getByTestId('topbar-title-slot');
@@ -86,8 +86,8 @@ describe('ReleaseHeader', () => {
     expect(within(topbarSlot).getByText(release.version)).toBeInTheDocument();
   });
 
-  it('renders feedback in the top bar feedback slot when page frame is enabled', () => {
-    const pageFrameOrg = OrganizationFixture({features: ['page-frame']});
+  it('renders feedback in the top bar feedback slot', () => {
+    const pageFrameOrg = OrganizationFixture();
     renderHeader(pageFrameOrg);
 
     expect(screen.getByTestId('topbar-feedback-slot')).toBeInTheDocument();
