@@ -50,6 +50,15 @@ export function ScmAlertFrequencySection({
       <IssueAlertNotificationOptions {...notificationProps} />
     );
 
+  const footer = (
+    <Flex gap="sm" align="center">
+      <IconInfo size="md" variant="secondary" />
+      <Text variant="secondary" size="md" density="comfortable">
+        {t('You can always change alerts after project creation')}
+      </Text>
+    </Flex>
+  );
+
   if (collapsible) {
     // Summarize the current selection in the collapsed header.
     const alertSettingLabel: Record<RuleAction, [string, TagVariant]> = {
@@ -80,12 +89,7 @@ export function ScmAlertFrequencySection({
         <Stack gap="lg">
           <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
           {notificationOptions}
-          <Flex gap="sm" align="center">
-            <IconInfo size="md" variant="secondary" />
-            <Text variant="secondary" size="md" density="comfortable">
-              {t('You can always change alerts after project creation')}
-            </Text>
-          </Flex>
+          {footer}
         </Stack>
       </ScmCollapsibleSection>
     );
@@ -107,12 +111,7 @@ export function ScmAlertFrequencySection({
       </Stack>
       <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
       {notificationOptions}
-      <Flex gap="sm" align="center">
-        <IconInfo size="md" variant="secondary" />
-        <Text variant="secondary" size="md" density="comfortable">
-          {t('You can always change alerts after project creation')}
-        </Text>
-      </Flex>
+      {footer}
     </Stack>
   );
 }
