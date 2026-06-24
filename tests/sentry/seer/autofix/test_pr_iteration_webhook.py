@@ -25,7 +25,12 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
     def _event(self, body: str = "@sentry fix it", action: str = "created") -> dict:
         return {
             "action": action,
-            "comment": {"id": 999, "body": body, "user": {"login": "octocat"}},
+            "comment": {
+                "id": 999,
+                "body": body,
+                "user": {"login": "octocat"},
+                "html_url": "https://github.com/getsentry/sentry/pull/7#issuecomment-999",
+            },
             "issue": {"number": 7, "pull_request": {"url": "https://example.com/pulls/7"}},
         }
 
@@ -48,7 +53,12 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
             integration_id=self.integration.id,
             pr_number=7,
             feedback="fix it",
-            comment={"id": 999, "body": "@sentry fix it", "user": {"login": "octocat"}},
+            comment={
+                "id": 999,
+                "body": "@sentry fix it",
+                "user": {"login": "octocat"},
+                "html_url": "https://github.com/getsentry/sentry/pull/7#issuecomment-999",
+            },
         )
 
     @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")

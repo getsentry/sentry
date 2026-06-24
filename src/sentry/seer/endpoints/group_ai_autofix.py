@@ -259,55 +259,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         is_autofix_kickoff = resolved_run_id is None
         user_context = data.get("user_context")
-        feedback = None
-        if (
-            step == "pr_iteration"
-            and user_context is not None
-            and request.user
-            and request.user.is_authenticated
-        ):
-            serialized_users = user_service.serialize_many(
-                filter={"user_ids": [request.user.id]},
-            )
-            feedback = Feedback(
-                message=user_context,
-                source={
-                    "type": "user-ui",
-                    "user_id": request.user.id,
-                    "user": serialized_users[0] if serialized_users else None,
-                },
-            )
 
         referrer = _parse_autofix_referrer(data.get("referrer"), request)
-
-        if feedback is not None and resolved_run_id is not None:
-            if not features.has("organizations:autofix-pr-iteration", group.organization):
-                return Response(
-                    {"detail": "PR iteration is not enabled for this organization"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            enqueue_autofix_feedback(
-                run_id=resolved_run_id,
-                organization_id=group.organization.id,
-                group_id=group.id,
-                feedback=feedback,
-                referrer=referrer,
-            )
-
-            consume_queued_autofix_feedback.apply_async(
-                kwargs={
-                    "run_id": resolved_run_id,
-                    "organization_id": group.organization.id,
-                    "group_id": group.id,
-                }
-            )
-
-            kickoff_body: AutofixPostResponse = {
-                "run_id": resolved_run_id,
-                "sentry_run_id": resolved_sentry_run_id,
-            }
-            return Response(kickoff_body, status=status.HTTP_202_ACCEPTED)
 
         run_id: int
         sentry_run_id: str | None
