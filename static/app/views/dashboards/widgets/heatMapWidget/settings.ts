@@ -90,7 +90,7 @@ export type HeatMapPaletteName = keyof typeof HEATMAP_PALETTES;
  */
 export const HEATMAP_PALETTE_BY_THEME: Record<'light' | 'dark', HeatMapPaletteName> = {
   light: 'brand',
-  dark: 'old',
+  dark: 'brand',
 };
 
 /** Resolve the heat map color ramp for a theme (`theme.type`). */
