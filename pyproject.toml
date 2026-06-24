@@ -1199,7 +1199,6 @@ module = [
     "sentry.plugins.interfaces.*",
     "sentry.plugins.providers",
     "sentry.plugins.providers.base",
-    "sentry.plugins.providers.dummy.*",
     "sentry.processing.*",
     "sentry.processing_errors.*",
     "sentry.projectoptions.*",

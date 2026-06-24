@@ -399,9 +399,7 @@ def register_extensions() -> None:
     integrations.register(AlertRuleIntegrationProvider)
 
     from sentry.plugins.base import bindings
-    from sentry.plugins.providers.dummy import DummyRepositoryProvider
 
-    bindings.add("repository.provider", DummyRepositoryProvider, id="dummy")
     bindings.add(
         "integration-repository.provider", ExampleRepositoryProvider, id="integrations:example"
     )

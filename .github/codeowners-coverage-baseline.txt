@@ -2173,7 +2173,6 @@ tests/sentry/plugins/__init__.py
 tests/sentry/plugins/interfaces/__init__.py
 tests/sentry/plugins/interfaces/test_releasehook.py
 tests/sentry/plugins/test_integration_repository.py
-tests/sentry/plugins/test_repository_provider.py
 tests/sentry/post_process_forwarder/__init__.py
 tests/sentry/post_process_forwarder/test_post_process_forwarder.py
 tests/sentry/processing/__init__.py

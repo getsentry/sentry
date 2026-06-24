@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentry.plugins.providers import IntegrationRepositoryProvider, RepositoryProvider
+from sentry.plugins.providers import IntegrationRepositoryProvider
 
 
 class ProviderManager:
@@ -28,7 +28,8 @@ class ProviderManager:
 
 
 class RepositoryProviderManager(ProviderManager):
-    type = RepositoryProvider
+    # No type constraint — the legacy RepositoryProvider base class has been removed.
+    pass
 
 
 class IntegrationRepositoryProviderManager(ProviderManager):
