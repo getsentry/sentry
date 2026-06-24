@@ -208,8 +208,12 @@ def poll_github_copilot_agents(
                 branch_artifact.data.head_ref if branch_artifact and branch_artifact.data else None
             )
 
-            # The Copilot API uses `state` (not `status`) for task lifecycle.
+            # Map the Copilot task lifecycle to our status. The Copilot API uses
+            # `state` (not `status`). Derive this purely from `state` so a
+            # terminal task is never left on RUNNING just because a (possibly
+            # draft) PR exists on its head branch.
             is_task_done = task_status.state == "completed"
+            is_task_failed = task_status.state in ("failed", "timed_out")
 
             # Resolve PR details. The documented path is the PR artifact's
             # `global_id` -> GraphQL node lookup, but the Copilot API
@@ -223,10 +227,17 @@ def poll_github_copilot_agents(
             if pr_info is None and branch_name:
                 pr_info = client.get_pr_from_branch(owner, repo, branch_name)
 
-            # Update state whenever the task is done (so it never gets stuck on
-            # RUNNING just because we couldn't resolve a PR) or whenever we have
-            # PR details to surface.
-            if is_task_done or pr_info is not None:
+            if is_task_done:
+                new_status = CodingAgentStatus.COMPLETED
+            elif is_task_failed:
+                new_status = CodingAgentStatus.FAILED
+            else:
+                new_status = CodingAgentStatus.RUNNING
+
+            # Push an update when the task reached a terminal state (so the
+            # status never gets stuck) or when we have PR details to surface
+            # while it is still running.
+            if is_task_done or is_task_failed or pr_info is not None:
                 pr_url = None
                 result = None
                 if pr_info:
@@ -238,10 +249,6 @@ def poll_github_copilot_agents(
                         pr_url=pr_url,
                         branch_name=branch_name,
                     )
-
-                new_status = (
-                    CodingAgentStatus.COMPLETED if is_task_done else CodingAgentStatus.RUNNING
-                )
 
                 update_coding_agent_state(
                     agent_id=agent_id,
@@ -273,17 +280,8 @@ def poll_github_copilot_agents(
                         "pr_url": pr_url,
                         "task_state": task_status.state,
                         "is_task_done": is_task_done,
+                        "is_task_failed": is_task_failed,
                     },
-                )
-
-            elif task_status.state in ("failed", "timed_out"):
-                update_coding_agent_state(
-                    agent_id=agent_id,
-                    status=CodingAgentStatus.FAILED,
-                )
-                logger.info(
-                    "coding_agent.github_copilot.task_failed",
-                    extra={"agent_id": agent_id, "task_state": task_status.state},
                 )
 
         except Exception:
