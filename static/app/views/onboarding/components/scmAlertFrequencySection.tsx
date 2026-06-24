@@ -1,7 +1,8 @@
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TagVariant} from 'sentry/utils/theme';
 import {
@@ -76,14 +77,22 @@ export function ScmAlertFrequencySection({
           </Tag>
         }
       >
-        <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
-        {notificationOptions}
+        <Stack gap="lg">
+          <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
+          {notificationOptions}
+          <Flex gap="sm" align="center">
+            <IconInfo size="md" variant="secondary" />
+            <Text variant="secondary" size="md" density="comfortable">
+              {t('You can always change alerts after project creation')}
+            </Text>
+          </Flex>
+        </Stack>
       </ScmCollapsibleSection>
     );
   }
 
   return (
-    <Stack gap="md">
+    <Stack gap="lg">
       <Stack gap="xs">
         <Container>
           <Text bold size="md" density="comfortable">
@@ -98,6 +107,12 @@ export function ScmAlertFrequencySection({
       </Stack>
       <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
       {notificationOptions}
+      <Flex gap="sm" align="center">
+        <IconInfo size="md" variant="secondary" />
+        <Text variant="secondary" size="md" density="comfortable">
+          {t('You can always change alerts after project creation')}
+        </Text>
+      </Flex>
     </Stack>
   );
 }
