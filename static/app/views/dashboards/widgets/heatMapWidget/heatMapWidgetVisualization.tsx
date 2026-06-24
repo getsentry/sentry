@@ -49,10 +49,6 @@ interface HeatMapWidgetVisualizationProps {
    */
   renderTooltipActions?: (context: HeatMapTooltipContext) => ReactNode;
   /**
-   * Experimental! Specify the Z-axis scale type. Logarithmic scales can be much more useful for values with a high range.
-   */
-  scale?: 'linear' | 'log';
-  /**
    * Handlers for caller-rendered tooltip actions, keyed by the button's
    * `data-tooltip-action` id. Clicking such a button calls the matching handler
    * with its `data-tooltip-action-value`.
@@ -126,12 +122,9 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   // TODO: Would be wise to guard against Y-axis type mismatches, we don't want
   // to support multi-axis here.
 
-  const {scale = 'linear'} = props;
-
   const series = plottables.flatMap(plottable =>
     plottable.toSeries({
       theme,
-      scale,
     })
   );
 
@@ -139,9 +132,6 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   const yAxisDataType = heatMapPlottable.yAxisValueType;
   const yAxisDataUnit = heatMapPlottable.yAxisValueUnit;
-
-  const Zmax =
-    scale === 'log' ? Math.log1p(heatMapPlottable.Zend) : heatMapPlottable.Zend;
 
   /** Extract the numeric value from ECharts tooltip param.value. */
   function extractValue(data: unknown): number | null {
@@ -171,8 +161,8 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
     // Filter null values from tooltip
     const filteredParams = seriesParams.filter(param => {
-      // @ts-expect-error ECharts types param.value as unknown, but we know it's [xAxis, yAxis, zAxis] from our HeatMap plottable
-      const value = extractValue(param.value[2]);
+      // @ts-expect-error ECharts types param.value as unknown, but we know it's [xAxis, yAxis, colorPosition, rawCount] from our HeatMap plottable
+      const value = extractValue(param.value[3]);
       return value !== null;
     });
 
@@ -191,8 +181,10 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
             let formattedYValue = ECHARTS_MISSING_DATA_VALUE;
             let formattedZValue = ECHARTS_MISSING_DATA_VALUE;
-            if (Array.isArray(param.value) && param.value.length === 3) {
-              const [xValue, yValue, zValue] = param.value;
+            if (Array.isArray(param.value) && param.value.length === 4) {
+              // [xAxis, yAxis, colorPosition, rawCount] — index 2 is the
+              // equalized color position; the true count lives at index 3.
+              const [xValue, yValue, , zValue] = param.value;
 
               if (defined(xValue) && typeof xValue === 'number') {
                 rawXValue = xValue;
@@ -229,13 +221,10 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
               }
 
               if (defined(zValue) && typeof zValue === 'number') {
-                // when the z-axis is in log scale, the values are log values and don't reflect the actual value
-                // so we need to convert them back to the actual value
-                formattedZValue = formatAbbreviatedNumber(
-                  scale === 'log' ? Math.expm1(zValue) : zValue,
-                  4,
-                  false
-                );
+                // `zValue` is the raw count carried through on dim 3, so it can
+                // be formatted directly (the color position on dim 2 is what's
+                // been transformed, not this).
+                formattedZValue = formatAbbreviatedNumber(zValue, 4, false);
               }
             }
 
@@ -365,7 +354,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
             show: false,
           },
         }}
-        visualMap={visualMapOptions(Zmax)}
+        visualMap={visualMapOptions(HEATMAP_COLORS)}
         start={start ? new Date(start) : undefined}
         end={end ? new Date(end) : undefined}
         period={period}
@@ -375,7 +364,9 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   );
 }
 
-export const visualMapOptions = (Zmax: number): VisualMapComponentOption[] => {
+export const visualMapOptions = (
+  colors: readonly string[]
+): VisualMapComponentOption[] => {
   return [
     // Zero values are transparent (empty buckets)
     {
@@ -388,16 +379,17 @@ export const visualMapOptions = (Zmax: number): VisualMapComponentOption[] => {
         {gt: 0, opacity: 1},
       ],
     },
-    // All values are plotted against a palette
+    // Color positions are already equalized into [0, 1] by `heatMapColorScale`,
+    // so the continuous map just spans the palette across that fixed range.
     {
       type: 'continuous',
       show: false,
       dimension: 2,
       seriesIndex: 0,
       min: 0,
-      max: Zmax,
+      max: 1,
       inRange: {
-        color: [...HEATMAP_COLORS],
+        color: [...colors],
       },
     },
   ];
