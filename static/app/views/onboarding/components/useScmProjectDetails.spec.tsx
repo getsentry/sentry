@@ -5,6 +5,7 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
+import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {MultipleCheckboxOptions} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
@@ -80,6 +81,52 @@ describe('useScmProjectDetails', () => {
       result.current.notificationProps.setChannel({label: '#general', value: '#general'});
     });
     expect(result.current.missingFields.notificationChannel).toBe(false);
+  });
+
+  it('persists the messaging-integration selection to the form', () => {
+    TeamStore.loadInitialData([adminTeam]);
+    ProjectsStore.loadInitialData([]);
+    const onProjectDetailsFormChange = jest.fn();
+
+    const {result} = renderDetails({onProjectDetailsFormChange});
+
+    act(() => {
+      result.current.notificationProps.setProvider('slack');
+    });
+    act(() => {
+      result.current.notificationProps.setActions([
+        MultipleCheckboxOptions.EMAIL,
+        MultipleCheckboxOptions.INTEGRATION,
+      ]);
+    });
+    act(() => {
+      result.current.notificationProps.setChannel({label: '#general', value: '#general'});
+    });
+
+    expect(onProjectDetailsFormChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        notificationActions: [
+          expect.objectContaining({id: IssueAlertActionType.SLACK, channel: '#general'}),
+        ],
+      })
+    );
+  });
+
+  it('restores the messaging-integration selection from the persisted form', () => {
+    TeamStore.loadInitialData([adminTeam]);
+    ProjectsStore.loadInitialData([]);
+
+    const {result} = renderDetails({
+      projectDetailsForm: {
+        projectName: 'my-project',
+        notificationActions: [{id: IssueAlertActionType.SLACK, channel: '#general'}],
+      },
+    });
+
+    expect(result.current.notificationProps.actions).toContain(
+      MultipleCheckboxOptions.INTEGRATION
+    );
+    expect(result.current.notificationProps.channel?.value).toBe('#general');
   });
 
   it('does not report the team as missing while teams are still loading', () => {

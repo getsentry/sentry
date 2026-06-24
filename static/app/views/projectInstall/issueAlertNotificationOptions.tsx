@@ -85,6 +85,45 @@ export type IssueAlertNotificationProps = {
   channel?: IntegrationChannel;
 };
 
+/**
+ * Builds the alert-rule action for the selected messaging integration, or
+ * undefined when there is no integration selection. Shared by
+ * createNotificationAction (to create the rule) and the SCM flow (to persist
+ * the selection across navigation, then re-seed it).
+ */
+export function getMessagingIntegrationAction({
+  provider,
+  integration,
+  channel,
+}: {
+  channel?: IntegrationChannel;
+  integration?: OrganizationIntegration;
+  provider?: string;
+}): IntegrationAction | undefined {
+  switch (provider) {
+    case 'slack':
+      return {
+        id: IssueAlertActionType.SLACK,
+        workspace: integration?.id,
+        channel: channel?.value,
+      };
+    case 'discord':
+      return {
+        id: IssueAlertActionType.DISCORD,
+        server: integration?.id,
+        channel_id: channel?.value,
+      };
+    case 'msteams':
+      return {
+        id: IssueAlertActionType.MS_TEAMS,
+        team: integration?.id,
+        channel: channel?.value,
+      };
+    default:
+      return undefined;
+  }
+}
+
 export function useCreateNotificationAction({
   actions: defaultActions,
 }: Partial<Pick<RequestDataFragment, 'actions'>> = {}) {
@@ -186,37 +225,13 @@ export function useCreateNotificationAction({
       const isCreatingIntegrationNotification = actions.find(
         action => action === MultipleCheckboxOptions.INTEGRATION
       );
-      if (!shouldCreateRule || !isCreatingIntegrationNotification) {
+      const integrationAction = getMessagingIntegrationAction({
+        provider,
+        integration,
+        channel,
+      });
+      if (!shouldCreateRule || !isCreatingIntegrationNotification || !integrationAction) {
         return;
-      }
-
-      let integrationAction: IntegrationAction;
-      switch (provider) {
-        case 'slack':
-          integrationAction = {
-            id: IssueAlertActionType.SLACK,
-            workspace: integration?.id,
-            channel: channel?.value,
-          };
-
-          break;
-        case 'discord':
-          integrationAction = {
-            id: IssueAlertActionType.DISCORD,
-            server: integration?.id,
-            channel_id: channel?.value,
-          };
-
-          break;
-        case 'msteams':
-          integrationAction = {
-            id: IssueAlertActionType.MS_TEAMS,
-            team: integration?.id,
-            channel: channel?.value,
-          };
-          break;
-        default:
-          return;
       }
 
       return createProjectRules.mutateAsync({
