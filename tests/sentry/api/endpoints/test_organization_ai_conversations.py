@@ -468,6 +468,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                 conversation_id=conversation_id,
                 timestamp=now - timedelta(seconds=i),
                 op="gen_ai.chat",
+                operation_type="ai_client",
                 status=span_status,
                 trace_id=trace_id,
                 **extra_kwargs,
@@ -647,26 +648,22 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["firstInput"] == first_user_content
         assert conversation["lastOutput"] == last_response_text
 
-    def test_no_ai_client_spans_filtered_out(self) -> None:
-        """Test conversations without input/output are filtered out"""
+    def test_spans_without_operation_type_filtered_out(self) -> None:
+        """Conversations whose spans have no gen_ai.operation.type are filtered out.
+
+        Discovery filters on has:gen_ai.operation.type, so spans that only carry
+        gen_ai.conversation.id (no operation type) do not surface a conversation.
+        """
         now = before_now(days=12).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
-        # Only invoke_agent spans, no ai_client spans with input/output
+        # Spans with a conversation id but no gen_ai.operation.type.
         self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.invoke_agent",
             agent_name="Test Agent",
-            trace_id=trace_id,
-        )
-
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=1),
-            op="gen_ai.execute_tool",
-            operation_type="tool",
             trace_id=trace_id,
         )
 
@@ -679,6 +676,49 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         response = self.do_request(query)
         assert response.status_code == 200
         assert len(response.data) == 0
+
+    def test_conversation_surfaced_from_tool_spans(self) -> None:
+        """A conversation with only tool/agent operation spans now surfaces.
+
+        Widening discovery to has:gen_ai.operation.type means conversations are
+        no longer required to carry input/output messages; first/last IO is just
+        empty for them.
+        """
+        now = before_now(days=12).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
+            agent_name="Test Agent",
+            trace_id=trace_id,
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="weather_api",
+            trace_id=trace_id,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        conversation = response.data[0]
+        assert conversation["conversationId"] == conversation_id
+        assert conversation["toolCalls"] == 1
+        assert conversation["firstInput"] is None
+        assert conversation["lastOutput"] is None
 
     def test_query_filter(self) -> None:
         """Test that query parameter filters conversations"""
@@ -1300,3 +1340,106 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         # Verify counts are correct
         assert conversation["llmCalls"] == 1
         assert conversation["flow"] == ["Test Agent"]
+
+    def _store_sortable_conversations(self, now):
+        """Create three conversations with distinct, monotonic metrics for sort tests.
+
+        conv_low  -> 1 llm call, 1 tool call, smallest tokens/cost, shortest duration
+        conv_mid  -> 2 llm calls, 2 tool calls, mid tokens/cost, mid duration
+        conv_high -> 3 llm calls, 3 tool calls, largest tokens/cost, longest duration
+        """
+        conversations = {}
+        for label, llm_calls, tool_calls, errors, tokens, cost, duration_s in (
+            ("low", 1, 1, 1, 100, 0.01, 1),
+            ("mid", 2, 2, 2, 500, 0.05, 5),
+            ("high", 3, 3, 3, 1000, 0.1, 10),
+        ):
+            conversation_id = uuid4().hex
+            conversations[label] = conversation_id
+            trace_id = uuid4().hex
+            input_tokens = tokens * 7 // 10
+            output_tokens = tokens - input_tokens
+            # First ai_client span establishes the conversation start.
+            start = now - timedelta(minutes=30, seconds=duration_s)
+            for i in range(llm_calls):
+                self.store_ai_span(
+                    conversation_id=conversation_id,
+                    timestamp=start + timedelta(seconds=i),
+                    op="gen_ai.chat",
+                    operation_type="ai_client",
+                    status="internal_error" if i < errors else "ok",
+                    tokens=tokens // llm_calls,
+                    input_tokens=input_tokens // llm_calls,
+                    output_tokens=output_tokens // llm_calls,
+                    cost=cost / llm_calls,
+                    trace_id=trace_id,
+                    messages=[{"role": "user", "content": "hi"}],
+                    response_text="hello",
+                )
+            for i in range(tool_calls):
+                self.store_ai_span(
+                    conversation_id=conversation_id,
+                    timestamp=start + timedelta(seconds=duration_s, milliseconds=i),
+                    op="gen_ai.execute_tool",
+                    operation_type="tool",
+                    status="ok",
+                    trace_id=trace_id,
+                    tool_name=f"tool_{i}",
+                )
+        return conversations
+
+    def _sort_request(self, now, sort):
+        return self.do_request(
+            {
+                "project": [self.project.id],
+                "start": (now - timedelta(hours=1)).isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+                "sort": sort,
+            }
+        )
+
+    def test_sort_by_aggregates(self) -> None:
+        """Server-side sorting works for conversation-wide aggregate columns."""
+        now = before_now(days=70).replace(microsecond=0)
+        convs = self._store_sortable_conversations(now)
+
+        for sort_field in (
+            "llmCalls",
+            "toolCalls",
+            "errors",
+            "totalTokens",
+            "inputTokens",
+            "outputTokens",
+            "totalCost",
+            "duration",
+        ):
+            response = self._sort_request(now, f"-{sort_field}")
+            assert response.status_code == 200, (sort_field, response.data)
+            ids = [row["conversationId"] for row in response.data]
+            assert ids == [convs["high"], convs["mid"], convs["low"]], sort_field
+
+            response = self._sort_request(now, sort_field)
+            assert response.status_code == 200, (sort_field, response.data)
+            ids = [row["conversationId"] for row in response.data]
+            assert ids == [convs["low"], convs["mid"], convs["high"]], sort_field
+
+    def test_sort_by_timestamp(self) -> None:
+        now = before_now(days=70).replace(microsecond=0)
+        convs = self._store_sortable_conversations(now)
+
+        response = self._sort_request(now, "timestamp")
+        assert response.status_code == 200, response.data
+        ids = [row["conversationId"] for row in response.data]
+        # All three are valid orderings of the same timestamps; just assert all present.
+        assert set(ids) == set(convs.values())
+
+    def test_invalid_sort_rejected(self) -> None:
+        now = before_now(days=70).replace(microsecond=0)
+        response = self._sort_request(now, "bogus")
+        assert response.status_code == 400
+
+    def test_tool_errors_sort_not_supported(self) -> None:
+        """toolErrors needs a compound condition count_if cannot express; reject it."""
+        now = before_now(days=70).replace(microsecond=0)
+        response = self._sort_request(now, "-toolErrors")
+        assert response.status_code == 400

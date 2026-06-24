@@ -15,6 +15,14 @@ class OrganizationAIConversationsSerializer(serializers.Serializer):
     )
 
     def validate_sort(self, value):
+        # Sorting happens on the paginated "conversation id" query, which groups
+        # spans by gen_ai.conversation.id and filters on has:gen_ai.operation.type.
+        # Because every gen_ai span is included, the aggregates ordered on there
+        # are conversation-wide and consistent with the returned values.
+        #
+        # toolErrors is intentionally not sortable: it requires a compound
+        # condition (gen_ai.operation.type == tool AND a failure span.status),
+        # which EAP's count_if aggregate cannot express (single filter only).
         allowed_sorts = {
             "timestamp",
             "-timestamp",
@@ -28,10 +36,12 @@ class OrganizationAIConversationsSerializer(serializers.Serializer):
             "-toolCalls",
             "totalTokens",
             "-totalTokens",
+            "inputTokens",
+            "-inputTokens",
+            "outputTokens",
+            "-outputTokens",
             "totalCost",
             "-totalCost",
-            "toolErrors",
-            "-toolErrors",
         }
         if value not in allowed_sorts:
             raise serializers.ValidationError(f"Invalid sort option: {value}")

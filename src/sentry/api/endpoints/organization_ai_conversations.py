@@ -34,6 +34,34 @@ from sentry.utils.ai_message_normalizer import (
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
 
 
+# Conversation-level duration (wall-clock span of the whole conversation).
+# Passed as an equation so it can be ordered on in the conversation-id query.
+_DURATION_EQUATION = "max(precise.finish_ts) - min(precise.start_ts)"
+
+# Always selected (and used as a pagination tiebreaker) in the conversation-id query.
+_TIMESTAMP_AGGREGATE = "max(precise.finish_ts)"
+
+# Maps an API sort field to the aggregate column that must be selected and
+# ordered on in the paginated conversation-id query. `duration` is handled
+# separately via _DURATION_EQUATION.
+#
+# The conversation-id query filters on has:gen_ai.operation.type, so every
+# gen_ai span (ai_client, tool, invoke_agent) is included and these aggregates
+# are conversation-wide, consistent with the values returned by the aggregation
+# query. `toolErrors` is intentionally absent: it needs a compound condition
+# (operation.type == tool AND a failure status) that count_if cannot express.
+_SORT_FIELD_TO_AGGREGATE = {
+    "timestamp": _TIMESTAMP_AGGREGATE,
+    "errors": "failure_count()",
+    "llmCalls": "count_if(gen_ai.operation.type,equals,ai_client)",
+    "toolCalls": "count_if(gen_ai.operation.type,equals,tool)",
+    "totalTokens": "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)",
+    "inputTokens": "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)",
+    "outputTokens": "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)",
+    "totalCost": "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)",
+}
+
+
 def _build_conversation_query(base_query: str, user_query: str) -> str:
     if user_query and user_query.strip():
         return f"{base_query} {user_query.strip()}"
@@ -215,6 +243,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 offset=offset,
                 limit=limit,
                 user_query=validated_data.get("query", ""),
+                sort=validated_data.get("sort", "-timestamp"),
                 sampling_mode=validated_data.get("samplingMode", "NORMAL"),
             )
 
@@ -234,17 +263,18 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         offset: int,
         limit: int,
         user_query: str,
+        sort: str = "-timestamp",
         sampling_mode: SAMPLING_MODES = "NORMAL",
     ) -> list[dict]:
-        base_filter = (
-            "has:gen_ai.conversation.id"
-            " (has:gen_ai.input.messages OR has:gen_ai.request.messages)"
-            " (has:gen_ai.output.messages OR has:gen_ai.response.text)"
-        )
+        # Filter on has:gen_ai.operation.type (rather than the presence of
+        # messages) so the conversation-id query sees every gen_ai span
+        # (ai_client, tool, invoke_agent). This is what makes conversation-wide
+        # aggregates (errors, toolCalls, duration) correct to sort/paginate on.
+        base_filter = "has:gen_ai.conversation.id has:gen_ai.operation.type"
         query_string = _build_conversation_query(base_filter, user_query)
 
         conversation_ids_results = self._fetch_conversation_ids(
-            snuba_params, query_string, offset, limit, sampling_mode
+            snuba_params, query_string, offset, limit, sort, sampling_mode
         )
         conversation_ids = _extract_conversation_ids(conversation_ids_results)
 
@@ -263,13 +293,38 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         query_string: str,
         offset: int,
         limit: int,
+        sort: str,
         sampling_mode: SAMPLING_MODES,
     ) -> EAPResponse:
+        descending = sort.startswith("-")
+        field = sort.lstrip("-")
+        prefix = "-" if descending else ""
+
+        # The conversation-id query groups by gen_ai.conversation.id, so we sort
+        # on an aggregate of the matching spans. max(precise.finish_ts) is always
+        # selected and used as a secondary, stable-pagination tiebreaker.
+        selected_columns = ["gen_ai.conversation.id", _TIMESTAMP_AGGREGATE]
+        equations: list[str] | None = None
+
+        if field == "duration":
+            equations = [_DURATION_EQUATION]
+            primary_orderby = f"{prefix}equation|{_DURATION_EQUATION}"
+        else:
+            aggregate = _SORT_FIELD_TO_AGGREGATE[field]
+            if aggregate not in selected_columns:
+                selected_columns.append(aggregate)
+            primary_orderby = f"{prefix}{aggregate}"
+
+        orderby = [primary_orderby]
+        if primary_orderby.lstrip("-") != _TIMESTAMP_AGGREGATE:
+            orderby.append(f"-{_TIMESTAMP_AGGREGATE}")
+
         return Spans.run_table_query(
             params=snuba_params,
             query_string=query_string,
-            selected_columns=["gen_ai.conversation.id", "max(precise.finish_ts)"],
-            orderby=["-max(precise.finish_ts)"],
+            selected_columns=selected_columns,
+            orderby=orderby,
+            equations=equations,
             offset=offset,
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
