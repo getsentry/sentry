@@ -3,21 +3,21 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
     WorkflowEngineActivityAction,
     build_template,
     extract_models,
-    get_example_actions,
     get_example_issue_description,
     get_example_template,
     get_issue_description,
-    get_seer_link,
+    get_subject,
+    get_view_in_sentry_button,
 )
 from sentry.notifications.platform.types import (
-    BoldTextBlock,
+    LinkTextBlock,
+    NotificationBodyFormattingBlock,
+    NotificationBodyTextBlock,
     NotificationCategory,
-    NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
     ParagraphBlock,
-    PlainTextBlock,
 )
 from sentry.types.activity import ActivityType
 
@@ -36,61 +36,40 @@ class SeerPrCreatedActivityTemplate(NotificationTemplate[WorkflowEngineActivityA
 
     def render_example(self) -> NotificationRenderedTemplate:
         return get_example_template(
-            subject="Seer has created a pull request",
+            subject="Seer PR Created for EXAMPLE-1",
             body=[
+                *get_example_issue_description(),
                 ParagraphBlock(
                     blocks=[
-                        PlainTextBlock(
-                            text="The pull request(s) were created for the following repositories: "
+                        LinkTextBlock(
+                            text="getsentry/sentry (#1234)",
+                            url="https://github.com/getsentry/sentry/pull/1234",
                         ),
-                        BoldTextBlock(text="getsentry/sentry"),
                     ]
-                ),
-                get_example_issue_description(),
-            ],
-            actions=[
-                *get_example_actions(),
-                NotificationRenderedAction(
-                    label="View PR (#1234)",
-                    link="https://github.com/getsentry/sentry/pull/1234",
                 ),
             ],
         )
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
         activity, group, project, organization = extract_models(data)
-        seer_link = get_seer_link(group)
 
-        extra_actions = [NotificationRenderedAction(label="View in Sentry", link=seer_link)]
-        repos: set[str] = set()
-        for pull_request in activity.data.get("pull_requests", []):
-            repo_name = pull_request.get("repo_name")
-            if repo_name:
-                repos.add(repo_name)
-            pr_url = pull_request.get("pull_request", {}).get("pr_url")
-            pr_number = pull_request.get("pull_request", {}).get("pr_number")
-            label = f"View PR (#{pr_number})" if pr_number else "View PR"
-            if pr_url:
-                extra_actions.append(NotificationRenderedAction(label=label, link=pr_url))
+        pr_links: list[NotificationBodyTextBlock] = []
+        if activity.data:
+            for pull_request in activity.data.get("pull_requests", []):
+                repo_name = pull_request.get("repo_name", "")
+                pr_url = pull_request.get("pull_request", {}).get("pr_url")
+                pr_number = pull_request.get("pull_request", {}).get("pr_number")
+                if pr_url:
+                    label = f"{repo_name} (#{pr_number})" if pr_number else repo_name
+                    pr_links.append(LinkTextBlock(text=label, url=pr_url))
 
-        subject = (
-            "Seer has created a pull request"
-            if len(extra_actions) <= 2
-            else "Seer has created some pull requests"
-        )
-
-        repo_body = ParagraphBlock(
-            blocks=[
-                PlainTextBlock(
-                    text="The pull request(s) were created for the following repositories: "
-                ),
-                *[BoldTextBlock(text=repo) for repo in repos],
-            ]
-        )
+        body: list[NotificationBodyFormattingBlock] = [*get_issue_description(group)]
+        if pr_links:
+            body.append(ParagraphBlock(blocks=pr_links))
 
         return build_template(
             data=data,
-            subject=subject,
-            body=[repo_body, get_issue_description(group)],
-            extra_actions=extra_actions,
+            subject=get_subject("Seer PR Created", group),
+            body=body,
+            extra_actions=[get_view_in_sentry_button(group)],
         )

@@ -15,6 +15,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {MAX_METRIC_ALLOWED_LABEL_VALUE} from 'sentry/views/explore/metrics/constants';
 import {
   extractReferenceLabels,
   syncEquationMetricQueries,
@@ -214,6 +215,12 @@ export function MetricQueryRows({
     }
   }
 
+  // We currently only support labels up to Z and do not have defined behaviour beyond
+  // that, so restrict the UI if they exceed the max number of charts or the Z label is used.
+  const hasMaxMetrics =
+    metricQueries.length >= MAX_METRICS_ALLOWED ||
+    metricQueries.some(q => q.label === MAX_METRIC_ALLOWED_LABEL_VALUE);
+
   // If any of the metric names are undefined, then we're still loading in a selection.
   // Equations should be disabled if there are any unresolved metric selections.
   const hasUnresolvedMetrics = functionQueries.some(q => !q.metric?.name);
@@ -266,7 +273,7 @@ export function MetricQueryRows({
         <Button
           icon={<IconAdd />}
           onClick={addAggregate}
-          disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+          disabled={hasMaxMetrics}
           aria-label={t('Add Metric')}
           variant="link"
         >

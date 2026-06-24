@@ -427,6 +427,76 @@ class NPlusOneDBSpanDetectorTest(unittest.TestCase):
 
         assert self.find_problems(event) == []
 
+    def test_does_not_detect_n_plus_one_with_cursor_iter_spans(self) -> None:
+        """
+        Cursor iteration (e.g. asyncpg BaseCursor._exec on each cursor.__anext__())
+        produces N spans with the original SQL as their description. These are
+        sequential calls draining a pre-existing server-side cursor, not
+        N independently issued queries, so they should not trigger the N+1
+        detector.
+        """
+        source_span = create_span(
+            "db",
+            100,
+            "SELECT * FROM table WHERE id = %s",
+            hash="source_hash",
+        )
+
+        repeating_spans = [
+            create_span(
+                "db.cursor.iter",
+                100,
+                "SELECT * FROM table WHERE id = %s",
+                hash="cursor_iter_hash",
+            )
+            for _ in range(11)
+        ]
+
+        event = create_event([source_span] + repeating_spans)
+        event["contexts"] = {
+            "trace": {
+                "span_id": "a" * 16,
+                "op": "http.server",
+            }
+        }
+
+        assert self.find_problems(event) == []
+
+    def test_does_not_detect_n_plus_one_with_cursor_fetch_spans(self) -> None:
+        """
+        Cursor iteration via FETCH calls (e.g. through asyncpg Cursor.fetch)
+        produces N spans with the original SQL as their description. These are
+        sequential calls draining a pre-existing server-side cursor, not
+        N independently issued queries, so they should not trigger the N+1
+        detector.
+        """
+        source_span = create_span(
+            "db",
+            100,
+            "SELECT * FROM table WHERE id = %s",
+            hash="source_hash",
+        )
+
+        repeating_spans = [
+            create_span(
+                "db.cursor.fetch",
+                100,
+                "SELECT * FROM table WHERE id = %s",
+                hash="cursor_fetch_hash",
+            )
+            for _ in range(11)
+        ]
+
+        event = create_event([source_span] + repeating_spans)
+        event["contexts"] = {
+            "trace": {
+                "span_id": "a" * 16,
+                "op": "http.server",
+            }
+        }
+
+        assert self.find_problems(event) == []
+
 
 @pytest.mark.django_db
 class NPlusOneDbSettingTest(TestCase):

@@ -3,19 +3,16 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
     WorkflowEngineActivityAction,
     build_template,
     extract_models,
-    get_example_issue_description,
     get_example_template,
     get_issue_description,
-    get_seer_link,
+    get_subject,
+    get_view_in_sentry_button,
 )
 from sentry.notifications.platform.types import (
     NotificationCategory,
-    NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
-    ParagraphBlock,
-    PlainTextBlock,
 )
 from sentry.types.activity import ActivityType
 
@@ -33,28 +30,13 @@ class SeerCodingCompletedActivityTemplate(NotificationTemplate[WorkflowEngineAct
     )
 
     def render_example(self) -> NotificationRenderedTemplate:
-        return get_example_template(
-            subject="Seer's code changes are prepared",
-            body=[
-                ParagraphBlock(
-                    blocks=[
-                        PlainTextBlock(
-                            text="You can check out the Seer's suggested diff in Sentry."
-                        )
-                    ]
-                ),
-                get_example_issue_description(),
-            ],
-        )
+        return get_example_template("Seer Coding Completed for EXAMPLE-1")
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
         activity, group, project, organization = extract_models(data)
-        text_block = PlainTextBlock(text="You can check out the Seer's suggested diff in Sentry.")
         return build_template(
             data=data,
-            subject="Seer's code changes are prepared",
-            body=[ParagraphBlock(blocks=[text_block]), get_issue_description(group)],
-            extra_actions=[
-                NotificationRenderedAction(label="View in Sentry", link=get_seer_link(group))
-            ],
+            subject=get_subject("Seer Coding Completed", group),
+            body=get_issue_description(group),
+            extra_actions=[get_view_in_sentry_button(group)],
         )
