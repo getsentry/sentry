@@ -1,4 +1,7 @@
+import json
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
@@ -14,8 +17,10 @@ from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
+    Feedback,
     PrIterationNoPullRequestException,
     PrIterationNotEnabledException,
     get_autofix_run_state,
@@ -57,6 +62,48 @@ def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
     except Group.DoesNotExist:
         logger.warning("%s.group_not_found", task_name, extra={"group_id": group_id})
         return None
+
+
+def _github_comment_id(feedback: Feedback) -> int | None:
+    source: Mapping[str, Any] = feedback.source
+    if source.get("type") != "github-pr-comment":
+        return None
+    comment: Mapping[str, Any] = source.get("comment") or {}
+    return comment.get("id")
+
+
+def _processed_github_comment_ids(state: SeerRunState) -> set[int]:
+    ids: set[int] = set()
+    for block in state.blocks:
+        raw = (block.message.metadata or {}).get("feedback")
+        if not raw:
+            continue
+        try:
+            entries = json.loads(raw)
+        except (ValueError, TypeError):
+            continue
+        for entry in entries:
+            source = entry.get("source") or {}
+            if source.get("type") == "github-pr-comment":
+                cid = (source.get("comment") or {}).get("id")
+                if cid is not None:
+                    ids.add(cid)
+    return ids
+
+
+def _dedup_github_feedback(
+    items: list[QueuedAutofixFeedback], processed: set[int]
+) -> list[QueuedAutofixFeedback]:
+    deduped: list[QueuedAutofixFeedback] = []
+    seen: set[int] = set()
+    for item in items:
+        cid = _github_comment_id(item.feedback)
+        if cid is not None:
+            if cid in processed or cid in seen:
+                continue
+            seen.add(cid)
+        deduped.append(item)
+    return deduped
 
 
 def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferrer:
@@ -104,6 +151,12 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id:
             return
 
         queued_items = pop_queued_autofix_feedback(run_id)
+        if not queued_items:
+            return
+
+        queued_items = _dedup_github_feedback(
+            queued_items, _processed_github_comment_ids(state)
+        )
         if not queued_items:
             return
 
