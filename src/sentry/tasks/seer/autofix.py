@@ -154,9 +154,7 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id:
         if not queued_items:
             return
 
-        queued_items = _dedup_github_feedback(
-            queued_items, _processed_github_comment_ids(state)
-        )
+        queued_items = _dedup_github_feedback(queued_items, _processed_github_comment_ids(state))
         if not queued_items:
             return
 
