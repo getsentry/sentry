@@ -490,11 +490,6 @@ def detect_platforms_multi(
     """
     start_time = time.monotonic()
 
-    # Warm the access token once on the main thread so the concurrent
-    # fan-outs below don't each trigger a redundant refresh POST + save.
-    if hasattr(client, "get_access_token"):
-        client.get_access_token()
-
     # Run get_languages and _get_tree concurrently — they are independent
     # requests.  active_platforms only needs languages, so it is computed on
     # the main thread while the tree fetch is in flight.
