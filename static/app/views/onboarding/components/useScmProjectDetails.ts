@@ -18,7 +18,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import type {ScmAnalyticsFlow} from 'sentry/views/onboarding/components/scmAnalyticsFlow';
 import {
-  getMessagingIntegrationAction,
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,
   useCreateNotificationAction,
@@ -153,66 +152,8 @@ export function useScmProjectDetails({
   const createProjectAndRules = useCreateProjectAndRules();
   // Provides the messaging-integration notification picker (notificationProps,
   // rendered in ScmAlertFrequencySection) and the side-effect that creates the
-  // chosen notification rule at project creation. Seeded from the persisted
-  // selection so it survives navigation (the onboarding step remounts; the SCM
-  // create-project return restores the form).
-  const {createNotificationAction, notificationProps: baseNotificationProps} =
-    useCreateNotificationAction(
-      projectDetailsForm?.notificationActions
-        ? {actions: projectDetailsForm.notificationActions}
-        : undefined
-    );
-
-  // Persist the selection on each user change (not via an effect on derived
-  // state), so re-seeding from the persisted action can't loop. Limitation:
-  // when several messaging providers are connected, the hook re-selects the
-  // first available on load, so a non-first provider is not faithfully
-  // restored (the channel is).
-  const persistNotificationSelection = useCallback(
-    (next: {
-      actions?: IssueAlertNotificationProps['actions'];
-      channel?: IssueAlertNotificationProps['channel'];
-      integration?: IssueAlertNotificationProps['integration'];
-      provider?: IssueAlertNotificationProps['provider'];
-    }) => {
-      const actions = next.actions ?? baseNotificationProps.actions;
-      const action = actions.includes(MultipleCheckboxOptions.INTEGRATION)
-        ? getMessagingIntegrationAction({
-            provider: 'provider' in next ? next.provider : baseNotificationProps.provider,
-            integration:
-              'integration' in next
-                ? next.integration
-                : baseNotificationProps.integration,
-            channel: 'channel' in next ? next.channel : baseNotificationProps.channel,
-          })
-        : undefined;
-      onProjectDetailsFormChange({
-        ...projectDetailsForm,
-        notificationActions: action ? [action] : undefined,
-      });
-    },
-    [baseNotificationProps, projectDetailsForm, onProjectDetailsFormChange]
-  );
-
-  const notificationProps: IssueAlertNotificationProps = {
-    ...baseNotificationProps,
-    setActions: actions => {
-      baseNotificationProps.setActions(actions);
-      persistNotificationSelection({actions});
-    },
-    setProvider: provider => {
-      baseNotificationProps.setProvider(provider);
-      persistNotificationSelection({provider});
-    },
-    setIntegration: integration => {
-      baseNotificationProps.setIntegration(integration);
-      persistNotificationSelection({integration});
-    },
-    setChannel: channel => {
-      baseNotificationProps.setChannel(channel);
-      persistNotificationSelection({channel});
-    },
-  };
+  // chosen notification rule at project creation.
+  const {createNotificationAction, notificationProps} = useCreateNotificationAction();
 
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const firstAdminTeam = accessTeams[0];
@@ -362,10 +303,6 @@ export function useScmProjectDetails({
       projectName: projectNameResolved,
       teamSlug: teamSlugResolved,
       alertRuleConfig,
-      // Carry the notification selection into the persisted form so it survives
-      // a back-nav restore (onboarding context / createProject session), not
-      // just live edits on the mounted step.
-      notificationActions: projectDetailsForm?.notificationActions,
     };
 
     try {
@@ -426,7 +363,6 @@ export function useScmProjectDetails({
     nothingChanged,
     onComplete,
     organization,
-    projectDetailsForm,
     projectNameResolved,
     selectedPlatform,
     selectedRepository,
