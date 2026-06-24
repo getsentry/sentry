@@ -194,14 +194,22 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           }
           break;
         case NavigationTour.INSIGHTS: {
-          const target = normalizeUrl({
-            pathname: `/${prefix}/dashboards/`,
-            query: {
-              filter: DashboardFilter.ONLY_PREBUILT,
-              sort: DEFAULT_PREBUILT_SORT,
-              referrer: NAVIGATION_TOUR_REFERRER,
-            },
-          });
+          const hasPrebuiltDashboards = organization.features.includes(
+            'dashboards-prebuilt-insights-dashboards'
+          );
+          const target = hasPrebuiltDashboards
+            ? normalizeUrl({
+                pathname: `/${prefix}/dashboards/`,
+                query: {
+                  filter: DashboardFilter.ONLY_PREBUILT,
+                  sort: DEFAULT_PREBUILT_SORT,
+                  referrer: NAVIGATION_TOUR_REFERRER,
+                },
+              })
+            : normalizeUrl({
+                pathname: `/${prefix}/insights/frontend/`,
+                query: {referrer: NAVIGATION_TOUR_REFERRER},
+              });
           navigate(target, {replace: true});
           break;
         }
