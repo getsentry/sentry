@@ -89,6 +89,31 @@ describe('TracesExportModalButton', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('disables export when viewing the Trace tab even though aggregate rows are loaded', () => {
+    const aggregatesWithRows: AggregatesTableResult = {
+      ...aggregatesTableResult,
+      result: makeQueryResult([{id: 'a', 'span.description': 'GET /agg'}]),
+    };
+
+    render(
+      <TracesExportModalButton
+        aggregatesTableResult={aggregatesWithRows}
+        spansTableResult={{eventView, result: makeQueryResult([])}}
+        rawSpanCounts={{
+          normal: {count: 0, isLoading: false},
+          total: {count: 0, isLoading: false},
+        }}
+      />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {location: {pathname: '/', query: {table: 'trace'}}},
+      }
+    );
+
+    expect(screen.getByRole('button', {name: 'Export Data'})).toBeDisabled();
+  });
+
   it('downloads CSV in the browser when the requested rows are already loaded', async () => {
     renderButton({
       spanRows: [

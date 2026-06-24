@@ -7,6 +7,7 @@ import {downloadAsCsv} from 'sentry/views/discover/utils';
 import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
 import {trackExploreTableExported} from 'sentry/views/explore/components/exports/trackExploreTableExported';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
@@ -27,6 +28,10 @@ export function TracesExportModalButton({
   const [tab] = useTab();
   const location = useLocation();
   const organization = useOrganization();
+
+  // Export only applies to the Span and Aggregate tables; the Trace and
+  // Attribute Breakdowns tabs render unrelated data, so export is disabled there.
+  const isExportSupported = tab === Tab.SPAN || tab === Mode.AGGREGATE;
 
   const targetTableResult = tab === Tab.SPAN ? spansTableResult : aggregatesTableResult;
   const {eventView} = targetTableResult;
@@ -68,6 +73,7 @@ export function TracesExportModalButton({
   return (
     <ExploreExportModalButton
       config={config}
+      disabled={!isExportSupported}
       isDataEmpty={data.length === 0}
       isDataError={targetTableResult.result.error !== null}
       isDataLoading={targetTableResult.result.isPending}

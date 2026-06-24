@@ -21,6 +21,7 @@ type ExploreExportModalButtonProps = {
   isDataEmpty: boolean;
   isDataError: boolean;
   isDataLoading: boolean;
+  disabled?: boolean;
   onClose?: (reason: ExploreExportModalCloseReason) => void;
   onOpen?: () => void;
   size?: ButtonProps['size'];
@@ -31,6 +32,7 @@ export function ExploreExportModalButton({
   isDataEmpty,
   isDataError,
   isDataLoading,
+  disabled = false,
   onClose,
   onOpen,
   size = 'xs',
@@ -42,10 +44,11 @@ export function ExploreExportModalButton({
     isDataError,
     isDataLoading,
   });
+  const isDisabled = disabled || !!disabledTooltip;
 
   return (
     <Button
-      disabled={!!disabledTooltip}
+      disabled={isDisabled}
       size={size}
       variant="secondary"
       icon={<IconDownload />}
@@ -69,8 +72,9 @@ export function ExploreExportModalButton({
         );
       }}
       tooltipProps={{
-        title:
-          disabledTooltip ?? t('Configure export options before starting your export.'),
+        title: isDisabled
+          ? disabledTooltip
+          : t('Configure export options before starting your export.'),
       }}
     >
       {t('Export Data')}
