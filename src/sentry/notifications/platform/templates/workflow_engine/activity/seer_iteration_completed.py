@@ -41,9 +41,9 @@ class SeerIterationCompletedActivityTemplate(NotificationTemplate[WorkflowEngine
                 *get_example_issue_description(),
                 ParagraphBlock(
                     blocks=[
-                        PlainTextBlock(text="Iteration #2 — "),
+                        PlainTextBlock(text="Iteration #2: "),
                         LinkTextBlock(
-                            text="owner/repo #42",
+                            text="owner/repo (#42)",
                             url="https://github.com/owner/repo/pull/42",
                         ),
                     ]
@@ -76,9 +76,9 @@ class SeerIterationCompletedActivityTemplate(NotificationTemplate[WorkflowEngine
                 pr_url = pull_request.get("pull_request", {}).get("pr_url")
                 pr_number = pull_request.get("pull_request", {}).get("pr_number")
                 if pr_url:
-                    label = f"{repo_name} #{pr_number}" if pr_number else repo_name
+                    label = f"{repo_name} (#{pr_number})" if pr_number else repo_name
                     detail_blocks.append(
-                        PlainTextBlock(text=f"{prefix} — " if not detail_blocks else ", ")
+                        PlainTextBlock(text=f"{prefix}: " if not detail_blocks else ", ")
                     )
                     detail_blocks.append(LinkTextBlock(text=label, url=pr_url))
 

@@ -33,8 +33,8 @@ class ActivityAlertType(StrEnum):
     SEER_CODING_STARTED = "seer_coding_started"
     SEER_CODING_COMPLETED = "seer_coding_completed"
     SEER_PR_CREATED = "seer_pr_created"
-    SEER_ITERATION_STARTED = "seer_iteration_started"
-    SEER_ITERATION_COMPLETED = "seer_iteration_completed"
+    SEER_ITERATION_STARTED = "seer_pr_iteration_started"
+    SEER_ITERATION_COMPLETED = "seer_pr_iteration_completed"
 
 
 ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE: dict[int, ActivityAlertType] = {
