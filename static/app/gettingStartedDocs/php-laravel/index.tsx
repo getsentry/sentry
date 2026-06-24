@@ -4,6 +4,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
 
+import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {logs} from './logs';
 import {metrics} from './metrics';
@@ -18,4 +19,5 @@ export const docs: Docs = {
   profilingOnboarding: profiling,
   logsOnboarding: logs,
   metricsOnboarding: metrics,
+  agentMonitoringOnboarding: agentMonitoring,
 };

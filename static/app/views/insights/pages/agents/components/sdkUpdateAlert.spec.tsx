@@ -194,6 +194,41 @@ describe('SdkUpdateAlert', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders alert when Laravel SDK version is below minimum', async () => {
+    renderMockSdkUpdateRequest({
+      organization,
+      body: [
+        {
+          projectId: project.id,
+          sdkName: 'sentry.php.laravel',
+          sdkVersion: '4.26.0',
+          suggestions: [{type: 'updateSdk', newSdkVersion: '4.27.0'}],
+        },
+      ],
+    });
+
+    render(
+      <SdkUpdateAlert
+        projectId={project.id}
+        minVersion="4.27.0"
+        packageName="sentry/sentry-laravel"
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Your sentry/sentry-laravel version is below the minimum required for agent monitoring.'
+        )
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('Update to 4.27.0 or later.'))
+    ).toBeInTheDocument();
+  });
+
   it('does not render when only a non-matching SDK has updates', async () => {
     // Reproduces a real scenario: a Flask project also receives Rust events.
     // The Rust SDK has an update suggestion but the Flask SDK is up-to-date.

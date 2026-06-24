@@ -840,6 +840,7 @@ export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('python')),
   'deno',
   'bun',
+  'php-laravel',
 ]);
 
 export const javascriptMetaFrameworks: readonly PlatformKey[] = [
