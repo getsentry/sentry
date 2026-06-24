@@ -5,7 +5,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
-import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 
@@ -74,9 +73,7 @@ describe('Onboarding Status', () => {
 
     render(
       <PrimaryNavigationContextProvider>
-        <NavigationTourProvider>
-          <PrimaryNavigationOnboarding />
-        </NavigationTourProvider>
+        <PrimaryNavigationOnboarding />
       </PrimaryNavigationContextProvider>,
       {
         organization,

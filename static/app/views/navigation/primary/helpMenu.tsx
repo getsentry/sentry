@@ -9,7 +9,6 @@ import {
   IconDocs,
   IconEllipsis,
   IconGithub,
-  IconGlobe,
   IconGroup,
   IconMegaphone,
   IconOpen,
@@ -26,10 +25,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  NavigationTourReminder,
-  useNavigationTour,
-} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 
 export function PrimaryNavigationHelpMenu() {
@@ -37,8 +32,6 @@ export function PrimaryNavigationHelpMenu() {
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
-  const {startTour} = useNavigationTour();
-
   useEffect(() => {
     trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
   }, [organization]);
@@ -195,25 +188,12 @@ export function PrimaryNavigationHelpMenu() {
           },
           hidden: !openForm,
         },
-        {
-          key: 'tour',
-          label: t('Tour the new navigation'),
-          leadingItems: (
-            <MenuIcon>
-              <IconGlobe />
-            </MenuIcon>
-          ),
-          onAction() {
-            startTour();
-          },
-        },
       ],
     },
   ];
 
   return (
     <PrimaryNavigation.Menu
-      triggerWrap={NavigationTourReminder}
       items={items}
       analyticsKey="help"
       label={t('Help')}

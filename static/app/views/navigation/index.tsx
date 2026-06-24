@@ -14,10 +14,6 @@ import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
-import {
-  NavigationTourProvider,
-  useNavigationTour,
-} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
@@ -94,7 +90,6 @@ function UserOnlyNavigation() {
 function NavigationLayout({children}: {children: React.ReactNode}) {
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
-  const {currentStepId} = useNavigationTour();
   const hoverProps = useResetActiveNavigationGroup();
   const {barTop} = useTopOffset();
 
@@ -102,11 +97,11 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
     <Flex
       top={barTop}
       left={0}
-      position={currentStepId ? undefined : 'sticky'}
+      position="sticky"
       bottom={layout === 'mobile' ? undefined : 0}
       height={layout === 'mobile' ? undefined : `calc(100dvh - ${barTop})`}
       style={{
-        zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
+        zIndex: theme.zIndex.sidebarPanel,
         userSelect: 'none',
       }}
       {...hoverProps}
@@ -130,10 +125,8 @@ export function Navigation() {
 
   return (
     <HoverOverlayGroupProvider>
-      <NavigationTourProvider>
-        <SkipLink />
-        <UserAndOrganizationNavigation />
-      </NavigationTourProvider>
+      <SkipLink />
+      <UserAndOrganizationNavigation />
     </HoverOverlayGroupProvider>
   );
 }

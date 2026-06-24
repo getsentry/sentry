@@ -10,7 +10,6 @@ import {
 
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
-import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 
 const DEFAULT_GETTING_STARTED_TASKS = [
@@ -57,9 +56,7 @@ describe('OnboardingSidebarContent', () => {
   it('should render the sidebar with the correct groups and tasks', async () => {
     render(
       <PrimaryNavigationContextProvider>
-        <NavigationTourProvider>
-          <OnboardingSidebarContent onClose={jest.fn()} />
-        </NavigationTourProvider>
+        <OnboardingSidebarContent onClose={jest.fn()} />
       </PrimaryNavigationContextProvider>,
       {organization}
     );
@@ -112,9 +109,7 @@ describe('OnboardingSidebarContent', () => {
 
     render(
       <PrimaryNavigationContextProvider>
-        <NavigationTourProvider>
-          <OnboardingSidebarContent onClose={jest.fn()} />
-        </NavigationTourProvider>
+        <OnboardingSidebarContent onClose={jest.fn()} />
       </PrimaryNavigationContextProvider>,
       {organization}
     );
@@ -126,9 +121,7 @@ describe('OnboardingSidebarContent', () => {
   it('if first group completed, second group should be expanded by default', async () => {
     render(
       <PrimaryNavigationContextProvider>
-        <NavigationTourProvider>
-          <OnboardingSidebarContent onClose={jest.fn()} />
-        </NavigationTourProvider>
+        <OnboardingSidebarContent onClose={jest.fn()} />
       </PrimaryNavigationContextProvider>,
       {
         organization: OrganizationFixture({
@@ -154,9 +147,7 @@ describe('OnboardingSidebarContent', () => {
 
     render(
       <PrimaryNavigationContextProvider>
-        <NavigationTourProvider>
-          <OnboardingSidebarContent onClose={jest.fn()} />
-        </NavigationTourProvider>
+        <OnboardingSidebarContent onClose={jest.fn()} />
       </PrimaryNavigationContextProvider>,
       {organization}
     );

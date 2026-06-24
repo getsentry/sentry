@@ -1,5 +1,4 @@
 import {Fragment, type RefObject, useMemo, useRef} from 'react';
-import {mergeProps} from '@react-aria/utils';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -26,14 +25,6 @@ import {
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
-import {
-  NavigationTour,
-  NavigationTourElement,
-} from 'sentry/views/navigation/navigationTour';
-import {
-  useNavigationTour,
-  useNavigationTourModal,
-} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {PrimaryNavigationHelpMenu} from 'sentry/views/navigation/primary/helpMenu';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
@@ -56,10 +47,7 @@ export function Navigation() {
 
   const {layout} = usePrimaryNavigation();
 
-  useNavigationTourModal();
-
-  const {currentStepId} = useNavigationTour();
-  const isCollapsed = currentStepId === null ? view !== 'expanded' : false;
+  const isCollapsed = view !== 'expanded';
 
   const [secondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -141,105 +129,69 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
 
   return (
     <Fragment>
-      <NavigationTourElement id={NavigationTour.ISSUES} title={null} description={null}>
-        {tourProps => (
-          <PrimaryNavigation.ListItem>
-            <PrimaryNavigation.Link
-              to={`/${prefix}/issues/`}
-              analyticsKey="issues"
-              label={t('Issues')}
-              {...mergeProps(
-                makeNavigationItemProps('issues', `/${prefix}/issues/`),
-                tourProps
-              )}
-            >
-              <IconIssues />
-            </PrimaryNavigation.Link>
-          </PrimaryNavigation.ListItem>
-        )}
-      </NavigationTourElement>
+      <PrimaryNavigation.ListItem>
+        <PrimaryNavigation.Link
+          to={`/${prefix}/issues/`}
+          analyticsKey="issues"
+          label={t('Issues')}
+          {...makeNavigationItemProps('issues', `/${prefix}/issues/`)}
+        >
+          <IconIssues />
+        </PrimaryNavigation.Link>
+      </PrimaryNavigation.ListItem>
 
-      <NavigationTourElement id={NavigationTour.EXPLORE} title={null} description={null}>
-        {tourProps => (
-          <PrimaryNavigation.ListItem>
-            <PrimaryNavigation.Link
-              to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
-              analyticsKey="explore"
-              label={t('Explore')}
-              {...mergeProps(
-                makeNavigationItemProps(
-                  'explore',
-                  `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
-                  `/${prefix}/explore`
-                ),
-                tourProps
-              )}
-            >
-              <IconCompass />
-            </PrimaryNavigation.Link>
-          </PrimaryNavigation.ListItem>
-        )}
-      </NavigationTourElement>
+      <PrimaryNavigation.ListItem>
+        <PrimaryNavigation.Link
+          to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
+          analyticsKey="explore"
+          label={t('Explore')}
+          {...makeNavigationItemProps(
+            'explore',
+            `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
+            `/${prefix}/explore`
+          )}
+        >
+          <IconCompass />
+        </PrimaryNavigation.Link>
+      </PrimaryNavigation.ListItem>
 
       <Feature
         features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
         overrideName="feature-disabled:dashboards-sidebar-item"
         requireAll={false}
       >
-        <NavigationTourElement
-          id={NavigationTour.DASHBOARDS}
-          title={null}
-          description={null}
-        >
-          {tourProps => (
-            <PrimaryNavigation.ListItem>
-              <PrimaryNavigation.Link
-                to={`/${prefix}/dashboards/`}
-                analyticsKey="dashboards"
-                label={t('Dashboards')}
-                {...mergeProps(
-                  makeNavigationItemProps(
-                    'dashboards',
-                    `/${prefix}/dashboards/`,
-                    `/${prefix}/dashboard`
-                  ),
-                  tourProps
-                )}
-              >
-                <IconDashboard />
-              </PrimaryNavigation.Link>
-            </PrimaryNavigation.ListItem>
-          )}
-        </NavigationTourElement>
+        <PrimaryNavigation.ListItem>
+          <PrimaryNavigation.Link
+            to={`/${prefix}/dashboards/`}
+            analyticsKey="dashboards"
+            label={t('Dashboards')}
+            {...makeNavigationItemProps(
+              'dashboards',
+              `/${prefix}/dashboards/`,
+              `/${prefix}/dashboard`
+            )}
+          >
+            <IconDashboard />
+          </PrimaryNavigation.Link>
+        </PrimaryNavigation.ListItem>
       </Feature>
 
       {!organization.features.includes('insights-to-dashboards-ui-rollout') && (
         <Feature features={['performance-view']}>
-          <NavigationTourElement
-            id={NavigationTour.INSIGHTS}
-            title={null}
-            description={null}
-          >
-            {tourProps => (
-              <PrimaryNavigation.ListItem>
-                <PrimaryNavigation.Link
-                  to={`/${prefix}/insights/`}
-                  analyticsKey="insights"
-                  label={t('Insights')}
-                  {...mergeProps(
-                    makeNavigationItemProps(
-                      'insights',
-                      `/${prefix}/insights/`,
-                      `/${prefix}/insights`
-                    ),
-                    tourProps
-                  )}
-                >
-                  <IconGraph type="area" />
-                </PrimaryNavigation.Link>
-              </PrimaryNavigation.ListItem>
-            )}
-          </NavigationTourElement>
+          <PrimaryNavigation.ListItem>
+            <PrimaryNavigation.Link
+              to={`/${prefix}/insights/`}
+              analyticsKey="insights"
+              label={t('Insights')}
+              {...makeNavigationItemProps(
+                'insights',
+                `/${prefix}/insights/`,
+                `/${prefix}/insights`
+              )}
+            >
+              <IconGraph type="area" />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
         </Feature>
       )}
 
@@ -256,27 +208,20 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         </PrimaryNavigation.ListItem>
       </Feature>
 
-      <NavigationTourElement id={NavigationTour.SETTINGS} title={null} description={null}>
-        {tourProps => (
-          <PrimaryNavigation.ListItem>
-            <PrimaryNavigation.Link
-              to={`/settings/${organization.slug}/`}
-              analyticsKey="settings"
-              label={t('Settings')}
-              {...mergeProps(
-                makeNavigationItemProps(
-                  'settings',
-                  `/settings/${organization.slug}/`,
-                  '/settings/'
-                ),
-                tourProps
-              )}
-            >
-              <IconSettings />
-            </PrimaryNavigation.Link>
-          </PrimaryNavigation.ListItem>
-        )}
-      </NavigationTourElement>
+      <PrimaryNavigation.ListItem>
+        <PrimaryNavigation.Link
+          to={`/settings/${organization.slug}/`}
+          analyticsKey="settings"
+          label={t('Settings')}
+          {...makeNavigationItemProps(
+            'settings',
+            `/settings/${organization.slug}/`,
+            '/settings/'
+          )}
+        >
+          <IconSettings />
+        </PrimaryNavigation.Link>
+      </PrimaryNavigation.ListItem>
     </Fragment>
   );
 }

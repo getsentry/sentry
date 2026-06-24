@@ -26,9 +26,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
@@ -64,13 +63,6 @@ import {
   SECONDARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
-import {
-  NAVIGATION_TOUR_CONTENT,
-  NavigationTour,
-  NavigationTourElement,
-  useNavigationTour,
-  type NavigationTourElementProps,
-} from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
@@ -82,8 +74,6 @@ interface SecondarySidebarProps {
 }
 
 function SecondarySidebar({children}: SecondarySidebarProps) {
-  const {currentStepId} = useNavigationTour();
-  const stepId = currentStepId ?? NavigationTour.ISSUES;
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const {layout} = usePrimaryNavigation();
@@ -107,91 +97,64 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
   const isMobilePageFrame = layout === 'mobile';
 
   return (
-    <SecondarySidebarWrapper
-      id={stepId}
-      description={NAVIGATION_TOUR_CONTENT[stepId].description}
-      title={NAVIGATION_TOUR_CONTENT[stepId].title}
-    >
-      {({ref, 'aria-expanded': _ariaExpanded, ...props}) => (
-        // aria-expanded is omitted here because TourGuide passes it via useOverlay's
-        // triggerProps (designed for button/disclosure triggers), but this element is
-        // a plain container div with no role that supports aria-expanded. Spreading it
-        // would cause a Lighthouse a11y violation: aria-expanded is invalid on a div
-        // without a matching ARIA role.
-        <Container
-          height="100%"
-          right="0"
-          {...props}
-          width={isMobilePageFrame ? '100%' : `${size}px`}
-          ref={isMobilePageFrame ? undefined : mergeRefs(resizableContainerRef, ref)}
-          {...{
-            [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-          }}
-        >
-          <AnimatePresence mode="popLayout" initial={false}>
-            <MotionContainer
-              width="100%"
-              height="100%"
-              key={activeGroup}
-              initial={{x: -6, opacity: 0}}
-              animate={{x: 0, opacity: 1}}
-              exit={{x: 6, opacity: 0}}
-              transition={{duration: 0.06}}
-            >
-              <Grid
-                rows="auto 1fr auto"
-                role="navigation"
-                aria-label="Secondary Navigation"
-                height="100%"
-              >
-                {children}
-              </Grid>
-              <Container
-                top="0"
-                right="0"
-                bottom="0"
-                width="8px"
-                radius="lg"
-                position="absolute"
-                display={isMobilePageFrame ? 'none' : undefined}
-              >
-                {p => (
-                  <ResizeHandle
-                    {...p}
-                    ref={resizeHandleRef}
-                    onMouseDown={handleStartResize}
-                    onDoubleClick={() => {
-                      setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
-                    }}
-                    atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
-                    atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
-                  />
-                )}
-              </Container>
-            </MotionContainer>
-          </AnimatePresence>
-        </Container>
-      )}
-    </SecondarySidebarWrapper>
-  );
-}
-
-function SecondarySidebarWrapper(props: NavigationTourElementProps) {
-  const theme = useTheme();
-
-  return (
     <Container
       background="secondary"
       borderRight="primary"
       position="relative"
       height="100%"
     >
-      {p => (
-        <NavigationTourElement
-          {...mergeProps(p, props)}
-          style={{zIndex: theme.zIndex.sidebarPanel}}
-        />
-      )}
+      <Container
+        height="100%"
+        right="0"
+        width={isMobilePageFrame ? '100%' : `${size}px`}
+        ref={isMobilePageFrame ? undefined : resizableContainerRef}
+        {...{
+          [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
+        }}
+      >
+        <AnimatePresence mode="popLayout" initial={false}>
+          <MotionContainer
+            width="100%"
+            height="100%"
+            key={activeGroup}
+            initial={{x: -6, opacity: 0}}
+            animate={{x: 0, opacity: 1}}
+            exit={{x: 6, opacity: 0}}
+            transition={{duration: 0.06}}
+          >
+            <Grid
+              rows="auto 1fr auto"
+              role="navigation"
+              aria-label="Secondary Navigation"
+              height="100%"
+            >
+              {children}
+            </Grid>
+            <Container
+              top="0"
+              right="0"
+              bottom="0"
+              width="8px"
+              radius="lg"
+              position="absolute"
+              display={isMobilePageFrame ? 'none' : undefined}
+            >
+              {p => (
+                <ResizeHandle
+                  {...p}
+                  ref={resizeHandleRef}
+                  onMouseDown={handleStartResize}
+                  onDoubleClick={() => {
+                    setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
+                  }}
+                  atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
+                  atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
+                />
+              )}
+            </Container>
+          </MotionContainer>
+        </AnimatePresence>
+      </Container>
     </Container>
   );
 }

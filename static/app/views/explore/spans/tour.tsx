@@ -9,7 +9,6 @@ import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTo
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
-import {useIsNavigationTourActive} from 'sentry/views/navigation/navigationTour';
 
 export const enum ExploreSpansTour {
   // Specify keywords to narrow down search
@@ -54,15 +53,8 @@ export function useExploreSpansTourModal() {
     assistantData?.find(item => item.guide === EXPLORE_SPANS_TOUR_GUIDE_KEY)?.seen ===
     false;
 
-  const isNavTourActive = useIsNavigationTourActive();
-
   useEffect(() => {
-    if (
-      isRegistered &&
-      shouldShowTourModal &&
-      !hasOpenedTourModal.current &&
-      !isNavTourActive
-    ) {
+    if (isRegistered && shouldShowTourModal && !hasOpenedTourModal.current) {
       hasOpenedTourModal.current = true;
       openModal(
         props => (
@@ -104,15 +96,7 @@ export function useExploreSpansTourModal() {
         }
       );
     }
-  }, [
-    isRegistered,
-    shouldShowTourModal,
-    startTour,
-    mutateAssistant,
-    endTour,
-    isNavTourActive,
-    openModal,
-  ]);
+  }, [isRegistered, shouldShowTourModal, startTour, mutateAssistant, endTour, openModal]);
 }
 
 const Title = styled('div')`
