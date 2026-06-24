@@ -168,14 +168,6 @@ def track_gitlab_contributor_action_processor(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """
-    Record a GitLab MR-open action in the OrganizationContributorAction ledger.
-
-    Mirrors GitHub's _track_contributor_action_processor. Unlike
-    track_gitlab_contributor_seat_processor, no Redis dedup is needed: the
-    ledger's (repository_id, pr_number) unique constraint makes redelivery and
-    per-org dispatch idempotent.
-    """
     if integration is None:
         return
 
