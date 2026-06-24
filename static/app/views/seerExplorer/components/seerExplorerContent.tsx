@@ -17,6 +17,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
+import {
+  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  PRIMARY_HEADER_HEIGHT,
+} from 'sentry/views/navigation/constants';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
@@ -62,7 +66,11 @@ function SidebarHeaderShell({
       as="header"
       align="center"
       gap="md"
-      padding="md lg"
+      height={{
+        sm: `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
+        md: `${PRIMARY_HEADER_HEIGHT}px`,
+      }}
+      padding="0 lg"
       background="primary"
       borderBottom="primary"
       flexShrink={0}
