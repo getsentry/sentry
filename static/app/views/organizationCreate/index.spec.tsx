@@ -21,6 +21,7 @@ describe('OrganizationCreate', () => {
 
     // Set only a single locality in the config store by default
     ConfigStore.set('localities', [{name: '--monolith--', url: 'https://example.com'}]);
+    ConfigStore.set('signupLocalities', ['--monolith--']);
   });
 
   afterEach(() => {
@@ -146,6 +147,7 @@ describe('OrganizationCreate', () => {
         name: 'de',
       },
     ]);
+    ConfigStore.set('signupLocalities', ['us', 'de']);
 
     return orgCreateMock;
   }
@@ -154,6 +156,7 @@ describe('OrganizationCreate', () => {
     const orgCreateMock = multiLocalitySetup();
     // Set only a single region in the config store
     ConfigStore.set('localities', [{name: '--monolith--', url: 'https://example.com'}]);
+    ConfigStore.set('signupLocalities', ['--monolith--']);
     ConfigStore.set('features', new Set(['system:multi-region']));
 
     render(<OrganizationCreate />);
@@ -256,6 +259,7 @@ describe('OrganizationCreate', () => {
         name: 'de',
       },
     ]);
+    ConfigStore.set('signupLocalities', ['us', 'de']);
     const orgCreateMock = MockApiClient.addMockResponse({
       host: ConfigStore.get('links').sentryUrl,
       url: '/organizations/',

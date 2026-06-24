@@ -5,7 +5,6 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedIntegerField,
-    BoundedPositiveIntegerField,
     FlexibleForeignKey,
     cell_silo_model,
 )
@@ -71,8 +70,10 @@ class OrganizationContributorAction(DefaultFieldsModel):
     organization_contributor = FlexibleForeignKey(
         "sentry.OrganizationContributors", on_delete=models.CASCADE
     )
-    # Ensure a durable PR identity by avoiding a Repository or PullRequest FK.
-    repository_id = BoundedPositiveIntegerField()
+    # Ensure a durable PR identity by disabling cascade deletion.
+    repository = FlexibleForeignKey(
+        "sentry.Repository", on_delete=models.DO_NOTHING, db_constraint=False
+    )
     pr_number = models.CharField(max_length=64)
 
     class Meta:

@@ -206,6 +206,13 @@ class SpanAttributesResponse(BaseModel):
 class BuiltInField(BaseModel):
     key: str
     type: str
+    # Attribute metadata (brief, examples, isDeprecated, replacementAttribute,
+    # ...) for the attribute, populated when the caller requests
+    # `expand="context"`; otherwise None. Today the metadata comes from the
+    # sentry conventions, so only attributes that map to a known convention
+    # carry it, but custom attribute context is planned and will populate this
+    # for user-defined attributes too.
+    context: dict[str, Any] | None = None
 
 
 class AttributeNamesResponse(BaseModel):
@@ -867,6 +874,28 @@ class ExecuteTimeseriesQueryErrorResponse(BaseModel):
 
     def __hash__(self) -> int:
         return id(self)
+
+
+class MonitoringProviderConnectionData(BaseModel):
+    provider_key: str
+    url: str
+    encrypted_access_token: str
+    identity_id: int
+    auth_method: str
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+
+class MonitoringProviderConnectionsResponse(BaseModel):
+    """`get_monitoring_provider_connections` success: the caller's connected
+    monitoring provider identities, each carrying a freshly-encrypted access
+    token."""
+
+    connections: list[MonitoringProviderConnectionData]
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
 
 
 class RefreshMonitoringProviderTokenSuccessResponse(BaseModel):

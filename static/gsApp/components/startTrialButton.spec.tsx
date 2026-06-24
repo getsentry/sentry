@@ -24,7 +24,7 @@ describe('StartTrialButton', () => {
     );
     await waitFor(() => expect(endpoint).toHaveBeenCalled());
 
-    expect(screen.getByRole('button')).toBeInTheDocument();
+    expect(await screen.findByRole('button')).toBeInTheDocument();
     expect(screen.getByText('Start trial')).toBeInTheDocument();
   });
 });

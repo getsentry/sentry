@@ -354,3 +354,7 @@ export const RATE_AGGREGATES = new Set(['per_second', 'per_minute']);
  * When this parameter is set to 'true', the metrics drawer should open automatically.
  */
 export const METRICS_DRAWER_QUERY_PARAM = 'metricsDrawer';
+
+// We do not support labels beyond Z yet, due to requiring single-character labels
+// for the arithmetic builder currently.
+export const MAX_METRIC_ALLOWED_LABEL_VALUE = 'Z';

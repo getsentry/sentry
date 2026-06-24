@@ -1,4 +1,4 @@
-import {Fragment, type ComponentProps, type ReactNode} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
@@ -41,7 +41,6 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface GroupHeaderProps {
   event: Event | null;
@@ -88,9 +87,9 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <MaybeTopBarSlot name="title">
+            <TopBar.Slot name="title">
               <StyledBreadcrumbs crumbs={crumbs} />
-            </MaybeTopBarSlot>
+            </TopBar.Slot>
             {hasErrorUpsampling && (
               <Tooltip
                 title={t(
@@ -191,22 +190,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   );
 }
 
-function MaybeTopBarSlot({
-  name,
-  children,
-}: {
-  children: ReactNode;
-  name: ComponentProps<typeof TopBar.Slot>['name'];
-}) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-  if (hasPageFrameFeature) {
-    return <TopBar.Slot name={name}>{children}</TopBar.Slot>;
-  }
-  return children;
-}
-
 function HeaderActions({group}: {group: Group}) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {feedback} = useFeedbackSDKIntegration();
 
   const isAIDetectedIssue = AI_DETECTED_ISSUE_TYPES.has(group.issueType);
@@ -228,16 +212,15 @@ function HeaderActions({group}: {group: Group}) {
 
   if (hasFeedbackForm && feedback) {
     return (
-      <MaybeTopBarSlot name="feedback">
+      <TopBar.Slot name="feedback">
         <FeedbackButton
           aria-label={feedbackLabel}
-          size={hasPageFrameFeature ? undefined : 'xs'}
           feedbackOptions={feedbackOptions}
-          tooltipProps={hasPageFrameFeature ? {title: feedbackLabel} : undefined}
+          tooltipProps={{title: feedbackLabel}}
         >
-          {hasPageFrameFeature ? null : t('Give Feedback')}
+          {null}
         </FeedbackButton>
-      </MaybeTopBarSlot>
+      </TopBar.Slot>
     );
   }
 

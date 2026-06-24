@@ -132,6 +132,14 @@ function getAISpanAttributes({
     });
   }
 
+  const reasoningEffort = attributes[SpanFields.GEN_AI_REQUEST_REASONING_EFFORT];
+  if (reasoningEffort) {
+    highlightedAttributes.push({
+      name: t('Reasoning Effort'),
+      value: reasoningEffort.toString(),
+    });
+  }
+
   const inputTokens = attributes['gen_ai.usage.input_tokens'];
   const cachedTokens =
     attributes['gen_ai.usage.cache_read.input_tokens'] ??

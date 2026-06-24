@@ -41,7 +41,6 @@ export function PlanFixture(fields: Partial<Plan>): Plan {
       sizeAnalyses: [{events: 100, unitPrice: 0, price: 0, onDemandPrice: 0}],
       installableBuilds: [{events: 0, unitPrice: 0, price: 0, onDemandPrice: 0}],
     },
-    price: 0,
     retentionDays: 0,
     totalPrice: 0,
     trialPlan: null,

@@ -1,11 +1,7 @@
-import {type CSSProperties, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
-
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -31,12 +27,11 @@ import {
   RootCausePreview,
   SolutionPreview,
 } from 'sentry/components/events/autofix/v3/autofixPreviews';
+import {AutofixStartCard} from 'sentry/components/events/autofix/v3/autofixStartCard';
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconBug} from 'sentry/icons';
 import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -253,14 +248,7 @@ function AutofixArtifacts({autofix, group, project}: AutofixArtifactsProps) {
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
   if (!sections.length) {
-    return (
-      <AutofixEmptyState
-        autofix={autofix}
-        group={group}
-        project={project}
-        referrer={referrer}
-      />
-    );
+    return <AutofixEmptyState autofix={autofix} group={group} project={project} />;
   }
 
   return (
@@ -277,72 +265,23 @@ interface AutofixEmptyStateProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
   project: Project;
-  referrer?: string;
 }
 
-function AutofixEmptyState({autofix, group, project, referrer}: AutofixEmptyStateProps) {
+function AutofixEmptyState({autofix, group, project}: AutofixEmptyStateProps) {
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
   });
 
-  // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
-  const startStep = autofix.startStep;
-
-  const [startingRun, setStartingRun] = useState(false);
-  const handleStartRootCause = async () => {
-    setStartingRun(true);
-    try {
-      await startStep('root_cause');
-    } catch {
-      return;
-    } finally {
-      setStartingRun(false);
-    }
-    openSeerDrawer();
-  };
+  const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
   return (
-    <Flex direction="column" gap="md">
-      <Flex
-        border="muted"
-        radius="md"
-        padding="lg"
-        gap="lg"
-        align="center"
-        justify="between"
-      >
-        <Container>
-          <Text>{t('Have Seer...')}</Text>
-          <Container as="ol" margin="0">
-            <li>{t('Determine the root cause of your issue')}</li>
-            <li>{t('Outline a plan')}</li>
-            <li>{t('Create a code fix')}</li>
-          </Container>
-        </Container>
-        <ImageContainer
-          justify="end"
-          align="center"
-          aspectRatio="9 / 16"
-          height={{'2xs': '78px', lg: '98px'}}
-        >
-          <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
-        </ImageContainer>
-      </Flex>
-      <Button
-        size="md"
-        icon={startingRun ? <LoadingIndicator size={16} /> : <IconBug />}
-        aria-label={t('Start Analysis')}
-        variant="primary"
-        onClick={handleStartRootCause}
-        analyticsEventKey="autofix.start_fix_clicked"
-        analyticsEventName="Autofix: Start Fix Clicked"
-        analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
-        disabled={startingRun}
-      >
-        {t('Start Analysis')}
-      </Button>
-    </Flex>
+    <AutofixStartCard
+      autofix={autofix}
+      group={group}
+      referrer={referrer}
+      onStarted={openSeerDrawer}
+    />
   );
 }
 
@@ -435,9 +374,3 @@ function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsPr
     </Flex>
   );
 }
-
-const ImageContainer = styled(Flex)<{
-  aspectRatio?: CSSProperties['aspectRatio'];
-}>`
-  ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
-`;

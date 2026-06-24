@@ -176,7 +176,6 @@ export type Plan = {
   name: string;
   onDemandCategories: DataCategory[];
   planCategories: Partial<Record<DataCategory, EventBucket[]>>;
-  price: number;
 
   retentionDays: number;
   totalPrice: number;
@@ -315,9 +314,7 @@ export type Subscription = {
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
   hasMigratedToBillingPlatform: boolean;
-  hasOverageNotificationsDisabled: boolean;
   hasRestrictedIntegration: boolean | null;
-  hasSoftCap: boolean;
   id: string;
 
   // Added by SubscriptionStore to show/hide a UI element

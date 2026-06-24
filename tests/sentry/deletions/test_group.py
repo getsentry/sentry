@@ -15,9 +15,9 @@ from sentry.deletions.defaults.group import (
 )
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
-from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group

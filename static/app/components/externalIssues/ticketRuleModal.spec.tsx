@@ -225,6 +225,29 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       await submitSuccess();
     });
 
+    it('should keep available multi select values when saved values are partially unavailable', async () => {
+      await renderTicketRuleModal(
+        {data: {components: ['a', 'stale']}},
+        {
+          name: 'components',
+          label: 'Components',
+          default: undefined,
+          type: 'select',
+          multiple: true,
+          required: false,
+          choices: [
+            ['a', 'a'],
+            ['b', 'b'],
+          ],
+        }
+      );
+
+      await submitSuccess();
+
+      const formData = onSubmitAction.mock.calls[0][0];
+      expect(formData.components).toEqual(['a']);
+    });
+
     it('should not persist value when unavailable in new choices', async () => {
       await renderTicketRuleModal({data: {reporter: 'a'}});
 
