@@ -6,15 +6,14 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
     get_example_issue_description,
     get_example_template,
     get_issue_description,
-    get_seer_link,
     get_subject,
+    get_view_in_sentry_button,
 )
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationBodyFormattingBlock,
     NotificationBodyTextBlock,
     NotificationCategory,
-    NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
@@ -55,13 +54,14 @@ class SeerPrCreatedActivityTemplate(NotificationTemplate[WorkflowEngineActivityA
         activity, group, project, organization = extract_models(data)
 
         pr_links: list[NotificationBodyTextBlock] = []
-        for pull_request in activity.data.get("pull_requests", []):
-            repo_name = pull_request.get("repo_name", "")
-            pr_url = pull_request.get("pull_request", {}).get("pr_url")
-            pr_number = pull_request.get("pull_request", {}).get("pr_number")
-            if pr_url:
-                label = f"{repo_name} (#{pr_number})" if pr_number else repo_name
-                pr_links.append(LinkTextBlock(text=label, url=pr_url))
+        if activity.data:
+            for pull_request in activity.data.get("pull_requests", []):
+                repo_name = pull_request.get("repo_name", "")
+                pr_url = pull_request.get("pull_request", {}).get("pr_url")
+                pr_number = pull_request.get("pull_request", {}).get("pr_number")
+                if pr_url:
+                    label = f"{repo_name} (#{pr_number})" if pr_number else repo_name
+                    pr_links.append(LinkTextBlock(text=label, url=pr_url))
 
         body: list[NotificationBodyFormattingBlock] = [*get_issue_description(group)]
         if pr_links:
@@ -71,7 +71,5 @@ class SeerPrCreatedActivityTemplate(NotificationTemplate[WorkflowEngineActivityA
             data=data,
             subject=get_subject("Seer PR Created", group),
             body=body,
-            extra_actions=[
-                NotificationRenderedAction(label="View in Sentry", link=get_seer_link(group))
-            ],
+            extra_actions=[get_view_in_sentry_button(group)],
         )

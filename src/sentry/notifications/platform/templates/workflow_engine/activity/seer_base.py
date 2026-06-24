@@ -7,6 +7,7 @@ from sentry.models.project import Project
 from sentry.notifications.platform.types import (
     CodeTextBlock,
     NotificationBodyFormattingBlock,
+    NotificationBodyTextBlock,
     NotificationData,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
@@ -67,7 +68,7 @@ def extract_models(
 def get_issue_description(group: Group) -> list[NotificationBodyFormattingBlock]:
     from sentry.integrations.messaging.message_builder import build_attachment_title
 
-    blocks = []
+    blocks: list[NotificationBodyTextBlock] = []
     title = build_attachment_title(group)
     if title:
         blocks.append(PlainTextBlock(text=title))
@@ -84,8 +85,9 @@ def get_subject(label: str, group: Group) -> str:
     return f"{label} for {short_id}"
 
 
-def get_seer_link(group: Group) -> str:
-    return f"{absolute_uri(group.get_absolute_url())}?seerDrawer=true"
+def get_view_in_sentry_button(group: Group) -> NotificationRenderedAction:
+    link = f"{absolute_uri(group.get_absolute_url())}?seerDrawer=true"
+    return NotificationRenderedAction(label="View in Sentry", link=link)
 
 
 def build_template(
