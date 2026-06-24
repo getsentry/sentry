@@ -1,4 +1,4 @@
-import type {MouseEventHandler} from 'react';
+import type {MouseEventHandler, PointerEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
@@ -40,7 +40,7 @@ interface FlamegraphDrawerProps {
   profileGroup: ProfileGroup;
   referenceNode: FlamegraphFrame;
   rootNodes: FlamegraphFrame[];
-  onResize?: MouseEventHandler<HTMLElement>;
+  onResize?: PointerEventHandler<HTMLElement>;
   onResizeReset?: MouseEventHandler<HTMLElement>;
   transactionSpan?: TransactionSpan;
 }
@@ -192,8 +192,10 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             flex: '1 1 100%',
             cursor:
               flamegraphPreferences.layout === 'table bottom' ? 'ns-resize' : undefined,
+            touchAction:
+              flamegraphPreferences.layout === 'table bottom' ? 'none' : undefined,
           }}
-          onMouseDown={
+          onPointerDown={
             flamegraphPreferences.layout === 'table bottom' ? props.onResize : undefined
           }
           onDoubleClick={
@@ -277,7 +279,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           {/* The border should be 1px, but we want the actual handler to be wider
           to improve the user experience and not have users have to click on the exact pixel */}
           <InvisibleHandler
-            onMouseDown={props.onResize}
+            onPointerDown={props.onResize}
             onDoubleClick={props.onResizeReset}
           />
         </ResizableVerticalDrawer>
@@ -300,6 +302,7 @@ const InvisibleHandler = styled('div')`
   position: absolute;
   inset: 0;
   cursor: ew-resize;
+  touch-action: none;
   transform: translateX(-50%);
   background-color: transparent;
 `;

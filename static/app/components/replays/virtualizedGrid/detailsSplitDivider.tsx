@@ -9,10 +9,7 @@ import {t} from 'sentry/locale';
 import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {SplitDivider} from 'sentry/views/explore/replays/detail/layout/splitDivider';
 
-interface Props extends Omit<
-  ReturnType<typeof useResizableDrawer>,
-  'onPointerDown' | 'setSize' | 'size'
-> {
+interface Props extends Omit<ReturnType<typeof useResizableDrawer>, 'setSize' | 'size'> {
   onClose: () => void;
   children?: ReactNode;
 }
@@ -22,7 +19,7 @@ export function DetailsSplitDivider({
   isHeld,
   onClose,
   onDoubleClick,
-  onMouseDown,
+  onPointerDown,
 }: Props) {
   return (
     <StyledStacked>
@@ -31,7 +28,7 @@ export function DetailsSplitDivider({
         data-is-held={isHeld}
         data-slide-direction="updown"
         onDoubleClick={onDoubleClick}
-        onMouseDown={onMouseDown}
+        onPointerDown={onPointerDown}
       />
       <CloseButtonWrapper>
         <Button

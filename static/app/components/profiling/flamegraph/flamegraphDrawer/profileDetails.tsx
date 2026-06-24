@@ -112,7 +112,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
     };
   }, [flamegraphPreferences.layout]);
 
-  const {onMouseDown, onDoubleClick} = useResizableDrawer(resizableOptions);
+  const {onPointerDown, onDoubleClick} = useResizableDrawer(resizableOptions);
 
   return (
     <ProfileDetailsBar ref={detailsBarRef} layout={flamegraphPreferences.layout}>
@@ -147,8 +147,9 @@ export function ProfileDetails(props: ProfileDetailsProps) {
           style={{
             flex: '1 1 100%',
             cursor: isResizableDetailsBar ? 'ns-resize' : undefined,
+            touchAction: isResizableDetailsBar ? 'none' : undefined,
           }}
-          onMouseDown={isResizableDetailsBar ? onMouseDown : undefined}
+          onPointerDown={isResizableDetailsBar ? onPointerDown : undefined}
           onDoubleClick={isResizableDetailsBar ? onDoubleClick : undefined}
         />
       </ProfilingDetailsFrameTabs>

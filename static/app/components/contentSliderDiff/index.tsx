@@ -19,10 +19,10 @@ interface Props {
   before: React.ReactNode;
   minHeight?: CSSProperties['minHeight'];
   /**
-   * A callback function triggered when the divider is clicked (mouse down event).
+   * A callback function triggered when the divider is clicked.
    * Useful when we want to track analytics.
    */
-  onDragHandleMouseDown?: (e: React.MouseEvent) => void;
+  onDragHandleMouseDown?: (e: React.PointerEvent) => void;
 }
 
 /**
@@ -72,7 +72,7 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const {onMouseDown, onDoubleClick, setSize} = useResizableDrawer({
+  const {onPointerDown, onDoubleClick, setSize} = useResizableDrawer({
     direction: 'left',
     initialSize: viewDimensions.width / 2,
     min: 0,
@@ -102,19 +102,23 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
     },
   });
 
-  const handleContainerMouseDown = (event: React.MouseEvent<HTMLElement>) => {
-    if (event.button !== 0 || !containerRef.current) {
+  const handleContainerPointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    if (
+      !containerRef.current ||
+      !event.isPrimary ||
+      (event.pointerType === 'mouse' && event.button !== 0)
+    ) {
       return;
     }
     const rect = containerRef.current.getBoundingClientRect();
     const relativeX = event.clientX - rect.left;
     setSize(relativeX, true);
     onDragHandleMouseDown?.(event);
-    onMouseDown(event);
+    onPointerDown(event);
   };
 
   return (
-    <SidesContainer ref={containerRef} onMouseDown={handleContainerMouseDown}>
+    <SidesContainer ref={containerRef} onPointerDown={handleContainerPointerDown}>
       <Cover style={{width}} data-test-id="after-content">
         <Placement style={{width}}>
           <FullHeightContainer>{after}</FullHeightContainer>
@@ -169,6 +173,7 @@ const SidesContainer = styled('div')`
   position: absolute;
   inset: 0;
   cursor: ew-resize;
+  touch-action: none;
 `;
 
 const DragIndicator = styled('div')`

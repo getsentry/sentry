@@ -17,7 +17,7 @@ type Props = {
   onClose: () => void;
   projectId: undefined | string;
   startTimestampMs: number;
-} & Omit<ReturnType<typeof useResizableDrawer>, 'onPointerDown' | 'size'>;
+} & Omit<ReturnType<typeof useResizableDrawer>, 'size'>;
 
 export function NetworkDetails({
   isHeld,
@@ -26,7 +26,7 @@ export function NetworkDetails({
   item,
   onClose,
   onDoubleClick,
-  onMouseDown,
+  onPointerDown,
   projectId,
   startTimestampMs,
 }: Props) {
@@ -42,7 +42,7 @@ export function NetworkDetails({
         isHeld={isHeld}
         onClose={onClose}
         onDoubleClick={onDoubleClick}
-        onMouseDown={onMouseDown}
+        onPointerDown={onPointerDown}
       >
         <NetworkDetailsTabs />
       </DetailsSplitDivider>

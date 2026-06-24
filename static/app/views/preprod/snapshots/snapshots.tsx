@@ -255,7 +255,7 @@ export default function SnapshotsPage() {
   const {
     size: sidebarWidth,
     isHeld,
-    onMouseDown,
+    onPointerDown,
     onDoubleClick,
   } = useResizableDrawer({
     direction: 'left',
@@ -801,7 +801,7 @@ export default function SnapshotsPage() {
         </Flex>
         <DragHandle
           data-is-held={isHeld}
-          onMouseDown={onMouseDown}
+          onPointerDown={onPointerDown}
           onDoubleClick={onDoubleClick}
         >
           <IconGrabbable size="sm" />
@@ -898,6 +898,7 @@ const DragHandle = styled('div')`
   width: ${p => p.theme.space.xl};
   height: 100%;
   cursor: ew-resize;
+  touch-action: none;
   user-select: inherit;
   background: linear-gradient(
     to bottom,

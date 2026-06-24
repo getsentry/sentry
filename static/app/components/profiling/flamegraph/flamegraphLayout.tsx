@@ -73,7 +73,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
     };
   }, [layout]);
 
-  const {onMouseDown, onDoubleClick} = useResizableDrawer(resizableOptions);
+  const {onPointerDown, onDoubleClick} = useResizableDrawer(resizableOptions);
 
   const onOpenMinimap = useCallback(
     () =>
@@ -291,7 +291,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
         </Stack>
         <FlamegraphDrawerContainer ref={flamegraphDrawerRef} layout={layout}>
           {cloneElement(props.flamegraphDrawer, {
-            onResize: onMouseDown,
+            onResize: onPointerDown,
             onResizeReset: onDoubleClick,
           } as any)}
         </FlamegraphDrawerContainer>

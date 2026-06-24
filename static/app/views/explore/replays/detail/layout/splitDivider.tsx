@@ -1,4 +1,4 @@
-import type {DOMAttributes, MouseEventHandler} from 'react';
+import type {DOMAttributes, MouseEventHandler, PointerEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
@@ -7,7 +7,7 @@ type Props = {
   'data-is-held': boolean;
   'data-slide-direction': 'leftright' | 'updown';
   onDoubleClick: MouseEventHandler<HTMLElement>;
-  onMouseDown: MouseEventHandler<HTMLElement>;
+  onPointerDown: PointerEventHandler<HTMLElement>;
 };
 
 export const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
@@ -21,6 +21,7 @@ export const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>
   width: 100%;
 
   user-select: inherit;
+  touch-action: none;
   background: inherit;
 
   &:hover {

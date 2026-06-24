@@ -46,7 +46,7 @@ export function AppSizeInsightsSidebar({
   const {
     isHeld,
     onDoubleClick,
-    onMouseDown,
+    onPointerDown,
     size: width,
   } = useResizableDrawer({
     direction: 'right',
@@ -115,7 +115,7 @@ export function AppSizeInsightsSidebar({
 
             <Flex flex={1} position="relative" overflow="hidden">
               <ResizeHandle
-                onMouseDown={onMouseDown}
+                onPointerDown={onPointerDown}
                 onDoubleClick={onDoubleClick}
                 data-is-held={isHeld}
                 data-slide-direction="leftright"
@@ -164,6 +164,7 @@ const ResizeHandle = styled(Flex)`
   justify-content: center;
   z-index: 10;
   cursor: ew-resize;
+  touch-action: none;
   background: transparent;
 
   &:hover {

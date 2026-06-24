@@ -54,10 +54,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
    */
   onDoubleClick: React.MouseEventHandler<HTMLElement>;
   /**
-   * Apply to the drag handle element
-   */
-  onMouseDown: React.MouseEventHandler<HTMLElement>;
-  /**
    * Apply to the drag handle element. Supports touch and pen input.
    */
   onPointerDown: React.PointerEventHandler<HTMLElement>;
@@ -184,20 +180,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     currentMouseVectorRaf.current = [clientX, clientY];
   }, []);
 
-  const onMouseDown = useCallback(
-    (evt: React.MouseEvent<HTMLElement>) => {
-      if (evt.button !== 0) {
-        return;
-      }
-
-      evt.preventDefault();
-      startDrag(evt.clientX, evt.clientY);
-      document.addEventListener('mousemove', onDragMove, {passive: false});
-      document.addEventListener('mouseup', onDragEnd);
-    },
-    [onDragMove, onDragEnd, startDrag]
-  );
-
   const onPointerDown = useCallback(
     (evt: React.PointerEvent<HTMLElement>) => {
       if (!evt.isPrimary || (evt.pointerType === 'mouse' && evt.button !== 0)) {
@@ -225,5 +207,5 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     };
   });
 
-  return {size, isHeld, onMouseDown, onPointerDown, onDoubleClick, setSize: updateSize};
+  return {size, isHeld, onPointerDown, onDoubleClick, setSize: updateSize};
 }
