@@ -23,7 +23,7 @@ export function AiConfigureSeerQuotaSidebar({
   const subscription = useSubscription();
 
   useRouteAnalyticsParams({
-    seerNeedQuota: !aiConfig.hasAutofixQuota,
+    seerNeedQuota: aiConfig.isAutofixSetupLoading ? undefined : !aiConfig.hasAutofixQuota,
   });
 
   if (aiConfig.isAutofixSetupLoading) {

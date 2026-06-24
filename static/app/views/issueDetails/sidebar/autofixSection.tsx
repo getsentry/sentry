@@ -180,7 +180,8 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
 
   useRouteAnalyticsParams({
     seerNeedOrgSetup: isPending ? undefined : needOrgSetup,
-    seerNeedProjSetup: isPending ? undefined : needProjSetup,
+    seerNeedProjSetup:
+      isPending || aiConfig.isAutofixSetupLoading ? undefined : needProjSetup,
   });
 
   if (
