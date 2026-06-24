@@ -8,6 +8,8 @@ can reuse it without pulling in GitHub/GitLab internals.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 from django.db import router, transaction
 
@@ -16,12 +18,14 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
+    OrganizationContributorAction,
     OrganizationContributors,
 )
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -136,3 +140,40 @@ def track_contributor_seat(
         and locked_contributor.num_actions >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
     ):
         assign_seat_to_organization_contributor.delay(locked_contributor.id)
+
+
+def record_contributor_action(
+    *,
+    organization: Organization,
+    repo: Repository,
+    integration_id: int,
+    user_id: str | int,
+    user_username: str | None,
+    provider: str,
+    pr_number: str | int,
+    is_opened: bool,
+    tags: Mapping[str, Any] | None = None,
+) -> None:
+    """Seed a contributor and record the contributor's PR-opened action."""
+    if not features.has("organizations:dual-write-contributor-actions", organization):
+        return
+
+    contributor, _ = OrganizationContributors.objects.get_or_create(
+        organization_id=organization.id,
+        integration_id=integration_id,
+        external_identifier=str(user_id),
+        defaults={"alias": user_username},
+    )
+
+    if is_opened and should_increment_contributor_seat(organization, repo, contributor):
+        _, created = OrganizationContributorAction.objects.get_or_create(
+            repository_id=repo.id,
+            pr_number=str(pr_number),
+            defaults={"organization_contributor": contributor},
+        )
+        if created:
+            metrics.incr(
+                "scm.webhook.organization_contributor.action_recorded",
+                sample_rate=1.0,
+                tags={"provider": provider, **(tags or {})},
+            )

@@ -27,8 +27,12 @@ from sentry.integrations.github.webhook import (
     CheckSuiteWebhook,
     GitHubIntegrationsWebhookEndpoint,
     InstallationRepositoriesEventWebhook,
+    _track_contributor_action_processor,
 )
-from sentry.integrations.github.webhook_types import InstallationRepositoriesEvent
+from sentry.integrations.github.webhook_types import (
+    GithubWebhookType,
+    InstallationRepositoriesEvent,
+)
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -44,7 +48,7 @@ from sentry.models.repository import Repository
 from sentry.pr_metrics.webhooks import handle_check_suite as pr_metrics_handle_check_suite
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
@@ -1953,3 +1957,79 @@ class IssuesEventWebhookTest(APITestCase):
             assert response.status_code == 204
             # Sync should be called for each org that has a linked issue
             assert mock_sync.call_count >= 1
+
+
+class TrackContributorActionProcessorTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        self.repo = self.create_repo(
+            project=self.project, provider="integrations:github", integration_id=self.integration.id
+        )
+        self.rpc_integration = integration_service.get_integration(
+            integration_id=self.integration.id
+        )
+
+    @patch("sentry.integrations.github.webhook.record_contributor_action")
+    def test_success(self, mock_record: MagicMock) -> None:
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event=json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
+            organization=self.organization,
+            repo=self.repo,
+            integration=self.rpc_integration,
+        )
+
+        mock_record.assert_called_once()
+        kwargs = mock_record.call_args.kwargs
+        assert kwargs["organization"].id == self.organization.id
+        assert kwargs["repo"].id == self.repo.id
+        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["user_id"] == "6752317"
+        assert kwargs["user_username"] == "baxterthehacker"
+        assert kwargs["provider"] == "github"
+        assert kwargs["pr_number"] == 1
+        assert kwargs["is_opened"] is True
+        assert kwargs["tags"] == {"is_private": False}
+
+    @patch("sentry.integrations.github.webhook.record_contributor_action")
+    def test_is_opened_false_for_non_opened_action(self, mock_record: MagicMock) -> None:
+        event = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        event["action"] = "synchronize"
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            integration=self.rpc_integration,
+        )
+
+        assert mock_record.call_args.kwargs["is_opened"] is False
+
+    @patch("sentry.integrations.github.webhook.record_contributor_action")
+    def test_no_integration_skips(self, mock_record: MagicMock) -> None:
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event=json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
+            organization=self.organization,
+            repo=self.repo,
+            integration=None,
+        )
+
+        mock_record.assert_not_called()
+
+    @patch("sentry.integrations.github.webhook.record_contributor_action")
+    def test_missing_pull_request_skips(self, mock_record: MagicMock) -> None:
+        event = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        del event["pull_request"]
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            integration=self.rpc_integration,
+        )
+
+        mock_record.assert_not_called()
