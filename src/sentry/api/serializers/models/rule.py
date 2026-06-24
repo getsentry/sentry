@@ -305,6 +305,14 @@ class RuleSerializer(Serializer[RuleSerializerResponse]):
                         action_data["targetIdentifier"] = str(action_data["targetIdentifier"])
                     if "fallthroughType" not in action_data:
                         action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+                # IssueOwners email actions also emit a default fallthroughType to match
+                # WorkflowEngineRuleSerializer output
+                elif (
+                    action_data.get("id") == EMAIL_ACTION
+                    and action_data.get("targetType") == ActionTargetType.ISSUE_OWNERS.value
+                    and "fallthroughType" not in action_data
+                ):
+                    action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
                 actions.append(action_data)
             except serializers.ValidationError:
                 # Integrations can be deleted and we don't want to fail to load the rule
@@ -695,16 +703,21 @@ class WorkflowEngineRuleSerializer(Serializer):
                 # HACKs below - we don't want to change the underlying data we render for ACI but we need to return it in the expected issue alert format
 
                 # XXX: convert fallthrough_type to fallthroughType
-                if action_data.get("fallthrough_type"):
-                    action_data["fallthroughType"] = action_data.get("fallthrough_type")
-                    del action_data["fallthrough_type"]
+                if "fallthrough_type" in action_data:
+                    fallthrough_type = action_data.pop("fallthrough_type")
+                    if fallthrough_type:
+                        action_data["fallthroughType"] = fallthrough_type
 
-                # XXX: add default fallthroughType for email Team/Member actions
+                # XXX: add default fallthroughType for email Team/Member/IssueOwners actions
                 if (
                     action.type == Action.Type.EMAIL.value
                     and "fallthroughType" not in action_data
                     and action_data.get("targetType")
-                    in (ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value)
+                    in (
+                        ActionTargetType.MEMBER.value,
+                        ActionTargetType.TEAM.value,
+                        ActionTargetType.ISSUE_OWNERS.value,
+                    )
                 ):
                     action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
 
