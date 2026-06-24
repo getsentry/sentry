@@ -184,15 +184,14 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
             navigate(target, {replace: true});
           }
           break;
-        case NavigationTour.DASHBOARDS:
-          if (activeGroup !== 'dashboards') {
-            const target = normalizeUrl({
-              pathname: `/${prefix}/dashboards/`,
-              query: {referrer: NAVIGATION_TOUR_REFERRER},
-            });
-            navigate(target, {replace: true});
-          }
+        case NavigationTour.DASHBOARDS: {
+          const target = normalizeUrl({
+            pathname: `/${prefix}/dashboards/`,
+            query: {referrer: NAVIGATION_TOUR_REFERRER},
+          });
+          navigate(target, {replace: true});
           break;
+        }
         case NavigationTour.INSIGHTS: {
           const hasPrebuiltDashboards = organization.features.includes(
             'dashboards-prebuilt-insights-dashboards'
