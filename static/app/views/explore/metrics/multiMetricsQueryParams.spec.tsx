@@ -368,14 +368,12 @@ describe('MultiMetricsQueryParamsProvider', () => {
 
     expect(result.current[3]!.queryParams.aggregateFields).toEqual([
       new VisualizeEquation(
-        'equation|avg(value,newSelectedMetric,gauge,none) + sum(value,metricB,distribution,none)',
-        {internalExpression: ' A  +  B '}
+        'equation|avg(value,newSelectedMetric,gauge,none) + sum(value,metricB,distribution,none)'
       ),
     ]);
     expect(result.current[4]!.queryParams.aggregateFields).toEqual([
       new VisualizeEquation(
-        'equation|avg(value,newSelectedMetric,gauge,none) - sum(value,metricC,distribution,none)',
-        {internalExpression: ' A  -  C '}
+        'equation|avg(value,newSelectedMetric,gauge,none) - sum(value,metricC,distribution,none)'
       ),
     ]);
   });

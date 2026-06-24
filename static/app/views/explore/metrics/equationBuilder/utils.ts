@@ -101,10 +101,7 @@ export function syncEquationMetricQueries(
 
     const resolvedExpression = resolveExpression(expression, nextReferenceMap);
 
-    if (
-      resolvedExpression.text === visualize.expression.text &&
-      visualize.internalExpression
-    ) {
+    if (resolvedExpression.text === visualize.expression.text) {
       return metricQuery;
     }
 
@@ -120,7 +117,7 @@ export function syncEquationMetricQueries(
 
           return field.replace({
             yAxis: `${EQUATION_PREFIX}${resolvedExpression.text}`,
-            internalExpression: internalExpressionText,
+            internalExpression: visualize.internalExpression,
           });
         }),
       }),
