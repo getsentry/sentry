@@ -10,6 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 
 interface Props {
+  disabledFromFeatures: boolean;
   installationStatus: IntegrationInstallationStatus;
   onInstall: (integration: Integration) => void;
   organization: Organization;
@@ -32,6 +33,7 @@ export function useAutoOpenInstallModal({
   organization,
   onInstall,
   installationStatus,
+  disabledFromFeatures,
 }: Props) {
   const [showInstallModal, setShowInstallModal] = useQueryState('showInstallModal');
   const {startFlow} = useAddIntegration();
@@ -47,12 +49,6 @@ export function useAutoOpenInstallModal({
     if (autoOpenedForRef.current === provider.key) {
       return;
     }
-    // Mirror the install button's plan gate: install is disabled when the org
-    // has none of the provider's feature flags.
-    const features = provider.metadata.features;
-    const disabledFromFeatures =
-      features.length > 0 &&
-      !features.some(feature => organization.features.includes(feature.featureGate));
     if (disabledFromFeatures) {
       return;
     }
@@ -76,6 +72,7 @@ export function useAutoOpenInstallModal({
     organization,
     onInstall,
     installationStatus,
+    disabledFromFeatures,
     startFlow,
     setShowInstallModal,
   ]);

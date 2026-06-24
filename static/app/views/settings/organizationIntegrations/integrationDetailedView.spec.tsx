@@ -7,6 +7,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as pipelineModal from 'sentry/components/pipeline/modal';
+import * as integrationUtil from 'sentry/utils/integrationUtil';
 import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
 describe('IntegrationDetailedView', () => {
@@ -382,49 +383,27 @@ describe('IntegrationDetailedView', () => {
       expect(openPipelineModalSpy).not.toHaveBeenCalled();
     });
 
-    it('does not auto-open when the org plan disables install', async () => {
+    it('does not auto-open when the plan gate disables install', async () => {
       const openPipelineModalSpy = jest
         .spyOn(pipelineModal, 'openPipelineModal')
         .mockImplementation(() => {});
 
-      // Org lacks the feature flags Slack requires, so install is plan-gated off.
-      const gatedOrg = OrganizationFixture({
-        access: ['org:integrations', 'org:write'],
-        features: [],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${gatedOrg.slug}/config/integrations/`,
-        match: [MockApiClient.matchQuery({provider_key: 'slack'})],
-        body: {
-          providers: [
-            {
-              canAdd: true,
-              canDisable: false,
-              features: ['alert-rule', 'chat-unfurl'],
-              key: 'slack',
-              metadata: {
-                aspects: {},
-                author: 'The Sentry Team',
-                description: 'Connect your Sentry organization to Slack.',
-                features: [
-                  {featureGate: 'integrations-alert-rule', description: 'Alert rules'},
-                  {featureGate: 'integrations-chat-unfurl', description: 'Chat unfurl'},
-                ],
-                issue_url: 'https://github.com/getsentry/sentry/issues/new',
-                noun: 'Installation',
-                source_url:
-                  'https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack',
-              },
-              name: 'Slack',
-              slug: 'slack',
-            },
-          ],
-        },
+      // Simulate the gsApp IntegrationFeatures gate reporting the integration as
+      // plan-disabled (the default sentry gate always reports enabled).
+      jest.spyOn(integrationUtil, 'getIntegrationFeatureGate').mockReturnValue({
+        IntegrationFeatures: ({children}) =>
+          children({
+            disabled: true,
+            disabledReason: 'Requires a higher plan',
+            ungatedFeatures: [],
+            gatedFeatureGroups: [],
+          }),
+        FeatureList: () => null,
       });
 
       render(<IntegrationDetailedView />, {
         initialRouterConfig: createRouterConfig('slack', {showInstallModal: '1'}),
-        organization: gatedOrg,
+        organization,
       });
 
       expect(await screen.findByText('Slack')).toBeInTheDocument();
