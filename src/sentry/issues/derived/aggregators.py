@@ -3,6 +3,7 @@ from sentry.issues.derived.features import (
     LAST_PROGRESSED_AT,
     PROGRESS,
     STATUS,
+    STATUS_FROM_MERGED,
     VIEW_COUNT,
     IssueStatus,
 )
@@ -23,7 +24,7 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
 
 
 @aggregator(
-    (STATUS,),
+    (STATUS, STATUS_FROM_MERGED),
     scope=(
         GroupActionType.RESOLVE,
         GroupActionType.UNRESOLVE,
@@ -33,6 +34,11 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
     ),
 )
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    from_merged = entry.original_group_id is not None
+    merged_status_locked = state[STATUS_FROM_MERGED]
+    if merged_status_locked and not from_merged:
+        return None
+
     current = state[STATUS]
     resolves = (
         GroupActionType.RESOLVE.value,
@@ -43,11 +49,17 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
         GroupActionType.UNRESOLVE.value,
         GroupActionType.SET_REGRESSED.value,
     )
+    new_status = current
     if entry.type in resolves and current == IssueStatus.OPEN:
-        return emit(STATUS.value(IssueStatus.CLOSED))
-    if entry.type in reopens and current == IssueStatus.CLOSED:
-        return emit(STATUS.value(IssueStatus.OPEN))
-    return None
+        new_status = IssueStatus.CLOSED
+    elif entry.type in reopens and current == IssueStatus.CLOSED:
+        new_status = IssueStatus.OPEN
+
+    if new_status == current and not (from_merged and not merged_status_locked):
+        return None
+    return emit(
+        STATUS.value(new_status), STATUS_FROM_MERGED.value(merged_status_locked or from_merged)
+    )
 
 
 # Progress state machine for open issues (None when closed).

@@ -16,6 +16,9 @@ VIEW_COUNT = Feature[int]("view_count", default=0)
 # Status of the issue based on the log.
 STATUS = Feature[IssueStatus]("status", default=IssueStatus.OPEN, codec=EnumCodec(IssueStatus))
 
+# Status may differ if groups have been merged in
+STATUS_FROM_MERGED = Feature[bool]("status_from_merged", default=False)
+
 # The current Progress of the issue.
 PROGRESS = Feature[IssueProgressState | None](
     "progress",

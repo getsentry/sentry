@@ -57,6 +57,7 @@ class FakeEntry:
     actor_type: int = GroupActorType.SYSTEM
     actor_id: int = 0
     data: dict[str, object] = field(default_factory=dict)
+    original_group_id: int | None = None
 
 
 def _ts(year: int = 2025, month: int = 1, day: int = 1, hour: int = 0) -> datetime:
@@ -236,6 +237,26 @@ def test_resolved_in_pr_when_already_closed_is_noop() -> None:
             ],
         )
         == IssueStatus.CLOSED
+    )
+
+
+def test_merged_archive_unresolve() -> None:
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                # group B is archived and then unresolved, b is merged into a
+                FakeEntry(
+                    type=GroupActionType.ARCHIVE, date_added=_ts(hour=1), original_group_id=1
+                ),
+                FakeEntry(
+                    type=GroupActionType.UNRESOLVE, date_added=_ts(hour=2), original_group_id=1
+                ),
+                # group A is archived later, but the merged group's status wins
+                FakeEntry(type=GroupActionType.ARCHIVE, date_added=_ts(hour=3)),
+            ],
+        )
+        == IssueStatus.OPEN
     )
 
 
