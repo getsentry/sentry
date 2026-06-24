@@ -44,7 +44,7 @@ from sentry.utils.sdk import bind_organization_context
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from rediscluster import RedisCluster
+    from sentry_redis_tools.clients import RedisCluster
 
 
 class ChunkFileState:

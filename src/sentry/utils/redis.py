@@ -10,7 +10,7 @@ import rb
 from django.utils.functional import SimpleLazyObject
 from redis.client import Script, StrictRedis
 from redis.connection import ConnectionPool
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 from sentry_redis_tools.failover_redis import FailoverRedis
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 

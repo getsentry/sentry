@@ -16,7 +16,7 @@ from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition, Value
 from django.conf import settings
 from redis.client import StrictRedis
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic

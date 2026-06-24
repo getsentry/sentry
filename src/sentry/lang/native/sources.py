@@ -15,7 +15,7 @@ from django.conf import settings
 from django.urls import reverse
 from google.auth import impersonated_credentials
 from google.auth.transport.requests import Request
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import features, options
 from sentry.auth.system import get_system_token

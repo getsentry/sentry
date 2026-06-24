@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db import router
 from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import options
 from sentry.models.artifactbundle import (

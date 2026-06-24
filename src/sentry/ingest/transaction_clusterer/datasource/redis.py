@@ -7,8 +7,8 @@ from typing import Any
 import orjson
 import sentry_sdk
 from django.conf import settings
-from rediscluster import RedisCluster
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
