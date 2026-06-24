@@ -41,8 +41,18 @@ describe('useScmProjectDetails', () => {
     );
   }
 
+  beforeEach(() => {
+    // useCreateNotificationAction queries messaging integrations on mount.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+    });
+  });
+
   afterEach(() => {
     TeamStore.reset();
+    MockApiClient.clearMockResponses();
   });
 
   it('does not report the team as missing while teams are still loading', () => {
