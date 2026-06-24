@@ -21,6 +21,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
+import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {
   useMaxPickableDays,
@@ -81,17 +82,19 @@ function ExploreContentInner() {
     dataCategories: [DataCategory.SPANS],
   });
 
-  const bootstrappedOrganizationHasHighRange = bootstrapOrganization?.features.includes(
-    'visibility-explore-range-high'
-  );
+  const bootstrappedOrganizationHasHighRange = bootstrapOrganization
+    ? FeatureFlagOverrides.singleton()
+        .getEnabledFeatureFlagList(bootstrapOrganization)
+        .includes('visibility-explore-range-high')
+    : undefined;
   const organizationHasHighRange = organization.features.includes(
     'visibility-explore-range-high'
   );
 
   // PageFiltersContainer normalizes URL date params on mount. Wait until the
   // bootstrapped org and OrganizationContext agree on the spans range feature.
-  // The bootstrap query gives us the loaded org feature flags before context
-  // may reflect them, so shared 90d links are not clamped using stale org data.
+  // Compare effective bootstrap flags so stored toolbar overrides do not keep
+  // the bootstrapped org and OrganizationContext permanently out of sync.
   const organizationRangeLoading =
     organizationLoading ||
     isBootstrapOrganizationPending ||

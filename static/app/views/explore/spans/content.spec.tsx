@@ -7,6 +7,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
+import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MAX_PERIOD_FOR_CROSS_EVENTS} from 'sentry/views/explore/constants';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -117,6 +118,7 @@ describe('ExploreContent', () => {
     // Suppress console errors from CompactSelect async updates
     jest.spyOn(console, 'error').mockImplementation();
 
+    FeatureFlagOverrides.singleton().clear();
     PageFiltersStore.init();
     OrganizationStore.onUpdate(organization, {replace: true});
 
@@ -137,6 +139,7 @@ describe('ExploreContent', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    FeatureFlagOverrides.singleton().clear();
     OrganizationStore.reset();
     ProjectsStore.reset();
     jest.clearAllMocks();
@@ -227,6 +230,42 @@ describe('ExploreContent', () => {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/explore/traces/',
+          query: {statsPeriod: '90d'},
+        },
+      },
+    });
+
+    await screen.findByText('Traces');
+
+    await waitFor(() =>
+      expect(PageFiltersStore.getState().selection.datetime).toEqual({
+        period: '30d',
+        start: null,
+        end: null,
+        utc: null,
+      })
+    );
+  });
+
+  it('does not keep loading when toolbar overrides disable the high range flag', async () => {
+    act(() => ProjectsStore.loadInitialData([highRangeProject]));
+    FeatureFlagOverrides.singleton().setStoredOverride(
+      'visibility-explore-range-high',
+      false
+    );
+
+    const highRangeOrganizationWithOverride = {
+      ...highRangeOrganization,
+      features: ['gen-ai-features'],
+    };
+    OrganizationStore.onUpdate(highRangeOrganizationWithOverride, {replace: true});
+
+    render(<ExploreContent />, {
+      organization: highRangeOrganizationWithOverride,
+      additionalWrapper: TopBarWrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${highRangeOrganization.slug}/explore/traces/`,
           query: {statsPeriod: '90d'},
         },
       },
