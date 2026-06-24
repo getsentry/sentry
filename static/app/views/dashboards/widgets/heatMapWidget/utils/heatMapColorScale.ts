@@ -50,7 +50,7 @@
  * constant — but we intentionally do not build that yet.
  */
 
-export interface HeatMapColorScale {
+interface HeatMapColorScale {
   /**
    * Maps a raw Z value to a color position in `[0, 1]`, where `0` is the bottom
    * of the palette (and, for `z <= 0`, transparent) and `1` is the top. Returns

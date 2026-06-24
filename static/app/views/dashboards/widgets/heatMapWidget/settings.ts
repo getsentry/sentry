@@ -74,21 +74,21 @@ const OLD_SENTRY = [
 ] as const;
 
 /** Every selectable heat map palette, keyed by name. */
-export const HEATMAP_PALETTES = {
+const HEATMAP_PALETTES = {
   viridis: VIRIDIS,
   magma: MAGMA,
   brand: SENTRY_BRAND,
   old: OLD_SENTRY,
 } as const;
 
-export type HeatMapPaletteName = keyof typeof HEATMAP_PALETTES;
+type HeatMapPaletteName = keyof typeof HEATMAP_PALETTES;
 
 /**
  * Which palette to use for each theme. Change these two values to re-skin the
  * heat map — pick a low end that's visible against that theme's background and a
  * top end that contrasts it.
  */
-export const HEATMAP_PALETTE_BY_THEME: Record<'light' | 'dark', HeatMapPaletteName> = {
+const HEATMAP_PALETTE_BY_THEME: Record<'light' | 'dark', HeatMapPaletteName> = {
   light: 'brand',
   dark: 'brand',
 };
