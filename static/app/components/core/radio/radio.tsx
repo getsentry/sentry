@@ -10,10 +10,14 @@ interface RadioProps extends Omit<
 > {
   nativeSize?: React.InputHTMLAttributes<HTMLInputElement>['size'];
   ref?: React.Ref<HTMLInputElement>;
-  size?: 'sm' | 'md';
+  size?: 'xs' | 'sm' | 'md';
 }
 
 const radioConfig = {
+  xs: {
+    outerSize: '12px',
+    innerSize: '6px',
+  },
   sm: {
     outerSize: '20px',
     innerSize: '10px',

@@ -35,11 +35,12 @@ Use `<Radio>` for forms and settings where users must choose exactly one option 
 
 ## Sizes
 
-`<Radio>` comes in two sizes: `md` (default) and `sm` (small).
+`<Radio>` comes in three sizes: `md` (default), `sm` (small), and `xs` (extra small).
 
 export function SizesDemo() {
   const [md, setMd] = useState(true);
   const [sm, setSm] = useState(true);
+  const [xs, setXs] = useState(true);
   return (
     <Storybook.SideBySide>
       <Flex as="label" align="center" gap="sm">
@@ -49,6 +50,10 @@ export function SizesDemo() {
       <Flex as="label" align="center" gap="sm">
         Small
         <Radio size="sm" checked={sm} onClick={() => setSm(!sm)} />
+      </Flex>
+      <Flex as="label" align="center" gap="sm">
+        Extra small
+        <Radio size="xs" checked={xs} onClick={() => setXs(!xs)} />
       </Flex>
     </Storybook.SideBySide>
   );
@@ -61,6 +66,7 @@ export function SizesDemo() {
 ```jsx
 <Radio checked={checked} onChange={handleChange} />
 <Radio size="sm" checked={checked} onChange={handleChange} />
+<Radio size="xs" checked={checked} onChange={handleChange} />
 ```
 
 ## States
