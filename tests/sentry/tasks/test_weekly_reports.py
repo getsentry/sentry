@@ -2059,6 +2059,7 @@ class WeeklyReportsTest(
             status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.ESCALATING,
             last_seen=self.now - timedelta(days=1),
+            first_seen=self.now - timedelta(days=2),
             level=40,  # logging.ERROR
             times_seen=1000,
             data={"type": "error", "metadata": {"type": "ValueError"}},
@@ -2071,11 +2072,12 @@ class WeeklyReportsTest(
         )
 
         assert score > 0
-        # Event volume: ln(1001)/ln(10001) ≈ 0.75 -> 0.30 * 0.75 = 0.225
-        # Recency: 6/7 ≈ 0.857 -> 0.25 * 0.857 = 0.214
+        # Event volume: ln(1001)/ln(10001) ≈ 0.75 -> 0.25 * 0.75 = 0.188
+        # Recency: 6/7 ≈ 0.857 -> 0.20 * 0.857 = 0.171
         # Substatus: escalating=1.0 -> 0.25 * 1.0 = 0.25
-        # Severity: error=0.75 -> 0.20 * 0.75 = 0.15
-        # Total ≈ 0.839
+        # Severity: error=0.75 -> 0.15 * 0.75 = 0.113
+        # Newness: first_seen in window=1.0 -> 0.15 * 1.0 = 0.15
+        # Total ≈ 0.872
         assert 0.7 < score < 0.95
 
     def test_compute_actionability_score_low_signals(self) -> None:
@@ -2087,6 +2089,7 @@ class WeeklyReportsTest(
             status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.ONGOING,
             last_seen=window_start + timedelta(hours=1),
+            first_seen=self.now - timedelta(days=30),
             level=20,  # logging.INFO (performance issue level)
             times_seen=5,
             type=PerformanceNPlusOneGroupType.type_id,
@@ -2137,6 +2140,40 @@ class WeeklyReportsTest(
         )
 
         assert score_escalating > score_ongoing
+
+    def test_compute_actionability_score_new_issue_boost(self) -> None:
+        window_start = self.now - timedelta(days=7)
+        window_end = self.now
+
+        new_issue = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.NEW,
+            last_seen=self.now - timedelta(days=1),
+            first_seen=self.now - timedelta(days=2),
+            level=40,
+            times_seen=100,
+            data={"type": "error", "metadata": {"type": "ValueError"}},
+        )
+        old_issue = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.NEW,
+            last_seen=self.now - timedelta(days=1),
+            first_seen=self.now - timedelta(days=30),
+            level=40,
+            times_seen=100,
+            data={"type": "error", "metadata": {"type": "TypeError"}},
+        )
+
+        score_new = compute_actionability_score(
+            group=new_issue, window_start=window_start, window_end=window_end
+        )
+        score_old = compute_actionability_score(
+            group=old_issue, window_start=window_start, window_end=window_end
+        )
+
+        assert score_new > score_old
 
     @with_feature({"organizations:weekly-report-top-actionable-issues": True})
     def test_top_actionable_issues_renders_in_template(self) -> None:

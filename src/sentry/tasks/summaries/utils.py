@@ -969,6 +969,7 @@ def compute_actionability_score(
     recency_weight = options.get("weekly-report.actionability.recency-weight")
     substatus_weight = options.get("weekly-report.actionability.substatus-weight")
     severity_weight = options.get("weekly-report.actionability.severity-weight")
+    newness_weight = options.get("weekly-report.actionability.newness-weight")
 
     # Log-scaled all-time event count, normalized to 0-1 (10k events = 1.0)
     event_volume = min(1.0, math.log(group.times_seen + 1) / math.log(10001))
@@ -986,11 +987,15 @@ def compute_actionability_score(
     substatus = SUBSTATUS_SCORE.get(group.substatus, 0.0)
     severity = SEVERITY_SCORE.get(group.level, 0.0)
 
+    # Binary: was this issue first seen during the report window?
+    newness = 1.0 if group.first_seen and group.first_seen >= window_start else 0.0
+
     return (
         event_volume_weight * event_volume
         + recency_weight * recency
         + substatus_weight * substatus
         + severity_weight * severity
+        + newness_weight * newness
     )
 
 
@@ -1008,9 +1013,9 @@ def org_top_actionable_issues(
                 last_seen__gte=ctx.start,
             )
             .order_by("-times_seen")
-            .only("id", "project_id", "times_seen", "level", "substatus", "last_seen")[
-                : per_project_limit * len(project_ids)
-            ]
+            .only(
+                "id", "project_id", "times_seen", "level", "substatus", "last_seen", "first_seen"
+            )[: per_project_limit * len(project_ids)]
         )
 
         if not candidates:

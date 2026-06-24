@@ -854,12 +854,12 @@ register(
 # Weekly report actionability scoring weights (adapted recommended sort for batch reports)
 register(
     "weekly-report.actionability.event-volume-weight",
-    default=0.30,
+    default=0.25,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "weekly-report.actionability.recency-weight",
-    default=0.25,
+    default=0.20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -869,7 +869,12 @@ register(
 )
 register(
     "weekly-report.actionability.severity-weight",
-    default=0.20,
+    default=0.15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "weekly-report.actionability.newness-weight",
+    default=0.15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
