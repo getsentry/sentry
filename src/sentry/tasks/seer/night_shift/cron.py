@@ -298,12 +298,6 @@ def run_night_shift_execution(
         _record_run_error(run, "No Seer quota available")
         return None
 
-    # No code generation => no PR can be opened. Guards the manual path (cron is
-    # already filtered in _get_eligible_orgs_from_batch).
-    if not organization.get_option("sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT):
-        logger.info("night_shift.code_generation_disabled", extra=log_extra)
-        return None
-
     try:
         eligible = _get_eligible_projects(
             organization, resolved_options["source"], project_ids=project_ids

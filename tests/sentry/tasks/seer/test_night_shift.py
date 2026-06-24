@@ -431,23 +431,6 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         assert not SeerRun.objects.filter(organization=org).exists()
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
-    def test_skips_when_code_generation_disabled(self) -> None:
-        org = self.create_organization()
-        org.update_option("sentry:enable_seer_coding", False)
-        project = self.create_project(organization=org)
-        self._make_eligible(project)
-        self._store_event_and_update_group(
-            project, "fixable", seer_fixability_score=0.9, times_seen=5
-        )
-
-        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
-            run_night_shift_for_org(org.id)
-            info_events = [call.args[0] for call in mock_logger.info.call_args_list]
-            assert "night_shift.code_generation_disabled" in info_events
-
-        # Bailed before enumerating projects: no Seer dispatch.
-        assert not SeerRun.objects.filter(organization=org).exists()
-
     def test_max_candidates_defaults_to_global_option(self) -> None:
         org = self.create_organization()
         low = self.create_project(organization=org, slug="low")
