@@ -95,6 +95,7 @@ from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
+from sentry.utils import metrics
 from sentry.utils.committers import (
     get_event_file_committers,
     get_frame_paths,
@@ -1570,6 +1571,7 @@ def get_issue_committers(
     try:
         suspect_commits = get_serialized_committers(group.project, group.id)
     except Exception:
+        metrics.incr("seer.get_issue_committers.error", tags={"step": "suspect_commits"})
         logger.exception(
             "get_issue_committers: Failed to get suspect commits",
             extra={"organization_id": organization_id, "issue_id": issue_id},
@@ -1611,6 +1613,7 @@ def get_issue_committers(
         # No release/commit data linked to this issue; frame blame isn't available.
         stack_commits = []
     except Exception:
+        metrics.incr("seer.get_issue_committers.error", tags={"step": "stack_commits"})
         logger.exception(
             "get_issue_committers: Failed to compute stack commits",
             extra={"organization_id": organization_id, "issue_id": issue_id},
@@ -1646,6 +1649,7 @@ def get_issue_committers(
                     }
                 )
     except Exception:
+        metrics.incr("seer.get_issue_committers.error", tags={"step": "release_commits"})
         logger.exception(
             "get_issue_committers: Failed to fetch release commits",
             extra={"organization_id": organization_id, "issue_id": issue_id},
