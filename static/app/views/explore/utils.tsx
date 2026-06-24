@@ -794,3 +794,41 @@ interface RemarkObject {
   ruleId: string;
   type: string;
 }
+
+const SAMPLING_SENSITIVE_AGGREGATES = new Set(['count_unique']);
+const LOW_SAMPLE_RATE_THRESHOLD = 0.8;
+
+export function shouldWarnSamplingSensitive(
+  yAxis: string,
+  series: TimeSeries[]
+): boolean {
+  if (!isSamplingSensitiveAggregate(yAxis)) {
+    return false;
+  }
+  const avgSampleRate = computeAvgSampleRate(series);
+  return defined(avgSampleRate) && avgSampleRate < LOW_SAMPLE_RATE_THRESHOLD;
+}
+
+function isSamplingSensitiveAggregate(yAxis: string): boolean {
+  const parsed = parseFunction(yAxis);
+  if (!parsed) {
+    return false;
+  }
+  return SAMPLING_SENSITIVE_AGGREGATES.has(parsed.name);
+}
+
+function computeAvgSampleRate(series: TimeSeries[]): number | undefined {
+  let total = 0;
+  let count = 0;
+
+  for (const s of series.filter(defined)) {
+    for (const item of s.values) {
+      if (defined(item.sampleRate)) {
+        total += item.sampleRate;
+        count += 1;
+      }
+    }
+  }
+
+  return count > 0 ? total / count : undefined;
+}
