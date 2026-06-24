@@ -14,6 +14,7 @@ from sentry.integrations.services.integration.serial import serialize_integratio
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.unfurl.dashboards import build_widget_timeseries_params
+from sentry.integrations.slack.unfurl.explore import _build_heatmap_query
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
@@ -1163,6 +1164,151 @@ class UnfurlTest(TestCase):
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_TIMESERIES
         chart_data = mock_generate_chart.call_args[0][1]
         assert "timeSeries" in chart_data
+
+    def _build_mock_heatmap_response(self):
+        """A HeatMapSeries-shaped events-heatmap response. The Y axis is the
+        generic `value` field, so the API returns no metric unit in the meta."""
+        return {
+            "meta": {
+                "xAxis": {"name": "time", "start": 0, "end": 1000, "bucketCount": 50},
+                "yAxis": {
+                    "name": "value",
+                    "start": 0,
+                    "end": 1000,
+                    "bucketCount": 20,
+                    "valueType": "number",
+                    "valueUnit": None,
+                },
+                "zAxis": {"name": "count()", "start": 0, "end": 15},
+            },
+            "values": [{"xAxis": 0, "yAxis": 0, "zAxis": 1}],
+        }
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_heatmap_patches_metric_unit(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_heatmap_response())
+        # A metrics heat map (chartType 3) for a millisecond-unit distribution metric.
+        metric = (
+            "%7B%22metric%22%3A%7B%22name%22%3A%22dashboards.widget.onEdit%22%2C%22type%22%3A%22"
+            "distribution%22%2C%22unit%22%3A%22millisecond%22%7D%2C%22query%22%3A%22%22%2C%22"
+            "aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22sum%28value%2Cdashboards.widget."
+            "onEdit%2Cdistribution%2Cmillisecond%29%22%5D%2C%22chartType%22%3A3%7D%5D%2C%22"
+            "mode%22%3A%22samples%22%7D"
+        )
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/metrics/"
+            f"?metric={metric}&project={self.project.id}&statsPeriod=30d"
+        )
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(
+            [
+                "organizations:data-browsing-heat-map-widget",
+                "organizations:heat-map-unfurl",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        assert mock_client_get.call_args[1]["path"].endswith("/events-heatmap/")
+        assert len(mock_generate_chart.mock_calls) == 1
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_HEATMAP
+
+        # The heat map's yAxis is the generic `value`, so the selected metric is
+        # scoped via the query filter built from the yAxis aggregate.
+        api_params = mock_client_get.call_args[1]["params"]
+        assert api_params["query"] == (
+            "( metric.name:dashboards.widget.onEdit metric.type:distribution"
+            " metric.unit:millisecond )"
+        )
+        # The URL pins no interval, so the heat map uses its coarse default (12h
+        # for 30d) rather than the timeseries default the parser injected.
+        assert api_params["interval"] == "12h"
+
+        # The Y axis meta is patched with the metric's unit/type so chartcuterie
+        # formats values as durations instead of raw numbers.
+        chart_data = mock_generate_chart.call_args[0][1]
+        y_axis_meta = chart_data["heatmap"]["meta"]["yAxis"]
+        assert y_axis_meta["valueType"] == "duration"
+        assert y_axis_meta["valueUnit"] == "millisecond"
+
+    @patch("sentry.integrations.slack.unfurl.explore.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_heatmap_skips_malformed_response(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        # The endpoint returns {"heatmap": []} (not a HeatMapSeries) when there
+        # are no projects/results; the unfurl must skip rather than render it.
+        mock_client_get.return_value = MagicMock(data={"heatmap": []})
+        metric = (
+            "%7B%22metric%22%3A%7B%22name%22%3A%22my.metric%22%2C%22type%22%3A%22distribution"
+            "%22%2C%22unit%22%3A%22millisecond%22%7D%2C%22query%22%3A%22%22%2C%22aggregateFields"
+            "%22%3A%5B%7B%22yAxes%22%3A%5B%22sum%28value%2Cmy.metric%2Cdistribution%2Cmillisecond"
+            "%29%22%5D%2C%22chartType%22%3A3%7D%5D%2C%22mode%22%3A%22samples%22%7D"
+        )
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/metrics/"
+            f"?metric={metric}&project={self.project.id}&statsPeriod=30d"
+        )
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(
+            [
+                "organizations:data-browsing-heat-map-widget",
+                "organizations:heat-map-unfurl",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert unfurls == {}
+        assert mock_generate_chart.mock_calls == []
+
+    def test_build_heatmap_query_scopes_to_selected_metric(self) -> None:
+        # The heat map's yAxis is the generic `value`, so the selected metric is
+        # scoped via a query filter built from the yAxis aggregate and ANDed with
+        # the user query. A unit-less metric matches both the `none` sentinel and
+        # items with no unit at all.
+        params = QueryDict(mutable=True)
+        params.setlist("yAxis", ["sum(value,my.metric,counter,none)"])
+        params["query"] = "span.status:ok"
+        params["statsPeriod"] = "30d"
+
+        out = _build_heatmap_query(params)
+
+        assert out["yAxis"] == "value"
+        assert out["query"] == (
+            "( metric.name:my.metric metric.type:counter"
+            " ( !has:metric.unit OR metric.unit:none ) ) (span.status:ok)"
+        )
+
+    def test_build_heatmap_query_bucket_dimensions(self) -> None:
+        # The interval is snapped to the ladder option whose column is closest to
+        # ~15px wide on the 1200x400 canvas, then yBuckets makes cells ~square.
+        # Any URL interval the dataset parser injected is ignored.
+        base = "yAxis=sum(value,my.metric,counter,none)"
+
+        # 30d: ~9h target snaps to the 12h option (~20px columns -> 20 y-buckets).
+        out = _build_heatmap_query(QueryDict(f"{base}&statsPeriod=30d&interval=3h"))
+        assert (out["interval"], out["yBuckets"]) == ("12h", "20")
+
+        # 24h: ~18m target snaps to the 10m option (~8px columns -> 50 y-buckets).
+        out = _build_heatmap_query(QueryDict(f"{base}&statsPeriod=24h"))
+        assert (out["interval"], out["yBuckets"]) == ("10m", "50")
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
