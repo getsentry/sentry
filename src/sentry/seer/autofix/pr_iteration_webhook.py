@@ -91,7 +91,7 @@ def handle_issue_comment_for_autofix_iteration(
 ) -> None:
     """
     Webhook processor for ``issue_comment`` events that triggers an Autofix PR
-    iteration when a user comments ``@sentry iterate``.
+    iteration when a user comments ``@sentry``.
     """
     action = event.get("action")
     comment = event.get("comment", {})
