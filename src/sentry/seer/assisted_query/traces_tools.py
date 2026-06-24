@@ -185,7 +185,10 @@ def get_attribute_names(
 
         fields[attr_type] = [item["name"] for item in resp.data]
         for item in resp.data:
-            if "context" in item:
+            # The endpoint attaches an (empty) context to every attribute when
+            # requested, so only keep it when there's actual metadata; otherwise
+            # the built-in field's context stays None.
+            if item.get("context"):
                 context_by_name[item["name"]] = item["context"]
 
     built_in_fields = [

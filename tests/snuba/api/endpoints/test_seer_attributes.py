@@ -112,6 +112,11 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         # data for them) carry no context.
         assert built_in_by_key["span.self_time"].context is None
 
+        # Context is either None or populated, never an empty dict (the endpoint
+        # attaches an empty context to attributes without convention metadata).
+        for field in result.built_in_fields:
+            assert field.context is None or field.context != {}
+
     def test_get_attribute_values_with_substring(self) -> None:
         for transaction in ["foo", "bar", "baz"]:
             self.store_segment(
