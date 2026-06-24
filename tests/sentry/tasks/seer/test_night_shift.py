@@ -5,6 +5,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.group import Group
 from sentry.models.organization import OrganizationStatus
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
@@ -37,6 +38,38 @@ def _dispatched_feature_body(organization):
     )
     assert outbox.payload is not None
     return seer_run, outbox.payload["body"]
+
+
+class NightShiftFixtures:
+    """Shared night-shift test setup. Mixed into the test cases below so the
+    project-eligibility and event-seeding logic lives in one place."""
+
+    def _make_eligible(
+        self, project, *, stopping_point=AutofixStoppingPoint.OPEN_PR.value, **tweak_overrides
+    ):
+        """Configure a project to pass every eligibility gate: automation on, a
+        connected repo, a PR-producing stopping point, and tweaks enabled.
+        Override stopping_point (or pass enabled=False) to exercise one gate."""
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        project.update_option("sentry:seer_automated_run_stopping_point", stopping_point)
+        repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
+        self.create_seer_project_repository(project=project, repository=repo)
+        project.update_option("sentry:seer_nightshift_tweaks", {"enabled": True, **tweak_overrides})
+        return project
+
+    def _store_event_and_update_group(self, project, fingerprint, **group_attrs):
+        event = self.store_event(
+            data={
+                "fingerprint": [fingerprint],
+                "timestamp": before_now(hours=1).isoformat(),
+                "environment": "production",
+            },
+            project_id=project.id,
+        )
+        Group.objects.filter(id=event.group_id).update(**group_attrs)
+        return Group.objects.get(id=event.group_id)
 
 
 @django_db_all
@@ -217,28 +250,21 @@ class TestScheduleNightShift(TestCase):
 
 
 @django_db_all
-class TestGetEligibleProjects(TestCase):
+class TestGetEligibleProjects(NightShiftFixtures, TestCase):
     def test_filters_by_automation_and_repos(self) -> None:
         org = self.create_organization()
 
-        # Eligible: automation on + connected repo
-        eligible = self.create_project(organization=org)
-        eligible.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
-        )
-        repo = self.create_repo(project=eligible, provider="github", name="owner/eligible-repo")
-        self.create_seer_project_repository(project=eligible, repository=repo)
+        # Eligible on every gate.
+        eligible = self._make_eligible(self.create_project(organization=org))
 
-        # Automation off (even with repo)
+        # Automation off (even with a connected repo).
         off = self.create_project(organization=org)
         off.update_option("sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF)
-        repo2 = self.create_repo(project=off, provider="github", name="owner/off-repo")
-        self.create_seer_project_repository(project=off, repository=repo2)
+        off_repo = self.create_repo(project=off, provider="github", name="owner/off-repo")
+        self.create_seer_project_repository(project=off, repository=off_repo)
 
-        # No connected repo
+        # No connected repo.
         self.create_project(organization=org)
-
-        eligible.update_option("sentry:seer_nightshift_tweaks", {"enabled": True})
 
         result = _get_eligible_projects(org, "manual")
 
@@ -247,20 +273,8 @@ class TestGetEligibleProjects(TestCase):
 
     def test_filters_by_project_id(self) -> None:
         org = self.create_organization()
-
-        target = self.create_project(organization=org)
-        target.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
-        )
-        target_repo = self.create_repo(project=target, provider="github", name="owner/target")
-        self.create_seer_project_repository(project=target, repository=target_repo)
-
-        other = self.create_project(organization=org)
-        other.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
-        )
-        other_repo = self.create_repo(project=other, provider="github", name="owner/other")
-        self.create_seer_project_repository(project=other, repository=other_repo)
+        target = self._make_eligible(self.create_project(organization=org))
+        self._make_eligible(self.create_project(organization=org))
 
         result = _get_eligible_projects(org, "manual", project_ids=[target.id])
 
@@ -268,15 +282,8 @@ class TestGetEligibleProjects(TestCase):
 
     def test_cron_filters_disabled_tweaks_manual_keeps_them(self) -> None:
         org = self.create_organization()
-
         for slug, enabled in (("on", True), ("off", False)):
-            project = self.create_project(organization=org, slug=slug)
-            project.update_option(
-                "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
-            )
-            repo = self.create_repo(project=project, provider="github", name=f"owner/{slug}")
-            self.create_seer_project_repository(project=project, repository=repo)
-            project.update_option("sentry:seer_nightshift_tweaks", {"enabled": enabled})
+            self._make_eligible(self.create_project(organization=org, slug=slug), enabled=enabled)
 
         cron_result = _get_eligible_projects(org, "cron")
         manual_result = _get_eligible_projects(org, "manual")
@@ -284,30 +291,56 @@ class TestGetEligibleProjects(TestCase):
         assert [ep.project.slug for ep in cron_result] == ["on"]
         assert sorted(ep.project.slug for ep in manual_result) == ["off", "on"]
 
+    def test_drops_projects_that_cannot_open_prs(self) -> None:
+        org = self.create_organization()
+        opens_pr = self._make_eligible(
+            self.create_project(organization=org),
+            stopping_point=AutofixStoppingPoint.OPEN_PR.value,
+        )
+        self._make_eligible(
+            self.create_project(organization=org),
+            stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
+        )
+        self._make_eligible(
+            self.create_project(organization=org),
+            stopping_point=AutofixStoppingPoint.ROOT_CAUSE.value,
+        )
+
+        result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project for ep in result] == [opens_pr]
+
+    def test_drops_all_projects_when_code_generation_disabled(self) -> None:
+        org = self.create_organization()
+        org.update_option("sentry:enable_seer_coding", False)
+        self._make_eligible(self.create_project(organization=org))
+
+        assert _get_eligible_projects(org, "manual") == []
+
+    def test_logs_decision_inputs_for_dropped_project(self) -> None:
+        org = self.create_organization()
+        project = self._make_eligible(
+            self.create_project(organization=org),
+            stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
+        )
+
+        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
+            _get_eligible_projects(org, "manual")
+
+        mock_logger.info.assert_called_once_with(
+            "night_shift.project_filtered.not_pr_producing",
+            extra={
+                "organization_id": org.id,
+                "project_id": project.id,
+                "stopping_point": "code_changes",
+                "enable_seer_coding": True,
+            },
+        )
+
 
 @django_db_all
-class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
+class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
     reset_snuba_data = False
-
-    def _make_eligible(self, project, **tweak_overrides):
-        project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
-        )
-        repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
-        self.create_seer_project_repository(project=project, repository=repo)
-        project.update_option("sentry:seer_nightshift_tweaks", {"enabled": True, **tweak_overrides})
-
-    def _store_event_and_update_group(self, project, fingerprint, **group_attrs):
-        event = self.store_event(
-            data={
-                "fingerprint": [fingerprint],
-                "timestamp": before_now(hours=1).isoformat(),
-                "environment": "production",
-            },
-            project_id=project.id,
-        )
-        Group.objects.filter(id=event.group_id).update(**group_attrs)
-        return Group.objects.get(id=event.group_id)
 
     def test_nonexistent_org(self) -> None:
         with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
@@ -470,31 +503,11 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
 
 
 @django_db_all
-class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
+class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCase):
     """Coverage for the dispatch path, which hands triage off to Seer's
     feature-run endpoint. Seer pushes verdicts back via deliver_feature_result."""
 
     reset_snuba_data = False
-
-    def _make_eligible(self, project, **tweak_overrides):
-        project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
-        )
-        repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
-        self.create_seer_project_repository(project=project, repository=repo)
-        project.update_option("sentry:seer_nightshift_tweaks", {"enabled": True, **tweak_overrides})
-
-    def _store_event_and_update_group(self, project, fingerprint, **group_attrs):
-        event = self.store_event(
-            data={
-                "fingerprint": [fingerprint],
-                "timestamp": before_now(hours=1).isoformat(),
-                "environment": "production",
-            },
-            project_id=project.id,
-        )
-        Group.objects.filter(id=event.group_id).update(**group_attrs)
-        return Group.objects.get(id=event.group_id)
 
     def _shard_group_ids(self, shard):
         outbox = CellOutbox.objects.get(
@@ -762,7 +775,7 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
 
 
 @django_db_all
-class TestRunNightShiftForOrgManualPath(TestCase):
+class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
     """Manual-path coverage for run_night_shift_for_org — invoked from the
     project-settings "Run Now" endpoint with source="manual" and project_ids."""
 
@@ -847,13 +860,7 @@ class TestRunNightShiftForOrgManualPath(TestCase):
 
     def test_manual_runs_even_when_project_tweak_is_disabled(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
-        project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
-        )
-        repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
-        self.create_seer_project_repository(project=project, repository=repo)
-        project.update_option("sentry:seer_nightshift_tweaks", {"enabled": False})
+        project = self._make_eligible(self.create_project(organization=org), enabled=False)
 
         with patch(
             "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
@@ -866,20 +873,8 @@ class TestRunNightShiftForOrgManualPath(TestCase):
 
 
 @django_db_all
-class TestFixabilityScoreStrategy(TestCase, SnubaTestCase):
+class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
     reset_snuba_data = False
-
-    def _store_event_and_update_group(self, project, fingerprint, **group_attrs):
-        event = self.store_event(
-            data={
-                "fingerprint": [fingerprint],
-                "timestamp": before_now(hours=1).isoformat(),
-                "environment": "production",
-            },
-            project_id=project.id,
-        )
-        Group.objects.filter(id=event.group_id).update(**group_attrs)
-        return Group.objects.get(id=event.group_id)
 
     def test_ranks_scored_above_threshold_first_then_preserves_recommended_order(self) -> None:
         project = self.create_project()

@@ -11,6 +11,7 @@ import sentry_sdk
 
 from sentry import features, options, quotas
 from sentry.constants import (
+    ENABLE_SEER_CODING_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     DataCategory,
     ObjectStatus,
@@ -480,7 +481,29 @@ def _get_eligible_projects(
     ]
     if source == "cron":
         eligible = [ep for ep in eligible if ep.tweaks.enabled]
-    return eligible
+
+    # A run only opens a PR when org-level code generation is on and the project
+    # stops at open_pr; anything short of that produces nothing night shift acts
+    # on. Drop those projects and log the decision inputs so we can spot
+    # misconfigured UX.
+    enable_seer_coding = organization.get_option(
+        "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
+    )
+    pr_producing: list[EligibleProject] = []
+    for ep in eligible:
+        if enable_seer_coding and ep.stopping_point == AutofixStoppingPoint.OPEN_PR:
+            pr_producing.append(ep)
+            continue
+        logger.info(
+            "night_shift.project_filtered.not_pr_producing",
+            extra={
+                "organization_id": organization.id,
+                "project_id": ep.project.id,
+                "stopping_point": ep.stopping_point.value,
+                "enable_seer_coding": enable_seer_coding,
+            },
+        )
+    return pr_producing
 
 
 def _build_triage_payload(
