@@ -936,7 +936,8 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
         project_ctx.past_resolved_issues = project_ctx.past_resolved_issues[:3]
 
 
-_SEVERITY_SCORE: dict[int, float] = {
+# Mirrors log_level_score in recommended sort (see executors.py _recommended_aggregation)
+SEVERITY_SCORE: dict[int, float] = {
     logging.FATAL: 1.0,
     logging.ERROR: 0.75,
     logging.WARNING: 0.5,
@@ -944,7 +945,9 @@ _SEVERITY_SCORE: dict[int, float] = {
     logging.DEBUG: 0.0,
 }
 
-_SUBSTATUS_SCORE: dict[int, float] = {
+# Higher = more urgent to act on. Escalating/regressed issues need attention
+# before new/ongoing ones.
+SUBSTATUS_SCORE: dict[int, float] = {
     GroupSubStatus.ESCALATING: 1.0,
     GroupSubStatus.REGRESSED: 0.8,
     GroupSubStatus.NEW: 0.6,
@@ -957,13 +960,20 @@ def compute_actionability_score(
     window_start: datetime,
     window_end: datetime,
 ) -> float:
+    """
+    Scores an issue 0-1 for the weekly report's "top issues to act on" section.
+    All inputs come from Postgres (Group model) — no Snuba queries.
+    Weights are tunable via options (weekly-report.actionability.*).
+    """
     event_volume_weight = options.get("weekly-report.actionability.event-volume-weight")
     recency_weight = options.get("weekly-report.actionability.recency-weight")
     substatus_weight = options.get("weekly-report.actionability.substatus-weight")
     severity_weight = options.get("weekly-report.actionability.severity-weight")
 
+    # Log-scaled all-time event count, normalized to 0-1 (10k events = 1.0)
     event_volume = min(1.0, math.log(group.times_seen + 1) / math.log(10001))
 
+    # Linear position of last_seen within the report window (0 = start, 1 = end)
     window_duration = (window_end - window_start).total_seconds()
     if window_duration > 0 and group.last_seen:
         recency = max(
@@ -973,8 +983,8 @@ def compute_actionability_score(
     else:
         recency = 0.0
 
-    substatus = _SUBSTATUS_SCORE.get(group.substatus, 0.0)
-    severity = _SEVERITY_SCORE.get(group.level, 0.0)
+    substatus = SUBSTATUS_SCORE.get(group.substatus, 0.0)
+    severity = SEVERITY_SCORE.get(group.level, 0.0)
 
     return (
         event_volume_weight * event_volume
