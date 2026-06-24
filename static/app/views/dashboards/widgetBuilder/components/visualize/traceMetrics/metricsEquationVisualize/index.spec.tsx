@@ -14,6 +14,7 @@ import {MetricsEquationVisualize} from 'sentry/views/dashboards/widgetBuilder/co
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 jest.mock('sentry/utils/useNavigate');
 const mockedUseNavigate = jest.mocked(useNavigate);
@@ -26,6 +27,16 @@ const EQUATION_FEATURES = [
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
+
+const validationBody: EventValidationData = {
+  dataset: [],
+  environment: [],
+  field: [],
+  orderby: [],
+  projects: [],
+  query: {error: null, fields: [], valid: true},
+  valid: true,
+};
 
 function setupMockApis() {
   MockApiClient.addMockResponse({
@@ -50,6 +61,12 @@ function setupMockApis() {
         },
       ],
     },
+  });
+
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events/validate/',
+    method: 'GET',
+    body: validationBody,
   });
 
   MockApiClient.addMockResponse({
