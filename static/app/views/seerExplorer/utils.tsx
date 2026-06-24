@@ -1169,7 +1169,7 @@ export const SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY = {
   bottom: 'seer-explorer-sidebar-seer-size:bottom',
 } as const;
 
-export type SeerExplorerSidebarOrientation = 'right' | 'bottom';
+type SeerExplorerSidebarOrientation = 'right' | 'bottom';
 
 /**
  * Resolves the dock preference to a concrete orientation. `auto` docks right on
