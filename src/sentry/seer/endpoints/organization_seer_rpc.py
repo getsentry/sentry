@@ -43,6 +43,7 @@ from sentry.seer.agent.tools import (
     get_trace_item_attributes,
     rpc_get_profile_flamegraph,
     rpc_get_trace_waterfall,
+    validate_events_query,
 )
 from sentry.seer.assisted_query.discover_tools import (
     get_event_filter_key_values,
@@ -131,6 +132,7 @@ public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     "get_trace_waterfall": seer_rpc(rpc_get_trace_waterfall),
     "get_repository_definition": seer_rpc(get_repository_definition),
     "execute_table_query": seer_rpc(map_org_id_param(execute_table_query)),
+    "validate_events_query": seer_rpc(map_org_id_param(validate_events_query)),
     "execute_timeseries_query": seer_rpc(map_org_id_param(execute_timeseries_query)),
     "execute_trace_table_query": seer_rpc(execute_trace_table_query),
     "execute_issues_query": seer_rpc(map_org_id_param(execute_issues_query)),

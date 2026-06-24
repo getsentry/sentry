@@ -80,6 +80,7 @@ from sentry.seer.sentry_data_models import (
     RepositoryDefinitionResponse,
     TraceItemAttributesResponse,
     TraceItemEventsResponse,
+    ValidateEventsQueryResponse,
 )
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -246,6 +247,67 @@ def execute_table_query(
             return ExecuteQueryErrorResponse(
                 error=str(error_detail) if error_detail is not None else str(e.body)
             )
+        raise
+
+
+def validate_events_query(
+    *,
+    org_id: int,
+    dataset: str,
+    fields: list[str],
+    query: str | None = None,
+    sort: str | None = None,
+    project_ids: list[int] | None = None,
+    project_slugs: list[str] | None = None,
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+) -> ValidateEventsQueryResponse | None:
+    """
+    Validate an events query by calling the events/validate endpoint.
+
+    Returns the validation payload regardless of whether the query is valid.
+    A 400 response still carries structured validation details in the body.
+    """
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"org_id": org_id})
+        return None
+
+    if not project_ids and not project_slugs:
+        project_ids = [ALL_ACCESS_PROJECT_ID]
+
+    selected_fields = list(fields)
+
+    params: dict[str, Any] = {
+        "dataset": dataset,
+        "field": selected_fields,
+        "query": query or None,
+        "project": project_ids,
+        "projectSlug": project_slugs,
+        "statsPeriod": stats_period,
+        "start": start,
+        "end": end,
+        "referrer": Referrer.SEER_EXPLORER_TOOLS,
+    }
+    if sort:
+        params["orderby"] = [sort]
+
+    params = {k: v for k, v in params.items() if v is not None}
+
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+            user=None,
+            path=f"/organizations/{organization.slug}/events/validate/",
+            params=params,
+        )
+        return ValidateEventsQueryResponse.parse_obj(resp.data)
+    except client.ApiError as e:
+        if e.status_code == 400 and isinstance(e.body, dict) and "valid" in e.body:
+            return ValidateEventsQueryResponse.parse_obj(e.body)
+        logger.exception("validate_events_query: request failed", extra={"org_id": org_id})
         raise
 
 
