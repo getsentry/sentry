@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Collection, Sequence
 from datetime import datetime
 from typing import Any
@@ -27,7 +28,7 @@ from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.signals import advanced_search_feature_gated
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
 from . import SEARCH_MAX_HITS
@@ -144,7 +145,66 @@ def build_query_params_from_request(
             query, organization, projects, environments, request.user
         )
 
+    # Per-request weight override for the recommended_v2 sort (?recommendedWeights={...}).
+    # Gated to that sort: aggregate_kwargs is shared with trends, which needs its own keys.
+    raw_weights = request.GET.get("recommendedWeights")
+    if raw_weights and query_kwargs["sort_by"] == "recommended_v2":
+        query_kwargs["aggregate_kwargs"] = {"recommended": _parse_recommended_weights(raw_weights)}
+
     return query_kwargs
+
+
+_RECOMMENDED_WEIGHT_KEYS = frozenset(
+    {
+        "recency",
+        "spike",
+        "severity",
+        "event_volume",
+        "user_impact",
+        "message_penalty",
+        "group_type_boost",
+        "assignment",
+        "fixability",
+        "agent",
+        "regressed",
+        "newness",
+        "newness_halflife_hours",
+    }
+)
+
+
+def _finite_float(value: Any) -> float:
+    # These reach the ClickHouse scoring SQL, so reject anything but a finite number.
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError("weight must be finite")
+    return parsed
+
+
+def _parse_recommended_weights(raw: str) -> dict[str, Any]:
+    try:
+        parsed = json.loads(raw)
+    except (ValueError, TypeError):
+        raise ValidationError("recommendedWeights must be valid JSON")
+    if not isinstance(parsed, dict):
+        raise ValidationError("recommendedWeights must be a JSON object")
+    clean: dict[str, Any] = {}
+    for key, value in parsed.items():
+        if key not in _RECOMMENDED_WEIGHT_KEYS:
+            continue
+        try:
+            if key == "group_type_boost":
+                if not isinstance(value, dict):
+                    raise ValueError("group_type_boost must be an object")
+                # Keys are issue type ids interpolated into SQL -- int() so only numeric ids pass.
+                clean[key] = {
+                    str(int(type_id)): _finite_float(boost) for type_id, boost in value.items()
+                }
+            else:
+                clean[key] = _finite_float(value)
+        except (ValueError, TypeError):
+            raise ValidationError(f"invalid recommendedWeights value for '{key}'")
+    return clean
 
 
 def validate_search_filter_permissions(

@@ -18,6 +18,8 @@ from sentry.search.snuba.executors import (
     InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
     PostgresSortStrategy,
+    _recommended_aggregation,
+    recommended_v2_strategy,
 )
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -588,3 +590,51 @@ class TestDefaultPostgresSortStrategies(TestCase):
         # progress maps to last_seen in sort_strategies so the chunked Snuba path has a
         # real aggregation to fall back to on candidate overflow.
         assert PostgresSnubaQueryExecutor.sort_strategies["progress"] == "last_seen"
+
+
+class TestRecommendedWeightOverrides(TestCase):
+    """Staff weight overrides (?recommendedWeights=...) flow into both the base-factor
+    Snuba aggregation and the recommended_v2 boost score_fn, without touching options."""
+
+    def test_base_factor_override_reaches_aggregation_sql(self):
+        # The override weight is interpolated into the generated ClickHouse expression.
+        with override_options({"snuba.search.recommended.severity-weight": 0.20}):
+            default_expr = _recommended_aggregation(timestamp_column="timestamp")[0]
+            override_expr = _recommended_aggregation(
+                timestamp_column="timestamp", overrides={"severity": 0.99}
+            )[0]
+        assert "0.99" in override_expr
+        assert "0.99" not in default_expr
+
+    def test_boost_override_reaches_score_fn(self):
+        # With assignment relevance present, raising assignment-weight via override must
+        # raise the score by the corresponding amount vs the registered option default.
+        data = {"recommended": 0.0, "assignment": 1.0}
+        with override_options({"snuba.search.recommended.assignment-weight": 0.20}):
+            default_score = recommended_v2_strategy().score_fn(data)
+            override_score = recommended_v2_strategy(overrides={"assignment": 0.90}).score_fn(data)
+        assert override_score == pytest.approx(default_score + 0.70, abs=1e-6)
+
+    def test_parse_recommended_weights_validates_and_coerces(self):
+        from sentry.api.helpers.group_index.index import _parse_recommended_weights
+        from sentry.api.helpers.group_index.validators import ValidationError
+
+        # numeric coercion + unknown keys dropped
+        out = _parse_recommended_weights('{"spike": 0, "severity": 0.3, "bogus": 9}')
+        assert out == {"spike": 0.0, "severity": 0.3}
+        # group_type_boost dict is coerced per-type
+        assert _parse_recommended_weights('{"group_type_boost": {"8001": 0.1}}') == {
+            "group_type_boost": {"8001": 0.1}
+        }
+        # non-numeric value is rejected (guards SQL interpolation)
+        with pytest.raises(ValidationError):
+            _parse_recommended_weights('{"severity": "DROP TABLE"}')
+        # non-object payload is rejected
+        with pytest.raises(ValidationError):
+            _parse_recommended_weights("[1, 2, 3]")
+        # injection via a non-numeric group_type_boost KEY is rejected (the key reaches SQL)
+        with pytest.raises(ValidationError):
+            _parse_recommended_weights('{"group_type_boost": {"1) OR 1=1 --": 0.1}}')
+        # non-finite values are rejected (inf/nan are not numeric SQL literals)
+        with pytest.raises(ValidationError):
+            _parse_recommended_weights('{"severity": "inf"}')
