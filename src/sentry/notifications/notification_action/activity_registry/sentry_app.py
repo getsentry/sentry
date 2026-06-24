@@ -2,6 +2,7 @@ from enum import StrEnum
 from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import serialize
+from sentry.constants import SentryAppInstallationStatus
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.activity_registry.base import (
@@ -68,6 +69,7 @@ def _get_sentry_app_installation(
             filter=dict(
                 app_ids=[int(target_identifier)],
                 organization_id=organization.id,
+                status=SentryAppInstallationStatus.INSTALLED,
             )
         )
     else:
@@ -78,6 +80,7 @@ def _get_sentry_app_installation(
             filter=dict(
                 app_ids=[sentry_app.id],
                 organization_id=organization.id,
+                status=SentryAppInstallationStatus.INSTALLED,
             )
         )
 
