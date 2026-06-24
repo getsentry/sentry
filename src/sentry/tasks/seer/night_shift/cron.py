@@ -12,6 +12,7 @@ import sentry_sdk
 from sentry import features, options, quotas
 from sentry.constants import (
     ENABLE_SEER_CODING_DEFAULT,
+    HIDE_AI_FEATURES_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     DataCategory,
     ObjectStatus,
@@ -397,13 +398,14 @@ def _get_eligible_orgs_from_batch(
     Check feature flags for a batch of orgs.
     Returns orgs that have all required feature flags enabled.
     """
-    # No code generation => night shift can't open a PR for the org.
+    # enable_seer_coding off => night shift can't open a PR for the org.
     enable_coding = OrganizationOption.objects.get_value_bulk(
-        list(orgs), "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
+        orgs, "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
     )
-    eligible = [
-        org for org in orgs if enable_coding[org] and not org.get_option("sentry:hide_ai_features")
-    ]
+    hide_ai = OrganizationOption.objects.get_value_bulk(
+        orgs, "sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT
+    )
+    eligible = [org for org in orgs if enable_coding[org] and not hide_ai[org]]
 
     for feature_name in BATCH_FEATURE_NAMES:
         batch_result = features.batch_has_for_organizations(feature_name, eligible)
