@@ -3,7 +3,6 @@ from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import serialize
 from sentry.models.activity import Activity
-from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.activity_registry.base import (
     extract_notification_models_by_activity,
@@ -18,7 +17,7 @@ from sentry.sentry_apps.metrics import (
 )
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
-from sentry.sentry_apps.tasks.sentry_apps import _webhook_issue_data
+from sentry.sentry_apps.tasks.sentry_apps import WebhookGroupResponse, _webhook_issue_data
 from sentry.types.activity import SEER_ACTIVITY_TYPES
 from sentry.utils import json
 from sentry.workflow_engine.models import Action, Workflow
@@ -54,7 +53,7 @@ class WorkflowData(TypedDict):
 
 
 class ActivityAlertWebhookPayload(TypedDict):
-    issue: dict[str, Any]
+    issue: WebhookGroupResponse
     activity: ActivityData
     alert: WorkflowData
 
@@ -85,10 +84,6 @@ def _get_sentry_app_installation(
     if not installations or len(installations) != 1:
         raise ValueError(f"Expected 1 sentry app installation, got {len(installations)}")
     return installations[0]
-
-
-def _build_issue_data(group: Group) -> dict[str, Any]:
-    return dict(_webhook_issue_data(group=group, serialized_group=serialize(group)))
 
 
 def _build_activity_data(activity: Activity) -> ActivityData:
@@ -176,7 +171,7 @@ class SentryAppActivityHandler(ActivityHandler):
 
             install = _get_sentry_app_installation(action, organization)
             payload = ActivityAlertWebhookPayload(
-                issue=_build_issue_data(group=group),
+                issue=_webhook_issue_data(group=group, serialized_group=serialize(group)),
                 activity=_build_activity_data(activity=activity),
                 alert=_build_workflow_data(
                     invocation=invocation, organization=organization, install=install
