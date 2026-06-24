@@ -5,7 +5,10 @@ import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatYAxisValue';
 import {visualMapOptions} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
-import {HEATMAP_Z_AXIS_SCALE} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
+import {
+  HEATMAP_COLORS_DARK,
+  HEATMAP_COLORS_LIGHT,
+} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatXAxisTimestamp';
 
 import {DEFAULT_FONT_FAMILY} from './slack';
@@ -29,11 +32,8 @@ export function buildHeatmapChartOption({
   const yAxisDataType = heatMapPlottable.yAxisValueType;
   const yAxisDataUnit = heatMapPlottable.yAxisValueUnit;
 
-  const scale = HEATMAP_Z_AXIS_SCALE;
-
-  const Zmax =
-    scale === 'log' ? Math.log1p(heatMapPlottable.Zend) : heatMapPlottable.Zend;
-  const series = heatMapPlottable.toSeries({theme, scale: HEATMAP_Z_AXIS_SCALE});
+  const colors = theme.type === 'dark' ? HEATMAP_COLORS_DARK : HEATMAP_COLORS_LIGHT;
+  const series = heatMapPlottable.toSeries({theme});
 
   return {
     grid: Grid({left: 10, right: 10, bottom: 10, top: 10}),
@@ -83,7 +83,7 @@ export function buildHeatmapChartOption({
       },
     },
     series,
-    visualMap: visualMapOptions(Zmax),
+    visualMap: visualMapOptions(colors),
     useUTC: true,
   };
 }

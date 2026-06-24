@@ -1,18 +1,45 @@
-// Color scale interpolated across three design stops: #EEEFFF (low) → #7553FF
-// (mid) → #990056 (high) Steps 1–5: segment 1, steps 6–10: segment 2 N.B.
-// Missing values are not part of the palette here, they are filled in by the
-// `HeatMapWidgetVisualization` component.
-export const HEATMAP_COLORS = [
-  '#eeefff',
-  '#d0c8ff',
-  '#b2a1ff',
-  '#937aff',
-  '#7553ff',
-  '#7c42dd',
-  '#8332bb',
-  '#8b219a',
-  '#921178',
-  '#990056',
+// Heat map color ramps (low → high). ECharts' continuous `visualMap`
+// interpolates between whatever stops it's given, so a ramp is just an ordered
+// list of ~10 hex stops — swapping schemes is a one-line change here.
+//
+// These are perceptually-uniform colormaps (viridis for light, magma for dark):
+// each step is roughly equal in perceived lightness, and — crucially — the high
+// end is bright and distinct. The previous purple→magenta ramp packed its top
+// half into similarly-dark stops, so high-magnitude cells (e.g. 1M vs 18M) were
+// indistinguishable. Per the Datadog heatmap write-up, human brightness
+// perception follows a power law (we discriminate poorly among dark shades), so
+// ending bright keeps the hottest cells legible.
+//
+// The ramp variant is chosen per theme so the low end stays visible against the
+// chart background. Empty/zero buckets are NOT part of the palette — they're
+// rendered transparent by a piecewise `visualMap` in `HeatMapWidgetVisualization`.
+
+/** Viridis, sampled at 10 stops. Used on light backgrounds. */
+export const HEATMAP_COLORS_LIGHT = [
+  '#440154',
+  '#482878',
+  '#3e4a89',
+  '#31688e',
+  '#26828e',
+  '#1f9e89',
+  '#35b779',
+  '#6ece58',
+  '#b5de2b',
+  '#fde725',
+] as const;
+
+/** Magma, sampled at 10 stops. Used on dark backgrounds. */
+export const HEATMAP_COLORS_DARK = [
+  '#0a0a23',
+  '#231151',
+  '#410f75',
+  '#5f187f',
+  '#812581',
+  '#a3307e',
+  '#c83e73',
+  '#e95462',
+  '#f97a5d',
+  '#fea772',
 ] as const;
 
 /**
@@ -21,12 +48,6 @@ export const HEATMAP_COLORS = [
  * are roughly this size, keeping them approximately square.
  */
 export const PIXELS_PER_BUCKET = 15;
-
-/**
- * Scale used for the heat map's Z axis (the cell color). A logarithmic scale
- * handles the wide range of counts better than a linear one.
- */
-export const HEATMAP_Z_AXIS_SCALE = 'log' as const;
 
 /**
  * How long, in milliseconds, to debounce the measured chart dimensions before
