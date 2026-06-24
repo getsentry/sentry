@@ -66,9 +66,13 @@ def build_template(
     body: list[NotificationBodyFormattingBlock],
     extra_actions: list[NotificationRenderedAction],
 ) -> NotificationRenderedTemplate:
-    from sentry.notifications.notification_action.activity_registry.base import extract_models
+    from sentry.notifications.notification_action.activity_registry.base import (
+        extract_notification_models_by_activity,
+    )
 
-    activity, group, project, organization = extract_models(data.activity_id)
+    activity, group, project, organization = extract_notification_models_by_activity(
+        data.activity_id
+    )
     configuration_url = organization.absolute_url(
         f"organizations/{organization.slug}/monitors/alerts/{data.workflow_id}/"
     )

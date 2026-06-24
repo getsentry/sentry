@@ -6,12 +6,11 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.activity_registry.base import (
-    extract_models,
+    extract_notification_models_by_activity,
     require_config,
 )
 from sentry.notifications.notification_action.registry import activity_handler_registry
 from sentry.notifications.notification_action.types import ActivityHandler
-from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
     SentryAppInteractionEvent,
@@ -19,12 +18,9 @@ from sentry.sentry_apps.metrics import (
 )
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
-from sentry.sentry_apps.utils.webhooks import (
-    ActivityAlertActionType,
-    SentryAppResourceType,
-)
-from sentry.types.activity import ActivityType
-from sentry.utils.sentry_apps.webhooks import send_and_save_webhook_request
+from sentry.sentry_apps.tasks.sentry_apps import _webhook_issue_data
+from sentry.types.activity import SEER_ACTIVITY_TYPES
+from sentry.utils import json
 from sentry.workflow_engine.models import Action, Workflow
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -40,18 +36,12 @@ class ActivityAlertType(StrEnum):
 
 
 ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE: dict[int, ActivityAlertType] = {
-    ActivityType.SEER_RCA_STARTED.value: ActivityAlertType.SEER_RCA_STARTED,
-    ActivityType.SEER_RCA_COMPLETED.value: ActivityAlertType.SEER_RCA_COMPLETED,
-    ActivityType.SEER_SOLUTION_STARTED.value: ActivityAlertType.SEER_SOLUTION_STARTED,
-    ActivityType.SEER_SOLUTION_COMPLETED.value: ActivityAlertType.SEER_SOLUTION_COMPLETED,
-    ActivityType.SEER_CODING_STARTED.value: ActivityAlertType.SEER_CODING_STARTED,
-    ActivityType.SEER_CODING_COMPLETED.value: ActivityAlertType.SEER_CODING_COMPLETED,
-    ActivityType.SEER_PR_CREATED.value: ActivityAlertType.SEER_PR_CREATED,
+    at.value: ActivityAlertType[at.name] for at in SEER_ACTIVITY_TYPES
 }
 
 
 class ActivityData(TypedDict):
-    type: str  # str(ActivityAlertType)
+    type: ActivityAlertType
     details: dict[str, Any]
 
 
@@ -98,11 +88,7 @@ def _get_sentry_app_installation(
 
 
 def _build_issue_data(group: Group) -> dict[str, Any]:
-    return {
-        "url": group.get_absolute_api_url(),
-        "webUrl": group.get_absolute_url(),
-        **serialize(group),
-    }
+    return dict(_webhook_issue_data(group=group, serialized_group=serialize(group)))
 
 
 def _build_activity_data(activity: Activity) -> ActivityData:
@@ -111,12 +97,12 @@ def _build_activity_data(activity: Activity) -> ActivityData:
         raise ValueError(f"Unrecognized activity type: {activity.type} for activity {activity.id}")
 
     if not activity.data:
-        return ActivityData(type=str(activity_alert_type), details={})
+        return ActivityData(type=activity_alert_type, details={})
 
     match activity_alert_type:
         case ActivityAlertType.SEER_RCA_COMPLETED | ActivityAlertType.SEER_SOLUTION_COMPLETED:
             summary = activity.data.get("summary", "")
-            return ActivityData(type=str(activity_alert_type), details={"summary": summary})
+            return ActivityData(type=activity_alert_type, details={"summary": summary})
         case ActivityAlertType.SEER_PR_CREATED:
             pull_requests_data = activity.data.get("pull_requests", [])
             pull_requests = [
@@ -126,11 +112,9 @@ def _build_activity_data(activity: Activity) -> ActivityData:
                 }
                 for pull_request in pull_requests_data
             ]
-            return ActivityData(
-                type=str(activity_alert_type), details={"pull_requests": pull_requests}
-            )
+            return ActivityData(type=activity_alert_type, details={"pull_requests": pull_requests})
         case _:
-            return ActivityData(type=str(activity_alert_type), details={})
+            return ActivityData(type=activity_alert_type, details={})
 
 
 def _build_workflow_data(
@@ -160,10 +144,12 @@ def _build_workflow_data(
 @activity_handler_registry.register(Action.Type.SENTRY_APP)
 @activity_handler_registry.register(Action.Type.WEBHOOK)
 class SentryAppActivityHandler(ActivityHandler):
-    compatible_activity_types = [ActivityType(key) for key in ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE]
+    compatible_activity_types = list(SEER_ACTIVITY_TYPES)
 
     @classmethod
     def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:
+        from sentry.sentry_apps.tasks.sentry_apps import send_activity_alert_webhook
+
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
             event_type=SentryAppEventType.ACTIVITY_ALERT_TRIGGERED,
@@ -177,7 +163,9 @@ class SentryAppActivityHandler(ActivityHandler):
                 }
             )
             action = invocation.action
-            activity, group, project, organization = extract_models(activity.id)
+            activity, group, project, organization = extract_notification_models_by_activity(
+                activity.id
+            )
             lifecycle.add_extras(
                 {
                     "group_id": group.id,
@@ -187,17 +175,16 @@ class SentryAppActivityHandler(ActivityHandler):
             )
 
             install = _get_sentry_app_installation(action, organization)
-            data = ActivityAlertWebhookPayload(
+            payload = ActivityAlertWebhookPayload(
                 issue=_build_issue_data(group=group),
                 activity=_build_activity_data(activity=activity),
                 alert=_build_workflow_data(
                     invocation=invocation, organization=organization, install=install
                 ),
             )
-            request_data = AppPlatformEvent[ActivityAlertWebhookPayload](
-                resource=SentryAppResourceType.ACTIVITY_ALERT,
-                action=ActivityAlertActionType.TRIGGERED,
-                install=install,
-                data=data,
-            )
-        send_and_save_webhook_request(install.sentry_app, request_data)
+
+        send_activity_alert_webhook.delay(
+            sentry_app_id=install.sentry_app.id,
+            organization_id=organization.id,
+            payload_json=json.dumps(payload),
+        )

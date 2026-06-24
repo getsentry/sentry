@@ -5,12 +5,11 @@ import pytest
 from sentry.notifications.notification_action.activity_registry.sentry_app import (
     SentryAppActivityHandler,
     _build_activity_data,
-    _build_issue_data,
     _build_workflow_data,
 )
 from sentry.notifications.notification_action.registry import activity_handler_registry
-from sentry.sentry_apps.utils.webhooks import ActivityAlertActionType, SentryAppResourceType
 from sentry.types.activity import ActivityType
+from sentry.utils import json
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.typings.notification_action import ActionTarget
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -22,16 +21,6 @@ class TestSentryAppActivityHandlerRegistration:
 
     def test_webhook_registered(self) -> None:
         assert activity_handler_registry.get(Action.Type.WEBHOOK) is SentryAppActivityHandler
-
-
-class TestBuildIssueData(BaseWorkflowTest):
-    def test_includes_serialized_group_and_urls(self) -> None:
-        group = self.create_group()
-        result = _build_issue_data(group)
-
-        assert result["id"] == str(group.id)
-        assert result["url"] == group.get_absolute_api_url()
-        assert result["webUrl"] == group.get_absolute_url()
 
 
 class TestBuildActivityData(BaseWorkflowTest):
@@ -200,10 +189,8 @@ class TestSentryAppActivityHandlerInvokeAction(BaseWorkflowTest):
             },
         )
 
-    @mock.patch(
-        "sentry.notifications.notification_action.activity_registry.sentry_app.send_and_save_webhook_request"
-    )
-    def test_sends_webhook_with_correct_payload_structure(self, mock_send: mock.MagicMock) -> None:
+    @mock.patch("sentry.sentry_apps.tasks.sentry_apps.send_activity_alert_webhook")
+    def test_sends_webhook_with_correct_payload_structure(self, mock_task: mock.MagicMock) -> None:
         activity = self.create_group_activity(
             group=self.group,
             type=ActivityType.SEER_RCA_COMPLETED.value,
@@ -219,24 +206,18 @@ class TestSentryAppActivityHandlerInvokeAction(BaseWorkflowTest):
 
         SentryAppActivityHandler.invoke_action(invocation=invocation, activity=activity)
 
-        mock_send.assert_called_once()
-        sentry_app_arg = mock_send.call_args[0][0]
-        assert sentry_app_arg.id == self.sentry_app.id
+        mock_task.delay.assert_called_once()
+        call_kwargs = mock_task.delay.call_args[1]
+        assert call_kwargs["sentry_app_id"] == self.sentry_app.id
+        assert call_kwargs["organization_id"] == self.organization.id
 
-        app_platform_event = mock_send.call_args[0][1]
-        assert app_platform_event.resource == SentryAppResourceType.ACTIVITY_ALERT
-        assert app_platform_event.action == ActivityAlertActionType.TRIGGERED
-        assert app_platform_event.install.id == self.sentry_app_installation.id
+        payload = json.loads(call_kwargs["payload_json"])
+        assert "issue" in payload
+        assert "activity" in payload
+        assert "alert" in payload
 
-        data = app_platform_event.data
-        assert "issue" in data
-        assert "activity" in data
-        assert "alert" in data
-
-    @mock.patch(
-        "sentry.notifications.notification_action.activity_registry.sentry_app.send_and_save_webhook_request"
-    )
-    def test_webhook_type_resolves_by_slug(self, mock_send: mock.MagicMock) -> None:
+    @mock.patch("sentry.sentry_apps.tasks.sentry_apps.send_activity_alert_webhook")
+    def test_webhook_type_resolves_by_slug(self, mock_task: mock.MagicMock) -> None:
         self.action.update(
             type=Action.Type.WEBHOOK,
             config={"target_identifier": self.sentry_app.slug, "target_type": None},
@@ -255,14 +236,11 @@ class TestSentryAppActivityHandlerInvokeAction(BaseWorkflowTest):
 
         SentryAppActivityHandler.invoke_action(invocation=invocation, activity=activity)
 
-        mock_send.assert_called_once()
-        sentry_app_arg = mock_send.call_args[0][0]
-        assert sentry_app_arg.id == self.sentry_app.id
+        mock_task.delay.assert_called_once()
+        assert mock_task.delay.call_args[1]["sentry_app_id"] == self.sentry_app.id
 
-    @mock.patch(
-        "sentry.notifications.notification_action.activity_registry.sentry_app.send_and_save_webhook_request"
-    )
-    def test_missing_installation_raises(self, mock_send: mock.MagicMock) -> None:
+    @mock.patch("sentry.sentry_apps.tasks.sentry_apps.send_activity_alert_webhook")
+    def test_missing_installation_raises(self, mock_task: mock.MagicMock) -> None:
         self.action.update(
             config={"target_identifier": "99999", "target_type": ActionTarget.SENTRY_APP.value}
         )
@@ -281,4 +259,4 @@ class TestSentryAppActivityHandlerInvokeAction(BaseWorkflowTest):
         with pytest.raises(ValueError, match="Expected 1 sentry app installation"):
             SentryAppActivityHandler.invoke_action(invocation=invocation, activity=activity)
 
-        mock_send.assert_not_called()
+        mock_task.delay.assert_not_called()

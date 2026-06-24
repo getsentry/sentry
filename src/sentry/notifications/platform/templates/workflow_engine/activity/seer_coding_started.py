@@ -32,9 +32,13 @@ class SeerCodingStartedActivityTemplate(NotificationTemplate[WorkflowEngineActiv
         return get_example_template("Seer is writing code changes...")
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
-        from sentry.notifications.notification_action.activity_registry.base import extract_models
+        from sentry.notifications.notification_action.activity_registry.base import (
+            extract_notification_models_by_activity,
+        )
 
-        activity, group, project, organization = extract_models(activity_id=data.activity_id)
+        activity, group, project, organization = extract_notification_models_by_activity(
+            activity_id=data.activity_id
+        )
         return build_template(
             data=data,
             subject="Seer is writing code changes...",

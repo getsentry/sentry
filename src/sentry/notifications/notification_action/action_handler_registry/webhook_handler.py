@@ -65,7 +65,7 @@ class WebhookActionHandler(ActionHandler):
                 if features.has(
                     "organizations:workflow-engine-evaluate-seer-activities", organization
                 ):
-                    return execute_via_activity_type_registry(invocation=invocation)
+                    execute_via_activity_type_registry(invocation=invocation)
             except Exception:
                 logger.exception(
                     "Error executing via activity type registry",
@@ -75,7 +75,6 @@ class WebhookActionHandler(ActionHandler):
                         "organization_id": organization.id,
                     },
                 )
-            return
         else:
             send_sentry_app_webhook(
                 group_event=invocation.event_data.event,

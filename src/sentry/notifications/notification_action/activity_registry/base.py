@@ -76,7 +76,7 @@ def require_integration_id(action: Action) -> int:
     return action.integration_id
 
 
-def extract_models(
+def extract_notification_models_by_activity(
     activity_id: int,
 ) -> tuple[Activity, Group, Project, Organization]:
     try:

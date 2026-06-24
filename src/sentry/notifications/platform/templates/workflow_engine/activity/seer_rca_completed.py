@@ -47,9 +47,13 @@ class SeerRcaCompletedActivityTemplate(NotificationTemplate[WorkflowEngineActivi
         )
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
-        from sentry.notifications.notification_action.activity_registry.base import extract_models
+        from sentry.notifications.notification_action.activity_registry.base import (
+            extract_notification_models_by_activity,
+        )
 
-        activity, group, project, organization = extract_models(activity_id=data.activity_id)
+        activity, group, project, organization = extract_notification_models_by_activity(
+            activity_id=data.activity_id
+        )
         fallback = "Click the link below to view the details in Sentry"
         summary_block = PlainTextBlock(text=activity.data.get("summary", fallback))
         return build_template(
