@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -9,8 +9,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import type {Confidence} from 'sentry/types/organization';
+import {FieldKind} from 'sentry/utils/fields';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
+import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
@@ -24,11 +27,13 @@ import {
   useSetQueryParamsAggregateFields,
   useSetQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
+import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
 import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {SpansTable} from 'sentry/views/explore/tables/spansTable';
 import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
+import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 interface BaseExploreTablesProps {
   confidences: Confidence[];
@@ -58,17 +63,40 @@ export function ExploreTables(props: ExploreTablesProps) {
   const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
+  const {data: validatedColumnsData} = useValidateSpansTab({enabled: tab === Tab.SPAN});
+  const {
+    validatedBooleanTags,
+    validatedFields,
+    validatedNumberTags,
+    validatedStringTags,
+  } = useMemo(
+    () =>
+      getValidatedColumnEditorData({
+        booleanTags,
+        fields,
+        numberTags,
+        stringTags,
+        validatedColumnsData,
+      }),
+    [booleanTags, fields, numberTags, stringTags, validatedColumnsData]
+  );
+
+  useEffect(() => {
+    if (validatedFields.length < fields.length) {
+      setFields([...validatedFields]);
+    }
+  }, [fields, setFields, validatedFields]);
 
   const openColumnEditor = () => {
     openModal(
       modalProps => (
         <ColumnEditorModal
           {...modalProps}
-          columns={fields}
+          columns={validatedFields}
           onColumnsChange={setFields}
-          stringTags={stringTags}
-          numberTags={numberTags}
-          booleanTags={booleanTags}
+          stringTags={validatedStringTags}
+          numberTags={validatedNumberTags}
+          booleanTags={validatedBooleanTags}
         />
       ),
       {closeEvents: 'escape-key'}
@@ -160,4 +188,68 @@ export function ExploreTables(props: ExploreTablesProps) {
       {tab === Tab.ATTRIBUTE_BREAKDOWNS && <AttributeBreakdownsContent />}
     </Fragment>
   );
+}
+
+export function getValidatedColumnEditorData({
+  booleanTags,
+  fields,
+  numberTags,
+  stringTags,
+  validatedColumnsData,
+}: {
+  booleanTags: TagCollection;
+  fields: readonly string[];
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+  validatedColumnsData?: EventValidationData;
+}) {
+  const validatedBooleanTags = {...booleanTags};
+  const validatedNumberTags = {...numberTags};
+  const validatedStringTags = {...stringTags};
+  const invalidFields = new Set<string>();
+
+  for (const item of validatedColumnsData?.field ?? []) {
+    if (!item.name) {
+      continue;
+    }
+
+    if (!item.valid) {
+      invalidFields.add(item.name);
+      delete validatedBooleanTags[item.name];
+      delete validatedNumberTags[item.name];
+      delete validatedStringTags[item.name];
+      continue;
+    }
+
+    if (item.attrType === 'boolean') {
+      validatedBooleanTags[item.name] ??= {
+        key: item.name,
+        name: prettifyAttributeName(item.name),
+        kind: FieldKind.BOOLEAN,
+      };
+    }
+
+    if (item.attrType === 'number') {
+      validatedNumberTags[item.name] ??= {
+        key: item.name,
+        name: prettifyAttributeName(item.name),
+        kind: FieldKind.MEASUREMENT,
+      };
+    }
+
+    if (item.attrType === 'string') {
+      validatedStringTags[item.name] ??= {
+        key: item.name,
+        name: prettifyAttributeName(item.name),
+        kind: FieldKind.TAG,
+      };
+    }
+  }
+
+  return {
+    validatedBooleanTags,
+    validatedFields: fields.filter(field => !invalidFields.has(field)),
+    validatedNumberTags,
+    validatedStringTags,
+  };
 }
