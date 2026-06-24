@@ -123,6 +123,17 @@ function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
   return items.join(',') + ',';
 }
 
+// Inserts an edited chip back at its original position, or appends it when not
+// editing (or when the index no longer fits the committed values).
+function insertMultiSelectValue(texts: string[], value: string, index?: number) {
+  if (index === undefined || index < 0 || index >= texts.length) {
+    return [...texts, value];
+  }
+  const next = [...texts];
+  next.splice(index, 0, value);
+  return next;
+}
+
 export function prepareInputValueForSaving(
   valueType: FieldValueType,
   inputValue: string
@@ -660,8 +671,12 @@ export function SearchQueryBuilderValueCombobox({
   const [inputValue, setInputValue] = useState(() =>
     canSelectMultipleValues ? '' : getInitialInputValue(token, canSelectMultipleValues)
   );
-  // The value lifted out of a chip for editing, so Escape can restore it.
-  const [editingValue, setEditingValue] = useState<string | null>(null);
+  // The chip lifted out for editing (value + its position), so it can be
+  // restored on Escape and reinserted where it was rather than at the end.
+  const [editingChip, setEditingChip] = useState<{index: number; value: string} | null>(
+    null
+  );
+  const editingValue = editingChip?.value ?? null;
 
   const [showDatePicker, setShowDatePicker] = useState(() => {
     if (isDateToken(token)) {
@@ -855,7 +870,11 @@ export function SearchQueryBuilderValueCombobox({
               .filter(v => v.value !== value)
               .map(v => v.text)
               .join(',')
-          : [...committedValues.map(v => v.text), valueForSaving].join(',');
+          : insertMultiSelectValue(
+              committedValues.map(v => v.text),
+              valueForSaving,
+              editingChip?.index
+            ).join(',');
 
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
@@ -867,7 +886,7 @@ export function SearchQueryBuilderValueCombobox({
           op,
         });
         setInputValue('');
-        setEditingValue(null);
+        setEditingChip(null);
 
         if (!ctrlKeyPressed) {
           onCommit();
@@ -895,6 +914,7 @@ export function SearchQueryBuilderValueCombobox({
       analyticsData,
       committedValues,
       editingValue,
+      editingChip,
       dispatch,
       ctrlKeyPressed,
       onCommit,
@@ -951,13 +971,17 @@ export function SearchQueryBuilderValueCombobox({
         token,
         value: prepareInputValueForSaving(
           getFilterValueType(token, fieldDefinition),
-          [...committedValues.map(v => v.text), value].join(',')
+          insertMultiSelectValue(
+            committedValues.map(v => v.text),
+            value,
+            editingChip?.index
+          ).join(',')
         ),
       });
       setInputValue('');
-      setEditingValue(null);
+      setEditingChip(null);
     },
-    [committedValues, dispatch, fieldDefinition, token]
+    [committedValues, dispatch, editingChip, fieldDefinition, token]
   );
 
   const handleInputValueConfirmed = useCallback(
@@ -971,7 +995,7 @@ export function SearchQueryBuilderValueCombobox({
             invalid: false,
           });
         } else {
-          setEditingValue(null);
+          setEditingChip(null);
         }
         onCommit();
         return;
@@ -1027,8 +1051,9 @@ export function SearchQueryBuilderValueCombobox({
   );
 
   const editValue = (value: string) => {
+    const index = selectedValues.findIndex(v => v.value === value);
     setInputValue(value);
-    setEditingValue(value);
+    setEditingChip({index: index === -1 ? selectedValues.length : index, value});
     inputRef.current?.focus();
   };
 
@@ -1146,13 +1171,14 @@ export function SearchQueryBuilderValueCombobox({
             onCustomValueBlurred={handleInputValueConfirmed}
             onCustomValueCommitted={handleInputValueConfirmed}
             onExit={() => {
-              setEditingValue(null);
+              setEditingChip(null);
               setInputValue('');
               onCommit();
             }}
             inputValue={inputValue}
             filterValue={filterValue}
             placeholder={placeholder}
+            minInputWidth={canSelectMultipleValues ? '50px' : undefined}
             token={token}
             inputLabel={t('Edit filter value')}
             keepVisibleRef={ref}

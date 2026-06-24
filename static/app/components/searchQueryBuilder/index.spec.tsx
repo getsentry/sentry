@@ -3527,10 +3527,35 @@ describe('SearchQueryBuilder', () => {
           );
         });
 
-        // Selecting the "Chrome" option adds it back as a new value
+        // Selecting the "Chrome" option adds it back in the edited value's place
         await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
         expect(
-          await screen.findByRole('row', {name: 'browser.name:[1,3,Chrome]'})
+          await screen.findByRole('row', {name: 'browser.name:[1,Chrome,3]'})
+        ).toBeInTheDocument();
+      });
+
+      it('keeps a typed chip edit in its original position', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift the "c" chip, replace it with a typed value, and commit
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+            'c'
+          );
+        });
+        await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter value'}));
+        await userEvent.keyboard('z{Enter}');
+
+        // The typed value stays where "c" was rather than moving to the end
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[1,z,3]'})
         ).toBeInTheDocument();
       });
 
