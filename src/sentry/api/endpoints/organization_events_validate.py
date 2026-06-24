@@ -10,6 +10,11 @@ from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ExistsFilter,
+    OrFilter,
+    TraceItemFilter,
+)
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -84,12 +89,22 @@ def _check_attributes_by_type(
         return set()
 
     requested_names = set(attribute.internal_name for attribute in attributes)
-    # TODO(wmak): Need to update snuba here so we can pass the list of attributes, snuba currently does a hasAll if we
-    # pass names in a OrFilter which means only rows with _all_ attributes will return
     attrs_request = TraceItemAttributeNamesRequest(
         meta=meta,
         limit=10_000,
         type=attr_type,
+        filter_mode=TraceItemAttributeNamesRequest.FilterMode.FILTER_MODE_MATCH_ANY,
+        # This filter doesn't actually matter snuba just recollects all the columns
+        intersecting_attributes_filter=TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=name))
+                    )
+                    for name in requested_names
+                ]
+            )
+        ),
     )
     attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
     return {
