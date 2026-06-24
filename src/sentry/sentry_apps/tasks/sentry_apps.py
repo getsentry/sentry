@@ -1065,7 +1065,7 @@ def send_activity_alert_webhook(
     **kwargs: Any,
 ) -> None:
     with SentryAppInteractionEvent(
-        operation_type=SentryAppInteractionType.SEND_WEBHOOK,
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=SentryAppEventType.ACTIVITY_ALERT_TRIGGERED,
     ).capture() as lifecycle:
         sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
