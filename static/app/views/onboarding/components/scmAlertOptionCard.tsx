@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
 
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
 import {ScmCardButton} from 'sentry/views/onboarding/components/scmCardButton';
+import {ScmCollapsibleReveal} from 'sentry/views/onboarding/components/scmCollapsibleReveal';
 import {ScmSelectableContainer} from 'sentry/views/onboarding/components/scmSelectableContainer';
 
 interface ScmAlertOptionCardProps {
@@ -48,7 +48,7 @@ export function ScmAlertOptionCard({
                 <Radio size="sm" readOnly checked={isSelected} tabIndex={-1} />
               </Container>
               <Container area="label">
-                <Text bold={isSelected} size="md" density="comfortable">
+                <Text bold size="sm" density="comfortable">
                   {label}
                 </Text>
               </Container>
@@ -62,24 +62,12 @@ export function ScmAlertOptionCard({
             </Grid>
           </Container>
         </ScmCardButton>
-        {/* Selecting the card expands its body; the height tween mirrors
-            ScmCollapsibleSection so cards in scmCreateProject's
-            layout="position" group reflow smoothly. initial={false} keeps a
-            preselected card expanded without animating on mount. */}
-        <AnimatePresence initial={false}>
-          {children && (
-            <motion.div
-              key="content"
-              initial={{height: 0, opacity: 0}}
-              animate={{height: 'auto', opacity: 1}}
-              exit={{height: 0, opacity: 0}}
-              transition={{duration: 0.2, ease: 'easeOut'}}
-              style={{overflow: 'hidden', width: '100%'}}
-            >
-              <ExpandedBody>{children}</ExpandedBody>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Selecting the card expands its body; ScmCollapsibleReveal's height
+            tween lets cards in scmCreateProject's layout="position" group
+            reflow smoothly. */}
+        <ScmCollapsibleReveal open={Boolean(children)}>
+          <ExpandedBody>{children}</ExpandedBody>
+        </ScmCollapsibleReveal>
       </Stack>
     </ScmSelectableContainer>
   );
