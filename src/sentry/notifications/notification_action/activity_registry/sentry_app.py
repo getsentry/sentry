@@ -1,0 +1,188 @@
+from enum import StrEnum
+from typing import Any, NotRequired, TypedDict
+
+from sentry.api.serializers import serialize
+from sentry.constants import SentryAppInstallationStatus
+from sentry.models.activity import Activity
+from sentry.models.organization import Organization
+from sentry.notifications.notification_action.activity_registry.base import (
+    extract_notification_models_by_activity,
+    require_config,
+)
+from sentry.notifications.notification_action.registry import activity_handler_registry
+from sentry.notifications.notification_action.types import ActivityHandler
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+)
+from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
+from sentry.sentry_apps.tasks.sentry_apps import WebhookGroupResponse, _webhook_issue_data
+from sentry.types.activity import SEER_ACTIVITY_TYPES
+from sentry.utils import json
+from sentry.workflow_engine.models import Action, Workflow
+from sentry.workflow_engine.types import ActionInvocation
+
+
+class ActivityAlertType(StrEnum):
+    SEER_RCA_STARTED = "seer_root_cause_started"
+    SEER_RCA_COMPLETED = "seer_root_cause_completed"
+    SEER_SOLUTION_STARTED = "seer_solution_started"
+    SEER_SOLUTION_COMPLETED = "seer_solution_completed"
+    SEER_CODING_STARTED = "seer_coding_started"
+    SEER_CODING_COMPLETED = "seer_coding_completed"
+    SEER_PR_CREATED = "seer_pr_created"
+
+
+ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE: dict[int, ActivityAlertType] = {
+    at.value: ActivityAlertType[at.name] for at in SEER_ACTIVITY_TYPES
+}
+
+
+class ActivityData(TypedDict):
+    type: ActivityAlertType
+    details: dict[str, Any]
+
+
+class WorkflowData(TypedDict):
+    id: int
+    title: str
+    sentry_app_id: int
+    url: str
+    settings: NotRequired[list[dict[str, Any]]]
+
+
+class ActivityAlertWebhookPayload(TypedDict):
+    issue: WebhookGroupResponse
+    activity: ActivityData
+    alert: WorkflowData
+
+
+def _get_sentry_app_installation(
+    action: Action, organization: Organization
+) -> RpcSentryAppInstallation:
+    target_identifier = require_config(action, "target_identifier")
+
+    if action.type == Action.Type.SENTRY_APP:
+        installations = app_service.get_many(
+            filter=dict(
+                app_ids=[int(target_identifier)],
+                organization_id=organization.id,
+                status=SentryAppInstallationStatus.INSTALLED,
+            )
+        )
+    else:
+        sentry_app = app_service.get_sentry_app_by_slug(slug=target_identifier)
+        if not sentry_app:
+            raise ValueError(f"Sentry app not found: {target_identifier}")
+        installations = app_service.get_many(
+            filter=dict(
+                app_ids=[sentry_app.id],
+                organization_id=organization.id,
+                status=SentryAppInstallationStatus.INSTALLED,
+            )
+        )
+
+    if not installations or len(installations) != 1:
+        raise ValueError(f"Expected 1 sentry app installation, got {len(installations)}")
+    return installations[0]
+
+
+def _build_activity_data(activity: Activity) -> ActivityData:
+    activity_alert_type = ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE.get(activity.type)
+    if activity_alert_type is None:
+        raise ValueError(f"Unrecognized activity type: {activity.type} for activity {activity.id}")
+
+    if not activity.data:
+        return ActivityData(type=activity_alert_type, details={})
+
+    match activity_alert_type:
+        case ActivityAlertType.SEER_RCA_COMPLETED | ActivityAlertType.SEER_SOLUTION_COMPLETED:
+            summary = activity.data.get("summary", "")
+            return ActivityData(type=activity_alert_type, details={"summary": summary})
+        case ActivityAlertType.SEER_PR_CREATED:
+            pull_requests_data = activity.data.get("pull_requests", [])
+            pull_requests = [
+                {
+                    "repo_name": pull_request.get("repo_name"),
+                    "url": pull_request.get("pull_request", {}).get("pr_url"),
+                }
+                for pull_request in pull_requests_data
+            ]
+            return ActivityData(type=activity_alert_type, details={"pull_requests": pull_requests})
+        case _:
+            return ActivityData(type=activity_alert_type, details={})
+
+
+def _build_workflow_data(
+    invocation: ActionInvocation, organization: Organization, install: RpcSentryAppInstallation
+) -> WorkflowData:
+    try:
+        workflow = Workflow.objects.get(id=invocation.workflow_id, organization_id=organization.id)
+    except Workflow.DoesNotExist:
+        raise ValueError(f"Workflow not found: {invocation.workflow_id}")
+
+    workflow_data = WorkflowData(
+        id=workflow.id,
+        title=workflow.name,
+        sentry_app_id=install.sentry_app.id,
+        url=organization.absolute_url(
+            f"organizations/{organization.slug}/monitors/alerts/{workflow.id}/"
+        ),
+    )
+
+    settings = invocation.action.data.get("settings")
+    if settings:
+        workflow_data["settings"] = settings
+
+    return workflow_data
+
+
+@activity_handler_registry.register(Action.Type.SENTRY_APP)
+@activity_handler_registry.register(Action.Type.WEBHOOK)
+class SentryAppActivityHandler(ActivityHandler):
+    compatible_activity_types = list(SEER_ACTIVITY_TYPES)
+
+    @classmethod
+    def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:
+        from sentry.sentry_apps.tasks.sentry_apps import send_activity_alert_webhook
+
+        with SentryAppInteractionEvent(
+            operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+            event_type=SentryAppEventType.ACTIVITY_ALERT_TRIGGERED,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "activity_id": activity.id,
+                    "activity_type": activity.type,
+                    "action_id": invocation.action.id,
+                    "action_type": invocation.action.type,
+                }
+            )
+            action = invocation.action
+            activity, group, project, organization = extract_notification_models_by_activity(
+                activity.id
+            )
+            lifecycle.add_extras(
+                {
+                    "group_id": group.id,
+                    "project_id": project.id,
+                    "organization_id": organization.id,
+                }
+            )
+
+            install = _get_sentry_app_installation(action, organization)
+            payload = ActivityAlertWebhookPayload(
+                issue=_webhook_issue_data(group=group, serialized_group=serialize(group)),
+                activity=_build_activity_data(activity=activity),
+                alert=_build_workflow_data(
+                    invocation=invocation, organization=organization, install=install
+                ),
+            )
+
+        send_activity_alert_webhook.delay(
+            sentry_app_id=install.sentry_app.id,
+            organization_id=organization.id,
+            payload_json=json.dumps(payload),
+        )
