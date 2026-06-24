@@ -95,12 +95,6 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    */
   keepVisibleRef?: React.RefObject<HTMLElement | null>;
   maxOptions?: number;
-  /**
-   * Minimum width for the input. Useful when the input may be empty with no
-   * placeholder (e.g. the trailing input of a multi-value token), where it
-   * would otherwise autosize down to a barely-clickable sliver.
-   */
-  minInputWidth?: string;
   onClick?: (e: React.MouseEvent) => void;
   /**
    * Called when the user explicitly closes the combobox with the escape key.
@@ -396,7 +390,6 @@ export function SearchQueryBuilderCombobox<
   isLoading: incomingIsLoading,
   isOpen: incomingIsOpen,
   keepVisibleRef,
-  minInputWidth,
   ['data-test-id']: dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
@@ -642,7 +635,6 @@ export function SearchQueryBuilderCombobox<
         )}
         type="text"
         placeholder={placeholder}
-        style={minInputWidth ? {minWidth: minInputWidth} : undefined}
         onClick={handleInputClick}
         value={inputValue}
         onChange={handleInputChange}
