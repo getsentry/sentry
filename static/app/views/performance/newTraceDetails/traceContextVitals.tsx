@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import type {MobileVital, WebVital} from 'sentry/utils/fields';
+import {MobileVital, type WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital, Vital as VitalDetails} from 'sentry/utils/performance/vitals/types';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -36,6 +36,13 @@ type Props = {
   containerWidth: number | undefined;
   rootEventResults: TraceRootEventQueryResults;
   tree: TraceTree;
+};
+
+const MOBILE_VITAL_MEASUREMENTS: Record<string, MobileVital> = {
+  'app.vitals.start.cold.value': MobileVital.APP_START_COLD,
+  'app.vitals.start.warm.value': MobileVital.APP_START_WARM,
+  'app.vitals.ttfd.value': MobileVital.TIME_TO_FULL_DISPLAY,
+  'app.vitals.ttid.value': MobileVital.TIME_TO_INITIAL_DISPLAY,
 };
 
 export function TraceContextVitals({rootEventResults, tree, containerWidth}: Props) {
@@ -262,12 +269,14 @@ function getMobileVitalsFromRootEventResults(
 
   return data.attributes
     .map(attribute => {
+      const mobileVital =
+        MOBILE_VITAL_MEASUREMENTS[attribute.name] ?? (attribute.name as MobileVital);
       if (
-        TRACE_VIEW_MOBILE_VITALS.includes(attribute.name as MobileVital) &&
+        TRACE_VIEW_MOBILE_VITALS.includes(mobileVital) &&
         typeof attribute.value === 'number'
       ) {
         return {
-          key: attribute.name.replace('measurements.', ''),
+          key: mobileVital.replace('measurements.', ''),
           measurement: {value: attribute.value},
           score: undefined,
         };

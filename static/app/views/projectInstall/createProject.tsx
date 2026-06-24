@@ -479,7 +479,7 @@ export function CreateProject() {
     <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
       <div data-test-id="onboarding-info">
         <List symbol="colored-numeric">
-          <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
+          <Layout.Title>{t('Create a new project in 3 steps')}</Layout.Title>
           <HelpText>
             {tct(
               'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',

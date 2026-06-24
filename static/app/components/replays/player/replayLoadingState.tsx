@@ -47,15 +47,15 @@ export function ReplayLoadingState({
       <ReplayRequestsThrottledAlert />
     );
   }
-  if (readerResult.fetchError) {
+  if (readerResult.replayRecord?.is_archived) {
+    return renderArchived ? renderArchived(readerResult) : <ArchivedReplayAlert />;
+  }
+  if (readerResult.fetchError || readerResult.attachmentError?.length) {
     return renderError ? (
       renderError(readerResult)
     ) : (
       <MissingReplayAlert orgSlug={organization.slug} />
     );
-  }
-  if (readerResult.replayRecord?.is_archived) {
-    return renderArchived ? renderArchived(readerResult) : <ArchivedReplayAlert />;
   }
   if (readerResult.isPending) {
     return renderLoading ? renderLoading(readerResult) : <LoadingIndicator />;

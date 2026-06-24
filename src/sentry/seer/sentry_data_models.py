@@ -206,6 +206,13 @@ class SpanAttributesResponse(BaseModel):
 class BuiltInField(BaseModel):
     key: str
     type: str
+    # Attribute metadata (brief, examples, isDeprecated, replacementAttribute,
+    # ...) for the attribute, populated when the caller requests
+    # `expand="context"`; otherwise None. Today the metadata comes from the
+    # sentry conventions, so only attributes that map to a known convention
+    # carry it, but custom attribute context is planned and will populate this
+    # for user-defined attributes too.
+    context: dict[str, Any] | None = None
 
 
 class AttributeNamesResponse(BaseModel):
