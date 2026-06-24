@@ -192,10 +192,18 @@ def _track_contributor_action_processor(
             defaults={"organization_contributor": contributor},
         )
         if created:
+            try:
+                pr_repo_private = pull_request["head"]["repo"]["private"]
+            except (KeyError, AttributeError, TypeError):
+                pr_repo_private = False
+
             metrics.incr(
                 "scm.webhook.organization_contributor.action_recorded",
                 sample_rate=1.0,
-                tags={"provider": IntegrationProviderSlug.GITHUB.value},
+                tags={
+                    "provider": (repo.provider or "").removeprefix("integrations:"),
+                    "is_private": pr_repo_private,
+                },
             )
 
 
