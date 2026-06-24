@@ -734,6 +734,52 @@ def tpm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
 
+def failure_count_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+    key = cast(AttributeKey, args[0])
+    operator = cast(str, args[1])
+    value = cast(str, args[2])
+
+    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, operator, value])
+
+    return Column.BinaryFormula(
+        default_value_double=0.0,
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(
+                    name="sentry.status",
+                    type=AttributeKey.TYPE_STRING,
+                ),
+                filter=TraceItemFilter(
+                    and_filter=AndFilter(
+                        filters=[
+                            TraceItemFilter(
+                                comparison_filter=ComparisonFilter(
+                                    key=AttributeKey(
+                                        name="sentry.status",
+                                        type=AttributeKey.TYPE_STRING,
+                                    ),
+                                    op=ComparisonFilter.OP_NOT_IN,
+                                    value=AttributeValue(
+                                        val_str_array=StrArray(
+                                            values=["ok", "cancelled", "unknown"],
+                                        ),
+                                    ),
+                                ),
+                            ),
+                            key_equal_value_filter,
+                        ]
+                    )
+                ),
+                extrapolation_mode=extrapolation_mode,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_MULTIPLY,
+        right=Column(literal=LiteralValue(val_double=1.0)),
+    )
+
+
 def failure_count(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
@@ -1197,6 +1243,20 @@ SPAN_FORMULA_DEFINITIONS = {
         default_search_type="integer",
         arguments=[],
         formula_resolver=failure_count,
+        is_aggregate=True,
+    ),
+    "failure_count_if": FormulaDefinition(
+        default_search_type="integer",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        formula_resolver=failure_count_if,
         is_aggregate=True,
     ),
     "eps": FormulaDefinition(
