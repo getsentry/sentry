@@ -1,13 +1,20 @@
 // Heat map color ramps (low → high). ECharts' continuous `visualMap`
 // interpolates between whatever stops it's given, so a ramp is just an ordered
-// list of ~10 hex stops. Each ramp here aims for the same properties: lightness
-// that climbs steadily and a bright, distinct top end, so high-magnitude cells
-// (e.g. 1M vs 18M) stay distinguishable. The previous purple→magenta ramp packed
-// its top half into similarly-dark stops, so they all looked the same. Per the
-// Datadog heatmap write-up, human brightness perception follows a power law (we
-// discriminate poorly among dark shades), so ending bright keeps hot cells
-// legible. Empty/zero buckets are NOT part of the palette — they're rendered
-// transparent by a piecewise `visualMap` in `HeatMapWidgetVisualization`.
+// list of ~10 hex stops.
+//
+// Each ramp targets two properties so that cells of different magnitude stay
+// distinguishable:
+//   1. Lightness climbs steadily from one end to the other, giving a "brighter =
+//      more" cue that's readable on its own (and survives greyscale).
+//   2. The high end is bright and high-contrast. Human brightness perception
+//      follows a power law — we resolve bright shades far better than dark ones
+//      — so a ramp that ends bright keeps the busiest cells legible instead of
+//      letting them blur together at a murky top end.
+// Wandering through several hues along the way (rather than a single hue getting
+// lighter) packs in more perceptually-distinct steps for the same lightness range.
+//
+// Empty/zero buckets are NOT part of the palette — they're rendered transparent
+// by a piecewise `visualMap` in `HeatMapWidgetVisualization`.
 
 /** Viridis, sampled at 10 stops. */
 const VIRIDIS = [

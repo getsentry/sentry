@@ -9,9 +9,9 @@
  * linear (`z / zMax`) and logarithmic (`log1p(z) / log1p(zMax)`) — both fail on
  * the long-tailed distributions we actually see: a handful of huge buckets
  * stretch the scale so that everything else collapses into one or two colors.
- * Concretely, a cell of 1,000,000 and a cell of 18,000,000 ended up nearly
- * identical because, even in log space, they both sit near the very top of the
- * range and the palette has little contrast there.
+ * Concretely, a cell of 1,000,000 and one of 18,000,000 map to nearly the same
+ * position because, even in log space, both sit at the very top of the range
+ * with almost no room between them.
  *
  * ## The approach: equalize by rank, not by magnitude
  *
