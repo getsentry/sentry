@@ -17,6 +17,7 @@ from sentry.notifications.platform.target import (
 )
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
+    LinkTextBlock,
     NotificationBodyFormattingBlock,
     NotificationBodyFormattingBlockType,
     NotificationBodyTextBlock,
@@ -117,6 +118,10 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
                 texts.append(f"**{block.text}**")
             elif block.type == NotificationBodyTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
+            elif block.type == NotificationBodyTextBlockType.LINK and isinstance(
+                block, LinkTextBlock
+            ):
+                texts.append(f"[{block.text}]({block.url})")
         return " ".join(texts)
 
 

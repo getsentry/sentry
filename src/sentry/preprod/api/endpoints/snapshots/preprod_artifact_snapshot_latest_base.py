@@ -4,13 +4,11 @@ import logging
 from typing import Any, cast
 
 import orjson
-from django.conf import settings
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -135,11 +133,6 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
 
         This endpoint requires a bearer token with `project:read` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         for param, spec in LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS.items():
             if spec.get("required") and not request.GET.get(param):
                 return Response({"detail": f"{param} query parameter is required"}, status=400)

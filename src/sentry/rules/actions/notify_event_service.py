@@ -14,9 +14,7 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.organization import Organization
-from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
-from sentry.rules.actions.services import PluginService
 from sentry.rules.base import CallbackFuture
 from sentry.sentry_apps.services.app import RpcSentryAppService, app_service
 from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app, send_metric_alert_webhook
@@ -136,7 +134,6 @@ class NotifyEventServiceAction(EventAction):
             self.logger.info("rules.fail.is_configured", extra=extra)
             return
 
-        plugin = None
         app = app_service.get_sentry_app_by_slug(slug=service)
 
         if app:
@@ -149,61 +146,15 @@ class NotifyEventServiceAction(EventAction):
                 skip_internal=False,
             )
             yield self.future(notify_sentry_app, sentry_app=app)
-
-        try:
-            plugin = plugins.get(service)
-        except KeyError:
-            if not app:
-                # If we can't find the sentry app OR plugin,
-                # we've removed the plugin no need to error, just skip.
-                extra["plugin"] = service
-                self.logger.info("rules.fail.plugin_does_not_exist", extra=extra)
-                return
-
-        if plugin:
+        else:
             extra["plugin"] = service
-            if not plugin.is_enabled(self.project):
-                extra["project_id"] = self.project.id
-                self.logger.info("rules.fail.is_enabled", extra=extra)
-                return
-
-            group = event.group
-
-            if not plugin.should_notify(group=group, event=event):
-                extra["group_id"] = group.id
-                self.logger.info("rule.fail.should_notify", extra=extra)
-                return
-
-            extra["organization_id"] = self.project.organization_id
-            extra["project_id"] = self.project.id
-            self.logger.info("rules.plugin_notification_sent", extra=extra)
-
-            metrics.incr(
-                "notifications.sent",
-                instance=plugin.slug,
-                tags={
-                    "issue_type": event.group.issue_type.slug,
-                },
-                skip_internal=False,
-            )
-            yield self.future(plugin.rule_notify)
+            self.logger.info("rules.fail.plugin_does_not_exist", extra=extra)
 
     def get_sentry_app_services(self) -> Sequence[RpcSentryAppService]:
         return app_service.find_alertable_services(organization_id=self.project.organization_id)
 
-    def get_plugins(self) -> Sequence[PluginService]:
-        from sentry.plugins.bases.notify import NotificationPlugin
-
-        results = []
-        for plugin in plugins.for_project(self.project, version=1):
-            if not isinstance(plugin, NotificationPlugin):
-                continue
-            results.append(PluginService(plugin))
-
-        return results
-
     def get_services(self) -> Sequence[Any]:
-        return [*self.get_plugins(), *self.get_sentry_app_services()]
+        return list(self.get_sentry_app_services())
 
     def get_form_instance(self) -> NotifyEventServiceForm:
         return NotifyEventServiceForm(self.data, services=self.get_services())
