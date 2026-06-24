@@ -7,10 +7,11 @@ from sentry.constants import DataCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.pr_metrics.attribution import (
-    attribute_seer_created_pull_requests,
-    get_or_create_reported_pull_request,
+    record_seer_created_attributions,
+    resolve_seer_created_pull_requests,
 )
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
@@ -611,36 +612,20 @@ def _create_seer_activity(
     )
 
 
-def _maybe_link_run_to_pull_requests(
-    *,
-    organization: Organization,
-    pull_requests: Sequence[Mapping[str, Any]],
-    run_id: int,
-) -> None:
-    """Best-effort, killswitch-gated: link each PR a Seer run opened.
-
-    ``pull_requests`` is the ``seer.pr_created`` payload; ``run_id`` is the run's
-    ``seer_run_state_id``. Never raises — runs inline on the webhook path.
-    """
-    if options.get("seer.run-pr-link.killswitch.enabled"):
-        return
-    try:
-        _link_run_to_pull_requests(
-            organization=organization, pull_requests=pull_requests, run_id=run_id
-        )
-    except Exception:
-        logger.exception(
-            "seer.pr_link.failed",
-            extra={"organization_id": organization.id, "seer_run_state_id": run_id},
-        )
-
-
 def _link_run_to_pull_requests(
     *,
     organization: Organization,
-    pull_requests: Sequence[Mapping[str, Any]],
     run_id: int,
+    resolved_prs: Sequence[tuple[Mapping[str, Any], PullRequest]],
 ) -> None:
+    """Record a ``SeerRunPullRequest`` for each resolved PR a Seer run opened.
+
+    ``resolved_prs`` is the already-resolved ``(entry, pull_request)`` output of
+    ``resolve_seer_created_pull_requests``; ``run_id`` is the run's ``seer_run_state_id``.
+    """
+    if not resolved_prs:
+        return
+
     run = SeerRun.objects.filter(organization_id=organization.id, seer_run_state_id=run_id).first()
     if run is None:
         logger.warning(
@@ -649,47 +634,20 @@ def _link_run_to_pull_requests(
         )
         return
 
-    for entry in pull_requests:
-        repo_name = entry.get("repo_name")
-        provider = entry.get("provider")
-        pr_number = (entry.get("pull_request") or {}).get("pr_number")
+    for _entry, pull_request in resolved_prs:
         log_context = {
             "organization_id": organization.id,
             "seer_run_state_id": run_id,
-            "repo_name": repo_name,
-            "provider": provider,
-            "pr_number": pr_number,
+            "pull_request_id": pull_request.id,
         }
-        if not repo_name or pr_number is None:
-            logger.warning("seer.pr_link.missing_fields", extra=log_context)
-            continue
-
         try:
-            resolved = get_or_create_reported_pull_request(
-                organization_id=organization.id,
-                repo_name=repo_name,
-                provider=provider,
-                pr_number=pr_number,
-            )
-            if resolved.pull_request is None:
-                logger.warning(
-                    "seer.pr_link.repo_unresolved",
-                    extra={**log_context, "repo_resolution": resolved.repo_resolution},
-                )
-                continue
-
-            SeerRunPullRequest.objects.get_or_create(
-                seer_run=run, pull_request=resolved.pull_request
-            )
+            SeerRunPullRequest.objects.get_or_create(seer_run=run, pull_request=pull_request)
         except Exception:
-            # Isolate per entry so one bad repo doesn't drop the rest.
+            # Isolate per entry so one bad write doesn't drop the rest.
             logger.exception("seer.pr_link.failed", extra=log_context)
             continue
 
-        logger.info(
-            "seer.pr_link.recorded",
-            extra={**log_context, "pull_request_id": resolved.pull_request.id},
-        )
+        logger.info("seer.pr_link.recorded", extra=log_context)
 
 
 @instrumented_task(
@@ -755,27 +713,43 @@ def process_autofix_updates(
             )
 
         if event_type == SentryAppEventType.SEER_PR_CREATED:
-            pull_requests = event_payload.get("pull_requests", [])
+            link_enabled = not options.get("seer.run-pr-link.killswitch.enabled")
+            attribution_enabled = features.has("organizations:pr-metrics-attribution", organization)
 
-            _maybe_link_run_to_pull_requests(
-                organization=organization,
-                pull_requests=pull_requests,
-                run_id=run_id,
-            )
+            # Resolve each reported PR to its canonical PullRequest once, then fan the
+            # result out to linking and attribution rather than resolving per consumer.
+            if link_enabled or attribution_enabled:
+                resolved_prs = resolve_seer_created_pull_requests(
+                    organization_id=organization.id,
+                    pull_requests=event_payload.get("pull_requests", []),
+                    log_context={
+                        "organization_id": organization.id,
+                        "run_id": run_id,
+                        "group_id": group_id,
+                    },
+                )
 
-            if features.has("organizations:pr-metrics-attribution", organization):
-                try:
-                    attribute_seer_created_pull_requests(
-                        organization=organization,
-                        pull_requests=pull_requests,
-                        run_id=run_id,
-                        group_id=group_id,
-                    )
-                except Exception:
-                    logger.exception(
-                        "seer.pr_attribution.failed",
-                        extra={"group_id": group_id, "run_id": run_id},
-                    )
+                if link_enabled:
+                    try:
+                        _link_run_to_pull_requests(
+                            organization=organization, run_id=run_id, resolved_prs=resolved_prs
+                        )
+                    except Exception:
+                        logger.exception(
+                            "seer.pr_link.failed",
+                            extra={"organization_id": organization.id, "seer_run_state_id": run_id},
+                        )
+
+                if attribution_enabled:
+                    try:
+                        record_seer_created_attributions(
+                            resolved_prs=resolved_prs, run_id=run_id, group_id=group_id
+                        )
+                    except Exception:
+                        logger.exception(
+                            "seer.pr_attribution.failed",
+                            extra={"group_id": group_id, "run_id": run_id},
+                        )
 
         for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {

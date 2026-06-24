@@ -29,7 +29,7 @@ from sentry.seer.entrypoints.operator import (
     SeerAgentOperator,
     SeerAutofixOperator,
     SeerOperatorCompletionHook,
-    _maybe_link_run_to_pull_requests,
+    _link_run_to_pull_requests,
     get_autofix_explorer_status,
     process_autofix_updates,
 )
@@ -391,9 +391,10 @@ class SeerOperatorTest(TestCase):
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_process_autofix_updates_pr_attribution_disabled(self, _mock_has_access):
-        repo = self.create_repo(self.project, name="getsentry/sentry")
+        self.create_repo(self.project, name="getsentry/sentry")
 
-        # Feature flag off (default) — the attribution block must not run.
+        # Feature flag off (default) — no attribution signal is recorded. (The PR
+        # itself may still be resolved/created by the always-on linking path.)
         with (
             override_options({"issues.record-seer-actions-as-activities": False}),
             patch.dict(
@@ -408,7 +409,6 @@ class SeerOperatorTest(TestCase):
                 organization_id=self.organization.id,
             )
 
-        assert not PullRequest.objects.filter(repository_id=repo.id).exists()
         assert not PullRequestAttribution.objects.exists()
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
@@ -433,6 +433,34 @@ class SeerOperatorTest(TestCase):
         pull_request = PullRequest.objects.get(repository_id=repo.id, key="99")
         link = SeerRunPullRequest.objects.get(pull_request=pull_request)
         assert link.seer_run_id == run.id
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_process_autofix_updates_killswitch_skips_linking(self, _mock_has_access):
+        repo = self.create_repo(self.project, name="getsentry/sentry")
+        self.create_seer_run(organization=self.organization, seer_run_state_id=MOCK_RUN_ID)
+
+        with (
+            override_options(
+                {
+                    "issues.record-seer-actions-as-activities": False,
+                    "seer.run-pr-link.killswitch.enabled": True,
+                }
+            ),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
+                {},
+                clear=True,
+            ),
+        ):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_PR_CREATED,
+                event_payload=self._pr_created_event_payload(),
+                organization_id=self.organization.id,
+            )
+
+        # Killswitch on and attribution flag off → nothing resolves or links.
+        assert not SeerRunPullRequest.objects.exists()
+        assert not PullRequest.objects.filter(repository_id=repo.id).exists()
 
     def test_process_autofix_updates_no_operator_access(self) -> None:
         mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
@@ -1181,105 +1209,88 @@ REPO_NAME = "getsentry/sentry"
 RUN_STATE_ID = 4242
 
 
-def _pr(pr_number: int = 42, repo_name: str = REPO_NAME) -> dict[str, Any]:
-    return {
-        "repo_name": repo_name,
-        "pull_request": {"pr_number": pr_number, "pr_url": f"https://x/{pr_number}"},
-    }
-
-
 class LinkRunToPullRequestsTest(TestCase):
+    """Unit tests for the linking step, which takes already-resolved PRs.
+
+    Resolution itself (repo lookup, provider disambiguation, missing fields) is
+    covered by ``resolve_seer_created_pull_requests`` in the pr_metrics tests.
+    """
+
     def setUp(self) -> None:
         self.repo = self.create_repo(self.project, name=REPO_NAME, provider="integrations:github")
         self.seer_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=RUN_STATE_ID
         )
 
-    def _link(self, run_id: int = RUN_STATE_ID) -> None:
-        _maybe_link_run_to_pull_requests(
-            organization=self.organization, pull_requests=[_pr()], run_id=run_id
+    def _resolved(self, pr_number: int = 42, repo=None) -> tuple[dict[str, Any], PullRequest]:
+        repo = repo or self.repo
+        pr = PullRequest.objects.create(
+            organization_id=self.organization.id, repository_id=repo.id, key=str(pr_number)
+        )
+        entry = {
+            "repo_name": repo.name,
+            "pull_request": {"pr_number": pr_number, "pr_url": f"https://x/{pr_number}"},
+        }
+        return entry, pr
+
+    def _link(self, resolved_prs, run_id: int = RUN_STATE_ID) -> None:
+        _link_run_to_pull_requests(
+            organization=self.organization, run_id=run_id, resolved_prs=resolved_prs
         )
 
-    def test_links_pull_request_to_seer_run(self) -> None:
-        self._link()
+    def test_links_resolved_pr_to_run(self) -> None:
+        entry, pr = self._resolved()
+        self._link([(entry, pr)])
 
-        pr = PullRequest.objects.get(repository_id=self.repo.id, key="42")
         assert SeerRunPullRequest.objects.get(pull_request=pr).seer_run_id == self.seer_run.id
 
     def test_no_links_when_run_not_found(self) -> None:
-        self._link(run_id=999999)
+        self._link([self._resolved()], run_id=999999)
+
+        assert not SeerRunPullRequest.objects.exists()
+
+    def test_empty_resolved_prs_is_noop(self) -> None:
+        self._link([])
 
         assert not SeerRunPullRequest.objects.exists()
 
     def test_is_idempotent_on_redelivery(self) -> None:
-        self._link()
-        self._link()
+        resolved = self._resolved()
+        self._link([resolved])
+        self._link([resolved])
 
-        pr = PullRequest.objects.get(repository_id=self.repo.id, key="42")
-        assert SeerRunPullRequest.objects.filter(pull_request=pr).count() == 1
+        assert SeerRunPullRequest.objects.filter(pull_request=resolved[1]).count() == 1
 
     def test_links_multiple_prs_for_one_run(self) -> None:
         """A multi-repo run links each opened PR to the same run."""
         other_repo = self.create_repo(
             self.project, name="getsentry/other", provider="integrations:github"
         )
+        r1 = self._resolved(pr_number=1)
+        r2 = self._resolved(pr_number=2, repo=other_repo)
 
-        _maybe_link_run_to_pull_requests(
-            organization=self.organization,
-            pull_requests=[_pr(pr_number=1), _pr(pr_number=2, repo_name="getsentry/other")],
-            run_id=RUN_STATE_ID,
-        )
+        self._link([r1, r2])
 
-        pr1 = PullRequest.objects.get(repository_id=self.repo.id, key="1")
-        pr2 = PullRequest.objects.get(repository_id=other_repo.id, key="2")
         assert SeerRunPullRequest.objects.filter(seer_run=self.seer_run).count() == 2
-        assert SeerRunPullRequest.objects.filter(pull_request=pr1).exists()
-        assert SeerRunPullRequest.objects.filter(pull_request=pr2).exists()
+        assert SeerRunPullRequest.objects.filter(pull_request=r1[1]).exists()
+        assert SeerRunPullRequest.objects.filter(pull_request=r2[1]).exists()
 
-    def test_skips_unresolved_repo(self) -> None:
-        _maybe_link_run_to_pull_requests(
-            organization=self.organization,
-            pull_requests=[_pr(repo_name="getsentry/does-not-exist")],
-            run_id=RUN_STATE_ID,
-        )
+    def test_one_failing_write_does_not_drop_the_rest(self) -> None:
+        r1 = self._resolved(pr_number=1)
+        r2 = self._resolved(pr_number=2)
 
-        assert not SeerRunPullRequest.objects.exists()
-
-    def test_one_failing_entry_does_not_drop_the_rest(self) -> None:
-        other_repo = self.create_repo(
-            self.project, name="getsentry/other", provider="integrations:github"
-        )
-
-        # First entry raises mid-resolve; the second must still get linked.
-        real_get_or_create = PullRequest.objects.get_or_create
-        seen: list[str] = []
+        # First write raises; the second must still get linked.
+        real_get_or_create = SeerRunPullRequest.objects.get_or_create
+        seen: list[int] = []
 
         def flaky(**kwargs):
-            seen.append(kwargs["key"])
+            seen.append(kwargs["pull_request"].id)
             if len(seen) == 1:
                 raise RuntimeError("boom")
             return real_get_or_create(**kwargs)
 
-        with patch.object(PullRequest.objects, "get_or_create", side_effect=flaky):
-            _maybe_link_run_to_pull_requests(
-                organization=self.organization,
-                pull_requests=[_pr(pr_number=1), _pr(pr_number=2, repo_name="getsentry/other")],
-                run_id=RUN_STATE_ID,
-            )
+        with patch.object(SeerRunPullRequest.objects, "get_or_create", side_effect=flaky):
+            self._link([r1, r2])
 
-        assert not PullRequest.objects.filter(key="1").exists()
-        pr2 = PullRequest.objects.get(repository_id=other_repo.id, key="2")
-        assert SeerRunPullRequest.objects.filter(pull_request=pr2).exists()
-
-    def test_killswitch_skips_linking(self) -> None:
-        with override_options({"seer.run-pr-link.killswitch.enabled": True}):
-            self._link()
-
-        assert not SeerRunPullRequest.objects.exists()
-
-    def test_swallows_exceptions(self) -> None:
-        with patch(
-            "sentry.seer.entrypoints.operator._link_run_to_pull_requests",
-            side_effect=RuntimeError("boom"),
-        ):
-            self._link()  # must not raise
+        assert not SeerRunPullRequest.objects.filter(pull_request=r1[1]).exists()
+        assert SeerRunPullRequest.objects.filter(pull_request=r2[1]).exists()

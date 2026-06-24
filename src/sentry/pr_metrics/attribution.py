@@ -179,6 +179,22 @@ def get_or_create_reported_pull_request(
     return ResolvedPullRequest(pull_request, "resolved", provider_recognized)
 
 
+def _log_unresolved_reported_pull_request(
+    resolved: ResolvedPullRequest, log_context: Mapping[str, Any]
+) -> None:
+    """Emit the standard warnings for a PR that didn't resolve to a unique repo."""
+    # A present-but-unrecognized provider means the source sent something we don't
+    # map — warn so it can be corrected upstream.
+    if not resolved.provider_recognized:
+        logger.warning("pr_metrics.attribution.unrecognized_provider", extra=log_context)
+
+    if resolved.pull_request is None:
+        if resolved.repo_resolution == "ambiguous":
+            logger.warning("pr_metrics.attribution.repo_ambiguous", extra=log_context)
+        else:
+            logger.warning("pr_metrics.attribution.repo_not_found", extra=log_context)
+
+
 def _attribute_pull_request(
     *,
     organization_id: int,
@@ -190,10 +206,10 @@ def _attribute_pull_request(
     signal_details: Mapping[str, Any] | None,
     log_context: Mapping[str, Any],
 ) -> None:
-    """Resolve a reported PR and idempotently record one attribution signal.
+    """Resolve a single reported PR and idempotently record one attribution signal.
 
-    Shared by the Seer-native and delegated-agent paths. Failures are logged and
-    swallowed rather than raised, so a batch caller's remaining PRs are unaffected.
+    Used by the delegated-agent path. Failures are logged and swallowed rather than
+    raised, so a batch caller's remaining PRs are unaffected.
     """
     try:
         resolved = get_or_create_reported_pull_request(
@@ -206,16 +222,8 @@ def _attribute_pull_request(
         logger.exception("pr_metrics.attribution.record_failed", extra=log_context)
         return
 
-    # A present-but-unrecognized provider means the source sent something we don't
-    # map — warn so it can be corrected upstream.
-    if not resolved.provider_recognized:
-        logger.warning("pr_metrics.attribution.unrecognized_provider", extra=log_context)
-
+    _log_unresolved_reported_pull_request(resolved, log_context)
     if resolved.pull_request is None:
-        if resolved.repo_resolution == "ambiguous":
-            logger.warning("pr_metrics.attribution.repo_ambiguous", extra=log_context)
-        else:
-            logger.warning("pr_metrics.attribution.repo_not_found", extra=log_context)
         return
 
     # The repo is resolved now, so its id sharpens every log from here on.
@@ -238,6 +246,88 @@ def _attribute_pull_request(
     )
 
 
+def resolve_seer_created_pull_requests(
+    *,
+    organization_id: int,
+    pull_requests: Sequence[Mapping[str, Any]],
+    log_context: Mapping[str, Any],
+) -> list[tuple[Mapping[str, Any], PullRequest]]:
+    """Resolve each ``seer.pr_created`` entry to its canonical ``PullRequest``.
+
+    Returns ``(entry, pull_request)`` for every entry that resolves, skipping and
+    logging the rest. Resolution is shared by attribution and Seer run→PR linking, so
+    a caller resolves once and fans the result out to both rather than re-querying.
+    """
+    resolved_prs: list[tuple[Mapping[str, Any], PullRequest]] = []
+    for entry in pull_requests:
+        repo_name = entry.get("repo_name")
+        provider = entry.get("provider")
+        pr_number = (entry.get("pull_request") or {}).get("pr_number")
+        entry_context = {
+            **log_context,
+            "repo_name": repo_name,
+            "provider": provider,
+            "pr_number": pr_number,
+        }
+
+        if not repo_name or pr_number is None:
+            logger.warning("pr_metrics.attribution.missing_fields", extra=entry_context)
+            continue
+
+        try:
+            resolved = get_or_create_reported_pull_request(
+                organization_id=organization_id,
+                repo_name=repo_name,
+                provider=provider,
+                pr_number=pr_number,
+            )
+        except Exception:
+            logger.exception("pr_metrics.attribution.record_failed", extra=entry_context)
+            continue
+
+        _log_unresolved_reported_pull_request(resolved, entry_context)
+        if resolved.pull_request is not None:
+            resolved_prs.append((entry, resolved.pull_request))
+
+    return resolved_prs
+
+
+def record_seer_created_attributions(
+    *,
+    resolved_prs: Sequence[tuple[Mapping[str, Any], PullRequest]],
+    run_id: int | str | None,
+    group_id: int | str | None,
+) -> None:
+    """Record a ``sentry_app`` attribution signal for each resolved Seer-created PR.
+
+    SENTRY_APP covers both of our GitHub apps: Seer chooses between the Sentry and
+    Seer apps at push time (its write client falls back to the Seer app only when the
+    Sentry app lacks write access), but we don't distinguish them — both are
+    internal-agent authorship.
+    """
+    for entry, pull_request in resolved_prs:
+        pr_url = (entry.get("pull_request") or {}).get("pr_url")
+        log_context = {
+            "organization_id": pull_request.organization_id,
+            "run_id": run_id,
+            "group_id": group_id,
+            "repository_id": pull_request.repository_id,
+            "pull_request_id": pull_request.id,
+        }
+        try:
+            record_attribution_signal(
+                pull_request=pull_request,
+                signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+                source=PullRequestAttributionSource.SEER_DATA,
+                signal_details={"run_id": run_id, "group_id": group_id, "pr_url": pr_url},
+            )
+        except Exception:
+            logger.exception("pr_metrics.attribution.record_failed", extra=log_context)
+            continue
+
+        logger.info("pr_metrics.attribution.recorded", extra=log_context)
+
+
 def attribute_seer_created_pull_requests(
     *,
     organization: Organization,
@@ -245,44 +335,22 @@ def attribute_seer_created_pull_requests(
     run_id: int | str | None,
     group_id: int | str | None,
 ) -> None:
-    """Attribute PRs reported by Seer's ``seer.pr_created`` event to the Seer app.
+    """Resolve PRs from Seer's ``seer.pr_created`` event and attribute them to Seer.
 
-    For each reported PR, record a ``sentry_app`` attribution signal. SENTRY_APP
-    covers both of our GitHub apps: Seer chooses between the Sentry and Seer apps
-    at push time (its write client falls back to the Seer app only when the Sentry
-    app lacks write access), but we don't distinguish them — both are
-    internal-agent authorship.
+    Convenience over ``resolve_seer_created_pull_requests`` + ``record_seer_created_
+    attributions``; the operator calls those two directly so it can also feed the
+    resolved PRs to run→PR linking without re-resolving.
     """
-    for entry in pull_requests:
-        repo_name = entry.get("repo_name")
-        provider = entry.get("provider")
-        pr_payload = entry.get("pull_request") or {}
-        pr_number = pr_payload.get("pr_number")
-        pr_url = pr_payload.get("pr_url")
-
-        log_context = {
+    resolved_prs = resolve_seer_created_pull_requests(
+        organization_id=organization.id,
+        pull_requests=pull_requests,
+        log_context={
             "organization_id": organization.id,
             "run_id": run_id,
             "group_id": group_id,
-            "repo_name": repo_name,
-            "provider": provider,
-            "pr_number": pr_number,
-        }
-
-        if not repo_name or pr_number is None:
-            logger.warning("pr_metrics.attribution.missing_fields", extra=log_context)
-            continue
-
-        _attribute_pull_request(
-            organization_id=organization.id,
-            repo_name=repo_name,
-            provider=provider,
-            pr_number=pr_number,
-            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
-            source=PullRequestAttributionSource.SEER_DATA,
-            signal_details={"run_id": run_id, "group_id": group_id, "pr_url": pr_url},
-            log_context=log_context,
-        )
+        },
+    )
+    record_seer_created_attributions(resolved_prs=resolved_prs, run_id=run_id, group_id=group_id)
 
 
 def _resolve_repository(
