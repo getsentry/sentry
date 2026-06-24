@@ -250,9 +250,6 @@ from sentry.integrations.api.endpoints.organization_integration_direct_enable im
 from sentry.integrations.api.endpoints.organization_integration_issues import (
     OrganizationIntegrationIssuesEndpoint,
 )
-from sentry.integrations.api.endpoints.organization_integration_migrate_opsgenie import (
-    OrganizationIntegrationMigrateOpsgenieEndpoint,
-)
 from sentry.integrations.api.endpoints.organization_integration_repo_sync import (
     OrganizationIntegrationRepoSyncEndpoint,
 )
@@ -1965,11 +1962,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/issues/$",
         OrganizationIntegrationIssuesEndpoint.as_view(),
         name="sentry-api-0-organization-integration-issues",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/migrate-opsgenie/$",
-        OrganizationIntegrationMigrateOpsgenieEndpoint.as_view(),
-        name="sentry-api-0-organization-integration-migrate-opsgenie",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/serverless-functions/$",

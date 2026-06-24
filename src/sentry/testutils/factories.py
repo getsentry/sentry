@@ -631,10 +631,6 @@ class Factories:
         if not allow_no_action_data:
             action_data = action_data or [
                 {
-                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                    "name": "Send a notification (for all legacy integrations)",
-                },
-                {
                     "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
                     "service": "webhooks",
                     "name": "Send a notification via webhooks",
