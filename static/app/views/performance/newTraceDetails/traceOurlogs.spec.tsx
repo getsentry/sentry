@@ -22,6 +22,19 @@ function Component({traceSlug}: {traceSlug: string}) {
 beforeEach(mockGetBoundingClientRect);
 
 describe('TraceViewLogsSection', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      method: 'GET',
+      body: [],
+    });
+  });
+
   it('renders empty logs', async () => {
     const organization = OrganizationFixture({features: ['ourlogs-enabled']});
     const mockRequest = MockApiClient.addMockResponse({
@@ -66,6 +79,24 @@ describe('TraceViewLogsSection', () => {
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows filter key suggestions when the search is focused', async () => {
+    const organization = OrganizationFixture({features: ['ourlogs-enabled']});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-logs/`,
+      body: {
+        data: [],
+        meta: {},
+      },
+    });
+    render(<Component traceSlug={TRACE_SLUG} />, {organization});
+
+    await userEvent.click(
+      await screen.findByRole('combobox', {name: 'Add a search term'})
+    );
+
+    expect(await screen.findByRole('option', {name: 'severity'})).toBeInTheDocument();
   });
 
   it('shows the similar spans log row action', async () => {

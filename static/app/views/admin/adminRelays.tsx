@@ -3,6 +3,7 @@ import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconDelete} from 'sentry/icons';
@@ -24,13 +25,17 @@ export default function AdminRelays() {
   // TODO: Loading not hooked up to anything?
   const [, setLoading] = useState(false);
 
-  const onDelete = (key: string) => {
+  const onDelete = async (key: string) => {
     setLoading(true);
-    api.request(`/relays/${key}/`, {
-      method: 'DELETE',
-      success: () => setLoading(false),
-      error: () => setLoading(false),
-    });
+    try {
+      await api.requestPromise(`/relays/${key}/`, {
+        method: 'DELETE',
+      });
+    } catch {
+      addErrorMessage(t('Unable to delete relay'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getRow = (row: RelayRow) => {
@@ -49,7 +54,7 @@ export default function AdminRelays() {
         <span className="editor-tools">
           <Confirm
             message={t('Are you sure you wish to delete this relay?')}
-            onConfirm={() => onDelete(row.id)}
+            onConfirm={() => void onDelete(row.id)}
           >
             <Button variant="danger" size="sm" icon={<IconDelete />}>
               {t('Remove Relay')}

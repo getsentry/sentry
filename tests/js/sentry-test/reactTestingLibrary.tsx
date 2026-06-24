@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {createPortal} from 'react-dom';
 import {
   Outlet,
   RouterProvider,
@@ -110,6 +111,27 @@ interface InitialRouterOptions {
   outletContext?: Record<string, unknown>;
 }
 
+/**
+ * Mounts the TopBar slot outlets so that content routed into the TopBar (the
+ * page-frame layout renders headers/actions/feedback into these slots) is
+ * rendered and queryable in tests. The outlets are portaled to `document.body`
+ * (rather than the render container) so that `screen.*` queries still find the
+ * slotted content while leaving the test's `container` untouched (e.g. for
+ * `toBeEmptyDOMElement` assertions on components that render nothing).
+ */
+function TopBarTestSlotOutlets() {
+  return createPortal(
+    <Fragment>
+      {/* Mirror the real TopBar, which renders the title slot as an <h1>. */}
+      <TopBar.Slot.Outlet name="title">{p => <h1 {...p} />}</TopBar.Slot.Outlet>
+      <TopBar.Slot.Outlet name="search">{p => <div {...p} />}</TopBar.Slot.Outlet>
+      <TopBar.Slot.Outlet name="actions">{p => <div {...p} />}</TopBar.Slot.Outlet>
+      <TopBar.Slot.Outlet name="feedback">{p => <div {...p} />}</TopBar.Slot.Outlet>
+    </Fragment>,
+    document.body
+  );
+}
+
 function makeAllTheProviders(options: ProviderOptions) {
   const {organization} = initializeOrg({
     organization: options.organization === null ? undefined : options.organization,
@@ -123,6 +145,7 @@ function makeAllTheProviders(options: ProviderOptions) {
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
       <TopBar.Slot.Provider>
+        <TopBarTestSlotOutlets />
         <LLMContextProvider>
           <OrganizationContext value={optionalOrganization}>
             <GlobalAlertProvider>

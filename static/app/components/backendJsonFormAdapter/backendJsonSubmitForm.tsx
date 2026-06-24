@@ -137,6 +137,13 @@ function buildValidationSchema(fields: JsonFormAdapterFieldConfig[]) {
           if (val === null || val === undefined) {
             return false;
           }
+          if (
+            (field.type === 'select' || field.type === 'choice') &&
+            field.multiple &&
+            Array.isArray(val)
+          ) {
+            return val.length > 0;
+          }
           if (typeof val === 'string') {
             return val.trim() !== '';
           }

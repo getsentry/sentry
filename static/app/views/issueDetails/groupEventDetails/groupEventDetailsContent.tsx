@@ -74,7 +74,6 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
-import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {
   getHangProfileData,
   MetricKitHangProfileSection,
@@ -147,14 +146,6 @@ export function EventDetailsContent({
         <FoldSection title={t('User Feedback')} sectionKey={SectionKey.USER_FEEDBACK}>
           <EventUserFeedback report={event.userReport} />
         </FoldSection>
-      )}
-      {(event.contexts?.metric_alert?.alert_rule_id ||
-        event?.occurrence?.evidenceData?.alertId) && (
-        <MetricIssuesSection
-          organization={organization}
-          group={group}
-          project={project}
-        />
       )}
       <EventEvidence event={event} group={group} project={project} />
       {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
