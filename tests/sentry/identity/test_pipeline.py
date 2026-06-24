@@ -9,7 +9,7 @@ from django.contrib.sessions.backends.base import SessionBase
 from django.test import RequestFactory
 
 import sentry.identity
-from sentry.identity.pipeline import IdentityPipeline, MonitoringIdentityPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
@@ -126,7 +126,7 @@ class IdentityPipelineFinishTest(TestCase):
 
 @control_silo_test
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-class MonitoringIdentityPipelineFinishTest(TestCase):
+class IdentityPipelineOrganizationIdentityTest(TestCase):
     def setUp(self) -> None:
         sentry.identity.register(DummyProvider)
         super().setUp()
@@ -144,6 +144,7 @@ class MonitoringIdentityPipelineFinishTest(TestCase):
         setattr(request, "_messages", FallbackStorage(request))
         return request
 
+    @patch.object(DummyProvider, "create_organization_identity", True)
     @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
     def test_creates_organization_identity(
         self, mock_build: MagicMock, mock_record: MagicMock
@@ -155,7 +156,7 @@ class MonitoringIdentityPipelineFinishTest(TestCase):
             type="dummy", external_id="org-456", config={"site": "example.com"}
         )
 
-        pipeline = MonitoringIdentityPipeline(
+        pipeline = IdentityPipeline(
             request=self.request,
             provider_key="dummy",
             organization=rpc_org,
@@ -171,6 +172,7 @@ class MonitoringIdentityPipelineFinishTest(TestCase):
             identity=identity,
         ).exists()
 
+    @patch.object(DummyProvider, "create_organization_identity", True)
     @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
     def test_no_organization_skips_organization_identity(
         self, mock_build: MagicMock, mock_record: MagicMock
@@ -179,10 +181,34 @@ class MonitoringIdentityPipelineFinishTest(TestCase):
             type="dummy", external_id="org-456", config={"site": "example.com"}
         )
 
-        pipeline = MonitoringIdentityPipeline(
+        pipeline = IdentityPipeline(
             request=self.request,
             provider_key="dummy",
             organization=None,
+            provider_model=idp,
+        )
+        pipeline.initialize()
+
+        pipeline.finish_pipeline()
+
+        identity = Identity.objects.get(idp=idp, user=self.user)
+        assert not OrganizationIdentity.objects.filter(identity=identity).exists()
+
+    @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
+    def test_flag_defaults_to_false_skips_organization_identity(
+        self, mock_build: MagicMock, mock_record: MagicMock
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            rpc_org = serialize_rpc_organization(self.organization)
+
+        idp = IdentityProvider.objects.create(
+            type="dummy", external_id="org-456", config={"site": "example.com"}
+        )
+
+        pipeline = IdentityPipeline(
+            request=self.request,
+            provider_key="dummy",
+            organization=rpc_org,
             provider_model=idp,
         )
         pipeline.initialize()

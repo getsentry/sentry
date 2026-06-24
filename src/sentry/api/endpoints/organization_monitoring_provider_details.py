@@ -21,7 +21,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.base import Provider
 from sentry.identity.oauth2 import OAuth2Provider
-from sentry.identity.pipeline import MonitoringIdentityPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.models.identity import Identity, IdentityProvider, OrganizationIdentity
 
@@ -62,7 +62,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if not provider_type.auto_create_provider_model:
             idp, _ = IdentityProvider.objects.get_or_create(type=provider_key, external_id="")
 
-        pipeline = MonitoringIdentityPipeline(
+        pipeline = IdentityPipeline(
             request=request._request,
             provider_key=provider_key,
             organization=organization,

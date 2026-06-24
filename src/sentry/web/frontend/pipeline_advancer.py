@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from sentry import features
-from sentry.identity.pipeline import IdentityPipeline, MonitoringIdentityPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.absolute_url import generate_organization_url
@@ -19,7 +19,7 @@ from sentry.web.frontend.base import BaseView, all_silo_view
 # The request doesn't contain the pipeline type (pipeline information is stored
 # in redis keyed by the pipeline name), so we try to construct multiple pipelines
 # and use whichever one works.
-PIPELINE_CLASSES = (IntegrationPipeline, IdentityPipeline, MonitoringIdentityPipeline)
+PIPELINE_CLASSES = (IntegrationPipeline, IdentityPipeline)
 
 TRAMPOLINE_HTML = """\
 <!DOCTYPE html>

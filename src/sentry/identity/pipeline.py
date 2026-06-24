@@ -84,6 +84,16 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
                 },
             )
 
+            if (
+                self.provider.create_organization_identity
+                and self.organization
+                and self._linked_identity is not None
+            ):
+                OrganizationIdentity.objects.get_or_create(
+                    organization_id=self.organization.id,
+                    identity=self._linked_identity,
+                )
+
             # Let providers react to a freshly linked identity (e.g. backfilling
             # derived mappings). Best-effort: never let it break the link flow.
             try:
@@ -113,18 +123,3 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
             # identity management page that supports these new identities (not
             # social-auth ones), redirect to the identities page.
             return HttpResponseRedirect(reverse("sentry-account-settings"))
-
-
-class MonitoringIdentityPipeline(IdentityPipeline):
-    pipeline_name = "monitoring_identity_provider"
-
-    def finish_pipeline(self) -> HttpResponseBase:
-        response = super().finish_pipeline()
-
-        if self.organization and self._linked_identity is not None:
-            OrganizationIdentity.objects.get_or_create(
-                organization_id=self.organization.id,
-                identity=self._linked_identity,
-            )
-
-        return response
