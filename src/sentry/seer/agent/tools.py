@@ -1595,14 +1595,29 @@ def get_issue_committers(
             # get_event_file_committers serializes the author but leaves commits as
             # (Commit, score) tuples ordered weakest-first; serialize the commits and
             # reverse so the strongest blame is first.
+            # Batch-serialize every commit in one call: CommitSerializer.get_attrs runs
+            # repository and pull request queries per invocation, so serializing one
+            # commit at a time would be an N+1.
+            commits_by_id = {
+                commit.id: commit
+                for entry in author_commits
+                for commit, _ in entry.get("commits", [])
+            }
+            serialized_by_id = {
+                commit_id: serialized
+                for commit_id, serialized in zip(
+                    commits_by_id,
+                    serialize(
+                        list(commits_by_id.values()),
+                        serializer=CommitSerializer(exclude=["author"]),
+                    ),
+                )
+            }
             stack_commits = [
                 {
                     "author": entry.get("author"),
                     "commits": [
-                        {
-                            **serialize(commit, serializer=CommitSerializer(exclude=["author"])),
-                            "score": score,
-                        }
+                        {**serialized_by_id[commit.id], "score": score}
                         for commit, score in entry.get("commits", [])
                     ],
                 }
