@@ -549,6 +549,10 @@ def configure_sdk():
         disabled_integrations.append(ThreadingIntegration())
 
     if dsns.sentry_mirror:
+        sdk_options.setdefault("_experiments", {}).update(
+            trace_lifecycle="stream",
+        )
+
         sentry_sdk.init(
             dsn=dsns.sentry_mirror,
             integrations=integrations,
