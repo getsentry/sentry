@@ -154,3 +154,27 @@ class ReviewThreadPayload(BaseActivityPayload):
     # GitHub node_id of the review thread (the thread object has no numeric id).
     thread_id: str = ""
     is_resolved: bool = False
+
+
+@dataclass
+class CheckSuiteCompletedPayload(BaseActivityPayload):
+    action: str = "completed"
+    # Aggregate outcome of the suite: "success", "failure", "neutral",
+    # "cancelled", "timed_out", "action_required", "stale", "skipped",
+    # "startup_failure". The judge's "was CI green or red at close" signal.
+    conclusion: str = ""
+    # Slug of the GitHub App that owns the suite (e.g. "github-actions") —
+    # a bounded identifier for the CI provider, never the check's display name.
+    app_slug: str = ""
+    check_runs_count: int = 0
+
+
+@dataclass
+class CheckRunCompletedPayload(BaseActivityPayload):
+    action: str = "completed"
+    # Name of the individual check (e.g. "build", "test (3.11)"). A structural
+    # label like a status context, not free-form text.
+    check_name: str = ""
+    # Outcome of this run: same vocabulary as CheckSuiteCompletedPayload.conclusion.
+    conclusion: str = ""
+    app_slug: str = ""

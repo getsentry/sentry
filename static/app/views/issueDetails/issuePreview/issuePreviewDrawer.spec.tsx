@@ -1,3 +1,4 @@
+import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -218,6 +219,73 @@ describe('IssuePreviewDrawer', () => {
 
     expect(await screen.findByRole('tab', {name: 'Activity'})).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
+  });
+
+  it('opens the Details tab and renders the event content', async () => {
+    const project = ProjectFixture();
+    const group = GroupFixture({id: '123', shortId: 'JAVASCRIPT-6QS', project});
+    const event = EventFixture({
+      id: 'event-1',
+      entries: [
+        {
+          type: 'message',
+          data: {formatted: 'ReferenceError: foo is not defined'},
+        },
+      ],
+    });
+
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: group,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
+    });
+    const eventRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/events/recommended/`,
+      body: event,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/events/${event.id}/committers/`,
+      body: {committers: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/events/${event.id}/owners/`,
+      body: {owners: [], rules: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/integrations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/`,
+      body: project,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/events/${event.id}/actionable-items/`,
+      body: {errors: []},
+    });
+
+    render(<IssuePreviewDrawer groupId={group.id} />);
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Details'}));
+
+    await waitFor(() => expect(eventRequest).toHaveBeenCalled());
+
+    expect(
+      await screen.findByText('ReferenceError: foo is not defined')
+    ).toBeInTheDocument();
   });
 
   it('opens the Autofix tab and shows the start state', async () => {

@@ -64,6 +64,25 @@ class TestDetectSourcemapIssues(TestCase):
         config = _sourcemap_config()
         assert cache.get(_cache_key_triggered(config.slug, self.project.id)) is not None
 
+    def test_none_entries_in_errors_are_filtered(self) -> None:
+        event = _FakeEvent(
+            self.project,
+            errors=[
+                None,
+                {"type": "js_no_source", "url": "https://example.com/app.js"},
+                None,
+            ],
+        )
+
+        with self.feature("organizations:sourcemap-issue-detection"):
+            detect_processing_issues(_make_job(event))
+
+        state = DetectorState.objects.get(
+            detector__type=SourcemapConfigurationType.slug,
+            detector__project=self.project,
+        )
+        assert state.is_triggered is True
+
     def test_no_errors_does_not_trigger(self) -> None:
         event = _FakeEvent(self.project, errors=[])
 

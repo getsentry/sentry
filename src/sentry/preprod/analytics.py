@@ -38,6 +38,27 @@ class PreprodArtifactApiGetSnapshotDetailsEvent(analytics.Event):
     project_id: int
     user_id: int | None = None
     artifact_id: str
+    client: str
+
+
+@analytics.eventclass("preprod_artifact.api.get_snapshot_image")
+class PreprodArtifactApiGetSnapshotImageEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
+    image_identifier: str
+    client: str
+
+
+@analytics.eventclass("preprod_artifact.api.get_latest_base_snapshot")
+class PreprodArtifactApiGetLatestBaseSnapshotEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
+    app_id: str | None = None
+    client: str
 
 
 @analytics.eventclass("preprod_artifact.api.install_details")
@@ -172,6 +193,8 @@ analytics.register(PreprodArtifactApiUpdateEvent)
 analytics.register(PreprodArtifactApiAssembleGenericEvent)
 analytics.register(PreprodArtifactApiGetBuildDetailsEvent)
 analytics.register(PreprodArtifactApiGetSnapshotDetailsEvent)
+analytics.register(PreprodArtifactApiGetSnapshotImageEvent)
+analytics.register(PreprodArtifactApiGetLatestBaseSnapshotEvent)
 analytics.register(PreprodArtifactApiInstallDetailsEvent)
 analytics.register(PreprodArtifactApiRerunAnalysisEvent)
 analytics.register(PreprodArtifactApiRerunStatusChecksEvent)

@@ -1,9 +1,6 @@
 from django.conf import settings
 
-from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.notifications.platform.types import (
     CodeTextBlock,
     NotificationBodyFormattingBlock,
@@ -42,29 +39,6 @@ class WorkflowEngineActivityAction(NotificationData):
     detector_id: int
 
 
-def extract_models(
-    data: WorkflowEngineActivityAction,
-) -> tuple[Activity, Group, Project, Organization]:
-    try:
-        activity = Activity.objects.get(id=data.activity_id)
-    except Activity.DoesNotExist:
-        raise ValueError(f"Activity not found: {data.activity_id}")
-    try:
-        group = Group.objects.get_from_cache(id=activity.group_id)
-    except Group.DoesNotExist:
-        raise ValueError(f"Group not found: {activity.group_id}")
-    try:
-        project = Project.objects.get_from_cache(id=activity.project_id)
-    except Project.DoesNotExist:
-        raise ValueError(f"Project not found: {activity.project_id}")
-    try:
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-    except Organization.DoesNotExist:
-        raise ValueError(f"Organization not found: {project.organization_id}")
-
-    return activity, group, project, organization
-
-
 def get_issue_description(group: Group) -> list[NotificationBodyFormattingBlock]:
     from sentry.integrations.messaging.message_builder import build_attachment_title
 
@@ -96,7 +70,13 @@ def build_template(
     body: list[NotificationBodyFormattingBlock],
     extra_actions: list[NotificationRenderedAction],
 ) -> NotificationRenderedTemplate:
-    activity, group, project, organization = extract_models(data)
+    from sentry.notifications.notification_action.activity_registry.base import (
+        extract_notification_models_by_activity,
+    )
+
+    activity, group, project, organization = extract_notification_models_by_activity(
+        data.activity_id
+    )
     configuration_url = organization.absolute_url(
         f"organizations/{organization.slug}/monitors/alerts/{data.workflow_id}/"
     )
