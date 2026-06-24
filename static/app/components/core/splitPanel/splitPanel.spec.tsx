@@ -232,6 +232,50 @@ describe('SplitPanel', () => {
       expect(separator).toHaveAttribute('aria-valuenow', '110');
     });
 
+    it('reports a clamped size to onResize at mount when seeded below min', () => {
+      const onResize = jest.fn();
+      render(
+        <SplitPanel
+          orientation="horizontal"
+          defaultSize={200}
+          initialSize={-50}
+          minSize={100}
+          onResize={onResize}
+          sized={<div>sized</div>}
+          fill={<div>fill</div>}
+        />
+      );
+
+      // The drawer hook fires onResize at mount with the raw initialSize; it
+      // must be floored at min so it matches the rendered size.
+      expect(onResize).toHaveBeenCalledWith(100);
+      expect(onResize).not.toHaveBeenCalledWith(-50);
+    });
+
+    it('treats a Home/End edge as a no-op while max is unbounded', async () => {
+      const onResizeEnd = jest.fn();
+      render(
+        <SplitPanel
+          orientation="horizontal"
+          placement="end"
+          defaultSize={200}
+          minSize={100}
+          onResizeEnd={onResizeEnd}
+          sized={<div>sized</div>}
+          fill={<div>fill</div>}
+        />
+      );
+
+      const separator = screen.getByRole('separator');
+      separator.focus();
+      // With the sized pane last, Home targets max — but max is unbounded until
+      // the container is measured, so it must not set an infinite size.
+      await userEvent.keyboard('{Home}');
+
+      expect(separator).toHaveAttribute('aria-valuenow', '200');
+      expect(onResizeEnd).not.toHaveBeenCalled();
+    });
+
     it('fires onResizeEnd on keyboard resize so the size can be persisted', async () => {
       const onResizeEnd = jest.fn();
       render(

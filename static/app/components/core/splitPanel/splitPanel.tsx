@@ -210,7 +210,10 @@ export function SplitPanel({
     initialSize,
     min,
     max,
-    onResize: newSize => onResize?.(newSize),
+    // Clamp before forwarding: the hook fires onResize at mount (and on
+    // orientation change) with the raw, unclamped initialSize. Floor it to
+    // [min, max] so live updates match the rendered size.
+    onResize: newSize => onResize?.(Math.max(min, Math.min(newSize, max))),
     onResizeEnd: ({startSize, endSize}) => handleResizeEnd(startSize, endSize),
   });
 
@@ -250,12 +253,14 @@ export function SplitPanel({
       } else if (event.key === 'Home') {
         // Separator to the start edge.
         newSize = isSizedFirst ? min : max;
-      } else if (event.key === 'End' && Number.isFinite(max)) {
+      } else if (event.key === 'End') {
         // Separator to the end edge.
         newSize = isSizedFirst ? max : min;
       }
 
-      if (newSize !== null) {
+      // Skip when the target is an unbounded max (not yet measured); min and
+      // stepped targets are always finite, so this only gates the edge keys.
+      if (newSize !== null && Number.isFinite(newSize)) {
         event.preventDefault();
         setSize(newSize, true);
         handleResizeEnd(current, newSize);
