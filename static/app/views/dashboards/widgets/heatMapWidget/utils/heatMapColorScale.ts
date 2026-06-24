@@ -110,7 +110,10 @@ function upperBound(sorted: readonly number[], target: number): number {
 
   while (low < high) {
     const mid = (low + high) >> 1;
-    if (sorted[mid]! <= target) {
+    // `mid` is always in range, so `value` is never undefined; the guard just
+    // satisfies `noUncheckedIndexedAccess` without a non-null assertion.
+    const value = sorted[mid];
+    if (value !== undefined && value <= target) {
       low = mid + 1;
     } else {
       high = mid;
