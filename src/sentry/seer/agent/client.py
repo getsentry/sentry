@@ -19,6 +19,7 @@ from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
+from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
@@ -120,6 +121,7 @@ def get_monitoring_provider_connections(
     connections: list[dict[str, Any]] = []
     for provider_type in MONITORING_PROVIDERS:
         provider = identity_manager.get(provider_type)
+        is_oauth_provider = isinstance(provider, OAuth2Provider)
         if not isinstance(provider, McpIdentityProvider):
             continue
 
@@ -157,6 +159,7 @@ def get_monitoring_provider_connections(
                     "url": url,
                     "encrypted_access_token": encrypted_access_token,
                     "identity_id": identity.id,
+                    "auth_method": "oauth" if is_oauth_provider else "pat",
                 }
             )
 
