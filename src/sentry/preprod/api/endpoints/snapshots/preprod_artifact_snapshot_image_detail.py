@@ -8,6 +8,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -21,8 +22,10 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
+from sentry.issues.action_log import resolve_action_source
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
+from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotImageEvent
 from sentry.preprod.api.models.public.snapshots import SnapshotImageDetailResponseDict
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
     SnapshotImageDetailImageInfo,
@@ -188,6 +191,19 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
 
         if not is_active_staff(request) and not request.access.has_project_access(artifact.project):
             return Response({"detail": "Snapshot not found"}, status=404)
+
+        analytics.record(
+            PreprodArtifactApiGetSnapshotImageEvent(
+                organization_id=organization.id,
+                project_id=artifact.project_id,
+                user_id=(
+                    request.user.id if request.user and request.user.is_authenticated else None
+                ),
+                artifact_id=str(artifact.id),
+                image_identifier=image_identifier,
+                client=resolve_action_source(request),
+            )
+        )
 
         try:
             snapshot_metrics = artifact.preprodsnapshotmetrics
