@@ -171,25 +171,18 @@ export function SplitPanel({
       ? Math.max(min, Math.min(explicitMax, availableSize - fillMinSize - DIVIDER_SIZE))
       : explicitMax;
 
-  // Single chokepoint for reporting a resize: clamp both ends to [min, max] so
-  // the reported sizes always match the rendered size, regardless of which
-  // handler (drag/double-click/keyboard) called in or how out-of-range the raw
-  // value was (e.g. a seeded/persisted size below min). Keep the clamp here so
-  // call sites can't reintroduce the inconsistency.
   const handleResizeEnd = useCallback(
     (startSize: number, endSize: number) => {
-      const clampedStart = Math.max(min, Math.min(startSize, max));
-      const clampedEnd = Math.max(min, Math.min(endSize, max));
-      if (clampedStart === clampedEnd) {
+      if (startSize === endSize) {
         return;
       }
       onResizeEnd?.({
-        startSize: clampedStart,
-        endSize: clampedEnd,
-        direction: clampedEnd > clampedStart ? 'increase' : 'decrease',
+        startSize,
+        endSize,
+        direction: endSize > startSize ? 'increase' : 'decrease',
       });
     },
-    [onResizeEnd, min, max]
+    [onResizeEnd]
   );
 
   const {
@@ -210,10 +203,7 @@ export function SplitPanel({
     initialSize,
     min,
     max,
-    // Clamp before forwarding: the hook fires onResize at mount (and on
-    // orientation change) with the raw, unclamped initialSize. Floor it to
-    // [min, max] so live updates match the rendered size.
-    onResize: newSize => onResize?.(Math.max(min, Math.min(newSize, max))),
+    onResize: newSize => onResize?.(newSize),
     onResizeEnd: ({startSize, endSize}) => handleResizeEnd(startSize, endSize),
   });
 
