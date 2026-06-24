@@ -54,11 +54,24 @@ const SENTRY_BRAND = [
   '#ffd00e',
 ] as const;
 
+const OLD_SENTRY = [
+  '#eeefff',
+  '#d0c8ff',
+  '#b2a1ff',
+  '#937aff',
+  '#7c42dd',
+  '#8332bb',
+  '#8b219a',
+  '#921178',
+  '#990056',
+] as const;
+
 /** Every selectable heat map palette, keyed by name. */
 export const HEATMAP_PALETTES = {
   viridis: VIRIDIS,
   magma: MAGMA,
   brand: SENTRY_BRAND,
+  old: OLD_SENTRY,
 } as const;
 
 export type HeatMapPaletteName = keyof typeof HEATMAP_PALETTES;
@@ -70,7 +83,7 @@ export type HeatMapPaletteName = keyof typeof HEATMAP_PALETTES;
  */
 export const HEATMAP_PALETTE_BY_THEME: Record<'light' | 'dark', HeatMapPaletteName> = {
   light: 'brand',
-  dark: 'magma',
+  dark: 'old',
 };
 
 /** Resolve the heat map color ramp for a theme (`theme.type`). */
