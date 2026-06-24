@@ -16,7 +16,12 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, control_silo_test, create_test_cells
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    cell_silo_test,
+    control_silo_test,
+    create_test_cells,
+)
 from sentry.utils import json
 
 
