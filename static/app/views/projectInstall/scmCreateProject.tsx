@@ -73,7 +73,9 @@ function getSubmitTooltipText({
   platform,
   projectName,
   team,
+  notificationChannel,
 }: {
+  notificationChannel: boolean;
   platform: boolean;
   projectName: boolean;
   team: boolean;
@@ -90,6 +92,9 @@ function getSubmitTooltipText({
   }
   if (team) {
     return t('Please select a team');
+  }
+  if (notificationChannel) {
+    return t('Please provide an integration channel for alert notifications');
   }
   return undefined;
 }

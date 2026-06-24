@@ -19,6 +19,7 @@ import {useTeams} from 'sentry/utils/useTeams';
 import type {ScmAnalyticsFlow} from 'sentry/views/onboarding/components/scmAnalyticsFlow';
 import {
   type IssueAlertNotificationProps,
+  MultipleCheckboxOptions,
   useCreateNotificationAction,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
@@ -103,7 +104,12 @@ interface ScmProjectDetailsForm {
   /** Whether the team selector should be hidden (no-access member). */
   isOrgMemberWithNoAccess: boolean;
   /** Required fields still missing, for disabled-submit messaging. */
-  missingFields: {platform: boolean; projectName: boolean; team: boolean};
+  missingFields: {
+    notificationChannel: boolean;
+    platform: boolean;
+    projectName: boolean;
+    team: boolean;
+  };
   /** Messaging-integration notification picker props for the alert section. */
   notificationProps: IssueAlertNotificationProps;
   onAlertChange: <K extends keyof AlertRuleOptions>(
@@ -223,7 +229,17 @@ export function useScmProjectDetails({
     ]
   );
 
+  // When notifying via a messaging integration, a channel must be picked before
+  // the project can be created. Mirrors the classic flow's active gate (its
+  // useValidateChannel is wired with enabled:false, so live validation is off
+  // there too; this is the real check). Irrelevant when alerts are turned off.
+  const isMissingNotificationChannel =
+    alertRuleConfig.alertSetting !== RuleAction.CREATE_ALERT_LATER &&
+    notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION) &&
+    !notificationProps.channel;
+
   const missingFields = {
+    notificationChannel: isMissingNotificationChannel,
     platform: !selectedPlatform,
     projectName: projectNameResolved.length === 0,
     // While teams load, teamSlugResolved is empty only because firstAdminTeam
@@ -249,6 +265,7 @@ export function useScmProjectDetails({
     !missingFields.projectName &&
     !missingFields.team &&
     !missingFields.platform &&
+    !missingFields.notificationChannel &&
     !isCompleting &&
     !isLoadingTeams &&
     projectsLoaded;
