@@ -1,11 +1,14 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
 
+import {getBootstrapOrganizationQueryOptions} from 'sentry/bootstrap/bootstrapRequests';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
@@ -13,6 +16,8 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -68,9 +73,30 @@ function ExploreContentInner() {
   const organization = useOrganization();
   const hasCrossEvents = useHasCrossEvents();
   const onboardingProject = useOnboardingProject();
+
+  const {loading: organizationLoading} = useLegacyStore(OrganizationStore);
+  const {data: bootstrapOrganization, isPending: isBootstrapOrganizationPending} =
+    useQuery(getBootstrapOrganizationQueryOptions(organization.slug));
   const dataCategoryMaxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  const bootstrappedOrganizationHasHighRange = bootstrapOrganization?.features.includes(
+    'visibility-explore-range-high'
+  );
+  const organizationHasHighRange = organization.features.includes(
+    'visibility-explore-range-high'
+  );
+
+  // PageFiltersContainer normalizes URL date params on mount. Wait until the
+  // bootstrapped org and OrganizationContext agree on the spans range feature.
+  // The bootstrap query gives us the loaded org feature flags before context
+  // may reflect them, so shared 90d links are not clamped using stale org data.
+  const organizationRangeLoading =
+    organizationLoading ||
+    isBootstrapOrganizationPending ||
+    (defined(bootstrappedOrganizationHasHighRange) &&
+      bootstrappedOrganizationHasHighRange !== organizationHasHighRange);
 
   const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
     defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
@@ -84,6 +110,16 @@ function ExploreContentInner() {
     : dataCategoryMaxPickableDays;
 
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
+  if (organizationRangeLoading) {
+    return (
+      <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
+        <Stack flex={1} padding="2xl 3xl">
+          <LoadingIndicator />
+        </Stack>
+      </SentryDocumentTitle>
+    );
+  }
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
