@@ -318,18 +318,25 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
 
     def test_disconnect_deletes_identity_datadog_pat(self) -> None:
         idp = self.create_identity_provider(type="datadog_pat", external_id="dd-org-456")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-123",
             data={"access_token": "pat-abc", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
         )
 
         with self.feature("organizations:seer-infra-telemetry"):
             response = self.get_response(self.organization.slug, "datadog_pat")
 
         assert response.status_code == 204
-        assert not Identity.objects.filter(idp=idp, user=self.user).exists()
+        assert not OrganizationIdentity.objects.filter(
+            organization_id=self.organization.id, identity=identity
+        ).exists()
+        assert not Identity.objects.filter(id=identity.id).exists()
 
     def test_disconnect_deletes_identity_gcp(self) -> None:
         idp = self.create_identity_provider(type="gcp")
