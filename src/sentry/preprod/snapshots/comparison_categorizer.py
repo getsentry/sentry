@@ -57,20 +57,14 @@ def categorize_comparison_images(
     result = CategorizedComparison()
 
     base_images = base_manifest.images if base_manifest else {}
-    base_cache: dict[str, SnapshotImageResponse] = {}
 
     def get_base_image(key: str | None) -> SnapshotImageResponse | None:
         if key is None:
             return None
-        cached = base_cache.get(key)
-        if cached is not None:
-            return cached
         meta = base_images.get(key)
         if meta is None:
             return None
-        built = _build_base_image(key, meta)
-        base_cache[key] = built
-        return built
+        return _build_base_image(key, meta)
 
     for name, img in sorted(comparison_data.images.items()):
         head_img = head_images_by_file_name.get(name)
