@@ -2,16 +2,38 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
+import {
+  type IssueAlertNotificationProps,
+  MultipleCheckboxOptions,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {
+  DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+  RuleAction,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {ScmAlertFrequencySection} from './scmAlertFrequencySection';
 
 type Props = React.ComponentProps<typeof ScmAlertFrequencySection>;
 
+const notificationProps: IssueAlertNotificationProps = {
+  actions: [MultipleCheckboxOptions.EMAIL],
+  provider: undefined,
+  integration: undefined,
+  channel: undefined,
+  providersToIntegrations: {},
+  querySuccess: true,
+  shouldRenderSetupButton: false,
+  setActions: jest.fn(),
+  setProvider: jest.fn(),
+  setIntegration: jest.fn(),
+  setChannel: jest.fn(),
+};
+
 function renderSection(overrides: Partial<Props> = {}) {
   const props: Props = {
     analyticsFlow: 'project-creation',
     alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+    notificationProps,
     onAlertChange: jest.fn(),
     ...overrides,
   };
@@ -42,5 +64,23 @@ describe('ScmAlertFrequencySection', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('Alert frequency')).toBeInTheDocument();
     expect(screen.getByText('Get notified when things go wrong')).toBeInTheDocument();
+  });
+
+  it('shows the notification options when alerts are enabled', () => {
+    renderSection({analyticsFlow: 'onboarding'});
+
+    expect(screen.getByText('Notify via email')).toBeInTheDocument();
+  });
+
+  it('hides the notification options when alerts are turned off', () => {
+    renderSection({
+      analyticsFlow: 'onboarding',
+      alertRuleConfig: {
+        ...DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+        alertSetting: RuleAction.CREATE_ALERT_LATER,
+      },
+    });
+
+    expect(screen.queryByText('Notify via email')).not.toBeInTheDocument();
   });
 });

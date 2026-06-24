@@ -18,6 +18,10 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import type {ScmAnalyticsFlow} from 'sentry/views/onboarding/components/scmAnalyticsFlow';
 import {
+  type IssueAlertNotificationProps,
+  useCreateNotificationAction,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   getRequestDataFragment,
   type AlertRuleOptions,
@@ -100,6 +104,8 @@ interface ScmProjectDetailsForm {
   isOrgMemberWithNoAccess: boolean;
   /** Required fields still missing, for disabled-submit messaging. */
   missingFields: {platform: boolean; projectName: boolean; team: boolean};
+  /** Messaging-integration notification picker props for the alert section. */
+  notificationProps: IssueAlertNotificationProps;
   onAlertChange: <K extends keyof AlertRuleOptions>(
     key: K,
     value: AlertRuleOptions[K]
@@ -138,6 +144,10 @@ export function useScmProjectDetails({
   const {teams, fetching: isLoadingTeams} = useTeams();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const createProjectAndRules = useCreateProjectAndRules();
+  // Provides the messaging-integration notification picker (notificationProps,
+  // rendered in ScmAlertFrequencySection) and the side-effect that creates the
+  // chosen notification rule at project creation.
+  const {createNotificationAction, notificationProps} = useCreateNotificationAction();
 
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const firstAdminTeam = accessTeams[0];
@@ -296,7 +306,7 @@ export function useScmProjectDetails({
         platform: selectedPlatform,
         team: isOrgMemberWithNoAccess ? undefined : teamSlugResolved,
         alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-        createNotificationAction: () => {},
+        createNotificationAction,
       });
 
       if (selectedRepository?.id) {
@@ -329,6 +339,7 @@ export function useScmProjectDetails({
     analyticsFlow,
     alertRuleConfig,
     canSubmit,
+    createNotificationAction,
     createProjectAndRules,
     existingProject,
     isOrgMemberWithNoAccess,
@@ -349,6 +360,7 @@ export function useScmProjectDetails({
     onTeamChange,
     alertRuleConfig,
     onAlertChange,
+    notificationProps,
     isOrgMemberWithNoAccess,
     missingFields,
     canSubmit,

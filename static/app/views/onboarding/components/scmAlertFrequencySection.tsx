@@ -5,6 +5,10 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import type {TagVariant} from 'sentry/utils/theme';
 import {
+  IssueAlertNotificationOptions,
+  type IssueAlertNotificationProps,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {
   type AlertRuleOptions,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
@@ -16,6 +20,7 @@ import {ScmCollapsibleSection} from './scmCollapsibleSection';
 interface ScmAlertFrequencySectionProps {
   alertRuleConfig: AlertRuleOptions;
   analyticsFlow: ScmAnalyticsFlow;
+  notificationProps: IssueAlertNotificationProps;
   onAlertChange: <K extends keyof AlertRuleOptions>(
     key: K,
     value: AlertRuleOptions[K]
@@ -32,9 +37,17 @@ interface ScmAlertFrequencySectionProps {
 export function ScmAlertFrequencySection({
   alertRuleConfig,
   analyticsFlow,
+  notificationProps,
   onAlertChange,
 }: ScmAlertFrequencySectionProps) {
   const collapsible = analyticsFlow === 'project-creation';
+
+  // Notification options are irrelevant when the user opts out of alerts, so
+  // hide them for "create alerts later" (mirrors issueAlertOptions).
+  const notificationOptions =
+    alertRuleConfig.alertSetting === RuleAction.CREATE_ALERT_LATER ? null : (
+      <IssueAlertNotificationOptions {...notificationProps} />
+    );
 
   if (collapsible) {
     // Summarize the current selection in the collapsed header.
@@ -64,6 +77,7 @@ export function ScmAlertFrequencySection({
         }
       >
         <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
+        {notificationOptions}
       </ScmCollapsibleSection>
     );
   }
@@ -83,6 +97,7 @@ export function ScmAlertFrequencySection({
         </Container>
       </Stack>
       <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
+      {notificationOptions}
     </Stack>
   );
 }

@@ -368,6 +368,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 <ScmAlertFrequencySection
                   analyticsFlow="project-creation"
                   alertRuleConfig={form.alertRuleConfig}
+                  notificationProps={form.notificationProps}
                   onAlertChange={form.onAlertChange}
                 />
               </motion.div>
