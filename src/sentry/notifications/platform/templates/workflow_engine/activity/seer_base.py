@@ -39,7 +39,7 @@ class WorkflowEngineActivityAction(NotificationData):
     detector_id: int
 
 
-def get_issue_description(group: Group) -> ParagraphBlock:
+def get_issue_description(group: Group) -> list[NotificationBodyFormattingBlock]:
     from sentry.integrations.messaging.message_builder import build_attachment_title
 
     blocks: list[NotificationBodyTextBlock] = []
