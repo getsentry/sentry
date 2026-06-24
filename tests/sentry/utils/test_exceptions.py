@@ -3,7 +3,7 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
-from rediscluster.exceptions import RedisClusterException  # type: ignore[attr-defined]
+from redis.exceptions import RedisClusterException
 from taskbroker_client.retry import RetryTaskError
 from taskbroker_client.state import CurrentTaskState
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded

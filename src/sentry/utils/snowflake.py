@@ -140,7 +140,7 @@ def generate_snowflake_id(redis_key: str) -> int:
     return snowflake_id
 
 
-def get_redis_cluster() -> RedisCluster[str] | StrictRedis[str]:
+def get_redis_cluster() -> RedisCluster | StrictRedis:
     return redis.redis_clusters.get(settings.SENTRY_SNOWFLAKE_REDIS_CLUSTER)
 
 

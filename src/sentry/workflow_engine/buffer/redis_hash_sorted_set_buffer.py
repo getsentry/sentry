@@ -80,9 +80,9 @@ class RedisHashSortedSetBuffer:
 
     def _get_redis_connection(
         self, key: str | None, transaction: bool = True
-    ) -> ClusterPipeline | Pipeline[str]:
+    ) -> ClusterPipeline | Pipeline:
         """Get a Redis connection pipeline for the given key."""
-        conn: ClusterPipeline | Pipeline[str]
+        conn: ClusterPipeline | Pipeline
         if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             conn = self.cluster
         elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
@@ -269,7 +269,7 @@ class RedisHashSortedSetBuffer:
 
         # Use the cluster client's built-in slot calculation
         try:
-            return self.cluster.connection_pool.nodes.keyslot(key)
+            return self.cluster.keyslot(key)
         except AttributeError:
             # Fallback for standalone Redis using cluster client
             return 0  # Treat as single slot

@@ -25,7 +25,7 @@ from sentry.utils import metrics, redis
 
 add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 
-type RedisClient = RedisCluster[bytes] | StrictRedis[bytes]
+type RedisClient = RedisCluster | StrictRedis
 type DecompressPayload = Callable[[bytes], list[bytes]]
 type GetDebugTraceLogger = Callable[[], Any]
 

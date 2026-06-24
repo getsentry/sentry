@@ -126,12 +126,12 @@ class SlidingWindowRateLimiter(Service):
 class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
     def __init__(self, **options: Any) -> None:
         self.cluster_key = options.get("cluster", "default")
-        self._client: RedisCluster[str] | StrictRedis[str] | None = None
+        self._client: RedisCluster | StrictRedis | None = None
         self._impl: RedisSlidingWindowRateLimiterImpl | None = None
         super().__init__(**options)
 
     @property
-    def client(self) -> StrictRedis[str] | RedisCluster[str]:
+    def client(self) -> StrictRedis | RedisCluster:
         if self._client is None:
             self._client = redis.redis_clusters.get(self.cluster_key)
             assert isinstance(self._client, (StrictRedis, RedisCluster)), self._client
@@ -146,7 +146,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
     def validate(self) -> None:
         try:
             self.client.ping()
-            self.client.connection_pool.disconnect()
+            redis.disconnect_redis_client(self.client)
         except Exception as e:
             raise InvalidConfiguration(str(e))
 

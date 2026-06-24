@@ -81,9 +81,7 @@ class SentryAppWebhookRequestsBuffer:
 
         return request
 
-    def _add_to_buffer_pipeline(
-        self, buffer_key: str, item: object, pipeline: Pipeline[str]
-    ) -> None:
+    def _add_to_buffer_pipeline(self, buffer_key: str, item: object, pipeline: Pipeline) -> None:
         """
         Add the item to the buffer key specified, using the given pipeline.
         This does not execute the pipeline's commands.
@@ -94,13 +92,13 @@ class SentryAppWebhookRequestsBuffer:
         pipeline.expire(buffer_key, KEY_EXPIRY)
 
     @overload
-    def _get_all_from_buffer(self, buffer_key: str, pipeline: Pipeline[str]) -> None: ...
+    def _get_all_from_buffer(self, buffer_key: str, pipeline: Pipeline) -> None: ...
 
     @overload
     def _get_all_from_buffer(self, buffer_key: str) -> list[str]: ...
 
     def _get_all_from_buffer(
-        self, buffer_key: str, pipeline: Pipeline[str] | None = None
+        self, buffer_key: str, pipeline: Pipeline | None = None
     ) -> list[str] | None:
         """
         Get the list at the buffer key, using the given pipeline if available.

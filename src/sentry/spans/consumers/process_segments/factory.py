@@ -31,7 +31,7 @@ from sentry.utils.kafka_config import get_topic_definition
 logger = logging.getLogger(__name__)
 
 
-def get_dedupe_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
+def get_dedupe_redis_client() -> RedisCluster | StrictRedis:
     cluster = settings.SENTRY_SPAN_DEDUPE_CLUSTER or settings.SENTRY_SPAN_BUFFER_CLUSTER
     return redis.redis_clusters.get_binary(cluster)
 

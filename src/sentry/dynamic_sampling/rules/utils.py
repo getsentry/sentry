@@ -156,6 +156,6 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
     return float(x / x**base_sample_rate)
 
 
-def get_redis_client_for_ds() -> StrictRedis[str]:
+def get_redis_client_for_ds() -> StrictRedis:
     cluster_key = settings.SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER
     return redis.redis_clusters.get(cluster_key)

@@ -63,7 +63,7 @@ class WeeklyReportProgressTracker:
 
     beginning_of_day_timestamp: float
     duration: int
-    _redis_connection: RedisCluster[str] | StrictRedis[str]
+    _redis_connection: RedisCluster | StrictRedis
 
     REPORT_REDIS_CLIENT_KEY: Final[str] = "weekly_reports_org_id_min"
 
@@ -406,7 +406,7 @@ class _DuplicateDeliveryCheck:
         # Tracks state from `check_for_duplicate_delivery` to `record_delivery`
         self.count: int | None = None
 
-    def _get_redis_cluster(self) -> RedisCluster[str] | StrictRedis[str]:
+    def _get_redis_cluster(self) -> RedisCluster | StrictRedis:
         return redis.redis_clusters.get(settings.SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER)
 
     @property

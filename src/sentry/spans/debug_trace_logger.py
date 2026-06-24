@@ -23,7 +23,7 @@ class DebugTraceLogger:
     source set sizes, key existence, and dumps of all spans in the subsegment.
     """
 
-    def __init__(self, client: RedisCluster[bytes] | StrictRedis[bytes]) -> None:
+    def __init__(self, client: RedisCluster | StrictRedis) -> None:
         self._client = client
 
     def _get_debug_traces(self) -> set[str]:
