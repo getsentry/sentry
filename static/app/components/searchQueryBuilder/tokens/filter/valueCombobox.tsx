@@ -609,6 +609,11 @@ function ValueComboboxCustomMenu(
   return (
     <ValueListBox
       {...props}
+      portalTarget={
+        canSelectMultipleValues
+          ? (props.portalTarget ?? wrapperRef.current)
+          : props.portalTarget
+      }
       hiddenOptions={hiddenOptions}
       wrapperRef={wrapperRef}
       isMultiSelect={canSelectMultipleValues}
@@ -1138,10 +1143,10 @@ export function SearchQueryBuilderValueCombobox({
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>
       <ValueComboboxMenuContext.Provider value={menuContextValue}>
-        <Flex
+        <ValueEditingChips
           align="center"
           gap="2xs"
-          maxWidth="400px"
+          minWidth="0"
           height="100%"
           ref={ref}
           data-test-id="filter-value-editing"
@@ -1178,7 +1183,6 @@ export function SearchQueryBuilderValueCombobox({
             inputValue={inputValue}
             filterValue={filterValue}
             placeholder={placeholder}
-            minInputWidth={canSelectMultipleValues ? '50px' : undefined}
             token={token}
             inputLabel={t('Edit filter value')}
             keepVisibleRef={ref}
@@ -1203,11 +1207,28 @@ export function SearchQueryBuilderValueCombobox({
               </Section>
             ))}
           </SearchQueryBuilderCombobox>
-        </Flex>
+        </ValueEditingChips>
       </ValueComboboxMenuContext.Provider>
     </ValueComboboxContext.Provider>
   );
 }
+
+const ValueEditingChips = styled(Flex)`
+  max-width: 100%;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  & > *:last-child {
+    flex: 1 1 0%;
+    width: auto;
+    min-width: 0;
+  }
+`;
 
 const ValueChip = styled('span')`
   display: inline-flex;
