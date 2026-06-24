@@ -1,6 +1,6 @@
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
 
-import {SplitPanel} from 'sentry/components/splitPanel';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerPanel';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
