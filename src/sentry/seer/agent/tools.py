@@ -1485,7 +1485,7 @@ def get_issue_committers(
     start: str | None = None,
     end: str | None = None,
     project_slug: str | None = None,
-) -> IssueCommittersResponse | None:
+) -> IssueCommittersResponse:
     """
     Get the likely code authors for an issue from Sentry's ingested commit data.
 
@@ -1517,10 +1517,11 @@ def get_issue_committers(
         project_slug: The slug of the project (optional, used to improve numeric ID lookups).
 
     Returns:
-        Dict with ``stack_commits``, ``suspect_commits``, ``release_commits``,
-        ``project_id``, ``project_slug``. The lists may be empty (e.g. no
-        release/commit data linked to the issue). Returns None if the project/issue
-        cannot be resolved.
+        An ``IssueCommittersResponse`` with ``stack_commits``, ``suspect_commits``,
+        ``release_commits``, ``project_id``, ``project_slug``. The commit lists may be
+        empty (e.g. no release/commit data linked to the issue) — callers can iterate
+        them without ``None`` checks. Raises ``NotFound`` if the project/issue cannot
+        be resolved.
     """
     start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
 
@@ -1534,7 +1535,7 @@ def get_issue_committers(
         ).values_list("id", flat=True)
     )
     if not project_ids:
-        return None
+        raise NotFound("No project found for the given organization and project filters")
 
     group: Group
     try:
@@ -1545,7 +1546,7 @@ def get_issue_committers(
                 organization_id, issue_id, project_ids=project_ids
             )
     except Group.DoesNotExist:
-        return None
+        raise NotFound("Issue not found. Check the issue_id and project_slug.")
 
     # Precomputed author+commit (one or none) from suspect-commit feature.
     try:
