@@ -43,6 +43,8 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.pr_metrics.activity_types import (
     AssignedPayload,
+    CheckRunCompletedPayload,
+    CheckSuiteCompletedPayload,
     ClosedPayload,
     CommentCreatedPayload,
     CommentEditedPayload,
@@ -595,6 +597,116 @@ def handle_review_thread(
     if not webhook_id:
         return
     _write_activity_row(pr, webhook_id, event_type, payload)
+
+
+def handle_check_suite(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Record the aggregate CI outcome from a completed check_suite event.
+
+    Only ``completed`` carries a conclusion; ``requested``/``rerequested`` are
+    ignored. The suite's ``pull_requests`` array lists the same-repo PRs the run
+    pertains to (empty for fork PRs) — one activity row is written per PR.
+    """
+    if event.get("action") != "completed":
+        return
+
+    if not is_activity_tracking_enabled(organization):
+        return
+
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
+
+    check_suite = event.get("check_suite") or {}
+    sender = event.get("sender") or {}
+    app = check_suite.get("app") or {}
+    payload = asdict(
+        CheckSuiteCompletedPayload(
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            head_sha=check_suite.get("head_sha"),
+            conclusion=check_suite.get("conclusion") or "",
+            app_slug=app.get("slug", ""),
+            check_runs_count=check_suite.get("latest_check_runs_count") or 0,
+        )
+    )
+
+    for pr in _prs_from_check_payload(organization, repo, check_suite, webhook_id):
+        _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload)
+
+
+def handle_check_run(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Record an individual CI check outcome from a completed check_run event.
+
+    Per-check granularity beneath ``check_suite``; only ``completed`` carries a
+    conclusion. ``check_run.pull_requests`` resolves the affected same-repo PRs.
+    """
+    if event.get("action") != "completed":
+        return
+
+    if not is_activity_tracking_enabled(organization):
+        return
+
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
+
+    check_run = event.get("check_run") or {}
+    sender = event.get("sender") or {}
+    app = check_run.get("app") or {}
+    payload = asdict(
+        CheckRunCompletedPayload(
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            head_sha=check_run.get("head_sha"),
+            check_name=check_run.get("name", ""),
+            conclusion=check_run.get("conclusion") or "",
+            app_slug=app.get("slug", ""),
+        )
+    )
+
+    for pr in _prs_from_check_payload(organization, repo, check_run, webhook_id):
+        _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload)
+
+
+def _prs_from_check_payload(
+    organization: Organization,
+    repo: Repository,
+    container: Mapping[str, Any],
+    webhook_id: str,
+) -> list[PullRequest]:
+    """Resolve the tracked PRs a check_suite/check_run payload references.
+
+    Both events carry a ``pull_requests`` array of same-repo PR refs (empty for
+    fork PRs, and a suite can span more than one PR). Numbers are deduped before
+    resolving each to its stored row; unknown PRs are dropped by ``_get_pull_request``.
+    """
+    seen: set[str] = set()
+    prs: list[PullRequest] = []
+    for ref in container.get("pull_requests") or ():
+        number = ref.get("number")
+        if number is None or str(number) in seen:
+            continue
+        seen.add(str(number))
+        pr = _get_pull_request(organization, repo, {"number": number}, webhook_id)
+        if pr is not None:
+            prs.append(pr)
+    return prs
 
 
 def _get_pull_request(

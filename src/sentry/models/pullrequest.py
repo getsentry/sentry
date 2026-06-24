@@ -273,6 +273,8 @@ class PullRequestComment(Model):
 
 class PullRequestActivityType(models.TextChoices):
     ASSIGNED = "assigned"
+    CHECK_RUN_COMPLETED = "check_run_completed"
+    CHECK_SUITE_COMPLETED = "check_suite_completed"
     CLOSED = "closed"
     COMMENT_CREATED = "comment_created"
     COMMENT_DELETED = "comment_deleted"
