@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 
@@ -181,6 +181,39 @@ describe('SplitPanel', () => {
         endSize: 210,
         direction: 'increase',
       });
+    });
+
+    it('resizes with pointer drag events', async () => {
+      const onResizeEnd = jest.fn();
+      render(
+        <SplitPanel
+          orientation="horizontal"
+          defaultSize={200}
+          minSize={100}
+          onResizeEnd={onResizeEnd}
+          sized={<div>sized</div>}
+          fill={<div>fill</div>}
+        />
+      );
+
+      const separator = screen.getByRole('separator');
+      await userEvent.pointer([
+        {keys: '[MouseLeft>]', target: separator, coords: {x: 200, y: 0}},
+        {target: separator, coords: {x: 150, y: 0}},
+      ]);
+      await waitFor(() => expect(separator).toHaveAttribute('aria-valuenow', '150'));
+
+      act(() => {
+        document.dispatchEvent(new MouseEvent('pointerup', {bubbles: true}));
+      });
+
+      await waitFor(() =>
+        expect(onResizeEnd).toHaveBeenCalledWith({
+          startSize: 200,
+          endSize: 150,
+          direction: 'decrease',
+        })
+      );
     });
 
     it('maps arrow keys to physical direction for placement="end"', async () => {

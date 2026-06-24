@@ -29,7 +29,6 @@ interface SplitPanelProps {
   initialSize?: number;
   maxSize?: number;
   minSize?: number;
-  onMouseDown?: (size: number) => void;
   /** Fires during drag with the new size. */
   onResize?: (newSize: number) => void;
   /** Fires once when a drag ends. */
@@ -94,7 +93,7 @@ type SplitDividerProps = {
   min: number;
   onDoubleClick: React.MouseEventHandler<HTMLElement>;
   onKeyDown: React.KeyboardEventHandler<HTMLElement>;
-  onMouseDown: React.MouseEventHandler<HTMLElement>;
+  onPointerDown: React.PointerEventHandler<HTMLElement>;
   orientation: Orientation;
   value: number;
 };
@@ -108,7 +107,7 @@ function SplitDivider({
   value,
   onDoubleClick,
   onKeyDown,
-  onMouseDown,
+  onPointerDown,
 }: SplitDividerProps) {
   const cursor = getDividerCursor(
     orientation,
@@ -131,7 +130,7 @@ function SplitDivider({
           data-orientation={orientation}
           onDoubleClick={onDoubleClick}
           onKeyDown={onKeyDown}
-          onMouseDown={onMouseDown}
+          onPointerDown={onPointerDown}
           role="separator"
           tabIndex={0}
         />
@@ -150,7 +149,6 @@ export function SplitPanel({
   minSize = 0,
   maxSize,
   fillMinSize = 0,
-  onMouseDown,
   onResize,
   onResizeEnd,
 }: SplitPanelProps) {
@@ -189,7 +187,7 @@ export function SplitPanel({
 
   const {
     isHeld,
-    onMouseDown: onDragStart,
+    onPointerDown,
     setSize,
     size: containerSize,
   } = useResizableDrawer({
@@ -209,14 +207,6 @@ export function SplitPanel({
     onResizeEnd: ({startSize, endSize}) =>
       handleResizeEnd(Math.min(startSize, max), Math.min(endSize, max)),
   });
-
-  const handleMouseDown = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      onMouseDown?.(Math.min(containerSize, max));
-      onDragStart(event);
-    },
-    [onDragStart, containerSize, max, onMouseDown]
-  );
 
   const handleDoubleClick = useCallback(() => {
     const startSize = Math.min(containerSize, max);
@@ -284,7 +274,7 @@ export function SplitPanel({
         value={visibleSize}
         onDoubleClick={handleDoubleClick}
         onKeyDown={handleKeyDown}
-        onMouseDown={handleMouseDown}
+        onPointerDown={onPointerDown}
       />,
       <Pane key="fill" size={null}>
         {fill}
@@ -333,6 +323,7 @@ const RootElement = styled('div')`
 
 const DividerLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
   user-select: none;
+  touch-action: none;
   cursor: ${p => p.$cursor};
 
   /* Invisible wider hit area for dragging */
