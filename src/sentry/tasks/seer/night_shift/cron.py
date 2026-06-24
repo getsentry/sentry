@@ -16,6 +16,7 @@ from sentry.constants import (
     DataCategory,
     ObjectStatus,
 )
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
@@ -297,6 +298,12 @@ def run_night_shift_execution(
         _record_run_error(run, "No Seer quota available")
         return None
 
+    # No code generation => no PR can be opened. Guards the manual path (cron is
+    # already filtered in _get_eligible_orgs_from_batch).
+    if not organization.get_option("sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT):
+        logger.info("night_shift.code_generation_disabled", extra=log_extra)
+        return None
+
     try:
         eligible = _get_eligible_projects(
             organization, resolved_options["source"], project_ids=project_ids
@@ -396,7 +403,14 @@ def _get_eligible_orgs_from_batch(
     Check feature flags for a batch of orgs.
     Returns orgs that have all required feature flags enabled.
     """
-    eligible = [org for org in orgs if not org.get_option("sentry:hide_ai_features")]
+    # No code generation => night shift can't open PRs, so these orgs never get
+    # a task dispatched. Bulk-loaded to keep the batch a single query.
+    enable_coding = OrganizationOption.objects.get_value_bulk(
+        list(orgs), "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
+    )
+    eligible = [
+        org for org in orgs if enable_coding[org] and not org.get_option("sentry:hide_ai_features")
+    ]
 
     for feature_name in BATCH_FEATURE_NAMES:
         batch_result = features.batch_has_for_organizations(feature_name, eligible)
@@ -482,16 +496,11 @@ def _get_eligible_projects(
     if source == "cron":
         eligible = [ep for ep in eligible if ep.tweaks.enabled]
 
-    # A run only opens a PR when org-level code generation is on and the project
-    # stops at open_pr; anything short of that produces nothing night shift acts
-    # on. Drop those projects and log the decision inputs so we can spot
-    # misconfigured UX.
-    enable_seer_coding = organization.get_option(
-        "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
-    )
+    # Night shift's only output is a PR, so drop projects that don't stop at
+    # open_pr; log the stopping point to surface misconfigured UX.
     pr_producing: list[EligibleProject] = []
     for ep in eligible:
-        if enable_seer_coding and ep.stopping_point == AutofixStoppingPoint.OPEN_PR:
+        if ep.stopping_point == AutofixStoppingPoint.OPEN_PR:
             pr_producing.append(ep)
             continue
         logger.info(
@@ -500,7 +509,6 @@ def _get_eligible_projects(
                 "organization_id": organization.id,
                 "project_id": ep.project.id,
                 "stopping_point": ep.stopping_point.value,
-                "enable_seer_coding": enable_seer_coding,
             },
         )
     return pr_producing
