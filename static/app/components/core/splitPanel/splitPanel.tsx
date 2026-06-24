@@ -171,18 +171,25 @@ export function SplitPanel({
       ? Math.max(min, Math.min(explicitMax, availableSize - fillMinSize - DIVIDER_SIZE))
       : explicitMax;
 
+  // Single chokepoint for reporting a resize: clamp both ends to [min, max] so
+  // the reported sizes always match the rendered size, regardless of which
+  // handler (drag/double-click/keyboard) called in or how out-of-range the raw
+  // value was (e.g. a seeded/persisted size below min). Keep the clamp here so
+  // call sites can't reintroduce the inconsistency.
   const handleResizeEnd = useCallback(
     (startSize: number, endSize: number) => {
-      if (startSize === endSize) {
+      const clampedStart = Math.max(min, Math.min(startSize, max));
+      const clampedEnd = Math.max(min, Math.min(endSize, max));
+      if (clampedStart === clampedEnd) {
         return;
       }
       onResizeEnd?.({
-        startSize,
-        endSize,
-        direction: endSize > startSize ? 'increase' : 'decrease',
+        startSize: clampedStart,
+        endSize: clampedEnd,
+        direction: clampedEnd > clampedStart ? 'increase' : 'decrease',
       });
     },
-    [onResizeEnd]
+    [onResizeEnd, min, max]
   );
 
   const {
@@ -204,8 +211,7 @@ export function SplitPanel({
     min,
     max,
     onResize: newSize => onResize?.(newSize),
-    onResizeEnd: ({startSize, endSize}) =>
-      handleResizeEnd(Math.min(startSize, max), Math.min(endSize, max)),
+    onResizeEnd: ({startSize, endSize}) => handleResizeEnd(startSize, endSize),
   });
 
   // Clamped to [min, max] so the pane basis and divider aria-valuenow stay in

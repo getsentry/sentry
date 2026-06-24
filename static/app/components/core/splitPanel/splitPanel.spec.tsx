@@ -289,6 +289,42 @@ describe('SplitPanel', () => {
       );
     });
 
+    it('reports the clamped startSize on pointer drag when seeded below min', async () => {
+      const onResizeEnd = jest.fn();
+      render(
+        <SplitPanel
+          orientation="horizontal"
+          defaultSize={200}
+          initialSize={-50}
+          minSize={100}
+          onResizeEnd={onResizeEnd}
+          sized={<div>sized</div>}
+          fill={<div>fill</div>}
+        />
+      );
+
+      const separator = screen.getByRole('separator');
+      await userEvent.pointer([
+        {keys: '[MouseLeft>]', target: separator, coords: {x: 200, y: 0}},
+        {target: separator, coords: {x: 400, y: 0}},
+      ]);
+      await waitFor(() => expect(separator).toHaveAttribute('aria-valuenow', '150'));
+
+      act(() => {
+        document.dispatchEvent(new MouseEvent('pointerup', {bubbles: true}));
+      });
+
+      // startSize must be floored at min (100), not the raw seeded -50 the
+      // hook recorded at drag start.
+      await waitFor(() =>
+        expect(onResizeEnd).toHaveBeenCalledWith({
+          startSize: 100,
+          endSize: 150,
+          direction: 'increase',
+        })
+      );
+    });
+
     it('maps arrow keys to physical direction for placement="end"', async () => {
       const onResizeEnd = jest.fn();
       render(
