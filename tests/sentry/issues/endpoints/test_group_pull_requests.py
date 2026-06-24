@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
 
 from django.utils import timezone
 
@@ -227,11 +228,15 @@ class GroupPullRequestsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"pullRequests": []}
 
-    def test_status_derivation(self) -> None:
+    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    def test_status_derivation_prefers_stored_lifecycle_fields(
+        self, mock_get_integration: Mock
+    ) -> None:
         self.create_linked_pull_request(
             key="1",
             linked_delta=timedelta(days=5),
             state=PullRequestLifecycleState.OPEN,
+            draft=False,
         )
         self.create_linked_pull_request(
             key="2",
@@ -261,8 +266,12 @@ class GroupPullRequestsEndpointTest(APITestCase):
             "draft",
             "open",
         ]
+        mock_get_integration.assert_not_called()
 
-    def test_closed_draft_pull_request_status_returns_closed(self) -> None:
+    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    def test_closed_draft_pull_request_status_returns_closed(
+        self, mock_get_integration: Mock
+    ) -> None:
         self.create_linked_pull_request(
             key="1",
             state=PullRequestLifecycleState.CLOSED,
@@ -274,9 +283,64 @@ class GroupPullRequestsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["pullRequests"][0]["status"] == "closed"
+        mock_get_integration.assert_not_called()
 
-    def test_missing_webhook_state_returns_unknown(self) -> None:
+    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    def test_missing_webhook_state_falls_back_to_provider(self, mock_get_integration: Mock) -> None:
+        self.repo.config = {"name": "getsentry/sentry-from-config"}
+        self.repo.save(update_fields=["config"])
+
         self.create_linked_pull_request(key="1")
+
+        client = Mock()
+        client.get_pull_request.return_value = {"state": "closed", "merged": True}
+        installation = Mock()
+        installation.get_client.return_value = client
+        integration = Mock()
+        integration.get_installation.return_value = installation
+        mock_get_integration.return_value = integration
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["pullRequests"][0]["status"] == "merged"
+        client.get_pull_request.assert_called_once_with("getsentry/sentry-from-config", "1")
+        mock_get_integration.assert_called_once_with(
+            integration_id=self.repo.integration_id,
+            organization_id=self.group.project.organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+
+    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    def test_open_status_with_unknown_draft_falls_back_to_provider(
+        self, mock_get_integration: Mock
+    ) -> None:
+        self.create_linked_pull_request(
+            key="1",
+            state=PullRequestLifecycleState.OPEN,
+        )
+
+        client = Mock()
+        client.get_pull_request.return_value = {"state": "open", "draft": True}
+        installation = Mock()
+        installation.get_client.return_value = client
+        integration = Mock()
+        integration.get_installation.return_value = installation
+        mock_get_integration.return_value = integration
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["pullRequests"][0]["status"] == "draft"
+
+    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    def test_missing_webhook_state_returns_unknown_when_provider_unavailable(
+        self, mock_get_integration: Mock
+    ) -> None:
+        self.create_linked_pull_request(key="1")
+        mock_get_integration.return_value = None
 
         with self.feature(self.feature_name):
             response = self.client.get(self.path)
