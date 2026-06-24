@@ -27,7 +27,6 @@ import {
   EventTypes,
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
-import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/analytics', () => ({
@@ -40,16 +39,6 @@ jest.mock('sentry/utils/analytics', () => ({
   },
   trackAnalytics: jest.fn(),
 }));
-
-const validationBody: EventValidationData = {
-  dataset: [],
-  environment: [],
-  field: [],
-  orderby: [],
-  projects: [],
-  query: {error: null, fields: [], valid: true},
-  valid: true,
-};
 
 describe('Incident Rules Form', () => {
   let organization: any, project: any, location: any, anomalies: any;
@@ -110,11 +99,6 @@ describe('Incident Rules Form', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/validate/',
-      method: 'GET',
-      body: validationBody,
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',

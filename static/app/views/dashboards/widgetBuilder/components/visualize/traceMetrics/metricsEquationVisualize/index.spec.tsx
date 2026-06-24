@@ -18,7 +18,6 @@ import {
   defaultMetricQuery,
   type BaseMetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
-import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 jest.mock('sentry/utils/useNavigate');
 
@@ -64,16 +63,6 @@ const EQUATION_FEATURES = [
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
 
-const validationBody: EventValidationData = {
-  dataset: [],
-  environment: [],
-  field: [],
-  orderby: [],
-  projects: [],
-  query: {error: null, fields: [], valid: true},
-  valid: true,
-};
-
 function setupMockApis() {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
@@ -97,12 +86,6 @@ function setupMockApis() {
         },
       ],
     },
-  });
-
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events/validate/',
-    method: 'GET',
-    body: validationBody,
   });
 
   MockApiClient.addMockResponse({

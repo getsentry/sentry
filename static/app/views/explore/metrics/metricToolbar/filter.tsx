@@ -39,6 +39,7 @@ const EMPTY_ALIASES: TagCollection = {};
 
 interface FilterProps {
   traceMetric: TraceMetric;
+  disableValidation?: boolean;
   disabled?: boolean;
   environments?: string[];
   portalTarget?: HTMLElement;
@@ -71,6 +72,7 @@ export function Filter({
   environments,
   portalTarget,
   disabled,
+  disableValidation,
 }: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
@@ -104,6 +106,7 @@ export function Filter({
 
   const {data: validatedSearchQueryData} = useValidateMetricsTab({
     enabled:
+      !disableValidation &&
       Boolean(query) &&
       (skipTraceMetricFilter || Boolean(traceMetricFilter)) &&
       !disabled,

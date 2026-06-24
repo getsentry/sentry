@@ -126,6 +126,7 @@ export function MetricToolbar({
             skipTraceMetricFilter={isEquation}
             portalTarget={document.body}
             disabled={disabled}
+            disableValidation
           />
         </Flex>
       </Flex>
