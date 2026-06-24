@@ -82,6 +82,9 @@ function ExploreContentInner() {
     dataCategories: [DataCategory.SPANS],
   });
 
+  // The bootstrap query returns raw API org data, while useOrganization reads
+  // the OrganizationStore value after FeatureFlagOverrides.loadOrg mutates it.
+  // Apply stored toolbar overrides here before comparing these two sources.
   const bootstrappedOrganizationHasHighRange = bootstrapOrganization
     ? FeatureFlagOverrides.singleton()
         .getEnabledFeatureFlagList(bootstrapOrganization)
