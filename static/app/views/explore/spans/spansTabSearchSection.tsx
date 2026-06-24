@@ -40,6 +40,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {CrossEventQueryingDropdown} from 'sentry/views/explore/spans/crossEvents/crossEventQueryingDropdown';
 import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBars';
+import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
 import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
@@ -80,6 +81,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const {attributes: numberAttributes} = useSpanItemAttributes({}, 'number');
   const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanAttributes} = useSpanItemAttributes({}, 'boolean');
+  const {data: validatedSearchQueryData} = useValidateSpansTab();
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
@@ -122,6 +124,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       ],
       caseInsensitive,
       onCaseInsensitiveClick: setCaseInsensitive,
+      validatedSearchQueryData,
     }),
     [
       booleanAttributes,
@@ -134,6 +137,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       setCaseInsensitive,
       setQueryParams,
       stringAttributes,
+      validatedSearchQueryData,
     ]
   );
 
