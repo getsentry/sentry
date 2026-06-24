@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useIsMutating} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
@@ -31,6 +32,13 @@ type Props = {
 
 export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Props) {
   const endpoint = `/projects/${orgSlug}/${project.slug}/keys/${keyId}/`;
+
+  // Every form on this page shares one mutation key, so any in-flight save
+  // disables all fields. This prevents editing an option while a (possibly
+  // version-changing) save is in flight, which could otherwise toggle an option
+  // against a state that's about to change.
+  const mutationKey = ['projectKeyLoaderSettings', keyId];
+  const isMutating = useIsMutating({mutationKey}) > 0;
 
   const sdkVersionChoices = data.browserSdk
     ? data.browserSdk.choices.filter(([value]) => value !== 'latest')
@@ -104,6 +112,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               data.browserSdkVersion === 'latest' ? '7.x' : data.browserSdkVersion
             }
             mutationOptions={{
+              mutationKey,
               mutationFn: (submitData: {browserSdkVersion: string}) =>
                 fetchMutation<ProjectKey>({
                   url: endpoint,
@@ -131,7 +140,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                     value,
                     label,
                   }))}
-                  disabled={!hasAccess || sdkVersionChoices.length === 1}
+                  disabled={!hasAccess || sdkVersionChoices.length === 1 || isMutating}
                 />
               </field.Layout.Row>
             )}
@@ -145,6 +154,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               supportsPerformance ? data.dynamicSdkLoaderOptions.hasPerformance : false
             }
             mutationOptions={{
+              mutationKey,
               mutationFn: (submitData: {hasPerformance: boolean}) =>
                 fetchMutation<ProjectKey>({
                   url: endpoint,
@@ -177,11 +187,13 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                   checked={field.state.value}
                   onChange={field.handleChange}
                   disabled={
-                    hasAccess
-                      ? supportsPerformance
-                        ? undefined
-                        : t('Only available in SDK version 7.x and above')
-                      : t('You do not have permission to edit this setting')
+                    isMutating
+                      ? true
+                      : hasAccess
+                        ? supportsPerformance
+                          ? undefined
+                          : t('Only available in SDK version 7.x and above')
+                        : t('You do not have permission to edit this setting')
                   }
                 />
               </field.Layout.Row>
@@ -196,6 +208,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               supportsPerformance ? data.dynamicSdkLoaderOptions.hasReplay : false
             }
             mutationOptions={{
+              mutationKey,
               mutationFn: (submitData: {hasReplay: boolean}) =>
                 fetchMutation<ProjectKey>({
                   url: endpoint,
@@ -236,11 +249,13 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                   checked={field.state.value}
                   onChange={field.handleChange}
                   disabled={
-                    hasAccess
-                      ? supportsPerformance
-                        ? undefined
-                        : t('Only available in SDK version 7.x and above')
-                      : t('You do not have permission to edit this setting')
+                    isMutating
+                      ? true
+                      : hasAccess
+                        ? supportsPerformance
+                          ? undefined
+                          : t('Only available in SDK version 7.x and above')
+                        : t('You do not have permission to edit this setting')
                   }
                 />
               </field.Layout.Row>
@@ -255,6 +270,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               supportsLogs ? data.dynamicSdkLoaderOptions.hasLogsAndMetrics : false
             }
             mutationOptions={{
+              mutationKey,
               mutationFn: (submitData: {hasLogsAndMetrics: boolean}) =>
                 fetchMutation<ProjectKey>({
                   url: endpoint,
@@ -287,11 +303,13 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                   checked={field.state.value}
                   onChange={field.handleChange}
                   disabled={
-                    hasAccess
-                      ? supportsLogs
-                        ? undefined
-                        : t('Only available in SDK version 10.x and above')
-                      : t('You do not have permission to edit this setting')
+                    isMutating
+                      ? true
+                      : hasAccess
+                        ? supportsLogs
+                          ? undefined
+                          : t('Only available in SDK version 10.x and above')
+                        : t('You do not have permission to edit this setting')
                   }
                 />
               </field.Layout.Row>
@@ -306,6 +324,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               supportsPerformance ? data.dynamicSdkLoaderOptions.hasFeedback : false
             }
             mutationOptions={{
+              mutationKey,
               mutationFn: (submitData: {hasFeedback: boolean}) =>
                 fetchMutation<ProjectKey>({
                   url: endpoint,
@@ -345,11 +364,13 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                   checked={field.state.value}
                   onChange={field.handleChange}
                   disabled={
-                    hasAccess
-                      ? supportsPerformance
-                        ? undefined
-                        : t('Only available in SDK version 7.x and above')
-                      : t('You do not have permission to edit this setting')
+                    isMutating
+                      ? true
+                      : hasAccess
+                        ? supportsPerformance
+                          ? undefined
+                          : t('Only available in SDK version 7.x and above')
+                        : t('You do not have permission to edit this setting')
                   }
                 />
               </field.Layout.Row>
@@ -361,6 +382,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             schema={loaderSchema}
             initialValue={data.dynamicSdkLoaderOptions.hasDebug}
             mutationOptions={{
+              mutationKey,
               mutationFn: (submitData: {hasDebug: boolean}) =>
                 fetchMutation<ProjectKey>({
                   url: endpoint,
@@ -376,9 +398,11 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                   checked={field.state.value}
                   onChange={field.handleChange}
                   disabled={
-                    hasAccess
-                      ? undefined
-                      : t('You do not have permission to edit this setting')
+                    isMutating
+                      ? true
+                      : hasAccess
+                        ? undefined
+                        : t('You do not have permission to edit this setting')
                   }
                 />
               </field.Layout.Row>
