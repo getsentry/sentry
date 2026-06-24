@@ -4,10 +4,7 @@ import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedD
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import type {
-  AlertRuleOptions,
-  RequestDataFragment,
-} from 'sentry/views/projectInstall/issueAlertOptions';
+import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
 
 /**
  * Persisted form state from the SCM project details step. Stored so the
@@ -17,11 +14,6 @@ import type {
  */
 export interface ProjectDetailsFormState {
   alertRuleConfig?: AlertRuleOptions;
-  /**
-   * The chosen messaging-integration notification action, persisted so the
-   * selection survives navigation (the step remounts) and is re-seeded.
-   */
-  notificationActions?: RequestDataFragment['actions'];
   projectName?: string;
   teamSlug?: string;
 }
