@@ -90,7 +90,12 @@ export function MetricToolbar({
 
   const handleExpressionChange = useCallback(
     (newExpression: Expression, internalText: string) => {
-      setVisualize(visualize.replace({yAxis: `${EQUATION_PREFIX}${newExpression.text}`}));
+      setVisualize(
+        visualize.replace({
+          yAxis: `${EQUATION_PREFIX}${newExpression.text}`,
+          internalExpression: internalText,
+        })
+      );
       onTitleChange?.(internalText);
     },
     [setVisualize, visualize, onTitleChange]
@@ -159,6 +164,7 @@ export function MetricToolbar({
                 handleExpressionChange={handleExpressionChange}
                 onReferenceLabelsChange={handleReferenceLabelsChange}
                 disabled={hasUnresolvedMetrics}
+                storedInternalExpression={visualize.internalExpression}
               />
             </Flex>
             <Flex flex="9 1 0" minWidth={0}>

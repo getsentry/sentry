@@ -22,12 +22,14 @@ export function EquationBuilder({
   handleExpressionChange,
   onReferenceLabelsChange,
   disabled,
+  storedInternalExpression,
 }: {
   expression: string;
   handleExpressionChange: (resolved: Expression, internalText: string) => void;
   disabled?: boolean;
   onReferenceLabelsChange?: (labels: string[]) => void;
   referenceMap?: Record<string, string>;
+  storedInternalExpression?: string;
 }) {
   const [_, startTransition] = useTransition();
   const references = useMemo(
@@ -35,7 +37,8 @@ export function EquationBuilder({
     [referenceMap]
   );
 
-  const internalExpression = unresolveExpression(expression, referenceMap);
+  const internalExpression =
+    storedInternalExpression ?? unresolveExpression(expression, referenceMap);
 
   // Report which labels this equation references after unresolving.
   // Cleans up on unmount so deleted equations don't block metric deletion.
