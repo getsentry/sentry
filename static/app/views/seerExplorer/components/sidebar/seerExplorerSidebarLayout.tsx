@@ -1,5 +1,7 @@
+import {useCallback} from 'react';
+
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {SplitPanel} from '@sentry/scraps/splitPanel';
+import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerPanel';
@@ -28,11 +30,12 @@ const DEFAULT_SEER_HEIGHT = 360;
  * means it stays mounted across open/close — only the Seer pane toggles, so the
  * routed app never remounts.
  *
- * `SplitPanel` measures its own container, but we also measure here so the app
- * pane's initial size can be derived from Seer's persisted size (`available −
- * seerSize`). We gate the split on that measurement so the app pane opens at the
- * right size on the first paint; before then the app content renders on its own
- * (never gated away), so the routed app is always in the tree.
+ * `SplitPanel` is always rendered (never swapped in/out on measurement) so the
+ * app pane keeps its place in the tree and the routed app never remounts. We
+ * measure here too, to derive the app pane's size from Seer's persisted size
+ * (`available − seerSize`), and push it into the panel imperatively via
+ * `ref.setSize` once measured and on viewport resize — so Seer keeps a fixed
+ * size while the app flexes.
  *
  * The persisted size is *Seer's* (viewport-independent), keyed per orientation,
  * and is written only on a real drag via `onResizeEnd` — programmatic/measure
@@ -54,15 +57,27 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
   const storedSeerSize = parseInt(localStorage.getItem(seerSizeKey) ?? '', 10);
   const seerSize = storedSeerSize > 0 ? storedSeerSize : defaultSeerSize;
 
+  // The app (sized) pane size = available − Seer's size, floored at `minContent`
+  // (so a persisted Seer size larger than the viewport can't make it negative).
+  // The double-click reset target uses the *default* Seer size.
+  const contentSize = Math.max(minContent, available - seerSize);
+  const defaultContentSize = Math.max(minContent, available - defaultSeerSize);
+
+  // Seed the panel's size via a callback ref rather than gating the whole panel
+  // on measurement (which would remount the routed app when dimensions arrive).
+  // `contentSize` flows from the measurement, so it gives the ref a new identity
+  // on first measure / resize / orientation change — React re-attaches and
+  // re-applies the size.
+  const seedSplitPanelSize = useCallback(
+    (handle: SplitPanelHandle | null) => {
+      handle?.setSize(contentSize);
+    },
+    [contentSize]
+  );
+
   if (!isSidebarMode) {
     return children;
   }
-
-  // Seed the app (sized) pane from the persisted Seer size; `SplitPanel` clamps
-  // it to [minContent, available − minSeer], so we don't clamp here. The double
-  // click reset target uses the *default* Seer size.
-  const initialContentSize = available - seerSize;
-  const defaultContentSize = available - defaultSeerSize;
 
   // Persist Seer's size from a drag (the app pane shrinks → Seer grows). Fires
   // only on drag end, never on programmatic/measure resizes, so a saved size is
@@ -98,20 +113,17 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
       contain="size"
       overflow="hidden"
     >
-      {available > 0 ? (
-        <SplitPanel
-          orientation={isRight ? 'horizontal' : 'vertical'}
-          defaultSize={defaultContentSize}
-          initialSize={initialContentSize}
-          minSize={minContent}
-          fillMinSize={minSeer}
-          onResizeEnd={({endSize}) => persistSeerSize(endSize)}
-          sized={contentPane}
-          fill={isOpen ? <SeerExplorerPanel /> : undefined}
-        />
-      ) : (
-        contentPane
-      )}
+      <SplitPanel
+        ref={seedSplitPanelSize}
+        orientation={isRight ? 'horizontal' : 'vertical'}
+        defaultSize={defaultContentSize}
+        initialSize={contentSize}
+        minSize={minContent}
+        fillMinSize={minSeer}
+        onResizeEnd={({endSize}) => persistSeerSize(endSize)}
+        sized={contentPane}
+        fill={isOpen ? <SeerExplorerPanel /> : undefined}
+      />
     </Flex>
   );
 }

@@ -74,11 +74,8 @@ function OpenSeerControl({options}: {options?: OpenSeerExplorerDrawerOptions}) {
   );
 }
 
-function renderSidebar(
-  organization: ReturnType<typeof OrganizationFixture>,
-  openOptions?: OpenSeerExplorerDrawerOptions
-) {
-  return render(
+function sidebarTree(openOptions?: OpenSeerExplorerDrawerOptions) {
+  return (
     <SeerExplorerSessionsProvider>
       <SeerExplorerChatStateProvider>
         <PictureInPictureProvider>
@@ -92,9 +89,15 @@ function renderSidebar(
           </GlobalDrawer>
         </PictureInPictureProvider>
       </SeerExplorerChatStateProvider>
-    </SeerExplorerSessionsProvider>,
-    {organization}
+    </SeerExplorerSessionsProvider>
   );
+}
+
+function renderSidebar(
+  organization: ReturnType<typeof OrganizationFixture>,
+  openOptions?: OpenSeerExplorerDrawerOptions
+) {
+  return render(sidebarTree(openOptions), {organization});
 }
 
 // The split divider is a `role="separator"`; its `data-orientation` is the
@@ -168,6 +171,22 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(await screen.findByText('main app content')).toBeInTheDocument();
     // No split until measured.
     expect(splitOrientation()).toBeUndefined();
+  });
+
+  it('does not remount the app when the container is measured', async () => {
+    // Start unmeasured, then report a real size — the routed app DOM node must
+    // be preserved (the SplitPanel is always rendered, never swapped in).
+    const dims = jest
+      .spyOn(useDimensionsModule, 'useDimensions')
+      .mockReturnValue({width: 0, height: 0});
+
+    const {rerender} = render(sidebarTree(), {organization: orgWithSidebar});
+    const before = await screen.findByText('main app content');
+
+    dims.mockReturnValue(CONTAINER_SIZE);
+    rerender(sidebarTree());
+
+    expect(screen.getByText('main app content')).toBe(before);
   });
 
   it('docks Seer to the bottom on a narrow viewport (auto)', async () => {
