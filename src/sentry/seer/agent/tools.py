@@ -1371,6 +1371,52 @@ def get_issue_and_event_response(
     )
 
 
+def _resolve_seer_group(
+    *,
+    organization_id: int,
+    issue_id: str,
+    project_slug: str | None = None,
+) -> Group:
+    """
+    Resolve an ``issue_id`` to a :class:`Group`, scoped to ``organization_id`` (and to
+    ``project_slug`` when provided).
+
+    ``issue_id`` may be a numeric primary key or a qualified short id (e.g. ``PROJECT-123``):
+
+    - Numeric ids are looked up via ``get_from_cache``. The model cache only accepts a single
+      kwarg, so the org/project boundary cannot live in the query and is enforced with an
+      explicit post-fetch check instead. This also skips the ``project_ids`` query on the hot
+      numeric path.
+    - Short ids keep query-level project scoping via ``by_qualified_short_id`` to preserve the
+      in-org IDOR guard documented on that method; ``project_ids`` is only computed here.
+
+    Raises ``Group.DoesNotExist`` when no matching group is visible within the scope, so callers
+    can keep their existing ``except Group.DoesNotExist`` handling.
+    """
+    if issue_id.isdigit():
+        group = Group.objects.get_from_cache(id=int(issue_id))
+        # ``group.project`` is the org/project boundary the numeric query used to enforce.
+        project = group.project
+        if (
+            project.organization_id != organization_id
+            or project.status != ObjectStatus.ACTIVE
+            or (project_slug is not None and project.slug != project_slug)
+        ):
+            raise Group.DoesNotExist()
+        return group
+
+    project_ids = list(
+        Project.objects.filter(
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+            **({"slug": project_slug} if project_slug else {}),
+        ).values_list("id", flat=True)
+    )
+    if not project_ids:
+        raise Group.DoesNotExist()
+    return Group.objects.by_qualified_short_id(organization_id, issue_id, project_ids=project_ids)
+
+
 def get_issue_details(
     *,
     organization_id: int,
@@ -1396,24 +1442,10 @@ def get_issue_details(
 
     organization = Organization.objects.get(id=organization_id)
 
-    project_ids = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", flat=True)
-    )
-    if not project_ids:
-        return None
-
-    group: Group
     try:
-        if issue_id.isdigit():
-            group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-        else:
-            group = Group.objects.by_qualified_short_id(
-                organization_id, issue_id, project_ids=project_ids
-            )
+        group = _resolve_seer_group(
+            organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
+        )
     except Group.DoesNotExist:
         return None
 
@@ -1527,24 +1559,10 @@ def get_issue_committers(
 
     organization = Organization.objects.get(id=organization_id)
 
-    project_ids = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", flat=True)
-    )
-    if not project_ids:
-        raise NotFound("No project found for the given organization and project filters")
-
-    group: Group
     try:
-        if issue_id.isdigit():
-            group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-        else:
-            group = Group.objects.by_qualified_short_id(
-                organization_id, issue_id, project_ids=project_ids
-            )
+        group = _resolve_seer_group(
+            organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
+        )
     except Group.DoesNotExist:
         raise NotFound("Issue not found. Check the issue_id and project_slug.")
 
@@ -1674,16 +1692,6 @@ def get_event_details(
 
     organization = Organization.objects.get(id=organization_id)
 
-    project_ids = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", flat=True)
-    )
-    if not project_ids:
-        return None
-
     event: Event | GroupEvent | None
     group: Group | None
 
@@ -1692,16 +1700,23 @@ def get_event_details(
 
         # Fetch the group then get a sample event from the time range.
         assert issue_id is not None
-        if issue_id.isdigit():
-            group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-        else:
-            group = Group.objects.by_qualified_short_id(
-                organization_id, issue_id, project_ids=project_ids
-            )
-        assert group is not None
+        group = _resolve_seer_group(
+            organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
+        )
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
+        # The project boundary is only needed for the by-event-id lookup below.
+        project_ids = list(
+            Project.objects.filter(
+                organization=organization,
+                status=ObjectStatus.ACTIVE,
+                **({"slug": project_slug} if project_slug else {}),
+            ).values_list("id", flat=True)
+        )
+        if not project_ids:
+            return None
+
         # Fetch the event directly by ID.
         uuid.UUID(event_id)  # Raises ValueError if not valid UUID
         if len(project_ids) == 1:
@@ -1780,34 +1795,29 @@ def get_issue_and_event_details_v2(
 
     organization = Organization.objects.get(id=organization_id)
 
-    project_ids = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", flat=True)
-    )
-    if not project_ids:
-        return None
-
     event: Event | GroupEvent | None
     group: Group | None
 
     if event_id is None:
         # Fetch the group then get a sample event from the time range.
         assert issue_id is not None
-        if issue_id.isdigit():
-            group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-        else:
-            # Scope the short id lookup to the same projects as the numeric branch so both
-            # paths enforce the same project boundary.
-            group = Group.objects.by_qualified_short_id(
-                organization_id, issue_id, project_ids=project_ids
-            )
-        assert group is not None
+        group = _resolve_seer_group(
+            organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
+        )
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
+        # The project boundary is only needed for the by-event-id lookup below.
+        project_ids = list(
+            Project.objects.filter(
+                organization=organization,
+                status=ObjectStatus.ACTIVE,
+                **({"slug": project_slug} if project_slug else {}),
+            ).values_list("id", flat=True)
+        )
+        if not project_ids:
+            return None
+
         # Fetch the event then look up its group.
         uuid.UUID(event_id)  # Raises ValueError if not valid UUID
         if len(project_ids) == 1:
