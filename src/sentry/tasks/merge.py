@@ -210,7 +210,7 @@ def merge_groups(
     else:
         if features.has(
             "organizations:hard-delete-derived-data-invalidation",
-            new_group.project.organization,
+            group.project.organization,
         ):
             # hard delete derived data on the new group - it will be rebuilt when the next action is processed
             invalidate_group_derived_data(new_group.id)
