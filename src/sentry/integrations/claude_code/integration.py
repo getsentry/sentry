@@ -320,10 +320,11 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         return ClaudeCodeIntegrationMetadata.parse_obj(fresh.metadata or {})
 
     def get_vault_id_for_installation(self, installation_id: int) -> str | None:
-        metadata = self._read_fresh_metadata()
-        if metadata is None:
-            return None
-        return metadata.installation_vault_ids.get(str(installation_id))
+        with self._vault_metadata_lock().acquire():
+            metadata = self._read_fresh_metadata()
+            if metadata is None:
+                return None
+            return metadata.installation_vault_ids.get(str(installation_id))
 
     def set_vault_id_for_installation(self, installation_id: int, vault_id: str) -> None:
         with self._vault_metadata_lock().acquire():
@@ -333,29 +334,17 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             metadata.installation_vault_ids[str(installation_id)] = vault_id
             self._persist_metadata(metadata)
 
-    def pop_vault_id_for_installation(self, installation_id: int) -> str | None:
-        with self._vault_metadata_lock().acquire():
-            metadata = self._read_fresh_metadata()
-            if metadata is None:
-                return None
-            vault_id = metadata.installation_vault_ids.pop(str(installation_id), None)
-            if vault_id is not None:
-                self._persist_metadata(metadata)
-            return vault_id
-
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         with self._vault_metadata_lock().acquire():
             metadata = self._read_fresh_metadata()
-            if metadata is None:
-                return
+            if metadata is not None:
+                if "environment_id" in data:
+                    metadata.environment_id = data["environment_id"] or None
 
-            if "environment_id" in data:
-                metadata.environment_id = data["environment_id"] or None
+                if "workspace_is_default" in data:
+                    metadata.workspace_name = "default" if data["workspace_is_default"] else None
 
-            if "workspace_is_default" in data:
-                metadata.workspace_name = "default" if data["workspace_is_default"] else None
-
-            self._persist_metadata(metadata)
+                self._persist_metadata(metadata)
         super().update_organization_config({})
 
     def get_config_data(self) -> Mapping[str, Any]:
@@ -371,7 +360,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
 
         vault_reuse = features.has(
             "organizations:claude-code-vault-reuse",
-            self.organization_id,
+            self.organization,
         )
 
         return client_class(
@@ -394,7 +383,14 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             fresh.installation_vault_ids = {}
             self._persist_metadata(fresh)
 
-        client = self.get_client()
+        metadata = self._get_metadata()
+        client_class = _get_client_class()
+        client = client_class(
+            api_key=metadata.api_key,
+            environment_id=metadata.environment_id,
+            workspace_name=metadata.workspace_name,
+        )
+
         for vault_id in vault_ids:
             try:
                 client.archive_vault(vault_id)

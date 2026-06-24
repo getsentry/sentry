@@ -221,9 +221,11 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             metadata=self._make_metadata(),
         )
         installation = integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(installation, ClaudeCodeAgentIntegration)
 
-        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
-            client = installation.get_client()
+        with self.feature("organizations:claude-code-vault-reuse"):
+            with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+                client = installation.get_client()
 
         assert client is mock_client
         mock_cls.assert_called_once_with(
@@ -266,8 +268,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id="agent-123",
             agent_version=1,
             model=None,
-            installation_vault_lookup=ANY,
-            installation_vault_writer=ANY,
+            installation_vault_lookup=None,
+            installation_vault_writer=None,
         )
 
     def test_get_client_passes_model_from_metadata(self) -> None:
@@ -290,8 +292,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id=None,
             agent_version=None,
             model="claude-sonnet-4-6",
-            installation_vault_lookup=ANY,
-            installation_vault_writer=ANY,
+            installation_vault_lookup=None,
+            installation_vault_writer=None,
         )
 
     def test_get_client_passes_none_model_when_metadata_has_none(self) -> None:
@@ -314,8 +316,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id=None,
             agent_version=None,
             model=None,
-            installation_vault_lookup=ANY,
-            installation_vault_writer=ANY,
+            installation_vault_lookup=None,
+            installation_vault_writer=None,
         )
 
     def test_get_client_class_not_configured(self) -> None:
@@ -471,23 +473,6 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             "99": "vault_other",
             "42": "vault_mine",
         }
-
-    def test_pop_vault_id_for_installation_removes_and_returns(self) -> None:
-        installation = self._create_installation(
-            installation_vault_ids={"42": "vault_abc", "7": "vault_xyz"},
-        )
-
-        popped = installation.pop_vault_id_for_installation(42)
-
-        assert popped == "vault_abc"
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.get(id=installation.model.id)
-        assert integration.metadata["installation_vault_ids"] == {"7": "vault_xyz"}
-
-    def test_pop_vault_id_for_installation_missing_returns_none(self) -> None:
-        installation = self._create_installation()
-
-        assert installation.pop_vault_id_for_installation(42) is None
 
     # ── uninstall ────────────────────────────────────────────────────
 
