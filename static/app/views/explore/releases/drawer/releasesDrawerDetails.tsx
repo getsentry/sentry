@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
@@ -94,9 +94,11 @@ function ReleasesDrawerContent({
                   ))}
                 </SelectableProjectBadges>
               </ErrorBoundary>
-              <Text size="xl" bold ellipsis>
-                {formatVersion(release)}
-              </Text>
+              <Container minWidth={0} maxWidth="100%">
+                <Text size="xl" bold ellipsis>
+                  {formatVersion(release)}
+                </Text>
+              </Container>
             </Flex>
 
             <FullDetailsButton
