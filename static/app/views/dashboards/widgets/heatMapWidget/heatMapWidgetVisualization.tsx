@@ -21,10 +21,13 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
-import {formatYAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatYAxisValue';
+import {
+  HIDDEN_CATEGORY_AXIS,
+  heatMapTimeAxis,
+  heatMapValueAxis,
+} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/heatMapAxes';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
-import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatXAxisTimestamp';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import {HeatMap} from './plottables/heatMap';
@@ -142,19 +145,8 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     return typeof value === 'number' ? value : null;
   }
 
-  const yAxisBucketSize = heatMapPlottable.heatMapSeries.meta.yAxis.bucketSize;
-
-  // The full value range of the buckets. `start` is the first bucket's lower
-  // bound and `end` is the last bucket's upper bound. We pin an overlaid value
-  // axis to this range so ECharts can place round ticks on it (see `yAxes`).
-  const yAxisMin = heatMapPlottable.heatMapSeries.meta.yAxis.start;
-  const yAxisMax = heatMapPlottable.heatMapSeries.meta.yAxis.end;
-
-  // The full time range of the X-axis buckets, in milliseconds. We overlay a
-  // `time` axis on this range so ECharts can place ticks on natural time
-  // boundaries (day/hour starts) instead of on every bucket edge (see `xAxes`).
-  const xAxisMin = heatMapPlottable.heatMapSeries.meta.xAxis.start;
-  const xAxisMax = heatMapPlottable.heatMapSeries.meta.xAxis.end;
+  const {meta} = heatMapPlottable.heatMapSeries;
+  const yAxisBucketSize = meta.yAxis.bucketSize;
 
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = params => {
@@ -293,115 +285,21 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
         }}
         series={series}
         xAxes={[
-          // Category axis: positions the heat map cells (ECharts requires a
-          // category axis for heat map series). Its categories are the bucket
-          // boundaries (timestamps), so we hide its labels and let the overlaid
-          // time axis render readable ticks instead. As with the Y axis, we
-          // don't set `data` so ECharts matches cells to categories by value.
-          {
-            type: 'category',
-            animation: false,
-            axisLabel: {
-              show: false,
-            },
-            axisTick: {
-              show: false,
-            },
-            axisLine: {
-              show: false,
-            },
-            axisPointer: {
-              show: false,
-            },
-            splitArea: {
-              show: false,
-            },
-          },
-          // Time axis (overlay): spans the full time range of the buckets and
-          // lets ECharts place ticks on natural time boundaries. A second
-          // x-axis defaults to the top, so we pin it to the bottom explicitly.
-          {
-            type: 'time',
-            position: 'bottom',
-            min: xAxisMin,
-            max: xAxisMax,
-            animation: false,
-            axisLabel: {
-              hideOverlap: true,
-              formatter: value =>
-                formatXAxisTimestamp(Number(value), {utc: utc ?? undefined}),
-            },
-            axisPointer: {
-              show: false,
-            },
-            splitArea: {
-              show: false,
-            },
-            splitLine: {
-              show: false,
-            },
-          },
+          HIDDEN_CATEGORY_AXIS,
+          heatMapTimeAxis({
+            min: meta.xAxis.start,
+            max: meta.xAxis.end,
+            utc: utc ?? undefined,
+          }),
         ]}
         yAxes={[
-          // Category axis: positions the heat map cells (ECharts requires a
-          // category axis for heat map series). Its categories are the bucket
-          // boundaries, which are rarely round, so we hide its labels and let
-          // the overlaid value axis render readable ticks instead.
-          //
-          // We deliberately don't set `data` here: ECharts collects the
-          // categories from the series' Y values and matches cells to them by
-          // value. Supplying our own category list would make ECharts treat
-          // those same Y values as category *indices* instead, dropping every
-          // cell whose value isn't a valid index.
-          {
-            type: 'category',
-            animation: false,
-            axisLabel: {
-              show: false,
-            },
-            axisTick: {
-              show: false,
-            },
-            axisPointer: {
-              show: false,
-            },
-            splitArea: {
-              show: false,
-            },
-          },
-          // Value axis (overlay): spans the full value range of the buckets and
-          // lets ECharts place round ticks on it. These don't line up with the
-          // bucket boundaries, they just read cleanly. A second y-axis defaults
-          // to the right, so we pin it to the left explicitly. The min/max
-          // labels are hidden because `start`/`end` are themselves bucket
-          // boundaries and rarely round.
-          {
-            type: 'value',
-            position: 'left',
-            min: yAxisMin,
-            max: yAxisMax,
-            animation: false,
-            axisLabel: {
-              hideOverlap: true,
-              showMinLabel: false,
-              showMaxLabel: false,
-              formatter: value =>
-                formatYAxisValue(
-                  Number(value),
-                  yAxisDataType,
-                  yAxisDataUnit ?? undefined
-                ),
-            },
-            axisPointer: {
-              show: false,
-            },
-            splitArea: {
-              show: false,
-            },
-            splitLine: {
-              show: false,
-            },
-          },
+          HIDDEN_CATEGORY_AXIS,
+          heatMapValueAxis({
+            min: meta.yAxis.start,
+            max: meta.yAxis.end,
+            valueType: yAxisDataType,
+            valueUnit: yAxisDataUnit ?? undefined,
+          }),
         ]}
         visualMap={visualMapOptions(HEATMAP_COLORS)}
         start={start ? new Date(start) : undefined}
