@@ -6,6 +6,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
+import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
@@ -68,7 +69,7 @@ function ReleasesDrawerContent({
       <EventNavigator>
         <ErrorBoundary mini>
           <HeaderToolbar>
-            <Flex align="center" gap="md">
+            <Flex align="center" gap="md" minWidth={0} maxWidth="100%">
               <ErrorBoundary mini>
                 <SelectableProjectBadges>
                   {releaseMeta?.projects?.map(releaseProject => (
@@ -93,10 +94,12 @@ function ReleasesDrawerContent({
                   ))}
                 </SelectableProjectBadges>
               </ErrorBoundary>
-              {formatVersion(release)}
+              <Text size="xl" bold ellipsis>
+                {formatVersion(release)}
+              </Text>
             </Flex>
 
-            <LinkButton
+            <FullDetailsButton
               to={normalizeUrl({
                 pathname: makeReleasesPathname({
                   path: `/${encodeURIComponent(release)}/`,
@@ -115,7 +118,7 @@ function ReleasesDrawerContent({
               }}
             >
               {t('View Full Details')}
-            </LinkButton>
+            </FullDetailsButton>
           </HeaderToolbar>
         </ErrorBoundary>
       </EventNavigator>
@@ -347,8 +350,13 @@ const SelectableProjectBadge = styled(Link)`
   }
 `;
 
+const FullDetailsButton = styled(LinkButton)`
+  flex-shrink: 0;
+`;
+
 const HeaderToolbar = styled(Header)`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: ${p => p.theme.space.md};
 `;

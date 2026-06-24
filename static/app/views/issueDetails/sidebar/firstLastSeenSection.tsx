@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SeenInfo} from 'sentry/components/group/seenInfo';
@@ -111,20 +111,44 @@ function ReleaseText({project, release}: {project: Project; release?: Release}) 
   }
 
   return (
-    <Text size="sm" variant="muted">
-      {t('in release')}{' '}
-      <VersionHoverCard
-        organization={organization}
-        projectSlug={project.slug}
-        releaseVersion={release.version}
-      >
-        <ReleaseVersion version={release.version} projectId={project.id} />
-      </VersionHoverCard>
-    </Text>
+    <Grid
+      columns="max-content minmax(0, 1fr)"
+      align="center"
+      gap="xs"
+      minWidth={0}
+      maxWidth="100%"
+    >
+      <Container as="span" whiteSpace="nowrap">
+        <Text size="sm" variant="muted">
+          {t('in release')}{' '}
+        </Text>
+      </Container>
+      <ReleaseVersionWrapper>
+        <VersionHoverCard
+          organization={organization}
+          projectSlug={project.slug}
+          releaseVersion={release.version}
+        >
+          <ReleaseVersion version={release.version} projectId={project.id} truncate />
+        </VersionHoverCard>
+      </ReleaseVersionWrapper>
+    </Grid>
   );
 }
 
+const ReleaseVersionWrapper = styled('span')`
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+`;
+
 const ReleaseVersion = styled(Version)`
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
   color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
   text-decoration-style: dotted;

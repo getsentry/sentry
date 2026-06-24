@@ -5,7 +5,6 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TabList} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -16,13 +15,13 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
-import {Version} from 'sentry/components/version';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -48,30 +47,6 @@ export function ReleaseHeader({
 }: Props) {
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
-
-  const titleContent = (
-    <Fragment>
-      <IdBadge project={project} avatarSize={16} hideName />
-      <Version version={version} anchor={false} truncate />
-      <CopyToClipboardButton
-        className="release-copy-button"
-        variant="transparent"
-        size="zero"
-        text={version}
-        tooltipProps={{title: version}}
-        aria-label={t('Copy release version to clipboard')}
-      />
-      {!!url && (
-        <IconWrapper>
-          <Tooltip title={url}>
-            <ExternalLink href={url}>
-              <IconOpen />
-            </ExternalLink>
-          </Tooltip>
-        </IconWrapper>
-      )}
-    </Fragment>
-  );
 
   const releasePath = makeReleasesPathname({
     organization,
@@ -154,22 +129,38 @@ export function ReleaseHeader({
     <Layout.Header>
       <Layout.HeaderContent>
         <TopBar.Slot name="title">
-          <Breadcrumbs
-            crumbs={[
-              {
-                to: makeReleasesPathname({organization, path: '/'}),
-                label: t('Releases'),
-                preservePageFilters: true,
-              },
-              {
-                label: (
-                  <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
-                    {titleContent}
-                  </Flex>
-                ),
-              },
-            ]}
-          />
+          <ReleaseTitleContent css={titleWrapperStyles}>
+            <IdBadge project={project} avatarSize={16} hideName />
+            <Breadcrumbs
+              crumbs={[
+                {
+                  to: makeReleasesPathname({organization, path: '/'}),
+                  label: t('Releases'),
+                  preservePageFilters: true,
+                },
+                {
+                  label: formatVersion(version),
+                },
+              ]}
+            />
+            <CopyToClipboardButton
+              className="release-copy-button"
+              variant="transparent"
+              size="zero"
+              text={version}
+              tooltipProps={{title: t('Copy release version')}}
+              aria-label={t('Copy release version to clipboard')}
+            />
+            {!!url && (
+              <IconWrapper>
+                <Tooltip title={url}>
+                  <ExternalLink href={url}>
+                    <IconOpen />
+                  </ExternalLink>
+                </Tooltip>
+              </IconWrapper>
+            )}
+          </ReleaseTitleContent>
         </TopBar.Slot>
       </Layout.HeaderContent>
       <TopBar.Slot name="actions">
@@ -206,15 +197,32 @@ const titleWrapperStyles = css`
   line-height: 1;
 
   .release-copy-button {
-    display: none;
+    visibility: hidden;
+    pointer-events: none;
   }
 
-  &:hover .release-copy-button {
-    display: inline-flex;
+  &:hover .release-copy-button,
+  &:focus-within .release-copy-button {
+    visibility: visible;
+    pointer-events: auto;
+  }
+`;
+
+const ReleaseTitleContent = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+
+  [data-test-id='breadcrumb-list'] {
+    min-width: 0;
   }
 `;
 
 const IconWrapper = styled('span')`
+  flex-shrink: 0;
   transition: color 0.3s ease-in-out;
 
   &,
