@@ -34,7 +34,9 @@ describe('LinkedPullRequests', () => {
               title: 'Fix widget crash on startup',
               repository,
               externalUrl: 'https://github.com/example/widget-app/pull/123',
+              author: {name: 'Ada Lovelace', email: 'ada@example.com'},
             }),
+            attribution: null,
             dateLinked: '2026-06-08T23:11:32.000000Z',
             status: 'merged',
           },
@@ -45,6 +47,10 @@ describe('LinkedPullRequests', () => {
               repository,
               externalUrl: 'https://github.com/example/widget-app/pull/124',
             }),
+            attribution: {
+              type: 'seer',
+              id: 'seer',
+            },
             dateLinked: '2026-06-08T23:10:32.000000Z',
             status: 'closed',
           },
@@ -74,9 +80,15 @@ describe('LinkedPullRequests', () => {
     expect(within(list).getByText('#123')).toBeInTheDocument();
     expect(within(list).getByText('#124')).toBeInTheDocument();
     expect(within(list).getAllByText(REPOSITORY_NAME)).toHaveLength(2);
-    expect(linkedPullRequest.querySelectorAll('svg')).toHaveLength(2);
     expect(within(list).getByText('Merged')).toBeInTheDocument();
     expect(within(list).getByText('Closed')).toBeInTheDocument();
+    expect(within(linkedPullRequest).getByText('AL')).toBeInTheDocument();
+    expect(
+      within(linkedPullRequest).getByLabelText('Pull request author: Ada Lovelace')
+    ).toHaveAttribute('title', 'Pull request author: Ada Lovelace');
+    expect(
+      within(list).getByLabelText('Pull request created by Seer')
+    ).toBeInTheDocument();
     const mergedStatus = within(list).getByLabelText('Pull request status: Merged');
     const closedStatus = within(list).getByLabelText('Pull request status: Closed');
     expect(mergedStatus).toBeInTheDocument();
