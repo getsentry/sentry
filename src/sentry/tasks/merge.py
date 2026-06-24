@@ -60,7 +60,10 @@ def merge_groups(
     from_object_id = from_object_ids[0]
 
     try:
-        new_group, _ = get_group_with_redirect(to_object_id)
+        new_group, _ = get_group_with_redirect(
+            to_object_id,
+            queryset=Group.objects.select_related("project__organization"),
+        )
     except Group.DoesNotExist:
         logger.warning(
             "group.malformed.invalid_id",
@@ -84,7 +87,7 @@ def merge_groups(
         )
 
     try:
-        group = Group.objects.select_related("project__organization").get(id=from_object_id)
+        group = Group.objects.select_related("project").get(id=from_object_id)
     except Group.DoesNotExist:
         from_object_ids.remove(from_object_id)
 
@@ -210,7 +213,7 @@ def merge_groups(
     else:
         if features.has(
             "organizations:hard-delete-derived-data-invalidation",
-            group.project.organization,
+            new_group.project.organization,
         ):
             # hard delete derived data on the new group - it will be rebuilt when the next action is processed
             invalidate_group_derived_data(new_group.id)
