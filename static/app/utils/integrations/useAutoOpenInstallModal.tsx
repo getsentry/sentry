@@ -17,11 +17,15 @@ interface Props {
 }
 
 /**
- * Auto-opens the integration install modal once when the detail page is loaded
- * with `?showInstallModal=1` (e.g. from the Slack reinstall nudge). Gated to
- * mirror the install button: provider installable, user has integration access,
- * and the org's plan allows it. The param is stripped after opening so refresh /
- * back-button don't re-trigger it.
+ * Auto-opens the integration install modal once per provider when the detail
+ * page is loaded with `?showInstallModal=1` (e.g. from the Slack reinstall
+ * nudge). Gated to mirror the install button: provider installable, user has
+ * integration access, and the org's plan allows it. The param is stripped after
+ * opening so refresh / back-button don't re-trigger it.
+ *
+ * The dedupe is keyed on the provider rather than mount: this view stays mounted
+ * across client-side navigation between integration detail routes (only the slug
+ * param changes), so a later visit for a different provider must still open.
  */
 export function useAutoOpenInstallModal({
   provider,
@@ -31,13 +35,16 @@ export function useAutoOpenInstallModal({
 }: Props) {
   const [showInstallModal, setShowInstallModal] = useQueryState('showInstallModal');
   const {startFlow} = useAddIntegration();
-  const hasAutoOpenedRef = useRef(false);
+  const autoOpenedForRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (hasAutoOpenedRef.current || showInstallModal !== '1') {
+    if (showInstallModal !== '1') {
       return;
     }
     if (!provider?.canAdd || !organization.access.includes('org:integrations')) {
+      return;
+    }
+    if (autoOpenedForRef.current === provider.key) {
       return;
     }
     // Mirror the install button's plan gate: install is disabled when the org
@@ -50,7 +57,7 @@ export function useAutoOpenInstallModal({
       return;
     }
 
-    hasAutoOpenedRef.current = true;
+    autoOpenedForRef.current = provider.key;
 
     startFlow({
       provider,

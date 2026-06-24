@@ -106,6 +106,37 @@ describe('IntegrationDetailedView', () => {
       match: [MockApiClient.matchQuery({provider_key: 'gitlab', includeConfig: 0})],
       body: [GitLabIntegrationFixture()],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      match: [MockApiClient.matchQuery({provider_key: 'slack'})],
+      body: {
+        providers: [
+          {
+            canAdd: true,
+            canDisable: false,
+            features: ['alert-rule', 'chat-unfurl'],
+            key: 'slack',
+            metadata: {
+              aspects: {},
+              author: 'The Sentry Team',
+              description: 'Connect your Sentry organization to Slack.',
+              features: [],
+              issue_url: 'https://github.com/getsentry/sentry/issues/new',
+              noun: 'Installation',
+              source_url:
+                'https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack',
+            },
+            name: 'Slack',
+            slug: 'slack',
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -390,11 +421,6 @@ describe('IntegrationDetailedView', () => {
           ],
         },
       });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${gatedOrg.slug}/integrations/`,
-        match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
-        body: [],
-      });
 
       render(<IntegrationDetailedView />, {
         initialRouterConfig: createRouterConfig('slack', {showInstallModal: '1'}),
@@ -403,6 +429,34 @@ describe('IntegrationDetailedView', () => {
 
       expect(await screen.findByText('Slack')).toBeInTheDocument();
       expect(openPipelineModalSpy).not.toHaveBeenCalled();
+    });
+
+    it('re-opens for a different provider after client-side navigation', async () => {
+      const openPipelineModalSpy = jest
+        .spyOn(pipelineModal, 'openPipelineModal')
+        .mockImplementation(() => {});
+
+      const {router} = render(<IntegrationDetailedView />, {
+        initialRouterConfig: createRouterConfig('bitbucket', {showInstallModal: '1'}),
+        organization,
+      });
+
+      await waitFor(() => {
+        expect(openPipelineModalSpy).toHaveBeenCalledWith(
+          expect.objectContaining({provider: 'bitbucket'})
+        );
+      });
+
+      // Same route, only the slug changes, so the view stays mounted. A fresh
+      // param for a different provider must still auto-open.
+      router.navigate('/settings/org-slug/integrations/slack/?showInstallModal=1');
+
+      await waitFor(() => {
+        expect(openPipelineModalSpy).toHaveBeenCalledWith(
+          expect.objectContaining({provider: 'slack'})
+        );
+      });
+      expect(openPipelineModalSpy).toHaveBeenCalledTimes(2);
     });
 
     it('strips the param after auto-opening', async () => {
