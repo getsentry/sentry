@@ -24,6 +24,7 @@ from sentry.tasks.seer.night_shift.simple_triage import ScoredCandidate, fixabil
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -40,7 +41,7 @@ def _dispatched_feature_body(organization):
     return seer_run, outbox.payload["body"]
 
 
-class NightShiftFixtures:
+class NightShiftFixtures(Fixtures):
     """Shared night-shift test setup. Mixed into the test cases below so the
     project-eligibility and event-seeding logic lives in one place."""
 
@@ -68,6 +69,7 @@ class NightShiftFixtures:
             },
             project_id=project.id,
         )
+        assert event.group_id is not None
         Group.objects.filter(id=event.group_id).update(**group_attrs)
         return Group.objects.get(id=event.group_id)
 
