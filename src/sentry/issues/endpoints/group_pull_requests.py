@@ -79,6 +79,8 @@ def _get_stored_pull_request_status(pull_request: PullRequest) -> PullRequestSta
         return "closed"
     if pull_request.draft is True:
         return "draft"
+    # `draft` is nullable for older rows, so only trust `open` when we know the PR
+    # is not a draft.
     if pull_request.state == PullRequestLifecycleState.OPEN and pull_request.draft is False:
         return "open"
     return None
