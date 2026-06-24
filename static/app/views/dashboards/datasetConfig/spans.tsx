@@ -11,9 +11,10 @@ import type {
 } from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import {emptyStringValue} from 'sentry/utils/discover/emptyFieldValues';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   AGGREGATIONS,
   stripEquationPrefix,

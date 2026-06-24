@@ -332,14 +332,16 @@ class OrganizationReportBatch:
             if template_context and user_id:
                 dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
                 if not dupe_check.check_for_duplicate_delivery():
-                    self.send_email(template_ctx=template_context, user_id=user_id)
-                    dupe_check.record_delivery()
+                    was_sent = self.send_email(template_ctx=template_context, user_id=user_id)
+
+                    # Record delivery if email was sent successfully
+                    if was_sent:
+                        dupe_check.record_delivery()
                 else:
                     lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
                     metrics.incr("weekly_report.email.skipped", tags={"reason": "duplicate"})
 
-    def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
-        # get user options timezone for this user, then format the timestamp according to the timezone
+    def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> bool:
         local_start, local_end = get_local_dates(self.ctx, user_id)
 
         message = MessageBuilder(
@@ -352,11 +354,12 @@ class OrganizationReportBatch:
         )
         if self.dry_run:
             metrics.incr("weekly_report.email.skipped", tags={"reason": "dry_run"})
-            return
+            return False
 
         if self.email_override:
             message.send(to=(self.email_override,))
             metrics.incr("weekly_report.email.sent")
+            return True
         else:
             try:
                 analytics.record(
@@ -385,8 +388,10 @@ class OrganizationReportBatch:
             if message._send_to:
                 message.send_async()
                 metrics.incr("weekly_report.email.sent")
+                return True
             else:
                 metrics.incr("weekly_report.email.skipped", tags={"reason": "no_email"})
+                return False
 
 
 class _DuplicateDeliveryCheck:

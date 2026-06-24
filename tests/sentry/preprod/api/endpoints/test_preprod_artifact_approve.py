@@ -1,6 +1,14 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 
+from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
+from sentry.preprod.models import PreprodComparisonApproval
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_not_analytics_event,
+)
 
 
 class OrganizationPreprodArtifactApproveTest(APITestCase):
@@ -40,3 +48,82 @@ class OrganizationPreprodArtifactApproveTest(APITestCase):
         )
 
         assert response.status_code == 404
+
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_approve.create_preprod_status_check_task")
+    @patch("sentry.analytics.record")
+    def test_approve_size_records_analytics(self, mock_analytics, mock_task) -> None:
+        self.login_as(user=self.owner)
+
+        response = self.client.post(
+            self._approve_url(self.artifact.id),
+            data={"feature_type": "size"},
+            format="json",
+        )
+
+        assert response.status_code == 201
+        assert_any_analytics_event(
+            mock_analytics,
+            PreprodStatusCheckApprovalCreatedEvent(
+                organization_id=self.org.id,
+                project_id=self.project_b.id,
+                artifact_id=self.artifact.id,
+                product="size",
+                source="web",
+            ),
+        )
+
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_approve.update_preprod_snapshot_vcs")
+    @patch("sentry.analytics.record")
+    def test_approve_snapshots_records_analytics(self, mock_analytics, mock_task) -> None:
+        self.login_as(user=self.owner)
+
+        response = self.client.post(
+            self._approve_url(self.artifact.id),
+            data={"feature_type": "snapshots"},
+            format="json",
+        )
+
+        assert response.status_code == 201
+        assert_any_analytics_event(
+            mock_analytics,
+            PreprodStatusCheckApprovalCreatedEvent(
+                organization_id=self.org.id,
+                project_id=self.project_b.id,
+                artifact_id=self.artifact.id,
+                product="snapshots",
+                source="web",
+            ),
+        )
+
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_approve.create_preprod_status_check_task")
+    @patch("sentry.analytics.record")
+    def test_already_approved_does_not_record_analytics(self, mock_analytics, mock_task) -> None:
+        self.login_as(user=self.owner)
+        self.create_preprod_comparison_approval(
+            preprod_artifact=self.artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+            approved_by_id=self.owner.id,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+
+        response = self.client.post(
+            self._approve_url(self.artifact.id),
+            data={"feature_type": "size"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert_not_analytics_event(mock_analytics, PreprodStatusCheckApprovalCreatedEvent)
+
+    @patch("sentry.analytics.record")
+    def test_invalid_feature_type_does_not_record_analytics(self, mock_analytics) -> None:
+        self.login_as(user=self.owner)
+
+        response = self.client.post(
+            self._approve_url(self.artifact.id),
+            data={"feature_type": "bogus"},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert_not_analytics_event(mock_analytics, PreprodStatusCheckApprovalCreatedEvent)

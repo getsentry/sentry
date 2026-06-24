@@ -13,6 +13,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationDetail from 'sentry/views/automations/detail';
 
@@ -31,6 +32,13 @@ describe('AutomationDetail', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {period: '14d', start: null, end: null, utc: null},
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
@@ -81,7 +89,7 @@ describe('AutomationDetail', () => {
     });
 
     expect(
-      await screen.findByRole('heading', {name: 'Test Automation'})
+      await screen.findByRole('heading', {name: /Test Automation/i})
     ).toBeInTheDocument();
 
     // Check sidebar sections
@@ -151,7 +159,7 @@ describe('AutomationDetail', () => {
         },
       });
 
-      await screen.findByRole('heading', {name: 'Test Automation'});
+      await screen.findByRole('heading', {name: /Test Automation/i});
 
       expect(
         screen.getByText('You must add an action for this alert to run.')
@@ -181,7 +189,7 @@ describe('AutomationDetail', () => {
         },
       });
 
-      await screen.findByRole('heading', {name: 'Test Automation'});
+      await screen.findByRole('heading', {name: /Test Automation/i});
 
       expect(
         screen.getByText(
@@ -213,7 +221,7 @@ describe('AutomationDetail', () => {
         },
       });
 
-      await screen.findByRole('heading', {name: 'Test Automation'});
+      await screen.findByRole('heading', {name: /Test Automation/i});
 
       expect(
         screen.getByText('One or more actions need to be reconfigured in order to run.')
@@ -240,7 +248,7 @@ describe('AutomationDetail', () => {
       },
     });
 
-    await screen.findByRole('heading', {name: 'Test Automation'});
+    await screen.findByRole('heading', {name: /Test Automation/i});
 
     expect(
       screen.getByText(
@@ -258,7 +266,7 @@ describe('AutomationDetail', () => {
       },
     });
 
-    await screen.findByRole('heading', {name: 'Test Automation'});
+    await screen.findByRole('heading', {name: /Test Automation/i});
 
     expect(
       screen.queryByText(
@@ -281,7 +289,7 @@ describe('AutomationDetail', () => {
       },
     });
 
-    await screen.findByRole('heading', {name: 'Test Automation'});
+    await screen.findByRole('heading', {name: /Test Automation/i});
 
     expect(screen.getByRole('button', {name: 'Disable'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(

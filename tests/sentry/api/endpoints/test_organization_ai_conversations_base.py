@@ -2,6 +2,8 @@ from sentry.testutils.cases import APITestCase, BaseSpansTestCase, SpanTestCase
 from sentry.utils import json
 
 LLM_TOKENS = 100
+LLM_INPUT_TOKENS = 70
+LLM_OUTPUT_TOKENS = 30
 LLM_COST = 0.001
 
 
@@ -24,6 +26,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         status="ok",
         operation_type=None,
         tokens=None,
+        input_tokens=None,
+        output_tokens=None,
         cost=None,
         trace_id=None,
         agent_name=None,
@@ -50,6 +54,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             status: Span status (default: "ok")
             operation_type: The gen_ai.operation.type attribute
             tokens: Token count (gen_ai.usage.total_tokens)
+            input_tokens: Input token count (gen_ai.usage.input_tokens)
+            output_tokens: Output token count (gen_ai.usage.output_tokens)
             cost: Cost (gen_ai.cost.total_tokens)
             trace_id: The trace ID for the span
             agent_name: The gen_ai.agent.name attribute
@@ -73,6 +79,10 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.operation.type"] = operation_type
         if tokens is not None:
             span_data["gen_ai.usage.total_tokens"] = tokens
+        if input_tokens is not None:
+            span_data["gen_ai.usage.input_tokens"] = input_tokens
+        if output_tokens is not None:
+            span_data["gen_ai.usage.output_tokens"] = output_tokens
         if cost is not None:
             span_data["gen_ai.cost.total_tokens"] = cost
         if agent_name is not None:
