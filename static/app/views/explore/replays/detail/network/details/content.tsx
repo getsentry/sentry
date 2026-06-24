@@ -5,7 +5,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import {getOutputType} from 'sentry/views/explore/replays/detail/network/details/getOutputType';
 import {
   Setup,
@@ -53,6 +52,11 @@ export function NetworkDetailsContent(props: Props) {
           {[Output.SETUP, Output.URL_SKIPPED, Output.BODY_SKIPPED].includes(output) && (
             <Setup showSnippet={output} {...props} />
           )}
+          {output === Output.INCOMPLETE && (
+            <ParseError>
+              {t('No response body was captured for this request.')}
+            </ParseError>
+          )}
           {output === Output.UNSUPPORTED && <UnsupportedOp type="bodies" />}
         </OverflowFluidHeight>
       );
@@ -66,6 +70,11 @@ export function NetworkDetailsContent(props: Props) {
           )}
           {[Output.SETUP, Output.URL_SKIPPED, Output.BODY_SKIPPED].includes(output) && (
             <Setup showSnippet={output} {...props} />
+          )}
+          {output === Output.INCOMPLETE && (
+            <ParseError>
+              {t('No response body was captured for this request.')}
+            </ParseError>
           )}
           {output === Output.UNSUPPORTED && <UnsupportedOp type="bodies" />}
           {output === Output.BODY_PARSE_ERROR && (
@@ -99,13 +108,18 @@ export function NetworkDetailsContent(props: Props) {
           {[Output.SETUP, Output.URL_SKIPPED, Output.DATA].includes(output) && (
             <Setup showSnippet={output} {...props} />
           )}
+          {output === Output.INCOMPLETE && (
+            <ParseError>{t('No headers were captured for this request.')}</ParseError>
+          )}
           {output === Output.UNSUPPORTED && <UnsupportedOp type="headers" />}
         </OverflowFluidHeight>
       );
   }
 }
 
-const OverflowFluidHeight = styled(FluidHeight)`
+const OverflowFluidHeight = styled('div')`
+  flex-grow: 1;
+  height: 100%;
   overflow: auto;
 `;
 const SectionList = styled('dl')`

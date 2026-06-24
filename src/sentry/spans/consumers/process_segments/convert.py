@@ -18,7 +18,6 @@ from sentry_protos.snuba.v1.trace_item_pb2 import (
 
 from sentry.constants import DataCategory
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
-from sentry.utils import metrics
 from sentry.utils.eap import hex_to_item_id
 
 I64_MAX = 2**63 - 1
@@ -110,21 +109,15 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
             sentry_sdk.capture_exception()
             attributes["sentry.dropped_links_count"] = AnyValue(int_value=len(links))
 
-    metrics.incr(
-        "spans.consumers.process_segments.outcome_emitted",
-        tags={"already_emitted": str(span.get("accepted_outcome_emitted"))},
+    outcomes = Outcomes(
+        key_id=int(span.get("key_id") or 0),
+        category_count=[
+            CategoryCount(
+                data_category=int(DataCategory.SPAN_INDEXED),
+                quantity=1,
+            ),
+        ],
     )
-    outcomes = None
-    if span.get("accepted_outcome_emitted") is False:
-        outcomes = Outcomes(
-            key_id=int(span.get("key_id") or 0),
-            category_count=[
-                CategoryCount(
-                    data_category=int(DataCategory.SPAN_INDEXED),
-                    quantity=1,
-                ),
-            ],
-        )
 
     return TraceItem(
         organization_id=span["organization_id"],

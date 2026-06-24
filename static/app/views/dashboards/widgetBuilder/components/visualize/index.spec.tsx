@@ -1406,6 +1406,34 @@ describe('Visualize', () => {
       expect(within(listbox).getByText('anotherNumericTag')).toBeInTheDocument();
     });
 
+    it('shows the saved column in the trigger even when missing from attributes', async () => {
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                // The saved column argument is not returned by the attributes call
+                field: ['p90(my.missing.field)'],
+              },
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
+        }
+      );
+
+      // The column dropdown should reflect the saved state instead of "None"
+      expect(
+        await screen.findByRole('button', {name: 'Column Selection'})
+      ).toHaveTextContent('my.missing.field');
+    });
+
     it('shows the correct column options for the non-aggregate field type', async () => {
       render(
         <WidgetBuilderProvider>

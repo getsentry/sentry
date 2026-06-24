@@ -110,7 +110,7 @@ export function UsageAlert({subscription, usage}: Props) {
   }
 
   function getProjectedOverages(): ProjectedOverages {
-    if (subscription.isEnterpriseTrial || subscription.hasOverageNotificationsDisabled) {
+    if (subscription.isEnterpriseTrial) {
       return [];
     }
     return projectedCategoryOverages();

@@ -8,12 +8,11 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 
-import type {BillingConfig, Plan, PlanTier, Subscription} from 'getsentry/types';
+import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {
   isBizPlanFamily,
   isDeveloperPlan,
   isNewPayingCustomer,
-  isTrialPlan,
 } from 'getsentry/utils/billing';
 import {PlanFeatures} from 'getsentry/views/amCheckout/components/planFeatures';
 import {PlanSelectCard} from 'getsentry/views/amCheckout/components/planSelectCard';
@@ -32,7 +31,6 @@ interface PlanSubstepProps extends BaseSubstepProps {
   billingConfig: BillingConfig;
   organization: Organization;
   subscription: Subscription;
-  checkoutTier?: PlanTier;
 }
 
 interface AdditionalProductsSubstepProps extends BaseSubstepProps {
@@ -67,7 +65,7 @@ function PlanSubstep({
       plan.id === subscription.plan ||
       // If Developer is surfaced in checkout and the current plan is a trial plan, we should show the `Current` badge
       // on the Developer plan
-      (isTrialPlan(subscription.plan) && isDeveloperPlan(plan))
+      (subscription.onTrialPlan && isDeveloperPlan(plan))
     ) {
       const copy = t('Current');
       return <Tag variant="muted">{copy}</Tag>;
@@ -153,7 +151,6 @@ export function BuildYourPlan({
   formData,
   onUpdate,
   stepNumber,
-  checkoutTier,
 }: StepProps) {
   return (
     <Stack gap="xl" direction="column" id={`step${stepNumber}`}>
@@ -165,7 +162,6 @@ export function BuildYourPlan({
         onUpdate={onUpdate}
         organization={organization}
         subscription={subscription}
-        checkoutTier={checkoutTier}
       />
       <AdditionalProductsSubstep
         activePlan={activePlan}

@@ -33,7 +33,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
@@ -49,7 +48,6 @@ import {ProjectTeamAccess} from './projectTeamAccess';
 export function ProjectDetail() {
   const api = useApi();
   const params = useParams<{orgId: string; projectId: string}>();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -158,74 +156,44 @@ export function ProjectDetail() {
           <NoProjectMessage organization={organization}>
             <Layout.Header unified>
               <Layout.HeaderContent unified>
-                {hasPageFrameFeature ? (
-                  <TopBar.Slot name="title">
-                    <Breadcrumbs
-                      crumbs={[
-                        {
-                          to: makeProjectsPathname({path: '/', organization}),
-                          label: t('Projects'),
-                        },
-                        {
-                          label: (
-                            <Flex align="center" gap="xs">
-                              {project ? (
-                                <IdBadge
-                                  project={project}
-                                  avatarSize={16}
-                                  hideOverflow="100%"
-                                  disableLink
-                                  hideName
-                                />
-                              ) : null}
-                              {project?.slug}
-                            </Flex>
-                          ),
-                        },
-                      ]}
-                    />
-                  </TopBar.Slot>
-                ) : (
-                  <Fragment>
-                    <Breadcrumbs
-                      crumbs={[
-                        {
-                          to: makeProjectsPathname({path: '/', organization}),
-                          label: t('Projects'),
-                        },
-                        {label: t('Project Details')},
-                      ]}
-                    />
-                    <Layout.Title>
-                      {project ? (
-                        <IdBadge
-                          project={project}
-                          avatarSize={28}
-                          hideOverflow="100%"
-                          disableLink
-                          hideName
-                        />
-                      ) : null}
-                      {project?.slug}
-                    </Layout.Title>
-                  </Fragment>
-                )}
+                <TopBar.Slot name="title">
+                  <Breadcrumbs
+                    crumbs={[
+                      {
+                        to: makeProjectsPathname({path: '/', organization}),
+                        label: t('Projects'),
+                      },
+                      {
+                        label: (
+                          <Flex align="center" gap="xs">
+                            {project ? (
+                              <IdBadge
+                                project={project}
+                                avatarSize={16}
+                                hideOverflow="100%"
+                                disableLink
+                                hideName
+                              />
+                            ) : null}
+                            {project?.slug}
+                          </Flex>
+                        ),
+                      },
+                    ]}
+                  />
+                </TopBar.Slot>
               </Layout.HeaderContent>
 
               <Layout.HeaderActions>
                 <Grid flow="column" align="center" gap="md">
-                  {hasPageFrameFeature ? (
-                    <TopBar.Slot name="feedback">
-                      <FeedbackButton
-                        aria-label={t('Give Feedback')}
-                        tooltipProps={{title: t('Give Feedback')}}
-                      >
-                        {null}
-                      </FeedbackButton>
-                    </TopBar.Slot>
-                  ) : (
-                    <FeedbackButton />
-                  )}
+                  <TopBar.Slot name="feedback">
+                    <FeedbackButton
+                      aria-label={t('Give Feedback')}
+                      tooltipProps={{title: t('Give Feedback')}}
+                    >
+                      {null}
+                    </FeedbackButton>
+                  </TopBar.Slot>
                   <LinkButton
                     size="sm"
                     to={

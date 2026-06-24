@@ -89,7 +89,6 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
@@ -278,8 +277,6 @@ export function GlobalCommandPaletteActions() {
     starred: true,
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
-
-  const {openSeerExplorer} = useSeerExplorerContext();
 
   const queryProjectIds = new Set(decodeList(location.query.project));
   const currentProjects = params.projectId
@@ -693,6 +690,7 @@ export function GlobalCommandPaletteActions() {
                 t('dsn key'),
                 'SENTRY_DSN',
                 'Sentry DSN',
+                'NEXT_PUBLIC_SENTRY_DSN',
                 project.slug,
               ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
@@ -786,38 +784,6 @@ export function GlobalCommandPaletteActions() {
               onAction={() => exitSuperuser()}
             />
           )}
-          <CMDKAction
-            display={{label: t('Night Shift Chats'), icon: <IconSeer />}}
-            keywords={[
-              t('seer'),
-              t('ai'),
-              t('chat'),
-              t('agent'),
-              t('explorer'),
-              t('nightshift'),
-              t('autofix'),
-            ]}
-            limit={10}
-            resource={() => {
-              return cmdkQueryOptions({
-                ...apiOptions.as<{data: Array<{run_id: number; title: string}>}>()(
-                  '/organizations/$organizationIdOrSlug/seer/explorer-runs/',
-                  {
-                    path: {organizationIdOrSlug: organization.slug},
-                    query: {per_page: 10, category_key: 'night_shift', owner: 'false'},
-                    staleTime: 30_000,
-                  }
-                ),
-                select: data =>
-                  data.json.data.map(session => ({
-                    display: {label: session.title, icon: <IconSeer />},
-                    onAction: () => openSeerExplorer({runId: session.run_id}),
-                  })),
-              });
-            }}
-          >
-            {data => data.map((item, i) => renderAsyncResult(item, i))}
-          </CMDKAction>
         </CMDKAction>
       )}
 
@@ -1148,6 +1114,25 @@ export function GlobalCommandPaletteActions() {
           }}
         />
       )}
+
+      {user.isStaff &&
+        (window.localStorage?.getItem('DEBUG_ANALYTICS') === '1' ? (
+          <CMDKAction
+            display={{label: 'Disable Analytics Debug Mode', icon: <IconOpen />}}
+            keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
+            onAction={() => {
+              window.localStorage?.setItem('DEBUG_ANALYTICS', '0');
+            }}
+          />
+        ) : (
+          <CMDKAction
+            display={{label: 'Enable Analytics Debug Mode', icon: <IconOpen />}}
+            keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
+            onAction={() => {
+              window.localStorage?.setItem('DEBUG_ANALYTICS', '1');
+            }}
+          />
+        ))}
     </CommandPaletteSlot>
   );
 }

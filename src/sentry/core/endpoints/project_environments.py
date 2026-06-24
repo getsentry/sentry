@@ -40,7 +40,8 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
     }
 
     @extend_schema(
-        operation_id="List a Project's Environments",
+        operation_id="listProjectEnvironments",
+        summary="List a Project's Environments",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

@@ -8,7 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.per_org.queries import get_eap_organization_volume
+from sentry.dynamic_sampling.per_org.queries import get_outcomes_organization_volume
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
@@ -152,7 +152,7 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         if not self.projects:
             return None
 
-        org_volume_24h = get_eap_organization_volume(
+        org_volume_24h = get_outcomes_organization_volume(
             self, time_interval=timedelta(hours=FALLBACK_SLIDING_WINDOW_SIZE)
         )
         if org_volume_24h is None:

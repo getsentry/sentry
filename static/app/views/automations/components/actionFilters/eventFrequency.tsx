@@ -134,7 +134,9 @@ export function validateEventFrequencyCondition({
     return t('You must select a comparison type.');
   }
   if (
-    !condition.comparison.value ||
+    condition.comparison.value === null ||
+    condition.comparison.value === undefined ||
+    Number.isNaN(condition.comparison.value) ||
     !condition.comparison.interval ||
     (condition.type === DataConditionType.EVENT_FREQUENCY_PERCENT &&
       !condition.comparison.comparisonInterval)

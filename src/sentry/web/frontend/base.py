@@ -875,14 +875,14 @@ class AvatarPhotoView(View):
             return HttpResponseNotFound()
 
         size_s = request.GET.get("s")
-        photo_file = photo.getfile()
         if size_s:
             try:
                 size = int(size_s)
+                photo_file = avatar.get_cached_photo(size)
             except ValueError:
                 return HttpResponseBadRequest()
-            else:
-                photo_file = avatar.get_cached_photo(size)
+        else:
+            photo_file = photo.getfile()
 
         res = HttpResponse(photo_file, content_type="image/png")
         res["Cache-Control"] = FOREVER_CACHE

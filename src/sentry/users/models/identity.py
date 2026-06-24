@@ -14,11 +14,13 @@ from sentry import analytics
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
+    DefaultFieldsModel,
     FlexibleForeignKey,
     Model,
     control_silo_model,
 )
 from sentry.db.models.fields.encryption import EncryptedJSONField
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -111,15 +113,19 @@ class IdentityManager(BaseManager["Identity"]):
                 raise
             return self.reattach(idp, external_id, user, defaults)
 
-        analytics.record(
-            SlackIntegrationIdentityLinked(
-                provider=IntegrationProviderSlug.SLACK.value,
-                # Note that prior to circa March 2023 this was user.actor_id. It changed
-                # when actor ids were no longer stable between cells for the same user
-                actor_id=user.id,
-                actor_type="user",
+        if idp.type in (
+            IntegrationProviderSlug.SLACK.value,
+            IntegrationProviderSlug.SLACK_STAGING.value,
+        ):
+            analytics.record(
+                SlackIntegrationIdentityLinked(
+                    provider=IntegrationProviderSlug.SLACK.value,
+                    # Note that prior to circa March 2023 this was user.actor_id. It changed
+                    # when actor ids were no longer stable between cells for the same user
+                    actor_id=user.id,
+                    actor_type="user",
+                )
             )
-        )
         return identity
 
     def delete_identity(
@@ -234,3 +240,20 @@ class Identity(Model):
         from sentry.identity import get
 
         return get(self.idp.type)
+
+
+@control_silo_model
+class OrganizationIdentity(DefaultFieldsModel):
+    """
+    Links an Identity to a specific organization.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
+    identity = FlexibleForeignKey("sentry.Identity", on_delete=models.CASCADE)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_organizationidentity"
+        unique_together = (("organization_id", "identity_id"),)

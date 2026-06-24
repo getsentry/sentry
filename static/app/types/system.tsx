@@ -1,6 +1,5 @@
 import type {FocusTrap} from 'focus-trap';
 
-import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 import type {ApiResult} from 'sentry/types/api';
 
 import type {ParntershipAgreementType} from './overrides';
@@ -27,7 +26,7 @@ export type OnSentryInitConfiguration =
     }
   | {
       name: 'onReady';
-      onReady: (globals: typeof exportedGlobals) => void;
+      onReady: (globals: Record<string, any>) => void;
     };
 
 declare global {
@@ -192,12 +191,13 @@ export interface Config {
     release: string;
     tracePropagationTargets: string[];
     environment?: string;
-    profilesSampleRate?: number;
+    profileSessionSampleRate?: number;
   };
   // sentryMode intends to supersede isSelfHosted,
   // so we can differentiate between "SELF_HOSTED", "SINGLE_TENANT", and "SAAS".
   sentryMode: 'SELF_HOSTED' | 'SINGLE_TENANT' | 'SAAS';
   shouldPreloadData: boolean;
+  signupLocalities: string[];
   singleOrganization: boolean;
   superUserCookieDomain: string | null;
   superUserCookieName: string;

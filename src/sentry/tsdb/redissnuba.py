@@ -81,7 +81,9 @@ def make_method(key):
         backend = selector_func(key, callargs, self.switchover_timestamp)
 
         sentry_sdk.set_tag("tsdb.backend", backend)
+        sentry_sdk.set_attribute("tsdb.backend", backend)
         sentry_sdk.set_tag("tsdb.method", key)
+        sentry_sdk.set_attribute("tsdb.method", key)
 
         return getattr(self.backends[backend], key)(*a, **kw)
 
