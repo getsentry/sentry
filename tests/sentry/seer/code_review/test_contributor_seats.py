@@ -14,6 +14,7 @@ from sentry.seer.code_review.contributor_seats import (
     track_contributor_seat,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class IsAutofixEnabledForRepoTest(TestCase):
@@ -330,6 +331,7 @@ class TrackContributorSeatTest(TestCase):
         mock_assign_seat.delay.assert_not_called()
 
 
+@with_feature("organizations:dual-write-contributor-actions")
 class RecordContributorActionTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
