@@ -338,6 +338,7 @@ function PrimaryNavigationUnreadIndicator({
       {p => (
         <StatusIndicator
           {...mergeProps(p, props)}
+          animationIterationCount={3}
           variant={variant}
           data-unread-indicator
         />
