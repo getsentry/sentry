@@ -58,6 +58,10 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
    */
   onMouseDown: React.MouseEventHandler<HTMLElement>;
   /**
+   * Apply to the drag handle element. Supports touch and pen input.
+   */
+  onPointerDown: React.PointerEventHandler<HTMLElement>;
+  /**
    * Call this function to manually set the size of the drawer.
    */
   setSize: (newSize: number, userEvent?: boolean) => void;
@@ -105,9 +109,10 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const sizeRef = useRef(size);
   sizeRef.current = size;
 
-  const onMouseMove = useCallback(
-    (event: MouseEvent) => {
+  const onDragMove = useCallback(
+    (event: MouseEvent | PointerEvent) => {
       event.stopPropagation();
+      event.preventDefault();
       const isXAxis = options.direction === 'left' || options.direction === 'right';
       const isInverted = options.direction === 'down' || options.direction === 'left';
 
@@ -154,12 +159,15 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
   const dragStartSizeRef = useRef<number | null>(null);
 
-  const onMouseUp = useCallback(() => {
+  const onDragEnd = useCallback(() => {
     document.body.style.pointerEvents = '';
     document.body.style.userSelect = '';
     document.documentElement.style.cursor = '';
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('mouseup', onDragEnd);
+    document.removeEventListener('pointermove', onDragMove);
+    document.removeEventListener('pointerup', onDragEnd);
+    document.removeEventListener('pointercancel', onDragEnd);
     setIsHeld(false);
     if (dragStartSizeRef.current !== null) {
       options.onResizeEnd?.({
@@ -168,18 +176,41 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
       });
       dragStartSizeRef.current = null;
     }
-  }, [onMouseMove, options]);
+  }, [onDragMove, options]);
+
+  const startDrag = useCallback((clientX: number, clientY: number) => {
+    setIsHeld(true);
+    dragStartSizeRef.current = sizeRef.current;
+    currentMouseVectorRaf.current = [clientX, clientY];
+  }, []);
 
   const onMouseDown = useCallback(
     (evt: React.MouseEvent<HTMLElement>) => {
-      setIsHeld(true);
-      dragStartSizeRef.current = sizeRef.current;
-      currentMouseVectorRaf.current = [evt.clientX, evt.clientY];
+      if (evt.button !== 0) {
+        return;
+      }
 
-      document.addEventListener('mousemove', onMouseMove, {passive: true});
-      document.addEventListener('mouseup', onMouseUp);
+      evt.preventDefault();
+      startDrag(evt.clientX, evt.clientY);
+      document.addEventListener('mousemove', onDragMove, {passive: false});
+      document.addEventListener('mouseup', onDragEnd);
     },
-    [onMouseMove, onMouseUp]
+    [onDragMove, onDragEnd, startDrag]
+  );
+
+  const onPointerDown = useCallback(
+    (evt: React.PointerEvent<HTMLElement>) => {
+      if (!evt.isPrimary || (evt.pointerType === 'mouse' && evt.button !== 0)) {
+        return;
+      }
+
+      evt.preventDefault();
+      startDrag(evt.clientX, evt.clientY);
+      document.addEventListener('pointermove', onDragMove, {passive: false});
+      document.addEventListener('pointerup', onDragEnd);
+      document.addEventListener('pointercancel', onDragEnd);
+    },
+    [onDragMove, onDragEnd, startDrag]
   );
 
   const onDoubleClick = useCallback(() => {
@@ -194,5 +225,5 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     };
   });
 
-  return {size, isHeld, onMouseDown, onDoubleClick, setSize: updateSize};
+  return {size, isHeld, onMouseDown, onPointerDown, onDoubleClick, setSize: updateSize};
 }

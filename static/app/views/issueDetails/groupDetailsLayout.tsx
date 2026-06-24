@@ -29,7 +29,6 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function GroupLayoutBody({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
@@ -56,7 +55,6 @@ export function GroupDetailsLayout({
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const theme = useTheme();
   const organization = useOrganization();
   const isSampleError = useIsSampleEvent();
@@ -68,11 +66,7 @@ export function GroupDetailsLayout({
       )}
       <Container
         display="contents"
-        style={
-          hasPageFrameFeature
-            ? ({'--issue-details-inset': theme.space.xl} as React.CSSProperties)
-            : undefined
-        }
+        style={{'--issue-details-inset': theme.space.xl} as React.CSSProperties}
       >
         <GroupHeader group={group} event={event ?? null} project={project} />
         <GroupLayoutBody>

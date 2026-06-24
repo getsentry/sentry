@@ -211,6 +211,7 @@ def handle_preprod_check_run_event(
                 project_id=artifact.project_id,
                 artifact_id=artifact.id,
                 product=product_name,
+                source="vcs",
             )
         )
 

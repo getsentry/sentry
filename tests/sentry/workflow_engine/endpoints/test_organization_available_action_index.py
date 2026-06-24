@@ -8,8 +8,6 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.notification_action.action_handler_registry.base import (
     IntegrationActionHandler,
 )
-from sentry.plugins.base.manager import PluginManager
-from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -17,9 +15,6 @@ from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.types import ActionHandler
-from sentry_plugins.pagerduty.plugin import PagerDutyPlugin
-from sentry_plugins.slack.plugin import SlackPlugin
-from sentry_plugins.trello.plugin import TrelloPlugin
 
 
 @cell_silo_test
@@ -37,17 +32,9 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         )
         self.registry_patcher.start()
 
-        self.plugin_registry = PluginManager()
-        self.plugins_registry_patcher = patch(
-            "sentry.workflow_engine.processors.action.plugins",
-            new=self.plugin_registry,
-        )
-        self.plugins_registry_patcher.start()
-
     def tearDown(self) -> None:
         super().tearDown()
         self.registry_patcher.stop()
-        self.plugins_registry_patcher.stop()
 
     def setup_email(self) -> None:
         @self.registry.register(Action.Type.EMAIL)
@@ -247,23 +234,15 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             config_schema = {}
             data_schema = {}
 
-        self.plugin_registry.register(WebHooksPlugin)
-        self.webhooks_plugin = self.plugin_registry.get(WebHooksPlugin.slug)
-        self.webhooks_plugin.enable(self.project)
-
-        self.plugin_registry.register(SlackPlugin)
-        self.slack_plugin = self.plugin_registry.get(SlackPlugin.slug)
-        self.slack_plugin.enable(self.project)
-        # each plugin should only be returned once, even if it's enabled for multiple projects
-        self.slack_plugin.enable(self.create_project())
-
-        # non notification plugins should not be returned
-        self.plugin_registry.register(TrelloPlugin)
-        self.trello_plugin = self.plugin_registry.get(TrelloPlugin.slug)
-        self.trello_plugin.enable(self.project)
-
-        # plugins that are not enabled should not be returned
-        self.plugin_registry.register(PagerDutyPlugin)
+        # Webhook services now only include alertable sentry apps without components
+        self.webhook_sentry_app = self.create_sentry_app(
+            name="Webhook Test App",
+            organization=self.organization,
+            is_alertable=True,
+        )
+        self.create_sentry_app_installation(
+            slug=self.webhook_sentry_app.slug, organization=self.organization
+        )
 
     def test_simple(self) -> None:
         self.setup_email()
@@ -451,8 +430,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "configSchema": {},
                 "dataSchema": {},
                 "services": [
-                    {"slug": "slack", "name": "(Legacy) Slack"},
-                    {"slug": "webhooks", "name": "WebHooks"},
+                    {"slug": self.webhook_sentry_app.slug, "name": self.webhook_sentry_app.name},
                 ],
             }
         ]
@@ -509,12 +487,14 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "configSchema": {},
                 "dataSchema": {},
                 "services": [
-                    {"slug": "slack", "name": "(Legacy) Slack"},
                     {
                         "slug": self.no_component_sentry_app.slug,
                         "name": self.no_component_sentry_app.name,
                     },
-                    {"slug": "webhooks", "name": "WebHooks"},
+                    {
+                        "slug": self.webhook_sentry_app.slug,
+                        "name": self.webhook_sentry_app.name,
+                    },
                 ],
             },
             {

@@ -12,6 +12,11 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
+import {
+  applySavedDefaultToField,
+  getSavedChoicesMap,
+  STATIC_TICKET_FIELDS,
+} from 'sentry/components/externalIssues/ticketRuleModalUtils';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
 import {getConfigName} from 'sentry/components/externalIssues/utils';
 import type {FieldValue} from 'sentry/components/forms/types';
@@ -285,90 +290,25 @@ export function TicketRuleModal({
    * disabled inputs, and use the cached dynamic choices.
    */
   const cleanFields = useMemo((): JsonFormAdapterFieldConfig[] => {
-    const staticFields: JsonFormAdapterFieldConfig[] = [
-      {
-        name: 'title',
-        label: 'Title',
-        type: 'string',
-        default: 'This will be the same as the Sentry Issue.',
-        disabled: true,
-      },
-      {
-        name: 'description',
-        label: 'Description',
-        type: 'string',
-        default: 'This will be generated from the Sentry Issue details.',
-        disabled: true,
-      },
-    ];
-
-    // Build a map of saved choices from instance.dynamic_form_fields so we can
-    // restore async select options that were previously fetched via search.
-    const savedFields = Object.values(instance?.dynamic_form_fields || {});
-    const savedChoicesMap = new Map(
-      savedFields
-        .filter(
-          (f): f is IssueConfigField =>
-            typeof f === 'object' &&
-            f !== null &&
-            'url' in f &&
-            'choices' in f &&
-            Array.isArray(f.choices) &&
-            f.choices.length > 0
-        )
-        .map(f => [f.name, f.choices as Choices])
-    );
-
+    const savedChoicesMap = getSavedChoicesMap(instance);
     const configFields = (integrationDetails?.[getConfigName(action)] ||
       []) as JsonFormAdapterFieldConfig[];
 
     const cleanedFields = configFields
       // Don't overwrite the default values for title and description.
-      .filter(field => !staticFields.some(f => f.name === field.name))
+      .filter(field => !STATIC_TICKET_FIELDS.some(f => f.name === field.name))
       .map(field => {
-        // We only need to do the below operation if the form has not been modified.
         if (!showInstanceValues) {
           return field;
         }
-        // Overwrite defaults with previously selected values if they exist.
-        const prevChoice = instance?.[field.name];
 
-        if (!prevChoice) {
-          return field;
-        }
-
-        let shouldDefaultChoice = true;
-
-        if (field.type === 'select' || field.type === 'choice') {
-          // For async select fields, always trust the saved value — choices
-          // are fetched dynamically and won't be in the static choices list.
-          if ('url' in field && field.url) {
-            shouldDefaultChoice = true;
-          } else {
-            const choices = field.choices || [];
-            shouldDefaultChoice = !!(Array.isArray(prevChoice)
-              ? prevChoice.every(value => choices.some(tuple => tuple[0] === value))
-              : choices.some(item => item[0] === prevChoice));
-          }
-        }
-
-        if (shouldDefaultChoice) {
-          // For async fields, also restore saved choices so the select can
-          // display the label for the saved value.
-          const savedChoices = savedChoicesMap.get(field.name);
-          if (savedChoices && 'url' in field && field.url) {
-            return {
-              ...field,
-              default: prevChoice,
-              choices: savedChoices as Array<[string, string]>,
-            };
-          }
-          return {...field, default: prevChoice};
-        }
-
-        return field;
+        return applySavedDefaultToField({
+          field,
+          savedValue: instance?.[field.name],
+          savedChoicesMap,
+        });
       });
-    return [...staticFields, ...cleanedFields];
+    return [...STATIC_TICKET_FIELDS, ...cleanedFields];
   }, [instance, integrationDetails, showInstanceValues]);
 
   const formErrors = useMemo(() => {

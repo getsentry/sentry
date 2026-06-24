@@ -41,7 +41,7 @@ class SegmentForwarder(BaseDataForwarder):
             request = event.interfaces["request"]
             headers = request.headers
             if not isinstance(headers, dict):
-                headers = dict(headers or ())
+                headers = dict(h for h in (headers or ()) if h is not None)
 
             context.update(
                 {

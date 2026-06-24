@@ -15,6 +15,7 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
     validateSUForm: true,
     features: new Set(),
     shouldPreloadData: true,
+    signupLocalities: ['us'],
     singleOrganization: false,
     enableAnalytics: true,
     urlPrefix: 'https://sentry-jest-tests.example.com/',

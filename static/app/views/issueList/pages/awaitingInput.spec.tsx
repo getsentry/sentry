@@ -84,6 +84,14 @@ describe('AwaitingInputPage', () => {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
+    });
 
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],

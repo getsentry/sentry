@@ -7,8 +7,7 @@ import {Select} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {getLocalityUrlOptions} from 'sentry/utils/cells';
+import {getSignupLocalities} from 'sentry/utils/cells';
 import {useApi} from 'sentry/utils/useApi';
 import {ContinueButton} from 'sentry/views/relocation/components/continueButton';
 import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
@@ -25,10 +24,9 @@ export function GetStarted({
   onComplete,
 }: StepProps) {
   const api = useApi();
-  const {orgSlugs, regionUrl, promoCode} = relocationState;
+  const {orgSlugs, localityName, promoCode} = relocationState;
   const [showPromoCode, setShowPromoCode] = useState(!!promoCode);
-  const selectableRegions = ConfigStore.get('relocationConfig')?.selectableRegions || [];
-  const localityOptions = getLocalityUrlOptions([], selectableRegions);
+  const localityOptions = getSignupLocalities();
 
   const handleContinue = async (event: any) => {
     event.preventDefault();
@@ -76,16 +74,16 @@ export function GetStarted({
           />
           <Label>{t('Choose a datacenter location')}</Label>
           <RegionSelect
-            value={regionUrl}
+            value={localityName}
             name="region"
             aria-label={t('region')}
             placeholder="Select Location"
             options={localityOptions}
             onChange={(opt: any) => {
-              onUpdateRelocationState({regionUrl: opt.value});
+              onUpdateRelocationState({localityName: opt.value});
             }}
           />
-          {regionUrl && (
+          {localityName && (
             <p>{t('This is an important decision and cannot be changed.')}</p>
           )}
           <DatacenterTextBlock>
@@ -121,7 +119,7 @@ export function GetStarted({
             </TogglePromoCode>
           )}
           <ContinueButton
-            disabled={!orgSlugs || !regionUrl}
+            disabled={!orgSlugs || !localityName}
             variant="primary"
             type="submit"
           />
