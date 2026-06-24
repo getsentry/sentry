@@ -95,10 +95,8 @@ def _query_time_range(params: QueryDict) -> timedelta:
 
 
 def _interval_for_query(params: QueryDict, ladder: tuple[tuple[timedelta, str], ...]) -> str:
-    """Pick the interval the given granularity ladder assigns to the query's time
-    range, mirroring the frontend's ``GranularityLadder.getInterval``. Pass
-    ``_DEFAULT_INTERVAL_LADDER`` for the timeseries minimum or
-    ``_DEFAULT_MAX_INTERVAL_LADDER`` for the heat map default."""
+    """Pick the interval the given ladder assigns to the query's time range,
+    mirroring the frontend's ``GranularityLadder.getInterval``."""
     diff = _query_time_range(params)
     for threshold, interval in ladder:
         if diff >= threshold:
@@ -168,13 +166,10 @@ def _parse_aggregate_field_entries(
     return y_axes, group_bys, chart_type
 
 
-# The interval options the heat map may snap to, mirroring the frontend's
-# ALL_INTERVAL_OPTIONS in static/app/utils/useChartInterval.tsx. The range-
-# appropriate subset is selected in `_heatmap_available_intervals`.
+# Heat map interval options, mirroring the frontend's ALL_INTERVAL_OPTIONS.
 _ALL_INTERVAL_OPTIONS: tuple[str, ...] = ("1m", "5m", "10m", "30m", "1h", "3h", "6h", "12h")
 
-# Width, in pixels, a single heat map column should aim for on the rendered
-# canvas. Mirrors PIXELS_PER_BUCKET in the heat map widget settings.
+# Target width, in pixels, of a heat map column (frontend's PIXELS_PER_BUCKET).
 _PIXELS_PER_BUCKET = 15
 
 
@@ -184,11 +179,9 @@ def _interval_ms(interval: str) -> float:
 
 
 def _heatmap_available_intervals(params: QueryDict) -> list[str]:
-    """The intervals the heat map may snap to for this time range: the
-    `_ALL_INTERVAL_OPTIONS` bounded by the min/max ladders, plus a `1d` option
-    for ranges of two weeks or more. Mirrors the frontend's
-    `getIntervalOptionsForPageFilter` and the `1d` option `useChartInterval`
-    appends. The selected interval is always one of these — never arbitrary."""
+    """Options for this range: `_ALL_INTERVAL_OPTIONS` bounded by the min/max
+    ladders, plus `1d` for ranges >= 2 weeks. Mirrors the frontend's
+    getIntervalOptionsForPageFilter."""
     minimum = _interval_ms(_interval_for_query(params, _DEFAULT_INTERVAL_LADDER))
     maximum = _interval_ms(_interval_for_query(params, _DEFAULT_MAX_INTERVAL_LADDER))
     options = [opt for opt in _ALL_INTERVAL_OPTIONS if minimum <= _interval_ms(opt) <= maximum]
@@ -208,9 +201,8 @@ def _heatmap_bucket_dimensions(params: QueryDict) -> tuple[str, int]:
 
     available = _heatmap_available_intervals(params)
     target_ms = round(time_range_ms / (width / _PIXELS_PER_BUCKET)) if time_range_ms > 0 else 0
-    # `available` is always non-empty (the ladders bottom out at "1m"). Pick the
-    # closest option to the target column width; on an exact tie prefer the
-    # coarser interval, matching the frontend's max-exclusive range boundaries.
+    # Closest option to the target width; ties go to the coarser interval to
+    # match the frontend's max-exclusive boundaries. `available` is never empty.
     interval = min(
         available, key=lambda opt: (abs(_interval_ms(opt) - target_ms), -_interval_ms(opt))
     )
@@ -221,14 +213,10 @@ def _heatmap_bucket_dimensions(params: QueryDict) -> tuple[str, int]:
 
 
 def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
-    """Assemble the QueryDict that will be sent to the events-heatmap API.
-
-    Mirrors ``_build_timeseries_query`` but adds the heatmap-specific params
-    (xAxis, yAxis, zAxis, yBuckets) and omits the topEvents/sort params that
-    only apply to timeseries. The interval and yBuckets are derived from the
-    fixed chartcuterie canvas size (see ``_heatmap_bucket_dimensions``) rather
-    than from the URL — the heat map widget sizes its buckets the same way.
-    """
+    """Assemble the QueryDict sent to the events-heatmap API. Like
+    ``_build_timeseries_query`` but adds the heatmap params (xAxis/yAxis/zAxis/
+    yBuckets); interval and yBuckets come from the canvas size (see
+    ``_heatmap_bucket_dimensions``), not the URL."""
     out = QueryDict(mutable=True)
 
     for param in ("project", "statsPeriod", "start", "end", "environment"):
@@ -236,11 +224,8 @@ def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
         if values:
             out.setlist(param, values)
 
-    # The events-heatmap API plots the generic `value` field, so the selected
-    # trace metric must be scoped via the query filter (timeseries instead
-    # encodes it in the aggregate). Rebuild that filter from the metric encoded
-    # in the yAxis aggregate and AND it with the user query, mirroring the
-    # frontend's metricHeatmapApiOptions + createTraceMetricEventsFilter.
+    # The heat map plots the generic `value`, so scope the metric via the query
+    # filter (mirroring createTraceMetricEventsFilter), ANDed with the user query.
     y_axes = raw_query.getlist("yAxis")
     trace_metric = _trace_metric_from_aggregate(y_axes[0]) if y_axes else None
     metric_filter = _create_trace_metric_events_filter(*trace_metric) if trace_metric else None
@@ -274,11 +259,8 @@ def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
 
 
 def _map_metric_unit_to_field_type(metric_unit: str | None) -> tuple[str, str | None]:
-    """Port of the frontend's ``mapMetricUnitToFieldType``
-    (static/app/views/explore/metrics/utils.tsx). Maps a trace metric's unit to
-    the ``(valueType, valueUnit)`` pair the heat map renderer uses to format the
-    Y axis. Unknown/absent units fall back to a plain number with no unit. Reuses
-    the same unit definitions the backend search layer recognizes."""
+    """Port of the frontend's ``mapMetricUnitToFieldType``: map a metric unit to the
+    ``(valueType, valueUnit)`` the renderer formats with. Unknown/absent -> number."""
     if not metric_unit or metric_unit == "-":
         return "number", None
     if metric_unit in DURATION_UNITS:
@@ -297,13 +279,9 @@ class TraceMetric(NamedTuple):
 
 
 def _trace_metric_from_aggregate(aggregate: str) -> TraceMetric | None:
-    """Parse the ``(name, type, unit)`` encoded in a trace metric aggregate string
-    of the form ``aggregate(value,name,type,unit)`` (``_if`` aggregates carry a
-    leading conditional query). Returns ``None`` for non-metric aggregates such as
-    the dataset default ``sum(value)``, signalling no metric scoping is possible.
-
-    Mirrors the frontend's ``parseMetricAggregate``, reusing the shared
-    ``parse_arguments`` so quoted/conditional ``_if`` args are split correctly."""
+    """Parse ``(name, type, unit)`` from a trace metric aggregate like
+    ``aggregate(value,name,type,unit)``; ``None`` for non-metric aggregates (e.g.
+    ``sum(value)``). Mirrors ``parseMetricAggregate``, reusing ``parse_arguments``."""
     match = is_function(aggregate)
     if match is None:
         return None
@@ -318,11 +296,9 @@ def _trace_metric_from_aggregate(aggregate: str) -> TraceMetric | None:
 
 
 def _create_trace_metric_events_filter(name: str, metric_type: str, unit: str | None) -> str:
-    """Port of the frontend's ``createTraceMetricEventsFilter``
-    (static/app/views/explore/metrics/utils.tsx). Builds the search filter that
-    scopes an events-heatmap query to a single trace metric. A missing unit
-    (``None`` or the legacy ``-`` sentinel) matches both unit-less items and the
-    ``none`` sentinel, mirroring the UI."""
+    """Port of the frontend's ``createTraceMetricEventsFilter``: the search filter
+    scoping a heat map query to one metric. A missing unit (``None``/``-``) matches
+    unit-less items and the ``none`` sentinel."""
     none_unit = "none"
     normalized_unit = unit if unit and unit != "-" else none_unit
     clauses = [f"metric.name:{name}", f"metric.type:{metric_type}"]
@@ -334,14 +310,9 @@ def _create_trace_metric_events_filter(name: str, metric_type: str, unit: str | 
 
 
 def _merge_metric_unit(heatmap_data: dict[str, Any], metric_unit: str | None) -> dict[str, Any]:
-    """Port of the frontend's ``mergeMetricUnit``
-    (static/app/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit.tsx).
-
-    The events-heatmap API returns the Y axis as the generic ``value`` field, so
-    the response meta carries no metric unit. Patch the Y axis meta with the
-    selected metric's unit/type so chartcuterie formats values with the right
-    unit (e.g. milliseconds, bytes) instead of rendering raw numbers — matching
-    what the Explore UI does before handing the series to the chart."""
+    """Port of the frontend's ``mergeMetricUnit``. The events-heatmap API returns the
+    Y axis as the generic ``value`` with no unit, so patch the meta with the metric's
+    unit/type to format values (ms, bytes) instead of raw numbers."""
     field_type, unit = _map_metric_unit_to_field_type(metric_unit)
     if unit is None:
         return heatmap_data
@@ -606,7 +577,6 @@ def _unfurl_explore(
         slug: org
         for slug, org in orgs_by_slug.items()
         if features.has("organizations:data-browsing-heat-map-widget", org, actor=user)
-        and features.has("organizations:heat-map-unfurl", org, actor=user)
     }
 
     if not enabled_orgs:
@@ -641,6 +611,10 @@ def _unfurl_explore(
             continue
 
         if display_type == "heatmap":
+            # Heat maps are a metrics-only visualization, so chartType 3 only ever
+            # comes from metrics URLs — traces/logs never offer it. This branch
+            # therefore assumes the trace metrics dataset (events-heatmap with
+            # metric-style axes); it is not reached for other Explore datasets.
             heatmap_org = heatmap_enabled_orgs.get(org_slug)
             if not heatmap_org:
                 continue
@@ -663,17 +637,13 @@ def _unfurl_explore(
                 _logger.warning("Failed to load events-heatmap for explore unfurl")
                 continue
 
-            # resp.data is normally {"meta": {...}, "values": [...]} matching the
-            # TypeScript HeatMapSeries shape, but the endpoint returns a different
-            # shape ({"heatmap": []}) when there are no projects/results. Skip
-            # rather than hand chartcuterie data it can't render.
+            # The endpoint returns a non-HeatMapSeries shape ({"heatmap": []}) when
+            # there are no projects/results; skip rather than render it.
             heatmap_data = resp.data
             if not isinstance(heatmap_data, dict) or "meta" not in heatmap_data:
                 continue
 
-            # The API returns the Y axis as the generic `value` field with no
-            # unit, so patch the meta with the metric's unit (encoded in the
-            # yAxis aggregate) before rendering — mirroring the UI's mergeMetricUnit.
+            # Patch the unit-less `value` Y axis with the metric's unit (mergeMetricUnit).
             heatmap_metric = _trace_metric_from_aggregate(y_axes[0]) if y_axes else None
             metric_unit = heatmap_metric.unit if heatmap_metric else None
             chart_data: dict[str, Any] = {"heatmap": _merge_metric_unit(heatmap_data, metric_unit)}

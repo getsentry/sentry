@@ -1211,12 +1211,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature(
-            [
-                "organizations:data-browsing-heat-map-widget",
-                "organizations:heat-map-unfurl",
-            ]
-        ):
+        with self.feature("organizations:data-browsing-heat-map-widget"):
             unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 1
@@ -1224,19 +1219,13 @@ class UnfurlTest(TestCase):
         assert len(mock_generate_chart.mock_calls) == 1
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_HEATMAP
 
-        # The heat map's yAxis is the generic `value`, so the selected metric is
-        # scoped via the query filter built from the yAxis aggregate.
         api_params = mock_client_get.call_args[1]["params"]
         assert api_params["query"] == (
             "( metric.name:dashboards.widget.onEdit metric.type:distribution"
             " metric.unit:millisecond )"
         )
-        # The URL pins no interval, so the heat map uses its coarse default (12h
-        # for 30d) rather than the timeseries default the parser injected.
         assert api_params["interval"] == "12h"
 
-        # The Y axis meta is patched with the metric's unit/type so chartcuterie
-        # formats values as durations instead of raw numbers.
         chart_data = mock_generate_chart.call_args[0][1]
         y_axis_meta = chart_data["heatmap"]["meta"]["yAxis"]
         assert y_axis_meta["valueType"] == "duration"
@@ -1247,8 +1236,7 @@ class UnfurlTest(TestCase):
     def test_unfurl_explore_heatmap_skips_malformed_response(
         self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
-        # The endpoint returns {"heatmap": []} (not a HeatMapSeries) when there
-        # are no projects/results; the unfurl must skip rather than render it.
+        # {"heatmap": []} is the no-projects/no-results shape, not a HeatMapSeries.
         mock_client_get.return_value = MagicMock(data={"heatmap": []})
         metric = (
             "%7B%22metric%22%3A%7B%22name%22%3A%22my.metric%22%2C%22type%22%3A%22distribution"
@@ -1267,46 +1255,30 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature(
-            [
-                "organizations:data-browsing-heat-map-widget",
-                "organizations:heat-map-unfurl",
-            ]
-        ):
+        with self.feature("organizations:data-browsing-heat-map-widget"):
             unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert unfurls == {}
         assert mock_generate_chart.mock_calls == []
 
-    def test_build_heatmap_query_scopes_to_selected_metric(self) -> None:
-        # The heat map's yAxis is the generic `value`, so the selected metric is
-        # scoped via a query filter built from the yAxis aggregate and ANDed with
-        # the user query. A unit-less metric matches both the `none` sentinel and
-        # items with no unit at all.
-        params = QueryDict(mutable=True)
-        params.setlist("yAxis", ["sum(value,my.metric,counter,none)"])
-        params["query"] = "span.status:ok"
-        params["statsPeriod"] = "30d"
-
-        out = _build_heatmap_query(params)
-
-        assert out["yAxis"] == "value"
-        assert out["query"] == (
+    def test_build_heatmap_query_scopes_unit_less_metric_with_query(self) -> None:
+        # A unit-less metric matches both the `none` sentinel and items with no unit,
+        # ANDed with the user query.
+        params = QueryDict("yAxis=sum(value,my.metric,counter,none)&query=span.status:ok")
+        assert _build_heatmap_query(params)["query"] == (
             "( metric.name:my.metric metric.type:counter"
             " ( !has:metric.unit OR metric.unit:none ) ) (span.status:ok)"
         )
 
     def test_build_heatmap_query_bucket_dimensions(self) -> None:
-        # The interval is snapped to the ladder option whose column is closest to
-        # ~15px wide on the 1200x400 canvas, then yBuckets makes cells ~square.
-        # Any URL interval the dataset parser injected is ignored.
+        # Snap to the ladder interval closest to ~15px columns on the 1200x400
+        # canvas, then size yBuckets for square cells. Injected URL intervals are
+        # ignored.
         base = "yAxis=sum(value,my.metric,counter,none)"
-
-        # 30d: ~9h target snaps to the 12h option (~20px columns -> 20 y-buckets).
+        # 30d: ~9h target -> 12h interval, ~20px columns -> 20 y-buckets.
         out = _build_heatmap_query(QueryDict(f"{base}&statsPeriod=30d&interval=3h"))
         assert (out["interval"], out["yBuckets"]) == ("12h", "20")
-
-        # 24h: ~18m target snaps to the 10m option (~8px columns -> 50 y-buckets).
+        # 24h: ~18m target -> 10m interval, ~8px columns -> 50 y-buckets.
         out = _build_heatmap_query(QueryDict(f"{base}&statsPeriod=24h"))
         assert (out["interval"], out["yBuckets"]) == ("10m", "50")
 
