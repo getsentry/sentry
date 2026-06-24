@@ -1556,38 +1556,87 @@ def get_issue_committers(
         them without ``None`` checks. Raises ``NotFound`` if the project/issue cannot
         be resolved.
     """
-    start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
+    return _IssueCommitters(
+        organization_id=organization_id,
+        issue_id=issue_id,
+        start=start,
+        end=end,
+        project_slug=project_slug,
+    ).get()
 
-    organization = Organization.objects.get(id=organization_id)
 
-    try:
-        group = _resolve_seer_group(
-            organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
+class _IssueCommitters:
+    """Computes the likely code authors for an issue from ingested commit data.
+
+    Backs :func:`get_issue_committers`. The shared inputs (resolved group,
+    organization, time window) are computed once in ``__init__`` and reused by the
+    per-signal helpers. Each signal is computed independently and its failures are
+    isolated, so a problem in one signal doesn't blank out the others.
+    """
+
+    def __init__(
+        self,
+        *,
+        organization_id: int,
+        issue_id: str,
+        start: str | None = None,
+        end: str | None = None,
+        project_slug: str | None = None,
+    ) -> None:
+        self.organization_id = organization_id
+        self.issue_id = issue_id
+        self.start_dt, self.end_dt = get_date_range_from_params(
+            {"start": start, "end": end}, optional=True
         )
-    except Group.DoesNotExist:
-        raise NotFound("Issue not found. Check the issue_id and project_slug.")
+        self.organization = Organization.objects.get(id=organization_id)
+        try:
+            self.group = _resolve_seer_group(
+                organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
+            )
+        except Group.DoesNotExist:
+            raise NotFound("Issue not found. Check the issue_id and project_slug.")
 
-    # Precomputed author+commit (one or none) from suspect-commit feature.
-    try:
-        suspect_commits = get_serialized_committers(group.project, group.id)
-    except Exception:
-        metrics.incr("seer.get_issue_committers.error", tags={"step": "suspect_commits"})
-        logger.exception(
-            "get_issue_committers: Failed to get suspect commits",
-            extra={"organization_id": organization_id, "issue_id": issue_id},
+    def get(self) -> IssueCommittersResponse:
+        return IssueCommittersResponse(
+            stack_commits=self._get_stack_commits(),
+            suspect_commits=self._get_suspect_commits(),
+            release_commits=self._get_release_commits(),
+            project_id=self.group.project_id,
+            project_slug=self.group.project.slug,
         )
-        suspect_commits = []
 
-    # Frame-based blame: authors of the files in the stacktrace. This is the input to
-    # the suspect-commit feature and is available far more often.
-    stack_commits: list[dict[str, Any]] = []
-    try:
-        event = _get_recommended_event(group, organization, start_dt, end_dt)
-        if event is not None:
+    @property
+    def _log_extra(self) -> dict[str, Any]:
+        return {"organization_id": self.organization_id, "issue_id": self.issue_id}
+
+    def _get_suspect_commits(self) -> list[dict[str, Any]]:
+        """Precomputed author+commit (one or none) from the suspect-commit feature."""
+        try:
+            suspect_commits = get_serialized_committers(self.group.project, self.group.id)
+        except Exception:
+            metrics.incr("seer.get_issue_committers.error", tags={"step": "suspect_commits"})
+            logger.exception(
+                "get_issue_committers: Failed to get suspect commits",
+                extra=self._log_extra,
+            )
+            return []
+        return [dict(committer) for committer in suspect_commits]
+
+    def _get_stack_commits(self) -> list[dict[str, Any]]:
+        """Frame-based blame: authors of the files in the stacktrace.
+
+        This is the input to the suspect-commit feature and is available far more often.
+        """
+        try:
+            event = _get_recommended_event(
+                self.group, self.organization, self.start_dt, self.end_dt
+            )
+            if event is None:
+                return []
             sdk_name = (event.data.get("sdk") or {}).get("name")
             author_commits = get_event_file_committers(
-                group.project,
-                group.id,
+                self.group.project,
+                self.group.id,
                 get_frame_paths(event),
                 event.platform,
                 sdk_name=sdk_name,
@@ -1624,62 +1673,57 @@ def get_issue_committers(
                 for entry in author_commits
             ]
             stack_commits.reverse()
-    except (Release.DoesNotExist, Commit.DoesNotExist):
-        # No release/commit data linked to this issue; frame blame isn't available.
-        stack_commits = []
-    except Exception:
-        metrics.incr("seer.get_issue_committers.error", tags={"step": "stack_commits"})
-        logger.exception(
-            "get_issue_committers: Failed to compute stack commits",
-            extra={"organization_id": organization_id, "issue_id": issue_id},
-        )
-        stack_commits = []
+            return stack_commits
+        except (Release.DoesNotExist, Commit.DoesNotExist):
+            # No release/commit data linked to this issue; frame blame isn't available.
+            return []
+        except Exception:
+            metrics.incr("seer.get_issue_committers.error", tags={"step": "stack_commits"})
+            logger.exception(
+                "get_issue_committers: Failed to compute stack commits",
+                extra=self._log_extra,
+            )
+            return []
 
-    # Broader candidate pool: commits shipped around when the issue first appeared,
-    # NOT limited to the stacktrace frames. Window defaults to ~6 weeks before
-    # first_seen; an explicit start/end overrides it.
-    release_commits: list[dict[str, Any]] = []
-    try:
-        window_end = end_dt or group.first_seen
-        window_start = start_dt or (window_end - timedelta(weeks=6))
-        candidates = get_release_commit_candidates(
-            group.project, group.id, since=window_start, until=window_end
-        )
-        if candidates:
-            file_change_counts = dict(
-                CommitFileChange.objects.filter(commit_id__in=[c.id for c in candidates])
-                .values_list("commit_id")
-                .annotate(n=models.Count("id"))
+    def _get_release_commits(self) -> list[dict[str, Any]]:
+        """Broader candidate pool: commits shipped around when the issue first appeared.
+
+        NOT limited to the stacktrace frames. Window defaults to ~6 weeks before
+        first_seen; an explicit start/end overrides it.
+        """
+        release_commits: list[dict[str, Any]] = []
+        try:
+            window_end = self.end_dt or self.group.first_seen
+            window_start = self.start_dt or (window_end - timedelta(weeks=6))
+            candidates = get_release_commit_candidates(
+                self.group.project, self.group.id, since=window_start, until=window_end
             )
-            serialized_candidates = serialize(
-                candidates, serializer=CommitSerializer(exclude=["repository"])
-            )
-            for commit, serialized in zip(candidates, serialized_candidates):
-                message = (commit.message or "").strip()
-                release_commits.append(
-                    {
-                        **serialized,
-                        "files_changed_count": file_change_counts.get(commit.id),
-                        "is_merge_commit": message.startswith("Merge "),
-                    }
+            if candidates:
+                file_change_counts = dict(
+                    CommitFileChange.objects.filter(commit_id__in=[c.id for c in candidates])
+                    .values_list("commit_id")
+                    .annotate(n=models.Count("id"))
                 )
-    except Exception:
-        metrics.incr("seer.get_issue_committers.error", tags={"step": "release_commits"})
-        logger.exception(
-            "get_issue_committers: Failed to fetch release commits",
-            extra={"organization_id": organization_id, "issue_id": issue_id},
-        )
-        release_commits = []
-
-    return IssueCommittersResponse(
-        stack_commits=stack_commits,
-        # `get_serialized_committers` returns a `Sequence[AuthorCommitsSerialized]`
-        # (TypedDicts) backed by a concrete list of serialized dicts at runtime.
-        suspect_commits=cast(list[dict[str, Any]], suspect_commits),
-        release_commits=release_commits,
-        project_id=group.project_id,
-        project_slug=group.project.slug,
-    )
+                serialized_candidates = serialize(
+                    candidates, serializer=CommitSerializer(exclude=["repository"])
+                )
+                for commit, serialized in zip(candidates, serialized_candidates):
+                    message = (commit.message or "").strip()
+                    release_commits.append(
+                        {
+                            **serialized,
+                            "files_changed_count": file_change_counts.get(commit.id),
+                            "is_merge_commit": message.startswith("Merge "),
+                        }
+                    )
+        except Exception:
+            metrics.incr("seer.get_issue_committers.error", tags={"step": "release_commits"})
+            logger.exception(
+                "get_issue_committers: Failed to fetch release commits",
+                extra=self._log_extra,
+            )
+            return []
+        return release_commits
 
 
 def get_event_details(
