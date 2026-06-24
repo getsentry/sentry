@@ -1,61 +1,31 @@
-import {Fragment, PureComponent} from 'react';
+import {PureComponent} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {AnimatePresence} from 'framer-motion';
 import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
-import {Banner} from 'sentry/components/banner';
-import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {IconBookmark, IconEllipsis, IconStar} from 'sentry/icons';
+import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
-import {EventView} from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {withApi} from 'sentry/utils/withApi';
 import {withProjects} from 'sentry/utils/withProjects';
-import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
-import {
-  handleAddQueryToDashboard,
-  SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
-} from 'sentry/views/discover/utils';
-import {getExploreUrl} from 'sentry/views/explore/utils';
-import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-
-import {
-  getDatasetFromLocationOrSavedQueryDataset,
-  getSavedQueryDataset,
-  getTransactionDeprecationMessage,
-  handleCreateQuery,
-  handleDeleteQuery,
-  handleResetHomepageQuery,
-  handleUpdateHomepageQuery,
-  handleUpdateQuery,
-} from './utils';
 
 const renderDisabled = (p: any) => (
   <Hovercard
@@ -162,171 +132,13 @@ type Props = DefaultProps & {
   setSavedQuery: (savedQuery: SavedQuery) => void;
   updateCallback: () => void;
   yAxis: string[];
-  hasPageFrameFeature?: boolean;
   homepageQuery?: SavedQuery;
   isHomepage?: boolean;
 };
 
-type State = {
-  isEditingQuery: boolean;
-  isNewQuery: boolean;
-
-  queryName: string;
-};
-
-class SavedQueryButtonGroup extends PureComponent<Props, State> {
-  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    const {eventView: nextEventView, savedQuery, queryDataLoading, yAxis} = nextProps;
-
-    // For a new unsaved query
-    if (!savedQuery) {
-      return {
-        isNewQuery: true,
-        isEditingQuery: false,
-        queryName: prevState.queryName || '',
-      };
-    }
-
-    if (queryDataLoading) {
-      return prevState;
-    }
-
-    const savedEventView = EventView.fromSavedQuery(savedQuery);
-
-    // Switching from a SavedQuery to another SavedQuery
-    if (savedEventView.id !== nextEventView.id) {
-      return {
-        isNewQuery: false,
-        isEditingQuery: false,
-        queryName: '',
-      };
-    }
-
-    // For modifying a SavedQuery
-    const isEqualQuery = nextEventView.isEqualTo(savedEventView);
-    // undefined saved yAxis defaults to count() and string values are converted to array
-    const isEqualYAxis = isEqual(
-      yAxis,
-      savedQuery.yAxis
-        ? typeof savedQuery.yAxis === 'string'
-          ? [savedQuery.yAxis]
-          : savedQuery.yAxis
-        : ['count()']
-    );
-    return {
-      isNewQuery: false,
-      isEditingQuery: !isEqualQuery || !isEqualYAxis,
-
-      // HACK(leedongwei): See comment at SavedQueryButtonGroup.onFocusInput
-      queryName: prevState.queryName || '',
-    };
-  }
-
-  /**
-   * Stop propagation for the input and container so people can interact with
-   * the inputs in the dropdown.
-   */
-  static stopEventPropagation = (event: React.MouseEvent) => {
-    const capturedElements = ['LI', 'INPUT'];
-
-    if (
-      event.target instanceof Element &&
-      capturedElements.includes(event.target.nodeName)
-    ) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-  };
-
+class SavedQueryButtonGroup extends PureComponent<Props> {
   static defaultProps: DefaultProps = {
     disabled: false,
-  };
-
-  state: State = {
-    isNewQuery: true,
-    isEditingQuery: false,
-
-    queryName: '',
-  };
-
-  onChangeInput = (event: React.FormEvent<HTMLInputElement>) => {
-    const target = event.target as HTMLInputElement;
-    this.setState({queryName: target.value});
-  };
-
-  /**
-   * There are two ways to create a query
-   * 1) Creating a query from scratch and saving it
-   * 2) Modifying an existing query and saving it
-   */
-  handleCreateQuery = (event: React.MouseEvent | React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const {api, organization, eventView, yAxis} = this.props;
-
-    if (!this.state.queryName) {
-      return;
-    }
-
-    const nextEventView = eventView.clone();
-    nextEventView.name = this.state.queryName;
-
-    // Checks if "Save as" button is clicked from a clean state, or it is
-    // clicked while modifying an existing query
-    const isNewQuery = !eventView.id;
-
-    handleCreateQuery(api, organization, nextEventView, yAxis, isNewQuery).then(
-      (savedQuery: SavedQuery) => {
-        const view = EventView.fromSavedQuery(savedQuery);
-
-        Banner.dismiss('discover');
-        this.setState({queryName: ''});
-        this.props.navigate(normalizeUrl(view.getResultsViewUrlTarget(organization)));
-      }
-    );
-  };
-
-  handleUpdateQuery = (event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const {api, navigate, organization, eventView, updateCallback, yAxis, setSavedQuery} =
-      this.props;
-
-    handleUpdateQuery(api, organization, eventView, yAxis).then(
-      (savedQuery: SavedQuery) => {
-        const view = EventView.fromSavedQuery(savedQuery);
-        setSavedQuery(savedQuery);
-        this.setState({queryName: ''});
-        navigate(view.getResultsViewShortUrlTarget(organization));
-        updateCallback();
-      }
-    );
-  };
-
-  handleDeleteQuery = (event?: React.MouseEvent) => {
-    event?.preventDefault();
-    event?.stopPropagation();
-
-    const {api, navigate, organization, eventView} = this.props;
-
-    handleDeleteQuery(api, organization, eventView).then(() => {
-      navigate(
-        normalizeUrl({
-          pathname: getDiscoverQueriesUrl(organization),
-          query: {},
-        })
-      );
-    });
-  };
-
-  handleCreateAlertSuccess = () => {
-    const {organization} = this.props;
-    trackAnalytics('discover_v2.create_alert_clicked', {
-      organization,
-      status: 'success',
-    });
   };
 
   renderButtonViewSaved(disabled: boolean) {
@@ -347,253 +159,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   }
 
-  renderButtonSaveAs(disabled: boolean) {
-    const {queryName} = this.state;
-    const {organization, location, savedQuery} = this.props;
-    const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
-      location,
-      savedQuery?.queryDataset
-    );
-
-    const deprecatingSaveAs =
-      currentDataset === DiscoverDatasets.TRANSACTIONS &&
-      organization.features.includes('discover-saved-queries-deprecation');
-
-    const tracesUrl = getExploreUrl({
-      organization,
-      query: 'is_transaction:true',
-    });
-
-    return (
-      <Tooltip
-        disabled={
-          currentDataset !== DiscoverDatasets.TRANSACTIONS ||
-          !organization.features.includes('discover-saved-queries-deprecation')
-        }
-        isHoverable
-        title={getTransactionDeprecationMessage(tracesUrl)}
-      >
-        <SaveAsDropdown
-          queryName={queryName}
-          onChangeInput={this.onChangeInput}
-          modifiedHandleCreateQuery={this.handleCreateQuery}
-          disabled={disabled || deprecatingSaveAs}
-        />
-      </Tooltip>
-    );
-  }
-
-  renderButtonSave(disabled: boolean) {
-    const {isNewQuery, isEditingQuery} = this.state;
-    const {organization, savedQuery, location} = this.props;
-
-    const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
-      location,
-      savedQuery?.queryDataset
-    );
-
-    const deprecatingTransactionsDataset =
-      currentDataset === DiscoverDatasets.TRANSACTIONS &&
-      organization.features.includes('discover-saved-queries-deprecation');
-
-    if (!isNewQuery && !isEditingQuery) {
-      return null;
-    }
-    // Existing query with edits, show save and save as.
-    if (!isNewQuery && isEditingQuery) {
-      const tracesUrl = getExploreUrl({
-        organization,
-        query: 'is_transaction:true',
-      });
-
-      return (
-        <Fragment>
-          <Tooltip
-            title={
-              deprecatingTransactionsDataset &&
-              getTransactionDeprecationMessage(tracesUrl)
-            }
-            isHoverable
-          >
-            <Button
-              onClick={this.handleUpdateQuery}
-              data-test-id="discover2-savedquery-button-update"
-              disabled={disabled || deprecatingTransactionsDataset}
-              size="sm"
-            >
-              <IconUpdate />
-              {t('Save Changes')}
-            </Button>
-          </Tooltip>
-          {this.renderButtonSaveAs(disabled)}
-        </Fragment>
-      );
-    }
-
-    // Is a new query enable saveas
-    return this.renderButtonSaveAs(disabled);
-  }
-
-  renderButtonCreateAlert() {
-    const {eventView, organization, projects, location, savedQuery} = this.props;
-    const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
-      location,
-      savedQuery?.queryDataset
-    );
-
-    if (
-      currentDataset === DiscoverDatasets.TRANSACTIONS &&
-      (deprecateTransactionAlerts(organization) ||
-        organization.features.includes('discover-saved-queries-deprecation'))
-    ) {
-      return null;
-    }
-
-    let alertType: any;
-    let buttonEventView = eventView;
-    if (hasDatasetSelector(organization)) {
-      alertType = defined(currentDataset)
-        ? // @ts-expect-error TS(2339): Property 'discover' does not exist on type '{ tran... Remove this comment to see the full error message
-          {
-            [DiscoverDatasets.TRANSACTIONS]: 'throughput',
-            [DiscoverDatasets.ERRORS]: 'num_errors',
-          }[currentDataset]
-        : undefined;
-
-      if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
-        // Inject the event.type:transaction filter for to avoid triggering
-        // the event.type missing banner error in the alerts form
-        buttonEventView = eventView.clone();
-        buttonEventView.query = eventView.query
-          ? `(${eventView.query}) AND (event.type:transaction)`
-          : 'event.type:transaction';
-      }
-    }
-
-    return (
-      <GuideAnchor target="create_alert_from_discover">
-        <CreateAlertFromViewButton
-          eventView={buttonEventView}
-          organization={organization}
-          projects={projects}
-          onClick={this.handleCreateAlertSuccess}
-          referrer="discover"
-          size="sm"
-          data-test-id="discover2-create-from-discover"
-          alertType={alertType}
-        />
-      </GuideAnchor>
-    );
-  }
-
-  renderButtonAddToDashboard() {
-    const {organization, eventView, savedQuery, yAxis, location} = this.props;
-    return (
-      <Button
-        key="add-dashboard-widget-from-discover"
-        data-test-id="add-dashboard-widget-from-discover"
-        size="sm"
-        onClick={() =>
-          handleAddQueryToDashboard({
-            organization,
-            location,
-            eventView,
-            query: savedQuery,
-            yAxis,
-            widgetType: hasDatasetSelector(organization)
-              ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
-                  getSavedQueryDataset(organization, location, savedQuery)
-                ]
-              : undefined,
-            source: DashboardWidgetSource.DISCOVERV2,
-          })
-        }
-      >
-        {t('Add to Dashboard')}
-      </Button>
-    );
-  }
-
-  renderSaveAsHomepage(disabled: boolean) {
-    const {
-      api,
-      organization,
-      eventView,
-      location,
-      isHomepage,
-      setHomepageQuery,
-      homepageQuery,
-      queryDataLoading,
-    } = this.props;
-    const buttonDisabled = disabled || queryDataLoading;
-    const analyticsEventSource = isHomepage
-      ? 'homepage'
-      : eventView.id
-        ? 'saved-query'
-        : 'prebuilt-query';
-    if (
-      homepageQuery &&
-      eventView.isEqualTo(EventView.fromSavedQuery(homepageQuery), ['id', 'name'])
-    ) {
-      return (
-        <Button
-          key="reset-discover-homepage"
-          data-test-id="reset-discover-homepage"
-          onClick={async () => {
-            await handleResetHomepageQuery(api, organization);
-            trackAnalytics('discover_v2.remove_default', {
-              organization,
-              source: analyticsEventSource,
-            });
-            setHomepageQuery(undefined);
-            if (isHomepage) {
-              const nextEventView = EventView.fromNewQueryWithLocation(
-                DEFAULT_EVENT_VIEW,
-                location
-              );
-              this.props.navigate({
-                pathname: location.pathname,
-                query: nextEventView.generateQueryStringObject(),
-              });
-            }
-          }}
-          size="sm"
-          icon={<IconBookmark isSolid />}
-          disabled={buttonDisabled}
-        >
-          {t('Remove Default')}
-        </Button>
-      );
-    }
-
-    return (
-      <Button
-        key="set-as-default"
-        data-test-id="set-as-default"
-        onClick={async () => {
-          const updatedHomepageQuery = await handleUpdateHomepageQuery(
-            api,
-            organization,
-            eventView.toNewQuery()
-          );
-          trackAnalytics('discover_v2.set_as_default', {
-            organization,
-            source: analyticsEventSource,
-          });
-          if (updatedHomepageQuery) {
-            setHomepageQuery(updatedHomepageQuery);
-          }
-        }}
-        size="sm"
-        icon={<IconBookmark />}
-        disabled={buttonDisabled}
-      >
-        {t('Set as Default')}
-      </Button>
-    );
-  }
-
   renderQueryButton(renderFunc: (disabled: boolean) => React.ReactNode) {
     const {organization} = this.props;
     return (
@@ -609,103 +174,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   render() {
-    const {
-      organization,
-      eventView,
-      savedQuery,
-      yAxis,
-      location,
-      isHomepage,
-      hasPageFrameFeature,
-    } = this.props;
-
-    const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
-      location,
-      savedQuery?.queryDataset
-    );
-
-    const deprecatingTransactionsDataset =
-      currentDataset === DiscoverDatasets.TRANSACTIONS &&
-      organization.features.includes('discover-saved-queries-deprecation');
-
-    const contextMenuItems: MenuItemProps[] = [];
-
-    const tracesUrl = getExploreUrl({
-      organization,
-      query: 'is_transaction:true',
-    });
-
-    if (organization.features.includes('dashboards-edit')) {
-      contextMenuItems.push({
-        key: 'add-to-dashboard',
-        label: t('Add to Dashboard'),
-        disabled: deprecatingTransactionsDataset,
-        tooltipOptions: {isHoverable: true},
-        tooltip:
-          deprecatingTransactionsDataset && getTransactionDeprecationMessage(tracesUrl),
-        onAction: () => {
-          handleAddQueryToDashboard({
-            organization,
-            location,
-            eventView,
-            query: savedQuery,
-            yAxis,
-            widgetType: hasDatasetSelector(organization)
-              ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
-                  getSavedQueryDataset(organization, location, savedQuery)
-                ]
-              : undefined,
-            source: DashboardWidgetSource.DISCOVERV2,
-          });
-        },
-      });
-    }
-
-    if (!isHomepage && savedQuery) {
-      contextMenuItems.push({
-        key: 'delete-saved-query',
-        label: t('Delete Saved Query'),
-        onAction: () => this.handleDeleteQuery(),
-      });
-    }
-
-    const contextMenu = (
-      <DropdownMenu
-        items={contextMenuItems}
-        trigger={triggerProps => (
-          <Button
-            {...triggerProps}
-            aria-label={t('Discover Context Menu')}
-            size="sm"
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
-
-              triggerProps.onClick?.(e);
-            }}
-            icon={<IconEllipsis />}
-          />
-        )}
-        position="bottom-end"
-        offset={4}
-      />
-    );
-
     return (
       <ResponsiveButtonBar>
-        {!hasPageFrameFeature &&
-          this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
-        {!hasPageFrameFeature &&
-          this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
-        {!hasPageFrameFeature && (
-          <Feature organization={organization} features="incidents">
-            {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
-          </Feature>
-        )}
-
-        {!hasPageFrameFeature && contextMenuItems.length > 0 && contextMenu}
-
         {this.renderQueryButton(disabled => this.renderButtonViewSaved(disabled))}
       </ResponsiveButtonBar>
     );

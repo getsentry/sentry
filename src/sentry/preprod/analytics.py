@@ -164,6 +164,7 @@ class PreprodStatusCheckApprovalCreatedEvent(analytics.Event):
     project_id: int
     artifact_id: int
     product: Literal["size", "snapshots"]
+    source: Literal["web", "vcs", "auto"]
 
 
 analytics.register(PreprodArtifactApiAssembleEvent)

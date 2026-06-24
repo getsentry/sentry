@@ -6,12 +6,17 @@ from sentry import options
 from sentry.notifications.platform.email.provider import EmailNotificationProvider, EmailRenderer
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
+    BoldTextBlock,
+    LinkTextBlock,
     NotificationBodyFormattingBlock,
     NotificationBodyFormattingBlockType,
     NotificationBodyTextBlock,
     NotificationBodyTextBlockType,
     NotificationProviderKey,
+    NotificationRenderedTemplate,
     NotificationTargetResourceType,
+    ParagraphBlock,
+    PlainTextBlock,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
@@ -84,17 +89,35 @@ class EmailRendererTest(TestCase):
             for text_block in block.blocks:
                 validate_text_block(text_block, str(text_content), str(html_content))
 
-    def test_xss_protection(self) -> None:
-        from sentry.notifications.platform.types import (
-            BoldTextBlock,
-            NotificationBodyFormattingBlockType,
-            NotificationBodyTextBlockType,
-            NotificationRenderedTemplate,
-            ParagraphBlock,
-            PlainTextBlock,
+    def test_link_text_block_rendering(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Test Link",
+            body=[
+                ParagraphBlock(
+                    blocks=[
+                        PlainTextBlock(text="Check out"),
+                        LinkTextBlock(
+                            text="getsentry/sentry (#1234)",
+                            url="https://github.com/getsentry/sentry/pull/1234",
+                        ),
+                    ],
+                )
+            ],
         )
 
-        # Create template with XSS attempt in user content
+        email = EmailRenderer.render(data=self.data, rendered_template=rendered_template)
+        [html_content, _] = email.alternatives[0]
+        text_content = email.body
+
+        html_str = str(html_content)
+        assert 'href="https://github.com/getsentry/sentry/pull/1234"' in html_str
+        assert "getsentry/sentry (#1234)" in html_str
+        assert (
+            "getsentry/sentry (#1234) (https://github.com/getsentry/sentry/pull/1234)"
+            in text_content
+        )
+
+    def test_xss_protection(self) -> None:
         xss_template = NotificationRenderedTemplate(
             subject="Test XSS",
             body=[
@@ -129,6 +152,27 @@ class EmailRendererTest(TestCase):
 
         # Malicious tags should NOT be present in unescaped form
         assert "<script>" not in str(html_content)
+
+    def test_xss_protection_link_block(self) -> None:
+        xss_template = NotificationRenderedTemplate(
+            subject="Test XSS Link",
+            body=[
+                ParagraphBlock(
+                    blocks=[
+                        LinkTextBlock(
+                            text='<script>alert("xss")</script>',
+                            url="https://example.com/<script>",
+                        ),
+                    ],
+                )
+            ],
+        )
+
+        email = EmailRenderer.render(data=self.data, rendered_template=xss_template)
+        [html_content, _] = email.alternatives[0]
+
+        assert "<script>" not in str(html_content)
+        assert "&lt;script&gt;" in str(html_content)
 
 
 class EmailNotificationProviderTest(TestCase):

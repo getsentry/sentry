@@ -187,7 +187,7 @@ describe('Performance > Transaction Tags', () => {
     expect(await screen.findByText('Suspect Tags')).toBeInTheDocument();
 
     // It shows the header
-    expect(screen.getByRole('heading', {name: 'Test Transaction'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /Test Transaction/})).toBeInTheDocument();
 
     // It shows a table
     expect(screen.getByRole('table')).toBeInTheDocument();

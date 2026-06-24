@@ -1,8 +1,9 @@
 import hmac
 import time
-from datetime import datetime
 from hashlib import sha256
 from typing import TYPE_CHECKING, TypedDict
+
+from sentry.utils.dates import deprecated_utcnow
 
 if TYPE_CHECKING:
     from sentry.models.organizationmember import OrganizationMember
@@ -27,7 +28,7 @@ class SigningSecretKwargs(TypedDict):
 
 def set_signing_secret(secret: str, data: bytes) -> SigningSecretKwargs:
     """Note: this is currently only used in tests."""
-    timestamp = str(int(time.mktime(datetime.utcnow().timetuple())))
+    timestamp = str(int(time.mktime(deprecated_utcnow().timetuple())))
     signature = _encode_data(secret, data, timestamp)
     return {
         "HTTP_X_SLACK_REQUEST_TIMESTAMP": timestamp,

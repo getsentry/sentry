@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField
 from rest_framework.serializers import ValidationError
 
-from sentry import options
+from sentry import features, options
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.identity.oauth2 import OAuth2ApiStep
@@ -393,6 +393,23 @@ class VercelIntegration(IntegrationInstallation):
             "target": target,
             "type": type,
         }
+
+        use_upsert = features.has(
+            "organizations:integrations-vercel-upsert-env-var",
+            self.organization,
+        )
+
+        if use_upsert:
+            try:
+                return client.create_env_variable(vercel_project_id, data, upsert=True)
+            except ApiError as e:
+                error_message = (
+                    e.json.get("error", {}).get("message")
+                    if e.json
+                    else f"Could not create or update environment variable {key}."
+                )
+                raise ValidationError({"project_mappings": [error_message]})
+
         try:
             return client.create_env_variable(vercel_project_id, data)
         except ApiError as e:

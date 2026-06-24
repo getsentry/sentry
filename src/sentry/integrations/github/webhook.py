@@ -48,7 +48,7 @@ from sentry.integrations.types import (
     IntegrationProviderSlug,
 )
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
-from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.commit import Commit
@@ -1046,15 +1046,13 @@ class PullRequestEventWebhook(GitHubWebhook):
                 organization_id=organization.id, external_id=self.get_external_id(user["login"])
             )
         except CommitAuthor.DoesNotExist:
-            # Don't set external_id on @localhost authors -- the push webhook
-            # needs to claim it on the real-email CommitAuthor instead.
-            defaults: dict[str, str] = {"name": user["login"][:128]}
-            if not author_email.endswith("@localhost"):
-                defaults["external_id"] = self.get_external_id(user["login"])
             author, author_created = CommitAuthor.objects.get_or_create(
                 organization_id=organization.id,
                 email=author_email,
-                defaults=defaults,
+                defaults={
+                    "name": user["login"][:128],
+                    "external_id": self.get_external_id(user["login"]),
+                },
             )
             if author_created:
                 try:
@@ -1247,7 +1245,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         return self.handle(request)
 
     def handle(self, request: HttpRequest) -> HttpResponse:
-        clear_tags_and_context()
+        clear_organization_info()
         secret = self.get_secret()
 
         if secret is None:
@@ -1319,6 +1317,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             if github_delivery_id is not None:
                 github_delivery_id = str(github_delivery_id)
                 sentry_sdk.set_extra("github_delivery_id", github_delivery_id)
+                sentry_sdk.set_attribute("github_delivery_id", github_delivery_id)
 
             with IntegrationWebhookEvent(
                 interaction_type=event_handler.event_type,

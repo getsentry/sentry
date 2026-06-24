@@ -18,11 +18,6 @@ type RenderProps = {
    * user-selectable or if the users current plan is on a special tier.
    */
   plan: Plan | null;
-  /**
-   * If the feature requires changing plan tiers, this will report the required
-   * plan tier that is DIFFERENT from the users current subscription tier.
-   */
-  tierChange: string | null;
 };
 
 type Props = {
@@ -59,7 +54,7 @@ function PlanFeature({subscription, features, organization, children}: Props) {
         // Only recommend business plans if the subscription is sponsored
         (subscription.isSponsored ? isBizPlanFamily(p) : true)
     )
-    .sort((a, b) => a.price - b.price);
+    .sort((a, b) => a.totalPrice - b.totalPrice);
 
   // We try and keep the list of plans as close to the user current plan
   // configuration as we can, however some older plans (mm2) have
@@ -88,15 +83,13 @@ function PlanFeature({subscription, features, organization, children}: Props) {
 
   plans = matchPlanConfiguration();
 
-  // XXX: Enterprise plans are *not* user selectable, but should be included
-  // in the list of plans. Unfortunately we don't distinguish between Trial /
-  // Friends & Family / Enterprise, so we hardcode the name here.
-  //
-  // XXX(epurkhiser): We don't really have enterprise plans anymore, so maybe
-  // we no longer need this.
+  // Enterprise plans are *not* user selectable, so they're excluded from the
+  // list above, but some features are only offered on them (e.g.
+  // spend-allocations). Include them so those features can still resolve to an
+  // upgrade target.
   const enterprisePlans = billingConfig.planList
     .filter(billingIntervalFilter)
-    .filter(p => p.id.includes('ent'));
+    .filter(p => p.isEnterprise);
 
   plans.push(...enterprisePlans);
 
@@ -117,12 +110,7 @@ function PlanFeature({subscription, features, organization, children}: Props) {
     requiredPlan = plans.find(plan => plan.dashboardLimit === UNLIMITED_RESERVED);
   }
 
-  const tierChange =
-    requiredPlan !== undefined && subscription.planTier !== billingConfig.id
-      ? billingConfig.id
-      : null;
-
-  return <Fragment>{children({plan: requiredPlan ?? null, tierChange})}</Fragment>;
+  return <Fragment>{children({plan: requiredPlan ?? null})}</Fragment>;
 }
 
 export default withSubscription(PlanFeature, {noLoader: true});

@@ -8,6 +8,7 @@ import pytest
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
+    apply_project_sample_rate_overrides,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
     get_cached_rebalanced_project_sample_rates,
@@ -25,6 +26,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
     generate_boost_low_volume_transactions_cache_key,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 
 def _project_volume(project_id: int, total: int = 100, keep: int = 25) -> ProjectVolume:
@@ -69,6 +71,32 @@ class ProjectBalancingCalculationsTest(TestCase):
         assert model_input.classes == [
             RebalancedItem(id=project_with_volume.id, count=100),
         ]
+        assert result == rebalanced_projects
+
+    def test_apply_project_sample_rate_overrides(self) -> None:
+        overridden_id = 1001
+        normal_id = 1002
+        rebalanced_projects = [
+            RebalancedItem(id=overridden_id, count=100, new_sample_rate=0.25),
+            RebalancedItem(id=normal_id, count=100, new_sample_rate=0.25),
+        ]
+
+        with override_options(
+            {"dynamic-sampling.sample-rate-override-per-project": {str(overridden_id): 0.9}}
+        ):
+            result = apply_project_sample_rate_overrides(rebalanced_projects)
+
+        result_by_id = {item.id: item.new_sample_rate for item in result}
+        # Overridden project gets the option value; the other keeps its balanced rate.
+        assert result_by_id[overridden_id] == 0.9
+        assert result_by_id[normal_id] == 0.25
+
+    def test_apply_project_sample_rate_overrides_noop_without_option(self) -> None:
+        rebalanced_projects = [
+            RebalancedItem(id=2001, count=100, new_sample_rate=0.25),
+        ]
+        # No overrides configured -> the balanced rates are returned untouched.
+        result = apply_project_sample_rate_overrides(rebalanced_projects)
         assert result == rebalanced_projects
 
     def test_compare_rebalanced_projects_with_cache_logs_per_project(self) -> None:

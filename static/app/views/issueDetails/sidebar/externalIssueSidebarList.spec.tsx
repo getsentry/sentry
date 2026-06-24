@@ -4,7 +4,6 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {JiraIntegrationFixture} from 'sentry-fixture/jiraIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PlatformExternalIssueFixture} from 'sentry-fixture/platformExternalIssue';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
@@ -30,7 +29,6 @@ describe('ExternalIssueSidebarList', () => {
   });
   const event = EventFixture();
   const group = GroupFixture();
-  const project = ProjectFixture();
 
   function mockLinkedPullRequestsFeatureRequests(integrations: GroupIntegration[]) {
     MockApiClient.addMockResponse({
@@ -87,7 +85,7 @@ describe('ExternalIssueSidebarList', () => {
       method: 'DELETE',
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
     expect(await screen.findByRole('button', {name: issueKey})).toBeInTheDocument();
     await userEvent.hover(screen.getByRole('button', {name: issueKey}));
@@ -149,7 +147,7 @@ describe('ExternalIssueSidebarList', () => {
       }),
     ]);
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
     expect(
       await screen.findByRole('button', {name: 'ClickUp: hello#1'})
@@ -188,7 +186,7 @@ describe('ExternalIssueSidebarList', () => {
       ],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
     expect(await screen.findByRole('button', {name: 'GitHub'})).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', {name: 'GitHub'}));
@@ -231,7 +229,7 @@ describe('ExternalIssueSidebarList', () => {
       }),
     ]);
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+    render(<ExternalIssueSidebarList event={event} group={group} />, {
       organization: organizationWithLinkedPullRequestsFeature,
     });
 
@@ -270,7 +268,7 @@ describe('ExternalIssueSidebarList', () => {
       body: {createIssueConfig: [], linkIssueConfig: []},
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+    render(<ExternalIssueSidebarList event={event} group={group} />, {
       organization: organizationWithLinkedPullRequestsFeature,
     });
     renderGlobalModal({organization: organizationWithLinkedPullRequestsFeature});
@@ -283,38 +281,56 @@ describe('ExternalIssueSidebarList', () => {
     });
   });
 
-  it('should render linked issues as full-width rows', async () => {
-    const issueKey = 'DE#1275';
-    const issueTitle = 'Linear: DE#1275';
-    mockLinkedPullRequestsFeatureRequests([
-      GitHubIntegrationFixture({
-        status: 'active',
-        externalIssues: [
-          {
-            id: '321',
-            key: issueKey,
-            url: 'https://linear.app/example/issue/DE-1275',
-            title: issueTitle,
-            description: 'something else, sorry',
-            displayName: '',
-          },
-        ],
-      }),
-    ]);
+  it('should render linked issues as single-line full-width rows', async () => {
+    const issue = {
+      key: 'getsentry/sentry#123',
+      title: 'Fix repository sync',
+      url: 'https://github.com/getsentry/sentry/issues/123',
+    };
+    const prefixedIssue = {
+      key: 'DE#1275',
+      title: 'Linear: DE#1275',
+      url: 'https://linear.app/example/issue/DE-1275',
+    };
+    const linkedIssues = [issue, prefixedIssue];
+    mockLinkedPullRequestsFeatureRequests(
+      linkedIssues.map((linkedIssue, index) =>
+        GitHubIntegrationFixture({
+          id: String(index + 1),
+          status: 'active',
+          externalIssues: [
+            {
+              id: String(321 + index),
+              key: linkedIssue.key,
+              url: linkedIssue.url,
+              title: linkedIssue.title,
+              description: 'something else, sorry',
+              displayName: '',
+            },
+          ],
+        })
+      )
+    );
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+    render(<ExternalIssueSidebarList event={event} group={group} />, {
       organization: organizationWithLinkedPullRequestsFeature,
     });
 
-    const linkedIssues = await screen.findByRole('list', {name: 'Linked issues'});
-    expect(within(linkedIssues).getByRole('link', {name: issueTitle})).toHaveAttribute(
+    const linkedIssueList = await screen.findByRole('list', {name: 'Linked issues'});
+    expect(within(linkedIssueList).getByRole('link', {name: issue.key})).toHaveAttribute(
       'href',
-      'https://linear.app/example/issue/DE-1275'
+      issue.url
     );
-    expect(within(linkedIssues).queryByText(issueKey)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: issueKey})).not.toBeInTheDocument();
     expect(
-      within(linkedIssues).getByRole('button', {name: `Unlink ${issueTitle}`})
+      within(linkedIssueList).getByRole('link', {name: prefixedIssue.key})
+    ).toHaveAttribute('href', prefixedIssue.url);
+    expect(
+      within(linkedIssueList).getByRole('button', {name: `Unlink ${issue.key}`})
+    ).toBeInTheDocument();
+    expect(
+      within(linkedIssueList).getByRole('button', {
+        name: `Unlink ${prefixedIssue.key}`,
+      })
     ).toBeInTheDocument();
   });
 
@@ -327,7 +343,7 @@ describe('ExternalIssueSidebarList', () => {
       }),
     ]);
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+    render(<ExternalIssueSidebarList event={event} group={group} />, {
       organization: organizationWithLinkedPullRequestsFeature,
     });
 
@@ -351,7 +367,7 @@ describe('ExternalIssueSidebarList', () => {
       body: [],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+    render(<ExternalIssueSidebarList event={event} group={group} />, {
       organization: organizationWithLinkedPullRequestsFeature,
     });
 
@@ -389,7 +405,7 @@ describe('ExternalIssueSidebarList', () => {
       ],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
     expect(await screen.findByRole('button', {name: 'Jira'})).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', {name: 'Jira'}));
@@ -402,35 +418,5 @@ describe('ExternalIssueSidebarList', () => {
 
     // Item with name matching integration name should only show subtext
     expect(screen.getByRole('menuitemradio', {name: 'example.com'})).toBeInTheDocument();
-  });
-
-  it('should render links to group.pluginActions', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
-      body: [],
-    });
-
-    const groupWithPluginActions = GroupFixture({
-      pluginActions: [['Create Redmine Issue', '/path/to/redmine']],
-    });
-    render(
-      <ExternalIssueSidebarList
-        event={event}
-        group={groupWithPluginActions}
-        project={project}
-      />
-    );
-
-    expect(
-      await screen.findByRole('button', {name: 'Create Redmine Issue'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Create Redmine Issue'})).toHaveAttribute(
-      'href',
-      '/path/to/redmine'
-    );
   });
 });

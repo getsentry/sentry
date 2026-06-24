@@ -22,6 +22,16 @@ export interface UseResizableDrawerOptions {
     userEvent: boolean
   ) => void;
   /**
+   * The maximum size the container may be dragged to. Optional — defaults
+   * to no upper bound. Only enforced during drag, mirroring `min`.
+   */
+  max?: number;
+  /**
+   * Fires once when a drag completes (on mouseUp). Receives the size at
+   * the start and end of the drag.
+   */
+  onResizeEnd?: (sizes: {endSize: number; startSize: number}) => void;
+  /**
    * The local storage key used to persist the size of the container
    */
   sizeStorageKey?: string;
@@ -48,6 +58,10 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
    */
   onMouseDown: React.MouseEventHandler<HTMLElement>;
   /**
+   * Apply to the drag handle element. Supports touch and pen input.
+   */
+  onPointerDown: React.PointerEventHandler<HTMLElement>;
+  /**
    * Call this function to manually set the size of the drawer.
    */
   setSize: (newSize: number, userEvent?: boolean) => void;
@@ -69,18 +83,19 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     return storedSize || options.initialSize;
   });
   const [isHeld, setIsHeld] = useState(false);
+  const optionsRef = useRef(options);
+  useLayoutEffect(() => {
+    optionsRef.current = options;
+  });
 
-  const updateSize = useCallback(
-    (newSize: number, userEvent = false) => {
-      sizeRef.current = newSize;
-      setSize(newSize);
-      options.onResize(newSize, undefined, userEvent);
-      if (options.sizeStorageKey) {
-        localStorage.setItem(options.sizeStorageKey, newSize.toString());
-      }
-    },
-    [options]
-  );
+  const updateSize = useCallback((newSize: number, userEvent = false) => {
+    sizeRef.current = newSize;
+    setSize(newSize);
+    optionsRef.current.onResize(newSize, undefined, userEvent);
+    if (optionsRef.current.sizeStorageKey) {
+      localStorage.setItem(optionsRef.current.sizeStorageKey, newSize.toString());
+    }
+  }, []);
 
   // We intentionally fire this once at mount to ensure the dimensions are set and
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
@@ -94,9 +109,10 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const sizeRef = useRef(size);
   sizeRef.current = size;
 
-  const onMouseMove = useCallback(
-    (event: MouseEvent) => {
+  const onDragMove = useCallback(
+    (event: MouseEvent | PointerEvent) => {
       event.stopPropagation();
+      event.preventDefault();
       const isXAxis = options.direction === 'left' || options.direction === 'right';
       const isInverted = options.direction === 'down' || options.direction === 'left';
 
@@ -127,35 +143,74 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
         currentMouseVectorRaf.current = newPositionVector;
 
-        // Round to 1px precision
+        // Round to 1px precision. Clamp to [min, max].
         const newSize = Math.round(
-          Math.max(options.min, sizeRef.current + positionDelta * (isInverted ? -1 : 1))
+          Math.min(
+            options.max ?? Number.POSITIVE_INFINITY,
+            Math.max(options.min, sizeRef.current + positionDelta * (isInverted ? -1 : 1))
+          )
         );
 
         updateSize(newSize, true);
       });
     },
-    [options.direction, options.min, updateSize]
+    [options.direction, options.min, options.max, updateSize]
   );
 
-  const onMouseUp = useCallback(() => {
+  const dragStartSizeRef = useRef<number | null>(null);
+
+  const onDragEnd = useCallback(() => {
     document.body.style.pointerEvents = '';
     document.body.style.userSelect = '';
     document.documentElement.style.cursor = '';
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('mouseup', onDragEnd);
+    document.removeEventListener('pointermove', onDragMove);
+    document.removeEventListener('pointerup', onDragEnd);
+    document.removeEventListener('pointercancel', onDragEnd);
     setIsHeld(false);
-  }, [onMouseMove]);
+    if (dragStartSizeRef.current !== null) {
+      options.onResizeEnd?.({
+        startSize: dragStartSizeRef.current,
+        endSize: sizeRef.current,
+      });
+      dragStartSizeRef.current = null;
+    }
+  }, [onDragMove, options]);
+
+  const startDrag = useCallback((clientX: number, clientY: number) => {
+    setIsHeld(true);
+    dragStartSizeRef.current = sizeRef.current;
+    currentMouseVectorRaf.current = [clientX, clientY];
+  }, []);
 
   const onMouseDown = useCallback(
     (evt: React.MouseEvent<HTMLElement>) => {
-      setIsHeld(true);
-      currentMouseVectorRaf.current = [evt.clientX, evt.clientY];
+      if (evt.button !== 0) {
+        return;
+      }
 
-      document.addEventListener('mousemove', onMouseMove, {passive: true});
-      document.addEventListener('mouseup', onMouseUp);
+      evt.preventDefault();
+      startDrag(evt.clientX, evt.clientY);
+      document.addEventListener('mousemove', onDragMove, {passive: false});
+      document.addEventListener('mouseup', onDragEnd);
     },
-    [onMouseMove, onMouseUp]
+    [onDragMove, onDragEnd, startDrag]
+  );
+
+  const onPointerDown = useCallback(
+    (evt: React.PointerEvent<HTMLElement>) => {
+      if (!evt.isPrimary || (evt.pointerType === 'mouse' && evt.button !== 0)) {
+        return;
+      }
+
+      evt.preventDefault();
+      startDrag(evt.clientX, evt.clientY);
+      document.addEventListener('pointermove', onDragMove, {passive: false});
+      document.addEventListener('pointerup', onDragEnd);
+      document.addEventListener('pointercancel', onDragEnd);
+    },
+    [onDragMove, onDragEnd, startDrag]
   );
 
   const onDoubleClick = useCallback(() => {
@@ -170,5 +225,5 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     };
   });
 
-  return {size, isHeld, onMouseDown, onDoubleClick, setSize: updateSize};
+  return {size, isHeld, onMouseDown, onPointerDown, onDoubleClick, setSize: updateSize};
 }

@@ -9,6 +9,8 @@ import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer
 import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
+export const SEER_EXPLORER_DRAWER_KEY = 'seer-explorer-drawer';
+
 export type OpenSeerExplorerDrawerOptions = {
   /**
    * Optional query string to auto-submit once the drawer opens.
@@ -87,7 +89,7 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
         ),
         {
           ariaLabel: t('Seer Explorer Drawer'),
-          drawerKey: 'seer-explorer-drawer',
+          drawerKey: SEER_EXPLORER_DRAWER_KEY,
           drawerWidth: '30%',
           resizable: true,
           mode: 'passive',

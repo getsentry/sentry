@@ -26,7 +26,8 @@ class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
     }
 
     @extend_schema(
-        operation_id="List an Organization Release's Commits",
+        operation_id="listOrganizationReleaseCommits",
+        summary="List an Organization Release's Commits",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,

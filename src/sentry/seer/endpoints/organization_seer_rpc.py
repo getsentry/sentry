@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Callable
 from typing import Any
 
 import sentry_sdk
@@ -61,6 +60,7 @@ from sentry.seer.assisted_query.traces_tools import (
     get_attribute_values_with_substring,
 )
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
+from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
 from sentry.seer.endpoints.seer_rpc import (
     get_attributes_and_values,
     get_attributes_for_span,
@@ -79,58 +79,75 @@ from sentry.viewer_context import get_viewer_context, observe_viewer_context_pro
 logger = logging.getLogger(__name__)
 
 
+# Every value in the registries below MUST be a function returning a
+# `pydantic.BaseModel` (or a union of `BaseModel` subclasses, optionally with
+# `None`). Two complementary guards enforce this:
+#   1. The `dict[str, SeerRpcMethod]` annotation rejects `dict` /
+#      `dict[str, Any]` / generic `Callable` returns at type-check time.
+#   2. Wrapping each value with `seer_rpc(...)` triggers the custom mypy plugin
+#      (`tools.mypy_helpers.plugin._check_seer_rpc_handler_not_any`) to walk
+#      the registered function's return type and reject any `Any`. Without
+#      this, `-> Any` would slip past the structural check because `Any` is
+#      bidirectionally compatible with everything.
+# To add a method, define a Pydantic response model in
+# `sentry.seer.sentry_data_models`, annotate the handler with it, and register
+# the handler as `"name": seer_rpc(handler)`.
+
+
 # Registry of read-only telemetry methods that are safe to expose
 # to organization members for local agent development
 # These methods support organization-level or cross-project access
 #
 # Parameter conventions:
 # - `organization_id` (int): Organization ID, auto-injected and validated. use map_org_id_param to map to `org_id` if needed.
-public_org_seer_method_registry: dict[str, Callable] = {
+public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     # Common to Seer features
-    "get_organization_project_ids": map_org_id_param(get_organization_project_ids),
-    "get_organization_slug": map_org_id_param(get_organization_slug),
-    "get_organization_features": map_org_id_param(get_organization_features),
-    "validate_repo": validate_repo,
-    "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
+    "get_organization_project_ids": seer_rpc(map_org_id_param(get_organization_project_ids)),
+    "get_organization_slug": seer_rpc(map_org_id_param(get_organization_slug)),
+    "get_organization_features": seer_rpc(map_org_id_param(get_organization_features)),
+    "validate_repo": seer_rpc(validate_repo),
+    "get_github_enterprise_integration_config": seer_rpc(get_github_enterprise_integration_config),
     #
     # Bug prediction
-    "has_repo_code_mappings": has_repo_code_mappings,
-    "get_issues_by_function_name": by_function_name.fetch_issues,
-    "get_issues_related_to_exception_type": by_error_type.fetch_issues,
-    "get_issues_by_raw_query": by_text_query.fetch_issues,
-    "get_latest_issue_event": utils.get_latest_issue_event,
+    "has_repo_code_mappings": seer_rpc(has_repo_code_mappings),
+    "get_issues_by_function_name": seer_rpc(by_function_name.fetch_issues),
+    "get_issues_related_to_exception_type": seer_rpc(by_error_type.fetch_issues),
+    "get_issues_by_raw_query": seer_rpc(by_text_query.fetch_issues),
+    "get_latest_issue_event": seer_rpc(utils.get_latest_issue_event),
     #
     # Assisted query (cross-project)
-    "get_attribute_names": map_org_id_param(get_attribute_names),
-    "get_attribute_values_with_substring": map_org_id_param(get_attribute_values_with_substring),
-    "get_attributes_and_values": map_org_id_param(get_attributes_and_values),
-    "get_metric_metadata": map_org_id_param(get_metric_metadata),
-    "get_event_filter_keys": map_org_id_param(get_event_filter_keys),
-    "get_event_filter_key_values": map_org_id_param(get_event_filter_key_values),
-    "get_issue_filter_keys": map_org_id_param(get_issue_filter_keys),
-    "get_filter_key_values": map_org_id_param(get_filter_key_values),
+    "get_attribute_names": seer_rpc(map_org_id_param(get_attribute_names)),
+    "get_attribute_values_with_substring": seer_rpc(
+        map_org_id_param(get_attribute_values_with_substring)
+    ),
+    "get_attributes_and_values": seer_rpc(map_org_id_param(get_attributes_and_values)),
+    "get_metric_metadata": seer_rpc(map_org_id_param(get_metric_metadata)),
+    "get_event_filter_keys": seer_rpc(map_org_id_param(get_event_filter_keys)),
+    "get_event_filter_key_values": seer_rpc(map_org_id_param(get_event_filter_key_values)),
+    "get_issue_filter_keys": seer_rpc(map_org_id_param(get_issue_filter_keys)),
+    "get_filter_key_values": seer_rpc(map_org_id_param(get_filter_key_values)),
     #
     # Agent (cross-project)
-    "get_trace_waterfall": rpc_get_trace_waterfall,
-    "get_repository_definition": get_repository_definition,
-    "execute_table_query": map_org_id_param(execute_table_query),
-    "execute_timeseries_query": map_org_id_param(execute_timeseries_query),
-    "execute_trace_table_query": execute_trace_table_query,
-    "execute_issues_query": map_org_id_param(execute_issues_query),
-    "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
-    "get_issue_details": get_issue_details,
-    "get_event_details": get_event_details,
-    "get_profile_flamegraph": rpc_get_profile_flamegraph,
-    "get_replay_metadata": get_replay_metadata,
-    "get_log_attributes_for_trace": map_org_id_param(get_log_attributes_for_trace),
-    "get_metric_attributes_for_trace": map_org_id_param(get_metric_attributes_for_trace),
-    "get_issues_stats": map_org_id_param(get_issues_stats),
-    "get_baseline_tag_distribution": get_baseline_tag_distribution,
-    "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
-    "get_dsn": get_dsn,
+    "get_trace_waterfall": seer_rpc(rpc_get_trace_waterfall),
+    "get_repository_definition": seer_rpc(get_repository_definition),
+    "execute_table_query": seer_rpc(map_org_id_param(execute_table_query)),
+    "execute_timeseries_query": seer_rpc(map_org_id_param(execute_timeseries_query)),
+    "execute_trace_table_query": seer_rpc(execute_trace_table_query),
+    "execute_issues_query": seer_rpc(map_org_id_param(execute_issues_query)),
+    "get_issue_and_event_details_v2": seer_rpc(get_issue_and_event_details_v2),
+    "get_issue_details": seer_rpc(get_issue_details),
+    "get_event_details": seer_rpc(get_event_details),
+    "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),
+    "get_replay_metadata": seer_rpc(get_replay_metadata),
+    "get_log_attributes_for_trace": seer_rpc(map_org_id_param(get_log_attributes_for_trace)),
+    "get_metric_attributes_for_trace": seer_rpc(map_org_id_param(get_metric_attributes_for_trace)),
+    "get_issues_stats": seer_rpc(map_org_id_param(get_issues_stats)),
+    "get_baseline_tag_distribution": seer_rpc(get_baseline_tag_distribution),
+    "get_comparative_attribute_distributions": seer_rpc(get_comparative_attribute_distributions),
+    "get_dsn": seer_rpc(get_dsn),
     #
     # Agent eval tooling
-    "export_explorer_indexes": map_org_id_param(export_agent_indexes),
+    "export_explorer_indexes": seer_rpc(map_org_id_param(export_agent_indexes)),
 }
 
 
@@ -140,19 +157,25 @@ public_org_seer_method_registry: dict[str, Callable] = {
 # Parameter conventions:
 # - `organization_id` (int): Organization ID, auto-injected and validated
 # - `project_id` (int): Project ID, must be provided in request args and validated
-public_project_seer_method_registry: dict[str, Callable] = {
+public_project_seer_method_registry: dict[str, SeerRpcMethod] = {
     # Agent - project-scoped methods
-    "get_transactions_for_project": accept_organization_id_param(rpc_get_transactions_for_project),
-    "get_trace_for_transaction": accept_organization_id_param(rpc_get_trace_for_transaction),
-    "get_profiles_for_trace": accept_organization_id_param(rpc_get_profiles_for_trace),
-    "get_issues_for_transaction": accept_organization_id_param(rpc_get_issues_for_transaction),
+    "get_transactions_for_project": seer_rpc(
+        accept_organization_id_param(rpc_get_transactions_for_project)
+    ),
+    "get_trace_for_transaction": seer_rpc(
+        accept_organization_id_param(rpc_get_trace_for_transaction)
+    ),
+    "get_profiles_for_trace": seer_rpc(accept_organization_id_param(rpc_get_profiles_for_trace)),
+    "get_issues_for_transaction": seer_rpc(
+        accept_organization_id_param(rpc_get_issues_for_transaction)
+    ),
     # Autofix - project-scoped methods
-    "get_error_event_details": accept_organization_id_param(get_error_event_details),
-    "get_profile_details": get_profile_details,
-    "get_attributes_for_span": map_org_id_param(get_attributes_for_span),
-    "get_trace_item_attributes": map_org_id_param(get_trace_item_attributes),
+    "get_error_event_details": seer_rpc(accept_organization_id_param(get_error_event_details)),
+    "get_profile_details": seer_rpc(get_profile_details),
+    "get_attributes_for_span": seer_rpc(map_org_id_param(get_attributes_for_span)),
+    "get_trace_item_attributes": seer_rpc(map_org_id_param(get_trace_item_attributes)),
     # Replays - project-scoped methods
-    "get_replay_summary_logs": accept_organization_id_param(rpc_get_replay_summary_logs),
+    "get_replay_summary_logs": seer_rpc(accept_organization_id_param(rpc_get_replay_summary_logs)),
 }
 
 

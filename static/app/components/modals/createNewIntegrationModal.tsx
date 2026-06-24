@@ -3,9 +3,10 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
@@ -88,6 +89,16 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
         </Flex>
       </Header>
       <Body>
+        <Alert.Container>
+          <Alert variant="info">
+            {tct(
+              'Looking for MCP? Connect Sentry to AI-powered tools and your terminal from the [link:MCP & CLI] page.',
+              {
+                link: <Link to={`/settings/${organization.slug}/mcp-cli/`} />,
+              }
+            )}
+          </Alert>
+        </Alert.Container>
         <StyledRadioGroup
           choices={choices}
           label={t('Avatar Type')}

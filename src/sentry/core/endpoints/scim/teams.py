@@ -186,7 +186,8 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
 
     @extend_schema(
-        operation_id="List an Organization's Paginated Teams",
+        operation_id="listOrganizationScimV2Groups",
+        summary="List an Organization's Paginated Teams",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, SCIMQueryParamSerializer],
         request=None,
         responses={
@@ -235,7 +236,8 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         )
 
     @extend_schema(
-        operation_id="Provision a New Team",
+        operation_id="provisionOrganizationScimV2Group",
+        summary="Provision a New Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=inline_serializer(
             name="SCIMTeamRequestBody",
@@ -295,12 +297,10 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
                     sender=None,
                 )
             except (IntegrityError, MaxSnowflakeRetryError):
-                return Response(
-                    {
-                        "non_field_errors": [CONFLICTING_SLUG_ERROR],
-                        "detail": CONFLICTING_SLUG_ERROR,
-                    },
-                    status=409,
+                # A duplicate slug is a uniqueness collision; surface it as a
+                # spec-compliant SCIM error so IdPs can reconcile the existing team.
+                raise SCIMApiError(
+                    detail=CONFLICTING_SLUG_ERROR, status_code=409, scim_type="uniqueness"
                 )
 
             self.create_audit_entry(
@@ -350,7 +350,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return team
 
     @extend_schema(
-        operation_id="Query an Individual Team",
+        operation_id="getOrganizationScimV2Group",
+        summary="Query an Individual Team",
         parameters=[GlobalParams.TEAM_ID_OR_SLUG, GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={
@@ -548,7 +549,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return None
 
     @extend_schema(
-        operation_id="Update a Team's Attributes",
+        operation_id="updateOrganizationScimV2Group",
+        summary="Update a Team's Attributes",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         request=SCIMTeamPatchRequestSerializer,
         responses={
@@ -641,7 +643,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return self.respond(status=204)
 
     @extend_schema(
-        operation_id="Delete an Individual Team",
+        operation_id="deleteOrganizationScimV2Group",
+        summary="Delete an Individual Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         responses={
             204: RESPONSE_SUCCESS,

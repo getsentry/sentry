@@ -13,7 +13,6 @@ import type {
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
 import type {ParsedOwnershipRule} from './ownership';
-import type {PlatformKey} from './platform';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
@@ -143,7 +142,7 @@ export type CommitFile = {
   type: string;
 };
 
-export type PullRequest = {
+export interface PullRequest {
   dateCreated: string;
   externalUrl: string;
   id: string;
@@ -151,7 +150,18 @@ export type PullRequest = {
   repository: Repository;
   title: string | null;
   author?: CommitAuthor;
-};
+}
+
+export type PullRequestStatus = 'merged' | 'open' | 'closed' | 'draft' | 'unknown';
+
+export interface LinkedPullRequest extends PullRequest {
+  dateLinked: string;
+  status: PullRequestStatus;
+}
+
+export interface LinkedPullRequestsResponse {
+  pullRequests: LinkedPullRequest[];
+}
 
 /**
  * Sentry Apps
@@ -489,10 +499,10 @@ export type IntegrationIssueConfig = {
 
 /**
  * Project Plugins
+ * Deprecated: legacy plugin system is being removed.
  */
-export type PluginNoProject = {
+type PluginNoProject = {
   canDisable: boolean;
-  // TODO(ts)
   contexts: any[];
   doc: string;
   featureDescriptions: IntegrationFeature[];
@@ -515,7 +525,6 @@ export type PluginNoProject = {
   firstPartyAlternative?: string;
   issue?: {
     issue_id: string;
-    // TODO(TS): Label can be an object, unknown shape
     label: string | any;
     url: string;
   };
@@ -527,24 +536,7 @@ export type Plugin = PluginNoProject & {
   enabled: boolean;
 };
 
-export type PluginProjectItem = {
-  configured: boolean;
-  enabled: boolean;
-  projectId: string;
-  projectName: string;
-  projectPlatform: PlatformKey;
-  projectSlug: string;
-};
-
-export type PluginWithProjectList = PluginNoProject & {
-  projectList: PluginProjectItem[];
-};
-
-export type AppOrProviderOrPlugin =
-  | SentryApp
-  | IntegrationProvider
-  | PluginWithProjectList
-  | DocIntegration;
+export type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | DocIntegration;
 
 export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
 
