@@ -1386,6 +1386,28 @@ class TestGetMonitoringProviderConnections(TestCase):
         ).decode("utf-8")
         assert decrypted_access_token == "access-token"
 
+    def test_returns_multiple_connections(self) -> None:
+        for site, ext_id in [("datadoghq.com", "org-1"), ("datadoghq.eu", "org-2")]:
+            idp = self.create_identity_provider(type="datadog", external_id=ext_id)
+            identity = self.create_identity(
+                user=self.user,
+                identity_provider=idp,
+                external_id=f"user-{ext_id}",
+                data={"access_token": "access-token", "site": site},
+            )
+            self.create_organization_identity(
+                organization=self.organization,
+                identity=identity,
+            )
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert result is not None
+        assert len(result) == 2
+        urls = {c["url"] for c in result}
+        assert "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp" in urls
+        assert "https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp" in urls
+
     def test_cross_org_isolation(self) -> None:
         org2 = self.create_organization(name="other-org", owner=self.user)
 
