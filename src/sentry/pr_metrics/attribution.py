@@ -86,6 +86,13 @@ JUDGE_ELIGIBLE_SIGNAL_TYPES = DELEGATED_SIGNAL_TYPES | frozenset(
 )
 
 
+def is_seer_attribution(attribution: PullRequestAttribution) -> bool:
+    return (
+        attribution.source == PullRequestAttributionSource.SEER_DATA
+        or attribution.signal_type in DELEGATED_SIGNAL_TYPES
+    )
+
+
 def record_attribution_signal(
     *,
     pull_request: PullRequest,
