@@ -292,7 +292,12 @@ def check_url_robots_txt(url: str) -> bool:
 
 def get_robots_txt_parser(url: str) -> RobotFileParser:
     robots_url = urljoin(url, "robots.txt")
-    response = safe_urlopen(robots_url, timeout=10)
+    response = safe_urlopen(robots_url, timeout=10, allow_redirects=True)
     robot_parser = RobotFileParser(url=robots_url)
-    robot_parser.parse(response.text.splitlines())
+    if response.status_code in (401, 403):
+        robot_parser.parse(["User-agent: *", "Disallow: /"])
+    elif response.status_code >= 400:
+        robot_parser.parse([])
+    else:
+        robot_parser.parse(response.text.splitlines())
     return robot_parser
