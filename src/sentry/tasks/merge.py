@@ -197,13 +197,6 @@ def merge_groups(
                     scope.set_extra("old_group_id", group.id)
                     sentry_sdk.capture_exception(e, level="warning")
 
-            # hard delete derived data on the new group - it will be rebuilt when the next action is processed
-            if features.has(
-                "organizations:hard-delete-derived-data-invalidation",
-                group.project.organization,
-            ):
-                invalidate_group_derived_data(new_group.id)
-
     if from_object_ids:
         # This task is recursed until `from_object_ids` is empty and all
         # "from" groups have merged into the `to_group_id`.
@@ -214,9 +207,17 @@ def merge_groups(
             recursed=True,
             eventstream_state=eventstream_state,
         )
-    elif eventstream_state:
-        # All `from_object_ids` have been merged!
-        eventstream.backend.end_merge(eventstream_state)
+    else:
+        if features.has(
+            "organizations:hard-delete-derived-data-invalidation",
+            new_group.project.organization,
+        ):
+            # hard delete derived data on the new group - it will be rebuilt when the next action is processed
+            invalidate_group_derived_data(new_group.id)
+
+        if eventstream_state:
+            # All `from_object_ids` have been merged!
+            eventstream.backend.end_merge(eventstream_state)
 
     return True
 
