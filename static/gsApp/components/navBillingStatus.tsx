@@ -480,11 +480,7 @@ export function PrimaryNavigationQuotaExceeded({
     subscription?.onDemandPeriodStart,
   ]);
 
-  const shouldShow =
-    exceededCategories.length > 0 &&
-    subscription &&
-    subscription.canSelfServe &&
-    !subscription.hasOverageNotificationsDisabled;
+  const shouldShow = exceededCategories.length > 0 && subscription?.canSelfServe;
   if (!shouldShow || isLoading || isError) {
     return null;
   }

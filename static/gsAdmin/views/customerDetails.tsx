@@ -431,18 +431,6 @@ export function CustomerDetails() {
               onUpdateMutation.mutate({...params, clearPendingChanges: true}),
           },
           {
-            key: 'changeSoftCap',
-            name: subscription.hasSoftCap
-              ? 'Remove Legacy Soft Cap'
-              : 'Add Legacy Soft Cap',
-            help: subscription.hasSoftCap
-              ? 'Remove the legacy soft cap from this account.'
-              : 'Add legacy soft cap to this account.',
-            onAction: params =>
-              onUpdateMutation.mutate({...params, softCap: !subscription.hasSoftCap}),
-            ...actionRequiresBillingAdmin,
-          },
-          {
             key: 'changeBalance',
             name: 'Add or Remove Credit',
             help: 'Add or remove credit from this account.',
@@ -465,23 +453,6 @@ export function CustomerDetails() {
                 orgId,
                 subscription,
                 onSuccess: reloadData,
-              }),
-            ...actionRequiresBillingAdmin,
-          },
-          {
-            key: 'changeOverageNotification',
-            name: subscription.hasOverageNotificationsDisabled
-              ? 'Enable Overage Notification'
-              : 'Disable Overage Notification',
-            help: subscription.hasOverageNotificationsDisabled
-              ? 'Enable overage notifications on this account.'
-              : 'Disable overage notifications on this account.',
-            visible: subscription.hasSoftCap,
-            onAction: params =>
-              onUpdateMutation.mutate({
-                ...params,
-                overageNotificationsDisabled:
-                  !subscription.hasOverageNotificationsDisabled,
               }),
             ...actionRequiresBillingAdmin,
           },

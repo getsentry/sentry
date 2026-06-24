@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Iterable, Mapping
 from functools import cached_property
 from typing import Any
 
@@ -37,6 +37,7 @@ from sentry.types.cell import (
     RegionCategory,
     find_all_cell_names,
     find_all_multitenant_locality_names,
+    find_all_signup_locality_names,
     get_cell_by_name,
     get_global_directory,
     get_locality_by_name,
@@ -352,14 +353,6 @@ class _ClientConfig:
             if (loc := directory.get_locality_for_cell(name)) is not None
         )
 
-    @staticmethod
-    def _serialize_localities(
-        locality_names: Iterable[str], display_order: Callable[[Locality], Any]
-    ) -> list[Mapping[str, Any]]:
-        localities = [get_locality_by_name(name) for name in locality_names]
-        localities.sort(key=display_order)
-        return [locality.api_serialize() for locality in localities]
-
     @property
     def localities(self) -> list[Mapping[str, Any]]:
         """
@@ -379,7 +372,21 @@ class _ClientConfig:
                 region.name,  # then sort alphabetically
             )
 
-        return self._serialize_localities(locality_names, region_display_order)
+        localities = [get_locality_by_name(name) for name in locality_names]
+        localities.sort(key=region_display_order)
+
+        return [locality.api_serialize() for locality in localities]
+
+    @property
+    def signup_localities(self) -> list[str]:
+        """
+        The locality names that are available to new orgs
+        """
+        localities = find_all_signup_locality_names()
+        if not localities:
+            monolith_locality = get_locality_name_for_cell(settings.SENTRY_FALLBACK_CELL)
+            return [monolith_locality]
+        return localities
 
     @property
     def cells(self) -> list[Mapping[str, Any]]:
@@ -465,6 +472,7 @@ class _ClientConfig:
             "languageCode": self.language_code,
             "cells": self.cells,
             "localities": self.localities,
+            "signupLocalities": self.signup_localities,
             "userIdentity": dict(self.user_identity),
             "csrfCookieName": settings.CSRF_COOKIE_NAME,
             "superUserCookieName": superuser.COOKIE_NAME,

@@ -407,12 +407,48 @@ api_gateway_address_cell = Cell(
 @control_silo_test(cells=[api_gateway_address_cell], include_monolith_run=True)
 class ApiGatewayAddressProxyTestCase(ApiGatewayTestCase):
     @responses.activate
-    @override_options({"apigateway.proxy.use_gateway_address": 1.0})
+    @override_options({"apigateway.proxy.cell-rollout": {"us": 1.0}})
     def test_sync_post(self) -> None:
         responses.add(
             responses.POST,
             "http://sentry-api-gateway-rpc:8999/post",
             body=json.dumps({"test": "header"}),
+        )
+        request = RequestFactory().post(
+            "http://sentry.io/post", data={"test": "header"}, content_type="application/json"
+        )
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        resp_json = json.loads(close_streaming_response(resp))
+
+        assert resp.status_code == 200
+        assert resp_json["test"]
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
+
+    @responses.activate
+    @override_options({"apigateway.proxy.cell-rollout": "lol"})
+    def test_sync_post_corrupt_rollout_option(self) -> None:
+        responses.add(
+            responses.POST,
+            "http://sentry-rpc:8999/post",
+            body=json.dumps({"test": "value"}),
+        )
+        request = RequestFactory().post(
+            "http://sentry.io/post", data={"test": "header"}, content_type="application/json"
+        )
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        resp_json = json.loads(close_streaming_response(resp))
+
+        assert resp.status_code == 200
+        assert resp_json["test"]
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
+
+    @responses.activate
+    @override_options({"apigateway.proxy.cell-rollout": {"nope": 1.0}})
+    def test_sync_post_undefined_cell_in_option(self) -> None:
+        responses.add(
+            responses.POST,
+            "http://sentry-rpc:8999/post",
+            body=json.dumps({"test": "value"}),
         )
         request = RequestFactory().post(
             "http://sentry.io/post", data={"test": "header"}, content_type="application/json"

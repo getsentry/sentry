@@ -464,7 +464,7 @@ describe('SubscriptionHeader', () => {
         plan: 'am3_business',
         planDetails: PlanFixture({
           name: 'Business',
-          price: 100,
+          totalPrice: 100,
         }),
       }),
       organization,
@@ -503,7 +503,6 @@ describe('SubscriptionHeader', () => {
         plan: 'am3_f',
         planDetails: PlanFixture({
           name: 'Developer',
-          price: 0,
         }),
       }),
       organization,
