@@ -800,23 +800,29 @@ def trends_aggregation_impl(
 
 
 def _recommended_aggregation(
-    timestamp_column: str, type_column: str | None = None
+    timestamp_column: str, type_column: str | None = None, overrides: dict[str, Any] | None = None
 ) -> Sequence[str]:
     hour = 3600
+    # ?recommendedWeights values (if any) win over the registered option, per weight.
+    overrides = overrides or {}
 
     # Recency: exponential decay based on time since last event (24hr halflife)
-    recency_weight = options.get("snuba.search.recommended.recency-weight")
+    recency_weight = overrides.get(
+        "recency", options.get("snuba.search.recommended.recency-weight")
+    )
     age_hours = f"divide(minus(now(), max({timestamp_column})), {hour})"
     recency = f"divide(1, pow(2, divide({age_hours}, 24)))"
 
     # Spike: ratio of recent 6hr events to total 3d events
-    spike_weight = options.get("snuba.search.recommended.spike-weight")
+    spike_weight = overrides.get("spike", options.get("snuba.search.recommended.spike-weight"))
     recent_6h = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {6 * hour}))"
     total_3d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {3 * 24 * hour}))"
     spike = f"least(1.0, divide({recent_6h}, plus({total_3d}, 1)))"
 
     # Severity: max log level - maps fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0
-    severity_weight = options.get("snuba.search.recommended.severity-weight")
+    severity_weight = overrides.get(
+        "severity", options.get("snuba.search.recommended.severity-weight")
+    )
     severity = (
         "max(multiIf("
         "equals(level, 'fatal'), 1.0, "
@@ -827,20 +833,28 @@ def _recommended_aggregation(
     )
 
     # User impact: ln(uniq(tags[sentry:user]) + 1)/ln(1001) - maps 1→~0, 10→0.33, 100→0.67, 1000→1.0
-    user_impact_weight = options.get("snuba.search.recommended.user-impact-weight")
+    user_impact_weight = overrides.get(
+        "user_impact", options.get("snuba.search.recommended.user-impact-weight")
+    )
     user_impact = "least(1.0, divide(log(plus(uniq(tags[sentry:user]), 1)), log(1001)))"
 
     # Event volume: ln(count() + 1)/ln(10001) - maps 1→~0, 10→0.25, 100→0.50, 1000→0.75, 10000+→1.0
-    event_volume_weight = options.get("snuba.search.recommended.event-volume-weight")
+    event_volume_weight = overrides.get(
+        "event_volume", options.get("snuba.search.recommended.event-volume-weight")
+    )
     event_volume = "least(1.0, divide(log(plus(count(), 1)), log(10001)))"
 
     # Group type boost: additive signal per issue type
-    group_type_boosts = options.get("snuba.search.recommended.group-type-boost")
+    group_type_boosts = overrides.get(
+        "group_type_boost", options.get("snuba.search.recommended.group-type-boost")
+    )
 
     # Message penalty: downranks capture_message issues (no exception/stacktrace).
     # Subtracted from the score below, and only on the events dataset -- issue-platform
     # occurrences don't have exception_stacks.
-    message_penalty_weight = options.get("snuba.search.recommended.message-penalty-weight")
+    message_penalty_weight = overrides.get(
+        "message_penalty", options.get("snuba.search.recommended.message-penalty-weight")
+    )
 
     # Skip zero-weighted factors: their term is always 0, so computing them in
     # ClickHouse is wasted work -- especially expensive aggregates like user
@@ -888,7 +902,10 @@ def recommended_aggregation(
     end: datetime,
     aggregate_kwargs: Any = None,
 ) -> Sequence[str]:
-    return _recommended_aggregation(timestamp_column="timestamp")
+    # aggregate_kwargs is already scoped to this aggregation -- the weight-override dict, if any.
+    return _recommended_aggregation(
+        timestamp_column="timestamp", overrides=aggregate_kwargs or None
+    )
 
 
 def recommended_issue_platform_aggregation(
@@ -897,7 +914,9 @@ def recommended_issue_platform_aggregation(
     aggregate_kwargs: Any = None,
 ) -> Sequence[str]:
     return _recommended_aggregation(
-        timestamp_column="client_timestamp", type_column="occurrence_type_id"
+        timestamp_column="client_timestamp",
+        type_column="occurrence_type_id",
+        overrides=aggregate_kwargs or None,
     )
 
 
@@ -980,16 +999,30 @@ def resolve_issue_agent_signal(
     return signal
 
 
-def recommended_v2_strategy() -> PostgresSortStrategy:
+def recommended_v2_strategy(overrides: dict[str, Any] | None = None) -> PostgresSortStrategy:
     """Recommended sort v2: the Snuba recommended score (recency/spike/severity/user
     impact/event volume) plus additive boosts for viewer relevance (assignment or suspect
-    commit), Seer fixability, Seer agent progress, regressed issues, and newly-seen issues."""
-    assignment_weight = options.get("snuba.search.recommended.assignment-weight")
-    fixability_weight = options.get("snuba.search.recommended.fixability-weight")
-    agent_weight = options.get("snuba.search.recommended.agent-weight")
-    regressed_weight = options.get("snuba.search.recommended.regressed-weight")
-    newness_weight = options.get("snuba.search.recommended.newness-weight")
-    newness_halflife_hours = options.get("snuba.search.recommended.newness-halflife-hours")
+    commit), Seer fixability, Seer agent progress, regressed issues, and newly-seen issues.
+
+    overrides: ?recommendedWeights values that win over the option, per weight (boosts only;
+    base-factor overrides are applied in _recommended_aggregation)."""
+    overrides = overrides or {}
+    assignment_weight = overrides.get(
+        "assignment", options.get("snuba.search.recommended.assignment-weight")
+    )
+    fixability_weight = overrides.get(
+        "fixability", options.get("snuba.search.recommended.fixability-weight")
+    )
+    agent_weight = overrides.get("agent", options.get("snuba.search.recommended.agent-weight"))
+    regressed_weight = overrides.get(
+        "regressed", options.get("snuba.search.recommended.regressed-weight")
+    )
+    newness_weight = overrides.get(
+        "newness", options.get("snuba.search.recommended.newness-weight")
+    )
+    newness_halflife_hours = overrides.get(
+        "newness_halflife_hours", options.get("snuba.search.recommended.newness-halflife-hours")
+    )
     # Captured once per query so every group decays against the same clock.
     now = timezone.now()
 
@@ -1388,6 +1421,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
         pg_overflow_fallback = False
         pg_strategy = self.postgres_sort_strategies.get(sort_by)
+        # Base-factor overrides reach the aggregation via aggregate_kwargs; the score_fn binds
+        # its weights at construction, so rebuild the strategy here with the same overrides.
+        rec_overrides = cast("dict[str, Any]", aggregate_kwargs or {}).get("recommended")
+        if sort_by == "recommended_v2" and rec_overrides:
+            pg_strategy = recommended_v2_strategy(overrides=rec_overrides)
         if pg_strategy is not None:
             pg_result = self._execute_postgres_sort(
                 strategy=pg_strategy,
