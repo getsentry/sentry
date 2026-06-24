@@ -1781,7 +1781,7 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
             name: 'IdentityIcon',
             defaultProps: {providerId: identity.id},
           }}
-          importSource="sentry/views/settings/components/identityIcon"
+          importSource="sentry/icons/identityIcon"
         >
           <IdentityIcon providerId={identity.id} /> {identity.name}
         </IconCard>
