@@ -469,9 +469,19 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                 timestamp=now - timedelta(seconds=i),
                 op="gen_ai.chat",
                 status=span_status,
+                operation_type="ai_client",
                 trace_id=trace_id,
                 **extra_kwargs,
             )
+
+        # An error span without gen_ai.operation.type must NOT be counted.
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=len(statuses)),
+            op="db.query",
+            status="internal_error",
+            trace_id=trace_id,
+        )
 
         query = {
             "project": [self.project.id],

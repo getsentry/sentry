@@ -315,7 +315,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
             selected_columns=[
                 "gen_ai.conversation.id",
-                "failure_count()",
                 "count_if(gen_ai.operation.type,equals,ai_client)",
                 "count_if(gen_ai.operation.type,equals,tool)",
                 "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)",
@@ -400,7 +399,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                     conv_id=conv_id,
                     start_timestamp=_compute_timestamp_ms(start_ts),
                     end_timestamp=_compute_timestamp_ms(finish_ts),
-                    errors=int(row.get("failure_count()") or 0),
+                    errors=0,
                     llm_calls=int(row.get("count_if(gen_ai.operation.type,equals,ai_client)") or 0),
                     tool_calls=int(row.get("count_if(gen_ai.operation.type,equals,tool)") or 0),
                     total_tokens=int(
@@ -448,6 +447,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             flows_by_conversation: dict[str, list[str]] = defaultdict(list)
             traces_by_conversation: dict[str, set[str]] = defaultdict(set)
             tool_names_by_conversation: dict[str, set[str]] = defaultdict(set)
+            errors_by_conversation: dict[str, int] = defaultdict(int)
             tool_errors_by_conversation: dict[str, int] = defaultdict(int)
             # Track first user data per conversation (data is sorted by timestamp, so first occurrence wins)
             user_by_conversation: dict[str, UserResponse] = {}
@@ -461,6 +461,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 if trace_id:
                     traces_by_conversation[conv_id].add(trace_id)
 
+                status = row.get("span.status", "ok")
+                is_failure = bool(status) and status not in NON_FAILURE_STATUS
+                if is_failure:
+                    errors_by_conversation[conv_id] += 1
+
                 if row.get("gen_ai.operation.type") == "invoke_agent":
                     agent_name = row.get("gen_ai.agent.name", "")
                     if agent_name:
@@ -470,8 +475,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                     tool_name = row.get("gen_ai.tool.name")
                     if tool_name:
                         tool_names_by_conversation[conv_id].add(tool_name)
-                    status = row.get("span.status", "ok")
-                    if status and status not in NON_FAILURE_STATUS:
+                    if is_failure:
                         tool_errors_by_conversation[conv_id] += 1
 
                 # Capture user from the first span (earliest timestamp) for each conversation
@@ -492,6 +496,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 conversation["traceCount"] = len(traces)
                 conversation["user"] = user_by_conversation.get(conv_id)
                 conversation["toolNames"] = sorted(tool_names_by_conversation.get(conv_id, set()))
+                conversation["errors"] = errors_by_conversation.get(conv_id, 0)
                 conversation["toolErrors"] = tool_errors_by_conversation.get(conv_id, 0)
 
     def _apply_first_last_io(
