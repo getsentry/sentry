@@ -186,11 +186,17 @@ def _track_contributor_action_processor(
     if event.get("action") == "opened" and should_increment_contributor_seat(
         organization, repo, contributor
     ):
-        OrganizationContributorAction.objects.get_or_create(
+        _, created = OrganizationContributorAction.objects.get_or_create(
             repository_id=repo.id,
             pr_number=str(pull_request["number"]),
             defaults={"organization_contributor": contributor},
         )
+        if created:
+            metrics.incr(
+                "scm.webhook.organization_contributor.action_recorded",
+                sample_rate=1.0,
+                tags={"provider": IntegrationProviderSlug.GITHUB.value},
+            )
 
 
 class GitHubWebhook(SCMWebhook, ABC):
