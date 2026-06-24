@@ -7,9 +7,8 @@ import {CompactNoteInput} from 'sentry/components/activity/note/compact';
 import {NoteInput} from 'sentry/components/activity/note/input';
 import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
 import {t, tct} from 'sentry/locale';
-import {GroupStore} from 'sentry/stores/groupStore';
 import type {NoteType} from 'sentry/types/alerts';
-import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
+import type {Group, GroupActivity} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -127,7 +126,7 @@ function NoteInputWithStorage({
   const handleCreate = useCallback(
     async (data: NoteType) => {
       save.cancel();
-      const result = await mutators.handleCreate(data, group.activity, {
+      const result = await mutators.handleCreate(data, {
         onSuccess: () => {
           addSuccessMessage(t('Comment posted'));
         },
@@ -146,20 +145,10 @@ function NoteInputWithStorage({
         saveToStorage(storageKey, newStorageObj);
       }
 
-      GroupStore.addActivity(group.id, result);
       trackAnalytics('issue_details.comment_created', {organization});
       onCommentCreated?.([result, ...group.activity]);
     },
-    [
-      save,
-      itemKey,
-      storageKey,
-      mutators,
-      group.activity,
-      group.id,
-      organization,
-      onCommentCreated,
-    ]
+    [save, itemKey, storageKey, mutators, group.activity, organization, onCommentCreated]
   );
 
   const handleUpdate = useCallback(
@@ -167,7 +156,7 @@ function NoteInputWithStorage({
       if (!noteId) {
         return;
       }
-      const result = await mutators.handleUpdate(data, noteId, group.activity, {
+      const result = await mutators.handleUpdate(data, noteId, {
         onSuccess: () => {
           addSuccessMessage(t('Comment updated'));
         },
@@ -176,12 +165,10 @@ function NoteInputWithStorage({
         },
       });
 
-      const d = result as GroupActivityNote;
-      GroupStore.updateActivity(group.id, result.id, {text: d.data.text});
       trackAnalytics('issue_details.comment_updated', {organization});
       onCommentEdited?.(group.activity.map(a => (a.id === result.id ? result : a)));
     },
-    [mutators, noteId, group.activity, group.id, organization, onCommentEdited]
+    [mutators, noteId, group.activity, organization, onCommentEdited]
   );
 
   if (variant === 'compact') {

@@ -26,7 +26,7 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
     openDrawer(
       () => (
         <GroupIdProvider groupId={group.id}>
-          <ActivityDrawer group={group} project={project} />
+          <ActivityDrawer project={project} />
         </GroupIdProvider>
       ),
       {
@@ -50,7 +50,7 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
         },
       }
     );
-  }, [openDrawer, baseUrl, navigate, location.query, group, project]);
+  }, [openDrawer, baseUrl, navigate, location.query, group.id, project]);
 
   return {openIssueActivityDrawer};
 }
