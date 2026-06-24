@@ -92,6 +92,19 @@ def _pr_activity_timeline(pull_request: PullRequest) -> list[PrActivityEvent]:
     )
     check_rows = [row for row in rows if row.event_type in _CHECK_EVENT_TYPES]
     if len(check_rows) > _MAX_FORWARDED_CHECK_ROWS:
+        # The cap is sized above what a normal PR produces, so hitting it is a
+        # signal worth watching: it means CI noise is dropping rows from the
+        # forward, and a persistently high rate would argue for raising the cap.
+        dropped = len(check_rows) - _MAX_FORWARDED_CHECK_ROWS
+        logger.warning(
+            "pr_metrics.judge.check_rows_capped",
+            extra={
+                "pull_request_id": pull_request.id,
+                "check_rows": len(check_rows),
+                "dropped": dropped,
+            },
+        )
+        metrics.incr("pr_metrics.judge.check_rows_capped")
         kept_check_ids = {row.id for row in check_rows[-_MAX_FORWARDED_CHECK_ROWS:]}
         rows = [
             row

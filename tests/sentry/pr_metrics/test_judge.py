@@ -523,8 +523,12 @@ class ForwardPrToSeerJudgeTest(TestCase):
         assert by_type["synchronized"]["sender_type"] == "Bot"
         assert by_type["review_submitted"]["review_state"] == "changes_requested"
 
+    @patch("sentry.pr_metrics.judge.logger")
+    @patch("sentry.pr_metrics.judge.metrics")
     @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
-    def test_forwarded_check_rows_are_capped(self, mock_request: Any) -> None:
+    def test_forwarded_check_rows_are_capped(
+        self, mock_request: Any, mock_metrics: Any, mock_logger: Any
+    ) -> None:
         # check_run fires per check per push, so a busy PR's CI noise must not
         # balloon the request: lifecycle rows ride along in full, check rows are
         # capped to the most recent _MAX_FORWARDED_CHECK_ROWS.
@@ -571,6 +575,17 @@ class ForwardPrToSeerJudgeTest(TestCase):
         # Overall chronological order is preserved.
         timestamps = [e["timestamp"] for e in activity]
         assert timestamps == sorted(timestamps)
+        # Hitting the cap is observable: it emits a metric and a warning so a
+        # persistently high rate can argue for raising the cap.
+        mock_metrics.incr.assert_any_call("pr_metrics.judge.check_rows_capped")
+        mock_logger.warning.assert_any_call(
+            "pr_metrics.judge.check_rows_capped",
+            extra={
+                "pull_request_id": self.pull_request.id,
+                "check_rows": total_checks,
+                "dropped": dropped,
+            },
+        )
 
     @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
     def test_close_action_is_closed_when_unmerged(self, mock_request: Any) -> None:
