@@ -1439,6 +1439,8 @@ def get_issue_details(
     Returns:
         Dict with issue metadata, event_timeseries, tags_overview, and user_activity, or None if not found.
     """
+    # NOTE: start and end are interdependent. get_date_range_from_params raises InvalidParams
+    # unless both or neither are set, so passing only one will fail despite the optional signature.
     start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
 
     organization = Organization.objects.get(id=organization_id)
