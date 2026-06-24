@@ -35,33 +35,69 @@ export function buildHeatmapChartOption({
   const yAxisMin = heatMapPlottable.heatMapSeries.meta.yAxis.start;
   const yAxisMax = heatMapPlottable.heatMapSeries.meta.yAxis.end;
 
+  // The full time range of the X-axis buckets, in milliseconds. We overlay a
+  // `time` axis on this range so ECharts can place ticks on natural time
+  // boundaries (day/hour starts) instead of on every bucket edge (see `xAxis`).
+  const xAxisMin = heatMapPlottable.heatMapSeries.meta.xAxis.start;
+  const xAxisMax = heatMapPlottable.heatMapSeries.meta.xAxis.end;
+
   const series = heatMapPlottable.toSeries({theme});
 
   return {
     grid: Grid({left: 10, right: 10, bottom: 10, top: 10}),
     backgroundColor: theme.tokens.background.primary,
-    xAxis: {
-      type: 'category',
-      axisLabel: {
-        formatter: (value: string) => {
-          // NOTE: ECharts requires a `"category"` X-axis for heat maps, but we _know_ that we only support time as the X-axis. We need to parse the value here.
-          return formatXAxisTimestamp(parseFloat(value), {
-            utc: true,
-          });
+    xAxis: [
+      // Category axis: positions the heat map cells (ECharts requires a category
+      // axis for heat map series). Its categories are the bucket boundaries
+      // (timestamps), so we hide its labels and let the overlaid time axis
+      // render readable ticks instead. As with the Y axis, we don't set `data`
+      // so ECharts matches cells to categories by value.
+      {
+        type: 'category',
+        axisLabel: {
+          show: false,
         },
-        fontSize: FONT_SIZE,
-        fontFamily: DEFAULT_FONT_FAMILY,
+        axisLine: {
+          show: false,
+        },
+        axisTick: {
+          show: false,
+        },
+        axisPointer: {
+          show: false,
+        },
+        splitArea: {
+          show: false,
+        },
       },
-      axisLine: {
-        show: false,
+      // Time axis (overlay): spans the full time range of the buckets and lets
+      // ECharts place ticks on natural time boundaries. A second x-axis defaults
+      // to the top, so we pin it to the bottom explicitly.
+      {
+        type: 'time',
+        position: 'bottom',
+        min: xAxisMin,
+        max: xAxisMax,
+        axisLabel: {
+          hideOverlap: true,
+          formatter: (value: number) => formatXAxisTimestamp(value, {utc: true}),
+          fontSize: FONT_SIZE,
+          fontFamily: DEFAULT_FONT_FAMILY,
+        },
+        axisLine: {
+          show: false,
+        },
+        axisPointer: {
+          show: false,
+        },
+        splitArea: {
+          show: false,
+        },
+        splitLine: {
+          show: false,
+        },
       },
-      axisPointer: {
-        show: false,
-      },
-      splitArea: {
-        show: false,
-      },
-    },
+    ],
     yAxis: [
       // Category axis: positions the heat map cells (ECharts requires a
       // category axis for heat map series). Its categories are the bucket
