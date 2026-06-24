@@ -35,6 +35,10 @@ export const HIDDEN_CATEGORY_AXIS = {
   type: 'category',
   show: false,
   axisLabel: {show: false},
+  // `BaseChart`'s `XAxis` wrapper turns the axis pointer on by default. Left
+  // enabled it highlights the whole hovered column, which (combined with the
+  // series' emphasis border) outlines every cell in it — so disable it.
+  axisPointer: {show: false},
 } as const;
 
 export function heatMapValueAxis({
