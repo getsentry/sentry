@@ -55,10 +55,6 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
-from sentry.models.organizationcontributors import (
-    OrganizationContributorAction,
-    OrganizationContributors,
-)
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -78,7 +74,7 @@ from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.seer.code_review.contributor_seats import (
-    should_increment_contributor_seat,
+    record_contributor_action,
     track_contributor_seat,
 )
 from sentry.seer.code_review.utils import get_pr_author_id
@@ -165,7 +161,6 @@ def _track_contributor_action_processor(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record a contributor's PR-opened action in the OrganizationContributorAction ledger."""
     if integration is None:
         return
 
@@ -174,37 +169,22 @@ def _track_contributor_action_processor(
     if not pull_request or author_id is None:
         return
 
-    # Seed on any action so the code-review preflight finds the contributor.
-    contributor, _ = OrganizationContributors.objects.get_or_create(
-        organization_id=organization.id,
+    try:
+        is_private = pull_request["head"]["repo"]["private"]
+    except (KeyError, AttributeError, TypeError):
+        is_private = False
+
+    record_contributor_action(
+        organization=organization,
+        repo=repo,
         integration_id=integration.id,
-        external_identifier=author_id,
-        defaults={"alias": (pull_request.get("user") or {}).get("login")},
+        user_id=author_id,
+        user_username=(pull_request.get("user") or {}).get("login"),
+        pr_number=pull_request["number"],
+        is_opened=event.get("action") == "opened",
+        provider="github",
+        tags={"is_private": is_private},
     )
-
-    # Record one row per PR, on the first "opened" action, for billable contributors.
-    if event.get("action") == "opened" and should_increment_contributor_seat(
-        organization, repo, contributor
-    ):
-        _, created = OrganizationContributorAction.objects.get_or_create(
-            repository_id=repo.id,
-            pr_number=str(pull_request["number"]),
-            defaults={"organization_contributor": contributor},
-        )
-        if created:
-            try:
-                pr_repo_private = pull_request["head"]["repo"]["private"]
-            except (KeyError, AttributeError, TypeError):
-                pr_repo_private = False
-
-            metrics.incr(
-                "scm.webhook.organization_contributor.action_recorded",
-                sample_rate=1.0,
-                tags={
-                    "provider": (repo.provider or "").removeprefix("integrations:"),
-                    "is_private": pr_repo_private,
-                },
-            )
 
 
 class GitHubWebhook(SCMWebhook, ABC):
