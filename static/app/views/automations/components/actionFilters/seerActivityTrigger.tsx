@@ -21,8 +21,8 @@ const SEER_ACTIVITY_STAGE_CHOICES: Array<{label: string; value: string}> = [
 ];
 
 const SEER_ITERATION_GATED_STAGE_CHOICES: Array<{label: string; value: string}> = [
-  {value: 'iteration_started', label: t('PR iteration started')},
-  {value: 'iteration_completed', label: t('PR iteration completed')},
+  {value: 'iteration_started', label: t('Pull request iteration started')},
+  {value: 'iteration_completed', label: t('Pull request iteration completed')},
 ];
 
 export function SeerActivityTriggerDetails({condition}: {condition: DataCondition}) {
@@ -33,11 +33,7 @@ export function SeerActivityTriggerDetails({condition}: {condition: DataConditio
     ...SEER_ACTIVITY_STAGE_CHOICES,
     ...SEER_ITERATION_GATED_STAGE_CHOICES,
   ];
-  // The stages should all appear in SEER_ACTIVITY_STAGE_CHOICES, but for type safety we call
-  // call .filter(Boolean) to get rid of invalid stages when we render.
-  const labels = stages
-    .map(s => allChoices.find(c => c.value === s)?.label)
-    .filter(Boolean);
+  const labels = stages.map(s => allChoices.find(c => c.value === s)?.label ?? '');
   const details =
     labels.length === 1
       ? tct("Seer reaches the '[stage]' stage", {stage: labels[0] ?? ''})
