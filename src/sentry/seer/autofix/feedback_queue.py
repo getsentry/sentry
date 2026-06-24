@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from sentry.seer.autofix.autofix_agent import Feedback
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -47,13 +47,22 @@ def enqueue_autofix_feedback(
     redis.expire(key, _QUEUE_TTL_SECONDS)
 
 
+def _parse_queued_item(raw_item: str) -> QueuedAutofixFeedback | None:
+    try:
+        return QueuedAutofixFeedback.parse_raw(raw_item)
+    except (ValidationError, ValueError):
+        logger.warning("autofix.feedback_queue.skipped_unparseable_item")
+        return None
+
+
 def peek_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
     redis = redis_clusters.get(_REDIS_CLUSTER)
     key = _feedback_queue_key(run_id)
     items: list[QueuedAutofixFeedback] = []
 
     for raw_item in redis.lrange(key, 0, -1):
-        items.append(QueuedAutofixFeedback.parse_raw(raw_item))
+        if (item := _parse_queued_item(raw_item)) is not None:
+            items.append(item)
 
     return items
 
@@ -64,6 +73,7 @@ def pop_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
     items: list[QueuedAutofixFeedback] = []
 
     while raw_item := redis.lpop(key):
-        items.append(QueuedAutofixFeedback.parse_raw(raw_item))
+        if (item := _parse_queued_item(raw_item)) is not None:
+            items.append(item)
 
     return items

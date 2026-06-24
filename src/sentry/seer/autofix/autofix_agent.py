@@ -3,11 +3,12 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 
 from django.utils import timezone
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ValidationError, parse_raw_as
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
 
@@ -99,8 +100,36 @@ FeedbackSource = UserUIFeedbackSource | GithubPrCommentFeedbackSource
 
 
 class Feedback(BaseModel):
-    message: str
+    message: str = Field(alias="text")
     source: FeedbackSource
+    timestamp: datetime = Field(default_factory=timezone.now)
+
+    class Config:
+        allow_population_by_field_name = True
+
+
+class LegacyFeedback(BaseModel):
+    text: str
+    source: FeedbackSource
+    timestamp: datetime
+
+    def to_feedback(self) -> Feedback:
+        return Feedback(text=self.text, source=self.source, timestamp=self.timestamp)
+
+
+def parse_feedback(raw: str) -> list[Feedback]:
+    try:
+        return parse_raw_as(list[Feedback], raw)
+    except (ValidationError, ValueError):
+        pass
+    try:
+        return [LegacyFeedback.parse_raw(raw).to_feedback()]
+    except (ValidationError, ValueError):
+        return []
+
+
+def serialize_feedback(items: Sequence[Feedback]) -> str:
+    return json.dumps([item.dict(by_alias=True) for item in items])
 
 
 class NoSeerQuotaException(Exception):
@@ -471,19 +500,7 @@ def trigger_autofix_agent(
     }
     feedback_items = list(feedback or [])
     if step == AutofixStep.PR_ITERATION and feedback_items:
-        timestamp = timezone.now().isoformat()
-
-        # Stored as JSON so the UI can attribute the feedback to its source.
-        prompt_metadata["feedback"] = json.dumps(
-            [
-                {
-                    "text": feedback_item.message,
-                    "source": feedback_item.source,
-                    "timestamp": timestamp,
-                }
-                for feedback_item in feedback_items
-            ]
-        )
+        prompt_metadata["feedback"] = serialize_feedback(feedback_items)
 
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)

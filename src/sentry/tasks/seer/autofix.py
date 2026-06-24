@@ -1,4 +1,3 @@
-import json
 import logging
 from collections.abc import Mapping
 from typing import Any
@@ -24,6 +23,7 @@ from sentry.seer.autofix.autofix_agent import (
     PrIterationNoPullRequestException,
     PrIterationNotEnabledException,
     get_autofix_run_state,
+    parse_feedback,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import (
@@ -78,12 +78,8 @@ def _processed_github_comment_ids(state: SeerRunState) -> set[int]:
         raw = (block.message.metadata or {}).get("feedback")
         if not raw:
             continue
-        try:
-            entries = json.loads(raw)
-        except (ValueError, TypeError):
-            continue
-        for entry in entries:
-            source = entry.get("source") or {}
+        for entry in parse_feedback(raw):
+            source = entry.source
             if source.get("type") == "github-pr-comment":
                 cid = (source.get("comment") or {}).get("id")
                 if cid is not None:

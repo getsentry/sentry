@@ -332,7 +332,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-                if user_context is None:
+                if not user_context:
                     return Response(
                         {"detail": "feedback is required for pr_iteration"},
                         status=status.HTTP_400_BAD_REQUEST,
@@ -476,12 +476,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         run = get_seer_run(state.run_id, group.organization)
         blocks = [block.dict() for block in state.blocks]
-        # Match the `{text, source}` shape the UI already parses from completed
-        # pr_iteration block metadata, so queued and processed feedback render
-        # through the same path. No timestamp: enqueue time isn't recorded.
         queued_feedback = [
-            {"text": item.feedback.message, "source": item.feedback.source}
-            for item in peek_queued_autofix_feedback(state.run_id)
+            item.feedback.dict(by_alias=True) for item in peek_queued_autofix_feedback(state.run_id)
         ]
         return Response(
             {
