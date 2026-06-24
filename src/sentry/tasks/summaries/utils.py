@@ -46,6 +46,16 @@ from sentry.utils.tracing import start_span
 ONE_DAY = int(timedelta(days=1).total_seconds())
 logger = logging.getLogger(__name__)
 
+RESOLVED_STATUSES = frozenset(
+    {
+        GroupHistoryStatus.RESOLVED,
+        GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
+        GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+        GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
+        GroupHistoryStatus.AUTO_RESOLVED,
+    }
+)
+
 
 class OrganizationReportContext:
     def __init__(self, timestamp: float, duration: int, organization: Organization):
@@ -972,7 +982,11 @@ def enrich_past_resolved_issues(ctx: OrganizationReportContext) -> None:
     )
 
     group_history_qs = (
-        GroupHistory.objects.filter(group_id__in=all_group_ids, organization_id=ctx.organization.id)
+        GroupHistory.objects.filter(
+            group_id__in=all_group_ids,
+            organization_id=ctx.organization.id,
+            status__in=RESOLVED_STATUSES,
+        )
         .select_related("release")
         .order_by("group_id", "-date_added")
         .distinct("group_id")

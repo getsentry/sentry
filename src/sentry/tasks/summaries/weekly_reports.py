@@ -43,6 +43,7 @@ from sentry.tasks.summaries.organization_report_context_factory import (
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     PAST_ISSUES_LINK_BOOST,
+    RESOLVED_STATUSES,
     OrganizationReportContext,
     batch_resolve_group_urls,
 )
@@ -62,16 +63,6 @@ from sentry.utils.tracing import start_span
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
-
-RESOLVED_STATUSES = frozenset(
-    {
-        GroupHistoryStatus.RESOLVED,
-        GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
-        GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
-        GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
-        GroupHistoryStatus.AUTO_RESOLVED,
-    }
-)
 
 
 @dataclass
