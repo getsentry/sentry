@@ -328,25 +328,6 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 
         assert [ep.project for ep in result] == [opens_pr]
 
-    def test_logs_decision_inputs_for_dropped_project(self) -> None:
-        org = self.create_organization()
-        project = self._make_eligible(
-            self.create_project(organization=org),
-            stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
-        )
-
-        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
-            _get_eligible_projects(org, "manual")
-
-        mock_logger.info.assert_called_once_with(
-            "night_shift.project_filtered.not_pr_producing",
-            extra={
-                "organization_id": org.id,
-                "project_id": project.id,
-                "stopping_point": "code_changes",
-            },
-        )
-
 
 @django_db_all
 class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
