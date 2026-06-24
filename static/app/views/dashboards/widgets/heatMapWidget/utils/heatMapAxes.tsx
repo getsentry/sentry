@@ -16,16 +16,25 @@ import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWi
  */
 
 /**
- * Positions the heat map cells. `show: false` hides the whole axis while
- * keeping it in the coordinate system. We deliberately don't set `data`:
- * ECharts collects the categories from the series' values and matches cells to
- * them by value. Supplying our own list would make ECharts treat those same
- * values as category *indices* instead, dropping every cell whose value isn't a
- * valid index.
+ * Positions the heat map cells. `show: false` hides the axis while keeping it
+ * in the coordinate system to place the cells.
+ *
+ * `axisLabel: {show: false}` looks redundant with `show: false`, but it isn't:
+ * the app also loads the full `echarts` bundle (via `useChartXRangeSelection`),
+ * which registers the legacy `containLabel` layout. That layout reserves grid
+ * space for an axis's labels based on `axisLabel.show` alone — it ignores the
+ * axis-level `show` — so without this the hidden category axis pads the chart
+ * with room for its (never-rendered) bucket-boundary labels.
+ *
+ * We also deliberately don't set `data`: ECharts collects the categories from
+ * the series' values and matches cells to them by value. Supplying our own list
+ * would make ECharts treat those same values as category *indices* instead,
+ * dropping every cell whose value isn't a valid index.
  */
 export const HIDDEN_CATEGORY_AXIS = {
   type: 'category',
   show: false,
+  axisLabel: {show: false},
 } as const;
 
 export function heatMapValueAxis({
