@@ -14,6 +14,8 @@ from sentry.testutils.helpers.datetime import before_now
 
 from .test_organization_ai_conversations_base import (
     LLM_COST,
+    LLM_INPUT_TOKENS,
+    LLM_OUTPUT_TOKENS,
     LLM_TOKENS,
     BaseAIConversationsTestCase,
 )
@@ -181,6 +183,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             op="gen_ai.chat",
             operation_type="ai_client",
             tokens=LLM_TOKENS,
+            input_tokens=LLM_INPUT_TOKENS,
+            output_tokens=LLM_OUTPUT_TOKENS,
             cost=LLM_COST,
             trace_id=trace_id,
             messages=first_messages,
@@ -212,6 +216,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             status="internal_error",
             operation_type="ai_client",
             tokens=LLM_TOKENS,
+            input_tokens=LLM_INPUT_TOKENS,
+            output_tokens=LLM_OUTPUT_TOKENS,
             cost=LLM_COST,
             trace_id=trace_id,
             messages=[{"role": "user", "content": "Thanks"}],
@@ -234,6 +240,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["llmCalls"] == 2
         assert conversation["toolCalls"] == 1
         assert conversation["totalTokens"] == LLM_TOKENS * 2
+        assert conversation["inputTokens"] == LLM_INPUT_TOKENS * 2
+        assert conversation["outputTokens"] == LLM_OUTPUT_TOKENS * 2
         assert conversation["totalCost"] == LLM_COST * 2
         assert conversation["traceCount"] == 1
         assert conversation["startTimestamp"] > 0
@@ -427,6 +435,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["llmCalls"] == 1
         assert conversation["toolCalls"] == 0
         assert conversation["totalTokens"] == 0
+        assert conversation["inputTokens"] == 0
+        assert conversation["outputTokens"] == 0
         assert conversation["totalCost"] == 0.0
         assert conversation["flow"] == []
         assert len(conversation["traceIds"]) == 1
@@ -549,6 +559,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             op="gen_ai.chat",
             operation_type="ai_client",
             tokens=50,
+            input_tokens=35,
+            output_tokens=15,
             cost=0.005,
             trace_id=trace_id,
             messages=[{"role": "user", "content": "recent request"}],
@@ -569,6 +581,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["conversationId"] == conversation_id
         assert conversation["llmCalls"] == 1
         assert conversation["totalTokens"] == 50
+        assert conversation["inputTokens"] == 35
+        assert conversation["outputTokens"] == 15
         assert conversation["totalCost"] == 0.005
 
     def test_first_input_last_output(self) -> None:
@@ -1246,6 +1260,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             agent_name="Test Agent",
             trace_id=trace_id,
             tokens=500,
+            input_tokens=350,
+            output_tokens=150,
             cost=0.05,
         )
 
@@ -1257,6 +1273,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             operation_type="ai_client",
             trace_id=trace_id,
             tokens=100,
+            input_tokens=70,
+            output_tokens=30,
             cost=0.01,
             messages=[{"role": "user", "content": "test"}],
             response_text="test response",
@@ -1276,6 +1294,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         # Tokens and cost should only come from ai_client span (100, 0.01)
         # NOT the sum of both spans (600, 0.06) which would be double counting
         assert conversation["totalTokens"] == 100
+        assert conversation["inputTokens"] == 70
+        assert conversation["outputTokens"] == 30
         assert conversation["totalCost"] == 0.01
         # Verify counts are correct
         assert conversation["llmCalls"] == 1

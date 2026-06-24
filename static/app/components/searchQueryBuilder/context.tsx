@@ -3,19 +3,13 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useId,
   useMemo,
   useRef,
   useState,
   type Dispatch,
 } from 'react';
 import * as Sentry from '@sentry/react';
-import {
-  queryOptions,
-  useQuery,
-  useQueryClient,
-  type QueryKey,
-} from '@tanstack/react-query';
+import {useQuery, type QueryKey} from '@tanstack/react-query';
 
 import type {
   GetTagKeys,
@@ -23,6 +17,7 @@ import type {
   SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import {useFilterKeyRegistry} from 'sentry/components/searchQueryBuilder/hooks/useFilterKeyRegistry';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
   useQueryBuilderState,
@@ -35,7 +30,7 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
-import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -149,18 +144,6 @@ export function useHasSearchQueryBuilderProvider() {
 const defaultFieldDefinitionGetter: FieldDefinitionGetter = key =>
   defaultGetFieldDefinition(key);
 
-function getEmptyFilterKeyRegistry(): TagCollection {
-  return {};
-}
-
-function filterKeyRegistryOptions(queryKey: QueryKey) {
-  return queryOptions({
-    queryKey,
-    queryFn: getEmptyFilterKeyRegistry,
-    staleTime: Infinity,
-  });
-}
-
 const SearchQueryBuilderStateContext =
   createContext<SearchQueryBuilderStateContextData | null>(null);
 const SearchQueryBuilderConfigContext =
@@ -209,8 +192,6 @@ export function SearchQueryBuilderProvider({
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
-  const fallbackRegistryId = useId();
-  const queryClient = useQueryClient();
 
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
   const [displayAskSeerFeedback, setDisplayAskSeerFeedback] = useState(false);
@@ -228,55 +209,11 @@ export function SearchQueryBuilderProvider({
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
 
-  const filterKeyRegistryQueryKey = useMemo<QueryKey>(
-    () =>
-      asyncFilterKeyRegistryQueryKey ?? [
-        'search-query-builder-filter-key-registry',
-        fallbackRegistryId,
-      ],
-    [asyncFilterKeyRegistryQueryKey, fallbackRegistryId]
-  );
+  const {filterKeyRegistryQueryOptions, registerFilterKeys} = useFilterKeyRegistry({
+    asyncFilterKeyRegistryQueryKey,
+  });
 
-  const filterKeyRegistryQueryOptions = useMemo(
-    () => filterKeyRegistryOptions(filterKeyRegistryQueryKey),
-    [filterKeyRegistryQueryKey]
-  );
-  const {data: asyncFilterKeys = getEmptyFilterKeyRegistry()} = useQuery(
-    filterKeyRegistryQueryOptions
-  );
-
-  const registerFilterKeys = useCallback(
-    (tags: Tag[], registryQueryKey: QueryKey) => {
-      if (!tags.length) {
-        return;
-      }
-
-      queryClient.setQueryData(
-        registryQueryKey,
-        (current: TagCollection | undefined): TagCollection => {
-          const next = {...current};
-          let changed = false;
-
-          for (const tag of tags) {
-            const currentTag = current?.[tag.key];
-            if (
-              currentTag?.name === tag.name &&
-              currentTag?.kind === tag.kind &&
-              currentTag?.predefined === tag.predefined
-            ) {
-              continue;
-            }
-
-            next[tag.key] = tag;
-            changed = true;
-          }
-
-          return changed ? next : (current ?? {});
-        }
-      );
-    },
-    [queryClient]
-  );
+  const {data: asyncFilterKeys = {}} = useQuery(filterKeyRegistryQueryOptions);
 
   const registeredGetTagKeys = useCallback<GetTagKeys>(
     async searchQuery => {
@@ -316,6 +253,11 @@ export function SearchQueryBuilderProvider({
     [getSuggestedFilterKey]
   );
 
+  const stableInvalidFilterKeys = useMemo(
+    () => invalidFilterKeys ?? [],
+    [invalidFilterKeys]
+  );
+
   const parseQuery = useCallback(
     (query: string) =>
       parseQueryBuilderValue(query, getFieldDefinitionWithTagMetadata, {
@@ -326,6 +268,7 @@ export function SearchQueryBuilderProvider({
         disallowWildcard,
         filterKeys: mergedFilterKeys,
         invalidMessages,
+        invalidFilterKeys: stableInvalidFilterKeys,
         filterKeyAliases,
       }),
     [
@@ -337,6 +280,7 @@ export function SearchQueryBuilderProvider({
       mergedFilterKeys,
       getFilterTokenWarning,
       invalidMessages,
+      stableInvalidFilterKeys,
       filterKeyAliases,
     ]
   );
@@ -353,11 +297,6 @@ export function SearchQueryBuilderProvider({
   });
 
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
-
-  const stableInvalidFilterKeys = useMemo(
-    () => invalidFilterKeys ?? [],
-    [invalidFilterKeys]
-  );
 
   const previousQuery = usePrevious(state.query);
   const firstRender = useRef(true);

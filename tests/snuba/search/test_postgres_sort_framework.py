@@ -195,6 +195,33 @@ class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
             results = list(self.make_query("test_sort"))
         assert results == [self.groups[1], self.groups[2], self.groups[0]]
 
+    def test_score_fn_error_falls_back_not_drops(self):
+        # A score_fn that raises on one row must not 500 the whole sort, and the issue must
+        # not vanish from the stream: it falls back to fallback_score_fn and stays in the
+        # results. Regression for an OverflowError in the recommended_v2 newness boost that
+        # took down the entire issue stream.
+        for group in self.groups:
+            group.update(seer_fixability_score=float(group.id))
+        bad_id = self.groups[0].id
+
+        def score_fn(data):
+            if data["fix"] == bad_id:
+                raise OverflowError("boom")
+            return data["fix"]
+
+        strategy = PostgresSortStrategy(
+            postgres_fields={"fix": "seer_fixability_score"},
+            score_fn=score_fn,
+            # groups[0] fails score_fn but falls back to a high base score, so it survives
+            # and sorts to the top rather than being dropped.
+            fallback_score_fn=lambda data: 10**9,
+            exclude_null_postgres=False,
+        )
+        with _patch_pg_strategies({"test_sort": strategy}):
+            results = list(self.make_query("test_sort"))
+        assert set(results) == set(self.groups)
+        assert results[0] == self.groups[0]
+
 
 class TestExecutePostgresSort(PostgresSortTestBase):
     def test_snuba_filter_narrows_candidates(self):
@@ -469,6 +496,13 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
         self.groups[0].update(first_seen=before_now(hours=1))
 
         assert self._query(actor=self.user)[0] == self.groups[0]
+
+    def test_very_old_first_seen_does_not_overflow(self):
+        # first_seen far enough back that hours/halflife exceeds ~1024 used to overflow
+        # the float in 1.0 / 2.0**x. The query must still succeed (newness underflows to 0).
+        self.groups[0].update(first_seen=before_now(days=3000))
+
+        assert set(self._query(actor=self.user)) == set(self.groups)
 
     def _add_suspect_commit(self, group, user):
         GroupOwner.objects.create(

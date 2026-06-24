@@ -112,7 +112,7 @@ export function PlanList({
                 <strong>{plan.name}</strong> <SubText>— {plan.id}</SubText>
                 <br />
                 <small>
-                  {formatCurrency(plan.price)} /{' '}
+                  {formatCurrency(plan.totalPrice)} /{' '}
                   {plan.billingInterval === ANNUAL ? 'annually' : 'monthly'}
                 </small>
               </div>

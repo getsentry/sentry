@@ -27,7 +27,7 @@ export function PartnerPlanEndingBanner({
   const daysLeft = getContractDaysLeft(subscription);
   const hasPendingUpgrade =
     subscription.pendingChanges !== null &&
-    subscription.pendingChanges?.planDetails.price > 0;
+    subscription.pendingChanges?.planDetails.totalPrice > 0;
   if (
     hasPendingUpgrade ||
     !subscription.partner ||

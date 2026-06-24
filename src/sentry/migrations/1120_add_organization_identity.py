@@ -3,6 +3,7 @@
 import django.db.models.deletion
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
+import sentry.db.models.fields.hybrid_cloud_foreign_key
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
@@ -29,7 +30,7 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.CreateModel(
-            name="OrganizationContributorAction",
+            name="OrganizationIdentity",
             fields=[
                 (
                     "id",
@@ -39,37 +40,23 @@ class Migration(CheckedMigration):
                 ),
                 ("date_updated", models.DateTimeField(auto_now=True)),
                 ("date_added", models.DateTimeField(auto_now_add=True)),
-                ("pr_number", models.CharField(max_length=64)),
                 (
-                    "organization_contributor",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.organizationcontributors",
+                    "organization_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Organization", db_index=True, on_delete="CASCADE"
                     ),
                 ),
                 (
-                    "repository",
+                    "identity",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.DO_NOTHING,
-                        to="sentry.repository",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.identity",
                     ),
                 ),
             ],
             options={
-                "db_table": "sentry_organizationcontributoraction",
-                "indexes": [
-                    models.Index(
-                        fields=["organization_contributor", "date_added"],
-                        name="sentry_orgcontaction_date",
-                    )
-                ],
-                "constraints": [
-                    models.UniqueConstraint(
-                        fields=("repository_id", "pr_number"),
-                        name="sentry_orgcontaction_unique_pr",
-                    )
-                ],
+                "db_table": "sentry_organizationidentity",
+                "unique_together": {("organization_id", "identity_id")},
             },
         ),
     ]
