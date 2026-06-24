@@ -9,7 +9,6 @@ import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
 import {Confirm} from 'sentry/components/confirm';
-import {Footer} from 'sentry/components/footer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageOverlay} from 'sentry/components/pageOverlay';
@@ -194,7 +193,6 @@ function DisabledMemberView(props: Props) {
           }}
         />
       )}
-      <Footer />
     </Stack>
   );
 }

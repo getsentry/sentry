@@ -29,8 +29,20 @@ describe('useIssuePreviewDrawer', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/42/autofix/setup/',
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
     });
   });
 

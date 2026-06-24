@@ -5,6 +5,10 @@ from unittest import mock
 
 import pytest
 
+from sentry.issue_detection.detectors.span_first.span_first_utils import (
+    SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION,
+    SpanFirstDetectorsRolloutController,
+)
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.models.environment import Environment
 from sentry.models.release import Release
@@ -153,13 +157,18 @@ class TestSpansTask(TestCase):
             name="a" * 64,
         )
 
-    @override_options({"spans.process-segments.detect-performance-problems.enable": True})
+    @override_options({SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION: True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_n_plus_one_issue_detection(self, mock_eventstream: mock.MagicMock) -> None:
         spans = self.generate_n_plus_one_spans()
-        with mock.patch(
-            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released",
-            return_value=True,
+        with (
+            mock.patch(
+                "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released",
+                return_value=True,
+            ),
+            mock.patch.object(
+                SpanFirstDetectorsRolloutController, "should_check_experiment", return_value=True
+            ),
         ):
             process_segment(spans)
 
@@ -173,7 +182,7 @@ class TestSpansTask(TestCase):
         ]
         assert performance_problem.type == PerformanceStreamedSpansGroupTypeExperimental
 
-    @override_options({"spans.process-segments.detect-performance-problems.enable": True})
+    @override_options({SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION: True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     @pytest.mark.xfail(reason="batches without segment spans are not supported yet")
     def test_n_plus_one_issue_detection_without_segment_span(
@@ -216,10 +225,15 @@ class TestSpansTask(TestCase):
         repeating_spans = [repeating_span() for _ in range(7)]
         spans = [segment_span, child_span, cause_span] + repeating_spans
 
-        with mock.patch(
-            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
-        ) as mock_released:
-            mock_released.return_value = True
+        with (
+            mock.patch(
+                "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released",
+                return_value=True,
+            ),
+            mock.patch.object(
+                SpanFirstDetectorsRolloutController, "should_check_experiment", return_value=True
+            ),
+        ):
             process_segment(spans)
 
         performance_problem = mock_eventstream.call_args[0][1]

@@ -13,63 +13,35 @@ import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 type Orientation = 'horizontal' | 'vertical';
 
-/**
- * Which side of the divider the `sized` pane sits on. `start` is left
- * (horizontal) or top (vertical); `end` is right or bottom. Orientation-neutral
- * so it stays correct when `orientation` is responsive.
- */
-type Placement = 'start' | 'end';
-
 // The divider renders as a 1px border; account for it when deriving the max.
 const DIVIDER_SIZE = 1;
 
-type SplitPanelProps = {
-  /**
-   * The `sized` pane's initial size in pixels, and the size restored on
-   * double-click.
-   */
+interface SplitPanelProps {
+  /** Initial size of the `sized` pane in pixels; restored on double-click. */
   defaultSize: number;
-  /**
-   * The pane with a controlled, draggable size. Fills the container (no
-   * divider, size props ignored) when `fill` is omitted.
-   */
+  /** The pane with a draggable size. */
   sized: React.ReactNode;
-  /** The pane that absorbs the remaining space. */
+  /** The pane that fills the remaining space. Omit to render a single pane. */
   fill?: React.ReactNode;
-  /**
-   * The `fill` pane's minimum size in pixels. The `sized` pane's max is derived
-   * from this and the measured container, so consumers don't compute
-   * "container − other pane − divider" by hand.
-   */
+  /** Minimum size of the `fill` pane in pixels. */
   fillMinSize?: number;
-  /**
-   * Initial size of the `sized` pane, e.g. a value restored from persistence.
-   * Seeds the starting size only; `defaultSize` stays the double-click reset
-   * target. Defaults to `defaultSize`.
-   */
+  /** Starting size, e.g. restored from persistence. Defaults to `defaultSize`. */
   initialSize?: number;
-  /** Optional hard cap on the `sized` pane, tighter than the derived max. */
   maxSize?: number;
-  /** The `sized` pane's minimum size in pixels. */
   minSize?: number;
-  /** Fires on drag start with the `sized` pane's current size. */
-  onMouseDown?: (size: number) => void;
-  /** Fires during drag with the new size. Wire to your own persistence. */
+  /** Fires during drag with the new size. */
   onResize?: (newSize: number) => void;
-  /** Fires once on mouseUp with the start/end sizes and a derived direction. */
+  /** Fires once when a drag ends. */
   onResizeEnd?: (payload: {
     direction: 'increase' | 'decrease';
     endSize: number;
     startSize: number;
   }) => void;
-  /**
-   * Layout direction. Accepts a responsive value, e.g.
-   * `{xs: 'vertical', md: 'horizontal'}`.
-   */
-  orientation?: Responsive<Orientation>;
+  /** Layout direction. Accepts a responsive value. */
+  orientation?: Responsive<'horizontal' | 'vertical'>;
   /** Which side the `sized` pane sits on. Defaults to `start`. */
-  placement?: Placement;
-};
+  placement?: 'start' | 'end';
+}
 
 // At a limit the divider can only travel one way, so point the cursor that way;
 // the grow/shrink direction flips when the sized pane sits after the divider.
@@ -121,7 +93,7 @@ type SplitDividerProps = {
   min: number;
   onDoubleClick: React.MouseEventHandler<HTMLElement>;
   onKeyDown: React.KeyboardEventHandler<HTMLElement>;
-  onMouseDown: React.MouseEventHandler<HTMLElement>;
+  onPointerDown: React.PointerEventHandler<HTMLElement>;
   orientation: Orientation;
   value: number;
 };
@@ -135,7 +107,7 @@ function SplitDivider({
   value,
   onDoubleClick,
   onKeyDown,
-  onMouseDown,
+  onPointerDown,
 }: SplitDividerProps) {
   const cursor = getDividerCursor(
     orientation,
@@ -158,7 +130,7 @@ function SplitDivider({
           data-orientation={orientation}
           onDoubleClick={onDoubleClick}
           onKeyDown={onKeyDown}
-          onMouseDown={onMouseDown}
+          onPointerDown={onPointerDown}
           role="separator"
           tabIndex={0}
         />
@@ -177,7 +149,6 @@ export function SplitPanel({
   minSize = 0,
   maxSize,
   fillMinSize = 0,
-  onMouseDown,
   onResize,
   onResizeEnd,
 }: SplitPanelProps) {
@@ -216,7 +187,7 @@ export function SplitPanel({
 
   const {
     isHeld,
-    onMouseDown: onDragStart,
+    onPointerDown,
     setSize,
     size: containerSize,
   } = useResizableDrawer({
@@ -236,14 +207,6 @@ export function SplitPanel({
     onResizeEnd: ({startSize, endSize}) =>
       handleResizeEnd(Math.min(startSize, max), Math.min(endSize, max)),
   });
-
-  const handleMouseDown = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      onMouseDown?.(Math.min(containerSize, max));
-      onDragStart(event);
-    },
-    [onDragStart, containerSize, max, onMouseDown]
-  );
 
   const handleDoubleClick = useCallback(() => {
     const startSize = Math.min(containerSize, max);
@@ -292,7 +255,7 @@ export function SplitPanel({
   // Clamped so the pane basis and divider aria-valuenow stay in step.
   const visibleSize = Math.min(containerSize, max);
 
-  // Ordered sized → divider → fill; reversed for `placement="end"`. Keys keep
+  // Ordered sized -> divider -> fill; reversed for `placement="end"`. Keys keep
   // pane identity across the flip.
   const panes = [
     <Pane key="sized" size={hasFill ? visibleSize : null}>
@@ -311,7 +274,7 @@ export function SplitPanel({
         value={visibleSize}
         onDoubleClick={handleDoubleClick}
         onKeyDown={handleKeyDown}
-        onMouseDown={handleMouseDown}
+        onPointerDown={onPointerDown}
       />,
       <Pane key="fill" size={null}>
         {fill}
@@ -360,6 +323,7 @@ const RootElement = styled('div')`
 
 const DividerLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
   user-select: none;
+  touch-action: none;
   cursor: ${p => p.$cursor};
 
   /* Invisible wider hit area for dragging */

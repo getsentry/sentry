@@ -19,7 +19,6 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.utils import json
 from sentry.workflow_engine.models.action import Action
-from sentry.workflow_engine.processors.action import get_notification_plugins_for_org
 
 from .types import BaseActionValidatorHandler
 
@@ -256,12 +255,7 @@ class WebhookActionValidatorHandler(BaseActionValidatorHandler):
     notify_action_form = NotifyEventServiceForm
 
     def _get_services(self) -> list[Any]:
-        plugins = get_notification_plugins_for_org(self.organization)
-        sentry_apps = app_service.find_alertable_services(organization_id=self.organization.id)
-        return [
-            *plugins,
-            *sentry_apps,
-        ]
+        return list(app_service.find_alertable_services(organization_id=self.organization.id))
 
     def generate_action_form_payload(self) -> dict[str, Any]:
         return {

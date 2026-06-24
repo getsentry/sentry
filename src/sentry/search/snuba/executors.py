@@ -102,6 +102,10 @@ class PostgresSortStrategy:
         dataclass_field(default_factory=dict)
     )
     score_fn: Callable[[dict[str, Any]], float] = lambda data: 0.0
+    # Score to use when score_fn raises on a row. Dropping the row would make the issue
+    # vanish from the stream entirely; instead we keep it with a base score (e.g. the
+    # Snuba recommended value) so it still appears, just without the boosts score_fn adds.
+    fallback_score_fn: Callable[[dict[str, Any]], float] = lambda data: 0.0
     exclude_null_postgres: bool = True
 
 
@@ -1002,7 +1006,9 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
         newness = 0.0
         if first_seen is not None and newness_halflife_hours > 0:
             hours = max(0.0, (now - first_seen).total_seconds() / 3600)
-            newness = 1.0 / 2.0 ** (hours / newness_halflife_hours)
+            # Negative exponent so very old issues underflow to 0.0 rather than
+            # overflowing the float (1.0 / 2.0**x blows up once x exceeds ~1024).
+            newness = 2.0 ** -(hours / newness_halflife_hours)
         regressed = 1.0 if data.get("substatus") == GroupSubStatus.REGRESSED else 0.0
         return (
             (data.get("recommended") or 0.0)
@@ -1026,6 +1032,9 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
             "agent": resolve_issue_agent_signal,
         },
         score_fn=score_fn,
+        # If a boost calculation ever fails, keep the issue in the stream ranked by its
+        # base Snuba recommended score rather than dropping it.
+        fallback_score_fn=lambda data: data.get("recommended") or 0.0,
         # seer_fixability_score is null for most groups; score those as 0 rather
         # than excluding them.
         exclude_null_postgres=False,
@@ -1267,8 +1276,25 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 }
                 try:
                     score = strategy.score_fn(merged)
-                except (TypeError, KeyError):
-                    continue
+                except (TypeError, KeyError, ArithmeticError) as e:
+                    # A single malformed/extreme row must never 500 the whole issue stream
+                    # (ArithmeticError covers overflow/underflow/zero-division in score
+                    # math). Rather than drop the issue -- which removes it from the view
+                    # entirely -- fall back to the strategy's base score so it still shows,
+                    # just without the boosts. Logged so a recurring bug stays discoverable.
+                    self.logger.warning(
+                        "postgres_sort.score_fn_failed",
+                        extra={
+                            "sort_by": sort_by,
+                            "group_id": gid,
+                            "error": str(e),
+                            "error_type": type(e).__name__,
+                        },
+                    )
+                    try:
+                        score = strategy.fallback_score_fn(merged)
+                    except (TypeError, KeyError, ArithmeticError):
+                        continue
                 scored_groups.append((score, gid))
 
         if not scored_groups:

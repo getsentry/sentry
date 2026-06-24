@@ -288,6 +288,10 @@ class NotificationBodyTextBlockType(StrEnum):
     """
     Inline block of code.
     """
+    LINK = "link"
+    """
+    A hyperlink with display text.
+    """
 
 
 class NotificationBodyFormattingBlockType(StrEnum):
@@ -369,6 +373,13 @@ class PlainTextBlock(NotificationBodyTextBlock):
     type: Literal[NotificationBodyTextBlockType.PLAIN_TEXT] = (
         NotificationBodyTextBlockType.PLAIN_TEXT
     )
+
+
+@dataclass
+class LinkTextBlock(NotificationBodyTextBlock):
+    text: str
+    url: str
+    type: Literal[NotificationBodyTextBlockType.LINK] = NotificationBodyTextBlockType.LINK
 
 
 class NotificationTemplate[T: NotificationData](abc.ABC):

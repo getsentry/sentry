@@ -4,7 +4,6 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -39,13 +38,11 @@ import {makeMonitorTypePathname} from 'sentry/views/detectors/pathnames';
 import {OverviewTimeline} from 'sentry/views/insights/uptime/components/overviewTimeline';
 import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/uptime/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function UptimeOverview() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const project = decodeList(location.query?.project);
   const {projects} = useProjects();
 
@@ -85,45 +82,25 @@ export default function UptimeOverview() {
             />
           </Layout.Title>
         </Layout.HeaderContent>
-        {hasPageFrameFeature ? (
-          <Fragment>
-            <TopBar.Slot name="actions">
-              <LinkButton
-                variant="primary"
-                to={makeAlertsPathname({path: '/new/uptime/', organization})}
-                icon={<IconAdd />}
-                disabled={!canCreateAlert}
-                tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
-              >
-                {t('Add Uptime Monitor')}
-              </LinkButton>
-            </TopBar.Slot>
-            <TopBar.Slot name="feedback">
-              <FeedbackButton
-                aria-label={t('Give Feedback')}
-                tooltipProps={{title: t('Give Feedback')}}
-              >
-                {null}
-              </FeedbackButton>
-            </TopBar.Slot>
-          </Fragment>
-        ) : (
-          <Layout.HeaderActions>
-            <Grid flow="column" align="center" gap="md">
-              <FeedbackButton />
-              <LinkButton
-                size="sm"
-                variant="primary"
-                to={makeAlertsPathname({path: '/new/uptime/', organization})}
-                icon={<IconAdd />}
-                disabled={!canCreateAlert}
-                tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
-              >
-                {t('Add Uptime Monitor')}
-              </LinkButton>
-            </Grid>
-          </Layout.HeaderActions>
-        )}
+        <TopBar.Slot name="actions">
+          <LinkButton
+            variant="primary"
+            to={makeAlertsPathname({path: '/new/uptime/', organization})}
+            icon={<IconAdd />}
+            disabled={!canCreateAlert}
+            tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
+          >
+            {t('Add Uptime Monitor')}
+          </LinkButton>
+        </TopBar.Slot>
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
       </Layout.Header>
       <Layout.Body>
         <Layout.Main width="full">

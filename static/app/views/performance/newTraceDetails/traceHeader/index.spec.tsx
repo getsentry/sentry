@@ -181,10 +181,8 @@ describe('TraceMetaDataHeader', () => {
       expect(breadcrumbsItems[0]).toHaveTextContent(/trace-slug/);
     });
 
-    it('renders loading-state breadcrumbs in the top bar when page frame is enabled', () => {
-      const pageFrameOrganization = OrganizationFixture({
-        features: ['page-frame'],
-      });
+    it('renders loading-state breadcrumbs in the top bar', () => {
+      const pageFrameOrganization = OrganizationFixture();
 
       useLocationMock.mockReturnValue(
         LocationFixture({

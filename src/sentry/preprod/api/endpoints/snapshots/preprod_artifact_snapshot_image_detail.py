@@ -4,12 +4,10 @@ import logging
 from typing import cast
 
 import orjson
-from django.conf import settings
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -181,11 +179,6 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
 
         This endpoint requires a bearer token with `project:read` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         try:
             artifact = PreprodArtifact.objects.select_related("project").get(
                 id=snapshot_id, project__organization_id=organization.id

@@ -13,7 +13,6 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {TeamFilter} from './list/rules/teamFilter';
 import {CombinedAlertType} from './types';
@@ -40,7 +39,6 @@ export function FilterBar({
 }: Props) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const selectedTeams = getTeamParams(location.query.team);
   const selectedStatus = getQueryStatus(location.query.status);
   const selectedAlertTypes = getQueryAlertType(location.query.alertType);
@@ -123,21 +121,19 @@ export function FilterBar({
             width="100%"
           />
         </Flex>
-        {hasPageFrameFeature ? (
-          <CreateAlertButton
-            organization={organization}
-            iconProps={{size: 'sm'}}
-            variant="primary"
-            referrer="alert_stream"
-            projectSlug={
-              selection.projects.length === 1
-                ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
-                : undefined
-            }
-          >
-            {t('Create Alert')}
-          </CreateAlertButton>
-        ) : null}
+        <CreateAlertButton
+          organization={organization}
+          iconProps={{size: 'sm'}}
+          variant="primary"
+          referrer="alert_stream"
+          projectSlug={
+            selection.projects.length === 1
+              ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
+              : undefined
+          }
+        >
+          {t('Create Alert')}
+        </CreateAlertButton>
       </Grid>
     </Wrapper>
   );

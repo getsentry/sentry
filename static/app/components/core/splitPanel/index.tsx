@@ -1,0 +1,1 @@
+export {SplitPanel} from './splitPanel';
