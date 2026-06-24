@@ -1,3 +1,5 @@
+import {AnimatePresence, motion} from 'framer-motion';
+
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
@@ -22,7 +24,7 @@ export function ScmAlertOptionCard({
 }: ScmAlertOptionCardProps) {
   return (
     <ScmSelectableContainer isSelected={isSelected} padding="lg">
-      <Stack gap="md">
+      <Stack gap="0">
         <ScmCardButton
           role="radio"
           aria-checked={isSelected}
@@ -43,7 +45,28 @@ export function ScmAlertOptionCard({
             </Stack>
           </Grid>
         </ScmCardButton>
-        {children && <Container paddingLeft="2xl">{children}</Container>}
+        {/* Selecting the card expands its body; the height tween mirrors
+            ScmCollapsibleSection so cards in scmCreateProject's
+            layout="position" group reflow smoothly. initial={false} keeps a
+            preselected card expanded without animating on mount. */}
+        <AnimatePresence initial={false}>
+          {children && (
+            <motion.div
+              key="content"
+              initial={{height: 0, opacity: 0}}
+              animate={{height: 'auto', opacity: 1}}
+              exit={{height: 0, opacity: 0}}
+              transition={{duration: 0.2, ease: 'easeOut'}}
+              style={{overflow: 'hidden', width: '100%'}}
+            >
+              {/* padding-top lives inside the animated body so the gap collapses
+                  with the height tween; padding-left aligns it under the label. */}
+              <Container paddingTop="md" paddingLeft="2xl">
+                {children}
+              </Container>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </Stack>
     </ScmSelectableContainer>
   );
