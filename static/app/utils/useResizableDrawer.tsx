@@ -179,8 +179,21 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   }, [onDragMove, options]);
 
   const startDrag = useCallback((clientX: number, clientY: number) => {
+    // Clamp the starting size to the current [min, max] before the drag begins.
+    // initialSize is only clamped during a drag, so a seeded/persisted size
+    // below min (or above the measured max) would otherwise leave the delta math
+    // and the reported startSize stepping from a stale, out-of-range value.
+    const {min, max} = optionsRef.current;
+    const clamped = Math.min(
+      max ?? Number.POSITIVE_INFINITY,
+      Math.max(min, sizeRef.current)
+    );
+    // Raw state setter (not updateSize): keep the returned size in sync without
+    // firing onResize/persisting on mere drag-start. No-ops when already in range.
+    sizeRef.current = clamped;
+    setSize(clamped);
     setIsHeld(true);
-    dragStartSizeRef.current = sizeRef.current;
+    dragStartSizeRef.current = clamped;
     currentMouseVectorRaf.current = [clientX, clientY];
   }, []);
 
