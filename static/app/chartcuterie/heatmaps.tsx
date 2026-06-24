@@ -5,7 +5,7 @@ import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatYAxisValue';
 import {visualMapOptions} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
-import {getHeatMapColors} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
+import {HEATMAP_COLORS} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatXAxisTimestamp';
 
 import {DEFAULT_FONT_FAMILY} from './slack';
@@ -29,7 +29,6 @@ export function buildHeatmapChartOption({
   const yAxisDataType = heatMapPlottable.yAxisValueType;
   const yAxisDataUnit = heatMapPlottable.yAxisValueUnit;
 
-  const colors = getHeatMapColors(theme.type);
   const series = heatMapPlottable.toSeries({theme});
 
   return {
@@ -80,7 +79,7 @@ export function buildHeatmapChartOption({
       },
     },
     series,
-    visualMap: visualMapOptions(colors),
+    visualMap: visualMapOptions(HEATMAP_COLORS),
     useUTC: true,
   };
 }

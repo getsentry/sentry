@@ -29,7 +29,7 @@ import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/se
 
 import {HeatMap} from './plottables/heatMap';
 import type {HeatMapPlottable} from './plottables/heatMapPlottable';
-import {getHeatMapColors} from './settings';
+import {HEATMAP_COLORS} from './settings';
 
 // This is the ECharts default font size for axis labels. We need to use this number to do axis label frequency calculations
 // Source: https://echarts.apache.org/en/option.html#yAxis.axisLabel.fontSize
@@ -132,8 +132,6 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   const yAxisDataType = heatMapPlottable.yAxisValueType;
   const yAxisDataUnit = heatMapPlottable.yAxisValueUnit;
-
-  const colors = getHeatMapColors(theme.type);
 
   /** Extract the numeric value from ECharts tooltip param.value. */
   function extractValue(data: unknown): number | null {
@@ -356,7 +354,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
             show: false,
           },
         }}
-        visualMap={visualMapOptions(colors)}
+        visualMap={visualMapOptions(HEATMAP_COLORS)}
         start={start ? new Date(start) : undefined}
         end={end ? new Date(end) : undefined}
         period={period}
