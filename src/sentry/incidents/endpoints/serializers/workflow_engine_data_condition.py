@@ -78,15 +78,18 @@ class WorkflowEngineDataConditionSerializer(Serializer[dict[str, Any]]):
         for dcg_ids in detector_to_dcg_ids.values():
             all_dcg_ids.update(dcg_ids)
 
-        # Map (condition_group_id, comparison) → action-filter DC exists in that DCG
-        # We need: for a given detector's DCGs + priority level → matching DCG IDs
-        # NOTE: Assumes DataConditions are limited to what would be dual written.
-        dcg_comparison_pairs: dict[int, set[int | float]] = defaultdict(set)
+        # Per action-filter DCG, the priority levels it gates on, and whether it gates on priority
+        # at all. A DCG with no priority gate (e.g. a natively-created connected alert) fires for
+        # any priority, so its actions attach to every trigger.
+        dcg_priority_comparisons: dict[int, set[int | float]] = defaultdict(set)
+        dcgs_with_priority_condition: set[int] = set()
         for dc in DataCondition.objects.filter(condition_group__in=all_dcg_ids):
-            # Only collect numeric comparison values; non-numeric values (e.g. dicts
-            # from anomaly detection conditions) don't match condition_result levels.
+            if dc.type != Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL:
+                continue
+            dcgs_with_priority_condition.add(dc.condition_group_id)
+            # Only numeric comparison values map to a condition_result priority level.
             if isinstance(dc.comparison, (int, float)):
-                dcg_comparison_pairs[dc.condition_group_id].add(dc.comparison)
+                dcg_priority_comparisons[dc.condition_group_id].add(dc.comparison)
 
         # Bulk-fetch all DCG → action mappings
         dcg_to_action_ids: dict[int, list[int]] = defaultdict(list)
@@ -126,11 +129,12 @@ class WorkflowEngineDataConditionSerializer(Serializer[dict[str, Any]]):
             detector_id = detector.id if detector else None
             trigger_dcg_ids = detector_to_dcg_ids.get(detector_id, set()) if detector_id else set()
 
-            # Find DCGs in this detector's workflows that match the trigger's priority level
+            # A DCG matches if it gates on this trigger's priority, or has no priority gate at all.
             matching_dcg_ids = [
                 dcg_id
                 for dcg_id in trigger_dcg_ids
-                if trigger.condition_result in dcg_comparison_pairs.get(dcg_id, set())
+                if trigger.condition_result in dcg_priority_comparisons.get(dcg_id, set())
+                or dcg_id not in dcgs_with_priority_condition
             ]
 
             # Collect actions from those DCGs
