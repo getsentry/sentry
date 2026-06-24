@@ -263,7 +263,7 @@ TOKEN_TTL_SECONDS = 3600
 
 def _get_cluster() -> RedisCluster:
     cluster_key = settings.SENTRY_DEBUG_FILES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+    return redis.redis_clusters.get(cluster_key)
 
 
 def _last_upload_key(project_id: int) -> str:

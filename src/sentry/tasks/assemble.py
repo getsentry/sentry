@@ -185,7 +185,7 @@ def _get_cache_key(task, scope, checksum):
 
 def _get_redis_cluster_for_assemble() -> RedisCluster:
     cluster_key = settings.SENTRY_ASSEMBLE_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+    return redis.redis_clusters.get(cluster_key)
 
 
 @sentry_sdk.tracing.trace

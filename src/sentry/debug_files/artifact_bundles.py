@@ -42,7 +42,7 @@ INDEXING_CACHE_TIMEOUT = 600
 
 def get_redis_cluster_for_artifact_bundles() -> RedisCluster:
     cluster_key = settings.SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+    return redis.redis_clusters.get(cluster_key)
 
 
 def get_refresh_key() -> str:

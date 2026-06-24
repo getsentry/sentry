@@ -196,7 +196,7 @@ class RedisClusterManager:
                 return FailoverRedis(**host, **client_args)
 
         # losing some type safety: SimpleLazyObject acts like the underlying type
-        return SimpleLazyObject(cluster_factory)  # type: ignore[return-value]
+        return SimpleLazyObject(cluster_factory)
 
     def get(self, key: str) -> RedisCluster[str] | StrictRedis[str]:
         try:
