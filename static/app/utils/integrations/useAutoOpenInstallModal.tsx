@@ -19,8 +19,8 @@ interface Props {
 /**
  * Auto-opens the integration install modal once when the detail page is loaded
  * with `?showInstallModal=1` (e.g. from the Slack reinstall nudge). Gated to
- * mirror the install button: the provider must be installable and the user must
- * have integration access. The param is stripped after opening so refresh /
+ * mirror the install button: provider installable, user has integration access,
+ * and the org's plan allows it. The param is stripped after opening so refresh /
  * back-button don't re-trigger it.
  */
 export function useAutoOpenInstallModal({
@@ -38,6 +38,15 @@ export function useAutoOpenInstallModal({
       return;
     }
     if (!provider?.canAdd || !organization.access.includes('org:integrations')) {
+      return;
+    }
+    // Mirror the install button's plan gate: install is disabled when the org
+    // has none of the provider's feature flags.
+    const features = provider.metadata.features;
+    const disabledFromFeatures =
+      features.length > 0 &&
+      !features.some(feature => organization.features.includes(feature.featureGate));
+    if (disabledFromFeatures) {
       return;
     }
 

@@ -351,6 +351,60 @@ describe('IntegrationDetailedView', () => {
       expect(openPipelineModalSpy).not.toHaveBeenCalled();
     });
 
+    it('does not auto-open when the org plan disables install', async () => {
+      const openPipelineModalSpy = jest
+        .spyOn(pipelineModal, 'openPipelineModal')
+        .mockImplementation(() => {});
+
+      // Org lacks the feature flags Slack requires, so install is plan-gated off.
+      const gatedOrg = OrganizationFixture({
+        access: ['org:integrations', 'org:write'],
+        features: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${gatedOrg.slug}/config/integrations/`,
+        match: [MockApiClient.matchQuery({provider_key: 'slack'})],
+        body: {
+          providers: [
+            {
+              canAdd: true,
+              canDisable: false,
+              features: ['alert-rule', 'chat-unfurl'],
+              key: 'slack',
+              metadata: {
+                aspects: {},
+                author: 'The Sentry Team',
+                description: 'Connect your Sentry organization to Slack.',
+                features: [
+                  {featureGate: 'integrations-alert-rule', description: 'Alert rules'},
+                  {featureGate: 'integrations-chat-unfurl', description: 'Chat unfurl'},
+                ],
+                issue_url: 'https://github.com/getsentry/sentry/issues/new',
+                noun: 'Installation',
+                source_url:
+                  'https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack',
+              },
+              name: 'Slack',
+              slug: 'slack',
+            },
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${gatedOrg.slug}/integrations/`,
+        match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
+        body: [],
+      });
+
+      render(<IntegrationDetailedView />, {
+        initialRouterConfig: createRouterConfig('slack', {showInstallModal: '1'}),
+        organization: gatedOrg,
+      });
+
+      expect(await screen.findByText('Slack')).toBeInTheDocument();
+      expect(openPipelineModalSpy).not.toHaveBeenCalled();
+    });
+
     it('strips the param after auto-opening', async () => {
       jest.spyOn(pipelineModal, 'openPipelineModal').mockImplementation(() => {});
 
