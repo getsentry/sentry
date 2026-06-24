@@ -740,26 +740,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
         return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
 
-    def key_transactions():
-        def all_key_transactions():
-            for project_ctx in user_projects:
-                for (
-                    transaction_name,
-                    count_this_week,
-                    p95_this_week,
-                    count_last_week,
-                    p95_last_week,
-                ) in project_ctx.key_transactions:
-                    yield {
-                        "name": transaction_name,
-                        "count": count_this_week,
-                        "p95": p95_this_week,
-                        "p95_prev_week": p95_last_week,
-                        "project": project_ctx.project,
-                    }
-
-        return heapq.nlargest(3, all_key_transactions(), lambda d: d["count"])
-
     def key_performance_issues():
         def all_key_performance_issues():
             for project_ctx in user_projects:
@@ -835,7 +815,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "end": date_format(local_end),
         "trends": trends(),
         "key_errors": key_errors(),
-        "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
         "past_issues": past_issues() if show_past_issues else [],
         "show_past_issues": show_past_issues,
