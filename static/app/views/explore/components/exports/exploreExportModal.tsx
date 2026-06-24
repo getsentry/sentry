@@ -125,23 +125,11 @@ export function ExploreExportModal({
       </Header>
       <Body>
         <Stack gap="xl">
-          <Text>{t('Large data export files will be sent to your email address.')}</Text>
-          {supportsAllColumns && (
-            <form.AppField name="columns">
-              {field => (
-                <field.Layout.Stack label={t('All Columns?')}>
-                  <field.Switch
-                    checked={field.state.value === ModalColumnValue.ALL}
-                    onChange={checked =>
-                      field.handleChange(
-                        checked ? ModalColumnValue.ALL : ModalColumnValue.SELECTED
-                      )
-                    }
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-          )}
+          <Text>
+            {t(
+              'When a high number of rows is selected and events are large, the results may be sent to your email.'
+            )}
+          </Text>
           {showFormatRadio && (
             <form.AppField name="format">
               {field => (
@@ -165,6 +153,25 @@ export function ExploreExportModal({
                     </field.Radio.Item>
                   </field.Layout.Stack>
                 </field.Radio.Group>
+              )}
+            </form.AppField>
+          )}
+          {supportsAllColumns && (
+            <form.AppField name="columns">
+              {field => (
+                <field.Layout.Stack
+                  hintText={t('All columns are only supported by JSONL.')}
+                  label={t('All Columns?')}
+                >
+                  <field.Switch
+                    checked={field.state.value === ModalColumnValue.ALL}
+                    onChange={checked =>
+                      field.handleChange(
+                        checked ? ModalColumnValue.ALL : ModalColumnValue.SELECTED
+                      )
+                    }
+                  />
+                </field.Layout.Stack>
               )}
             </form.AppField>
           )}
