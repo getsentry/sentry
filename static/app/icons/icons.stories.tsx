@@ -14,8 +14,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Sticky} from 'sentry/components/sticky';
 import * as Icons from 'sentry/icons';
 import {IdentityIcon, type IdentityIconProps} from 'sentry/icons/identityIcon';
+import {PluginIcon, type PluginIconProps} from 'sentry/icons/pluginIcon';
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
-import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
@@ -1729,7 +1729,7 @@ function PluginIconsSection({searchTerm}: {searchTerm: string}) {
       renderIcon={(icon: TIcon) => (
         <IconCard
           icon={{id: icon.id, name: 'PluginIcon', defaultProps: {pluginId: icon.id}}}
-          importSource="sentry/plugins/components/pluginIcon"
+          importSource="sentry/icons/pluginIcon"
         >
           <PluginIcon pluginId={icon.id} /> {icon.name}
         </IconCard>

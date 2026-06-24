@@ -7,8 +7,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import type {SeerAutomationHandoffConfiguration} from 'sentry/components/events/autofix/types';
 import {Placeholder} from 'sentry/components/placeholder';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
