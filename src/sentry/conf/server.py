@@ -1315,7 +1315,6 @@ LOGGING: LoggingConfig = {
     "overridable": ["sentry"],
     "loggers": {
         "sentry": {"level": "INFO"},
-        "sentry_plugins": {"level": "INFO"},
         "sentry.files": {"level": "WARNING"},
         "sentry.minidumps": {"handlers": ["internal"], "propagate": False},
         "sentry.reprocessing": {"handlers": ["internal"], "propagate": False},
@@ -2274,7 +2273,7 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
     "project_root": "/usr/src",
-    "in_app_include": ["sentry", "sentry_plugins"],
+    "in_app_include": ["sentry"],
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
