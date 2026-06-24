@@ -251,7 +251,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
           width="100%"
         >
           <LayoutGroup>
-            <Layout.Title withMargins>{t('Create a new project')}</Layout.Title>
+            <Layout.Title>{t('Create a new project')}</Layout.Title>
             <Stack paddingBottom="lg" gap="md">
               <Heading as="h1">{t('Create a new project')}</Heading>
               <Text size="lg">
