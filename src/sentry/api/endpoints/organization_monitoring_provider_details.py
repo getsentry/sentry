@@ -21,9 +21,9 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.base import Provider
 from sentry.identity.oauth2 import OAuth2Provider
-from sentry.identity.pipeline import IdentityPipeline
+from sentry.identity.pipeline import MonitoringIdentityPipeline
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.users.models.identity import Identity, IdentityProvider
+from sentry.users.models.identity import Identity, IdentityProvider, OrganizationIdentity
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         # For token-based providers without OAuth flow, verify the submitted token
         # and link the identity directly instead of redirecting.
         if not isinstance(provider_type, OAuth2Provider):
-            return self._link_submitted_token(request, provider_type)
+            return self._link_submitted_token(request, provider_type, organization)
 
         try:
             config = provider_type.get_pipeline_config(request.data)
@@ -62,7 +62,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if not provider_type.auto_create_provider_model:
             idp, _ = IdentityProvider.objects.get_or_create(type=provider_key, external_id="")
 
-        pipeline = IdentityPipeline(
+        pipeline = MonitoringIdentityPipeline(
             request=request._request,
             provider_key=provider_key,
             organization=organization,
@@ -82,7 +82,9 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         )
         return Response({"detail": "Failed to start OAuth flow."}, status=500)
 
-    def _link_submitted_token(self, request: Request, provider_type: Provider) -> Response:
+    def _link_submitted_token(
+        self, request: Request, provider_type: Provider, organization: RpcOrganization
+    ) -> Response:
         """Verify a user-submitted token and link the identity (no OAuth flow)."""
         try:
             identity = provider_type.build_identity(request.data)
@@ -98,7 +100,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         )
 
         try:
-            Identity.objects.link_identity(
+            linked_identity = Identity.objects.link_identity(
                 user=request.user,  # type: ignore[arg-type]
                 idp=idp,
                 external_id=identity["id"],
@@ -111,6 +113,12 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         except IntegrityError:
             return Response({"detail": "This account is already connected."}, status=409)
 
+        if linked_identity:
+            OrganizationIdentity.objects.get_or_create(
+                organization_id=organization.id,
+                identity=linked_identity,
+            )
+
         return Response(status=204)
 
     def delete(
@@ -122,17 +130,21 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if provider_key not in MONITORING_PROVIDERS:
             return Response({"detail": "Unknown monitoring provider."}, status=400)
 
-        identities = list(
-            Identity.objects.filter(
-                idp__type=provider_key,
-                user_id=request.user.id,  # type: ignore[misc]
-            )
+        org_identities = list(
+            OrganizationIdentity.objects.filter(
+                organization_id=organization.id,
+                identity__user_id=request.user.id,  # type: ignore[misc]
+                identity__idp__type=provider_key,
+            ).select_related("identity")
         )
 
-        if not identities:
+        if not org_identities:
             return Response({"detail": "Not connected to this provider."}, status=404)
 
-        for identity in identities:
-            identity.delete()
+        for org_identity in org_identities:
+            identity = org_identity.identity
+            org_identity.delete()
+            if not OrganizationIdentity.objects.filter(identity=identity).exists():
+                identity.delete()
 
         return Response(status=204)

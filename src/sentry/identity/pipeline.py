@@ -20,7 +20,7 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.store import PipelineSessionStore
 from sentry.pipeline.views.base import PipelineView
-from sentry.users.models.identity import Identity, IdentityProvider
+from sentry.users.models.identity import Identity, IdentityProvider, OrganizationIdentity
 from sentry.utils import metrics
 
 from . import default_manager
@@ -113,3 +113,24 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
             # identity management page that supports these new identities (not
             # social-auth ones), redirect to the identities page.
             return HttpResponseRedirect(reverse("sentry-account-settings"))
+
+
+class MonitoringIdentityPipeline(IdentityPipeline):
+    pipeline_name = "monitoring_identity_provider"
+
+    def finish_pipeline(self) -> HttpResponseBase:
+        response = super().finish_pipeline()
+
+        user = self.request.user
+        if self.organization and self.provider_model is not None and user.is_authenticated:
+            identity = Identity.objects.filter(
+                idp=self.provider_model,
+                user_id=user.id,
+            ).first()
+            if identity:
+                OrganizationIdentity.objects.get_or_create(
+                    organization_id=self.organization.id,
+                    identity=identity,
+                )
+
+        return response
