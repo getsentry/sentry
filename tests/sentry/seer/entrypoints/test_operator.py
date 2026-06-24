@@ -12,6 +12,7 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
 )
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pr_metrics.attribution import SeerCreatedPullRequest
 from sentry.seer.agent.client_models import (
     CodingAgentState,
     MemoryBlock,
@@ -1222,16 +1223,12 @@ class LinkRunToPullRequestsTest(TestCase):
             organization=self.organization, seer_run_state_id=RUN_STATE_ID
         )
 
-    def _resolved(self, pr_number: int = 42, repo=None) -> tuple[dict[str, Any], PullRequest]:
+    def _resolved(self, pr_number: int = 42, repo=None) -> SeerCreatedPullRequest:
         repo = repo or self.repo
         pr = PullRequest.objects.create(
             organization_id=self.organization.id, repository_id=repo.id, key=str(pr_number)
         )
-        entry = {
-            "repo_name": repo.name,
-            "pull_request": {"pr_number": pr_number, "pr_url": f"https://x/{pr_number}"},
-        }
-        return entry, pr
+        return SeerCreatedPullRequest(pr, f"https://x/{pr_number}")
 
     def _link(self, resolved_prs, run_id: int = RUN_STATE_ID) -> None:
         _link_run_to_pull_requests(
@@ -1239,10 +1236,11 @@ class LinkRunToPullRequestsTest(TestCase):
         )
 
     def test_links_resolved_pr_to_run(self) -> None:
-        entry, pr = self._resolved()
-        self._link([(entry, pr)])
+        resolved = self._resolved()
+        self._link([resolved])
 
-        assert SeerRunPullRequest.objects.get(pull_request=pr).seer_run_id == self.seer_run.id
+        link = SeerRunPullRequest.objects.get(pull_request=resolved.pull_request)
+        assert link.seer_run_id == self.seer_run.id
 
     def test_no_links_when_run_not_found(self) -> None:
         self._link([self._resolved()], run_id=999999)
@@ -1259,7 +1257,7 @@ class LinkRunToPullRequestsTest(TestCase):
         self._link([resolved])
         self._link([resolved])
 
-        assert SeerRunPullRequest.objects.filter(pull_request=resolved[1]).count() == 1
+        assert SeerRunPullRequest.objects.filter(pull_request=resolved.pull_request).count() == 1
 
     def test_links_multiple_prs_for_one_run(self) -> None:
         """A multi-repo run links each opened PR to the same run."""
@@ -1272,8 +1270,8 @@ class LinkRunToPullRequestsTest(TestCase):
         self._link([r1, r2])
 
         assert SeerRunPullRequest.objects.filter(seer_run=self.seer_run).count() == 2
-        assert SeerRunPullRequest.objects.filter(pull_request=r1[1]).exists()
-        assert SeerRunPullRequest.objects.filter(pull_request=r2[1]).exists()
+        assert SeerRunPullRequest.objects.filter(pull_request=r1.pull_request).exists()
+        assert SeerRunPullRequest.objects.filter(pull_request=r2.pull_request).exists()
 
     def test_one_failing_write_does_not_drop_the_rest(self) -> None:
         r1 = self._resolved(pr_number=1)
@@ -1292,5 +1290,5 @@ class LinkRunToPullRequestsTest(TestCase):
         with patch.object(SeerRunPullRequest.objects, "get_or_create", side_effect=flaky):
             self._link([r1, r2])
 
-        assert not SeerRunPullRequest.objects.filter(pull_request=r1[1]).exists()
-        assert SeerRunPullRequest.objects.filter(pull_request=r2[1]).exists()
+        assert not SeerRunPullRequest.objects.filter(pull_request=r1.pull_request).exists()
+        assert SeerRunPullRequest.objects.filter(pull_request=r2.pull_request).exists()

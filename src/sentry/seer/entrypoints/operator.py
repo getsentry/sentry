@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 from sentry import features, options
@@ -7,9 +7,9 @@ from sentry.constants import DataCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.models.pullrequest import PullRequest
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.pr_metrics.attribution import (
+    SeerCreatedPullRequest,
     record_seer_created_attributions,
     resolve_seer_created_pull_requests,
 )
@@ -616,11 +616,11 @@ def _link_run_to_pull_requests(
     *,
     organization: Organization,
     run_id: int,
-    resolved_prs: Sequence[tuple[Mapping[str, Any], PullRequest]],
+    resolved_prs: Sequence[SeerCreatedPullRequest],
 ) -> None:
     """Record a ``SeerRunPullRequest`` for each resolved PR a Seer run opened.
 
-    ``resolved_prs`` is the already-resolved ``(entry, pull_request)`` output of
+    ``resolved_prs`` is the already-resolved output of
     ``resolve_seer_created_pull_requests``; ``run_id`` is the run's ``seer_run_state_id``.
     """
     if not resolved_prs:
@@ -634,7 +634,7 @@ def _link_run_to_pull_requests(
         )
         return
 
-    for _entry, pull_request in resolved_prs:
+    for pull_request, _pr_url in resolved_prs:
         log_context = {
             "organization_id": organization.id,
             "seer_run_state_id": run_id,
@@ -716,8 +716,6 @@ def process_autofix_updates(
             link_enabled = not options.get("seer.run-pr-link.killswitch.enabled")
             attribution_enabled = features.has("organizations:pr-metrics-attribution", organization)
 
-            # Resolve each reported PR to its canonical PullRequest once, then fan the
-            # result out to linking and attribution rather than resolving per consumer.
             if link_enabled or attribution_enabled:
                 resolved_prs = resolve_seer_created_pull_requests(
                     organization_id=organization.id,
