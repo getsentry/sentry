@@ -341,14 +341,13 @@ def get_previous_releases(
     return rv
 
 
-def get_event_file_committers(
-    project: Project,
-    group_id: int,
-    event_frames: Sequence[Mapping[str, Any]],
-    event_platform: str | None,
-    frame_limit: int = 25,
-    sdk_name: str | None = None,
-) -> Sequence[AuthorCommits]:
+def _get_group_release_commits(project: Project, group_id: int) -> Sequence[Commit]:
+    """Fetch commits from the group's first-seen release and the few releases before it.
+
+    Raises:
+        Release.DoesNotExist: when the group has no first release or no previous releases.
+        Commit.DoesNotExist: when the releases contain no commits.
+    """
     group = Group.objects.get_from_cache(id=group_id)
 
     first_release_version = group.get_first_release()
@@ -362,6 +361,19 @@ def get_event_file_committers(
     commits = _get_commits(releases)
     if not commits:
         raise Commit.DoesNotExist
+
+    return commits
+
+
+def get_event_file_committers(
+    project: Project,
+    group_id: int,
+    event_frames: Sequence[Mapping[str, Any]],
+    event_platform: str | None,
+    frame_limit: int = 25,
+    sdk_name: str | None = None,
+) -> Sequence[AuthorCommits]:
+    commits = _get_group_release_commits(project, group_id)
 
     frames = event_frames or []
     munged = munged_filename_and_frames(event_platform, frames, "munged_filename", sdk_name)
@@ -420,18 +432,9 @@ def get_release_commit_candidates(
     frames, so they surface regressions in code that does not appear in the trace.
     Returns ``[]`` when the group has no associated releases/commits.
     """
-    group = Group.objects.get_from_cache(id=group_id)
-
-    first_release_version = group.get_first_release()
-    if not first_release_version:
-        return []
-
-    releases = get_previous_releases(project, first_release_version)
-    if not releases:
-        return []
-
-    commits = _get_commits(releases)
-    if not commits:
+    try:
+        commits = _get_group_release_commits(project, group_id)
+    except (Release.DoesNotExist, Commit.DoesNotExist):
         return []
 
     if since is not None:
