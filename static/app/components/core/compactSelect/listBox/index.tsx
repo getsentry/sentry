@@ -192,7 +192,11 @@ export function ListBox<T extends ListItemBase>({
   });
 
   useEffect(() => {
-    if (!virtualized || listState.selectionManager.focusedKey === null) {
+    if (
+      !virtualized ||
+      listState.selectionManager.focusedKey === null ||
+      listState.selectionManager.focusedKey === ''
+    ) {
       return;
     }
 
