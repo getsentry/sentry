@@ -628,7 +628,7 @@ interface GroupActivityBase {
   user?: null | User;
 }
 
-export interface GroupActivityNote extends GroupActivityBase {
+interface GroupActivityNote extends GroupActivityBase {
   data: {
     text: string;
   };
