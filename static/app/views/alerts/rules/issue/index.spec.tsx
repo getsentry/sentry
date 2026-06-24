@@ -199,7 +199,7 @@ describe('IssueRuleEditor', () => {
         projects: [{access: []}],
       });
 
-      expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
+      await waitFor(() => expect(screen.getByLabelText('Save Rule')).toBeEnabled());
       expect(screen.queryByTestId('project-permission-alert')).not.toBeInTheDocument();
     });
 
@@ -209,7 +209,7 @@ describe('IssueRuleEditor', () => {
         projects: [{access: ['alerts:write']}],
       });
 
-      expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
+      await waitFor(() => expect(screen.getByLabelText('Save Rule')).toBeEnabled());
       expect(screen.queryByTestId('project-permission-alert')).not.toBeInTheDocument();
     });
 
@@ -220,7 +220,10 @@ describe('IssueRuleEditor', () => {
         method: 'POST',
         body: {},
       });
-      await userEvent.click(screen.getByText('Send Test Notification'));
+      await waitFor(() =>
+        expect(screen.getByTestId('alert-name')).toHaveValue('My alert rule')
+      );
+      await userEvent.click(await screen.findByText('Send Test Notification'));
       expect(mockTestNotification).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/rule-actions/`,
         expect.objectContaining({
@@ -257,6 +260,7 @@ describe('IssueRuleEditor', () => {
         body: rule,
       });
       const {onChangeTitleMock} = createWrapper();
+      expect(await screen.findByLabelText('Save Rule')).toBeInTheDocument();
       await waitFor(() => expect(mock).toHaveBeenCalled());
       expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
     });
@@ -269,7 +273,7 @@ describe('IssueRuleEditor', () => {
       });
       createWrapper();
       renderGlobalModal();
-      await userEvent.click(screen.getByLabelText('Delete Rule'));
+      await userEvent.click(await screen.findByLabelText('Delete Rule'));
 
       expect(
         await screen.findByText(/Are you sure you want to delete "My alert rule"\?/)
@@ -295,7 +299,10 @@ describe('IssueRuleEditor', () => {
         body: rule,
       });
       createWrapper();
-      await userEvent.click(screen.getByText('Save Rule'));
+      await waitFor(() =>
+        expect(screen.getByTestId('alert-name')).toHaveValue('My alert rule')
+      );
+      await userEvent.click(await screen.findByText('Save Rule'));
 
       await waitFor(() =>
         expect(mock).toHaveBeenCalledWith(
@@ -318,7 +325,7 @@ describe('IssueRuleEditor', () => {
 
     it('sends correct environment value', async () => {
       createWrapper();
-      await selectEvent.select(screen.getByText('staging'), 'production');
+      await selectEvent.select(await screen.findByText('staging'), 'production');
       await userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() =>
@@ -335,7 +342,7 @@ describe('IssueRuleEditor', () => {
 
     it('strips environment value if "All environments" is selected', async () => {
       createWrapper();
-      await selectEvent.select(screen.getByText('staging'), 'All Environments');
+      await selectEvent.select(await screen.findByText('staging'), 'All Environments');
       await userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
@@ -407,6 +414,9 @@ describe('IssueRuleEditor', () => {
       });
 
       createWrapper();
+      await waitFor(() =>
+        expect(screen.getByTestId('alert-name')).toHaveValue('My alert rule')
+      );
       await selectEvent.select(await screen.findByText('Add action...'), 'Threads');
       await selectEvent.select(screen.getByText('Add action...'), 'Linear');
 
@@ -425,7 +435,10 @@ describe('IssueRuleEditor', () => {
         }),
       });
       createWrapper();
-      await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}));
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Save Rule'})).toBeEnabled()
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
 
       await waitFor(() =>
         expect(mock).toHaveBeenCalledWith(
@@ -442,9 +455,13 @@ describe('IssueRuleEditor', () => {
         projects: [ProjectFixture({environments: ['production', 'staging']})],
       });
 
+      await waitFor(() =>
+        expect(screen.getByTestId('alert-name')).toHaveValue('My alert rule')
+      );
+
       // Add the release filter
       await selectEvent.select(
-        screen.getByText('Add optional filter...'),
+        await screen.findByText('Add optional filter...'),
         /The {oldest_or_newest} release associated/
       );
 
@@ -606,7 +623,9 @@ describe('IssueRuleEditor', () => {
         },
       });
 
-      expect(await screen.findByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
+      await waitFor(() =>
+        expect(screen.getByTestId('alert-name')).toHaveValue(`${rule.name} copy`)
+      );
       expect(screen.getByText('A new issue is created')).toBeInTheDocument();
       expect(mock).toHaveBeenCalled();
     });
@@ -631,7 +650,9 @@ describe('IssueRuleEditor', () => {
         },
       });
 
-      expect(await screen.findByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
+      await waitFor(() =>
+        expect(screen.getByTestId('alert-name')).toHaveValue(`${rule.name} copy`)
+      );
       expect(screen.queryByText('A new issue is created')).not.toBeInTheDocument();
     });
   });

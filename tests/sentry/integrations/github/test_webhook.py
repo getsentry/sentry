@@ -45,6 +45,7 @@ from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
+from sentry.pr_metrics.webhooks import handle_check_suite as pr_metrics_handle_check_suite
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, TestCase
@@ -162,7 +163,7 @@ class SCMOnlyWebhookTest(APITestCase):
 
     @patch("sentry.integrations.github.webhook.produce_event_to_scm_stream")
     @patch.object(CheckSuiteWebhook, "_handle", autospec=True)
-    def test_check_suite_handler_is_noop_and_publishes_to_scm_stream(
+    def test_check_suite_routes_to_handler_and_publishes_to_scm_stream(
         self, mock_handle: MagicMock, mock_produce: MagicMock
     ) -> None:
         self.create_github_integration_and_repo()
@@ -177,7 +178,9 @@ class SCMOnlyWebhookTest(APITestCase):
         )
 
         assert response.status_code == 204
-        assert CheckSuiteWebhook.WEBHOOK_EVENT_PROCESSORS == ()
+        # check_suite now feeds the PR-metrics activity timeline in addition to
+        # being republished to the SCM stream.
+        assert pr_metrics_handle_check_suite in CheckSuiteWebhook.WEBHOOK_EVENT_PROCESSORS
         mock_handle.assert_called_once()
         mock_produce.assert_called_once()
 

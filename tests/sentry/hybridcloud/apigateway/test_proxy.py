@@ -395,6 +395,92 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert isinstance(resp, JsonResponse)
         assert json.loads(resp.content)["detail"] == "Downstream service unavailable"
 
+    @responses.activate
+    def test_sync_preserves_content_encoding_for_snapshot_create(self) -> None:
+        captured: dict[str, str | None] = {}
+
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            captured["content_encoding"] = request.headers.get("Content-Encoding")
+            return 200, {"Content-Type": "application/json"}, json.dumps({"proxy": True})
+
+        responses.add_callback(
+            responses.POST, "http://us.internal.sentry.io/post", callback=request_callback
+        )
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data={"foo": "bar"},
+            content_type="application/json",
+            headers={"Content-Encoding": "zstd"},
+        )
+        resp = sync_proxy.proxy_request(
+            request, self.organization.slug, "sentry-api-0-project-preprod-snapshots-create"
+        )
+        close_streaming_response(resp)
+        assert captured["content_encoding"] == "zstd"
+
+    @responses.activate
+    def test_sync_strips_content_encoding_for_other_routes(self) -> None:
+        captured: dict[str, str | None] = {}
+
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            captured["content_encoding"] = request.headers.get("Content-Encoding")
+            return 200, {"Content-Type": "application/json"}, json.dumps({"proxy": True})
+
+        responses.add_callback(
+            responses.POST, "http://us.internal.sentry.io/post", callback=request_callback
+        )
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data={"foo": "bar"},
+            content_type="application/json",
+            headers={"Content-Encoding": "zstd"},
+        )
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+        assert captured["content_encoding"] is None
+
+    def test_async_preserves_content_encoding_for_snapshot_create(self) -> None:
+        captured: dict[str, str | None] = {}
+
+        def callback(request: httpx.Request) -> tuple[int, dict[str, str], str]:
+            captured["content_encoding"] = request.headers.get("content-encoding")
+            return 200, {}, json.dumps({"proxy": True})
+
+        self.httpx_router.add_callback("POST", "http://us.internal.sentry.io/post", callback)
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data={"foo": "bar"},
+            content_type="application/json",
+            headers={"Content-Encoding": "zstd"},
+        )
+        resp = proxy_request(
+            request, self.organization.slug, "sentry-api-0-project-preprod-snapshots-create"
+        )
+        close_streaming_response(resp)
+        assert captured["content_encoding"] == "zstd"
+
+    def test_async_strips_content_encoding_for_other_routes(self) -> None:
+        captured: dict[str, str | None] = {}
+
+        def callback(request: httpx.Request) -> tuple[int, dict[str, str], str]:
+            captured["content_encoding"] = request.headers.get("content-encoding")
+            return 200, {}, json.dumps({"proxy": True})
+
+        self.httpx_router.add_callback("POST", "http://us.internal.sentry.io/post", callback)
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data={"foo": "bar"},
+            content_type="application/json",
+            headers={"Content-Encoding": "zstd"},
+        )
+        resp = proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+        assert captured["content_encoding"] is None
+
 
 api_gateway_address_cell = Cell(
     name="us",
