@@ -8,8 +8,6 @@ function useDefaultButtonTracking() {
     const hasAnalyticsDebug = window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
     const hasCustomAnalytics =
       props.analyticsEventName || props.analyticsEventKey || props.analyticsParams;
-    // eslint-disable-next-line no-console
-    console.log('hasCustomAnalytics', hasCustomAnalytics);
     if (hasCustomAnalytics && hasAnalyticsDebug) {
       // eslint-disable-next-line no-console
       console.log('buttonAnalyticsEvent', {
