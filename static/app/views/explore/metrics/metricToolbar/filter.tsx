@@ -35,7 +35,6 @@ import {
   traceItemAttributeKeysOptions,
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
-const EMPTY_TAG_COLLECTION: TagCollection = {};
 const EMPTY_ALIASES: TagCollection = {};
 
 interface FilterProps {
@@ -239,15 +238,9 @@ export function Filter({
     useMemo(() => {
       return {
         itemType: TraceItemDataset.TRACEMETRICS,
-        booleanAttributes: {
-          ...(validatedBooleanTags ?? EMPTY_TAG_COLLECTION),
-        },
-        numberAttributes: {
-          ...(validatedNumberTags ?? EMPTY_TAG_COLLECTION),
-        },
-        stringAttributes: {
-          ...(validatedStringTags ?? EMPTY_TAG_COLLECTION),
-        },
+        booleanAttributes: validatedBooleanTags,
+        numberAttributes: validatedNumberTags,
+        stringAttributes: validatedStringTags,
         booleanSecondaryAliases: EMPTY_ALIASES,
         numberSecondaryAliases: EMPTY_ALIASES,
         stringSecondaryAliases: EMPTY_ALIASES,
