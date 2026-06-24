@@ -73,7 +73,7 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
 
             assert self.provider_model is not None
 
-            Identity.objects.link_identity(
+            self._linked_identity = Identity.objects.link_identity(
                 user=self.request.user,
                 idp=self.provider_model,
                 external_id=identity["id"],
@@ -121,16 +121,10 @@ class MonitoringIdentityPipeline(IdentityPipeline):
     def finish_pipeline(self) -> HttpResponseBase:
         response = super().finish_pipeline()
 
-        user = self.request.user
-        if self.organization and self.provider_model is not None and user.is_authenticated:
-            identity = Identity.objects.filter(
-                idp=self.provider_model,
-                user_id=user.id,
-            ).first()
-            if identity:
-                OrganizationIdentity.objects.get_or_create(
-                    organization_id=self.organization.id,
-                    identity=identity,
-                )
+        if self.organization and self._linked_identity is not None:
+            OrganizationIdentity.objects.get_or_create(
+                organization_id=self.organization.id,
+                identity=self._linked_identity,
+            )
 
         return response
