@@ -89,11 +89,13 @@ def _check_attributes_by_type(
         return set()
 
     requested_names = set(attribute.internal_name for attribute in attributes)
+    # TODO(wmak): Need to update snuba here so we can pass the list of attributes, snuba currently does a hasAll if we
+    # pass names in a OrFilter which means only rows with _all_ attributes will return
     attrs_request = TraceItemAttributeNamesRequest(
         meta=meta,
         limit=10_000,
         type=attr_type,
-        filter_mode=TraceItemAttributeNamesRequest.FilterMode.FILTER_MODE_MATCH_ANY,
+        match_mode=TraceItemAttributeNamesRequest.MatchMode.MATCH_MODE_ANY,
         # This filter doesn't actually matter snuba just recollects all the columns
         intersecting_attributes_filter=TraceItemFilter(
             or_filter=OrFilter(
