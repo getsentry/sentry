@@ -1,21 +1,16 @@
 // Heat map color ramps (low → high). ECharts' continuous `visualMap`
 // interpolates between whatever stops it's given, so a ramp is just an ordered
-// list of ~10 hex stops — swapping schemes is a one-line change here.
-//
-// These are perceptually-uniform colormaps (viridis for light, magma for dark):
-// each step is roughly equal in perceived lightness, and — crucially — the high
-// end is bright and distinct. The previous purple→magenta ramp packed its top
-// half into similarly-dark stops, so high-magnitude cells (e.g. 1M vs 18M) were
-// indistinguishable. Per the Datadog heatmap write-up, human brightness
-// perception follows a power law (we discriminate poorly among dark shades), so
-// ending bright keeps the hottest cells legible.
-//
-// The ramp variant is chosen per theme so the low end stays visible against the
-// chart background. Empty/zero buckets are NOT part of the palette — they're
-// rendered transparent by a piecewise `visualMap` in `HeatMapWidgetVisualization`.
+// list of ~10 hex stops. Each ramp here aims for the same properties: lightness
+// that climbs steadily and a bright, distinct top end, so high-magnitude cells
+// (e.g. 1M vs 18M) stay distinguishable. The previous purple→magenta ramp packed
+// its top half into similarly-dark stops, so they all looked the same. Per the
+// Datadog heatmap write-up, human brightness perception follows a power law (we
+// discriminate poorly among dark shades), so ending bright keeps hot cells
+// legible. Empty/zero buckets are NOT part of the palette — they're rendered
+// transparent by a piecewise `visualMap` in `HeatMapWidgetVisualization`.
 
-/** Viridis, sampled at 10 stops. Used on light backgrounds. */
-export const HEATMAP_COLORS_LIGHT = [
+/** Viridis, sampled at 10 stops. */
+const VIRIDIS = [
   '#440154',
   '#482878',
   '#3e4a89',
@@ -28,8 +23,8 @@ export const HEATMAP_COLORS_LIGHT = [
   '#fde725',
 ] as const;
 
-/** Magma, sampled at 10 stops. Used on dark backgrounds. */
-export const HEATMAP_COLORS_DARK = [
+/** Magma, sampled at 10 stops. */
+const MAGMA = [
   '#0a0a23',
   '#231151',
   '#410f75',
@@ -41,6 +36,47 @@ export const HEATMAP_COLORS_DARK = [
   '#f97a5d',
   '#fea772',
 ] as const;
+
+/**
+ * Sentry brand ramp: deep indigo → blurple → magenta → pink → salmon → orange →
+ * yellow. Built from the theme's blue ramp (low end) and the categorical
+ * data-viz palette (warm end), so it traces a magma-like arc in brand hues.
+ */
+const SENTRY_BRAND = [
+  '#24006c',
+  '#3f00a7',
+  '#5827d6',
+  '#7553ff',
+  '#b82d90',
+  '#f0369a',
+  '#fa6769',
+  '#ff9838',
+  '#ffd00e',
+] as const;
+
+/** Every selectable heat map palette, keyed by name. */
+export const HEATMAP_PALETTES = {
+  viridis: VIRIDIS,
+  magma: MAGMA,
+  brand: SENTRY_BRAND,
+} as const;
+
+export type HeatMapPaletteName = keyof typeof HEATMAP_PALETTES;
+
+/**
+ * Which palette to use for each theme. Change these two values to re-skin the
+ * heat map — pick a low end that's visible against that theme's background and a
+ * top end that contrasts it.
+ */
+export const HEATMAP_PALETTE_BY_THEME: Record<'light' | 'dark', HeatMapPaletteName> = {
+  light: 'brand',
+  dark: 'magma',
+};
+
+/** Resolve the heat map color ramp for a theme (`theme.type`). */
+export function getHeatMapColors(themeType: 'light' | 'dark'): readonly string[] {
+  return HEATMAP_PALETTES[HEATMAP_PALETTE_BY_THEME[themeType]];
+}
 
 /**
  * Target size, in pixels, of a single heat map bucket along each axis. Both the
