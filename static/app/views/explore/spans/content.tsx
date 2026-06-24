@@ -71,16 +71,16 @@ export function ExploreContent() {
 }
 
 function ExploreContentInner() {
-  const organization = useOrganization();
   const hasCrossEvents = useHasCrossEvents();
   const onboardingProject = useOnboardingProject();
-
-  const {loading: organizationLoading} = useLegacyStore(OrganizationStore);
-  const {data: bootstrapOrganization, isPending: isBootstrapOrganizationPending} =
-    useQuery(getBootstrapOrganizationQueryOptions(organization.slug));
   const dataCategoryMaxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  const organization = useOrganization();
+  const {loading: organizationLoading} = useLegacyStore(OrganizationStore);
+  const {data: bootstrapOrganization, isPending: isBootstrapOrganizationPending} =
+    useQuery(getBootstrapOrganizationQueryOptions(organization.slug));
 
   // The bootstrap query returns raw API org data, while useOrganization reads
   // the OrganizationStore value after FeatureFlagOverrides.loadOrg mutates it.
