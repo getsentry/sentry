@@ -281,7 +281,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
             >
               <Layout.Title>{t('Create a new project')}</Layout.Title>
 
-              <MotionStack paddingBottom="lg" gap="md" layout="position">
+              <MotionStack gap="md" layout="position">
                 <Heading as="h1">{t('Create a project')}</Heading>
                 <Text variant="secondary" density="comfortable">
                   {tct(
