@@ -18,12 +18,12 @@ function defaultButtonTracking(props: ButtonProps) {
     });
   }
 }
-export function SentryTrackingProvider({children}: {children: React.ReactNode}) {
-  const useButtonTracking =
-    getOverride('react-hook:use-button-tracking') ?? defaultButtonTracking;
 
+export function SentryTrackingProvider({children}: {children: React.ReactNode}) {
   return (
-    <TrackingContextProvider value={useButtonTracking}>
+    <TrackingContextProvider
+      value={getOverride('react-hook:use-button-tracking') ?? defaultButtonTracking}
+    >
       {children}
     </TrackingContextProvider>
   );
