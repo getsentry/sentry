@@ -94,8 +94,8 @@ export function ScmAlertFrequency({
       </Stack>
 
       <Flex gap="sm" align="center">
-        <IconInfo size="sm" variant="secondary" />
-        <Text variant="secondary" size="sm" density="comfortable">
+        <IconInfo size="md" variant="secondary" />
+        <Text variant="secondary" size="md" density="comfortable">
           {t('You can always change alerts after project creation')}
         </Text>
       </Flex>

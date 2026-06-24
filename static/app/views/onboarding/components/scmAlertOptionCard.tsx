@@ -37,7 +37,7 @@ export function ScmAlertOptionCard({
           <Container padding="lg">
             <Grid
               columns="min-content 1fr"
-              gap="xs md"
+              gap="0 md"
               align="center"
               areas={`
                 "radio label"
@@ -45,16 +45,16 @@ export function ScmAlertOptionCard({
               `}
             >
               <Container area="radio">
-                <Radio size="sm" readOnly checked={isSelected} tabIndex={-1} />
+                <Radio size="md" readOnly checked={isSelected} tabIndex={-1} />
               </Container>
               <Container area="label">
-                <Text bold size="sm" density="comfortable">
+                <Text bold size="md" density="comfortable">
                   {label}
                 </Text>
               </Container>
               {description && (
                 <Container area="description">
-                  <Text variant="secondary" size="sm" density="comfortable">
+                  <Text variant="secondary" size="md" density="comfortable">
                     {description}
                   </Text>
                 </Container>
