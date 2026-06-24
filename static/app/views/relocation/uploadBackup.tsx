@@ -9,6 +9,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Client} from 'sentry/api';
 import {IconDelete, IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getLocalities} from 'sentry/utils/cells';
 import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
@@ -67,8 +68,13 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
   };
 
   const handleStartRelocation = async () => {
-    const {orgSlugs, regionUrl, promoCode} = relocationState;
-    if (!orgSlugs || !regionUrl || !file) {
+    const {orgSlugs, localityName, promoCode} = relocationState;
+    if (!orgSlugs || !localityName || !file) {
+      addErrorMessage(DEFAULT_ERROR_MSG);
+      return;
+    }
+    const locality = getLocalities().find(candidate => candidate.name === localityName);
+    if (!locality) {
       addErrorMessage(DEFAULT_ERROR_MSG);
       return;
     }
@@ -82,7 +88,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
     try {
       const result = await api.requestPromise('/relocations/', {
         method: 'POST',
-        host: regionUrl,
+        host: locality.url,
         data: formData,
       });
 

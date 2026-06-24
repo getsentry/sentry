@@ -49,9 +49,9 @@ class ClusterManagerTestCase(TestCase):
         # object to verify it's correct.
 
         # cluster foo is fine since it's a single node
-        assert isinstance(manager.get("foo")._setupfunc(), FailoverRedis)  # type: ignore[attr-defined]
+        assert isinstance(manager.get("foo")._setupfunc(), FailoverRedis)  # type: ignore[union-attr]
         # baz works becasue it's explicitly is_redis_cluster
-        assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value  # type: ignore[attr-defined]
+        assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value  # type: ignore[union-attr]
 
         # bar is not a valid redis or redis cluster definition
         # becasue it is two hosts, without explicitly saying is_redis_cluster

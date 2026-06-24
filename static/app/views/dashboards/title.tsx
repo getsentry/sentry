@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import {EditableText} from 'sentry/components/editableText';
 import {t} from 'sentry/locale';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import type {DashboardDetails} from './types';
 
@@ -13,8 +12,6 @@ type Props = {
 };
 
 export function DashboardTitle({dashboard, isEditingDashboard, onUpdate}: Props) {
-  const hasPageFrame = useHasPageFrameFeature();
-
   return (
     <Fragment>
       {dashboard ? (
@@ -24,7 +21,7 @@ export function DashboardTitle({dashboard, isEditingDashboard, onUpdate}: Props)
           onChange={newTitle => onUpdate({...dashboard, title: newTitle})}
           errorMessage={t('Please set a title for this dashboard')}
           autoSelect
-          variant={hasPageFrame ? 'compact' : undefined}
+          variant="compact"
         />
       ) : (
         t('Dashboards')

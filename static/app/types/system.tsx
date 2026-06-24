@@ -229,9 +229,6 @@ export interface Config {
     agreements: ParntershipAgreementType[];
     partnerDisplayName: string;
   } | null;
-  relocationConfig?: {
-    selectableRegions: string[];
-  };
   shouldShowBeaconConsentPrompt?: boolean;
   statuspage?: {
     api_host: string;

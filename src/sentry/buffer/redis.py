@@ -10,7 +10,7 @@ from typing import Any, TypeVar
 
 import rb
 from django.utils.encoding import force_bytes, force_str
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.buffer.base import Buffer, BufferField
 from sentry.db import models

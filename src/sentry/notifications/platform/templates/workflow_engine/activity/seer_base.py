@@ -5,9 +5,9 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.platform.types import (
-    BoldTextBlock,
     CodeTextBlock,
     NotificationBodyFormattingBlock,
+    NotificationBodyTextBlock,
     NotificationData,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
@@ -65,25 +65,29 @@ def extract_models(
     return activity, group, project, organization
 
 
-def get_issue_description(group: Group) -> ParagraphBlock:
-    from sentry.api.serializers.models.group import get_status_label, get_substatus_label
+def get_issue_description(group: Group) -> list[NotificationBodyFormattingBlock]:
+    from sentry.integrations.messaging.message_builder import build_attachment_title
 
-    status_text = get_substatus_label(group) or get_status_label(group)
-    return ParagraphBlock(
-        blocks=[
-            PlainTextBlock(text="This update pertains to the"),
-            CodeTextBlock(text=group.title),
-            PlainTextBlock(text="issue"),
-            CodeTextBlock(text=group.qualified_short_id),
-            PlainTextBlock(text=f"in the '{group.project.name}' project. The issue is"),
-            BoldTextBlock(text=status_text),
-            PlainTextBlock(text=f"and has been seen {group.times_seen} time(s)."),
-        ]
-    )
+    blocks: list[NotificationBodyTextBlock] = []
+    title = build_attachment_title(group)
+    if title:
+        blocks.append(PlainTextBlock(text=title))
+    culprit = group.culprit
+    if culprit:
+        if blocks:
+            blocks.append(PlainTextBlock(text="—"))
+        blocks.append(CodeTextBlock(text=culprit))
+    return [ParagraphBlock(blocks=blocks)]
 
 
-def get_seer_link(group: Group) -> str:
-    return f"{absolute_uri(group.get_absolute_url())}?seerDrawer=true"
+def get_subject(label: str, group: Group) -> str:
+    short_id = group.qualified_short_id or "unknown"
+    return f"{label} for {short_id}"
+
+
+def get_view_in_sentry_button(group: Group) -> NotificationRenderedAction:
+    link = f"{absolute_uri(group.get_absolute_url())}?seerDrawer=true"
+    return NotificationRenderedAction(label="View in Sentry", link=link)
 
 
 def build_template(
@@ -111,18 +115,16 @@ def build_template(
     )
 
 
-def get_example_issue_description() -> ParagraphBlock:
-    return ParagraphBlock(
-        blocks=[
-            PlainTextBlock(text="This update pertains to the"),
-            CodeTextBlock(text="ExampleError: something went wrong"),
-            PlainTextBlock(text="issue"),
-            CodeTextBlock(text="EXAMPLE-1"),
-            PlainTextBlock(text="in the 'example' project. The issue is"),
-            BoldTextBlock(text="Unresolved"),
-            PlainTextBlock(text="and has been seen 42 time(s)."),
-        ]
-    )
+def get_example_issue_description() -> list[NotificationBodyFormattingBlock]:
+    return [
+        ParagraphBlock(
+            blocks=[
+                PlainTextBlock(text="ExampleError: something went wrong"),
+                PlainTextBlock(text="—"),
+                CodeTextBlock(text="example.module.function"),
+            ]
+        ),
+    ]
 
 
 def get_example_actions() -> list[NotificationRenderedAction]:
@@ -139,7 +141,7 @@ def get_example_template(
 ) -> NotificationRenderedTemplate:
     return NotificationRenderedTemplate(
         subject=subject,
-        body=body if body is not None else [get_example_issue_description()],
+        body=body if body is not None else get_example_issue_description(),
         actions=actions if actions is not None else get_example_actions(),
         footer=EXAMPLE_FOOTER,
     )

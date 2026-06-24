@@ -213,6 +213,9 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
               <LinkButton
                 to={`/settings/${organization.slug}/seer/onboarding/`}
                 icon={<IconSeer />}
+                analyticsEventKey="issue_details.seer_setup_clicked"
+                analyticsEventName="Issue Details: Seer Setup Clicked"
+                analyticsParams={{group_id: group.id, setup_type: 'organization'}}
               >
                 {t('Set Up Seer')}
               </LinkButton>
@@ -220,6 +223,9 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
               <LinkButton
                 to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                 icon={<IconSeer />}
+                analyticsEventKey="issue_details.seer_setup_clicked"
+                analyticsEventName="Issue Details: Seer Setup Clicked"
+                analyticsParams={{group_id: group.id, setup_type: 'project'}}
               >
                 {t('Set Up Seer for This Project')}
               </LinkButton>

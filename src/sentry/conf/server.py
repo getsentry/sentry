@@ -902,7 +902,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.source_code_management.sync_repos",
     "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
-    "sentry.integrations.opsgenie.tasks",
     "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule",
     "sentry.integrations.slack.tasks.find_channel_id_for_rule",
     "sentry.integrations.slack.tasks.link_slack_user_identities",
@@ -3406,3 +3405,7 @@ if IS_DEV and os.environ.get("SENTRY_CELL_ROUTING"):
             "internal": True,
         },
     }
+    # The browser sits on the org subdomain ({slug}.dev.getsentry.net:8000) while
+    # cell-scoped API XHRs cross to Synapse on :13000, so Django's CSRF origin check
+    # needs the page origin trusted explicitly.
+    CSRF_TRUSTED_ORIGINS = ["http://*.dev.getsentry.net:8000", "http://dev.getsentry.net:8000"]

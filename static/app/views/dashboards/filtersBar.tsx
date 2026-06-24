@@ -43,7 +43,6 @@ import {
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
@@ -140,7 +139,6 @@ export function FiltersBar({
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const getSearchBarData = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
   const prebuiltDashboardFilters = prebuiltDashboardId
@@ -259,7 +257,6 @@ export function FiltersBar({
       : null
     : t('You do not have permission to edit this dashboard');
   const showAddWidgetButton =
-    hasPageFrameFeature &&
     !isPrebuiltDashboard &&
     !isEditingDashboard &&
     !isPreview &&
