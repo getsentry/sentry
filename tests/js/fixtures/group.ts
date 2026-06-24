@@ -29,9 +29,6 @@ export function GroupFixture(params: Partial<Group> = {}): Group {
     participants: [],
     permalink: 'https://foo.io/organizations/foo/issues/1234/',
     platform: 'javascript',
-    pluginActions: [],
-    pluginContexts: [],
-    pluginIssues: [],
     priority: PriorityLevel.MEDIUM,
     priorityLockedAt: null,
     project: ProjectFixture({
