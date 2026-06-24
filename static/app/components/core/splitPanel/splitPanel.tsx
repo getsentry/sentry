@@ -208,12 +208,18 @@ export function SplitPanel({
       handleResizeEnd(Math.min(startSize, max), Math.min(endSize, max)),
   });
 
+  // Clamped to [min, max] so the pane basis and divider aria-valuenow stay in
+  // step — and never go negative when a seeded/persisted size is below min
+  // (e.g. a saved size larger than the current viewport). The handlers reuse
+  // this so the reported startSize and keyboard stepping match the rendered
+  // size rather than the raw (possibly out-of-range) containerSize.
+  const visibleSize = Math.max(min, Math.min(containerSize, max));
+
   const handleDoubleClick = useCallback(() => {
-    const startSize = Math.min(containerSize, max);
     const target = Math.max(min, Math.min(defaultSize, max));
     setSize(target, true);
-    handleResizeEnd(startSize, target);
-  }, [containerSize, max, min, defaultSize, setSize, handleResizeEnd]);
+    handleResizeEnd(visibleSize, target);
+  }, [visibleSize, max, min, defaultSize, setSize, handleResizeEnd]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
@@ -228,7 +234,7 @@ export function SplitPanel({
       const shrinkKey = isSizedFirst ? towardStartKey : towardEndKey;
 
       // Step from the visible size so it still moves after the container shrank.
-      const current = Math.min(containerSize, max);
+      const current = visibleSize;
 
       let newSize: number | null = null;
       if (event.key === shrinkKey) {
@@ -249,13 +255,8 @@ export function SplitPanel({
         handleResizeEnd(current, newSize);
       }
     },
-    [orientation, isSizedFirst, containerSize, min, max, setSize, handleResizeEnd]
+    [orientation, isSizedFirst, visibleSize, min, max, setSize, handleResizeEnd]
   );
-
-  // Clamped to [min, max] so the pane basis and divider aria-valuenow stay in
-  // step — and never go negative when a seeded/persisted size is below min
-  // (e.g. a saved size larger than the current viewport).
-  const visibleSize = Math.max(min, Math.min(containerSize, max));
 
   // Ordered sized -> divider -> fill; reversed for `placement="end"`. Keys keep
   // pane identity across the flip.

@@ -176,6 +176,62 @@ describe('SplitPanel', () => {
       });
     });
 
+    it('reports the clamped visible size as startSize when seeded below min', async () => {
+      const onResizeEnd = jest.fn();
+      render(
+        <SplitPanel
+          orientation="horizontal"
+          defaultSize={200}
+          initialSize={-50}
+          minSize={100}
+          onResizeEnd={onResizeEnd}
+          sized={<div>sized</div>}
+          fill={<div>fill</div>}
+        />
+      );
+
+      const separator = screen.getByRole('separator');
+      // Renders floored at min, not the seeded -50.
+      expect(separator).toHaveAttribute('aria-valuenow', '100');
+
+      await userEvent.dblClick(separator);
+
+      // startSize must match the rendered size (100), not the unclamped -50.
+      expect(onResizeEnd).toHaveBeenCalledWith({
+        startSize: 100,
+        endSize: 200,
+        direction: 'increase',
+      });
+    });
+
+    it('keyboard grow steps from the clamped visible size when seeded below min', async () => {
+      const onResizeEnd = jest.fn();
+      render(
+        <SplitPanel
+          orientation="horizontal"
+          defaultSize={200}
+          initialSize={-50}
+          minSize={100}
+          onResizeEnd={onResizeEnd}
+          sized={<div>sized</div>}
+          fill={<div>fill</div>}
+        />
+      );
+
+      const separator = screen.getByRole('separator');
+      separator.focus();
+      // A single grow keypress must move off min (110), not produce a sub-min
+      // value (-40) that leaves the pane visually pinned at min.
+      await userEvent.keyboard('{ArrowRight}');
+
+      expect(onResizeEnd).toHaveBeenCalledWith({
+        startSize: 100,
+        endSize: 110,
+        direction: 'increase',
+      });
+      expect(separator).toHaveAttribute('aria-valuenow', '110');
+    });
+
     it('fires onResizeEnd on keyboard resize so the size can be persisted', async () => {
       const onResizeEnd = jest.fn();
       render(
