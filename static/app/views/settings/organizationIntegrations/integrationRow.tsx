@@ -12,7 +12,6 @@ import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {
   IntegrationInstallationStatus,
-  PluginWithProjectList,
   SentryApp,
   SentryAppStatus,
 } from 'sentry/types/integrations';
@@ -24,7 +23,6 @@ import {
 
 import {AlertContainer} from './integrationAlertContainer';
 import {IntegrationStatus} from './integrationStatus';
-import {PluginDeprecationAlert} from './pluginDeprecationAlert';
 
 type Props = {
   categories: string[];
@@ -33,14 +31,13 @@ type Props = {
   organization: Organization;
   publishStatus: SentryAppStatus;
   slug: string;
-  type: 'plugin' | 'firstParty' | 'sentryApp' | 'docIntegration';
+  type: 'firstParty' | 'sentryApp' | 'docIntegration';
   /**
    * If provided, render an alert message with this text.
    */
   alertText?: string;
   customAlert?: React.ReactNode;
   customIcon?: React.ReactNode;
-  plugin?: PluginWithProjectList;
   /**
    * If `alertText` was provided, this text overrides the "Resolve now" message
    * in the alert.
@@ -50,7 +47,6 @@ type Props = {
 };
 
 const urlMap = {
-  plugin: 'plugins',
   firstParty: 'integrations',
   sentryApp: 'sentry-apps',
   docIntegration: 'document-integrations',
@@ -68,7 +64,6 @@ export function IntegrationRow(props: Props) {
     categories,
     alertText,
     resolveText,
-    plugin,
     customAlert,
     customIcon,
   } = props;
@@ -144,18 +139,9 @@ export function IntegrationRow(props: Props) {
         </AlertContainer>
       )}
       {customAlert}
-      {plugin?.deprecationDate && (
-        <PluginDeprecationAlertWrapper>
-          <PluginDeprecationAlert organization={organization} plugin={plugin} />
-        </PluginDeprecationAlertWrapper>
-      )}
     </PanelRow>
   );
 }
-
-const PluginDeprecationAlertWrapper = styled('div')`
-  padding: 0px ${p => p.theme.space['2xl']} 0px 68px;
-`;
 
 const PanelRow = styled(PanelItem)`
   flex-direction: column;

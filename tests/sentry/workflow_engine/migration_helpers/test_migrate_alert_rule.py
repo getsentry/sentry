@@ -70,7 +70,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import AlertRuleNotDualWritten, DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -1433,13 +1433,13 @@ class DataConditionLookupHelpersTest(BaseMetricAlertMigrationTest):
 
     def test_get_action_filter_no_workflow(self) -> None:
         """
-        Test that we raise an exception if the corresponding workflow for an
+        Test that we raise AlertRuleNotDualWritten if the corresponding workflow for an
         alert rule trigger action does not exist.
         """
         workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.metric_alert.id).workflow
         workflow.delete()
 
-        with pytest.raises(AlertRuleWorkflow.DoesNotExist):
+        with pytest.raises(AlertRuleNotDualWritten):
             get_action_filter(self.alert_rule_trigger, DetectorPriorityLevel.HIGH)
 
     def test_get_action_filter_no_action_filter(self) -> None:

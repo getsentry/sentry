@@ -100,7 +100,7 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
           )}
           {event && (
             <ErrorBoundary mini>
-              <ExternalIssueSidebarList group={group} event={event} project={project} />
+              <ExternalIssueSidebarList group={group} event={event} />
             </ErrorBoundary>
           )}
           <ErrorBoundary mini>

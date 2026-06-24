@@ -549,7 +549,7 @@ services:
       timeout: 5s
       retries: 3
     ports:
-      - 127.0.0.1:7901:7901
+      - 127.0.0.1:7899:7899
     volumes:
       - ./config/relay-edge.yml:/etc/relay/config.yml
       - ./config/relay-edge-credentials.json:/etc/relay/credentials.json
