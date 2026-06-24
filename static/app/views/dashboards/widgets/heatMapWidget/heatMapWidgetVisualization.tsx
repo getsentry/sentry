@@ -31,10 +31,6 @@ import {HeatMap} from './plottables/heatMap';
 import type {HeatMapPlottable} from './plottables/heatMapPlottable';
 import {HEATMAP_COLORS} from './settings';
 
-// This is the ECharts default font size for axis labels. We need to use this number to do axis label frequency calculations
-// Source: https://echarts.apache.org/en/option.html#yAxis.axisLabel.fontSize
-const Y_AXIS_LABEL_FONT_SIZE = 12;
-
 interface HeatMapWidgetVisualizationProps {
   /**
    * An single `HeatMap` object to render on the chart, and any number of other compatible Heat Map plottables.
@@ -157,7 +153,12 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   }
 
   const yAxisBucketSize = heatMapPlottable.heatMapSeries.meta.yAxis.bucketSize;
-  const yAxisBucketCount = heatMapPlottable.heatMapSeries.meta.yAxis.bucketCount;
+
+  // The full value range of the buckets. `start` is the first bucket's lower
+  // bound and `end` is the last bucket's upper bound. We pin an overlaid value
+  // axis to this range so ECharts can place round ticks on it (see `yAxes`).
+  const yAxisMin = heatMapPlottable.heatMapSeries.meta.yAxis.start;
+  const yAxisMax = heatMapPlottable.heatMapSeries.meta.yAxis.end;
 
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = params => {
@@ -314,57 +315,67 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
             show: false,
           },
         }}
-        yAxis={{
-          type: 'category',
-          animation: false,
-          axisLabel: {
-            hideOverlap: true,
-            interval: (index, _value) => {
-              // show the first and last label
-              if (index === 0 || index === yAxisBucketCount - 1) {
-                return true;
-              }
-              // we want to make sure that there's going to be ample amount of space between each label:
-              // chart height / label size = number of labels that will fix with no space between
-              // chart height / (label size * 3) = number of labels that will fit with space between (label shown every 3 label placements)
-              // NOTE: this may change as we start putting heat widgets in dashboards with different chart heights
-              const numFittingLabels = Math.floor(
-                (chartRef.current?.ele.clientHeight ?? 0) / (Y_AXIS_LABEL_FONT_SIZE * 3)
-              );
-              // show all labels if we can't find the client height
-              if (numFittingLabels === 0) {
-                return true;
-              }
-              const nthBucketToShow = Math.ceil(yAxisBucketCount / numFittingLabels);
-              // don't show the third last and second last labels; we want to make sure the last label
-              // isn't smushed up against another label
-              if (
-                index % nthBucketToShow === 0 &&
-                (nthBucketToShow === 1 ||
-                  (index !== yAxisBucketCount - 3 && index !== yAxisBucketCount - 2))
-              ) {
-                return true;
-              }
-              return false;
+        yAxes={[
+          // Category axis: positions the heat map cells (ECharts requires a
+          // category axis for heat map series). Its categories are the bucket
+          // boundaries, which are rarely round, so we hide its labels and let
+          // the overlaid value axis render readable ticks instead.
+          //
+          // We deliberately don't set `data` here: ECharts collects the
+          // categories from the series' Y values and matches cells to them by
+          // value. Supplying our own category list would make ECharts treat
+          // those same Y values as category *indices* instead, dropping every
+          // cell whose value isn't a valid index.
+          {
+            type: 'category',
+            animation: false,
+            axisLabel: {
+              show: false,
             },
-            showMinLabel: true,
-            showMaxLabel: true,
-            formatter: value => {
-              // NOTE: ECharts requires a `"category"` Y-axis for heat maps, but we _know_ that we only support continuous values for the Y-axis. We need to parse the value here.
-              return formatYAxisValue(
-                parseFloat(value),
-                yAxisDataType,
-                yAxisDataUnit ?? undefined
-              );
+            axisTick: {
+              show: false,
+            },
+            axisPointer: {
+              show: false,
+            },
+            splitArea: {
+              show: false,
             },
           },
-          axisPointer: {
-            show: false,
+          // Value axis (overlay): spans the full value range of the buckets and
+          // lets ECharts place round ticks on it. These don't line up with the
+          // bucket boundaries, they just read cleanly. A second y-axis defaults
+          // to the right, so we pin it to the left explicitly. The min/max
+          // labels are hidden because `start`/`end` are themselves bucket
+          // boundaries and rarely round.
+          {
+            type: 'value',
+            position: 'left',
+            min: yAxisMin,
+            max: yAxisMax,
+            animation: false,
+            axisLabel: {
+              hideOverlap: true,
+              showMinLabel: false,
+              showMaxLabel: false,
+              formatter: value =>
+                formatYAxisValue(
+                  Number(value),
+                  yAxisDataType,
+                  yAxisDataUnit ?? undefined
+                ),
+            },
+            axisPointer: {
+              show: false,
+            },
+            splitArea: {
+              show: false,
+            },
+            splitLine: {
+              show: false,
+            },
           },
-          splitArea: {
-            show: false,
-          },
-        }}
+        ]}
         visualMap={visualMapOptions(Zmax)}
         start={start ? new Date(start) : undefined}
         end={end ? new Date(end) : undefined}
