@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
@@ -23,27 +24,43 @@ export function ScmAlertOptionCard({
   children,
 }: ScmAlertOptionCardProps) {
   return (
-    <ScmSelectableContainer isSelected={isSelected} padding="lg">
+    <ScmSelectableContainer isSelected={isSelected}>
       <Stack gap="0">
+        {/* The padding lives on the button (not the card) so the whole header,
+            edge to edge, is part of the click target. */}
         <ScmCardButton
           role="radio"
           aria-checked={isSelected}
           onClick={onSelect}
           style={{width: '100%'}}
         >
-          <Grid gap="md" align="start" columns="min-content 1fr">
-            <Radio size="sm" readOnly checked={isSelected} tabIndex={-1} />
-            <Stack gap="xs">
-              <Text bold={isSelected} size="md" density="comfortable">
-                {label}
-              </Text>
-              {description && (
-                <Text variant="secondary" size="sm" density="comfortable">
-                  {description}
+          <Container padding="lg">
+            <Grid
+              columns="min-content 1fr"
+              gap="xs md"
+              align="center"
+              areas={`
+                "radio label"
+                ".     description"
+              `}
+            >
+              <Container area="radio">
+                <Radio size="sm" readOnly checked={isSelected} tabIndex={-1} />
+              </Container>
+              <Container area="label">
+                <Text bold={isSelected} size="md" density="comfortable">
+                  {label}
                 </Text>
+              </Container>
+              {description && (
+                <Container area="description">
+                  <Text variant="secondary" size="sm" density="comfortable">
+                    {description}
+                  </Text>
+                </Container>
               )}
-            </Stack>
-          </Grid>
+            </Grid>
+          </Container>
         </ScmCardButton>
         {/* Selecting the card expands its body; the height tween mirrors
             ScmCollapsibleSection so cards in scmCreateProject's
@@ -59,11 +76,7 @@ export function ScmAlertOptionCard({
               transition={{duration: 0.2, ease: 'easeOut'}}
               style={{overflow: 'hidden', width: '100%'}}
             >
-              {/* padding-top lives inside the animated body so the gap collapses
-                  with the height tween; padding-left aligns it under the label. */}
-              <Container paddingTop="md" paddingLeft="2xl">
-                {children}
-              </Container>
+              <ExpandedBody>{children}</ExpandedBody>
             </motion.div>
           )}
         </AnimatePresence>
@@ -71,3 +84,12 @@ export function ScmAlertOptionCard({
     </ScmSelectableContainer>
   );
 }
+
+// The body indents to line up under the label (button padding + radio width +
+// grid column gap) and carries its own right/bottom padding so input focus
+// rings clear the animated overflow:hidden bounds. The top gap comes from the
+// header button's own bottom padding.
+const ExpandedBody = styled('div')`
+  padding: 0 ${p => p.theme.space.lg} ${p => p.theme.space.lg};
+  padding-left: calc(${p => p.theme.space.lg} + 20px + ${p => p.theme.space.md});
+`;
