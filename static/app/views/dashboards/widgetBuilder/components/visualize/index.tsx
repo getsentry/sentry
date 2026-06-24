@@ -635,7 +635,11 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
 
   const hasMaxMetrics =
     state.dataset === WidgetType.TRACEMETRICS &&
-    ((aggregateFields ?? state.yAxis)?.length ?? 0) >= MAX_METRICS_ALLOWED;
+    ((fields ?? state.yAxis)?.filter((field: QueryFieldValue) =>
+      [FieldValueKind.FUNCTION, FieldValueKind.EQUATION].includes(
+        field.kind as FieldValueKind
+      )
+    )?.length ?? 0) >= MAX_METRICS_ALLOWED;
 
   return (
     <Fragment>
