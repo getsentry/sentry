@@ -139,6 +139,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
 
           <AutoSaveForm
             name="hasPerformance"
+            key={`hasPerformance-${supportsPerformance}`}
             schema={loaderSchema}
             initialValue={
               supportsPerformance ? data.dynamicSdkLoaderOptions.hasPerformance : false
@@ -173,7 +174,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 }
               >
                 <field.Switch
-                  checked={supportsPerformance ? field.state.value : false}
+                  checked={field.state.value}
                   onChange={field.handleChange}
                   disabled={
                     hasAccess
@@ -189,6 +190,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
 
           <AutoSaveForm
             name="hasReplay"
+            key={`hasReplay-${supportsPerformance}`}
             schema={loaderSchema}
             initialValue={
               supportsPerformance ? data.dynamicSdkLoaderOptions.hasReplay : false
@@ -231,7 +233,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 }
               >
                 <field.Switch
-                  checked={supportsPerformance ? field.state.value : false}
+                  checked={field.state.value}
                   onChange={field.handleChange}
                   disabled={
                     hasAccess
@@ -247,6 +249,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
 
           <AutoSaveForm
             name="hasLogsAndMetrics"
+            key={`hasLogsAndMetrics-${supportsLogs}`}
             schema={loaderSchema}
             initialValue={
               supportsLogs ? data.dynamicSdkLoaderOptions.hasLogsAndMetrics : false
@@ -281,7 +284,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 }
               >
                 <field.Switch
-                  checked={supportsLogs ? field.state.value : false}
+                  checked={field.state.value}
                   onChange={field.handleChange}
                   disabled={
                     hasAccess
@@ -297,6 +300,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
 
           <AutoSaveForm
             name="hasFeedback"
+            key={`hasFeedback-${supportsPerformance}`}
             schema={loaderSchema}
             initialValue={
               supportsPerformance ? data.dynamicSdkLoaderOptions.hasFeedback : false
@@ -338,7 +342,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 }
               >
                 <field.Switch
-                  checked={supportsPerformance ? field.state.value : false}
+                  checked={field.state.value}
                   onChange={field.handleChange}
                   disabled={
                     hasAccess
