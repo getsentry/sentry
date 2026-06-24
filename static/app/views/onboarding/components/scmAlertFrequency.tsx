@@ -66,6 +66,7 @@ export function ScmAlertFrequency({
                     value={metric}
                     options={METRIC_CHOICES}
                     onChange={option => onFieldChange('metric', option.value)}
+                    menuPortalTarget={document.body}
                   />
                 </Grid>
               </Stack>
@@ -78,6 +79,7 @@ export function ScmAlertFrequency({
                   value={interval}
                   options={INTERVAL_CHOICES}
                   onChange={option => onFieldChange('interval', option.value)}
+                  menuPortalTarget={document.body}
                 />
               </Stack>
             </Stack>
