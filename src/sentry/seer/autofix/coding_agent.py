@@ -221,11 +221,26 @@ def poll_github_copilot_agents(
             # tasks whose PR exists. Fall back to resolving the PR from the head
             # branch, which relies only on the reliably-populated branch artifact
             # and public PR fields.
+            #
+            # PR resolution is enrichment only: isolate its failures so a GitHub
+            # API error (these clients raise on HTTP errors) can never block the
+            # terminal status update below and leave the agent stuck on RUNNING.
             pr_info = None
-            if pr_artifact and pr_artifact.data and pr_artifact.data.global_id:
-                pr_info = client.get_pr_from_graphql(pr_artifact.data.global_id)
-            if pr_info is None and branch_name:
-                pr_info = client.get_pr_from_branch(owner, repo, branch_name)
+            try:
+                if pr_artifact and pr_artifact.data and pr_artifact.data.global_id:
+                    pr_info = client.get_pr_from_graphql(pr_artifact.data.global_id)
+                if pr_info is None and branch_name:
+                    pr_info = client.get_pr_from_branch(owner, repo, branch_name)
+            except Exception:
+                logger.exception(
+                    "coding_agent.github_copilot.pr_resolution_failed",
+                    extra={
+                        "agent_id": agent_id,
+                        "owner": owner,
+                        "repo": repo,
+                        "task_id": task_id,
+                    },
+                )
 
             if is_task_done:
                 new_status = CodingAgentStatus.COMPLETED
