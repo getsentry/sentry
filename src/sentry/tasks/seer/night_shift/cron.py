@@ -446,6 +446,7 @@ class EligibleProject:
     project: Project
     tweaks: NightShiftTweaks
     stopping_point: AutofixStoppingPoint
+    connected_repos: list[str]
 
 
 def _get_eligible_projects(
@@ -485,6 +486,9 @@ def _get_eligible_projects(
                 preferences[p.id].automated_run_stopping_point
                 or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
             ),
+            connected_repos=[
+                f"{repo.owner}/{repo.name}" for repo in preferences[p.id].repositories
+            ],
         )
         for p in with_automation
     ]
@@ -512,6 +516,7 @@ def _get_eligible_projects(
 def _build_triage_payload(
     candidates: Sequence[ScoredCandidate],
     resolved_options: SeerNightShiftRunOptions,
+    repos_by_project: dict[int, list[str]],
 ) -> NightShiftPayload:
     return NightShiftPayload(
         candidates=[
@@ -523,6 +528,7 @@ def _build_triage_payload(
                 times_seen=c.group.times_seen,
                 first_seen=c.group.first_seen.isoformat(),
                 priority=priority_label(c.group.priority),
+                connected_repos=repos_by_project.get(c.group.project_id, []),
             )
             for c in candidates
         ],
@@ -547,6 +553,7 @@ def _dispatch_to_seer_feature(
     SeerNightShiftRunShard. Seer pushes verdicts back per shard via
     deliver_feature_result."""
     eligible_projects = [ep.project for ep in eligible]
+    repos_by_project = {ep.project.id: ep.connected_repos for ep in eligible}
     scored = fixability_score_strategy(eligible_projects, resolved_options["max_candidates"])
     if not scored:
         logger.info("night_shift.no_candidates", extra=log_extra)
@@ -566,7 +573,7 @@ def _dispatch_to_seer_feature(
     shards = list(chunked(scored, shard_size))
     dispatched = 0
     for shard_index, chunk in enumerate(shards):
-        payload = _build_triage_payload(chunk, resolved_options)
+        payload = _build_triage_payload(chunk, resolved_options, repos_by_project)
         try:
             client.start_feature_run(
                 feature_id="night_shift",

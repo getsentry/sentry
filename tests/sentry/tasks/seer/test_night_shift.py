@@ -291,6 +291,19 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         assert [ep.project for ep in result] == [eligible]
         assert result[0].tweaks.enabled is True
 
+    def test_carries_each_projects_connected_repos(self) -> None:
+        org = self.create_organization()
+        a = self._make_eligible(self.create_project(organization=org, slug="a"))
+        b = self._make_eligible(self.create_project(organization=org, slug="b"))
+        extra = self.create_repo(project=b, provider="github", name="owner/b-extra")
+        self.create_seer_project_repository(project=b, repository=extra)
+
+        result = _get_eligible_projects(org, "manual")
+
+        repos_by_slug = {ep.project.slug: sorted(ep.connected_repos) for ep in result}
+        assert repos_by_slug[a.slug] == ["owner/a"]
+        assert repos_by_slug[b.slug] == ["owner/b", "owner/b-extra"]
+
     def test_filters_by_project_id(self) -> None:
         org = self.create_organization()
         target = self._make_eligible(self.create_project(organization=org))
@@ -604,6 +617,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         assert body["feature_id"] == "night_shift"
         assert [c["group_id"] for c in body["payload"]["candidates"]] == [group.id]
         assert body["payload"]["candidates"][0]["priority"] == "high"
+        assert body["payload"]["candidates"][0]["connected_repos"] == [f"owner/{project.slug}"]
 
         outbox = CellOutbox.objects.get(
             category=OutboxCategory.SEER_RUN_CREATE, object_identifier=seer_run.id
