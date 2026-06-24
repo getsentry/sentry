@@ -57,8 +57,6 @@ describe('SubscriptionHeader', () => {
     organization: Organization;
   }) {
     const hasBillingPerms = organization.access?.includes('org:billing');
-    // Wait for the header to finish loading. The page-frame layout no longer
-    // renders a "Subscription" heading, so anchor on a card that always renders.
     await screen.findByRole('heading', {
       name: hasBillingPerms ? 'Receipts & notifications' : 'Activity log',
     });
