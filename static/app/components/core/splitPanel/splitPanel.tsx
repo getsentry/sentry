@@ -252,8 +252,10 @@ export function SplitPanel({
     [orientation, isSizedFirst, containerSize, min, max, setSize, handleResizeEnd]
   );
 
-  // Clamped so the pane basis and divider aria-valuenow stay in step.
-  const visibleSize = Math.min(containerSize, max);
+  // Clamped to [min, max] so the pane basis and divider aria-valuenow stay in
+  // step — and never go negative when a seeded/persisted size is below min
+  // (e.g. a saved size larger than the current viewport).
+  const visibleSize = Math.max(min, Math.min(containerSize, max));
 
   // Ordered sized -> divider -> fill; reversed for `placement="end"`. Keys keep
   // pane identity across the flip.

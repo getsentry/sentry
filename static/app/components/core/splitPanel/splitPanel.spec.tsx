@@ -28,6 +28,23 @@ describe('SplitPanel', () => {
     expect(screen.queryByRole('separator')).not.toBeInTheDocument();
   });
 
+  it('floors the sized pane at minSize when the seeded size is below it', () => {
+    // A persisted/seeded size below min (here negative) must not produce a
+    // negative flex-basis; the rendered size is floored at minSize.
+    render(
+      <SplitPanel
+        orientation="horizontal"
+        defaultSize={200}
+        initialSize={-50}
+        minSize={100}
+        sized={<div>sized</div>}
+        fill={<div>fill</div>}
+      />
+    );
+
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '100');
+  });
+
   it('preserves the sized pane DOM node when the fill pane is toggled', () => {
     const sized = <div>sized</div>;
     const {rerender} = render(
