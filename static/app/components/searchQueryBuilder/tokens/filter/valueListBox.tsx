@@ -57,7 +57,8 @@ function constrainAndAlignListBox({
     // pushed it off the right edge.
     const viewportMargin = 8;
     const rect = popoverRef.current.getBoundingClientRect();
-    const rightOverflow = rect.right - (document.documentElement.clientWidth - viewportMargin);
+    const rightOverflow =
+      rect.right - (document.documentElement.clientWidth - viewportMargin);
     if (rightOverflow > 0) {
       popoverRef.current.style.left = `-${rightOverflow}px`;
     }
