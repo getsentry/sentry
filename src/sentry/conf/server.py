@@ -3393,6 +3393,18 @@ if IS_DEV and os.environ.get("SENTRY_CELL_ROUTING"):
     SENTRY_FEATURES["system:multi-region"] = True
     SENTRY_LOCAL_CELL = SENTRY_LOCAL_CELL or "--monolith--"
 
+    # Synapse's ingest-router fronts the cell relays and signs its upstream
+    # requests to Sentry with its own credentials (started with --credentials-path
+    # relay-credentials.json). Register it as a static, internal relay: static auth
+    # is an alternative to the register/challenge handshake, so synapse is trusted
+    # by relay_id directly from config without ever registering. Values come from
+    # synapse's relay-credentials.json. Dev-only, gated behind cell-routing.
+    SENTRY_RELAY_STATIC_AUTH = {
+        "7835bea9-7df4-42d7-ab67-d344d026f9f6": {
+            "public_key": "Pr9zR1197orWo8Ekw85tTje4zjAGpMdIg9DgrVhFQ70",
+            "internal": True,
+        },
+    }
     # The browser sits on the org subdomain ({slug}.dev.getsentry.net:8000) while
     # cell-scoped API XHRs cross to Synapse on :13000, so Django's CSRF origin check
     # needs the page origin trusted explicitly.
