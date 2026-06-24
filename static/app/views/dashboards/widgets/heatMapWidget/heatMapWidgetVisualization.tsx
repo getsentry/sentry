@@ -1,10 +1,11 @@
 import 'echarts/lib/chart/heatmap';
 
-import {Fragment, useCallback, useEffect, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useRef, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
+  VisualMapComponentOption,
 } from 'echarts/types/dist/shared';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -14,8 +15,6 @@ import {BaseChart} from 'sentry/components/charts/baseChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -42,21 +41,27 @@ interface HeatMapWidgetVisualizationProps {
    */
   plottables: [HeatMap, ...HeatMapPlottable[]];
   /**
-   * Callback that returns an explore URL for a given query and filtered datetime selection
+   * Renders extra content in a cell's tooltip. Because ECharts renders the
+   * tooltip to an HTML string (no live React handlers), the visualization
+   * routes clicks for you: use `data-traces-link="<url>"` for navigations, and
+   * `data-tooltip-action="<id>"` with `data-tooltip-action-value="<value>"` for
+   * actions. The matching `tooltipActionHandlers[id]` is called with the value.
    */
-  makeExploreUrl?: (query: string, filteredSelection: PageFilters) => string;
+  renderTooltipActions?: (context: HeatMapTooltipContext) => ReactNode;
   /**
    * Experimental! Specify the Z-axis scale type. Logarithmic scales can be much more useful for values with a high range.
    */
   scale?: 'linear' | 'log';
   /**
-   * Callback that updates the local filter to include the given Y-axis query.
+   * Handlers for caller-rendered tooltip actions, keyed by the button's
+   * `data-tooltip-action` id. Clicking such a button calls the matching handler
+   * with its `data-tooltip-action-value`.
    */
-  updateLocalFilterQuery?: (query: string) => void;
+  tooltipActionHandlers?: Record<string, (value: string) => void>;
 }
 
 export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProps) {
-  const {plottables, updateLocalFilterQuery, makeExploreUrl} = props;
+  const {plottables, tooltipActionHandlers, renderTooltipActions} = props;
   const theme = useTheme();
   const renderToString = useRenderToString();
   const navigate = useNavigate();
@@ -76,19 +81,25 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
       if (!chartRef.current?.ele?.contains(e.target as Node)) {
         return;
       }
-      const localQueryUpdateTarget = (e.target as Element).closest('[data-local-query]');
+
+      const actionTarget = (e.target as Element).closest('[data-tooltip-action]');
+
       const tracesLinkTarget = (e.target as Element).closest('[data-traces-link]');
-      if (!localQueryUpdateTarget && !tracesLinkTarget) {
+
+      if (!actionTarget && !tracesLinkTarget) {
         return;
       }
+
       e.preventDefault();
+
       const openInNewTab = e.metaKey || e.ctrlKey;
-      if (localQueryUpdateTarget) {
-        const localQuery = localQueryUpdateTarget.getAttribute('data-local-query');
-        if (localQuery && updateLocalFilterQuery) {
-          updateLocalFilterQuery(localQuery);
-        }
+
+      if (actionTarget) {
+        const actionId = actionTarget.getAttribute('data-tooltip-action');
+        const handler = actionId ? tooltipActionHandlers?.[actionId] : undefined;
+        handler?.(actionTarget.getAttribute('data-tooltip-action-value') ?? '');
       }
+
       if (tracesLinkTarget) {
         const tracesUrl = tracesLinkTarget.getAttribute('data-traces-link');
         if (tracesUrl) {
@@ -100,7 +111,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
         }
       }
     },
-    [navigate, updateLocalFilterQuery]
+    [navigate, tooltipActionHandlers]
   );
 
   useEffect(() => {
@@ -228,29 +239,17 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
               }
             }
 
-            let tracesLink: string | undefined;
-            const metricsQuery = defined(rawYValue)
-              ? yAxisBucketSize === 0
-                ? `value:<=${rawYValue}`
-                : `value:>=${rawYValue} value:<${rawYValue + yAxisBucketSize}`
-              : undefined;
-
-            if (defined(rawXValue) && defined(rawYValue)) {
-              const xAxisMaxValue = rawXValue + xAxisBucketSize * 1000;
-
-              const filteredSelection = {
-                ...pageFilters.selection,
-                datetime: {
-                  ...pageFilters.selection.datetime,
-                  start: new Date(rawXValue),
-                  end: new Date(xAxisMaxValue),
-                  period: null,
-                },
-              };
-
-              if (makeExploreUrl && metricsQuery) {
-                tracesLink = makeExploreUrl(metricsQuery, filteredSelection);
-              }
+            // The caller renders any cell actions (e.g. an Explore link) from the
+            // cell's raw value/time bounds — the visualization doesn't know what
+            // a "query" or "selection" should look like.
+            let tooltipActions: ReactNode = null;
+            if (defined(rawXValue) && defined(rawYValue) && renderTooltipActions) {
+              tooltipActions = renderTooltipActions({
+                valueMin: rawYValue,
+                valueMax: rawYValue + yAxisBucketSize,
+                timestampStart: rawXValue,
+                timestampEnd: rawXValue + xAxisBucketSize * 1000,
+              });
             }
 
             return (
@@ -261,22 +260,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                   </span>{' '}
                   {formattedZValue}
                 </div>
-                {makeExploreUrl && defined(tracesLink) && (
-                  <div>
-                    <span className="tooltip-label tooltip-label-centered">
-                      <a data-traces-link={tracesLink} href={tracesLink}>
-                        {t('View connected spans')}
-                      </a>
-                    </span>
-                  </div>
-                )}
-                {updateLocalFilterQuery && defined(metricsQuery) && (
-                  <div>
-                    <span className="tooltip-label tooltip-label-centered">
-                      <a data-local-query={metricsQuery}>{t('Add to filter')}</a>
-                    </span>
-                  </div>
-                )}
+                {tooltipActions}
               </Fragment>
             );
           })}
@@ -381,31 +365,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
             show: false,
           },
         }}
-        visualMap={[
-          // Zero values are transparent (empty buckets)
-          {
-            type: 'piecewise',
-            show: false,
-            dimension: 2,
-            seriesIndex: 0,
-            pieces: [
-              {value: 0, opacity: 0},
-              {gt: 0, opacity: 1},
-            ],
-          },
-          // All values are plotted against a palette
-          {
-            type: 'continuous',
-            show: false,
-            dimension: 2,
-            seriesIndex: 0,
-            min: 0,
-            max: Zmax,
-            inRange: {
-              color: [...HEATMAP_COLORS],
-            },
-          },
-        ]}
+        visualMap={visualMapOptions(Zmax)}
         start={start ? new Date(start) : undefined}
         end={end ? new Date(end) : undefined}
         period={period}
@@ -413,4 +373,43 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
       />
     </Flex>
   );
+}
+
+export const visualMapOptions = (Zmax: number): VisualMapComponentOption[] => {
+  return [
+    // Zero values are transparent (empty buckets)
+    {
+      type: 'piecewise',
+      show: false,
+      dimension: 2,
+      seriesIndex: 0,
+      pieces: [
+        {value: 0, opacity: 0},
+        {gt: 0, opacity: 1},
+      ],
+    },
+    // All values are plotted against a palette
+    {
+      type: 'continuous',
+      show: false,
+      dimension: 2,
+      seriesIndex: 0,
+      min: 0,
+      max: Zmax,
+      inRange: {
+        color: [...HEATMAP_COLORS],
+      },
+    },
+  ];
+};
+
+/**
+ * Context for the hovered heat map cell, handed to `renderTooltipActions` so the
+ * caller can build its own tooltip actions (e.g. links into Explore).
+ */
+interface HeatMapTooltipContext {
+  timestampEnd: number;
+  timestampStart: number;
+  valueMax: number;
+  valueMin: number;
 }

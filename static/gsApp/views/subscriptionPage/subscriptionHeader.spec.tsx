@@ -398,7 +398,7 @@ describe('SubscriptionHeader', () => {
       },
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -430,7 +430,7 @@ describe('SubscriptionHeader', () => {
       },
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(50, 'days').toISOString(),
+      billingPeriodEnd: now.add(50, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -464,12 +464,12 @@ describe('SubscriptionHeader', () => {
         plan: 'am3_business',
         planDetails: PlanFixture({
           name: 'Business',
-          price: 100,
+          totalPrice: 100,
         }),
       }),
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -503,12 +503,11 @@ describe('SubscriptionHeader', () => {
         plan: 'am3_f',
         planDetails: PlanFixture({
           name: 'Developer',
-          price: 0,
         }),
       }),
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);

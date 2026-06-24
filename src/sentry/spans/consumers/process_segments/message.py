@@ -17,6 +17,15 @@ from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
 from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
+from sentry.issue_detection.detectors.span_first.run_detectors import (
+    SPAN_FIRST_DETECTORS_BY_GROUPTYPE,
+    compare_span_first_problems_to_control_data,
+    run_span_first_detectors,
+)
+from sentry.issue_detection.detectors.span_first.span_first_utils import (
+    SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION,
+    SpanFirstDetectorsRolloutController,
+)
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -287,12 +296,41 @@ def _create_models(
 def _detect_performance_problems(
     segment_span: CompatibleSpan, spans: list[CompatibleSpan], project: Project
 ) -> None:
-    if not options.get("spans.process-segments.detect-performance-problems.enable"):
+    if not options.get(SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION):
         return
 
-    event_data = build_shim_event_data(segment_span, spans)
-    performance_problems = detect_performance_problems(event_data, project, standalone=True)
+    # Sample once per segment, up front: if no grouptypes are selected, neither the existing nor the
+    # span-first detectors will run.pipeline runs. Since for now the existing detection is only
+    # being run for the sake of comparison testing, gating it together with the experimental side
+    # avoids paying its cost on segments we won't compare.
+    sampled_grouptypes = [
+        grouptype_slug
+        for grouptype_slug in SPAN_FIRST_DETECTORS_BY_GROUPTYPE
+        if SpanFirstDetectorsRolloutController.should_check_experiment(grouptype_slug)
+    ]
+    if not sampled_grouptypes:
+        return
 
+    try:
+        event_data = build_shim_event_data(segment_span, spans)
+        all_control_problems = detect_performance_problems(event_data, project, standalone=True)
+
+        span_first_problems_by_grouptype = run_span_first_detectors(
+            sampled_grouptypes, segment_span, spans, project
+        )
+
+        compare_span_first_problems_to_control_data(
+            span_first_problems_by_grouptype,
+            all_control_problems,
+            get_source_of_truth=lambda _: (
+                "control" if segment_span.get("_performance_issues_spans") else "neither"
+            ),
+        )
+    except Exception:
+        logger.exception("span_first_detector_test.error")
+        return
+
+    # This flag is set in Relay (though at the moment it's not turned on)
     if not segment_span.get("_performance_issues_spans"):
         return
 
@@ -303,7 +341,7 @@ def _detect_performance_problems(
     event_data["spans"] = []
     event_data["timestamp"] = event_data["datetime"]
 
-    for problem in performance_problems:
+    for problem in all_control_problems:
         problem.type = PerformanceStreamedSpansGroupTypeExperimental
         problem.fingerprint = (
             f"{problem.fingerprint}-{PerformanceStreamedSpansGroupTypeExperimental.type_id}"

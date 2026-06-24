@@ -165,6 +165,50 @@ describe('useReplayCount', () => {
     });
   });
 
+  describe('replay access gating', () => {
+    it('does not request counts when the viewer lacks replay access', async () => {
+      const deniedOrg = OrganizationFixture({
+        hasGranularReplayPermissions: true,
+        replayAccessMembers: [],
+      });
+      const mockRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${deniedOrg.slug}/replay-count/`,
+        body: {'1111': 5},
+      });
+
+      const {result} = renderHookWithProviders(useReplayCount, {
+        organization: deniedOrg,
+        initialProps: {...initialProps, organization: deniedOrg},
+      });
+
+      await waitFor(() => expect(result.current.getOne('1111')).toBeUndefined());
+      expect(result.current.getMany(['1111', '2222'])).toStrictEqual({});
+      expect(result.current.hasOne('1111')).toBeUndefined();
+      expect(result.current.hasMany(['1111', '2222'])).toStrictEqual({});
+      expect(mockRequest).not.toHaveBeenCalled();
+    });
+
+    it('requests counts when the viewer is on the replay allowlist', async () => {
+      const allowedOrg = OrganizationFixture({
+        hasGranularReplayPermissions: true,
+        replayAccessMembers: [1],
+      });
+      const mockRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${allowedOrg.slug}/replay-count/`,
+        body: {'1111': 5},
+      });
+
+      const {result} = renderHookWithProviders(useReplayCount, {
+        organization: allowedOrg,
+        initialProps: {...initialProps, organization: allowedOrg},
+      });
+
+      result.current.getOne('1111');
+
+      await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    });
+  });
+
   describe('query construction', () => {
     it('should quote ids when fieldName is "transaction"', async () => {
       const mockRequest = getMockRequest({

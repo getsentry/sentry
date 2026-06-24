@@ -34,6 +34,43 @@ sentry django makemigrations <app_name> --empty
 
 When editing a generated migration (e.g. swapping `DeleteModel` for `SafeDeleteModel`), **leave the auto-generated `is_post_deployment` comment block in place**. It documents a non-obvious flag with concrete guidance for future migration authors — useful context, not fluff. Only remove a comment if it's stale or contradicts the code.
 
+### Don't test the ORM
+
+Don't write tests that only exercise Django's ORM. Standard operations — create/update/delete, cascading deletes, unique-constraint enforcement — are provided by Django and Postgres and are assumed to work. Test _your_ logic (business rules, signal receivers, custom managers/validation), not the framework's.
+
+### Do test data migrations and backfills
+
+The exception to the above: a migration that **backfills or transforms data** is your logic, and it must have a test. Use the `TestMigrations` base class from `sentry.testutils.cases`; tests live in `tests/sentry/migrations/`.
+
+Set `app`, `migrate_from` (the migration just before yours), and `migrate_to` (yours). Seed pre-migration rows in `setup_before_migration(self, apps)` using the **historical** model registry (`apps.get_model("sentry", "MyModel")`) — not a direct `from sentry.models...` import, since the current model may not match the schema at `migrate_from`. Then assert the post-migration state.
+
+**Write exactly one `test_*` method.** `setUp` runs the full migrate-down → seed → migrate-up cycle on _every_ test method, so each extra method pays for another round trip with no added coverage. Cover multiple cases by seeding all of them in `setup_before_migration` and asserting each in the single test body.
+
+```python
+from sentry.testutils.cases import TestMigrations
+
+
+class BackfillFooTest(TestMigrations):
+    app = "sentry"
+    migrate_from = "0123_before"
+    migrate_to = "0124_backfill_foo"
+
+    def setup_before_migration(self, apps):
+        Foo = apps.get_model("sentry", "Foo")
+        self.empty = Foo.objects.create(value=None)
+        self.already_set = Foo.objects.create(value="kept")
+
+    def test_backfill(self):
+        self.empty.refresh_from_db()
+        self.already_set.refresh_from_db()
+        assert self.empty.value == "expected"
+        assert self.already_set.value == "kept"
+```
+
+**`app` and `connection`**: `app` is the Django app label whose migration you're testing — `"sentry"` by default, but set it to e.g. `"workflow_engine"` when the migration lives in that app's `migrations/` directory. `connection` is the database alias, `"default"` by default; set it to whichever connection the model's table actually lives on. Both must match where the migration and its tables actually live, or the migrate up/down will run against the wrong database.
+
+Run these tests locally with the `--migrations` and `--reuse-db` flags. On the first run, it will be necessary to use `--create-db` along with `--reuse-db` to get the database in a good state.
+
 ## Guidelines
 
 ### Adding Columns

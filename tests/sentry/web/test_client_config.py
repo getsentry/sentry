@@ -123,6 +123,7 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory) -> None:
         # Removing the region lists as it varies based on silo mode.
         # See Locality.to_url()
         value.pop("localities")
+        value.pop("signupLocalities")
         value.pop("cells")
         value["links"].pop("regionUrl")
 
@@ -188,6 +189,8 @@ def test_client_config_default_locality_data() -> None:
     localities = result["localities"]
     assert localities[0]["name"] == settings.SENTRY_FALLBACK_CELL
     assert localities[0]["url"] == options.get("system.url-prefix")
+    assert len(result["signupLocalities"]) == 1
+    assert result["signupLocalities"] == [settings.SENTRY_FALLBACK_CELL]
 
     assert len(result["cells"]) == 0, "No staff session"
 
@@ -207,9 +210,12 @@ def test_client_config_empty_region_data() -> None:
 
     assert len(result["cells"]) == 0, "no staff session"
     assert len(result["localities"]) == 1
+    assert len(result["signupLocalities"]) == 1
+
     localities = result["localities"]
     assert localities[0]["name"] == settings.SENTRY_FALLBACK_CELL
     assert localities[0]["url"] == options.get("system.url-prefix")
+    assert result["signupLocalities"][0] == localities[0]["name"]
 
 
 @multiregion_client_config_test
@@ -266,6 +272,9 @@ def test_client_config_with_hidden_cell_membership() -> None:
     assert len(result["localities"]) == 1
     localities = result["localities"]
     assert [r["name"] for r in localities] == ["us"]
+
+    # signup localities don't include hidden items;
+    assert result["signupLocalities"] == ["us"]
 
     # Cell list is hidden for regular users.
     assert len(result["cells"]) == 0
