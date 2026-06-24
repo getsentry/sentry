@@ -26,15 +26,15 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveIndex(
-            model_name="workflowfirehistory",
-            name="workflow_en_workflo_270fe2_idx",
-        ),
         migrations.AddIndex(
             model_name="workflowfirehistory",
             index=models.Index(
                 fields=["workflow", "date_added", "group"],
                 name="workflow_en_workflo_6649de_idx",
             ),
+        ),
+        migrations.RemoveIndex(
+            model_name="workflowfirehistory",
+            name="workflow_en_workflo_270fe2_idx",
         ),
     ]
