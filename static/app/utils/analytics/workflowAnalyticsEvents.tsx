@@ -148,6 +148,10 @@ export type TeamInsightsEventParameters = {
     has_streamlined_ui: boolean;
     has_summary: boolean;
   };
+  'issue_details.seer_setup_clicked': {
+    group_id: string;
+    setup_type: 'organization' | 'project';
+  };
   'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
     has_pull_request: boolean;
     suspect_commit_calculation: string;
@@ -246,6 +250,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Issue Details: Trace Timeline More Events Clicked',
   'issue_details.resources_link_clicked': 'Issue Details: Resources Link Clicked',
   'issue_details.seer_opened': 'Issue Details: Seer Opened',
+  'issue_details.seer_setup_clicked': 'Issue Details: Seer Setup Clicked',
   'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',
   'issue_details.suspect_commits.pull_request_clicked':
     'Issue Details: Suspect Pull Request Clicked',
