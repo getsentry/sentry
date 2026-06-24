@@ -457,16 +457,22 @@ class VercelIntegrationTest(IntegrationTestCase):
             json={"link": {"type": "github"}, "framework": "gatsby"},
         )
 
-        # mock upsert env vars (all succeed directly via POST with upsert=true)
+        # mock upsert env vars (all succeed directly via POST to the v10 endpoint
+        # with upsert=true). v10 returns a {"created": [...], "failed": []} envelope.
         for env_var, details in env_var_map.items():
             responses.add(
                 responses.POST,
-                f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_URL % self.project_id}",
+                f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_V10_URL % self.project_id}",
                 json={
-                    "key": env_var,
-                    "value": details["value"],
-                    "target": details["target"],
-                    "type": details["type"],
+                    "created": [
+                        {
+                            "key": env_var,
+                            "value": details["value"],
+                            "target": details["target"],
+                            "type": details["type"],
+                        }
+                    ],
+                    "failed": [],
                 },
             )
 
@@ -533,6 +539,52 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert req_params["value"] == public_key
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
+
+    @responses.activate
+    @with_feature("organizations:integrations-vercel-upsert-env-var")
+    def test_update_org_config_upsert_error_response(self) -> None:
+        """A failed upsert (e.g. a conflict) fails the request with a non-2xx, which
+        we surface as a ValidationError without persisting the mapping."""
+
+        with self.tasks():
+            self.install_integration()
+
+        org = self.organization
+        project_id = self.project.id
+
+        # mock get_project API call
+        responses.add(
+            responses.GET,
+            f"{VercelClient.base_url}{VercelClient.GET_PROJECT_URL % self.project_id}",
+            json={"link": {"type": "github"}, "framework": "gatsby"},
+        )
+
+        conflict_message = (
+            "Another Environment Variable with the same Name and Environment "
+            "exists in your project."
+        )
+        # Vercel returns a 403 with the error body when the variable can't be set.
+        responses.add(
+            responses.POST,
+            f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_V10_URL % self.project_id}",
+            status=403,
+            json={"error": {"code": "ENV_CONFLICT", "message": conflict_message}},
+        )
+
+        data = {"project_mappings": [[project_id, self.project_id]]}
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(org.id)
+
+        with pytest.raises(ValidationError) as exc_info:
+            installation.update_organization_config(data)
+
+        assert exc_info.value.detail == {"project_mappings": [conflict_message]}
+
+        # the mapping should not be persisted when an env var fails
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert org_integration.config == {}
 
     @responses.activate
     def test_upgrade_org_config_no_dsn(self) -> None:

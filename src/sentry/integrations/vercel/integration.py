@@ -404,9 +404,9 @@ class VercelIntegration(IntegrationInstallation):
                 return client.create_env_variable(vercel_project_id, data, upsert=True)
             except ApiError as e:
                 error_message = (
-                    e.json.get("error", {}).get("message")
-                    if e.json
-                    else f"Could not create or update environment variable {key}."
+                    (e.json or {})
+                    .get("error", {})
+                    .get("message", f"Could not create or update environment variable {key}.")
                 )
                 raise ValidationError({"project_mappings": [error_message]})
 
