@@ -178,9 +178,11 @@ class DataForwarderSerializerTest(TestCase):
 
     def test_sqs_config_validation_valid_regions(self) -> None:
         """Test that actual AWS regions are accepted."""
-        from sentry_plugins.amazon_sqs.plugin import get_regions
+        import boto3
 
-        valid_regions = get_regions()
+        valid_regions = boto3.session.Session().get_available_regions(
+            "sqs"
+        ) + boto3.session.Session().get_available_regions("sqs", partition_name="aws-cn")
         # Test with a few known regions
         test_regions = ["us-east-1", "us-west-2", "eu-west-1"]
 

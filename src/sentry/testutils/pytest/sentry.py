@@ -382,11 +382,6 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 def register_extensions() -> None:
-    from sentry.plugins.base import plugins
-    from sentry.plugins.utils import TestIssuePlugin2
-
-    plugins.register(TestIssuePlugin2)
-
     from sentry.integrations.example import (
         AlertRuleIntegrationProvider,
         AliasedIntegrationProvider,

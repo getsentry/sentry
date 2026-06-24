@@ -19,7 +19,6 @@ from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.source_code_management.repository import (
@@ -30,7 +29,6 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
-from sentry.plugins.migrator import Migrator
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -253,7 +251,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
-        Migrator(integration=serialize_integration(integration), organization=organization).run()
+        pass
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         return {"external_id": state.get("name", "example")}
