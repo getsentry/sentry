@@ -469,11 +469,13 @@ function useTrackView({
   tab,
   organization,
   hasAutofixQuota,
+  seerReposLinked,
 }: {
   event: Event | null;
   group: Group | null;
   hasAutofixQuota: boolean;
   organization: Organization;
+  seerReposLinked: boolean;
   tab: Tab;
   project?: Project;
 }) {
@@ -487,7 +489,7 @@ function useTrackView({
   useRouteAnalyticsParams({
     ...getAnalyticsDataForGroup(group),
     ...getAnalyticsDataForEvent(event),
-    ...getAnalyicsDataForProject(project),
+    ...getAnalyicsDataForProject(project, {seerReposLinked}),
     tab,
     query: typeof query === 'string' ? query : undefined,
     // Alert properties track if the user came from email/slack alerts
@@ -631,7 +633,7 @@ function GroupDetailsContentInner({
     },
   });
 
-  const {hasAutofixQuota} = useAiConfig(group, project);
+  const {hasAutofixQuota, seerReposLinked} = useAiConfig(group, project);
 
   useEffect(() => {
     if (isAnyDrawerOpen) {
@@ -671,6 +673,7 @@ function GroupDetailsContentInner({
     tab: currentTab,
     organization,
     hasAutofixQuota,
+    seerReposLinked,
   });
 
   useEngagedViewTracking({group, project});

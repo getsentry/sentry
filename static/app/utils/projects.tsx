@@ -533,10 +533,14 @@ interface ProjectAnalyticsData {
   project_has_replay: boolean;
   project_id: number;
   project_platform: string;
+  // Whether the project has repos linked in Seer settings, which allows Autofix to run.
+  // Populated from the autofix setup API; undefined when the data has not been fetched.
+  seer_project_repos_linked?: boolean;
 }
 
 export function getAnalyicsDataForProject(
-  project?: Project | null
+  project?: Project | null,
+  {seerReposLinked}: {seerReposLinked?: boolean} = {}
 ): ProjectAnalyticsData {
   return {
     project_has_replay: project?.hasReplays ?? false,
@@ -544,5 +548,6 @@ export function getAnalyicsDataForProject(
     project_age: project ? getDaysSinceDate(project.dateCreated) : -1,
     project_id: project ? parseInt(project.id, 10) : -1,
     project_platform: project?.platform ?? '',
+    seer_project_repos_linked: seerReposLinked,
   };
 }
