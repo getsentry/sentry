@@ -34,7 +34,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {AutoOpenInstallModal} from 'sentry/views/settings/organizationIntegrations/autoOpenInstallModal';
 import type {
   AlertType,
   IntegrationTab,
@@ -507,13 +506,6 @@ export default function IntegrationDetailedView() {
 
   return (
     <SentryDocumentTitle title={integrationName}>
-      <AutoOpenInstallModal
-        provider={provider}
-        organization={organization}
-        onInstall={onInstall}
-        installationStatus={installationStatus}
-        featureData={featureData}
-      />
       <IntegrationLayout.Body
         integrationName={integrationName}
         alert={<FirstPartyIntegrationAlert integrations={configurations} hideCTA />}

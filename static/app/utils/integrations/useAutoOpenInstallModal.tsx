@@ -1,39 +1,41 @@
 import {useEffect, useRef} from 'react';
 import {useQueryState} from 'nuqs';
 
-import type {
-  Integration,
-  IntegrationInstallationStatus,
-  IntegrationProvider,
-} from 'sentry/types/integrations';
+import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 
 interface Props {
-  disabledFromFeatures: boolean;
-  installationStatus: IntegrationInstallationStatus;
-  onInstall: (integration: Integration) => void;
+  onInstall: AddIntegrationParams['onInstall'];
   organization: Organization;
-  provider: IntegrationProvider | undefined;
+  provider: IntegrationProvider;
+  analyticsParams?: AddIntegrationParams['analyticsParams'];
+  suppressSuccessMessage?: boolean;
 }
 
 /**
  * Auto-opens the integration install modal once per provider when the detail
  * page is loaded with `?showInstallModal=1` (e.g. from the Slack reinstall
- * nudge). Gated to mirror the install button: provider installable, user has
- * integration access, and the org's plan allows it. The param is stripped after
- * opening so refresh / back-button don't re-trigger it.
+ * nudge). The param is stripped after opening so refresh / back-button don't
+ * re-trigger it.
  *
- * The dedupe is keyed on the provider rather than mount: this view stays mounted
- * across client-side navigation between integration detail routes (only the slug
- * param changes), so a later visit for a different provider must still open.
+ * This is called from {@link AddIntegrationButton}, so auto-open inherits the
+ * button's render gating for free: the button only renders for installable
+ * (`canAdd`) providers, when the user has integration access, and when the org's
+ * plan allows it. No separate feature/access checks are needed here.
+ *
+ * The dedupe is keyed on the provider rather than mount: the install button stays
+ * mounted across client-side navigation between integration detail routes (only
+ * the slug param changes), so a later visit for a different provider must still
+ * open.
  */
 export function useAutoOpenInstallModal({
   provider,
   organization,
   onInstall,
-  installationStatus,
-  disabledFromFeatures,
+  analyticsParams,
+  suppressSuccessMessage,
 }: Props) {
   const [showInstallModal, setShowInstallModal] = useQueryState('showInstallModal');
   const {startFlow} = useAddIntegration();
@@ -43,13 +45,10 @@ export function useAutoOpenInstallModal({
     if (showInstallModal !== '1') {
       return;
     }
-    if (!provider?.canAdd || !organization.access.includes('org:integrations')) {
+    if (!provider.canAdd) {
       return;
     }
     if (autoOpenedForRef.current === provider.key) {
-      return;
-    }
-    if (disabledFromFeatures) {
       return;
     }
 
@@ -59,10 +58,8 @@ export function useAutoOpenInstallModal({
       provider,
       organization,
       onInstall,
-      analyticsParams: {
-        view: 'integrations_directory_integration_detail',
-        already_installed: installationStatus !== 'Not Installed',
-      },
+      analyticsParams,
+      suppressSuccessMessage,
     });
 
     setShowInstallModal(null);
@@ -71,8 +68,8 @@ export function useAutoOpenInstallModal({
     provider,
     organization,
     onInstall,
-    installationStatus,
-    disabledFromFeatures,
+    analyticsParams,
+    suppressSuccessMessage,
     startFlow,
     setShowInstallModal,
   ]);
