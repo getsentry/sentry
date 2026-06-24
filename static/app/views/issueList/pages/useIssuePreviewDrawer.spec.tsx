@@ -37,6 +37,10 @@ describe('useIssuePreviewDrawer', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/42/tags/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/42/autofix/setup/',
       body: {
         integration: {ok: false, reason: null},
