@@ -13,7 +13,7 @@ from sentry.options.manager import (
 )
 from sentry.utils import metrics
 from sentry.utils.safe import trim
-from sentry.utils.types import Bool, Float, Sequence
+from sentry.utils.types import Bool, Dict, Float, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +86,30 @@ class SafeRolloutComparator:
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.should_eval_experimental"
 
     @classmethod
+    def _experiment_sample_rate_option(cls) -> str:
+        """
+        This is the sample rate for evaluating the experimental branch. When set to a value less
+        than 1.0, only that percentage of requests will actually evaluate both branches. This is
+        useful for limiting latency impact on high-traffic callsites while still collecting
+        representative metrics. Default is 1.0 (100% of requests are evaluated).
+        """
+        return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_experimental_sample_rate"
+
+    @classmethod
+    def _callsite_sample_rate_option(cls) -> str:
+        """
+        This is a dictionary specifying a per-callsite sample rate for evaluating the experimental
+        branch. For a given callsite, when set to a value less than 1.0, only that percentage of
+        requests will actually evaluate both branches. This is useful for limiting latency impact on
+        high-traffic callsites while still collecting representative metrics. Defaults to an empty
+        dictionary.
+
+        NOTE: If a callsite is listed here, its sample rate will be used instead of the experiment-
+        wide sample rate. Any callsite which isn't included will use the experiment-wide rate.
+        """
+        return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.callsite_experiment_sample_rate"
+
+    @classmethod
     def _callsite_experiment_blocklist_option(cls) -> str:
         """
         This is the callsite-level experimemt rollout option. If the option value contains a
@@ -93,6 +117,15 @@ class SafeRolloutComparator:
         see one callsite in particular start throwing.) Defaults to an empty list.
         """
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_callsite_blocklist"
+
+    @classmethod
+    def _callsite_mismatch_log_allowlist_option(cls) -> str:
+        """
+        Controls which callsites emit structured mismatch logs. Add a callsite identifier to enable
+        logging for it, or set the option to `["*"]` to enable logging for all callsites. Defaults
+        to an empty list (no mismatch logging).
+        """
+        return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.mismatch_log_callsite_allowlist"
 
     @classmethod
     def _callsite_use_experimental_data_allowlist_option(cls) -> str:
@@ -104,25 +137,6 @@ class SafeRolloutComparator:
         """
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.use_experimental_data_callsite_allowlist"
 
-    @classmethod
-    def _experiment_sample_rate_option(cls) -> str:
-        """
-        This is the sample rate for evaluating the experimental branch. When set to a value less
-        than 1.0, only that percentage of requests will actually evaluate both branches. This is
-        useful for limiting latency impact on high-traffic callsites while still collecting
-        representative metrics. Default is 1.0 (100% of requests are evaluated).
-        """
-        return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_experimental_sample_rate"
-
-    @classmethod
-    def _callsite_mismatch_log_allowlist_option(cls) -> str:
-        """
-        Controls which callsites emit structured mismatch logs. Add a callsite identifier to enable
-        logging for it, or set the option to `["*"]` to enable logging for all callsites. Defaults
-        to an empty list (no mismatch logging).
-        """
-        return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.mismatch_log_callsite_allowlist"
-
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
 
@@ -131,6 +145,18 @@ class SafeRolloutComparator:
             type=Bool,
             default=False,
             flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+        )
+        register(
+            cls._experiment_sample_rate_option(),
+            type=Float,
+            default=1.0,
+            flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+        )
+        register(
+            cls._callsite_sample_rate_option(),
+            type=Dict,
+            default={},
+            flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
         )
         register(
             cls._callsite_experiment_blocklist_option(),
@@ -143,12 +169,6 @@ class SafeRolloutComparator:
             type=Sequence,
             default=[],
             flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-        )
-        register(
-            cls._experiment_sample_rate_option(),
-            type=Float,
-            default=1.0,
-            flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
         )
         register(
             cls._callsite_mismatch_log_allowlist_option(),
@@ -209,6 +229,29 @@ class SafeRolloutComparator:
         )
 
     @classmethod
+    def _is_valid_sample_rate(cls, value: Any) -> bool:
+        """
+        Checks to make sure the sample rate is valid (a number between 0 and 1) and logs a warning
+        if it's not.
+        """
+        rate_is_numeric = (
+            isinstance(value, (int, float))
+            # Bools are technically special cases of int
+            and not isinstance(value, bool)
+        )
+        if not rate_is_numeric or not (0 <= value <= 1):
+            logger.warning(
+                "saferollout.invalid_callsite_sample_rate",
+                extra={
+                    "rollout_name": cls.ROLLOUT_NAME,
+                    "value": cls._default_serialize_for_log(value),
+                },
+            )
+            return False
+
+        return True
+
+    @classmethod
     def should_check_experiment(cls, callsite: str) -> bool:
         """
         This function controls whether you evaluate your experimental branch at all. Useful for
@@ -225,7 +268,16 @@ class SafeRolloutComparator:
         if callsite in options.get(cls._callsite_experiment_blocklist_option()):
             return False
 
-        sample_rate = options.get(cls._experiment_sample_rate_option())
+        callsite_sample_rates = options.get(cls._callsite_sample_rate_option())  # Defaults to {}
+        if callsite in callsite_sample_rates and cls._is_valid_sample_rate(
+            callsite_sample_rates[callsite]
+        ):
+            sample_rate = callsite_sample_rates[callsite]
+        else:
+            # We don't need to validate this value, because options automator does it for us - it
+            # just can't validate values inside a dictionary, hence the check above
+            sample_rate = options.get(cls._experiment_sample_rate_option())  # Defaults to 1.0
+
         return random.random() < sample_rate
 
     @classmethod

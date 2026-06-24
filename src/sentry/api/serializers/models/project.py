@@ -15,7 +15,6 @@ from django.utils import timezone
 
 from sentry import features, options, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles
 from sentry.app import env
 from sentry.auth.access import Access
@@ -960,7 +959,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     secondaryGroupingConfig: str | None
     fingerprintingRules: str
     organization: OrganizationSummarySerializerResponse
-    plugins: list[Plugin]
     platforms: list[str]
     processingIssues: int
     defaultEnvironment: str | None
@@ -1021,8 +1019,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> DetailedProjectResponse:
-        from sentry.plugins.base import plugins
-
         base = super().serialize(obj, attrs, user)
 
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
@@ -1105,15 +1101,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 attrs, "sentry:fingerprinting_rules"
             ),
             "organization": attrs["org"],
-            "plugins": serialize(
-                [
-                    plugin
-                    for plugin in plugins.configurable_for_project(obj, version=None)
-                    if plugin.has_project_conf()
-                ],
-                user,
-                PluginSerializer(obj),
-            ),
             "platforms": attrs["platforms"],
             "processingIssues": attrs["processing_issues"],
             "defaultEnvironment": attrs["options"].get("sentry:default_environment"),

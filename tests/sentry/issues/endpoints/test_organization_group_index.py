@@ -782,6 +782,17 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(group.id)
         assert response["X-Sentry-Direct-Hit"] == "1"
 
+    def test_lookup_by_multiple_short_ids(self) -> None:
+        group = self.group
+        group2 = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            query=f"{group.qualified_short_id} {group2.qualified_short_id}", shortIdLookup=1
+        )
+        assert {r["id"] for r in response.data} == {str(group.id), str(group2.id)}
+        assert response.get("X-Sentry-Direct-Hit") != "1"
+
     def test_lookup_by_group_id(self) -> None:
         self.login_as(user=self.user)
         response = self.get_success_response(group=self.group.id)
@@ -1952,30 +1963,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"] is not None
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
         assert response.data[0]["inbox"]["reason_details"] is None
-
-    def test_expand_plugin_actions_and_issues(self) -> None:
-        event = self.store_event(
-            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        query = "status:unresolved"
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date", limit=10, query=query, expand=["pluginActions", "pluginIssues"]
-        )
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-        assert response.data[0]["pluginActions"] is not None
-        assert response.data[0]["pluginIssues"] is not None
-
-        # Test with no expand
-        response = self.get_response(sort_by="date", limit=10, query=query)
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-        assert "pluginActions" not in response.data[0]
-        assert "pluginIssues" not in response.data[0]
 
     def test_expand_integration_issues(self) -> None:
         event = self.store_event(

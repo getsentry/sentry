@@ -1,0 +1,58 @@
+kafka_deadletter_topic: taskworker_dlq
+kafka_retry_topic: taskworker
+create_missing_topics: true
+log_filter: debug
+
+kafka_clusters:
+  default:
+    address: kafka-kafka-1:9093
+
+kafka_topics:
+  events-subscription-results:
+    cluster: default
+    consumer_group: sentry-consumer
+    raw:
+      namespace: snuba.subscriptions.events.raw
+      application: sentry
+      taskname: sentry.snuba.query_subscriptions.run.process_events_subscription_from_kafka
+      processing_deadline_duration: 60
+  transactions-subscription-results:
+    cluster: default
+    consumer_group: sentry-consumer
+    raw:
+      namespace: snuba.subscriptions.transactions.raw
+      application: sentry
+      taskname: sentry.snuba.query_subscriptions.run.process_transactions_subscription_from_kafka
+      processing_deadline_duration: 60
+  metrics-subscription-results:
+    cluster: default
+    consumer_group: sentry-consumer
+    raw:
+      namespace: snuba.subscriptions.metrics.raw
+      application: sentry
+      taskname: sentry.snuba.query_subscriptions.run.process_metrics_subscription_from_kafka
+      processing_deadline_duration: 60
+  generic-metrics-subscription-results:
+    cluster: default
+    consumer_group: sentry-consumer
+    raw:
+      namespace: snuba.subscriptions.generic_metrics.raw
+      application: sentry
+      taskname: sentry.snuba.query_subscriptions.run.process_generic_metrics_subscription_from_kafka
+      processing_deadline_duration: 60
+  subscription-results-eap-items:
+    cluster: default
+    consumer_group: sentry-consumer
+    raw:
+      namespace: snuba.subscriptions.eap.raw
+      application: sentry
+      taskname: sentry.snuba.query_subscriptions.run.process_eap_subscription_from_kafka
+      processing_deadline_duration: 60
+  taskworker:
+    cluster: default
+    consumer_group: sentry-consumer
+    produce_only: true
+  taskworker_dlq:
+    cluster: default
+    consumer_group: sentry-consumer
+    produce_only: true

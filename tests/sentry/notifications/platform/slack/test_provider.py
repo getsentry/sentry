@@ -18,23 +18,58 @@ from sentry.notifications.platform.provider import (
     SendFailureStatus,
     SendSuccessResult,
 )
-from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
+from sentry.notifications.platform.slack.provider import (
+    SlackNotificationProvider,
+    SlackRenderable,
+    SlackRenderer,
+)
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
     IntegrationNotificationTarget,
 )
 from sentry.notifications.platform.threading import ThreadContext, ThreadKey
 from sentry.notifications.platform.types import (
+    LinkTextBlock,
     NotificationCategory,
     NotificationProviderKey,
+    NotificationRenderedTemplate,
     NotificationSource,
     NotificationTargetResourceType,
+    ParagraphBlock,
+    PlainTextBlock,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 
 
 class SlackRendererTest(TestCase):
+    def test_link_text_block_rendering(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Test Link",
+            body=[
+                ParagraphBlock(
+                    blocks=[
+                        PlainTextBlock(text="PR:"),
+                        LinkTextBlock(
+                            text="getsentry/sentry (#1234)",
+                            url="https://github.com/getsentry/sentry/pull/1234",
+                        ),
+                    ],
+                )
+            ],
+        )
+
+        renderable = SlackRenderer.render(
+            data=MockNotification(message="test"), rendered_template=rendered_template
+        )
+        body_block = renderable["blocks"][1]
+        assert isinstance(body_block, SectionBlock)
+        assert body_block.text is not None
+        assert (
+            "<https://github.com/getsentry/sentry/pull/1234|getsentry/sentry (#1234)>"
+            in body_block.text.text
+        )
+
     def test_default_renderer(self) -> None:
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
@@ -119,14 +154,6 @@ class SlackNotificationProviderSendTest(TestCase):
         return target
 
     def _create_renderable(self) -> SlackRenderable:
-        """Create a sample SlackRenderable for testing"""
-        from slack_sdk.models.blocks import (
-            HeaderBlock,
-            MarkdownTextObject,
-            PlainTextObject,
-            SectionBlock,
-        )
-
         return SlackRenderable(
             blocks=[
                 HeaderBlock(text=PlainTextObject(text="Test Notification")),

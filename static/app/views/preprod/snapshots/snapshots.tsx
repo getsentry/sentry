@@ -28,7 +28,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
@@ -53,6 +52,7 @@ import {
   type SidebarSection,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
+import {buildSoloImages} from './soloImages';
 import {TagFilterProvider} from './tagFilterContext';
 import {narrowItemByTags} from './tagFiltering';
 
@@ -128,7 +128,6 @@ function itemMaxDiff(item: SidebarItem): number {
 export default function SnapshotsPage() {
   const organization = useOrganization();
   const theme = useTheme();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {snapshotId} = useParams<{
     snapshotId: string;
   }>();
@@ -336,7 +335,7 @@ export default function SnapshotsPage() {
       return items;
     }
 
-    return [...groupByKey(data.images, imageGroupKey).entries()]
+    return [...groupByKey(buildSoloImages(data), imageGroupKey).entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([groupKey, images]) => ({
         type: 'solo' as const,
@@ -781,9 +780,7 @@ export default function SnapshotsPage() {
           maxWidth={{sm: '300px', md: 'none'}}
           style={{
             width: sidebarWidth,
-            height: hasPageFrameFeature
-              ? 'calc(100dvh - var(--top-bar-height, 53px))'
-              : 'calc(100vh - 205px)',
+            height: 'calc(100dvh - var(--top-bar-height, 53px))',
           }}
         >
           <SnapshotSidebarContent

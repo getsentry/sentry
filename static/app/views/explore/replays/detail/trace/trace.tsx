@@ -53,6 +53,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     parent: true,
     sibling: true,
   },
+  compressed_timeline: false,
   layout: 'drawer bottom',
   list: {
     width: 0.5,
@@ -66,7 +67,8 @@ export function NewTraceView({replay}: {replay: undefined | HydratedReplayRecord
     () =>
       getInitialTracePreferences(
         REPLAY_TRACE_WATERFALL_PREFERENCES_KEY,
-        DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES
+        DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES,
+        'replay'
       ),
     []
   );

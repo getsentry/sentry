@@ -1,5 +1,4 @@
 import type {ComponentPropsWithoutRef} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
@@ -12,7 +11,6 @@ import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   PRIMARY_HEADER_HEIGHT,
 } from 'sentry/views/navigation/constants';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export const Header = styled('h3')`
   display: block;
@@ -28,10 +26,21 @@ export const Header = styled('h3')`
 
 export const SearchInput = InputGroup.Input;
 
-export const NavigationCrumbs = styled(NavigationBreadcrumbs)`
+const StyledNavigationCrumbs = styled(NavigationBreadcrumbs)`
   margin: 0;
   padding: 0;
 `;
+
+/**
+ * Standalone breadcrumbs for drawers/panels. Unlike breadcrumbs rendered into
+ * the top bar title (which live inside the page `<h1>`), these are not inside a
+ * heading, so they render as a proper `<nav>` landmark.
+ */
+export function NavigationCrumbs(
+  props: ComponentPropsWithoutRef<typeof NavigationBreadcrumbs>
+) {
+  return <StyledNavigationCrumbs as="nav" {...props} />;
+}
 
 export function CrumbContainer(props: FlexProps) {
   return <Flex align="center" gap="md" {...props} />;
@@ -43,32 +52,20 @@ export const ShortId = styled('div')`
   line-height: 1;
 `;
 
-const EventDrawerContainerRoot = styled('div')<{hasPageFrameFeature: boolean}>`
+export const EventDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
   grid-template-rows: max-content max-content auto;
 
-  ${p =>
-    p.hasPageFrameFeature &&
-    css`
-      /* Responsive height that matches the TopBar (48px mobile, 53px desktop) */
-      --event-drawer-header-height: ${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px;
-      --event-navigator-box-shadow: none;
-      --event-navigator-border-bottom: 1px solid ${p.theme.tokens.border.primary};
+  /* Responsive height that matches the TopBar (48px mobile, 53px desktop) */
+  --event-drawer-header-height: ${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px;
+  --event-navigator-box-shadow: none;
+  --event-navigator-border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
-      @media (min-width: ${p.theme.breakpoints.md}) {
-        --event-drawer-header-height: ${PRIMARY_HEADER_HEIGHT}px;
-      }
-    `}
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    --event-drawer-header-height: ${PRIMARY_HEADER_HEIGHT}px;
+  }
 `;
-
-export function EventDrawerContainer(props: ComponentPropsWithoutRef<'div'>) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
-  return (
-    <EventDrawerContainerRoot {...props} hasPageFrameFeature={hasPageFrameFeature} />
-  );
-}
 
 export const EventDrawerHeader = styled(DrawerHeader)`
   position: unset;

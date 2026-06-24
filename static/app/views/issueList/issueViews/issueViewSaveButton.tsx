@@ -25,7 +25,6 @@ import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useS
 import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type IssueViewSaveButtonProps = {
   query: string;
@@ -44,12 +43,9 @@ function SegmentedIssueViewSaveButton({
   const {data: view} = useSelectedGroupSearchView();
   const {mutate: updateGroupSearchView, isPending: isSaving} = useUpdateGroupSearchView();
   const user = useUser();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const canEdit = view
     ? canEditIssueView({user, groupSearchView: view, organization})
     : false;
-  const buttonPriority =
-    hasPageFrameFeature || hasUnsavedChanges ? 'primary' : 'secondary';
   const discardUnsavedChanges = () => {
     if (view) {
       trackAnalytics('issue_views.reset.clicked', {organization});
@@ -99,7 +95,7 @@ function SegmentedIssueViewSaveButton({
       {({hasFeature}) => (
         <ButtonBar>
           <PrimarySaveButton
-            variant={buttonPriority}
+            variant="primary"
             data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
             onClick={() => {
               if (canEdit) {
@@ -135,14 +131,9 @@ function SegmentedIssueViewSaveButton({
               <DropdownTrigger
                 {...props}
                 disabled={!hasFeature || isSaving}
-                icon={
-                  <IconChevron
-                    direction="down"
-                    variant={buttonPriority === 'primary' ? undefined : 'muted'}
-                  />
-                }
+                icon={<IconChevron direction="down" />}
                 aria-label={t('More save options')}
-                variant={buttonPriority}
+                variant="primary"
               />
             )}
             position="bottom-end"

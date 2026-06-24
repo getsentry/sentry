@@ -12,7 +12,7 @@ import type {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
-import {CheckoutType, ReservedBudgetCategoryType} from 'getsentry/types';
+import {ReservedBudgetCategoryType} from 'getsentry/types';
 
 const AM2_CHECKOUT_CATEGORIES = [
   'errors',
@@ -123,7 +123,6 @@ const commonFields = {
   categories: AM2_CATEGORIES,
   categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
   checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-  availableCategories: AM2_CATEGORIES,
   onDemandCategories: AM2_ONDEMAND_CATEGORIES,
   hasOnDemandModes: true,
   budgetTerm: BUDGET_TERM as 'on-demand',
@@ -137,8 +136,6 @@ export const AM2_PLANS = {
     id: 'am2_business',
     isEnterprise: false,
     name: 'Business',
-    description: '',
-    price: 8900,
     basePrice: 8900,
     totalPrice: 8900,
     trialPlan: null,
@@ -146,14 +143,10 @@ export const AM2_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: true,
-    checkoutType: CheckoutType.STANDARD,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0.1157,
     allowOnDemand: true,
-    reservedMinimum: 50000,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [
         {
@@ -877,8 +870,6 @@ export const AM2_PLANS = {
     id: 'am2_f',
     isEnterprise: false,
     name: 'Developer',
-    description: '',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am2_t',
@@ -886,14 +877,10 @@ export const AM2_PLANS = {
     retentionDays: 30,
     isTestPlan: false,
     userSelectable: true,
-    checkoutType: CheckoutType.STANDARD,
     features: AM2_FREE_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0,
     allowOnDemand: false,
-    reservedMinimum: 5000,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [
         {
@@ -985,8 +972,6 @@ export const AM2_PLANS = {
     id: 'am2_team',
     isEnterprise: false,
     name: 'Team',
-    description: '',
-    price: 2900,
     basePrice: 2900,
     totalPrice: 2900,
     trialPlan: 'am2_business',
@@ -994,14 +979,10 @@ export const AM2_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: true,
-    checkoutType: CheckoutType.STANDARD,
     features: AM2_TEAM_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0.0377,
     allowOnDemand: true,
-    reservedMinimum: 50000,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [
         {
@@ -1725,8 +1706,6 @@ export const AM2_PLANS = {
     id: 'am2_t',
     isEnterprise: false,
     name: 'Trial',
-    description: '',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: null,
@@ -1734,14 +1713,10 @@ export const AM2_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
     features: AM2_TRIAL_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0,
     allowOnDemand: false,
-    reservedMinimum: 0,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [
         {
@@ -1833,8 +1808,6 @@ export const AM2_PLANS = {
     id: 'am2_team_auf',
     isEnterprise: false,
     name: 'Team',
-    description: '',
-    price: 31200,
     basePrice: 31200,
     totalPrice: 31200,
     trialPlan: 'am2_business',
@@ -1842,14 +1815,10 @@ export const AM2_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: true,
-    checkoutType: CheckoutType.STANDARD,
     features: AM2_TEAM_FEATURES,
     billingInterval: ANNUAL,
     contractInterval: ANNUAL,
-    onDemandEventPrice: 0.0377,
     allowOnDemand: true,
-    reservedMinimum: 50000,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [
         {
@@ -2536,8 +2505,6 @@ export const AM2_PLANS = {
     id: 'am2_business_auf',
     isEnterprise: false,
     name: 'Business',
-    description: '',
-    price: 96000,
     basePrice: 96000,
     totalPrice: 96000,
     trialPlan: null,
@@ -2545,14 +2512,10 @@ export const AM2_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: true,
-    checkoutType: CheckoutType.STANDARD,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
     contractInterval: ANNUAL,
-    onDemandEventPrice: 0.1157,
     allowOnDemand: true,
-    reservedMinimum: 50000,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [
         {
@@ -3240,8 +3203,6 @@ export const AM2_PLANS = {
     id: 'am2_sponsored',
     isEnterprise: false,
     name: 'Sponsored',
-    description: '',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: null,
@@ -3249,14 +3210,10 @@ export const AM2_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
     features: AM2_TEAM_FEATURES,
     billingInterval: 'monthly',
     contractInterval: 'monthly',
-    onDemandEventPrice: 0.0377,
     allowOnDemand: true,
-    reservedMinimum: 5000000,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [{events: 5000000, unitPrice: 0.015, price: 0}],
       transactions: [{events: 10000000, unitPrice: 0.0054, price: 0}],
@@ -3280,8 +3237,6 @@ export const AM2_PLANS = {
     id: 'am2_sponsored_team_auf',
     isEnterprise: false,
     name: 'Sponsored Team',
-    description: '',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: null,
@@ -3289,14 +3244,10 @@ export const AM2_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
     features: AM2_TEAM_FEATURES,
     billingInterval: 'annual',
     contractInterval: 'annual',
-    onDemandEventPrice: 0.0377,
     allowOnDemand: true,
-    reservedMinimum: 50_000,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [{events: 50_000, unitPrice: 0.015, price: 0}],
       transactions: [{events: 100_000, unitPrice: 0.0054, price: 0}],
@@ -3320,8 +3271,6 @@ export const AM2_PLANS = {
     id: 'am2_business_bundle',
     isEnterprise: false,
     name: 'Business Bundle',
-    description: '',
-    price: 50000,
     basePrice: 50000,
     totalPrice: 50000,
     trialPlan: null,
@@ -3329,14 +3278,10 @@ export const AM2_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: false,
-    checkoutType: CheckoutType.BUNDLE,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0.1157,
     allowOnDemand: true,
-    reservedMinimum: 500000,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [
         {
@@ -3833,8 +3778,6 @@ export const AM2_PLANS = {
     id: 'am2_business_249_bundle',
     isEnterprise: false,
     name: 'Business Bundle',
-    description: '',
-    price: 24900,
     basePrice: 24900,
     totalPrice: 24900,
     trialPlan: null,
@@ -3842,14 +3785,10 @@ export const AM2_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: false,
-    checkoutType: CheckoutType.BUNDLE,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0.1157,
     allowOnDemand: true,
-    reservedMinimum: 500000,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [
         {
@@ -4396,8 +4335,6 @@ export const AM2_PLANS = {
     id: 'am2_team_bundle',
     isEnterprise: false,
     name: 'Team Bundle',
-    description: '',
-    price: 9900,
     basePrice: 9900,
     totalPrice: 9900,
     trialPlan: 'am2_business',
@@ -4405,14 +4342,10 @@ export const AM2_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: false,
-    checkoutType: CheckoutType.BUNDLE,
     features: AM2_TEAM_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0.0377,
     allowOnDemand: true,
-    reservedMinimum: 100000,
-    allowAdditionalReservedEvents: false,
     planCategories: {
       errors: [
         {
@@ -4974,8 +4907,6 @@ export const AM2_PLANS = {
     id: 'am2_business_ent_auf',
     isEnterprise: true,
     name: 'Enterprise (Business)',
-    description: '',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am2_business',
@@ -4983,14 +4914,10 @@ export const AM2_PLANS = {
     retentionDays: 90,
     isTestPlan: false,
     userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
     contractInterval: ANNUAL,
-    onDemandEventPrice: 0,
     allowOnDemand: true,
-    reservedMinimum: 0,
-    allowAdditionalReservedEvents: true,
     planCategories: {
       errors: [
         {
@@ -5081,8 +5008,6 @@ export const AM2_PLANS = {
     id: 'am2_business_ent',
     isEnterprise: true,
     name: 'Enterprise (Business)',
-    description: '',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am2_business',
@@ -5090,14 +5015,10 @@ export const AM2_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0,
     allowOnDemand: true,
-    reservedMinimum: 0,
-    allowAdditionalReservedEvents: true,
     planCategories: {
       errors: [
         {

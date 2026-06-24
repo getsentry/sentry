@@ -23,11 +23,13 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
+import {getBuildsExportHref} from 'sentry/views/preprod/utils/buildsExportHref';
 import {getUpdatedQueryForDisplay} from 'sentry/views/preprod/utils/installableQueryUtils';
 
 import {MobileBuildsChart} from './mobileBuildsChart';
@@ -119,6 +121,12 @@ export function MobileBuilds({
     },
     [location, navigate, searchQuery]
   );
+
+  const handleExportCsv = useCallback(() => {
+    const url = `${organization.links.regionUrl}${getBuildsExportHref(organization.slug, buildsQueryParams)}`;
+    downloadFromHref(`${organization.slug}-build-distribution.csv`, url);
+    trackAnalytics('preprod.builds.distribution.download_csv', {organization});
+  }, [organization, buildsQueryParams]);
 
   const builds = buildsResponse?.json ?? [];
   const pageLinks = buildsResponse?.headers.Link ?? undefined;
@@ -216,6 +224,11 @@ export function MobileBuilds({
         hideDisplayToggle={hideDisplayToggle}
         onSearch={handleSearch}
         onDisplayChange={handleDisplayChange}
+        onExportCsv={
+          activeDisplay === PreprodBuildsDisplay.DISTRIBUTION
+            ? handleExportCsv
+            : undefined
+        }
       />
 
       {buildsError && <LoadingError onRetry={refetch} />}
