@@ -397,8 +397,7 @@ def _get_eligible_orgs_from_batch(
     Check feature flags for a batch of orgs.
     Returns orgs that have all required feature flags enabled.
     """
-    # No code generation => night shift can't open PRs, so these orgs never get
-    # a task dispatched. Bulk-loaded to keep the batch a single query.
+    # No code generation => night shift can't open a PR for the org.
     enable_coding = OrganizationOption.objects.get_value_bulk(
         list(orgs), "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
     )
