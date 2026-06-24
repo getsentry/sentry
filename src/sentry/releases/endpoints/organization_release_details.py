@@ -307,7 +307,7 @@ class OrganizationReleaseDetailsEndpoint(
     ReleaseAnalyticsMixin,
     OrganizationReleaseDetailsPaginationMixin,
 ):
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
