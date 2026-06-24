@@ -703,10 +703,23 @@ export function SearchQueryBuilderValueCombobox({
   // A chip being edited is lifted into the input but left in the token until the
   // edit is committed, so it is hidden from the rendered chips and excluded when
   // rebuilding the value. Canceling simply drops `editingValue` and it reappears.
+  // Excluding by index (not value) keeps duplicate values distinct.
   const committedValues = useMemo(
-    () => selectedValues.filter(v => v.value !== editingValue),
-    [selectedValues, editingValue]
+    () =>
+      selectedValues
+        .map((v, index) => ({...v, index}))
+        .filter(v => v.index !== editingChip?.index),
+    [selectedValues, editingChip]
   );
+
+  // If the value being edited leaves the token (e.g. unchecked from the dropdown),
+  // cancel the edit so a stale input doesn't re-add it on blur.
+  useEffect(() => {
+    if (editingValue !== null && !selectedValues.some(v => v.value === editingValue)) {
+      setEditingChip(null);
+      setInputValue('');
+    }
+  }, [editingValue, selectedValues]);
 
   const ctrlKeyPressed = useKeyPress(
     isMac() ? 'Meta' : 'Control',
@@ -1055,10 +1068,13 @@ export function SearchQueryBuilderValueCombobox({
     [dispatch, token]
   );
 
-  const editValue = (value: string) => {
-    const index = selectedValues.findIndex(v => v.value === value);
-    setInputValue(value);
-    setEditingChip({index: index === -1 ? selectedValues.length : index, value});
+  const editValue = (index: number) => {
+    const target = selectedValues[index];
+    if (!target) {
+      return;
+    }
+    setInputValue(target.value);
+    setEditingChip({index, value: target.value});
     inputRef.current?.focus();
   };
 
@@ -1151,12 +1167,12 @@ export function SearchQueryBuilderValueCombobox({
           ref={ref}
           data-test-id="filter-value-editing"
         >
-          {committedValues.map(({value}) => (
-            <ValueChip key={value}>
+          {committedValues.map(({value, index}) => (
+            <ValueChip key={`${index}-${value}`}>
               <ValueChipLabel
                 type="button"
                 aria-label={t('Edit value: %s', value)}
-                onClick={() => editValue(value)}
+                onClick={() => editValue(index)}
               >
                 {value}
               </ValueChipLabel>

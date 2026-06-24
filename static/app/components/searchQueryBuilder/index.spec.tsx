@@ -3177,6 +3177,78 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
+      it('does not re-add a value that is toggled off while being edited', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,chrome]"
+            onChange={mockOnChange}
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift the firefox chip into the input for editing
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: firefox'})
+        );
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+          'firefox'
+        );
+
+        // Toggling firefox off should cancel the edit instead of leaving it staged
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle firefox'})
+        );
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+            ''
+          );
+        });
+
+        // Blurring should not re-add the toggled-off value
+        await userEvent.click(document.body);
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenLastCalledWith(
+            'browser.name:chrome',
+            expect.anything()
+          );
+        });
+      });
+
+      it('preserves duplicate values when editing one of them', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,firefox]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Both duplicate chips render
+        const chips = await screen.findAllByRole('button', {name: 'Edit value: firefox'});
+        expect(chips).toHaveLength(2);
+
+        // Editing the second one only hides that chip; the other remains
+        await userEvent.click(chips[1]!);
+        expect(
+          screen.getByRole('button', {name: 'Edit value: firefox'})
+        ).toBeInTheDocument();
+
+        // Committing a new value keeps the untouched duplicate
+        await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter value'}));
+        await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
+        ).toBeInTheDocument();
+      });
+
       it('collapses many selected options', async () => {
         render(
           <SearchQueryBuilder
