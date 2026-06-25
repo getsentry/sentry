@@ -366,10 +366,10 @@ describe('IssueList', () => {
       expect(getStoredIssueSort(organization.slug)).toBeNull();
     });
 
-    it('persists sort to localStorage with the recommended-sort feature', async () => {
+    it('persists sort to localStorage with the recommended-sort-default feature', async () => {
       const featureOrg = OrganizationFixture({
         ...organization,
-        features: ['issue-stream-recommended-sort'],
+        features: ['issue-stream-recommended-sort-default'],
       });
       render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
 

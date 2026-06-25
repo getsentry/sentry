@@ -226,12 +226,12 @@ function IssueListOverviewInner({
   const query = defined(location.query.query)
     ? (decodeScalar(location.query.query) ?? '')
     : initialQuery;
-  const hasRecommendedSort = organization.features.includes(
-    'issue-stream-recommended-sort'
+  const hasRecommendedSortDefault = organization.features.includes(
+    'issue-stream-recommended-sort-default'
   );
   const defaultSort =
     initialSort === DEFAULT_ISSUE_STREAM_SORT
-      ? hasRecommendedSort
+      ? hasRecommendedSortDefault
         ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
         : DEFAULT_ISSUE_STREAM_SORT
       : initialSort;
@@ -709,7 +709,7 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
-    if (hasRecommendedSort && initialSort === DEFAULT_ISSUE_STREAM_SORT) {
+    if (hasRecommendedSortDefault && initialSort === DEFAULT_ISSUE_STREAM_SORT) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});
