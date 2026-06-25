@@ -1,4 +1,3 @@
-import json
 import sys
 import time
 from typing import Any
@@ -8,6 +7,7 @@ import click
 from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
 from sentry.runner.commands.presenters.presenterdelegator import PresenterDelegator
 from sentry.runner.decorators import configuration, log_options
+from sentry.utils import json
 
 
 def _attempt_update(
