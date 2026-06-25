@@ -9,7 +9,6 @@ import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 type TPayload = {note?: NoteType; noteId?: string};
 type TMethod = 'PUT' | 'POST' | 'DELETE';
@@ -40,13 +39,16 @@ interface Props {
 
 export function useMutateActivity({organization, group}: Props) {
   const queryClient = useQueryClient();
-  const environments = useEnvironmentsFromUrl();
 
-  const groupQueryKey = groupApiOptions({
+  // The group's activity is not environment-specific, but the group query key
+  // includes the selected environment. Match every environment variant of the
+  // group query (they share the same URL, which is queryKey[0]) so switching
+  // environments doesn't read a stale cache entry missing the mutated comment.
+  const groupQueryUrl = groupApiOptions({
     organizationSlug: organization.slug,
     groupId: group.id,
-    environments,
-  }).queryKey;
+    environments: [],
+  }).queryKey[0];
 
   const {mutateAsync} = useMutation<TData, TError, TVariables>({
     mutationFn: ([{note, noteId}, method]) => {
@@ -63,49 +65,52 @@ export function useMutateActivity({organization, group}: Props) {
       });
     },
     onSuccess: (result, [{noteId}, method]) => {
-      queryClient.setQueryData(groupQueryKey, (prev): ApiResponse<Group> | undefined => {
-        if (!prev) {
+      queryClient.setQueriesData<ApiResponse<Group>>(
+        {predicate: query => query.queryKey[0] === groupQueryUrl},
+        (prev): ApiResponse<Group> | undefined => {
+          if (!prev) {
+            return prev;
+          }
+
+          const makeUpdatedGroupData = ({
+            activity,
+            numComments,
+          }: {
+            activity: GroupActivity[];
+            numComments: number;
+          }): ApiResponse<Group> => {
+            return {
+              ...prev,
+              json: {...prev.json, activity, numComments},
+            };
+          };
+
+          if (method === 'POST') {
+            return makeUpdatedGroupData({
+              activity: [result, ...prev.json.activity],
+              numComments: prev.json.numComments + 1,
+            });
+          }
+          if (method === 'PUT') {
+            return makeUpdatedGroupData({
+              activity: prev.json.activity.map(item =>
+                item.id === result.id && item.type === GroupActivityType.NOTE
+                  ? {...item, data: {...item.data, ...result.data}}
+                  : item
+              ),
+              numComments: prev.json.numComments,
+            });
+          }
+          if (method === 'DELETE') {
+            return makeUpdatedGroupData({
+              activity: prev.json.activity.filter(item => item.id !== noteId),
+              numComments: prev.json.numComments - 1,
+            });
+          }
+
           return prev;
         }
-
-        const makeUpdatedGroupData = ({
-          activity,
-          numComments,
-        }: {
-          activity: GroupActivity[];
-          numComments: number;
-        }): ApiResponse<Group> => {
-          return {
-            ...prev,
-            json: {...prev.json, activity, numComments},
-          };
-        };
-
-        if (method === 'POST') {
-          return makeUpdatedGroupData({
-            activity: [result, ...prev.json.activity],
-            numComments: prev.json.numComments + 1,
-          });
-        }
-        if (method === 'PUT') {
-          return makeUpdatedGroupData({
-            activity: prev.json.activity.map(item =>
-              item.id === result.id && item.type === GroupActivityType.NOTE
-                ? {...item, data: {...item.data, ...result.data}}
-                : item
-            ),
-            numComments: prev.json.numComments,
-          });
-        }
-        if (method === 'DELETE') {
-          return makeUpdatedGroupData({
-            activity: prev.json.activity.filter(item => item.id !== noteId),
-            numComments: prev.json.numComments - 1,
-          });
-        }
-
-        return prev;
-      });
+      );
     },
     gcTime: 0,
   });
