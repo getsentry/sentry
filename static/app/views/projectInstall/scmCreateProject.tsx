@@ -232,12 +232,21 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
         createdProjectSlug: project.slug,
         projectDetailsForm: submittedForm,
       });
-      navigate(
-        makeProjectsPathname({
+      navigate({
+        pathname: makeProjectsPathname({
           path: `/${project.slug}/getting-started/`,
           organization,
-        })
-      );
+        }),
+        // Carry the upfront product selection into the setup docs so the
+        // instructions match what was chosen here; the getting-started page
+        // seeds its selection from the `product` query. Mirrors the SCM
+        // onboarding flow (ScmProjectDetails -> goNextStep). Classic
+        // createProject selects products on that page instead, so it forwards
+        // nothing.
+        query: wizardState.selectedFeatures
+          ? {product: wizardState.selectedFeatures}
+          : undefined,
+      });
     },
     [wizardState, navigate, organization]
   );
