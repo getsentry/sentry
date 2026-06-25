@@ -38,6 +38,9 @@ class VercelClient(ApiClient):
     GET_ENV_VAR_URL = "/v9/projects/%s/env"
     # https://vercel.com/docs/rest-api#endpoints/projects/create-one-or-more-environment-variables
     CREATE_ENV_VAR_URL = "/v9/projects/%s/env"
+    # https://vercel.com/docs/rest-api/projects/create-one-or-more-environment-variables
+    # v10 is required for `upsert=true` to actually overwrite an existing variable's value.
+    CREATE_ENV_VAR_V10_URL = "/v10/projects/%s/env"
     # https://vercel.com/docs/rest-api#endpoints/projects/edit-an-environment-variable
     UPDATE_ENV_VAR_URL = "/v9/projects/%s/env/%s"
 
@@ -93,8 +96,14 @@ class VercelClient(ApiClient):
         return self.get(self.GET_ENV_VAR_URL % vercel_project_id)
 
     def create_env_variable(self, vercel_project_id, data, upsert=False):
-        params = {"upsert": "true"} if upsert else None
-        return self.post(self.CREATE_ENV_VAR_URL % vercel_project_id, data=data, params=params)
+        # The v10 endpoint is required for `upsert=true`
+        if upsert:
+            return self.post(
+                self.CREATE_ENV_VAR_V10_URL % vercel_project_id,
+                data=data,
+                params={"upsert": "true"},
+            )
+        return self.post(self.CREATE_ENV_VAR_URL % vercel_project_id, data=data)
 
     def update_env_variable(self, vercel_project_id, env_var_id, data):
         return self.patch(self.UPDATE_ENV_VAR_URL % (vercel_project_id, env_var_id), data=data)

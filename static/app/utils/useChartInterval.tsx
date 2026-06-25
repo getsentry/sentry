@@ -177,6 +177,7 @@ const ALL_INTERVAL_OPTIONS = [
 /**
  * The minimum interval is chosen in such a way that there will be
  * at most 1000 data points per series for the chosen period.
+ * NOTE: if you update this make sure to update the _DEFAULT_INTERVAL_LADDER in src/sentry/integrations/slack/unfurl/explore.py
  */
 const MINIMUM_INTERVAL = new GranularityLadder([
   [THIRTY_DAYS, '3h'],
@@ -188,6 +189,8 @@ const MINIMUM_INTERVAL = new GranularityLadder([
   [0, '1m'],
 ]);
 
+// if you update this make sure to update the _DEFAULT_MAX_INTERVAL_LADDER in
+// src/sentry/integrations/slack/unfurl/explore.py
 const MAXIMUM_INTERVAL = new GranularityLadder([
   [THIRTY_DAYS, '12h'],
   [TWO_WEEKS, '6h'],

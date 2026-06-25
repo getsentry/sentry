@@ -246,6 +246,13 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
+register(
+    "auth.email-verification-at-signup.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
 # User Settings
 register(
     "user-settings.signed-url-confirmation-emails-salt",
@@ -515,15 +522,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Rollout rate for moving accepted outcome emission from Relay to EAP.
-register(
-    "relay.eap-outcomes.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Killswitch for fetching projects in the endpoints.
 register(
@@ -2657,16 +2655,6 @@ register(
     "relocation.enabled",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Relocation: populates the target region drop down in the control silo. Note: this option has NO
-# EFFECT in region silos. However, the control silos `relocation.selectable-regions` array should be
-# a complete list of all regions where `relocation.enabled`. If a region is enabled/disabled, it
-# should also be added to/removed from this array in the control silo at the same time.
-register(
-    "relocation.selectable-regions",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Relocation: the step at which new relocations should be autopaused, requiring admin approval

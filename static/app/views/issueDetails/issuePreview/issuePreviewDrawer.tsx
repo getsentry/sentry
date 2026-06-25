@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {LinkButton} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -19,6 +19,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {IssueDetailsContextProvider} from 'sentry/views/issueDetails/context';
 import {
   GroupDataContextProvider,
   useGroupData,
@@ -27,6 +28,9 @@ import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
+import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import {IssuePreviewAutofix} from 'sentry/views/issueDetails/issuePreview/issuePreviewAutofix';
+import {IssuePreviewDetails} from 'sentry/views/issueDetails/issuePreview/issuePreviewDetails';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {
   getGroupReprocessingStatus,
@@ -79,6 +83,7 @@ export function IssuePreviewDrawer({groupId}: IssuePreviewDrawerProps) {
 
 function IssuePreviewContent() {
   const {group, project} = useGroupData();
+  const {hasAutofix} = useAiConfig(group, project);
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const disableActions = [
@@ -141,31 +146,50 @@ function IssuePreviewContent() {
           </Flex>
         </Flex>
       </Flex>
-      <Container paddingTop="lg">
-        <Container paddingBottom="lg" borderBottom="muted">
-          <Tabs value="activity">
+      <Container paddingTop="md">
+        <Tabs>
+          <Container paddingBottom="md" borderBottom="muted">
             <TabList variant="floating">
               <TabList.Item key="activity">{t('Activity')}</TabList.Item>
-              <TabList.Item key="autofix" disabled>
-                {t('Autofix')}
-              </TabList.Item>
-              <TabList.Item key="details" disabled>
-                {t('Details')}
-              </TabList.Item>
+              {hasAutofix ? (
+                <TabList.Item key="autofix">{t('Autofix')}</TabList.Item>
+              ) : null}
+              <TabList.Item key="details">{t('Details')}</TabList.Item>
               <TabList.Item key="events" disabled>
                 {t('Events')}
               </TabList.Item>
             </TabList>
-          </Tabs>
-        </Container>
-        <Container paddingTop="lg">
-          <ActivitySection
-            group={group}
-            variant="standalone"
-            size="md"
-            placeholder={t('Add a comment. Tag users with @, or teams with #')}
-          />
-        </Container>
+          </Container>
+          <TabPanels>
+            <TabPanels.Item key="activity">
+              <Container paddingTop="md">
+                <ActivitySection
+                  group={group}
+                  variant="standalone"
+                  size="md"
+                  placeholder={t('Add a comment. Tag users with @, or teams with #')}
+                />
+              </Container>
+            </TabPanels.Item>
+            {hasAutofix ? (
+              <TabPanels.Item key="autofix">
+                <Container paddingTop="md">
+                  <IssuePreviewAutofix group={group} project={project} />
+                </Container>
+              </TabPanels.Item>
+            ) : null}
+            <TabPanels.Item key="details">
+              <Container paddingTop="md">
+                <IssueDetailsContextProvider>
+                  <IssuePreviewDetails group={group} project={project} />
+                </IssueDetailsContextProvider>
+              </Container>
+            </TabPanels.Item>
+            <TabPanels.Item key="events">
+              <div />
+            </TabPanels.Item>
+          </TabPanels>
+        </Tabs>
       </Container>
     </Fragment>
   );

@@ -1,5 +1,4 @@
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
-import {MONTHLY} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
 
 export function PendingChangesFixture(
@@ -16,7 +15,6 @@ export function PendingChangesFixture(
     plan: 'am1_team',
     planDetails: PlanFixture({
       name: 'Team',
-      contractInterval: MONTHLY,
     }),
     planName: 'Team',
     reserved: {},

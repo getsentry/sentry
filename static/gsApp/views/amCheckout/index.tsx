@@ -32,7 +32,6 @@ import {withSubscription} from 'getsentry/components/withSubscription';
 import {
   ANNUAL,
   BillingConfigTier,
-  MONTHLY,
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
@@ -165,11 +164,7 @@ function AMCheckout(props: Props) {
         const testPlans = config.planList.filter(
           plan =>
             plan.isTestPlan &&
-            (plan.id.includes(config.freePlan) ||
-              (plan.basePrice &&
-                ((plan.billingInterval === MONTHLY &&
-                  plan.contractInterval === MONTHLY) ||
-                  (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL))))
+            (plan.id.includes(config.freePlan) || Boolean(plan.basePrice))
         );
 
         if (testPlans.length > 0) {
@@ -178,11 +173,7 @@ function AMCheckout(props: Props) {
       }
       const plans = config.planList.filter(
         plan =>
-          plan.id === config.freePlan ||
-          (plan.basePrice &&
-            plan.userSelectable &&
-            ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
-              (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL)))
+          plan.id === config.freePlan || Boolean(plan.basePrice && plan.userSelectable)
       );
 
       if (plans.length === 0) {
@@ -209,14 +200,14 @@ function AMCheckout(props: Props) {
     (config: BillingConfig) => {
       const {planList} = config;
 
-      return planList.find(({name, contractInterval}) => {
+      return planList.find(({name, billingInterval}) => {
         return (
           name === 'Business' &&
-          contractInterval === subscription?.planDetails?.contractInterval
+          billingInterval === subscription?.planDetails?.billingInterval
         );
       });
     },
-    [subscription?.planDetails?.contractInterval]
+    [subscription?.planDetails?.billingInterval]
   );
 
   /**
@@ -246,12 +237,12 @@ function AMCheckout(props: Props) {
       // map bundle plans
       if (subscription.planDetails.name === PlanName.BUSINESS_BUNDLE) {
         return planList.find(
-          p => p.name === PlanName.BUSINESS && p.contractInterval === 'monthly'
+          p => p.name === PlanName.BUSINESS && p.billingInterval === 'monthly'
         );
       }
       if (subscription.planDetails.name === PlanName.TEAM_BUNDLE) {
         return planList.find(
-          p => p.name === PlanName.TEAM && p.contractInterval === 'monthly'
+          p => p.name === PlanName.TEAM && p.billingInterval === 'monthly'
         );
       }
 
@@ -259,9 +250,9 @@ function AMCheckout(props: Props) {
       // (the exact-id lookup above returned nothing), so fall back to an
       // equivalent plan matched by name + contract interval.
       const legacyInitialPlan = planList.find(
-        ({name, contractInterval}) =>
+        ({name, billingInterval}) =>
           name === subscription?.planDetails?.name &&
-          contractInterval === subscription?.planDetails?.contractInterval
+          billingInterval === subscription?.planDetails?.billingInterval
       );
 
       // if no legacy initial plan found, we fallback to the business plan, then the default plan (usually team)
@@ -272,7 +263,7 @@ function AMCheckout(props: Props) {
     [
       subscription.plan,
       subscription.planDetails.name,
-      subscription.planDetails?.contractInterval,
+      subscription.planDetails?.billingInterval,
       getBusinessPlan,
       shouldDefaultToBusiness,
     ]
@@ -698,7 +689,7 @@ function AMCheckout(props: Props) {
   };
 
   const showAnnualTerms =
-    subscription.contractInterval === ANNUAL || activePlan.contractInterval === ANNUAL;
+    subscription.billingInterval === ANNUAL || activePlan.billingInterval === ANNUAL;
 
   const promotionDisclaimerText =
     promotionData?.activePromotions?.[0]?.promotion.discountInfo.disclaimerText;

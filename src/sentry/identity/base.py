@@ -18,6 +18,7 @@ class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
     """
 
     auto_create_provider_model = False
+    create_organization_identity = False
 
     def __init__(self, **config):
         super().__init__()
