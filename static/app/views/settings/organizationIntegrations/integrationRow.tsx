@@ -80,18 +80,25 @@ export function IntegrationRow(props: Props) {
       return publishStatus !== 'published' && <PublishStatus status={publishStatus} />;
     }
     // TODO: Use proper translations
-    if (configurations <= 0) {
-      return null;
-    }
-    const label = `${configurations} Configuration${configurations > 1 ? 's' : ''}`;
-    const disabledLabel =
-      disabledConfigurations && disabledConfigurations > 0
-        ? ` (${disabledConfigurations} disabled)`
-        : '';
-    return <StyledLink to={`${baseUrl}?tab=configurations`}>{label + disabledLabel}</StyledLink>;
+    return configurations > 0 ? (
+      <StyledLink to={`${baseUrl}?tab=configurations`}>{`${configurations} Configuration${
+        configurations > 1 ? 's' : ''
+      }`}</StyledLink>
+    ) : null;
   };
 
   const renderStatus = () => {
+    // If any configs are disabled, surface a warning badge regardless of the overall
+    // provider status (which can still read 'Installed' when some configs are active).
+    if (disabledConfigurations && disabledConfigurations > 0) {
+      return (
+        <Tag variant="warning">
+          {disabledConfigurations === 1
+            ? t('1 Disabled')
+            : t('%s Disabled', disabledConfigurations)}
+        </Tag>
+      );
+    }
     // status should be undefined for document integrations
     if (status) {
       return <IntegrationStatus status={status} />;
