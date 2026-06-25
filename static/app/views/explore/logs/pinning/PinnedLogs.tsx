@@ -13,7 +13,11 @@ import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning
 import type {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {LOGS_GRID_BODY_ROW_HEIGHT} from 'sentry/views/explore/logs/styles';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
+import {
+  compareLogRowsBySortBys,
+  type LogTableRowItem,
+} from 'sentry/views/explore/logs/utils';
+import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
 
 interface Props {
   allRows: LogTableRowItem[];
@@ -26,6 +30,7 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
   const {fetchedRows: fetchedPinnedRows, isPending: isFetchingPinnedRows} =
     pinnedLogsQuery;
   const [expanded, setExpanded] = useState(true);
+  const sortBys = useQueryParamsSortBys();
   const pinnedRows = logsPinning.getPinnedRowIds();
 
   const onInitialize = useCallback(() => {
@@ -50,24 +55,33 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
   return (
     <PinnedTableBody data-test-id="pinned-logs-table-body" ref={onInitialize}>
       {expanded &&
-        pinnedRows.map(rowId => {
-          const dataRow = rowById.get(rowId);
-
-          if (!dataRow) {
-            if (isFetchingPinnedRows) {
-              return (
-                <GridRow key={rowId}>
-                  <LoadingGridBodyCell>
-                    <Placeholder height="100%" />
-                  </LoadingGridBodyCell>
-                </GridRow>
-              );
+        [...pinnedRows]
+          .sort((aId, bId) => {
+            const aRow = rowById.get(aId);
+            const bRow = rowById.get(bId);
+            if (!aRow || !bRow) {
+              return aRow ? -1 : bRow ? 1 : 0;
             }
-            return null;
-          }
+            return compareLogRowsBySortBys(aRow, bRow, sortBys);
+          })
+          .map(rowId => {
+            const dataRow = rowById.get(rowId);
 
-          return <Fragment key={rowId}>{renderRow(dataRow)}</Fragment>;
-        })}
+            if (!dataRow) {
+              if (isFetchingPinnedRows) {
+                return (
+                  <GridRow key={rowId}>
+                    <LoadingGridBodyCell>
+                      <Placeholder height="100%" />
+                    </LoadingGridBodyCell>
+                  </GridRow>
+                );
+              }
+              return null;
+            }
+
+            return <Fragment key={rowId}>{renderRow(dataRow)}</Fragment>;
+          })}
       <GridRow role="toolbar">
         <PinnedGridBodyCell>
           <Flex justify="end">
