@@ -114,6 +114,7 @@ export interface ExplorerSession {
   last_triggered_at: string;
   run_id: number;
   title: string;
+  sentry_run_id?: string | null;
 }
 
 export interface Artifact<T = Record<string, unknown>> {

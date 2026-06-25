@@ -13,6 +13,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {isUUID} from 'sentry/utils/string/isUUID';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -1065,6 +1066,13 @@ function locationToUrl(location: LocationDescriptor): string | null {
 
 const RUN_ID_QUERY_PARAM = 'explorerRunId';
 
+export function parseRunIdParam(value: string): SeerExplorerRunId | null {
+  if (/^\d+$/.test(value)) {
+    return Number(value);
+  }
+  return isUUID(value) ? value : null;
+}
+
 /**
  * useEffect which listens for run ID query param in the current location. If found, it removes the query param and runs a callback.
  */
@@ -1088,10 +1096,14 @@ export function useSeerExplorerDeepLink({
       return;
     }
 
+    const runId = parseRunIdParam(paramValue);
+    if (runId === null) {
+      return;
+    }
+
     const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
     navigate({...location, query: restQuery}, {replace: true});
-    const numericRunId = Number(paramValue);
-    callback(Number.isNaN(numericRunId) ? paramValue : numericRunId);
+    callback(runId);
   }, [location, navigate, callback, enabled]);
 }
 
