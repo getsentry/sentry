@@ -730,17 +730,17 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             notes_text = f"notes: {self.notes}"
             blocks.append(self.get_markdown_block(notes_text))
 
-        if self.channel_id and should_send_nudge_block(
-            channel_id=self.channel_id, organization=self.group.organization
-        ):
-            blocks.append(self.get_slack_app_update_nudge_block())
-
         # build footer block
         blocks.append(self.get_footer())
 
         chart_block = ImageBlockBuilder(group=self.group).build_image_block()
         if chart_block:
             blocks.append(chart_block)
+
+        if self.channel_id and should_send_nudge_block(
+            channel_id=self.channel_id, organization=self.group.organization
+        ):
+            blocks.append(self.get_slack_app_update_nudge_block())
 
         return self._build_blocks(
             *blocks,
