@@ -1,14 +1,12 @@
 import logging
-import os
 
 from django.conf import settings
 from django.core.cache import cache
 from taskbroker_client.app import TaskbrokerApp
-from taskbroker_client.metrics import DatadogMetrics, MetricsBackend
+from taskbroker_client.metrics import DatadogMetrics, MetricsBackend, NoOpMetricsBackend
 
 from sentry.taskworker.adapters import (
     DjangoCacheAtMostOnceStore,
-    SentryMetricsBackend,
     SentryRouter,
     ViewerContextHook,
     make_producer,
@@ -21,12 +19,16 @@ def _extract_metrics_config() -> tuple[str | None, int | None]:
     host, port = None, None
     metric_options = settings.SENTRY_METRICS_OPTIONS
     try:
+        if settings.SENTRY_METRICS_BACKEND == "sentry.metrics.dummy.DummyMetricsBackend":
+            return host, port
+
+        # For non-dummy implementations
         # Use the metrics settings options to infer the host/port.
         # The metrics options have different structures depending on which backend is used.
         if settings.SENTRY_METRICS_BACKEND == "sentry.metrics.dualwrite.DualWriteMetricsBackend":
             metric_options = settings.SENTRY_METRICS_OPTIONS["primary_backend_args"]
 
-        # Some backends use `host` and others use `statsd_host`
+        # statsd backend uses `host` while datadog use `statsd_host`
         host = metric_options.get("statsd_host", None) or metric_options.get("host", None)
         raw_port = metric_options.get("statsd_port", None) or metric_options.get("port", None)
         if isinstance(raw_port, (str, int)):
@@ -36,26 +38,25 @@ def _extract_metrics_config() -> tuple[str | None, int | None]:
     return host, port
 
 
-metrics_class: MetricsBackend = SentryMetricsBackend()
-
-if os.getenv("USE_TASKWORKER_METRICS", None) == "1":
+def create_metrics() -> MetricsBackend:
     host, port = _extract_metrics_config()
     if host and port:
         # Metrics created by this interface will not
         # have `sentry.` prefix, and will not have
         # K8S_LABEL applied.
-        metrics_class = DatadogMetrics(
+        return DatadogMetrics(
             application="sentry",
             statsd_host=host,
             statsd_port=port,
             sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE,
-            enable_prefixed_metrics=True,
         )
+    return NoOpMetricsBackend()
+
 
 app = TaskbrokerApp(
     name="sentry",
     producer_factory=make_producer,
-    metrics_class=metrics_class,
+    metrics_class=create_metrics(),
     router_class=SentryRouter(),
     at_most_once_store=DjangoCacheAtMostOnceStore(cache),
     context_hooks=[ViewerContextHook()],

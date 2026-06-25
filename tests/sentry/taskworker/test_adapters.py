@@ -3,12 +3,12 @@ import contextlib
 import orjson
 import pytest
 from django.test.utils import override_settings
+from taskbroker_client.metrics import NoOpMetricsBackend
 from taskbroker_client.registry import TaskRegistry
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.silo.base import SiloMode
 from sentry.taskworker.adapters import (
-    SentryMetricsBackend,
     SentryRouter,
     ViewerContextHook,
     make_producer,
@@ -23,7 +23,7 @@ def test_registry_create_namespace_route_setting() -> None:
             application="sentry",
             producer_factory=make_producer,
             router=SentryRouter(),
-            metrics=SentryMetricsBackend(),
+            metrics=NoOpMetricsBackend(),
         )
 
         # namespaces without routes resolve to the default topic.
