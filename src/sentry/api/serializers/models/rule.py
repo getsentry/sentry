@@ -713,11 +713,6 @@ class WorkflowEngineRuleSerializer(Serializer):
                     action.type == Action.Type.EMAIL.value
                     and "fallthroughType" not in action_data
                     and action_data.get("targetType")
-                    in (
-                        ActionTargetType.MEMBER.value,
-                        ActionTargetType.TEAM.value,
-                        ActionTargetType.ISSUE_OWNERS.value,
-                    )
                 ):
                     action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
 
