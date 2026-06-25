@@ -1,9 +1,9 @@
+import json
 import sys
 import time
 from typing import Any
 
 import click
-from yaml import safe_load
 
 from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
 from sentry.runner.commands.presenters.presenterdelegator import PresenterDelegator
@@ -69,11 +69,16 @@ def _attempt_update(
 
 def _load_options(file: str | None) -> dict[str, Any]:
     """
-    Loads the ``options`` mapping from a single yaml file, or from stdin
+    Loads the ``options`` mapping from a single JSON file, or from stdin
     when ``file`` is None.
+
+    The new golden path is via the automator, which only ever feeds in JSON (``json.dumps``).
+    We previously used YAML parsing, which worked for JSON (as it is a subset), but there was an issue with
+    small floats (0.00001) being converted to sci notation (1e-5) via repr(), getting parsed as strings
+    because YAML 1.1 only parses to float if there's a decimal (1.0e-5 not 1e-5).
     """
     with open(file) if file is not None else sys.stdin as stream:
-        return safe_load(stream)["options"]
+        return json.load(stream)["options"]
 
 
 def _validate_options(
@@ -151,11 +156,11 @@ def configoptions(
     timestamp: float | None,
 ) -> None:
     """
-    Makes changes to options in bulk starting from a yaml file.
+    Makes changes to options in bulk starting from a JSON file.
     Contrarily to the `config` command, this is meant to perform
     bulk updates only.
 
-    The input must be in yaml format.
+    The input must be in JSON format.
     A dry run option is provided to test the update before performing it.
 
     A single invalid option would make the command fail and return -1,
