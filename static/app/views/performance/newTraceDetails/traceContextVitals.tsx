@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {MobileVital, type WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
@@ -24,7 +23,6 @@ import {
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   TRACE_VIEW_MOBILE_VITALS,
@@ -38,13 +36,6 @@ type Props = {
   tree: TraceTree;
 };
 
-const MOBILE_VITAL_MEASUREMENTS: Record<string, MobileVital> = {
-  'app.vitals.start.cold.value': MobileVital.APP_START_COLD,
-  'app.vitals.start.warm.value': MobileVital.APP_START_WARM,
-  'app.vitals.ttfd.value': MobileVital.TIME_TO_FULL_DISPLAY,
-  'app.vitals.ttid.value': MobileVital.TIME_TO_INITIAL_DISPLAY,
-};
-
 export function TraceContextVitals({rootEventResults, tree, containerWidth}: Props) {
   const {hasVitals} = useTraceContextSections({
     tree,
@@ -54,15 +45,8 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
   const traceNode = tree.root.children[0];
   const theme = useTheme();
 
-  // For EAP traces, mobile vitals are stored as root event span attributes rather
-  // than in tree.vitals, so hasVitals (which reads tree.vitals) is always false for
-  // EAP app.start traces. Compute EAP vitals early so we can use them as the gate.
-  const eapMobileVitals = traceNode?.isEAPEvent
-    ? getMobileVitalsFromRootEventResults(rootEventResults.data)
-    : null;
-
   // TODO Abdullah Khan: Ignoring loading/error states for now
-  if ((!hasVitals && !eapMobileVitals?.length) || !rootEventResults.data || !traceNode) {
+  if (!hasVitals || !rootEventResults.data || !traceNode) {
     return null;
   }
 
@@ -70,12 +54,10 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
     ? TRACE_VIEW_WEB_VITALS
     : TRACE_VIEW_MOBILE_VITALS;
 
-  // Prefer EAP attribute-sourced vitals; fall back to tree.vitals for non-EAP or
-  // EAP traces where vitals are present as measurements (e.g. web vitals).
-  const collectedVitals =
-    eapMobileVitals?.length
-      ? eapMobileVitals
-      : Array.from(tree.vitals.values()).flat();
+  // tree.vitals aggregates vitals from every span in the trace (including mobile
+  // app.start vitals collected from EAP span attributes), so app.start Cold/Warm
+  // show up regardless of which transaction the SDK attached them to.
+  const collectedVitals = Array.from(tree.vitals.values()).flat();
 
   const primaryVitalsCount = getPrimaryVitalsCount(
     vitalsToDisplay,
@@ -267,32 +249,6 @@ function getFormattedValue(
         )
       : defaultVitalValueFormatter(vitalDetails, vital.measurement.value)
     : '\u2014';
-}
-
-function getMobileVitalsFromRootEventResults(
-  data: TraceRootEventQueryResults['data']
-): TraceTree.CollectedVital[] {
-  if (!data || !isTraceItemDetailsResponse(data)) {
-    return [];
-  }
-
-  return data.attributes
-    .map(attribute => {
-      const mobileVital =
-        MOBILE_VITAL_MEASUREMENTS[attribute.name] ?? (attribute.name as MobileVital);
-      if (
-        TRACE_VIEW_MOBILE_VITALS.includes(mobileVital) &&
-        typeof attribute.value === 'number'
-      ) {
-        return {
-          key: mobileVital.replace('measurements.', ''),
-          measurement: {value: attribute.value},
-          score: undefined,
-        };
-      }
-      return;
-    })
-    .filter(defined);
 }
 
 function defaultVitalValueFormatter(vital: Vital, value: number) {
