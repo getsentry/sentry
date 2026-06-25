@@ -1,9 +1,11 @@
+import {useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
+import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -44,6 +46,7 @@ function SpikeProtectionProjectToggle({
   help,
 }: SpikeProtectionProjectToggleProps) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
 
   const testId = `${project.slug}-spike-protection-toggle`;
 
@@ -70,6 +73,28 @@ function SpikeProtectionProjectToggle({
               },
             };
             ProjectsStore.onUpdateSuccess(updatedProject);
+            // Keep the detailed project query (read by the project settings
+            // page) in sync. Without this the toggle's `initialValue` stays
+            // stale and the switch visually reverts after a successful save.
+            queryClient.setQueryData(
+              makeDetailedProjectQueryKey({
+                orgSlug: organization.slug,
+                projectSlug: project.slug,
+              }),
+              existing =>
+                existing
+                  ? {
+                      ...existing,
+                      json: {
+                        ...existing.json,
+                        options: {
+                          ...existing.json.options,
+                          [SPIKE_PROTECTION_OPTION_DISABLED]: !newValue,
+                        },
+                      },
+                    }
+                  : existing
+            );
             trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_PROJECT_TOGGLED, {
               organization,
               subscription,
