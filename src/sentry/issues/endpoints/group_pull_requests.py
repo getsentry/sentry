@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
-from datetime import datetime
-from typing import Literal, TypedDict
+from collections.abc import Mapping
+from typing import TypedDict, cast
 
-from django.db.models import Exists, OuterRef, Prefetch
+from django.db.models import Exists, OuterRef
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,46 +14,27 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.pullrequest import (
-    PullRequestSerializer,
-    PullRequestSerializerResponse,
+    LinkedPullRequestResponse,
+    LinkedPullRequestSerializer,
+    PullRequestStatus,
 )
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import (
-    PullRequest,
-    PullRequestAttribution,
-)
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
-from sentry.pr_metrics.attribution import is_seer_attribution
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_LIMIT = 5
-
-PullRequestStatus = Literal["merged", "open", "closed", "draft", "unknown"]
 
 
 class ProviderPullRequestResponse(TypedDict, total=False):
     draft: bool
     merged: bool
     state: str
-
-
-class LinkedPullRequestSeerAttributionResponse(TypedDict):
-    type: Literal["seer"]
-    id: Literal["seer"]
-
-
-LinkedPullRequestAttributionResponse = LinkedPullRequestSeerAttributionResponse
-
-
-class LinkedPullRequestResponse(PullRequestSerializerResponse):
-    attribution: LinkedPullRequestAttributionResponse | None
-    dateLinked: datetime
-    status: PullRequestStatus
 
 
 class GroupPullRequestsResponse(TypedDict):
@@ -83,28 +63,6 @@ def _get_valid_group_pull_request_links(group: Group, organization_id: int) -> l
         .filter(Exists(valid_pull_requests))
         .order_by("-datetime")[:DEFAULT_LIMIT]
     )
-
-
-def _serialize_pull_request_attribution(
-    attributions: Sequence[PullRequestAttribution],
-) -> LinkedPullRequestAttributionResponse | None:
-    if not any(is_seer_attribution(attribution) for attribution in attributions):
-        return None
-
-    return {
-        "type": "seer",
-        "id": "seer",
-    }
-
-
-def _get_prefetched_pull_request_attribution(
-    pull_request: PullRequest,
-) -> LinkedPullRequestAttributionResponse | None:
-    attributions = getattr(pull_request, "valid_attributions", ())
-    if not attributions:
-        return None
-
-    return _serialize_pull_request_attribution(attributions)
 
 
 def _get_pull_request_repo_name(repository: Repository) -> str:
@@ -205,20 +163,10 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
             return Response({"pullRequests": []})
 
         pull_request_ids = [link.linked_id for link in group_links]
-        pull_requests_by_id = (
-            PullRequest.objects.filter(
-                id__in=pull_request_ids,
-                organization_id=organization_id,
-            )
-            .prefetch_related(
-                Prefetch(
-                    "pullrequestattribution_set",
-                    queryset=PullRequestAttribution.objects.filter(is_valid=True),
-                    to_attr="valid_attributions",
-                )
-            )
-            .in_bulk()
-        )
+        pull_requests_by_id = PullRequest.objects.filter(
+            id__in=pull_request_ids,
+            organization_id=organization_id,
+        ).in_bulk()
         pull_requests = [
             pull_requests_by_id[pull_request_id]
             for pull_request_id in pull_request_ids
@@ -235,32 +183,28 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
             for pull_request in pull_requests
             if pull_request.repository_id in repositories_by_id
         ]
-        serialized_pull_requests = serialize(
-            pull_requests, request.user, serializer=PullRequestSerializer()
-        )
-        serialized_by_id: dict[int, PullRequestSerializerResponse] = {
-            pull_request.id: serialized
-            for pull_request, serialized in zip(
-                pull_requests, serialized_pull_requests, strict=False
-            )
-        }
-        date_linked_by_pr_id = {link.linked_id: link.datetime for link in group_links}
-        pull_request_responses: list[LinkedPullRequestResponse] = []
-        for pull_request in pull_requests:
-            serialized = serialized_by_id.get(pull_request.id)
-            if serialized is None:
-                continue
 
-            pull_request_responses.append(
-                {
-                    **serialized,
-                    "attribution": _get_prefetched_pull_request_attribution(pull_request),
-                    "dateLinked": date_linked_by_pr_id[pull_request.id],
-                    "status": _get_pull_request_status(
-                        pull_request, repositories_by_id.get(pull_request.repository_id)
-                    ),
-                }
+        date_linked_by_pr_id = {link.linked_id: link.datetime for link in group_links}
+        status_by_pr_id = {
+            pull_request.id: _get_pull_request_status(
+                pull_request, repositories_by_id.get(pull_request.repository_id)
             )
+            for pull_request in pull_requests
+        }
+
+        # serialize() infers the base PullRequestSerializerResponse from the
+        # parent's generic; LinkedPullRequestSerializer returns the narrower type.
+        pull_request_responses = cast(
+            list[LinkedPullRequestResponse],
+            serialize(
+                pull_requests,
+                request.user,
+                serializer=LinkedPullRequestSerializer(
+                    date_linked_by_pr_id=date_linked_by_pr_id,
+                    status_by_pr_id=status_by_pr_id,
+                ),
+            ),
+        )
 
         response: GroupPullRequestsResponse = {"pullRequests": pull_request_responses}
 
