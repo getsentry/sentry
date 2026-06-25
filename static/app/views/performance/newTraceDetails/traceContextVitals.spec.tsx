@@ -13,7 +13,6 @@ import {TraceContextVitals} from './traceContextVitals';
 
 const organization = OrganizationFixture();
 
-// Representative root event has no app-start attributes; they live on app.start.
 const rootEventResults = {
   data: {attributes: []},
 } as unknown as TraceRootEventQueryResults;
@@ -52,8 +51,6 @@ describe('TraceContextVitals', () => {
       {organization}
     );
 
-    // Assert the values, not just the labels: a pill renders for every vital
-    // even when no value is found (it shows an em-dash).
     expect(screen.getByText('App Start Cold')).toBeInTheDocument();
     expect(screen.getByText('1.60s')).toBeInTheDocument();
     expect(screen.getByText('App Start Warm')).toBeInTheDocument();
