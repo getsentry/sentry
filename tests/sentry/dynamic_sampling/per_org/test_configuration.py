@@ -70,7 +70,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
         assert configuration.get_sample_rate() == 0.5
 
-    def test_subscription_backed_org_uses_eap_sliding_window_sample_rate(self) -> None:
+    def test_subscription_backed_org_uses_outcomes_sliding_window_sample_rate(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
         sliding_window_volume = OrganizationDataVolume(org_id=org.id, total=1000, indexed=250)
@@ -81,7 +81,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 return_value=0.5,
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
                 return_value=sliding_window_volume,
             ) as get_volume,
             patch(
@@ -116,7 +116,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 return_value=0.5,
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
                 return_value=None,
             ),
             patch(
@@ -139,7 +139,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 return_value=None,
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
             ) as get_volume,
         ):
             configuration = get_configuration(org.id)

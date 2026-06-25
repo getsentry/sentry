@@ -413,6 +413,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "sentry.middleware.devtoolbar.DevToolbarAnalyticsMiddleware",
+    "sentry.middleware.agent_discovery.AgentDiscoveryMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"
@@ -482,9 +483,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.sentry_metrics",
     "sentry.sentry_metrics.indexer.postgres.apps.Config",
     "sentry.snuba",
-    "sentry.lang.java.apps.Config",
-    "sentry.lang.javascript.apps.Config",
-    "sentry.lang.dart.apps.Config",
     "sentry.plugins.sentry_interface_types.apps.Config",
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
@@ -905,7 +903,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.source_code_management.sync_repos",
     "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
-    "sentry.integrations.opsgenie.tasks",
     "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule",
     "sentry.integrations.slack.tasks.find_channel_id_for_rule",
     "sentry.integrations.slack.tasks.link_slack_user_identities",
@@ -921,6 +918,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.tasks.update_comment",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.vsts.tasks.subscription_check",
+    "sentry.issues.derived.tasks",
     "sentry.issues.escalating.forecasts",
     "sentry.middleware.integrations.tasks",
     "sentry.models.counter",
@@ -949,6 +947,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.sentry_apps.services.legacy_webhook.tasks",
     "sentry.seer.autofix.issue_summary",
+    "sentry.seer.autofix.pr_iteration_webhook",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
@@ -3395,3 +3394,20 @@ if IS_DEV and os.environ.get("SENTRY_CELL_ROUTING"):
     SENTRY_ORGANIZATION_URL_TEMPLATE = "http://{hostname}"
     SENTRY_FEATURES["system:multi-region"] = True
     SENTRY_LOCAL_CELL = SENTRY_LOCAL_CELL or "--monolith--"
+
+    # Synapse's ingest-router fronts the cell relays and signs its upstream
+    # requests to Sentry with its own credentials (started with --credentials-path
+    # relay-credentials.json). Register it as a static, internal relay: static auth
+    # is an alternative to the register/challenge handshake, so synapse is trusted
+    # by relay_id directly from config without ever registering. Values come from
+    # synapse's relay-credentials.json. Dev-only, gated behind cell-routing.
+    SENTRY_RELAY_STATIC_AUTH = {
+        "7835bea9-7df4-42d7-ab67-d344d026f9f6": {
+            "public_key": "Pr9zR1197orWo8Ekw85tTje4zjAGpMdIg9DgrVhFQ70",
+            "internal": True,
+        },
+    }
+    # The browser sits on the org subdomain ({slug}.dev.getsentry.net:8000) while
+    # cell-scoped API XHRs cross to Synapse on :13000, so Django's CSRF origin check
+    # needs the page origin trusted explicitly.
+    CSRF_TRUSTED_ORIGINS = ["http://*.dev.getsentry.net:8000", "http://dev.getsentry.net:8000"]

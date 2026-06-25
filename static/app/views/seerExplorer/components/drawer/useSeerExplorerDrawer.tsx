@@ -10,7 +10,7 @@ import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplore
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
-export const SEER_EXPLORER_DRAWER_KEY = 'seer-explorer-drawer';
+const SEER_EXPLORER_DRAWER_KEY = 'seer-explorer-drawer';
 
 export type OpenSeerExplorerDrawerOptions = {
   /**

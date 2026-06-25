@@ -3,8 +3,8 @@ import {Fragment} from 'react';
 import {LinkButton} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
-import {Heading} from '@sentry/scraps/text';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -13,15 +13,29 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {IssueDetailsContextProvider} from 'sentry/views/issueDetails/context';
+import {
+  GroupDataContextProvider,
+  useGroupData,
+} from 'sentry/views/issueDetails/groupDataContext';
+import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
+import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
+import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import {IssuePreviewAutofix} from 'sentry/views/issueDetails/issuePreview/issuePreviewAutofix';
+import {IssuePreviewDetails} from 'sentry/views/issueDetails/issuePreview/issuePreviewDetails';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from 'sentry/views/issueDetails/utils';
 
 interface IssuePreviewDrawerProps {
   groupId: string;
@@ -56,24 +70,26 @@ export function IssuePreviewDrawer({groupId}: IssuePreviewDrawerProps) {
         {isPending && <LoadingIndicator />}
         {isError && <LoadingError />}
         {group && project && (
-          <ErrorBoundary mini>
-            <IssuePreviewContent group={group} project={project} />
-          </ErrorBoundary>
+          <GroupDataContextProvider group={group} project={project}>
+            <ErrorBoundary mini>
+              <IssuePreviewContent />
+            </ErrorBoundary>
+          </GroupDataContextProvider>
         )}
       </DrawerBody>
     </Fragment>
   );
 }
 
-function IssuePreviewContent({
-  group,
-  project,
-}: {
-  group: NonNullable<ReturnType<typeof useGroup>['data']>;
-  project: Project;
-}) {
+function IssuePreviewContent() {
+  const {group, project} = useGroupData();
+  const {hasAutofix} = useAiConfig(group, project);
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
+  const disableActions = [
+    ReprocessingStatus.REPROCESSING,
+    ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
+  ].includes(getGroupReprocessingStatus(group));
 
   return (
     <Fragment>
@@ -100,31 +116,80 @@ function IssuePreviewContent({
           <GroupStatusSubtitle group={group} project={project} />
         </Flex>
       </Container>
-      <Container paddingTop="lg">
-        <Container paddingBottom="lg" borderBottom="muted">
-          <Tabs value="activity">
+      <Flex
+        paddingTop="lg"
+        paddingBottom="lg"
+        borderBottom="muted"
+        justify="between"
+        align="center"
+        wrap="wrap"
+        gap="md"
+      >
+        <GroupActions
+          group={group}
+          project={project}
+          disabled={disableActions}
+          event={null}
+        />
+        <Flex align="center" wrap="wrap" gap="lg">
+          <Flex align="center" gap="xs">
+            <Text size="sm" variant="muted">
+              {t('Priority')}
+            </Text>
+            <GroupPriority group={group} />
+          </Flex>
+          <Flex align="center" gap="xs">
+            <Text size="sm" variant="muted">
+              {t('Assignee')}
+            </Text>
+            <GroupHeaderAssigneeSelector group={group} project={project} event={null} />
+          </Flex>
+        </Flex>
+      </Flex>
+      <Container paddingTop="md">
+        <Tabs>
+          <Container paddingBottom="md" borderBottom="muted">
             <TabList variant="floating">
               <TabList.Item key="activity">{t('Activity')}</TabList.Item>
-              <TabList.Item key="autofix" disabled>
-                {t('Autofix')}
-              </TabList.Item>
-              <TabList.Item key="details" disabled>
-                {t('Details')}
-              </TabList.Item>
+              {hasAutofix ? (
+                <TabList.Item key="autofix">{t('Autofix')}</TabList.Item>
+              ) : null}
+              <TabList.Item key="details">{t('Details')}</TabList.Item>
               <TabList.Item key="events" disabled>
                 {t('Events')}
               </TabList.Item>
             </TabList>
-          </Tabs>
-        </Container>
-        <Container paddingTop="lg">
-          <ActivitySection
-            group={group}
-            variant="standalone"
-            size="md"
-            placeholder={t('Add a comment. Tag users with @, or teams with #')}
-          />
-        </Container>
+          </Container>
+          <TabPanels>
+            <TabPanels.Item key="activity">
+              <Container paddingTop="md">
+                <ActivitySection
+                  group={group}
+                  variant="standalone"
+                  size="md"
+                  placeholder={t('Add a comment. Tag users with @, or teams with #')}
+                />
+              </Container>
+            </TabPanels.Item>
+            {hasAutofix ? (
+              <TabPanels.Item key="autofix">
+                <Container paddingTop="md">
+                  <IssuePreviewAutofix group={group} project={project} />
+                </Container>
+              </TabPanels.Item>
+            ) : null}
+            <TabPanels.Item key="details">
+              <Container paddingTop="md">
+                <IssueDetailsContextProvider>
+                  <IssuePreviewDetails group={group} project={project} />
+                </IssueDetailsContextProvider>
+              </Container>
+            </TabPanels.Item>
+            <TabPanels.Item key="events">
+              <div />
+            </TabPanels.Item>
+          </TabPanels>
+        </Tabs>
       </Container>
     </Fragment>
   );

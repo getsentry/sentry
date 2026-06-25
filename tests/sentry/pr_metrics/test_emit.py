@@ -15,8 +15,8 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
     PullRequestVerdict,
 )
+from sentry.pr_metrics.contracts import PrConversationAnalysis
 from sentry.pr_metrics.emit import (
-    PrConversationAnalysis,
     active_attributions,
     build_pr_metrics_row,
     emit_pr_metrics_row,
@@ -173,6 +173,7 @@ class PrMetricsEmissionTest(TestCase):
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
                 "organization_id": self.organization.id,
+                "repository_id": self.pull_request.repository_id,
                 "pull_request_id": self.pull_request.id,
             },
         )
@@ -188,6 +189,7 @@ class PrMetricsEmissionTest(TestCase):
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
                 "organization_id": self.organization.id,
+                "repository_id": self.pull_request.repository_id,
                 "pull_request_id": self.pull_request.id,
             },
         )

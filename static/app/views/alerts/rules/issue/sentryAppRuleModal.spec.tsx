@@ -12,7 +12,7 @@ import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleM
 import type {
   FieldFromSchema,
   SchemaFormConfig,
-} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
+} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 describe('SentryAppRuleModal', () => {
   const modalElements = {

@@ -182,6 +182,16 @@ def _register_subscription_tasks() -> None:
             silo_mode=SiloMode.CELL,
         )
         def task_fn(message_bytes: bytes, _d: Dataset = dataset) -> None:
+            """Process a subscription message from raw Kafka message bytes.
+
+            This task is directly spawned from taskbroker in "raw mode". You won't find
+            any application code that calls apply_async or delay directly on it,
+            instead taskbroker itself is configured to consume a topic (in infra
+            templates) and spawns tasks for each message.
+
+            As such, the task signature, name and namespace cannot be changed without
+            coordination.
+            """
             _process_subscription_message(message_bytes, _d)
 
 

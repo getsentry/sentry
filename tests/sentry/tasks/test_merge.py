@@ -2,6 +2,7 @@ from typing import Any
 from unittest.mock import patch
 
 from sentry import buffer, eventstream
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupmeta import GroupMeta
@@ -13,6 +14,7 @@ from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import redis
 
@@ -221,6 +223,20 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         fetch_buffered_group_stats(new_group)
         assert new_group.times_seen_pending == 3
         assert new_group.times_seen_with_pending == 168
+
+    @with_feature("organizations:hard-delete-derived-data-invalidation")
+    def test_merge_invalidates_derived_data(self) -> None:
+        project = self.create_project()
+        old_group = self.create_group(project)
+        new_group = self.create_group(project)
+
+        GroupDerivedData.objects.create(group=new_group)
+
+        with self.tasks():
+            merge_groups([old_group.id], new_group.id)
+
+        assert Group.objects.filter(id=old_group.id).exists() is False
+        assert GroupDerivedData.objects.filter(group_id=new_group.id).exists() is False
 
     @mock_redis_buffer()
     def test_merge_original_group_id(self) -> None:

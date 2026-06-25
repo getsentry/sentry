@@ -18,7 +18,6 @@ from sentry_protos.snuba.v1.trace_item_pb2 import (
 
 from sentry.constants import DataCategory
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
-from sentry.utils import metrics
 from sentry.utils.eap import hex_to_item_id
 
 I64_MAX = 2**63 - 1
@@ -31,6 +30,13 @@ FIELD_TO_ATTRIBUTE = {
     "parent_span_id": "sentry.parent_span_id",
     "received": "sentry.received",
     "start_timestamp": "sentry.start_timestamp_precise",
+}
+
+# Like FIELD_TO_ATTRIBUTE, but does not overwrite existing attribute values.
+FIELD_TO_MISSING_ATTRIBUTE = {
+    # Keep backwards compatibility for v1 spans, which write their own
+    # sentry.status values upstream.
+    "status": "sentry.status",
 }
 
 RENAME_ATTRIBUTES = {
@@ -76,6 +82,12 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         if attribute is not None:
             attributes[attribute_name] = _anyvalue(attribute)
 
+    for field_name, attribute_name in FIELD_TO_MISSING_ATTRIBUTE.items():
+        if attribute_name not in attributes:
+            attribute = span.get(field_name)  # type:ignore[assignment]
+            if attribute is not None:
+                attributes[attribute_name] = _anyvalue(attribute)
+
     # Rename some attributes from their sentry-conventions name to what the product currently expects.
     # Eventually this should all be handled by deprecation policies in sentry-conventions.
     for convention_name, eap_name in RENAME_ATTRIBUTES.items():
@@ -110,21 +122,15 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
             sentry_sdk.capture_exception()
             attributes["sentry.dropped_links_count"] = AnyValue(int_value=len(links))
 
-    metrics.incr(
-        "spans.consumers.process_segments.outcome_emitted",
-        tags={"already_emitted": str(span.get("accepted_outcome_emitted"))},
+    outcomes = Outcomes(
+        key_id=int(span.get("key_id") or 0),
+        category_count=[
+            CategoryCount(
+                data_category=int(DataCategory.SPAN_INDEXED),
+                quantity=1,
+            ),
+        ],
     )
-    outcomes = None
-    if span.get("accepted_outcome_emitted") is False:
-        outcomes = Outcomes(
-            key_id=int(span.get("key_id") or 0),
-            category_count=[
-                CategoryCount(
-                    data_category=int(DataCategory.SPAN_INDEXED),
-                    quantity=1,
-                ),
-            ],
-        )
 
     return TraceItem(
         organization_id=span["organization_id"],

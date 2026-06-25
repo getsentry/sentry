@@ -7,7 +7,7 @@ import jsonschema
 import msgpack
 from django.conf import settings
 from redis import StrictRedis
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.uptime.config_schema import CHECK_CONFIG_SCHEMA

@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
+import {Avatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -9,11 +10,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {TimeSince} from 'sentry/components/timeSince';
+import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {GroupActivityType, type Group} from 'sentry/types/group';
 import type {
   LinkedPullRequest,
   LinkedPullRequestsResponse,
+  PullRequestAttribution,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -54,6 +57,7 @@ function LinkedPullRequestRow({
   const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
   const statusLabel = getPullRequestStatusLabel(pullRequest.status);
   const pullRequestLabel = t('#%s', pullRequest.id);
+  const authorAvatar = getPullRequestAuthorAvatar(pullRequest);
 
   return (
     <Tooltip
@@ -104,6 +108,11 @@ function LinkedPullRequestRow({
             </PullRequestTitle>
             <Flex align="center" gap="xs">
               <PullRequestStatusBadge status={pullRequest.status} />
+              {pullRequest.attribution ? (
+                <PullRequestAttributionAvatar attribution={pullRequest.attribution} />
+              ) : authorAvatar ? (
+                <PullRequestAuthorAvatar author={authorAvatar} />
+              ) : null}
               <Text as="span" size="sm" variant="muted">
                 <TimeSince
                   date={pullRequest.dateLinked}
@@ -116,6 +125,74 @@ function LinkedPullRequestRow({
           </Flex>
         </Grid>
       </PullRequestRow>
+    </Tooltip>
+  );
+}
+
+function PullRequestAttributionAvatar({
+  attribution,
+}: {
+  attribution: PullRequestAttribution;
+}) {
+  switch (attribution.type) {
+    case 'seer':
+      return <SeerAttributionAvatar />;
+  }
+}
+
+function getPullRequestAuthorAvatar(pullRequest: LinkedPullRequest) {
+  if (!pullRequest.author || pullRequest.author.email?.endsWith('@localhost')) {
+    return null;
+  }
+
+  const name = pullRequest.author.name || pullRequest.author.email;
+  const identifier = pullRequest.author.email || pullRequest.author.name;
+
+  return name && identifier ? {identifier, name} : null;
+}
+
+function PullRequestAuthorAvatar({
+  author,
+}: {
+  author: NonNullable<ReturnType<typeof getPullRequestAuthorAvatar>>;
+}) {
+  const label = t('Pull request author: %s', author.name);
+
+  return (
+    <Flex as="span" aria-label={label} display="inline-flex" role="img" title={label}>
+      <Avatar
+        hasTooltip
+        identifier={author.identifier}
+        name={author.name}
+        round
+        size={18}
+        tooltip={label}
+        type="letter_avatar"
+      />
+    </Flex>
+  );
+}
+
+function SeerAttributionAvatar() {
+  const label = t('Pull request created by Seer');
+
+  return (
+    <Tooltip title={label} skipWrapper>
+      <Flex
+        as="span"
+        align="center"
+        aria-label={label}
+        border="primary"
+        display="inline-flex"
+        height="18px"
+        justify="center"
+        radius="full"
+        role="img"
+        title={label}
+        width="18px"
+      >
+        <IconSeer aria-hidden size="xs" />
+      </Flex>
     </Tooltip>
   );
 }

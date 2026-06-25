@@ -14,12 +14,10 @@ from sentry.issues.action_log import (
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphistory import (
     GroupHistoryStatus,
     record_group_history,
-    record_group_history_from_activity_type,
 )
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
@@ -33,7 +31,6 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import get_option_from_list, user_option_service
@@ -57,25 +54,8 @@ def resolve_group_resolutions(instance, created, **kwargs):
 
 
 def remove_resolved_link(link):
-    # TODO(dcramer): ideally this would simply "undo" the link change,
-    # but we don't know for a fact that the resolution was most recently from
-    # the GroupLink
     with transaction.atomic(router.db_for_write(GroupLink)):
         link.delete()
-        affected = Group.objects.filter(status=GroupStatus.RESOLVED, id=link.group_id).update(
-            status=GroupStatus.UNRESOLVED,
-            substatus=GroupSubStatus.ONGOING,
-        )
-        if affected:
-            Activity.objects.create(
-                project_id=link.project_id,
-                group_id=link.group_id,
-                type=ActivityType.SET_UNRESOLVED.value,
-                ident=link.group_id,
-            )
-            record_group_history_from_activity_type(
-                Group.objects.get(id=link.group_id), ActivityType.SET_UNRESOLVED.value
-            )
 
 
 def _find_pull_request_author_user(author: CommitAuthor, organization_id: int) -> RpcUser | None:

@@ -2,9 +2,9 @@ import type React from 'react';
 import {useRef} from 'react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {SplitPanel} from 'sentry/components/splitPanel';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
