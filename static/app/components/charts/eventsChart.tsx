@@ -178,7 +178,9 @@ function Chart({
   ];
 
   if (defined(previousTimeseriesData)) {
-    data.push(...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')]));
+    data.push(
+      ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')])
+    );
   }
 
   const releasesLegend = t('Releases');
@@ -229,9 +231,7 @@ function Chart({
   }
   const chartColors = timeseriesData.length
     ? (colors?.slice(0, series.length) ??
-      theme.chart
-        .getColorPalette(timeseriesData.length - 1 - (hasOther ? 1 : 0))
-        .slice())
+      theme.chart.getColorPalette(timeseriesData.length - 1 - (hasOther ? 1 : 0)).slice())
     : undefined;
   if (chartColors?.length && hasOther) {
     chartColors.push(theme.tokens.content.secondary);
