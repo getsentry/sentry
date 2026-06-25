@@ -33,7 +33,7 @@ export function Subscriptions({
     );
 
     // When disabling webhooks unset the events
-    if (!prevWebhookDisabled && webhookDisabled && prevEvents && prevEvents.length) {
+    if (!prevWebhookDisabled && webhookDisabled && prevEvents?.length) {
       onChange([]);
       return;
     }
