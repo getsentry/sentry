@@ -1,7 +1,8 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
@@ -10,78 +11,74 @@ import {SubscriptionBox} from 'sentry/views/settings/organizationDeveloperSettin
 
 type Resource = (typeof EVENT_CHOICES)[number];
 
-type DefaultProps = {
-  webhookDisabled: boolean;
-};
-
-type Props = DefaultProps & {
+type Props = {
   events: WebhookEvent[];
   onChange: (events: WebhookEvent[]) => void;
   permissions: Permissions;
+  webhookDisabled?: boolean;
 };
 
-export class Subscriptions extends Component<Props> {
-  static defaultProps: DefaultProps = {
-    webhookDisabled: false,
-  };
+export function Subscriptions({
+  events,
+  onChange,
+  permissions,
+  webhookDisabled = false,
+}: Props) {
+  const prevWebhookDisabled = usePrevious(webhookDisabled);
+  const prevEvents = usePrevious(events);
 
-  componentDidUpdate(prevProps: Props) {
-    const {webhookDisabled, permissions, events} = this.props;
-
+  useEffect(() => {
     const permittedEvents = events.filter(
       resource => permissions[PERMISSIONS_MAP[resource]] !== 'no-access'
     );
 
     // When disabling webhooks unset the events
-    if (!prevProps.webhookDisabled && webhookDisabled && prevProps.events.length) {
-      this.save([]);
+    if (
+      prevWebhookDisabled === false &&
+      webhookDisabled &&
+      prevEvents &&
+      prevEvents.length
+    ) {
+      onChange([]);
       return;
     }
 
     if (JSON.stringify(events) !== JSON.stringify(permittedEvents)) {
-      this.save(permittedEvents);
+      onChange(permittedEvents);
     }
-  }
+  }, [webhookDisabled, permissions, events, prevWebhookDisabled, prevEvents, onChange]);
 
-  onChange = (resource: Resource, checked: boolean) => {
-    const events = new Set(this.props.events);
+  const handleChange = (resource: Resource, checked: boolean) => {
+    const newEvents = new Set(events);
     if (checked) {
-      events.add(resource);
+      newEvents.add(resource);
     } else {
-      events.delete(resource);
+      newEvents.delete(resource);
     }
-    this.save(Array.from(events));
+    onChange(Array.from(newEvents));
   };
 
-  save = (events: WebhookEvent[]) => {
-    this.props.onChange(events);
-  };
-
-  render() {
-    const {permissions, webhookDisabled, events} = this.props;
-
-    return (
-      <SubscriptionGrid>
-        {EVENT_CHOICES.map(choice => {
-          const disabledFromPermissions =
-            permissions[PERMISSIONS_MAP[choice]] === 'no-access';
-          return (
-            <Fragment key={choice}>
-              <SubscriptionBox
-                key={choice}
-                disabledFromPermissions={disabledFromPermissions}
-                webhookDisabled={webhookDisabled}
-                checked={events.includes(choice) && !disabledFromPermissions}
-                resource={choice}
-                onChange={this.onChange}
-                isNew={false}
-              />
-            </Fragment>
-          );
-        })}
-      </SubscriptionGrid>
-    );
-  }
+  return (
+    <SubscriptionGrid>
+      {EVENT_CHOICES.map(choice => {
+        const disabledFromPermissions =
+          permissions[PERMISSIONS_MAP[choice]] === 'no-access';
+        return (
+          <Fragment key={choice}>
+            <SubscriptionBox
+              key={choice}
+              disabledFromPermissions={disabledFromPermissions}
+              webhookDisabled={webhookDisabled}
+              checked={events.includes(choice) && !disabledFromPermissions}
+              resource={choice}
+              onChange={handleChange}
+              isNew={false}
+            />
+          </Fragment>
+        );
+      })}
+    </SubscriptionGrid>
+  );
 }
 
 const SubscriptionGrid = styled('div')`
