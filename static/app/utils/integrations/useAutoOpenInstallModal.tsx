@@ -55,18 +55,24 @@ export function useAutoOpenInstallModal({
 
     autoOpenedForRef.current = provider.key;
 
-    const isSlack = provider.key === 'slack';
+    // NOTE: The `?showInstallModal=1` entry point is currently only used by the
+    // Slack reinstall/upgrade nudge, so we override the generic install modal
+    // copy to frame it as a reauthorization. `useAddIntegration` itself is
+    // provider-agnostic and may outlive this usage; if other providers start
+    // auto-opening, lift this out rather than hardcoding it to Slack here.
     startFlow({
       provider,
       organization,
       onInstall,
       analyticsParams,
       suppressSuccessMessage,
-      ...(isSlack && {
-        modalTitle: t('Upgrade Slack Integration'),
-        modalDescription: t(
-          'Reauthorize the Sentry app in your Slack Workspace so you can chat with Seer directly.'
-        ),
+      ...(provider.key === 'slack' && {
+        modalParams: {
+          title: t('Upgrade Slack Integration'),
+          description: t(
+            'Reauthorize the Sentry app in your Slack Workspace so you can chat with Seer directly.'
+          ),
+        },
       }),
     });
 
