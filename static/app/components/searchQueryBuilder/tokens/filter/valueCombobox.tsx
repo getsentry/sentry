@@ -32,6 +32,7 @@ import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/
 import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
 import {
+  escapeTagValue,
   escapeTagValueForSearch,
   formatFilterValue,
   getFilterValueType,
@@ -984,6 +985,16 @@ export function SearchQueryBuilderValueCombobox({
       if (!value) {
         return;
       }
+      // editValue lifts a chip into the input in its unescaped form (e.g.
+      // `"foo bar"` -> `foo bar`), and freshly typed values are unescaped too.
+      // Re-quote spaces/special chars so the value round-trips through
+      // parseMultiSelectFilterValue instead of corrupting the query. Values the
+      // user already quoted are left as-is to avoid double-escaping.
+      const isAlreadyQuoted = value.startsWith('"') && value.endsWith('"');
+      const valueForSaving =
+        !isAlreadyQuoted && valueType === FieldValueType.STRING
+          ? escapeTagValue(value)
+          : value;
       dispatch({
         type: 'UPDATE_TOKEN_VALUE',
         token,
@@ -991,7 +1002,7 @@ export function SearchQueryBuilderValueCombobox({
           getFilterValueType(token, fieldDefinition),
           insertMultiSelectValue(
             committedValues.map(v => v.text),
-            value,
+            valueForSaving,
             editingChip?.index
           ).join(',')
         ),
@@ -999,7 +1010,7 @@ export function SearchQueryBuilderValueCombobox({
       setInputValue('');
       setEditingChip(null);
     },
-    [committedValues, dispatch, editingChip, fieldDefinition, token]
+    [committedValues, dispatch, editingChip, fieldDefinition, token, valueType]
   );
 
   const handleInputValueConfirmed = useCallback(
@@ -1070,6 +1081,13 @@ export function SearchQueryBuilderValueCombobox({
           next
         ),
       });
+      // Removing a chip before the one being edited shifts its position down, so
+      // keep editingChip.index aligned with the rebuilt token. Otherwise
+      // committedValues hides the wrong chip and the commit reinserts at a stale
+      // index, dropping remaining values.
+      setEditingChip(prev =>
+        prev && index < prev.index ? {...prev, index: prev.index - 1} : prev
+      );
       inputRef.current?.focus();
     },
     [dispatch, fieldDefinition, selectedValues, token]
