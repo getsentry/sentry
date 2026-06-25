@@ -135,6 +135,10 @@ describe('SeerDrawerNextStep', () => {
         url: '/organizations/org-slug/integrations/coding-agents/',
         body: {integrations: []},
       });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'github'}],
+      });
     });
 
     it('returns null when section has no artifacts', () => {
@@ -294,6 +298,38 @@ describe('SeerDrawerNextStep', () => {
         '/settings/org-slug/integrations/?category=coding%20agent'
       );
     });
+
+    it('disables the coding agent dropdown when the project only has GitLab repos', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Claude', provider: 'claude_code', requires_identity: false},
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'gitlab'}],
+      });
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
+      );
+      // The dropdown is still rendered, but disabled with an explanatory tooltip.
+      const dropdownButton = await screen.findByRole('button', {
+        name: 'More code fix options',
+      });
+      expect(dropdownButton).toBeDisabled();
+      await userEvent.hover(dropdownButton);
+      expect(
+        await screen.findByText(/requires a connected GitHub repository/)
+      ).toBeInTheDocument();
+    });
   });
 
   describe('SolutionNextStep', () => {
@@ -301,6 +337,10 @@ describe('SeerDrawerNextStep', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/coding-agents/',
         body: {integrations: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'github'}],
       });
     });
     it('returns null when section has no artifacts', () => {

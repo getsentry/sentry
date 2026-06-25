@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
@@ -34,8 +34,13 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Group} from 'sentry/types/group';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {defined} from 'sentry/utils/defined';
 import {useIntegrations} from 'sentry/utils/integrations/useIntegrations';
+import {
+  getSeerProjectReposInfiniteQueryOptions,
+  isGitHubProvider,
+} from 'sentry/utils/seer/seerProjectRepos';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getProviderPermissionsUrl} from 'sentry/views/settings/organizationRepositories/getProviderConfigUrl';
 
@@ -139,13 +144,14 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
 
-  const {codingAgentIntegrations, handleCodingAgentHandoff} = useCodingAgents({
-    autofix,
-    runId,
-    group,
-    step: 'root_cause',
-    referrer,
-  });
+  const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
+    useCodingAgents({
+      autofix,
+      runId,
+      group,
+      step: 'root_cause',
+      referrer,
+    });
 
   const handleYesClick = () => {
     startStep('solution', {runId});
@@ -196,6 +202,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
       rethinkPrompt={t('How can this root cause be improved?')}
       labelRethink={t('Rethink root cause')}
       codingAgentIntegrations={codingAgentIntegrations}
+      codingAgentDisabledReason={codingAgentDisabledReason}
       onCodingAgentHandoff={handleCodingAgentHandoff}
     />
   );
@@ -205,13 +212,14 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
 
-  const {codingAgentIntegrations, handleCodingAgentHandoff} = useCodingAgents({
-    autofix,
-    runId,
-    group,
-    step: 'solution',
-    referrer,
-  });
+  const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
+    useCodingAgents({
+      autofix,
+      runId,
+      group,
+      step: 'solution',
+      referrer,
+    });
 
   const handleYesClick = () => {
     startStep('code_changes', {runId});
@@ -262,6 +270,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
       rethinkPrompt={t('How can this plan be improved?')}
       labelRethink={t('Rethink plan')}
       codingAgentIntegrations={codingAgentIntegrations}
+      codingAgentDisabledReason={codingAgentDisabledReason}
       onCodingAgentHandoff={handleCodingAgentHandoff}
     />
   );
@@ -471,6 +480,7 @@ interface NextStepTemplateProps {
   prompt: ReactNode;
   rethinkPrompt: ReactNode;
   yesButton: ReactNode;
+  codingAgentDisabledReason?: string;
   codingAgentIntegrations?: CodingAgentIntegration[];
   onCodingAgentHandoff?: (integration: CodingAgentIntegration) => void;
 }
@@ -486,6 +496,7 @@ function NextStepTemplate({
   rethinkPrompt,
   labelRethink,
   codingAgentIntegrations,
+  codingAgentDisabledReason,
   onCodingAgentHandoff,
 }: NextStepTemplateProps) {
   const organization = useOrganization();
@@ -551,11 +562,12 @@ function NextStepTemplate({
           {codingAgentIntegrations === undefined ? null : (
             <DropdownMenu
               items={codingAgentOptions}
-              isDisabled={false}
+              isDisabled={defined(codingAgentDisabledReason)}
               trigger={(triggerProps, isOpen) => (
                 <Button
                   {...triggerProps}
-                  disabled={isProcessing}
+                  disabled={isProcessing || defined(codingAgentDisabledReason)}
+                  tooltipProps={{title: codingAgentDisabledReason}}
                   variant="primary"
                   icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
                   aria-label={t('More code fix options')}
@@ -602,10 +614,24 @@ function useCodingAgents({
   const {data: codingAgentResponse} = useQuery(
     organizationIntegrationsCodingAgents(organization)
   );
+
+  const reposQuery = useInfiniteQuery({
+    ...getSeerProjectReposInfiniteQueryOptions({organization, project: group.project}),
+    select: ({pages}) => pages.flatMap(page => page.json),
+  });
+  useFetchAllPages({result: reposQuery});
+  const repos = reposQuery.data ?? [];
+  const isGitLabOnly =
+    repos.length > 0 && repos.every(repo => !isGitHubProvider(repo.provider));
+
   const codingAgentIntegrations = useMemo(
-    () => codingAgentResponse?.integrations,
-    [codingAgentResponse?.integrations]
+    () => (reposQuery.isPending ? undefined : codingAgentResponse?.integrations),
+    [codingAgentResponse?.integrations, reposQuery.isPending]
   );
+
+  const codingAgentDisabledReason = isGitLabOnly
+    ? t('Handing off to a coding agent is only supported for GitHub repositories.')
+    : undefined;
 
   const handleCodingAgentHandoff = useCallback(
     (integration: CodingAgentIntegration) => {
@@ -628,5 +654,5 @@ function useCodingAgents({
     [triggerCodingAgentHandoff, organization, runId, group, step, referrer]
   );
 
-  return {codingAgentIntegrations, handleCodingAgentHandoff};
+  return {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff};
 }
