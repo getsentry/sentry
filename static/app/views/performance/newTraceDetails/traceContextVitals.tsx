@@ -6,6 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {MobileVital, type WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
@@ -23,6 +24,7 @@ import {
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   TRACE_VIEW_MOBILE_VITALS,
@@ -36,6 +38,13 @@ type Props = {
   tree: TraceTree;
 };
 
+const MOBILE_VITAL_MEASUREMENTS: Record<string, MobileVital> = {
+  'app.vitals.start.cold.value': MobileVital.APP_START_COLD,
+  'app.vitals.start.warm.value': MobileVital.APP_START_WARM,
+  'app.vitals.ttfd.value': MobileVital.TIME_TO_FULL_DISPLAY,
+  'app.vitals.ttid.value': MobileVital.TIME_TO_INITIAL_DISPLAY,
+};
+
 export function TraceContextVitals({rootEventResults, tree, containerWidth}: Props) {
   const {hasVitals} = useTraceContextSections({
     tree,
@@ -45,8 +54,15 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
   const traceNode = tree.root.children[0];
   const theme = useTheme();
 
+  // Some mobile vitals (frames_slow_rate, frames_frozen_rate, stall_longest_time)
+  // are not returned by the trace spans query, so they only exist in the root
+  // event's attributes and never make it into tree.vitals.
+  const rootEventVitals = traceNode?.isEAPEvent
+    ? getMobileVitalsFromRootEventResults(rootEventResults.data)
+    : [];
+
   // TODO Abdullah Khan: Ignoring loading/error states for now
-  if (!hasVitals || !rootEventResults.data || !traceNode) {
+  if ((!hasVitals && !rootEventVitals.length) || !rootEventResults.data || !traceNode) {
     return null;
   }
 
@@ -54,7 +70,16 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
     ? TRACE_VIEW_WEB_VITALS
     : TRACE_VIEW_MOBILE_VITALS;
 
-  const collectedVitals = Array.from(tree.vitals.values()).flat();
+  // Merge both sources, preferring tree.vitals (it carries app.start vitals from
+  // the app.start span and real scores) and filling gaps from the root event.
+  const collectedVitalsByKey = new Map<string, TraceTree.CollectedVital>();
+  for (const vital of rootEventVitals) {
+    collectedVitalsByKey.set(vital.key, vital);
+  }
+  for (const vital of Array.from(tree.vitals.values()).flat()) {
+    collectedVitalsByKey.set(vital.key, vital);
+  }
+  const collectedVitals = Array.from(collectedVitalsByKey.values());
 
   const primaryVitalsCount = getPrimaryVitalsCount(
     vitalsToDisplay,
@@ -246,6 +271,32 @@ function getFormattedValue(
         )
       : defaultVitalValueFormatter(vitalDetails, vital.measurement.value)
     : '\u2014';
+}
+
+function getMobileVitalsFromRootEventResults(
+  data: TraceRootEventQueryResults['data']
+): TraceTree.CollectedVital[] {
+  if (!data || !isTraceItemDetailsResponse(data)) {
+    return [];
+  }
+
+  return data.attributes
+    .map(attribute => {
+      const mobileVital =
+        MOBILE_VITAL_MEASUREMENTS[attribute.name] ?? (attribute.name as MobileVital);
+      if (
+        TRACE_VIEW_MOBILE_VITALS.includes(mobileVital) &&
+        typeof attribute.value === 'number'
+      ) {
+        return {
+          key: mobileVital.replace('measurements.', ''),
+          measurement: {value: attribute.value},
+          score: undefined,
+        };
+      }
+      return;
+    })
+    .filter(defined);
 }
 
 function defaultVitalValueFormatter(vital: Vital, value: number) {

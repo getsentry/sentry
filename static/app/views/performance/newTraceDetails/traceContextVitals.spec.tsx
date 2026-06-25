@@ -14,11 +14,13 @@ import {TraceContextVitals} from './traceContextVitals';
 const organization = OrganizationFixture();
 
 const rootEventResults = {
-  data: {attributes: []},
+  data: {
+    attributes: [{name: 'measurements.frames_slow_rate', type: 'float', value: 0.02}],
+  },
 } as unknown as TraceRootEventQueryResults;
 
 describe('TraceContextVitals', () => {
-  it('shows App Start vitals attached to a non-representative app.start transaction', () => {
+  it('merges tree.vitals with root event attributes for mobile vitals', () => {
     const tree = TraceTree.FromTrace(
       makeEAPTrace([
         makeEAPSpan({
@@ -55,5 +57,8 @@ describe('TraceContextVitals', () => {
     expect(screen.getByText('1.60s')).toBeInTheDocument();
     expect(screen.getByText('App Start Warm')).toBeInTheDocument();
     expect(screen.getByText('400.00ms')).toBeInTheDocument();
+
+    expect(screen.getByText('Slow Frames Rate')).toBeInTheDocument();
+    expect(screen.getByText('0.02')).toBeInTheDocument();
   });
 });
