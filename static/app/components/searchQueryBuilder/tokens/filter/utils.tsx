@@ -138,9 +138,6 @@ export function escapeTagValue(
   return shouldEscape ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 
-// Escapes any literal `*` in a value so it is matched literally rather than as
-// a wildcard. Already-escaped asterisks (preceded by an odd number of
-// backslashes) are left untouched.
 export function escapeAsterisksInValue(value: string): string {
   let escapedValue = '';
   let consecutiveBackslashes = 0;
