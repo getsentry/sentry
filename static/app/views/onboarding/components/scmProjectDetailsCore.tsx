@@ -12,11 +12,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 
-const STEP_VIEWED_EVENT = {
-  onboarding: 'onboarding.scm_project_details_step_viewed',
-  'project-creation': 'project_creation.scm_project_details_step_viewed',
-} as const;
-
 interface ScmProjectDetailsCoreProps {
   analyticsFlow: ScmAnalyticsFlow;
   /** Hides the team selector for a no-access member (see useScmProjectDetails). */
@@ -49,7 +44,13 @@ export function ScmProjectDetailsCore({
   const organization = useOrganization();
 
   useEffect(() => {
-    trackAnalytics(STEP_VIEWED_EVENT[analyticsFlow], {organization});
+    // Onboarding views this as a discrete step. Single-view project creation
+    // shows all sections at once and fires one page-viewed event in
+    // scmCreateProject, so suppress the per-section step_viewed there.
+    if (analyticsFlow !== 'onboarding') {
+      return;
+    }
+    trackAnalytics('onboarding.scm_project_details_step_viewed', {organization});
   }, [organization, analyticsFlow]);
 
   return (

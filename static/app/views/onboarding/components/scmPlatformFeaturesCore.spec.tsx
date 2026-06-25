@@ -70,7 +70,19 @@ describe('ScmPlatformFeaturesCore', () => {
     expect(screen.getByText('Select a platform')).toBeInTheDocument();
   });
 
-  it('fires step_viewed analytics for the given flow on mount', () => {
+  it('fires step_viewed analytics in onboarding on mount', () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    render(<ScmPlatformFeaturesCore {...defaultProps({analyticsFlow: 'onboarding'})} />, {
+      organization,
+    });
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'onboarding.scm_platform_features_step_viewed',
+      expect.anything()
+    );
+  });
+
+  it('does not fire step_viewed in project creation (page-viewed fires once upstream)', () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     render(
       <ScmPlatformFeaturesCore {...defaultProps({analyticsFlow: 'project-creation'})} />,
@@ -79,8 +91,8 @@ describe('ScmPlatformFeaturesCore', () => {
       }
     );
 
-    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-      'project_creation.scm_platform_features_step_viewed',
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'onboarding.scm_platform_features_step_viewed',
       expect.anything()
     );
   });
