@@ -439,16 +439,19 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             \b
             # Random nonsense alphanumeric id strings. To avoid false positives, we require the
             # following:
-            #   - A mix of uppercase letters, lowercase letters, and numbers
             #   - A minimum of 4 characters, with at least a certain level of "mixed-up-ness". For
             #     our purposes, that means the string must switch back and forth between letters and
             #     numbers at least 3 times. This rules out human-readable strings like `dogNumber1`
             #     (1 switch) and `bball4lyfe` (2 switches), while catching strings like `aKj8XLr2`.
+            #   - For strings shorter than 6 characters, a mix of uppercase letters, lowercase
+            #     letters, and numbers. (For 6+ character strings, the switching requirement alone
+            #     is restrictive enough.)
             #
-            # Lookahead guaranteeing at least one uppercase letter
-            (?= [a-z0-9]* [A-Z])
-            # Lookahead guaranteeing at least one lowercase letter
-            (?= [A-Z0-9]* [a-z])
+            # Lookaheads guaranteeing either a) at least 6 characters or b) at least one uppercase
+            # or at least one lowercase letter, respectively. Together, they guarantee that matches
+            # of fewer than 6 charactes have both.
+            (?= [a-zA-Z0-9]{6} | [a-z0-9]* [A-Z])
+            (?= [a-zA-Z0-9]{6} | [A-Z0-9]* [a-z])
             # Lookahead enforcing letter/number switches. Two versions depending on whether the
             # string starts with a letter or number. This also takes care of the "contains a number"
             # requirement.
