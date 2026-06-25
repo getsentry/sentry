@@ -9,7 +9,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {
   IntegrationInstallationStatus,
   SentryApp,
