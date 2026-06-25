@@ -27,8 +27,10 @@ from ipaddress import ip_address
 
 
 def anonymize_ip(
-    address, ipv4_mask="255.255.255.0", ipv6_mask="ffff:ffff:ffff:0000:0000:0000:0000:0000"
-):
+    address: str,
+    ipv4_mask: str = "255.255.255.0",
+    ipv6_mask: str = "ffff:ffff:ffff:0000:0000:0000:0000:0000",
+) -> str:
     """
     Anonymize the provided IPv4 or IPv6 address by setting parts of the
     address to 0
@@ -60,7 +62,7 @@ def anonymize_ip(
         raise ValueError("Address does not consist of 4 (IPv4) or 16 (IPv6) octets")
 
 
-def __apply_mask(address_packed, mask_packed, nr_bytes):
+def __apply_mask(address_packed: bytes, mask_packed: bytes, nr_bytes: int) -> str:
     """
     Perform a bitwise AND operation on all corresponding bytes between the
     mask and the provided address. Mask parts set to 0 will become 0 in the
@@ -83,7 +85,7 @@ def __apply_mask(address_packed, mask_packed, nr_bytes):
     return str(ip_address(bytes(anon_packed)))
 
 
-def __validate_ipv4_mask(mask_packed):
+def __validate_ipv4_mask(mask_packed: bytes) -> None:
     # Test that mask only contains valid numbers
     for byte in iter(mask_packed):
         if byte != 0 and byte != 255:
@@ -102,7 +104,7 @@ def __validate_ipv4_mask(mask_packed):
         )
 
 
-def __validate_ipv6_mask(mask_packed):
+def __validate_ipv6_mask(mask_packed: bytes) -> None:
     # Test that mask only contains valid numbers
     for byte in iter(mask_packed):
         if byte != 0 and byte != 255:

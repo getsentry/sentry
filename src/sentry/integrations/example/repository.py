@@ -33,5 +33,5 @@ class ExampleRepositoryProvider(IntegrationRepositoryProvider):
             "external_id": data.get("external_id", data.get("identifier", "")),
             "url": "https://example.com/{}".format(data.get("name", "")),
             "config": {"name": data.get("name", data.get("identifier", ""))},
-            "integration_id": data.get("integration_id"),
+            "integration_id": int(data.get("integration_id", -1)),
         }
