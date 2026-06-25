@@ -8,6 +8,7 @@ import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/se
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
   SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY,
+  useIsSeerExplorerSidebarEnabled,
   useSeerExplorerSidebarOrientation,
 } from 'sentry/views/seerExplorer/utils';
 
@@ -18,6 +19,18 @@ const DEFAULT_SEER_WIDTH = 420;
 const MIN_CONTENT_HEIGHT = 200;
 const MIN_SEER_HEIGHT = 240;
 const DEFAULT_SEER_HEIGHT = 360;
+
+export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode}) {
+  const isSidebarMode = useIsSeerExplorerSidebarEnabled();
+
+  return isSidebarMode ? (
+    <SeerExplorerSidebarLayoutInSidebarMode>
+      {children}
+    </SeerExplorerSidebarLayoutInSidebarMode>
+  ) : (
+    children
+  );
+}
 
 /**
  * Wraps the main app content so Seer Explorer can render as a resizable split
@@ -41,9 +54,8 @@ const DEFAULT_SEER_HEIGHT = 360;
  * and is written only on a real drag via `onResizeEnd` — programmatic/measure
  * resizes don't persist, so a saved size is never clobbered.
  */
-export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode}) {
-  const {isSidebarMode, isOpen, sidebarPosition, sidebarContainerRef} =
-    useSeerExplorerContext();
+function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.ReactNode}) {
+  const {isOpen, sidebarPosition, sidebarContainerRef} = useSeerExplorerContext();
   const {width, height} = useDimensions({elementRef: sidebarContainerRef});
   const orientation = useSeerExplorerSidebarOrientation(sidebarPosition);
 
@@ -74,10 +86,6 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
     },
     [contentSize]
   );
-
-  if (!isSidebarMode) {
-    return children;
-  }
 
   // Persist Seer's size from a drag (the app pane shrinks → Seer grows). Fires
   // only on drag end, never on programmatic/measure resizes, so a saved size is
