@@ -44,11 +44,6 @@ type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
   isOpen: boolean;
-  /**
-   * Whether Seer renders as a persistent split-panel sidebar (flag on) rather
-   * than an overlay drawer.
-   */
-  isSidebarMode: boolean;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
   sessionState: SeerExplorerSessionState;
   /**
@@ -79,7 +74,6 @@ type SeerExplorerContextValue = {
 const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   closeSeerExplorer: () => {},
   isOpen: false,
-  isSidebarMode: false,
   openSeerExplorer: () => {},
   sessionState: 'inactive',
   sidebarContainerRef: {current: null},
@@ -337,7 +331,6 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const contextValue = useMemo<SeerExplorerContextValue>(
     () => ({
       isOpen,
-      isSidebarMode,
       openSeerExplorer,
       closeSeerExplorer,
       toggleSeerExplorer,
@@ -351,7 +344,6 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     }),
     [
       isOpen,
-      isSidebarMode,
       openSeerExplorer,
       closeSeerExplorer,
       toggleSeerExplorer,
