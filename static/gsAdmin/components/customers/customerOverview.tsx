@@ -772,7 +772,20 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                     </Button>
                   </Fragment>
                 ) : (
-                  <Fragment>(migrated)</Fragment>
+                  <Fragment>
+                    (migrated)
+                    {customer.isPartner && customer.isManaged && (
+                      <Fragment>
+                        <br />
+                        <Button
+                          variant="link"
+                          onClick={() => updateCustomerStatus('deactivatePartnerAccount')}
+                        >
+                          Reset partner billing to self-serve
+                        </Button>
+                      </Fragment>
+                    )}
+                  </Fragment>
                 )}
                 <br />
                 <small>ID: {customer.partner.externalId}</small>
