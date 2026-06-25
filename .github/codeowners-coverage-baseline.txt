@@ -1192,8 +1192,6 @@ static/app/locale.spec.tsx
 static/app/main.tsx
 static/app/makeLazyloadComponent.spec.tsx
 static/app/makeLazyloadComponent.tsx
-static/app/plugins/components/pluginIcon.spec.tsx
-static/app/plugins/components/pluginIcon.tsx
 static/app/router/preload.ts
 static/app/router/routeConfigContext.tsx
 static/app/router/routes.spec.tsx

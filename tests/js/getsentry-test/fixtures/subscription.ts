@@ -113,7 +113,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     partner: null,
     planDetails,
     totalMembers: 1,
-    contractInterval: 'monthly',
     totalLicenses: 1,
     billingPeriodStart: '2018-09-25',
     suspensionReason: null,

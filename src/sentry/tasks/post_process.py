@@ -1252,7 +1252,7 @@ def process_processing_errors_eap(job: PostProcessJob) -> None:
 
     event = job["event"]
 
-    processing_errors = event.data.get("errors", [])
+    processing_errors = get_path(event.data, "errors", filter=True, default=[])
     if not processing_errors:
         return
 

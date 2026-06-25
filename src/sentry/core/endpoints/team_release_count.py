@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
@@ -19,6 +20,7 @@ from sentry.utils.dates import floor_to_utc_day
 
 @cell_silo_endpoint
 class TeamReleaseCountEndpoint(TeamEndpoint):
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

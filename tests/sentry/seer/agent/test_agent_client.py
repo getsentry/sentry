@@ -1366,6 +1366,10 @@ class TestGetMonitoringProviderConnections(TestCase):
                 "site": "datadoghq.com",
             },
         )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
 
         result = get_monitoring_provider_connections(self.organization, self.user.id)
 
@@ -1385,11 +1389,15 @@ class TestGetMonitoringProviderConnections(TestCase):
     def test_returns_multiple_connections(self) -> None:
         for site, ext_id in [("datadoghq.com", "org-1"), ("datadoghq.eu", "org-2")]:
             idp = self.create_identity_provider(type="datadog", external_id=ext_id)
-            self.create_identity(
+            identity = self.create_identity(
                 user=self.user,
                 identity_provider=idp,
                 external_id=f"user-{ext_id}",
                 data={"access_token": "access-token", "site": site},
+            )
+            self.create_organization_identity(
+                organization=self.organization,
+                identity=identity,
             )
 
         result = get_monitoring_provider_connections(self.organization, self.user.id)
@@ -1400,24 +1408,54 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp" in urls
         assert "https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp" in urls
 
+    def test_cross_org_isolation(self) -> None:
+        org2 = self.create_organization(name="other-org", owner=self.user)
+
+        idp = self.create_identity_provider(type="datadog", external_id="org-1")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
+
+        result_org1 = get_monitoring_provider_connections(self.organization, self.user.id)
+        assert len(result_org1) == 1
+        assert result_org1[0]["provider_key"] == "datadog"
+
+        result_org2 = get_monitoring_provider_connections(org2, self.user.id)
+        assert result_org2 == []
+
     def test_skips_identity_missing_access_token(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-1",
             data={"site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
         )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
 
     def test_skips_identity_missing_site(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-1",
             data={"access_token": "access-token"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
         )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
@@ -1436,11 +1474,15 @@ class TestGetMonitoringProviderConnections(TestCase):
     @override_settings(SEER_GHE_ENCRYPT_KEY=None)
     def test_skips_identity_when_encryption_fails(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-1",
             data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
         )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
@@ -1448,18 +1490,22 @@ class TestGetMonitoringProviderConnections(TestCase):
     @with_feature({"organizations:seer-infra-telemetry": False})
     def test_returns_empty_when_feature_disabled(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-1",
             data={"access_token": "access-token", "site": "datadoghq.com"},
         )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
 
     @patch(
-        "sentry.seer.agent.client.identity_service.get_user_identities_by_provider_type",
-        side_effect=RpcException("identity", "get_user_identities_by_provider_type", "boom"),
+        "sentry.seer.agent.client.identity_service.get_org_user_identities_by_provider_type",
+        side_effect=RpcException("identity", "get_org_user_identities_by_provider_type", "boom"),
     )
     def test_degrades_when_identity_service_errors(self, mock_get: MagicMock) -> None:
         # A control-silo RPC failure must not propagate (it would stall the outbox shard).

@@ -611,6 +611,7 @@ def generate_autofix_handoff_prompt(
     state: SeerRunState,
     instruction: str | None = None,
     short_id: str | None = None,
+    issue_url: str | None = None,
 ) -> str:
     """
     Generate a prompt for coding agents from autofix run state.
@@ -621,7 +622,12 @@ def generate_autofix_handoff_prompt(
     parts = ["Please fix the following issue. Ensure that your fix is fully working."]
 
     if short_id:
-        parts.append(f"Include 'Fixes {short_id}' in the commit message.")
+        if issue_url:
+            parts.append(
+                f"Include 'Fixes [{short_id}]({issue_url})' in the commit message and PR description."
+            )
+        else:
+            parts.append(f"Include 'Fixes {short_id}' in the commit message.")
 
     if instruction and instruction.strip():
         parts.append(instruction.strip())
@@ -762,8 +768,9 @@ def trigger_coding_agent_handoff(
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
 
     short_id = group.qualified_short_id
+    issue_url = group.get_absolute_url() if short_id else None
 
-    prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
+    prompt = generate_autofix_handoff_prompt(state, short_id=short_id, issue_url=issue_url)
 
     coding_agents = client.launch_coding_agents(
         run_id=run_id,
@@ -775,6 +782,7 @@ def trigger_coding_agent_handoff(
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
         issue_short_id=short_id,
+        issue_url=issue_url,
     )
 
     coding_agent_name = _resolve_coding_agent_name(group.organization.id, integration_id, provider)

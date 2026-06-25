@@ -299,3 +299,23 @@ def test_convert_outcomes_missing_key_id() -> None:
             ),
         ],
     )
+
+
+def test_field_to_missing_attribute_writes_if_missing() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["status"] = "error"
+    del message["attributes"]["sentry.status"]  # type: ignore[union-attr]
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.attributes.get("sentry.status") == AnyValue(string_value="error")
+
+
+def test_field_to_missing_attribute_keeps_existing_value() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["status"] = "error"
+    message["attributes"]["sentry.status"] = {"value": "ok", "type": "string"}  # type: ignore[index]
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.attributes.get("sentry.status") == AnyValue(string_value="ok")

@@ -139,14 +139,6 @@ export function PendingChanges({organization, subscription}: Props) {
       results.push(...getAMPlanChanges());
     }
 
-    if (hasChange('planDetails.contractInterval')) {
-      results.push(
-        tct('Contract period change to [contractInterval]', {
-          contractInterval: pendingChanges.planDetails.contractInterval,
-        })
-      );
-    }
-
     if (hasChange('planDetails.billingInterval')) {
       results.push(
         tct('Billing period change to [billingInterval]', {

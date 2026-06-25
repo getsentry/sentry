@@ -42,6 +42,7 @@ import {CrossEventQueryingDropdown} from 'sentry/views/explore/spans/crossEvents
 import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBars';
 import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
 import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
+import {SPANS_BREAKDOWN_CURSOR_KEY} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
@@ -172,9 +173,16 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                   }}
                 >
                   <StyledPageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter {...datePageFilterProps} />
+                    <ProjectPageFilter
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                    />
+                    <EnvironmentPageFilter
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                    />
+                    <DatePageFilter
+                      {...datePageFilterProps}
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                    />
                   </StyledPageFilterBar>
                   <SpansSearchBar
                     spanSearchQueryBuilderProps={spanSearchQueryBuilderProps}

@@ -14,7 +14,10 @@ import {
   getQueryMode,
   useReadQueriesFromLocation,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {
+  useSortedTimeSeries,
+  type SortedTimeSeries,
+} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface UseMultiQueryTimeseriesOptions {
   enabled: boolean;
@@ -23,7 +26,7 @@ interface UseMultiQueryTimeseriesOptions {
 }
 
 interface UseMultiQueryTimeseriesResults {
-  result: ReturnType<typeof useSortedTimeSeries>;
+  result: SortedTimeSeries;
 }
 
 export function useMultiQueryTimeseries({
