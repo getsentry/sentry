@@ -176,13 +176,10 @@ export function ReleasesAdoptionChart({
     }
   }, [isError, error]);
 
-  const loading = isPending;
-  const reloading = isFetching && !isPending;
-
   const totalCount = getCount(response?.groups, field);
   const releasesSeries = getReleasesSeries(response);
 
-  if (loading) {
+  if (isPending) {
     return renderEmpty();
   }
 
@@ -202,8 +199,8 @@ export function ReleasesAdoptionChart({
         <ChartHeader>
           <Flex as="header">{t('Release Adoption')}</Flex>
         </ChartHeader>
-        <TransitionChart loading={loading} reloading={reloading}>
-          <TransparentLoadingMask visible={reloading} />
+        <TransitionChart loading={isPending} reloading={isFetching && !isPending}>
+          <TransparentLoadingMask visible={isFetching && !isPending} />
           <ChartZoom period={period} utc={utc} start={start} end={end}>
             {zoomRenderProps => (
               <LineChart
