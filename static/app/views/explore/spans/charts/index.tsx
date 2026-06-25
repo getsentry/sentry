@@ -6,12 +6,11 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClock, IconGraph, IconWarning} from 'sentry/icons';
+import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -21,6 +20,7 @@ import {useChartSelection} from 'sentry/views/explore/components/attributeBreakd
 import {CHART_SELECTION_ALERT_KEY} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -34,7 +34,6 @@ import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
-  shouldWarnSamplingSensitive,
 } from 'sentry/views/explore/utils';
 import {
   ChartType,
@@ -203,31 +202,19 @@ function Chart({
       isSampled: samplingMeta.isSampled,
       sampleCount: samplingMeta.sampleCount,
       samplingMode,
-      isSamplingSensitive: shouldWarnSamplingSensitive(visualize.yAxis, series),
     };
   }, [chartType, timeseriesResult, visualize, samplingMode, topEvents]);
-
-  const titleName = parseFunction(visualize.yAxis)?.name ?? visualize.yAxis;
 
   const Title = (
     <Flex align="center" gap="xs">
       <Widget.WidgetTitle
         title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
       />
-      {chartInfo.isSamplingSensitive ? (
-        <Tooltip
-          isHoverable
-          skipWrapper
-          position="top"
-          title={t(
-            'Due to your configured sample rate, %s is likely to return unreliable results. Increase your sample rate, or treat %s for estimation purposes only.',
-            titleName,
-            titleName
-          )}
-        >
-          <IconWarning variant="warning" size="sm" />
-        </Tooltip>
-      ) : null}
+      <SamplingWarning
+        yAxis={visualize.yAxis}
+        series={chartInfo.series}
+        dataScanned={chartInfo.dataScanned}
+      />
     </Flex>
   );
 

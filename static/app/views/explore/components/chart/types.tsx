@@ -12,7 +12,6 @@ export interface ChartInfo {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
-  isSamplingSensitive?: boolean;
   sampleCount?: number;
   samplingMode?: SamplingMode;
   topEvents?: number;

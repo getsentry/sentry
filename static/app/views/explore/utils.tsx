@@ -795,8 +795,31 @@ interface RemarkObject {
   type: string;
 }
 
-const SAMPLING_SENSITIVE_AGGREGATES = new Set(['count_unique']);
+const SAMPLING_SENSITIVE_AGGREGATES = new Set([
+  'count_unique',
+  'failure_count',
+  'failure_rate',
+]);
 const LOW_SAMPLE_RATE_THRESHOLD = 0.8;
+
+export type SamplingWarningReason = 'partialData' | 'lowSampleRate';
+
+export function getSamplingWarningReason(
+  yAxis: string,
+  series: TimeSeries[],
+  dataScanned: 'full' | 'partial' | undefined
+): SamplingWarningReason | null {
+  if (!isSamplingSensitiveAggregate(yAxis)) {
+    return null;
+  }
+  if (dataScanned === 'partial') {
+    return 'partialData';
+  }
+  if (shouldWarnSamplingSensitive(yAxis, series)) {
+    return 'lowSampleRate';
+  }
+  return null;
+}
 
 export function shouldWarnSamplingSensitive(
   yAxis: string,
@@ -809,7 +832,7 @@ export function shouldWarnSamplingSensitive(
   return defined(avgSampleRate) && avgSampleRate < LOW_SAMPLE_RATE_THRESHOLD;
 }
 
-function isSamplingSensitiveAggregate(yAxis: string): boolean {
+export function isSamplingSensitiveAggregate(yAxis: string): boolean {
   const parsed = parseFunction(yAxis);
   if (!parsed) {
     return false;
@@ -821,8 +844,8 @@ function computeAvgSampleRate(series: TimeSeries[]): number | undefined {
   let total = 0;
   let count = 0;
 
-  for (const s of series.filter(defined)) {
-    for (const item of s.values) {
+  for (const seriesItem of series.filter(defined)) {
+    for (const item of seriesItem.values) {
       if (defined(item.sampleRate)) {
         total += item.sampleRate;
         count += 1;

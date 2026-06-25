@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
@@ -35,6 +36,7 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
@@ -173,20 +175,27 @@ function Graph({
   const plottables = useChartVisualizationPlottables(chartInfo);
 
   const Title = (
-    <Widget.WidgetTitle
-      summary={
-        !visualize.visible && plottablesCanBeVisualized(plottables) ? (
-          <TimeSeriesWidgetVisualization
-            plottables={plottables}
-            notMerge={false}
-            showLegend="never"
-            showXAxis="never"
-            showYAxis="never"
-          />
-        ) : null
-      }
-      title={prettifyAggregation(aggregate) ?? aggregate}
-    />
+    <Flex align="center" gap="xs">
+      <Widget.WidgetTitle
+        summary={
+          !visualize.visible && plottablesCanBeVisualized(plottables) ? (
+            <TimeSeriesWidgetVisualization
+              plottables={plottables}
+              notMerge={false}
+              showLegend="never"
+              showXAxis="never"
+              showYAxis="never"
+            />
+          ) : null
+        }
+        title={prettifyAggregation(aggregate) ?? aggregate}
+      />
+      <SamplingWarning
+        yAxis={aggregate}
+        series={chartInfo.series}
+        dataScanned={chartInfo.dataScanned}
+      />
+    </Flex>
   );
 
   const chartIcon =
