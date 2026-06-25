@@ -209,11 +209,11 @@ def test_convert_span_to_item() -> None:
 
 def test_convert_conversation_and_session_id() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
-    message["attributes"]["gen_ai.conversation.id"] = {
-        "value": "conv-123",
-        "type": "string",
+    message["attributes"] = {
+        **(message["attributes"] or {}),
+        "gen_ai.conversation.id": {"value": "conv-123", "type": "string"},
+        "session.id": {"value": "sess-456", "type": "string"},
     }
-    message["attributes"]["session.id"] = {"value": "sess-456", "type": "string"}
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 
