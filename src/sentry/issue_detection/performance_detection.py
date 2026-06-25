@@ -10,6 +10,7 @@ from typing import Any
 
 import sentry_sdk
 from django.db import router, transaction
+from sentry_sdk.tracing import Span
 
 from sentry import features, nodestore, options, projectoptions
 from sentry.models.options.project_option import ProjectOption
@@ -875,7 +876,7 @@ def report_metrics_for_detectors(
     event: dict[str, Any],
     event_id: str | None,
     detectors: Sequence[PerformanceDetector],
-    sdk_span: Any,
+    sdk_span: Span,
     organization: Organization,
     project: Project,
     standalone: bool = False,
@@ -884,23 +885,17 @@ def report_metrics_for_detectors(
     has_detected_problems = bool(all_detected_problems)
     sdk_name = get_sdk_name(event)
 
-    try:
-        # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
-        set_tag = sdk_span.containing_transaction.set_tag
-    except AttributeError:
-        set_tag = lambda *args: None
-
     if has_detected_problems:
-        set_tag("_pi_all_issue_count", len(all_detected_problems))
-        set_tag("_pi_sdk_name", sdk_name or "")
-        set_tag("is_standalone_spans", standalone)
+        sdk_span.set_tag("_pi_all_issue_count", len(all_detected_problems))
+        sdk_span.set_tag("_pi_sdk_name", sdk_name or "")
+        sdk_span.set_tag("is_standalone_spans", standalone)
         metrics.incr(
             "performance.performance_issue.aggregate",
             len(all_detected_problems),
             tags={"sdk_name": sdk_name, "is_standalone_spans": standalone},
         )
         if event_id:
-            set_tag("_pi_transaction", event_id)
+            sdk_span.set_tag("_pi_transaction", event_id)
 
     tags = event.get("tags", [])
     browser_name = next(
@@ -959,11 +954,11 @@ def report_metrics_for_detectors(
 
         first_problem = detected_problems[detected_problem_keys[0]]
         if first_problem.fingerprint:
-            set_tag(f"_pi_{detector_key}_fp", first_problem.fingerprint)
+            sdk_span.set_tag(f"_pi_{detector_key}_fp", first_problem.fingerprint)
 
         span_id = first_problem.offender_span_ids[0]
 
-        set_tag(f"_pi_{detector_key}", span_id)
+        sdk_span.set_tag(f"_pi_{detector_key}", span_id)
 
         op_tags = {
             "is_standalone_spans": standalone,
