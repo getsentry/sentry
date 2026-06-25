@@ -32,6 +32,7 @@ from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
     ProjectContext,
+    RecommendedIssueCandidate,
     _project_key_errors_eap,
     _project_key_errors_snuba,
     _project_key_performance_issues_eap,
@@ -2046,3 +2047,135 @@ class WeeklyReportsTest(
             assert context["show_past_issues"] is False
             assert len(context["past_issues"]) == 0
             assert len(context["key_errors"]) == 1
+
+    def test_recommended_sort_populates_candidates(self) -> None:
+        """When the feature flag is off, recommended_issue_candidates stays empty."""
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            data={"type": "error", "metadata": {"type": "TypeError", "value": "oops"}},
+        )
+
+        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
+        assert ctx.recommended_issue_candidates == []
+
+    @with_feature("organizations:weekly-report-recommended-sort")
+    def test_recommended_sort_render_template_uses_candidates(self) -> None:
+        """When recommended candidates exist and flag is on, render_template_context
+        returns them as key_errors with recommended_sort=True."""
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        group1 = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            data={"type": "error", "metadata": {"type": "TypeError", "value": "error 1"}},
+        )
+        group2 = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ESCALATING,
+            data={"type": "error", "metadata": {"type": "ValueError", "value": "error 2"}},
+        )
+
+        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
+        project_context = ProjectContext(self.project)
+        project_context.accepted_error_count = 100
+        ctx.projects_context_map = {self.project.id: project_context}
+        ctx.project_ownership[user.id] = {self.project.id}
+
+        ctx.recommended_issue_candidates = [
+            RecommendedIssueCandidate(
+                group=group1,
+                base_score=0.5,
+                event_count=50,
+            ),
+            RecommendedIssueCandidate(
+                group=group2,
+                base_score=0.8,
+                event_count=30,
+            ),
+        ]
+
+        rendered = render_template_context(ctx, user.id)
+        assert rendered is not None
+        assert rendered["recommended_sort"] is True
+        assert len(rendered["key_errors"]) == 2
+        # group2 has higher base_score so it comes first
+        assert rendered["key_errors"][0]["group"] == group2
+        assert rendered["key_errors"][1]["group"] == group1
+
+    def test_recommended_sort_flag_off_uses_key_errors(self) -> None:
+        """When flag is off, render_template_context uses traditional key_errors."""
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        group = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            data={"type": "error", "metadata": {"type": "TypeError", "value": "error"}},
+        )
+
+        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
+        project_context = ProjectContext(self.project)
+        project_context.key_errors_by_group = [(group, 10)]
+        project_context.accepted_error_count = 100
+        ctx.projects_context_map = {self.project.id: project_context}
+        ctx.project_ownership[user.id] = {self.project.id}
+
+        rendered = render_template_context(ctx, user.id)
+        assert rendered is not None
+        assert rendered["recommended_sort"] is False
+        assert len(rendered["key_errors"]) == 1
+        assert rendered["key_errors"][0]["count"] == 10
+
+    @with_feature("organizations:weekly-report-recommended-sort")
+    def test_recommended_sort_regressed_boosts_score(self) -> None:
+        """A regressed issue should rank higher than an otherwise-identical non-regressed one."""
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        group_normal = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            data={"type": "error", "metadata": {"type": "TypeError", "value": "normal"}},
+        )
+        group_regressed = self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.REGRESSED,
+            data={"type": "error", "metadata": {"type": "TypeError", "value": "regressed"}},
+        )
+
+        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
+        project_context = ProjectContext(self.project)
+        project_context.accepted_error_count = 100
+        ctx.projects_context_map = {self.project.id: project_context}
+        ctx.project_ownership[user.id] = {self.project.id}
+
+        # Same base scores, but one group has REGRESSED substatus
+        ctx.recommended_issue_candidates = [
+            RecommendedIssueCandidate(
+                group=group_normal,
+                base_score=0.5,
+                event_count=50,
+            ),
+            RecommendedIssueCandidate(
+                group=group_regressed,
+                base_score=0.5,
+                event_count=50,
+            ),
+        ]
+
+        rendered = render_template_context(ctx, user.id)
+        assert rendered is not None
+        # Regressed issue should come first due to regressed_weight boost
+        assert rendered["key_errors"][0]["group"] == group_regressed
+        assert rendered["key_errors"][1]["group"] == group_normal

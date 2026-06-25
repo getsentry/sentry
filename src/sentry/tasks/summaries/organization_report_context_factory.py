@@ -13,6 +13,7 @@ from sentry.tasks.summaries.utils import (
     fetch_key_performance_issue_groups,
     fetch_past_resolved_issue_links,
     org_key_errors,
+    org_recommended_issues,
     organization_project_issue_substatus_summaries,
     project_event_counts_for_organization,
     project_key_errors,
@@ -227,6 +228,21 @@ class OrganizationReportContextFactory:
 
             fetch_past_resolved_issue_links(ctx)
 
+    @metrics.wraps("weekly_report.create_context.recommended_issues")
+    def _append_recommended_issues(self, ctx: OrganizationReportContext) -> None:
+        with sentry_sdk.start_span(op="weekly_reports.recommended_issues"):
+            eligible_project_ids = [
+                p.id
+                for p in ctx.organization.project_set.all()
+                if p.id in ctx.projects_context_map and p.first_event
+            ]
+            if eligible_project_ids:
+                ctx.recommended_issue_candidates = org_recommended_issues(
+                    ctx,
+                    project_ids=eligible_project_ids,
+                    referrer=Referrer.REPORTS_RECOMMENDED_ISSUES.value,
+                )
+
     def create_context(self) -> OrganizationReportContext:
         ctx = OrganizationReportContext(self.timestamp, self.duration, self.organization)
 
@@ -249,5 +265,7 @@ class OrganizationReportContextFactory:
                 self._hydrate_key_performance_issue_groups(ctx)
                 if features.has("organizations:weekly-report-past-issues", self.organization):
                     self._append_project_past_resolved_issues(ctx)
+                if features.has("organizations:weekly-report-recommended-sort", self.organization):
+                    self._append_recommended_issues(ctx)
 
         return ctx

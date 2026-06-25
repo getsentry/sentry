@@ -790,6 +790,7 @@ class Referrer(StrEnum):
     REPORTS_KEY_ERRORS_BATCHED = "reports.key_errors.batched"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_PAST_RESOLVED_ISSUES = "reports.past_resolved_issues"
+    REPORTS_RECOMMENDED_ISSUES = "reports.recommended_issues"
     REPORTS_OUTCOME_SERIES = "reports.outcome_series"
     REPORTS_OUTCOMES = "reports.outcomes"
     REPROCESSING2_REPROCESS_GROUP = "reprocessing2.reprocess_group"

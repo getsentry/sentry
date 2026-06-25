@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
@@ -31,16 +32,26 @@ from sentry.search.eap.occurrences.query_utils import keyed_counts_subset_match
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.search.snuba.executors import _recommended_aggregation
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import raw_query, raw_snql_query
 from sentry.utils.tracing import start_span
 
 ONE_DAY = int(timedelta(days=1).total_seconds())
+RECOMMENDED_CANDIDATE_LIMIT = 50
+RECOMMENDED_DISPLAY_LIMIT = 5
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class RecommendedIssueCandidate:
+    group: Group
+    base_score: float
+    event_count: int
 
 
 class OrganizationReportContext:
@@ -55,6 +66,7 @@ class OrganizationReportContext:
         self.projects_context_map: dict[int, ProjectContext] = {}  # { project_id: ProjectContext }
 
         self.project_ownership: dict[int, set[int]] = {}  # { user_id: set<project_id> }
+        self.recommended_issue_candidates: list[RecommendedIssueCandidate] = []
         for project in organization.project_set.all():
             self.projects_context_map[project.id] = ProjectContext(project)
 
@@ -861,3 +873,99 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
             reverse=True,
         )
         project_ctx.past_resolved_issues = project_ctx.past_resolved_issues[:3]
+
+
+def _org_recommended_issues_snuba(
+    ctx: OrganizationReportContext,
+    project_ids: Sequence[int],
+    group_ids: list[int],
+    referrer: str,
+) -> list[dict[str, Any]]:
+    """Fetch candidate issues scored by the recommended aggregation in ClickHouse."""
+    if not group_ids:
+        return []
+
+    from sentry import options
+
+    weight_overrides = {
+        "recency": options.get("weekly-report.recommended.recency-weight"),
+        "spike": 0.0,
+        "severity": options.get("weekly-report.recommended.severity-weight"),
+        "user_impact": options.get("weekly-report.recommended.user-impact-weight"),
+        "event_volume": options.get("weekly-report.recommended.event-volume-weight"),
+    }
+    agg = _recommended_aggregation(
+        timestamp_column="timestamp", weight_overrides=weight_overrides
+    )
+    aggregations = [
+        [agg[0], agg[1], "recommended"],
+        ["count()", "", "count"],
+    ]
+
+    result = raw_query(
+        dataset=Dataset.Events,
+        start=ctx.start,
+        end=ctx.end + timedelta(days=1),
+        groupby=["group_id", "project_id"],
+        filter_keys={
+            "group_id": group_ids,
+            "project_id": list(project_ids),
+        },
+        aggregations=aggregations,
+        orderby=["-recommended"],
+        limit=RECOMMENDED_CANDIDATE_LIMIT,
+        referrer=referrer,
+        tenant_ids={"organization_id": ctx.organization.id},
+    )
+
+    return result["data"]
+
+
+def org_recommended_issues(
+    ctx: OrganizationReportContext,
+    project_ids: Sequence[int],
+    referrer: str,
+) -> list[RecommendedIssueCandidate]:
+    """Fetch and score recommended issue candidates for the organization."""
+    if not project_ids:
+        return []
+
+    with sentry_sdk.start_span(op="weekly_reports.org_recommended_issues"):
+        candidate_groups = list(
+            Group.objects.filter(
+                project_id__in=project_ids,
+                status=GroupStatus.UNRESOLVED,
+                last_seen__gte=ctx.start,
+            ).order_by("-times_seen")[: RECOMMENDED_CANDIDATE_LIMIT * 2]
+        )
+
+        if not candidate_groups:
+            return []
+
+        group_id_to_group = {g.id: g for g in candidate_groups}
+
+        rows = _org_recommended_issues_snuba(
+            ctx=ctx,
+            project_ids=project_ids,
+            group_ids=list(group_id_to_group.keys()),
+            referrer=referrer,
+        )
+
+        if not rows:
+            return []
+
+        candidates = []
+        for row in rows:
+            group = group_id_to_group.get(row["group_id"])
+            if group is None:
+                continue
+
+            candidates.append(
+                RecommendedIssueCandidate(
+                    group=group,
+                    base_score=row["recommended"],
+                    event_count=row["count"],
+                )
+            )
+
+        return candidates

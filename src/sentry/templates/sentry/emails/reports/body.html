@@ -408,7 +408,7 @@
 
   {% if key_errors|length > 0 and not enhanced_privacy %}
   <div id="key-errors">
-    <h4>Issues with the most errors</h4>
+    <h4>{% if recommended_sort %}Top issues for you{% else %}Issues with the most errors{% endif %}</h4>
     {% for a in key_errors %}
     <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>

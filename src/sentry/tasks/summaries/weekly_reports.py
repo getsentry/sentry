@@ -36,7 +36,12 @@ from sentry.tasks.summaries.metrics import (
 from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
-from sentry.tasks.summaries.utils import ONE_DAY, PAST_ISSUES_LINK_BOOST, OrganizationReportContext
+from sentry.tasks.summaries.utils import (
+    ONE_DAY,
+    PAST_ISSUES_LINK_BOOST,
+    RECOMMENDED_DISPLAY_LIMIT,
+    OrganizationReportContext,
+)
 from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
@@ -807,7 +812,42 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             "total_substatus_count": total_substatus_count,
         }
 
+    def recommended_issues():
+        user_project_ids = {p.project.id for p in user_projects}
+        user_candidates = [
+            c for c in ctx.recommended_issue_candidates if c.group.project_id in user_project_ids
+        ]
+
+        if not user_candidates:
+            return []
+
+        scored = []
+        for candidate in user_candidates:
+            display = get_group_display(candidate.group)
+            substatus, substatus_color, substatus_text_color = get_group_status_badge(
+                candidate.group
+            )
+            scored.append(
+                {
+                    "count": candidate.event_count,
+                    "group": candidate.group,
+                    "title": display["title"],
+                    "message": display["message"],
+                    "status": "Unresolved",
+                    "status_color": group_status_to_color[GroupHistoryStatus.NEW],
+                    "group_substatus": substatus,
+                    "group_substatus_color": substatus_color,
+                    "group_substatus_text_color": substatus_text_color,
+                    "_score": candidate.base_score,
+                }
+            )
+
+        return heapq.nlargest(RECOMMENDED_DISPLAY_LIMIT, scored, key=lambda d: d["_score"])
+
     show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
+    use_recommended_sort = features.has(
+        "organizations:weekly-report-recommended-sort", ctx.organization
+    )
 
     return {
         "organization": ctx.organization,
@@ -815,6 +855,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "end": date_format(local_end),
         "trends": trends(),
         "key_errors": key_errors(),
+        "recommended_issues": recommended_issues() if use_recommended_sort else [],
         "key_performance_issues": key_performance_issues(),
         "past_issues": past_issues() if show_past_issues else [],
         "show_past_issues": show_past_issues,
