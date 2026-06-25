@@ -1,5 +1,7 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
+import type {TagCollection} from 'sentry/types/group';
+import {FieldKind} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {
   ToolbarFooter,
@@ -10,12 +12,15 @@ import {
   ToolbarGroupByDropdown,
   ToolbarGroupByHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarGroupBy';
+import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 interface ToolbarGroupByProps {
   groupBys: readonly string[];
@@ -97,12 +102,29 @@ function ToolbarGroupByItem({
     {search: debouncedSearch},
     'boolean'
   );
+  const {data: validatedSearchQueryData} = useValidateSpansTab();
+
+  const {validatedBooleanTags, validatedNumberTags, validatedStringTags} = useMemo(() => {
+    const validatedField = validatedSearchQueryData?.field.find(
+      field => field.valid && field.name === column.column
+    );
+
+    if (!validatedField) {
+      return {
+        validatedBooleanTags: booleanTags,
+        validatedNumberTags: numberTags,
+        validatedStringTags: stringTags,
+      };
+    }
+
+    return mergeValidatedTags({booleanTags, numberTags, stringTags, validatedField});
+  }, [booleanTags, column, numberTags, stringTags, validatedSearchQueryData?.field]);
 
   const options = useGroupByFields({
     groupBys,
-    numberTags,
-    stringTags,
-    booleanTags,
+    numberTags: validatedNumberTags,
+    stringTags: validatedStringTags,
+    booleanTags: validatedBooleanTags,
     traceItemType: TraceItemDataset.SPANS,
   });
 
@@ -120,4 +142,73 @@ function ToolbarGroupByItem({
       onColumnDelete={onColumnDelete}
     />
   );
+}
+
+function mergeValidatedTags({
+  booleanTags,
+  numberTags,
+  stringTags,
+  validatedField,
+}: {
+  booleanTags: TagCollection;
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+  validatedField: EventValidationData['field'][number];
+}) {
+  switch (validatedField.attrType) {
+    case 'boolean': {
+      const validatedBooleanTags = {
+        ...booleanTags,
+        [validatedField.name]: {
+          key: validatedField.name,
+          name: prettifyAttributeName(validatedField.name),
+          kind: FieldKind.BOOLEAN,
+        },
+      };
+
+      return {
+        validatedBooleanTags,
+        validatedNumberTags: numberTags,
+        validatedStringTags: stringTags,
+      };
+    }
+    case 'number': {
+      const validatedNumberTags = {
+        ...numberTags,
+        [validatedField.name]: {
+          key: validatedField.name,
+          name: prettifyAttributeName(validatedField.name),
+          kind: FieldKind.MEASUREMENT,
+        },
+      };
+
+      return {
+        validatedBooleanTags: booleanTags,
+        validatedNumberTags,
+        validatedStringTags: stringTags,
+      };
+    }
+    case 'string': {
+      const validatedStringTags = {
+        ...stringTags,
+        [validatedField.name]: {
+          key: validatedField.name,
+          name: prettifyAttributeName(validatedField.name),
+          kind: FieldKind.TAG,
+        },
+      };
+
+      return {
+        validatedBooleanTags: booleanTags,
+        validatedNumberTags: numberTags,
+        validatedStringTags,
+      };
+    }
+    default:
+      return {
+        validatedBooleanTags: booleanTags,
+        validatedNumberTags: numberTags,
+        validatedStringTags: stringTags,
+      };
+  }
 }
