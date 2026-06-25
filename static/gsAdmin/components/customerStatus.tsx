@@ -42,8 +42,6 @@ const getTooltip = ({planDetails, trialPlan}: Subscription) => (
     )}
     <dt>Base Price:</dt>
     <dd>{formatCurrency(planDetails?.totalPrice)}</dd>
-    <dt>Contract:</dt>
-    <dd>{planDetails?.contractInterval}</dd>
     <dt>Billed:</dt>
     <dd>{planDetails?.billingInterval}</dd>
   </StatusList>

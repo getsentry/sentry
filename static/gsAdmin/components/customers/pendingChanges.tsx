@@ -100,15 +100,6 @@ function getRegularChanges(subscription: Subscription) {
   );
 
   if (
-    pendingChanges.planDetails.contractInterval !==
-    subscription.planDetails.contractInterval
-  ) {
-    const old = subscription.planDetails.contractInterval;
-    const change = pendingChanges.planDetails.contractInterval;
-    changes.push(`Contract period — ${old} → ${change}`);
-  }
-
-  if (
     pendingChanges.planDetails.billingInterval !==
     subscription.planDetails.billingInterval
   ) {

@@ -22,6 +22,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
+import {ScmAlertFrequencySection} from 'sentry/views/onboarding/components/scmAlertFrequencySection';
 import {ScmIntegrationConnect} from 'sentry/views/onboarding/components/scmIntegrationConnect';
 import {ScmPlatformFeaturesCore} from 'sentry/views/onboarding/components/scmPlatformFeaturesCore';
 import {ScmProjectDetailsCore} from 'sentry/views/onboarding/components/scmProjectDetailsCore';
@@ -307,17 +308,22 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
               padding="xl"
             >
               <Heading as="h3">{t('Project details')}</Heading>
-              <ScmProjectDetailsCore
-                analyticsFlow="project-creation"
-                projectName={form.projectName}
-                onProjectNameChange={form.onProjectNameChange}
-                onProjectNameBlur={form.onProjectNameBlur}
-                teamSlug={form.teamSlug}
-                onTeamChange={form.onTeamChange}
-                alertRuleConfig={form.alertRuleConfig}
-                onAlertChange={form.onAlertChange}
-                isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
-              />
+              <Stack gap="2xl">
+                <ScmProjectDetailsCore
+                  analyticsFlow="project-creation"
+                  projectName={form.projectName}
+                  onProjectNameChange={form.onProjectNameChange}
+                  onProjectNameBlur={form.onProjectNameBlur}
+                  teamSlug={form.teamSlug}
+                  onTeamChange={form.onTeamChange}
+                  isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
+                />
+                <ScmAlertFrequencySection
+                  analyticsFlow="project-creation"
+                  alertRuleConfig={form.alertRuleConfig}
+                  onAlertChange={form.onAlertChange}
+                />
+              </Stack>
             </MotionStack>
           </LayoutGroup>
 

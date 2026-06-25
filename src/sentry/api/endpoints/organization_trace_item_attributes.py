@@ -194,8 +194,9 @@ EXPAND_QUERY_PARAM = OpenApiParameter(
     many=True,
     type=str,
     enum=["context"],
-    # Internal-only for now: gated behind the data-browsing-attribute-context
-    # feature, so exclude it from the public OpenAPI spec.
+    # Internal-only for now (context is currently limited to sentry conventions;
+    # custom attribute context is still to come), so exclude it from the public
+    # OpenAPI spec.
     exclude=True,
     description=(
         "Optional fields to expand. Pass `context` to include the sentry "
@@ -518,14 +519,12 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         debug = request.user.is_superuser and request.GET.get("debug", False)
         debug_infos: list[dict] = []
 
-        # Only expand the sentry conventions context when explicitly requested
-        # via `expand=context` and the feature is enabled for the org. When the
-        # feature is disabled this is a no-op even if `expand=context` is passed.
-        include_context = "context" in serialized.get("expand", set()) and features.has(
-            "organizations:data-browsing-attribute-context",
-            organization,
-            actor=request.user,
-        )
+        # Expand the sentry conventions context when explicitly requested via
+        # `expand=context`. The conventions metadata is static with no data
+        # implications, so it isn't gated. (Custom attribute context, planned
+        # later, will be gated behind the data-browsing-attribute-context
+        # feature.)
+        include_context = "context" in serialized.get("expand", set())
 
         def data_fn(offset: int, limit: int) -> list[TraceItemAttributeKey]:
             futures = []

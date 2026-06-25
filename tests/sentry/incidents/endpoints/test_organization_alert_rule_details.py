@@ -1163,6 +1163,27 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
             assert "do not belong to this alert rule" in str(resp.data)
 
+    def test_update_action_id_not_belonging_to_trigger(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        alert_rule = self.alert_rule
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        # Point the critical trigger's action at an action that belongs to the
+        # warning trigger. The trigger ids are still valid for this alert rule, so
+        # the (foreign-to-this-trigger) action id is what should be rejected.
+        foreign_action_id = serialized_alert_rule["triggers"][1]["actions"][0]["id"]
+        serialized_alert_rule["triggers"][0]["actions"][0]["id"] = foreign_action_id
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+            )
+            assert "do not belong to this trigger" in str(resp.data)
+
     def test_update_trigger_alert_threshold(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]

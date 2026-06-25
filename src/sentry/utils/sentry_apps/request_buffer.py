@@ -24,6 +24,7 @@ logger = logging.getLogger("sentry.utils.sentry_apps")
 
 EXTENDED_VALID_EVENTS = VALID_EVENTS + (
     "event_alert.triggered",
+    "activity_alert.triggered",
     "external_issue.created",
     "external_issue.linked",
     "installation.created",

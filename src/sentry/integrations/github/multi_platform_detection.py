@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import time
 from collections import defaultdict
+from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
@@ -43,6 +44,7 @@ from sentry.integrations.github.platform_registry import (
 from sentry.integrations.github.platform_registry import (
     _PackageManifest as _PackageManifest,
 )
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 if TYPE_CHECKING:
     from sentry.integrations.github.client import GitHubBaseClient
@@ -191,9 +193,9 @@ _IGNORED_TREE_SEGMENTS = frozenset(
 )
 
 
-def _path_is_ignored(path: str) -> bool:
-    """Return True if any segment of the path is in the ignore-list."""
-    return any(segment in _IGNORED_TREE_SEGMENTS for segment in path.split("/"))
+def _segments_are_ignored(segments: list[str]) -> bool:
+    """Return True if any path segment is in the ignore-list."""
+    return any(segment in _IGNORED_TREE_SEGMENTS for segment in segments)
 
 
 def _get_tree(
@@ -243,6 +245,9 @@ def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
     Any entry whose path passes through an ignored segment is skipped, so
     ``node_modules/some-lib/package.json`` never contributes a false signal.
     ``full_repo_size_bytes`` is the sum of ``size`` across all blobs.
+
+    Each path is split once; the resulting segments are reused for both the
+    ignore check and the basename extraction (single-pass, no redundant splits).
     """
     files_full_paths_by_basename: dict[str, set[str]] = defaultdict(set)
     dirs_full_paths_by_basename: dict[str, set[str]] = defaultdict(set)
@@ -250,16 +255,21 @@ def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
 
     for entry in entries:
         path = entry.get("path", "")
+        entry_type = entry.get("type")
         size = entry.get("size") or 0
 
-        if entry.get("type") == "blob":
+        if entry_type == "blob":
             full_repo_size_bytes += size
 
-        if not path or _path_is_ignored(path):
+        if not path:
             continue
 
-        entry_type = entry.get("type")
-        basename = path.rsplit("/", 1)[-1]
+        # Split once; reuse segments for ignore check and basename.
+        segments = path.split("/")
+        if _segments_are_ignored(segments):
+            continue
+
+        basename = segments[-1]
 
         if entry_type == "blob":
             files_full_paths_by_basename[basename].add(path)
@@ -480,11 +490,15 @@ def detect_platforms_multi(
     """
     start_time = time.monotonic()
 
-    languages: dict[str, int] = client.get_languages(repo)
-    active_platforms = _select_active_platforms(languages)
-
+    # Run get_languages and _get_tree concurrently — they are independent
+    # requests.  active_platforms only needs languages, so it is computed on
+    # the main thread while the tree fetch is in flight.
     tree_start = time.monotonic()
-    entries, is_truncated = _get_tree(client, repo, ref)
+    with ContextPropagatingThreadPoolExecutor(max_workers=1) as ex:
+        tree_future = ex.submit(_get_tree, client, repo, ref)
+        languages: dict[str, int] = client.get_languages(repo)
+        active_platforms = _select_active_platforms(languages)
+        entries, is_truncated = tree_future.result()
     tree_duration_ms = (time.monotonic() - tree_start) * 1000
     index = _build_tree_index(entries)
 
@@ -526,12 +540,20 @@ def detect_platforms_multi(
     # are always within the cap before subdirectory files from monorepo workspaces.
     capped_paths = sorted(needed_paths, key=lambda p: (p.count("/"), p))[:MAX_CONTENT_READS]
 
+    # Fan out all content reads in parallel — each _get_repo_file_content call
+    # is an independent REST round-trip and already returns None on failure, so
+    # a single slow or missing file cannot block the others.
     content_reads_start = time.monotonic()
     content_by_path: dict[str, str] = {}
-    for path in capped_paths:
-        content = _get_repo_file_content(client, repo, path, ref)
-        if content is not None:
-            content_by_path[path] = content
+    if capped_paths:
+        with ContextPropagatingThreadPoolExecutor(max_workers=len(capped_paths)) as ex:
+            future_to_path = {
+                ex.submit(_get_repo_file_content, client, repo, p, ref): p for p in capped_paths
+            }
+            for future in as_completed(future_to_path):
+                content = future.result()
+                if content is not None:
+                    content_by_path[future_to_path[future]] = content
     content_reads_duration_ms = (time.monotonic() - content_reads_start) * 1000
 
     manifests_by_path: dict[str, _PackageManifest] = {}
@@ -628,11 +650,15 @@ def detect_platforms_multi(
         f"{_MULTI_METRICS_PREFIX}.k_reads_realized",
         k_reads_realized,
     )
+    # tree.duration: wall time of the concurrent (languages + tree) block —
+    # effectively the tree's wall time since it is the long pole.
     sentry_sdk.metrics.distribution(
         f"{_MULTI_METRICS_PREFIX}.tree.duration",
         tree_duration_ms,
         unit="millisecond",
     )
+    # content_reads.duration: parallel wall time (max of individual reads),
+    # not the former serial sum — expect this metric to be significantly lower.
     sentry_sdk.metrics.distribution(
         f"{_MULTI_METRICS_PREFIX}.content_reads.duration",
         content_reads_duration_ms,
