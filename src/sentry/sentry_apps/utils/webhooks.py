@@ -40,6 +40,10 @@ class IssueAlertActionType(SentryAppActionType):
     TRIGGERED = "triggered"
 
 
+class ActivityAlertActionType(SentryAppActionType):
+    TRIGGERED = "triggered"
+
+
 class InstallationActionType(SentryAppActionType):
     CREATED = "created"
     DELETED = "deleted"
@@ -83,6 +87,7 @@ class SentryAppResourceType(StrEnum):
 
     # Represents an issue alert resource
     EVENT_ALERT = "event_alert"
+    ACTIVITY_ALERT = "activity_alert"
 
 
 # When a developer selects to receive "<Resource> Webhooks" it really means

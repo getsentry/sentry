@@ -1415,7 +1415,7 @@ describe('Customer Details', () => {
       ConfigStore.set('user', mockUser);
 
       setUpMocks(terminateOrg, {
-        contractInterval: 'annual',
+        billingInterval: 'annual',
         canCancel: true,
         isBillingAdmin: false,
       });
@@ -1458,7 +1458,7 @@ describe('Customer Details', () => {
       ConfigStore.set('user', mockBillingAdminUser);
 
       setUpMocks(terminateOrg, {
-        contractInterval: 'annual',
+        billingInterval: 'annual',
         canCancel: true,
         isBillingAdmin: false,
       });
@@ -1490,7 +1490,7 @@ describe('Customer Details', () => {
       ConfigStore.set('user', mockBillingAdminUser);
 
       setUpMocks(terminateOrg, {
-        contractInterval: 'annual',
+        billingInterval: 'annual',
         canCancel: true,
         isBillingAdmin: false,
       });
@@ -2901,7 +2901,7 @@ describe('Customer Details', () => {
     it('ChangeContractEndDateAction not rendered for monthly contract interval', async () => {
       const invoicedOrg = OrganizationFixture();
 
-      setUpMocks(invoicedOrg, {contractInterval: 'monthly', type: BillingType.INVOICED});
+      setUpMocks(invoicedOrg, {billingInterval: 'monthly', type: BillingType.INVOICED});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
@@ -2927,7 +2927,7 @@ describe('Customer Details', () => {
     it('ChangeContractEndDateAction rendered for annual contract interval', async () => {
       const invoicedOrg = OrganizationFixture();
 
-      setUpMocks(invoicedOrg, {contractInterval: 'annual', type: BillingType.INVOICED});
+      setUpMocks(invoicedOrg, {billingInterval: 'annual', type: BillingType.INVOICED});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {

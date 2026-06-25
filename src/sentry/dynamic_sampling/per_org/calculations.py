@@ -114,6 +114,13 @@ def compare_organization_sliding_window_sample_rates(
             sample_rate=1.0,
             tags=tags,
         )
+        if eap_volume.indexed is not None:
+            metrics.distribution(
+                f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_volume_without_extrapolation",
+                eap_volume.indexed,
+                sample_rate=1.0,
+                tags=tags,
+            )
     if outcomes_volume is not None:
         metrics.distribution(
             f"{SLIDING_WINDOW_METRIC_PREFIX}.outcomes_volume",

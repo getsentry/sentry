@@ -19,6 +19,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {IssueDetailsContextProvider} from 'sentry/views/issueDetails/context';
 import {
   GroupDataContextProvider,
   useGroupData,
@@ -29,6 +30,7 @@ import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusS
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {IssuePreviewAutofix} from 'sentry/views/issueDetails/issuePreview/issuePreviewAutofix';
+import {IssuePreviewDetails} from 'sentry/views/issueDetails/issuePreview/issuePreviewDetails';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {
   getGroupReprocessingStatus,
@@ -152,9 +154,7 @@ function IssuePreviewContent() {
               {hasAutofix ? (
                 <TabList.Item key="autofix">{t('Autofix')}</TabList.Item>
               ) : null}
-              <TabList.Item key="details" disabled>
-                {t('Details')}
-              </TabList.Item>
+              <TabList.Item key="details">{t('Details')}</TabList.Item>
               <TabList.Item key="events" disabled>
                 {t('Events')}
               </TabList.Item>
@@ -179,7 +179,11 @@ function IssuePreviewContent() {
               </TabPanels.Item>
             ) : null}
             <TabPanels.Item key="details">
-              <div />
+              <Container paddingTop="md">
+                <IssueDetailsContextProvider>
+                  <IssuePreviewDetails group={group} project={project} />
+                </IssueDetailsContextProvider>
+              </Container>
             </TabPanels.Item>
             <TabPanels.Item key="events">
               <div />

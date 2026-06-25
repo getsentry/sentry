@@ -1,19 +1,8 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
-import {useMutateActivity} from 'sentry/components/feedback/useMutateActivity';
 import {t} from 'sentry/locale';
-import type {NoteType} from 'sentry/types/alerts';
-import {
-  GroupActivityType,
-  type Group,
-  type GroupActivity,
-  type GroupActivityNote,
-} from 'sentry/types/group';
-import type {User} from 'sentry/types/user';
-import {uniqueId} from 'sentry/utils/guid';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {GroupActivityType, type Group, type GroupActivity} from 'sentry/types/group';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 
 type Props = {
@@ -22,84 +11,15 @@ type Props = {
 
 export function FeedbackActivitySection(props: Props) {
   const {feedbackItem} = props;
-  const organization = useOrganization();
 
   const {updateCached, invalidateCached} = useFeedbackCache();
 
-  const mutators = useMutateActivity({
-    onMutate: ([{activity}, _method]) => {
+  const handleCommentChange = useCallback(
+    (activity: GroupActivity[]) => {
       updateCached([feedbackItem.id], {activity});
-    },
-    onSettled: (_resp, _error, _var, _context) => {
       invalidateCached([feedbackItem.id]);
     },
-    organization,
-    group: feedbackItem,
-  });
-
-  const deleteOptions = useMemo(() => {
-    return {
-      onError: () => {
-        addErrorMessage(t('An error occurred while removing the comment.'));
-      },
-      onSuccess: () => {
-        addSuccessMessage(t('Comment removed'));
-      },
-    };
-  }, []);
-
-  const createOptions = useMemo(() => {
-    return {
-      onError: () => {
-        addErrorMessage(t('An error occurred while posting the comment.'));
-      },
-      onSuccess: () => {
-        addSuccessMessage(t('Comment posted'));
-      },
-    };
-  }, []);
-
-  const updateOptions = useMemo(() => {
-    return {
-      onError: () => {
-        addErrorMessage(t('An error occurred while updating the comment.'));
-      },
-      onSuccess: () => {
-        addSuccessMessage(t('Comment updated'));
-      },
-    };
-  }, []);
-
-  const handleDelete = useCallback(
-    (item: GroupActivity) => {
-      mutators.handleDelete(
-        item.id,
-        feedbackItem.activity.filter(a => a.id !== item.id),
-        deleteOptions
-      );
-    },
-    [deleteOptions, feedbackItem.activity, mutators]
-  );
-
-  const handleCreate = useCallback(
-    (n: NoteType, me: User) => {
-      const newActivity: GroupActivityNote = {
-        id: uniqueId(), // temporary unique id, for cache use only
-        data: n,
-        type: GroupActivityType.NOTE,
-        dateCreated: new Date().toISOString(),
-        user: me,
-      };
-      mutators.handleCreate(n, [newActivity, ...feedbackItem.activity], createOptions);
-    },
-    [createOptions, feedbackItem.activity, mutators]
-  );
-
-  const handleUpdate = useCallback(
-    (item: GroupActivity, n: NoteType) => {
-      mutators.handleUpdate(n, item.id, feedbackItem.activity, updateOptions);
-    },
-    [updateOptions, feedbackItem.activity, mutators]
+    [updateCached, invalidateCached, feedbackItem.id]
   );
 
   const filteredActivity = feedbackItem.activity.filter(
@@ -109,9 +29,9 @@ export function FeedbackActivitySection(props: Props) {
   return (
     <ActivitySection
       group={{...feedbackItem, activity: filteredActivity} as unknown as Group}
-      onDelete={handleDelete}
-      onCreate={handleCreate}
-      onUpdate={handleUpdate}
+      onCommentCreated={handleCommentChange}
+      onCommentDeleted={handleCommentChange}
+      onCommentEdited={handleCommentChange}
       variant="standalone"
       placeholder={t(
         'Add details or updates to this feedback, visible only to your organization. \nTag users with @, or teams with #'

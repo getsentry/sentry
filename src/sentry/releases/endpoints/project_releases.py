@@ -49,7 +49,7 @@ from sentry.utils.sdk import bind_organization_context
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleasesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,

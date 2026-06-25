@@ -90,6 +90,8 @@ const config: KnipConfig = {
   mdx: {
     config: 'tsconfig.mdx.json',
   },
+  treatConfigHintsAsErrors: true,
+  treatTagHintsAsErrors: true,
 };
 
 export default config;

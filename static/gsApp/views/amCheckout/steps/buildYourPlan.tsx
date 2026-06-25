@@ -47,8 +47,8 @@ function PlanSubstep({
 }: PlanSubstepProps) {
   const planOptions = useMemo(() => {
     const plans = billingConfig.planList.filter(
-      ({contractInterval, id}) =>
-        contractInterval === activePlan.contractInterval &&
+      ({billingInterval, id}) =>
+        billingInterval === activePlan.billingInterval &&
         !id.includes(billingConfig.freePlan) // TODO(billing): If we ever surface Developer in checkout, we'll need to remove this filter
     );
 
@@ -58,7 +58,7 @@ function PlanSubstep({
 
     // sort by price ascending
     return plans.sort((a, b) => a.basePrice - b.basePrice);
-  }, [billingConfig, activePlan.contractInterval]);
+  }, [billingConfig, activePlan.billingInterval]);
 
   const getBadge = (plan: Plan): React.ReactNode | undefined => {
     if (

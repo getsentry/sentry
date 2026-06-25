@@ -464,7 +464,6 @@ class CreatePreprodArtifactTest(TestCase):
 
         with self.feature(
             [
-                "organizations:preprod-enforce-size-quota",
                 "organizations:preprod-enforce-distribution-quota",
             ]
         ):
@@ -487,7 +486,6 @@ class CreatePreprodArtifactTest(TestCase):
 
         with self.feature(
             [
-                "organizations:preprod-enforce-size-quota",
                 "organizations:preprod-enforce-distribution-quota",
             ]
         ):
@@ -513,7 +511,6 @@ class CreatePreprodArtifactTest(TestCase):
 
         with self.feature(
             [
-                "organizations:preprod-enforce-size-quota",
                 "organizations:preprod-enforce-distribution-quota",
             ]
         ):
@@ -536,7 +533,6 @@ class CreatePreprodArtifactTest(TestCase):
 
         with self.feature(
             [
-                "organizations:preprod-enforce-size-quota",
                 "organizations:preprod-enforce-distribution-quota",
             ]
         ):

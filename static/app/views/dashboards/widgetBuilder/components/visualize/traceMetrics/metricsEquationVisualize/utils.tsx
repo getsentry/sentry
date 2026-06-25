@@ -11,6 +11,7 @@ import {
   RATE_AGGREGATES,
 } from 'sentry/views/explore/metrics/constants';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
+import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -23,7 +24,8 @@ import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 export function prepareQueriesForEquationMode(
   queries: BaseMetricQuery[]
 ): BaseMetricQuery[] {
-  const replaced = queries.map(query => {
+  // Subtract 1 to account for the equation row that will be added
+  const replaced = queries.slice(0, MAX_METRICS_ALLOWED - 1).map(query => {
     const visualizes = query.queryParams.visualizes;
     let changed = false;
     const newVisualizes = visualizes.map(visualize => {

@@ -15,7 +15,7 @@ import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/statusIndicator');
 
-The `StatusIndicator` is a small dot indicator that communicates status or severity. It supports six semantic variants mapped to design tokens. Each dot renders with a subtle muted background pulse behind it.
+The `StatusIndicator` is a small dot indicator that communicates status or severity. It supports six semantic variants mapped to design tokens. By default, each dot renders with a subtle muted background pulse behind it.
 
 Placement is the caller's responsibility — the component renders as an inline element with no positioning of its own.
 
@@ -52,6 +52,27 @@ Placement is the caller's responsibility — the component renders as an inline 
 <StatusIndicator variant="promotion" />
 <StatusIndicator variant="muted" />
 ```
+
+## Animation
+
+The background pulse repeats continuously by default. Pass `animationIterationCount` when the indicator should draw attention briefly, then settle into a static dot.
+
+<Storybook.Demo>
+  <Flex align="center" gap="sm">
+    <StatusIndicator
+      variant="accent"
+      aria-label="Unread updates"
+      animationIterationCount={14}
+    />
+    <Text>Finite pulse</Text>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<StatusIndicator variant="accent" animationIterationCount={14} />
+```
+
+When the user prefers reduced motion, the indicator renders in its settled static state.
 
 ## Accessibility
 

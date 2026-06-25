@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useCallback, useImperativeHandle, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -15,6 +15,15 @@ type Orientation = 'horizontal' | 'vertical';
 
 // The divider renders as a 1px border; account for it when deriving the max.
 const DIVIDER_SIZE = 1;
+
+export interface SplitPanelHandle {
+  /**
+   * Imperatively set the `sized` pane's size (px). Useful to seed the size from
+   * a measurement the parent takes after mount, without remounting (and thus
+   * without the parent gating the whole panel on its own measurement).
+   */
+  setSize: (size: number, userEvent?: boolean) => void;
+}
 
 interface SplitPanelProps {
   /** Initial size of the `sized` pane in pixels; restored on double-click. */
@@ -41,6 +50,8 @@ interface SplitPanelProps {
   orientation?: Responsive<'horizontal' | 'vertical'>;
   /** Which side the `sized` pane sits on. Defaults to `start`. */
   placement?: 'start' | 'end';
+  /** Imperative handle exposing `setSize`. */
+  ref?: React.Ref<SplitPanelHandle>;
 }
 
 // At a limit the divider can only travel one way, so point the cursor that way;
@@ -142,6 +153,7 @@ function SplitDivider({
 export function SplitPanel({
   sized,
   fill,
+  ref,
   orientation: orientationProp = 'horizontal',
   placement = 'start',
   defaultSize,
@@ -204,16 +216,23 @@ export function SplitPanel({
     min,
     max,
     onResize: newSize => onResize?.(newSize),
-    onResizeEnd: ({startSize, endSize}) =>
-      handleResizeEnd(Math.min(startSize, max), Math.min(endSize, max)),
+    onResizeEnd: ({startSize, endSize}) => handleResizeEnd(startSize, endSize),
   });
 
+  useImperativeHandle(ref, () => ({setSize}), [setSize]);
+
+  // Clamped to [min, max] so the pane basis and divider aria-valuenow stay in
+  // step — and never go negative when a seeded/persisted size is below min
+  // (e.g. a saved size larger than the current viewport). The handlers reuse
+  // this so the reported startSize and keyboard stepping match the rendered
+  // size rather than the raw (possibly out-of-range) containerSize.
+  const visibleSize = Math.max(min, Math.min(containerSize, max));
+
   const handleDoubleClick = useCallback(() => {
-    const startSize = Math.min(containerSize, max);
     const target = Math.max(min, Math.min(defaultSize, max));
     setSize(target, true);
-    handleResizeEnd(startSize, target);
-  }, [containerSize, max, min, defaultSize, setSize, handleResizeEnd]);
+    handleResizeEnd(visibleSize, target);
+  }, [visibleSize, max, min, defaultSize, setSize, handleResizeEnd]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
@@ -228,7 +247,7 @@ export function SplitPanel({
       const shrinkKey = isSizedFirst ? towardStartKey : towardEndKey;
 
       // Step from the visible size so it still moves after the container shrank.
-      const current = Math.min(containerSize, max);
+      const current = visibleSize;
 
       let newSize: number | null = null;
       if (event.key === shrinkKey) {
@@ -238,22 +257,21 @@ export function SplitPanel({
       } else if (event.key === 'Home') {
         // Separator to the start edge.
         newSize = isSizedFirst ? min : max;
-      } else if (event.key === 'End' && Number.isFinite(max)) {
+      } else if (event.key === 'End') {
         // Separator to the end edge.
         newSize = isSizedFirst ? max : min;
       }
 
-      if (newSize !== null) {
+      // Skip when the target is an unbounded max (not yet measured); min and
+      // stepped targets are always finite, so this only gates the edge keys.
+      if (newSize !== null && Number.isFinite(newSize)) {
         event.preventDefault();
         setSize(newSize, true);
         handleResizeEnd(current, newSize);
       }
     },
-    [orientation, isSizedFirst, containerSize, min, max, setSize, handleResizeEnd]
+    [orientation, isSizedFirst, visibleSize, min, max, setSize, handleResizeEnd]
   );
-
-  // Clamped so the pane basis and divider aria-valuenow stay in step.
-  const visibleSize = Math.min(containerSize, max);
 
   // Ordered sized -> divider -> fill; reversed for `placement="end"`. Keys keep
   // pane identity across the flip.
