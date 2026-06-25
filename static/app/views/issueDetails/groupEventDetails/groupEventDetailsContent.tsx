@@ -346,7 +346,8 @@ export function EventDetailsContent({
           <MetricsSection event={event} group={group} project={project} />
         </Feature>
       </ErrorBoundary>
-      {event.contexts.trace?.trace_id &&
+      {issueTypeConfig.trace.enabled &&
+        event.contexts.trace?.trace_id &&
         organization.features.includes('performance-view') && (
           <EventTraceView group={group} event={event} organization={organization} />
         )}
@@ -360,7 +361,7 @@ export function EventDetailsContent({
           <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
         </Fragment>
       ) : null}
-      <EventContexts event={event} />
+      {issueTypeConfig.contexts.enabled && <EventContexts event={event} />}
       <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
         <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>
