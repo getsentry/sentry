@@ -1780,6 +1780,37 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.limit).toBe(5);
     });
+
+    it('preserves the breakdown legend type when there are multiple group bys', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: ['testField'],
+            yAxis: ['count()'],
+            legendType: 'breakdown',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.legendType).toBe('breakdown');
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [
+            {field: 'testField', kind: FieldValueKind.FIELD},
+            {field: 'testField2', kind: FieldValueKind.FIELD},
+          ],
+        });
+      });
+
+      expect(result.current.state.legendType).toBe('breakdown');
+    });
   });
 
   describe('yAxis', () => {

@@ -68,7 +68,7 @@ class SplunkForwarder(BaseDataForwarder):
             if key == "request":
                 headers = value.headers
                 if not isinstance(headers, dict):
-                    headers = dict(headers or ())
+                    headers = dict(h for h in (headers or ()) if h is not None)
 
                 props.update(
                     {

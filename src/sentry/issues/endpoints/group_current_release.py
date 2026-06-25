@@ -2,6 +2,7 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
@@ -17,6 +18,7 @@ from sentry.models.releases.release_project import ReleaseProject
 
 @cell_silo_endpoint
 class GroupCurrentReleaseEndpoint(GroupEndpoint):
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

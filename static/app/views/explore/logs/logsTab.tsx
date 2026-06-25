@@ -75,6 +75,7 @@ import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsS
 import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
+import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -145,6 +146,8 @@ const LogsSearchSection = memo(function LogsSearchSection({
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
 
+  const {data: validatedSearchQueryData} = useValidateLogsTab();
+
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
       booleanAttributes,
@@ -153,6 +156,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
+      validatedSearchQueryData,
     });
 
   const organization = useOrganization();

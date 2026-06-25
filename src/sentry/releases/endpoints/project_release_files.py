@@ -276,7 +276,7 @@ def pseudo_releasefile(url, info, dist):
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,

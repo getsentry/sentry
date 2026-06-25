@@ -124,7 +124,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
         {customer.billingPeriodStart && (
           <DetailLabel title="Contract Period">
             {`${moment(customer.billingPeriodStart).format('ll')} › `}
-            {(customer.contractInterval === 'annual' &&
+            {(customer.billingInterval === 'annual' &&
               customer.type === BillingType.INVOICED && (
                 <ChangeContractEndDateAction
                   contractPeriodEnd={customer.billingPeriodEnd}
@@ -134,7 +134,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
               moment(customer.billingPeriodEnd).format('ll')}
 
             <br />
-            <small>{customer.contractInterval}</small>
+            <small>{customer.billingInterval}</small>
           </DetailLabel>
         )}
         {/* TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods? */}

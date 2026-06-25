@@ -696,12 +696,6 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 
-**Send a notification (for all legacy integrations)**
-```json
-{
-    "id": "sentry.rules.actions.notify_event.NotifyEventAction"
-}
-```
 """,
     )
 

@@ -1710,6 +1710,10 @@ class TestGetMonitoringProviderConnections(APITestCase):
             external_id="dd-user-1",
             data={"access_token": "access-token", "site": "datadoghq.com"},
         )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
 
         result = get_monitoring_provider_connections(
             organization_id=self.organization.id, user_id=self.user.id
@@ -1720,6 +1724,7 @@ class TestGetMonitoringProviderConnections(APITestCase):
         assert connection.provider_key == "datadog"
         assert connection.url == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
         assert connection.identity_id == identity.id
+        assert connection.auth_method == "oauth"
         decrypted = Fernet(TEST_FERNET_KEY.encode("utf-8")).decrypt(
             connection.encrypted_access_token.encode("utf-8")
         )

@@ -175,6 +175,118 @@ class TestPollGithubCopilotAgents(TestCase):
         assert call_kwargs["result"].description == "Fix the bug"
         assert call_kwargs["result"].repo_full_name == "getsentry/sentry"
 
+    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_falls_back_to_branch_when_global_id_empty(
+        self, mock_identity_service, mock_update_state
+    ):
+        """When the Copilot API returns an empty global_id, resolve the PR via the head branch."""
+        mock_identity_service.get_access_token_for_user.return_value = "test_token"
+
+        mock_get_task_status = MagicMock(
+            return_value=GithubCopilotTask(
+                id="task-123",
+                state="completed",
+                artifacts=[
+                    GithubCopilotArtifact(
+                        provider="github",
+                        type="github_resource",
+                        data=GithubCopilotArtifactData(id=456, type="pull", global_id=""),
+                    ),
+                    GithubCopilotArtifact(
+                        provider="github",
+                        type="branch",
+                        data=GithubCopilotArtifactData(head_ref="copilot/fix-bug", base_ref="main"),
+                    ),
+                ],
+            )
+        )
+
+        mock_pr_info = MagicMock()
+        mock_pr_info.url = "https://github.com/getsentry/sentry/pull/46"
+        mock_pr_info.title = "Fix the bug"
+        mock_get_pr_from_graphql = MagicMock()
+        mock_get_pr_from_branch = MagicMock(return_value=mock_pr_info)
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
+            with patch.object(GithubCopilotAgentClient, "get_task_status", mock_get_task_status):
+                with patch.object(
+                    GithubCopilotAgentClient, "get_pr_from_graphql", mock_get_pr_from_graphql
+                ):
+                    with patch.object(
+                        GithubCopilotAgentClient, "get_pr_from_branch", mock_get_pr_from_branch
+                    ):
+                        poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+        # Empty global_id -> GraphQL path skipped, branch fallback used.
+        mock_get_pr_from_graphql.assert_not_called()
+        mock_get_pr_from_branch.assert_called_once_with("getsentry", "sentry", "copilot/fix-bug")
+
+        mock_update_state.assert_called_once()
+        call_kwargs = mock_update_state.call_args[1]
+        assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
+        assert call_kwargs["result"].pr_url == "https://github.com/getsentry/sentry/pull/46"
+        assert call_kwargs["result"].description == "Fix the bug"
+
+    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_marks_completed_without_pr_when_unresolved(
+        self, mock_identity_service, mock_update_state
+    ):
+        """A completed task flips to COMPLETED even when no PR can be resolved."""
+        mock_identity_service.get_access_token_for_user.return_value = "test_token"
+
+        mock_get_task_status = MagicMock(
+            return_value=GithubCopilotTask(
+                id="task-123",
+                state="completed",
+                artifacts=[
+                    GithubCopilotArtifact(
+                        provider="github",
+                        type="branch",
+                        data=GithubCopilotArtifactData(head_ref="copilot/fix-bug", base_ref="main"),
+                    ),
+                ],
+            )
+        )
+
+        mock_get_pr_from_branch = MagicMock(return_value=None)
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
+            with patch.object(GithubCopilotAgentClient, "get_task_status", mock_get_task_status):
+                with patch.object(
+                    GithubCopilotAgentClient, "get_pr_from_branch", mock_get_pr_from_branch
+                ):
+                    poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+        mock_get_pr_from_branch.assert_called_once_with("getsentry", "sentry", "copilot/fix-bug")
+        mock_update_state.assert_called_once()
+        call_kwargs = mock_update_state.call_args[1]
+        assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
+        assert call_kwargs["result"] is None
+
     @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
     @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
@@ -322,7 +434,105 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_update_state.assert_called_once_with(
             agent_id="getsentry:sentry:task-123",
             status=CodingAgentStatus.FAILED,
+            result=None,
         )
+
+    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_marks_completed_when_pr_resolution_errors(
+        self, mock_identity_service, mock_update_state
+    ):
+        """A GitHub API error during PR resolution must not block the terminal status update."""
+        mock_identity_service.get_access_token_for_user.return_value = "test_token"
+
+        mock_get_task_status = MagicMock(
+            return_value=GithubCopilotTask(
+                id="task-123",
+                state="completed",
+                artifacts=[
+                    GithubCopilotArtifact(
+                        provider="github",
+                        type="branch",
+                        data=GithubCopilotArtifactData(head_ref="copilot/fix-bug", base_ref="main"),
+                    ),
+                ],
+            )
+        )
+        mock_get_pr_from_branch = MagicMock(side_effect=Exception("GitHub 502"))
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
+            with patch.object(GithubCopilotAgentClient, "get_task_status", mock_get_task_status):
+                with patch.object(
+                    GithubCopilotAgentClient, "get_pr_from_branch", mock_get_pr_from_branch
+                ):
+                    poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+        mock_get_pr_from_branch.assert_called_once()
+        mock_update_state.assert_called_once()
+        call_kwargs = mock_update_state.call_args[1]
+        assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
+        assert call_kwargs["result"] is None
+
+    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_marks_failed_even_when_branch_has_pr(
+        self, mock_identity_service, mock_update_state
+    ):
+        """A failed/timed_out task is marked FAILED even if a PR exists on the head branch."""
+        mock_identity_service.get_access_token_for_user.return_value = "test_token"
+
+        mock_get_task_status = MagicMock(
+            return_value=GithubCopilotTask(
+                id="task-123",
+                state="failed",
+                artifacts=[
+                    GithubCopilotArtifact(
+                        provider="github",
+                        type="branch",
+                        data=GithubCopilotArtifactData(head_ref="copilot/fix-bug", base_ref="main"),
+                    ),
+                ],
+            )
+        )
+
+        # A draft PR may already exist on the head branch even though the task failed.
+        mock_pr_info = MagicMock()
+        mock_pr_info.url = "https://github.com/getsentry/sentry/pull/46"
+        mock_pr_info.title = "WIP"
+        mock_get_pr_from_branch = MagicMock(return_value=mock_pr_info)
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
+            with patch.object(GithubCopilotAgentClient, "get_task_status", mock_get_task_status):
+                with patch.object(
+                    GithubCopilotAgentClient, "get_pr_from_branch", mock_get_pr_from_branch
+                ):
+                    poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+        mock_update_state.assert_called_once()
+        call_kwargs = mock_update_state.call_args[1]
+        assert call_kwargs["status"] == CodingAgentStatus.FAILED
 
     @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")

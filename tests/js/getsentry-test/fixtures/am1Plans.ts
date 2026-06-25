@@ -134,7 +134,6 @@ export const AM1_PLANS = {
     userSelectable: true,
     retentionDays: 30,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     planCategories: {
       errors: [
         {
@@ -215,7 +214,6 @@ export const AM1_PLANS = {
     userSelectable: false,
     retentionDays: 90,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     planCategories: {
       errors: [
         {
@@ -296,7 +294,6 @@ export const AM1_PLANS = {
     userSelectable: true,
     retentionDays: 90,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     planCategories: {
       errors: [
         {
@@ -887,7 +884,6 @@ export const AM1_PLANS = {
     userSelectable: true,
     retentionDays: 90,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     planCategories: {
       errors: [
         {
@@ -1478,7 +1474,6 @@ export const AM1_PLANS = {
     userSelectable: true,
     retentionDays: 90,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     planCategories: {
       errors: [
         {
@@ -2069,7 +2064,6 @@ export const AM1_PLANS = {
     userSelectable: true,
     retentionDays: 90,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     planCategories: {
       errors: [
         {
@@ -2660,7 +2654,6 @@ export const AM1_PLANS = {
     userSelectable: false,
     features: AM1_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [

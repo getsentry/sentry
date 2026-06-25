@@ -16,6 +16,7 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.eventerror import EventErrorType
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 from sentry.workflow_engine.handlers.detector.base import (
     DetectorOccurrence,
     EventData,
@@ -108,7 +109,7 @@ class ProcessingErrorDetectorHandler(
     def extract_value(
         self, data_packet: DataPacket[ProcessingErrorPacketValue]
     ) -> ProcessingErrorCheckStatus:
-        errors = data_packet.packet.event_data.get("errors", [])
+        errors = get_path(data_packet.packet.event_data, "errors", filter=True, default=[])
         has_errors = any(e.get("type") in self.error_types for e in errors)
         return (
             ProcessingErrorCheckStatus.FAILURE if has_errors else ProcessingErrorCheckStatus.SUCCESS
@@ -131,7 +132,7 @@ class ProcessingErrorDetectorHandler(
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
         event_data_dict = data_packet.packet.event_data
-        errors = event_data_dict.get("errors", [])
+        errors = get_path(event_data_dict, "errors", filter=True, default=[])
         matching_errors = [e for e in errors if e.get("type") in self.error_types]
         error_types = {e.get("type", "unknown") for e in matching_errors}
 

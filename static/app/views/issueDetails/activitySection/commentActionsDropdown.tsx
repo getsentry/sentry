@@ -6,7 +6,7 @@ import type {User} from 'sentry/types/user';
 import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
-  onDelete: () => void;
+  onDelete: () => Promise<void>;
   onEdit: () => void;
   user?: User | null;
 };
@@ -54,6 +54,7 @@ export function CommentActionsDropdown({
                 <strong>{t('Are you sure you want to remove this comment?')}</strong>
               ),
               confirmText: t('Remove comment'),
+              errorMessage: t('Failed to remove comment'),
               onConfirm: onDelete,
             }),
           tooltip: activeUser.isSuperuser

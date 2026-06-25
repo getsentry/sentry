@@ -499,7 +499,7 @@ export function CustomerDetails() {
             name: 'Terminate Contract',
             help: 'Terminate the contract (charges an early termination fee for contracts with 3 or more months remaining).',
             visible:
-              subscription.contractInterval === 'annual' &&
+              subscription.billingInterval === 'annual' &&
               subscription.canCancel &&
               !subscription.cancelAtPeriodEnd,
             onAction: params =>
