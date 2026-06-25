@@ -51,7 +51,12 @@ function SelectAsyncControl<TData = unknown>({
   const queryParams =
     typeof onQuery === 'function' ? onQuery(debouncedQuery) : {query: debouncedQuery};
 
-  const {data: options = [], isPending, isError, error} = useQuery({
+  const {
+    data: options = [],
+    isPending,
+    isError,
+    error,
+  } = useQuery({
     // `url` is a dynamic prop (not a KnownSentryApiUrl), so we bypass the branded
     // ApiQueryKey constraint with a double cast — the same pattern used in the codebase
     // for runtime URLs (e.g. useAskSeerPolling.tsx).
