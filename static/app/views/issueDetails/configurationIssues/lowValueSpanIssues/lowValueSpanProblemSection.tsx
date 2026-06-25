@@ -26,7 +26,7 @@ import {
   getSpanLabel,
 } from './utils';
 
-interface ProblemSectionProps {
+interface LowValueSpanProblemSectionProps {
   event: Event;
   project: Project;
 }
@@ -46,7 +46,7 @@ function getAffectedSpanQuery(evidenceData: LowValueSpanEvidenceData): string | 
   }).formatString();
 }
 
-export function ProblemSection({event}: ProblemSectionProps) {
+export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const evidenceData = getLowValueSpanEvidenceData(event.occurrence?.evidenceData);

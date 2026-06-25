@@ -68,8 +68,8 @@ import {
 } from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ProblemSection as LowValueSpanProblemSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/problemSection';
-import {TroubleshootingSection as LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/troubleshootingSection';
+import {LowValueSpanProblemSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanProblemSection';
+import {LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanTroubleshootingSection';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';

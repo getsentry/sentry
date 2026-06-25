@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {PlatformKey} from 'sentry/types/platform';
 
-import {TroubleshootingSection} from './troubleshootingSection';
+import {LowValueSpanTroubleshootingSection} from './lowValueSpanTroubleshootingSection';
 import type {LowValueSpanEvidenceData} from './types';
 
 const baseEvidenceData: LowValueSpanEvidenceData = {
@@ -31,10 +31,10 @@ function makeProject(platform: PlatformKey | null) {
   return ProjectFixture({platform: platform ?? undefined});
 }
 
-describe('LowValueSpanIssues TroubleshootingSection', () => {
+describe('LowValueSpanTroubleshootingSection', () => {
   it('renders automatic instrumentation guidance for auto spans', () => {
     render(
-      <TroubleshootingSection
+      <LowValueSpanTroubleshootingSection
         event={makeEvent()}
         project={makeProject('javascript-nextjs')}
       />
@@ -48,7 +48,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
   it('renders manual instrumentation guidance only for manual spans', () => {
     render(
-      <TroubleshootingSection
+      <LowValueSpanTroubleshootingSection
         event={makeEvent({spanOrigin: 'manual'})}
         project={makeProject('javascript-nextjs')}
       />
@@ -64,7 +64,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
   it('links to the platform-redirect custom instrumentation docs for manual spans', () => {
     render(
-      <TroubleshootingSection
+      <LowValueSpanTroubleshootingSection
         event={makeEvent({spanOrigin: 'manual'})}
         project={makeProject(null)}
       />
@@ -80,7 +80,10 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
   it('uses the platform-redirect filtering docs as a fallback', () => {
     render(
-      <TroubleshootingSection event={makeEvent()} project={makeProject('ruby-rails')} />
+      <LowValueSpanTroubleshootingSection
+        event={makeEvent()}
+        project={makeProject('ruby-rails')}
+      />
     );
 
     expect(
@@ -93,7 +96,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
   it('recommends JavaScript span filtering', () => {
     render(
-      <TroubleshootingSection
+      <LowValueSpanTroubleshootingSection
         event={makeEvent()}
         project={makeProject('javascript-nextjs')}
       />
@@ -106,7 +109,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
   it('recommends before_send_transaction for Python project platforms', () => {
     render(
-      <TroubleshootingSection
+      <LowValueSpanTroubleshootingSection
         event={makeEvent()}
         project={makeProject('python-django')}
       />
@@ -119,7 +122,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
   it('uses a JavaScript project platform for JavaScript snippets', () => {
     render(
-      <TroubleshootingSection
+      <LowValueSpanTroubleshootingSection
         event={makeEvent()}
         project={makeProject('javascript-nextjs')}
       />
@@ -132,7 +135,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
   it('uses a Python project platform for Python snippets', () => {
     render(
-      <TroubleshootingSection
+      <LowValueSpanTroubleshootingSection
         event={makeEvent()}
         project={makeProject('python-django')}
       />
@@ -144,7 +147,12 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
   });
 
   it('renders generic guidance when the project platform is unavailable', () => {
-    render(<TroubleshootingSection event={makeEvent()} project={makeProject(null)} />);
+    render(
+      <LowValueSpanTroubleshootingSection
+        event={makeEvent()}
+        project={makeProject(null)}
+      />
+    );
 
     expect(screen.getByText(/Add an exact-match span filter/)).toBeInTheDocument();
     expect(screen.queryByText('ignoreSpans')).not.toBeInTheDocument();
@@ -153,7 +161,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
   it('treats missing span origin as automatic instrumentation', () => {
     render(
-      <TroubleshootingSection
+      <LowValueSpanTroubleshootingSection
         event={makeEvent({spanOrigin: null})}
         project={makeProject('javascript-nextjs')}
       />
@@ -165,7 +173,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
   it('emits op-only ignoreSpans with an over-match warning when description is null', () => {
     render(
-      <TroubleshootingSection
+      <LowValueSpanTroubleshootingSection
         event={makeEvent({description: null})}
         project={makeProject('javascript-nextjs')}
       />
@@ -180,7 +188,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
   it('uses `is None` in the Python snippet when description is null', () => {
     render(
-      <TroubleshootingSection
+      <LowValueSpanTroubleshootingSection
         event={makeEvent({description: null})}
         project={makeProject('python-django')}
       />

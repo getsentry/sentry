@@ -21,7 +21,7 @@ import {
   isPythonProjectPlatform,
 } from './utils';
 
-interface TroubleshootingSectionProps {
+interface LowValueSpanTroubleshootingSectionProps {
   event: Event;
   project: Project;
 }
@@ -140,7 +140,10 @@ function AutomaticInstrumentationTroubleshooting({
   );
 }
 
-export function TroubleshootingSection({event, project}: TroubleshootingSectionProps) {
+export function LowValueSpanTroubleshootingSection({
+  event,
+  project,
+}: LowValueSpanTroubleshootingSectionProps) {
   const evidenceData = getLowValueSpanEvidenceData(event.occurrence?.evidenceData);
   const isManualInstrumentation = evidenceData.spanOrigin === 'manual';
 
