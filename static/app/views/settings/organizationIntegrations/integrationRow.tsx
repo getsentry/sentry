@@ -95,7 +95,7 @@ export function IntegrationRow(props: Props) {
               : t('%s disabled', disabledConfigurations)}
           </DisabledTag>
         ) : null}
-      </React.Fragment>
+      </Fragment>
     );
   };
 
