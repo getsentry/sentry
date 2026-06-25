@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import * as analytics from 'sentry/utils/analytics';
-import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {ScmProjectDetailsCore} from './scmProjectDetailsCore';
 
@@ -17,8 +16,6 @@ function renderCore(overrides: Partial<CoreProps> = {}) {
     onProjectNameBlur: jest.fn(),
     teamSlug: 'my-team',
     onTeamChange: jest.fn(),
-    alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
-    onAlertChange: jest.fn(),
     isOrgMemberWithNoAccess: false,
     ...overrides,
   };
@@ -32,12 +29,11 @@ describe('ScmProjectDetailsCore', () => {
     jest.restoreAllMocks();
   });
 
-  it('renders the project name, team, and alert-frequency fields', () => {
+  it('renders the project name and team fields', () => {
     renderCore();
 
-    expect(screen.getByText('Give your project a name')).toBeInTheDocument();
-    expect(screen.getByText('Assign a team')).toBeInTheDocument();
-    expect(screen.getByText('Alert frequency')).toBeInTheDocument();
+    expect(screen.getByText('Project name')).toBeInTheDocument();
+    expect(screen.getByText('Team')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-project');
   });
 
@@ -54,7 +50,7 @@ describe('ScmProjectDetailsCore', () => {
   it('hides the team selector for a no-access member', () => {
     renderCore({isOrgMemberWithNoAccess: true});
 
-    expect(screen.getByText('Give your project a name')).toBeInTheDocument();
-    expect(screen.queryByText('Assign a team')).not.toBeInTheDocument();
+    expect(screen.getByText('Project name')).toBeInTheDocument();
+    expect(screen.queryByText('Team')).not.toBeInTheDocument();
   });
 });

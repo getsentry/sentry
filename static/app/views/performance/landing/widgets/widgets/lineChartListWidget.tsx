@@ -686,8 +686,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           );
         case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
         case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES: {
-          const description = (listItem[SpanFields.NORMALIZED_DESCRIPTION] ??
-            '') as string;
+          const description = listItem[SpanFields.NORMALIZED_DESCRIPTION] as
+            | string
+            | undefined;
           const group = listItem[SpanFields.SPAN_GROUP] as string;
           const projectID = listItem['project.id'] as number;
           const timeSpentPercentage = listItem[fieldString] as number;

@@ -22,14 +22,6 @@ describe('ProjectAlertSettings', () => {
     },
   });
 
-  beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/plugins/`,
-      method: 'GET',
-      body: [],
-    });
-  });
-
   it('renders', async () => {
     render(<ProjectAlertSettings />, {
       outletContext: {project, canEditRule: true},
@@ -44,11 +36,6 @@ describe('ProjectAlertSettings', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('slider', {name: 'Maximum delivery interval'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Oops! Looks like there aren't any available integrations installed."
-      )
     ).toBeInTheDocument();
   });
 });

@@ -22,7 +22,7 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.requests import make_request
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
@@ -33,6 +33,12 @@ class TestSeerAgentClient(TestCase):
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
+
+    def _mock_run_response(self, run_id: int = 123) -> MagicMock:
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": run_id}
+        mock_response.status = 200
+        return mock_response
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_client_init_checks_access(self, mock_access):
@@ -75,10 +81,7 @@ class TestSeerAgentClient(TestCase):
         """Test starting a new run collects user context"""
         mock_access.return_value = (True, None)
         mock_collect_context.return_value = {"user_id": self.user.id}
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"run_id": 123}
-        mock_response.status = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = self._mock_run_response()
 
         project = self.create_project(organization=self.organization)
         group = self.create_group(project=project)
@@ -104,10 +107,7 @@ class TestSeerAgentClient(TestCase):
         """Test starting a new run passes request object to collect_user_org_context"""
         mock_access.return_value = (True, None)
         mock_collect_context.return_value = {"user_id": self.user.id}
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"run_id": 123}
-        mock_response.status = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = self._mock_run_response()
 
         client = SeerAgentClient(self.organization, self.user)
         request, _ = make_request()
@@ -122,10 +122,7 @@ class TestSeerAgentClient(TestCase):
     def test_start_run_with_optional_params(self, mock_post, mock_access):
         """Test starting a run with optional parameters"""
         mock_access.return_value = (True, None)
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"run_id": 789}
-        mock_response.status = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = self._mock_run_response(run_id=789)
 
         client = SeerAgentClient(self.organization, self.user)
         run_id = client.start_run("Query", on_page_context="some context").seer_run_state_id
@@ -164,10 +161,7 @@ class TestSeerAgentClient(TestCase):
         """Test starting a run with category fields"""
         mock_access.return_value = (True, None)
         mock_collect_context.return_value = {"user_id": self.user.id}
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"run_id": 999}
-        mock_response.status = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = self._mock_run_response(run_id=999)
 
         client = SeerAgentClient(
             self.organization, self.user, category_key="bug-fixer", category_value="issue-123"
@@ -189,10 +183,7 @@ class TestSeerAgentClient(TestCase):
     ):
         mock_access.return_value = (True, None)
         mock_collect_context.return_value = {"user_id": self.user.id}
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"run_id": 123}
-        mock_response.status = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = self._mock_run_response()
 
         client = SeerAgentClient(self.organization, self.user)
         client.start_run("Test query")
@@ -208,16 +199,61 @@ class TestSeerAgentClient(TestCase):
     ):
         mock_access.return_value = (True, None)
         mock_collect_context.return_value = {"user_id": self.user.id}
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"run_id": 123}
-        mock_response.status = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = self._mock_run_response()
 
         client = SeerAgentClient(self.organization, self.user, code_review_enabled=True)
         client.start_run("Test query")
 
         body = mock_post.call_args[0][0]
         assert body["agent_run_options"]["code_review_enabled"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    def test_client_init_raises_when_pr_ctx_tools_flag_disabled(self, mock_access):
+        mock_access.return_value = (True, None)
+
+        with pytest.raises(SeerPermissionError):
+            SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @with_feature("organizations:autofix-pr-iteration")
+    def test_client_init_succeeds_when_pr_ctx_tools_flag_enabled(self, mock_access):
+        mock_access.return_value = (True, None)
+
+        client = SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
+        assert client.enable_pr_context_tools is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_start_run_defaults_pr_context_tools_disabled(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_pr_context_tools"] is False
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    @with_feature("organizations:autofix-pr-iteration")
+    def test_start_run_passes_enable_pr_context_tools(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_pr_context_tools"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_init_category_key_only_raises_error(self, mock_access):
@@ -264,10 +300,7 @@ class TestSeerAgentClient(TestCase):
         """Test that intelligence_level is included in the payload"""
         mock_access.return_value = (True, None)
         mock_collect_context.return_value = {"user_id": self.user.id}
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"run_id": 555}
-        mock_response.status = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = self._mock_run_response(run_id=555)
 
         client = SeerAgentClient(self.organization, self.user, intelligence_level="low")
         run_id = client.start_run("Test query").seer_run_state_id
@@ -299,10 +332,7 @@ class TestSeerAgentClient(TestCase):
         """Test that max_iterations is included in the payload when set"""
         mock_access.return_value = (True, None)
         mock_collect_context.return_value = {"user_id": self.user.id}
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"run_id": 444}
-        mock_response.status = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = self._mock_run_response(run_id=444)
 
         client = SeerAgentClient(self.organization, self.user, max_iterations=3)
         run_id = client.start_run("Test query").seer_run_state_id
@@ -320,10 +350,7 @@ class TestSeerAgentClient(TestCase):
         """Test that max_iterations is not included in the payload when None"""
         mock_access.return_value = (True, None)
         mock_collect_context.return_value = {"user_id": self.user.id}
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"run_id": 445}
-        mock_response.status = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = self._mock_run_response(run_id=445)
 
         client = SeerAgentClient(self.organization, self.user)
         run_id = client.start_run("Test query").seer_run_state_id
@@ -337,10 +364,7 @@ class TestSeerAgentClient(TestCase):
     def test_continue_run_basic(self, mock_post, mock_access):
         """Test continuing an existing run"""
         mock_access.return_value = (True, None)
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"run_id": 456}
-        mock_response.status = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = self._mock_run_response(run_id=456)
 
         client = SeerAgentClient(self.organization, self.user)
         run_id = client.continue_run(456, "Follow up query")
@@ -355,10 +379,7 @@ class TestSeerAgentClient(TestCase):
     def test_continue_run_with_all_params(self, mock_post, mock_access):
         """Test continuing a run with all optional parameters"""
         mock_access.return_value = (True, None)
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"run_id": 789}
-        mock_response.status = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = self._mock_run_response(run_id=789)
 
         client = SeerAgentClient(self.organization, self.user)
         with self.feature("organizations:seer-agent-source-code-search"):
@@ -369,6 +390,19 @@ class TestSeerAgentClient(TestCase):
         assert run_id == 789
         body = mock_post.call_args[0][0]
         assert body["agent_run_options"]["enable_frontend_code_search"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @with_feature("organizations:autofix-pr-iteration")
+    def test_continue_run_passes_enable_pr_context_tools(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response(run_id=789)
+
+        client = SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
+        client.continue_run(789, "Follow up")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_pr_context_tools"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")
@@ -385,10 +419,7 @@ class TestSeerAgentClient(TestCase):
     @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_continue_run_bumps_last_triggered_at(self, mock_post, mock_access):
         mock_access.return_value = (True, None)
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"run_id": 456}
-        mock_response.status = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = self._mock_run_response(run_id=456)
 
         stale = timezone.now() - timedelta(days=10)
         run = self.create_seer_run(seer_run_state_id=456, last_triggered_at=stale)
@@ -1273,6 +1304,42 @@ class TestStartFeatureRun(TestCase):
             SeerAgentClient(self.organization, self.user)
         assert not SeerRun.objects.filter(organization=self.organization).exists()
 
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    @with_feature("organizations:seer-added")
+    @override_options({"seer.explorer.context-engine-rollout": 1.0})
+    def test_inherits_context_engine_from_org(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(feature_id="night_shift", payload={}, flush=False)
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["agent_run_options"]["is_context_engine_enabled"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    @with_feature("organizations:seer-agent-source-code-search")
+    def test_inherits_frontend_code_search_from_org(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(feature_id="night_shift", payload={}, flush=False)
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["agent_run_options"]["enable_frontend_code_search"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_agent_run_options_empty_without_org_flags(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(feature_id="night_shift", payload={}, flush=False)
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["agent_run_options"] == {}
+
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
 @with_feature("organizations:seer-infra-telemetry")
@@ -1299,6 +1366,10 @@ class TestGetMonitoringProviderConnections(TestCase):
                 "site": "datadoghq.com",
             },
         )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
 
         result = get_monitoring_provider_connections(self.organization, self.user.id)
 
@@ -1308,6 +1379,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert connection["provider_key"] == "datadog"
         assert connection["url"] == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
         assert connection["identity_id"] == identity.id
+        assert connection["auth_method"] == "oauth"
         fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
         decrypted_access_token = fernet.decrypt(
             connection["encrypted_access_token"].encode("utf-8")
@@ -1317,11 +1389,15 @@ class TestGetMonitoringProviderConnections(TestCase):
     def test_returns_multiple_connections(self) -> None:
         for site, ext_id in [("datadoghq.com", "org-1"), ("datadoghq.eu", "org-2")]:
             idp = self.create_identity_provider(type="datadog", external_id=ext_id)
-            self.create_identity(
+            identity = self.create_identity(
                 user=self.user,
                 identity_provider=idp,
                 external_id=f"user-{ext_id}",
                 data={"access_token": "access-token", "site": site},
+            )
+            self.create_organization_identity(
+                organization=self.organization,
+                identity=identity,
             )
 
         result = get_monitoring_provider_connections(self.organization, self.user.id)
@@ -1332,24 +1408,54 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp" in urls
         assert "https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp" in urls
 
+    def test_cross_org_isolation(self) -> None:
+        org2 = self.create_organization(name="other-org", owner=self.user)
+
+        idp = self.create_identity_provider(type="datadog", external_id="org-1")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
+
+        result_org1 = get_monitoring_provider_connections(self.organization, self.user.id)
+        assert len(result_org1) == 1
+        assert result_org1[0]["provider_key"] == "datadog"
+
+        result_org2 = get_monitoring_provider_connections(org2, self.user.id)
+        assert result_org2 == []
+
     def test_skips_identity_missing_access_token(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-1",
             data={"site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
         )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
 
     def test_skips_identity_missing_site(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-1",
             data={"access_token": "access-token"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
         )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
@@ -1368,11 +1474,15 @@ class TestGetMonitoringProviderConnections(TestCase):
     @override_settings(SEER_GHE_ENCRYPT_KEY=None)
     def test_skips_identity_when_encryption_fails(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-1",
             data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
         )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
@@ -1380,18 +1490,22 @@ class TestGetMonitoringProviderConnections(TestCase):
     @with_feature({"organizations:seer-infra-telemetry": False})
     def test_returns_empty_when_feature_disabled(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-1",
             data={"access_token": "access-token", "site": "datadoghq.com"},
         )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
 
     @patch(
-        "sentry.seer.agent.client.identity_service.get_user_identities_by_provider_type",
-        side_effect=RpcException("identity", "get_user_identities_by_provider_type", "boom"),
+        "sentry.seer.agent.client.identity_service.get_org_user_identities_by_provider_type",
+        side_effect=RpcException("identity", "get_org_user_identities_by_provider_type", "boom"),
     )
     def test_degrades_when_identity_service_errors(self, mock_get: MagicMock) -> None:
         # A control-silo RPC failure must not propagate (it would stall the outbox shard).

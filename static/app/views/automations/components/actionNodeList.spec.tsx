@@ -13,9 +13,13 @@ import {
   ActionType,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
-import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
+import {AutomationBuilderTestProvider} from 'sentry/views/automations/components/testUtils';
 
 const slackActionHandler = ActionHandlerFixture();
 const actionHandlers: ActionHandler[] = [
@@ -48,13 +52,6 @@ const actionHandlers: ActionHandler[] = [
   }),
 ];
 
-const defaultErrorContextProps = {
-  errors: {},
-  mutationErrors: undefined,
-  setErrors: jest.fn(),
-  removeError: jest.fn(),
-};
-
 describe('ActionNodeList', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
 
@@ -81,12 +78,10 @@ describe('ActionNodeList', () => {
 
   it('renders correct action options', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+      <AutomationBuilderTestProvider>
         <ActionNodeList {...defaultProps} />
-      </AutomationBuilderErrorContext.Provider>,
-      {
-        organization,
-      }
+      </AutomationBuilderTestProvider>,
+      {organization}
     );
     await userEvent.click(screen.getByRole('textbox', {name: 'Add action'}));
 
@@ -117,12 +112,10 @@ describe('ActionNodeList', () => {
     });
 
     render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+      <AutomationBuilderTestProvider>
         <ActionNodeList {...defaultProps} />
-      </AutomationBuilderErrorContext.Provider>,
-      {
-        organization,
-      }
+      </AutomationBuilderTestProvider>,
+      {organization}
     );
     await userEvent.click(screen.getByRole('textbox', {name: 'Add action'}));
 
@@ -134,12 +127,10 @@ describe('ActionNodeList', () => {
 
   it('adds actions', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+      <AutomationBuilderTestProvider>
         <ActionNodeList {...defaultProps} />
-      </AutomationBuilderErrorContext.Provider>,
-      {
-        organization,
-      }
+      </AutomationBuilderTestProvider>,
+      {organization}
     );
     await userEvent.click(screen.getByRole('textbox', {name: 'Add action'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Slack'}));
@@ -150,12 +141,10 @@ describe('ActionNodeList', () => {
   it('updates existing actions', async () => {
     const slackAction = ActionFixture();
     render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+      <AutomationBuilderTestProvider>
         <ActionNodeList {...defaultProps} actions={[slackAction]} />
-      </AutomationBuilderErrorContext.Provider>,
-      {
-        organization,
-      }
+      </AutomationBuilderTestProvider>,
+      {organization}
     );
 
     await screen.findByText(textWithMarkupMatcher('Slack message'));
@@ -168,12 +157,10 @@ describe('ActionNodeList', () => {
   it('deletes existing actions', async () => {
     const slackAction = ActionFixture();
     render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+      <AutomationBuilderTestProvider>
         <ActionNodeList {...defaultProps} actions={[slackAction]} />
-      </AutomationBuilderErrorContext.Provider>,
-      {
-        organization,
-      }
+      </AutomationBuilderTestProvider>,
+      {organization}
     );
 
     await screen.findByText(textWithMarkupMatcher('Slack message'));
@@ -189,12 +176,10 @@ describe('ActionNodeList', () => {
 
     const slackAction = ActionFixture();
     render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+      <AutomationBuilderTestProvider>
         <ActionNodeList {...defaultProps} actions={[slackAction]} />
-      </AutomationBuilderErrorContext.Provider>,
-      {
-        organization,
-      }
+      </AutomationBuilderTestProvider>,
+      {organization}
     );
 
     expect(
@@ -205,7 +190,7 @@ describe('ActionNodeList', () => {
     expect(screen.getByRole('button', {name: 'Delete row'})).toBeInTheDocument();
   });
 
-  it('shows a warning message for an incompatible action', async () => {
+  it('shows warnings for incompatible actions', async () => {
     const model = new FormModel();
     model.setInitialData({
       detectorIds: ['123'],
@@ -216,20 +201,42 @@ describe('ActionNodeList', () => {
     });
     const jiraAction = ActionFixture({type: ActionType.JIRA});
     render(
-      <AutomationFormProvider>
-        <Form model={model}>
-          <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+      <AutomationBuilderTestProvider
+        builderState={{
+          triggers: {
+            id: 'triggers',
+            conditions: [
+              {
+                id: 'condition-1',
+                type: DataConditionType.SEER_ACTIVITY_TRIGGER,
+                comparison: ['rca_started'],
+                conditionResult: true,
+              },
+            ],
+            logicType: DataConditionGroupLogicType.ANY,
+          },
+        }}
+      >
+        <AutomationFormProvider>
+          <Form model={model}>
             <ActionNodeList {...defaultProps} actions={[jiraAction]} />
-          </AutomationBuilderErrorContext.Provider>
-        </Form>
-      </AutomationFormProvider>,
-      {
-        organization,
-      }
+          </Form>
+        </AutomationFormProvider>
+      </AutomationBuilderTestProvider>,
+      {organization}
     );
 
     expect(
-      await screen.findByText('This action will not fire for metric issues.')
+      await screen.findByText(
+        'This action is incompatible with the current configuration.'
+      )
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    expect(
+      screen.getByText('This action is not supported for Seer activity triggers.')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('This action will not fire for metric issues.')
     ).toBeInTheDocument();
   });
 });

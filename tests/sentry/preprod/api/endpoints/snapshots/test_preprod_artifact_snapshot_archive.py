@@ -51,8 +51,7 @@ class SnapshotArchiveTriggerTest(BaseSnapshotArchiveTest):
     @patch(ENQUEUE_TARGET)
     def test_post_enqueues_build_and_returns_202(self, mock_task):
         artifact = self._artifact()
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(self._url(artifact.id))
+        response = self.client.post(self._url(artifact.id))
         assert response.status_code == 202
         mock_task.apply_async.assert_called_once_with(
             kwargs={
@@ -64,18 +63,10 @@ class SnapshotArchiveTriggerTest(BaseSnapshotArchiveTest):
         )
 
     @patch(ENQUEUE_TARGET)
-    def test_missing_feature_flag_forbidden(self, mock_task):
-        artifact = self._artifact()
-        response = self.client.post(self._url(artifact.id))
-        assert response.status_code == 403
-        mock_task.apply_async.assert_not_called()
-
-    @patch(ENQUEUE_TARGET)
     def test_post_returns_503_when_enqueue_fails(self, mock_task):
         artifact = self._artifact()
         mock_task.apply_async.side_effect = RuntimeError("broker down")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.post(self._url(artifact.id))
+        response = self.client.post(self._url(artifact.id))
         assert response.status_code == 503
 
     def test_rate_limit_applies_to_post_only(self):
@@ -93,8 +84,7 @@ class SnapshotArchiveReadinessTest(BaseSnapshotArchiveTest):
         session = MagicMock()
         session.get.return_value = MagicMock()
         mock_session.return_value = session
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(self._url(artifact.id))
+        response = self.client.get(self._url(artifact.id))
         assert response.status_code == 200
         assert response.data["ready"] is True
 
@@ -104,8 +94,7 @@ class SnapshotArchiveReadinessTest(BaseSnapshotArchiveTest):
         session = MagicMock()
         session.get.side_effect = RequestError("not found", status=404, response="")
         mock_session.return_value = session
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(self._url(artifact.id))
+        response = self.client.get(self._url(artifact.id))
         assert response.status_code == 200
         assert response.data["ready"] is False
 
@@ -115,8 +104,7 @@ class SnapshotArchiveReadinessTest(BaseSnapshotArchiveTest):
         session = MagicMock()
         session.get.side_effect = RequestError("unavailable", status=503, response="")
         mock_session.return_value = session
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(self._url(artifact.id))
+        response = self.client.get(self._url(artifact.id))
         assert response.status_code == 200
         assert response.data["ready"] is False
 
@@ -131,8 +119,7 @@ class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
         session = MagicMock()
         session.get.return_value = result
         mock_session.return_value = session
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(self._url(artifact.id, download=True))
+        response = self.client.get(self._url(artifact.id, download=True))
         assert response.status_code == 200
         assert response["Content-Type"] == "application/zip"
         assert b"".join(response.streaming_content) == b"ZIPBYTES"
@@ -143,6 +130,5 @@ class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
         session = MagicMock()
         session.get.side_effect = RequestError("not found", status=404, response="")
         mock_session.return_value = session
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(self._url(artifact.id, download=True))
+        response = self.client.get(self._url(artifact.id, download=True))
         assert response.status_code == 409

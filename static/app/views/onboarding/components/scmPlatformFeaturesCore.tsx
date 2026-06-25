@@ -16,7 +16,7 @@ import {
   platformProductAvailability,
 } from 'sentry/components/onboarding/productSelection';
 import {PLATFORM_PRODUCT_INFO} from 'sentry/data/platformProductInfo.generated';
-import {IconBroadcast, IconBusiness, IconGeneric} from 'sentry/icons';
+import {IconBroadcast, IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -440,8 +440,8 @@ export function ScmPlatformFeaturesCore({
         >
           <Flex justify="between" align="center">
             <Flex align="center" gap="sm">
-              <IconBroadcast size="sm" variant="secondary" />
-              <Text variant="secondary" bold size="sm" density="comfortable" uppercase>
+              <IconBroadcast size="sm" />
+              <Text bold size="md" density="comfortable">
                 {t('Auto-detected from your repository')}
               </Text>
             </Flex>
@@ -491,8 +491,7 @@ export function ScmPlatformFeaturesCore({
         >
           <Flex justify="between" align="center">
             <Flex align="center" gap="sm">
-              <IconGeneric size="sm" variant="secondary" />
-              <Text variant="secondary" bold size="sm" density="comfortable" uppercase>
+              <Text bold size="md" density="comfortable">
                 {t('Select a platform')}
               </Text>
             </Flex>

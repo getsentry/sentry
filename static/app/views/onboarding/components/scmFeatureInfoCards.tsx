@@ -1,6 +1,6 @@
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -36,7 +36,7 @@ export function ScmFeatureInfoCards({
     <Stack gap="xl" width="100%" justify="center">
       <Stack gap="md">
         {platformName ? (
-          <Heading as="h3" size="xl">
+          <Text bold size="md" density="comfortable">
             {tct('Available with [platformName]', {
               platformName: (
                 <Text as="span" bold variant="accent">
@@ -44,9 +44,9 @@ export function ScmFeatureInfoCards({
                 </Text>
               ),
             })}
-          </Heading>
+          </Text>
         ) : null}
-        <Text size="lg" variant="secondary" density="comfortable">
+        <Text size="md" variant="secondary" density="comfortable">
           {t('In the next step, run our setup wizard to choose what to instrument')}
         </Text>
       </Stack>

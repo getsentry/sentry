@@ -2,8 +2,7 @@ import {useCallback, useState} from 'react';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -14,7 +13,7 @@ import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboard
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconProject} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -23,6 +22,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
+import {ScmAlertFrequencySection} from 'sentry/views/onboarding/components/scmAlertFrequencySection';
 import {ScmIntegrationConnect} from 'sentry/views/onboarding/components/scmIntegrationConnect';
 import {ScmPlatformFeaturesCore} from 'sentry/views/onboarding/components/scmPlatformFeaturesCore';
 import {ScmProjectDetailsCore} from 'sentry/views/onboarding/components/scmProjectDetailsCore';
@@ -249,34 +249,25 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
           padding="2xl"
           alignSelf="center"
           maxWidth={CREATE_PROJECT_MAX_WIDTH}
+          width="100%"
         >
           <LayoutGroup>
-            <Layout.Title withMargins>{t('Create a new project')}</Layout.Title>
-            <Container paddingBottom="lg">
-              <Text as="p" variant="muted">
-                {tct(
-                  'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
-                    ),
-                  }
-                )}
+            <Layout.Title>{t('Create a new project')}</Layout.Title>
+            <Stack paddingBottom="lg" gap="md">
+              <Heading as="h1">{t('Create a new project')}</Heading>
+              <Text size="lg">
+                {t('Pick a platform, name your project, and choose what to monitor.')}
               </Text>
-            </Container>
+            </Stack>
 
             <MotionStack
-              gap="lg"
+              gap="xl"
               border="primary"
-              radius="md"
-              padding="lg"
+              radius="lg"
+              padding="xl"
               layout="position"
             >
-              <Stack gap="md">
-                <Heading as="h2" size="xl">
-                  {t('Connect your Git repository')}
-                </Heading>
-              </Stack>
+              <Heading as="h3">{t('Connect your Git repository')}</Heading>
 
               <ScmIntegrationConnect
                 analyticsFlow="project-creation"
@@ -292,19 +283,12 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
             <MotionStack
               layout="position"
-              gap="lg"
+              gap="2xl"
               border="primary"
-              radius="md"
-              padding="lg"
+              radius="lg"
+              padding="xl"
             >
-              <Stack gap="md">
-                <Heading as="h2" size="xl">
-                  {t('Platform & features')}
-                </Heading>
-                <Text variant="muted">
-                  {t('Choose a platform and configure what to monitor.')}
-                </Text>
-              </Stack>
+              <Heading as="h3">{t('Platform & features')}</Heading>
               <ScmPlatformFeaturesCore
                 analyticsFlow="project-creation"
                 selectedRepository={selectedRepository}
@@ -318,30 +302,28 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
             <MotionStack
               layout="position"
-              gap="lg"
+              gap="2xl"
               border="primary"
-              radius="md"
-              padding="lg"
+              radius="lg"
+              padding="xl"
             >
-              <Stack gap="md">
-                <Heading as="h2" size="xl">
-                  {t('Project details')}
-                </Heading>
-                <Text variant="muted">
-                  {t('Name your project, assign a team, and set up issue alerts.')}
-                </Text>
+              <Heading as="h3">{t('Project details')}</Heading>
+              <Stack gap="2xl">
+                <ScmProjectDetailsCore
+                  analyticsFlow="project-creation"
+                  projectName={form.projectName}
+                  onProjectNameChange={form.onProjectNameChange}
+                  onProjectNameBlur={form.onProjectNameBlur}
+                  teamSlug={form.teamSlug}
+                  onTeamChange={form.onTeamChange}
+                  isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
+                />
+                <ScmAlertFrequencySection
+                  analyticsFlow="project-creation"
+                  alertRuleConfig={form.alertRuleConfig}
+                  onAlertChange={form.onAlertChange}
+                />
               </Stack>
-              <ScmProjectDetailsCore
-                analyticsFlow="project-creation"
-                projectName={form.projectName}
-                onProjectNameChange={form.onProjectNameChange}
-                onProjectNameBlur={form.onProjectNameBlur}
-                teamSlug={form.teamSlug}
-                onTeamChange={form.onTeamChange}
-                alertRuleConfig={form.alertRuleConfig}
-                onAlertChange={form.onAlertChange}
-                isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
-              />
             </MotionStack>
           </LayoutGroup>
 

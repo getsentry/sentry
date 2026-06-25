@@ -6,6 +6,7 @@ import {ExternalIssueListContent} from 'sentry/components/group/externalIssuesLi
 import {useGroupExternalIssues} from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
 import {IssueTrackerActionDropdown} from 'sentry/components/group/externalIssuesList/issueTrackerActions';
 import {
+  getLinkedPullRequestActivityIds,
   LinkedPullRequests,
   useLinkedPullRequests,
 } from 'sentry/components/group/externalIssuesList/linkedPullRequests';
@@ -29,10 +30,11 @@ export function ExternalIssueSidebarList({event, group}: Props) {
   const externalIssueData = useGroupExternalIssues({group, event});
   const {data: linkedPullRequestsData, isPending: isLinkedPullRequestsLoading} =
     useLinkedPullRequests({group});
+  const hasLinkedPullRequestActivity = getLinkedPullRequestActivityIds(group).size > 0;
   const showEmptyIssueTrackerAction =
     hasLinkedPullRequestsFeature &&
     !externalIssueData.isLoading &&
-    !isLinkedPullRequestsLoading &&
+    !(hasLinkedPullRequestActivity && isLinkedPullRequestsLoading) &&
     externalIssueData.integrations.length > 0 &&
     externalIssueData.linkedIssues.length === 0 &&
     linkedPullRequestsData?.pullRequests.length === 0;

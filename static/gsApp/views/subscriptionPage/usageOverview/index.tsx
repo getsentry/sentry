@@ -63,7 +63,6 @@ export function UsageOverview({
             )
           : (metricHistory?.prepaid ?? 0) !== 0 ||
             !!metricHistory?.softCapType ||
-            (!!metricHistory && subscription.hasSoftCap) ||
             !!getActiveProductTrial(subscription.productTrials ?? null, dataCategory) ||
             (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED
               ? subscription.onDemandBudgets.sharedMaxBudget

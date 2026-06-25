@@ -38,13 +38,13 @@ RETURNS:
 - set_key -- str -- The key of the segment, used to look up member-keys index and identify the segment in the queue.
 - has_root_span -- bool -- Whether this segment contains a root span.
 - latency_ms -- number -- Milliseconds elapsed during script execution.
-- latency_table -- table -- Per-step latency measurements.
-- metrics_table -- table -- Per-step gauge metrics.
+- latency_table -- table -- Per-step latency measurements, flattened as [key1, value1, key2, value2, ...].
+- metrics_table -- table -- Per-step gauge metrics, flattened as [key1, value1, key2, value2, ...].
 - merged_segment_span_ids -- str[] -- Span ids of child segments merged into this segment. These were previously
                                       queued as their own segments, so they are the only stale queue entries the
                                       caller needs to remove.
 
-]]--
+]] --
 
 local project_and_trace = KEYS[1]
 
@@ -105,10 +105,19 @@ for i = 0, 100 do -- Theoretic maximum depth of redirects is 100
     set_span_id = new_set_span
 end
 
+-- latency_table and metrics_table are flattened lists of [key1, value1, key2, value2, ...]
+-- so that the result is a flat array that is trivial to parse in Python, rather than a list
+-- of nested {key, value} pair tables.
 local latency_table = {}
 local metrics_table = {}
-table.insert(metrics_table, {"redirect_table_size", redis.call("hlen", main_redirect_key)})
-table.insert(metrics_table, {"redirect_depth", redirect_depth})
+
+local function insert_metric(t, key, value)
+    table.insert(t, key)
+    table.insert(t, value)
+end
+
+insert_metric(metrics_table, "redirect_table_size", redis.call("hlen", main_redirect_key))
+insert_metric(metrics_table, "redirect_depth", redirect_depth)
 local set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, set_span_id)
 
 -- Reset the set expiry as we saw a new subsegment for this set
@@ -131,7 +140,7 @@ redis.call("hset", main_redirect_key, unpack(hset_args))
 redis.call("expire", main_redirect_key, set_timeout)
 
 local redirect_end_time_ms = get_time_ms()
-table.insert(latency_table, {"redirect_step_latency_ms", redirect_end_time_ms - start_time_ms})
+insert_metric(latency_table, "redirect_step_latency_ms", redirect_end_time_ms - start_time_ms)
 
 local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
 local ingested_byte_count = tonumber(redis.call("get", ingested_byte_count_key) or 0)
@@ -180,8 +189,8 @@ if segment_too_large or segment_locked then
     set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, salt)
     ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
 end
-table.insert(metrics_table, {"detached_segment_too_large", segment_too_large and 1 or 0})
-table.insert(metrics_table, {"detached_segment_locked", segment_locked and 1 or 0})
+insert_metric(metrics_table, "detached_segment_too_large", segment_too_large and 1 or 0)
+insert_metric(metrics_table, "detached_segment_locked", segment_locked and 1 or 0)
 
 local ingested_count_key = string.format("span-buf:ic:%s", set_key)
 local members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, set_span_id)
@@ -223,7 +232,7 @@ for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
 end
 
 local merge_payload_keys_end_time_ms = get_time_ms()
-table.insert(latency_table, {"merge_payload_keys_step_latency_ms", merge_payload_keys_end_time_ms - redirect_end_time_ms})
+insert_metric(latency_table, "merge_payload_keys_step_latency_ms", merge_payload_keys_end_time_ms - redirect_end_time_ms)
 
 redis.call("sadd", members_key, salt)
 redis.call("expire", members_key, set_timeout)
@@ -235,11 +244,11 @@ redis.call("expire", ingested_count_key, set_timeout)
 redis.call("expire", ingested_byte_count_key, set_timeout)
 
 local counter_merge_end_time_ms = get_time_ms()
-table.insert(latency_table, {"counter_merge_step_latency_ms", counter_merge_end_time_ms - merge_payload_keys_end_time_ms})
+insert_metric(latency_table, "counter_merge_step_latency_ms", counter_merge_end_time_ms - merge_payload_keys_end_time_ms)
 
 -- Capture end time and calculate latency in milliseconds
 local end_time_ms = get_time_ms()
 local latency_ms = end_time_ms - start_time_ms
-table.insert(latency_table, {"total_step_latency_ms", latency_ms})
+insert_metric(latency_table, "total_step_latency_ms", latency_ms)
 
 return {set_key, has_root_span, latency_ms, latency_table, metrics_table, merged_segment_span_ids}

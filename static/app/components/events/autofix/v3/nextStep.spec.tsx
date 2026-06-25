@@ -1,4 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,9 +8,12 @@ import type {
   AutofixSection,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {SeerDrawerNextStep} from './nextStep';
+
+jest.mock('sentry/utils/analytics');
 
 function makeAutofix(
   overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
@@ -109,6 +113,18 @@ describe('SeerDrawerNextStep', () => {
     const autofix = makeAutofix();
     const {container} = render(
       <SeerDrawerNextStep group={GroupFixture()} sections={[]} autofix={autofix} />
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('returns null while polling', () => {
+    const autofix = makeAutofix({isPolling: true});
+    const {container} = render(
+      <SeerDrawerNextStep
+        group={GroupFixture()}
+        sections={[makeSection('root_cause')]}
+        autofix={autofix}
+      />
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -501,6 +517,116 @@ describe('SeerDrawerNextStep', () => {
       expect(
         screen.queryByRole('button', {name: 'More code fix options'})
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('PullRequestNextStep', () => {
+    const prIterationOrganization = OrganizationFixture({
+      features: ['autofix-pr-iteration'],
+    });
+
+    function makePrIterationAutofix(
+      overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
+    ) {
+      return makeAutofix({
+        runState: {run_id: 1, blocks: []} as any,
+        ...overrides,
+      });
+    }
+
+    beforeEach(() => {
+      jest.mocked(trackAnalytics).mockClear();
+    });
+
+    it('returns null when the run is not valid for PR iteration', () => {
+      const autofix = makeAutofix({
+        runState: {run_id: 1, blocks: []} as any,
+      });
+      const {container} = render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('pull_request')]}
+          autofix={autofix}
+        />
+      );
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('renders the feedback prompt, textarea, and submit button', () => {
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('pull_request')]}
+          autofix={makePrIterationAutofix()}
+        />,
+        {organization: prIterationOrganization}
+      );
+      expect(
+        screen.getByText('Anything else you want to see on your PR?')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Submit'})).toBeDisabled();
+    });
+
+    it('submits feedback via startStep and tracks analytics', async () => {
+      const autofix = makePrIterationAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture({id: '123'})}
+          sections={[makeSection('pull_request')]}
+          autofix={autofix}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'Add a test for this');
+      await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+
+      expect(autofix.startStep).toHaveBeenCalledWith('pr_iteration', {
+        runId: 1,
+        userContext: 'Add a test for this',
+      });
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'autofix.pr_iteration.feedback',
+        expect.objectContaining({group_id: '123', mode: 'explorer'})
+      );
+    });
+
+    it('submits on Enter but not on Shift+Enter', async () => {
+      const autofix = makePrIterationAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('pull_request')]}
+          autofix={autofix}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      const textbox = screen.getByRole('textbox');
+      await userEvent.type(textbox, 'first line{Shift>}{Enter}{/Shift}');
+      expect(autofix.startStep).not.toHaveBeenCalled();
+
+      await userEvent.type(textbox, '{Enter}');
+      expect(autofix.startStep).toHaveBeenCalledWith(
+        'pr_iteration',
+        expect.objectContaining({userContext: expect.stringContaining('first line')})
+      );
+    });
+
+    it('does not submit when feedback is empty', async () => {
+      const autofix = makePrIterationAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('pull_request')]}
+          autofix={autofix}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), '{Enter}');
+      expect(autofix.startStep).not.toHaveBeenCalled();
     });
   });
 });

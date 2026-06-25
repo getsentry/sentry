@@ -51,25 +51,71 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "number": ["span.duration"],
             },
             "built_in_fields": [
-                {"key": "id", "type": "string"},
-                {"key": "project", "type": "string"},
-                {"key": "span.description", "type": "string"},
-                {"key": "span.op", "type": "string"},
-                {"key": "timestamp", "type": "string"},
-                {"key": "transaction", "type": "string"},
-                {"key": "trace", "type": "string"},
-                {"key": "is_transaction", "type": "string"},
-                {"key": "sentry.normalized_description", "type": "string"},
-                {"key": "release", "type": "string"},
-                {"key": "project.id", "type": "string"},
-                {"key": "sdk.name", "type": "string"},
-                {"key": "sdk.version", "type": "string"},
-                {"key": "span.system", "type": "string"},
-                {"key": "span.category", "type": "string"},
-                {"key": "span.duration", "type": "number"},
-                {"key": "span.self_time", "type": "number"},
+                {"key": "id", "type": "string", "context": None},
+                {"key": "project", "type": "string", "context": None},
+                {"key": "span.description", "type": "string", "context": None},
+                {"key": "span.op", "type": "string", "context": None},
+                {"key": "timestamp", "type": "string", "context": None},
+                {"key": "transaction", "type": "string", "context": None},
+                {"key": "trace", "type": "string", "context": None},
+                {"key": "is_transaction", "type": "string", "context": None},
+                {"key": "sentry.normalized_description", "type": "string", "context": None},
+                {"key": "release", "type": "string", "context": None},
+                {"key": "project.id", "type": "string", "context": None},
+                {"key": "sdk.name", "type": "string", "context": None},
+                {"key": "sdk.version", "type": "string", "context": None},
+                {"key": "span.system", "type": "string", "context": None},
+                {"key": "span.category", "type": "string", "context": None},
+                {"key": "span.duration", "type": "number", "context": None},
+                {"key": "span.self_time", "type": "number", "context": None},
             ],
         }
+
+    def test_get_attribute_names_with_context(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+        )
+
+        with self.feature(
+            [
+                "organizations:visibility-explore-view",
+                "organizations:data-browsing-attribute-context",
+            ]
+        ):
+            result = get_attribute_names(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                stats_period="7d",
+                include_context=True,
+            )
+
+        built_in_by_key = {field.key: field for field in result.built_in_fields}
+
+        # A deprecated built-in attribute surfaces its conventions context,
+        # including the replacement attribute.
+        transaction_context = built_in_by_key["transaction"].context
+        assert transaction_context is not None
+        assert transaction_context["isDeprecated"] is True
+        assert transaction_context["replacementAttribute"] == "sentry.segment.name"
+        assert transaction_context["brief"]
+
+        # Built-in fields that aren't returned by the public endpoint (e.g. no
+        # data for them) carry no context.
+        assert built_in_by_key["span.self_time"].context is None
+
+        # Context is either None or populated, never an empty dict (the endpoint
+        # attaches an empty context to attributes without convention metadata).
+        for field in result.built_in_fields:
+            assert field.context is None or field.context != {}
 
     def test_get_attribute_values_with_substring(self) -> None:
         for transaction in ["foo", "bar", "baz"]:

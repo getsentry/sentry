@@ -270,6 +270,7 @@ def get_autofix_agent_client(
     reasoning_effort: Literal["low", "medium", "high"] | None = None,
     enable_coding: bool = False,
     code_review_enabled: bool = False,
+    enable_pr_context_tools: bool = False,
 ) -> SeerAgentClient:
     from sentry.seer.autofix.on_completion_hook import (
         AutofixOnCompletionHook,  # nested to avoid circular import
@@ -287,6 +288,7 @@ def get_autofix_agent_client(
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=enable_coding,
         code_review_enabled=code_review_enabled,
+        enable_pr_context_tools=enable_pr_context_tools,
     )
 
 
@@ -420,6 +422,7 @@ def trigger_autofix_agent(
     )
 
     pr_iteration_enabled = features.has("organizations:autofix-pr-iteration", group.organization)
+    is_iteration_step = step == AutofixStep.PR_ITERATION
 
     client = get_autofix_agent_client(
         group,
@@ -427,17 +430,21 @@ def trigger_autofix_agent(
         reasoning_effort=resolved_reasoning_effort,
         enable_coding=config.enable_coding,
         code_review_enabled=_code_review_enabled(group.organization),
+        enable_pr_context_tools=is_iteration_step,
     )
+
     run_state: SeerRunState | None = None
     if run_id is not None:
         run_state = _get_group_run_state(client, group, run_id)
 
     iteration_index: int | None = None
-    if step == AutofixStep.PR_ITERATION:
+    if is_iteration_step:
         if not pr_iteration_enabled:
             raise PrIterationNotEnabledException()
+
         if run_state is None or not run_state.repo_pr_states:
             raise PrIterationNoPullRequestException()
+
         if insert_index is not None:
             iteration_index = get_iteration_for_insert_index(run_state, insert_index)
         else:
@@ -604,6 +611,7 @@ def generate_autofix_handoff_prompt(
     state: SeerRunState,
     instruction: str | None = None,
     short_id: str | None = None,
+    issue_url: str | None = None,
 ) -> str:
     """
     Generate a prompt for coding agents from autofix run state.
@@ -614,7 +622,12 @@ def generate_autofix_handoff_prompt(
     parts = ["Please fix the following issue. Ensure that your fix is fully working."]
 
     if short_id:
-        parts.append(f"Include 'Fixes {short_id}' in the commit message.")
+        if issue_url:
+            parts.append(
+                f"Include 'Fixes [{short_id}]({issue_url})' in the commit message and PR description."
+            )
+        else:
+            parts.append(f"Include 'Fixes {short_id}' in the commit message.")
 
     if instruction and instruction.strip():
         parts.append(instruction.strip())
@@ -755,8 +768,9 @@ def trigger_coding_agent_handoff(
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
 
     short_id = group.qualified_short_id
+    issue_url = group.get_absolute_url() if short_id else None
 
-    prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
+    prompt = generate_autofix_handoff_prompt(state, short_id=short_id, issue_url=issue_url)
 
     coding_agents = client.launch_coding_agents(
         run_id=run_id,
@@ -768,6 +782,7 @@ def trigger_coding_agent_handoff(
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
         issue_short_id=short_id,
+        issue_url=issue_url,
     )
 
     coding_agent_name = _resolve_coding_agent_name(group.organization.id, integration_id, provider)

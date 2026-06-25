@@ -83,8 +83,9 @@ def test_subsegment_exposes_span_metadata() -> None:
 
 def test_evalsha_result_from_redis_result() -> None:
     segment_key = _segment_id(1, "a" * 32, "b" * 16)
-    latency_metrics = [(b"operation", 12.0)]
-    gauge_metrics = [(b"gauge", 3.0)]
+    # The Lua script returns flattened [key1, value1, key2, value2, ...] lists.
+    latency_metrics = [b"operation", 12.0, b"another", 5.0]
+    gauge_metrics = [b"gauge", 3.0]
     merged_segment_span_ids = [b"c" * 16]
 
     result = EvalshaResult.from_redis_result(
@@ -95,8 +96,8 @@ def test_evalsha_result_from_redis_result() -> None:
         segment_key=segment_key,
         has_root_span=True,
         latency_ms=15,
-        latency_metrics=latency_metrics,
-        gauge_metrics=gauge_metrics,
+        latency_metrics=[(b"operation", 12.0), (b"another", 5.0)],
+        gauge_metrics=[(b"gauge", 3.0)],
         merged_segment_span_ids=merged_segment_span_ids,
     )
 

@@ -17,6 +17,8 @@ export interface OAuthCallbackData {
 interface OAuthLoginStepProps {
   onOAuthCallback: (data: OAuthCallbackData) => void;
   serviceName: string;
+  /** Overrides the default intro copy */
+  description?: string;
   isLoading?: boolean;
   oauthUrl?: string;
   popup?: PopupOptions;
@@ -28,6 +30,7 @@ export function OAuthLoginStep({
   serviceName,
   onOAuthCallback,
   popup,
+  description,
 }: OAuthLoginStepProps) {
   const handleCallback = useCallback(
     (raw: Record<string, string>) => {
@@ -47,10 +50,11 @@ export function OAuthLoginStep({
     <Stack gap="lg" align="start">
       <Stack gap="sm">
         <Text>
-          {tct(
-            'Authorize your [service] account with Sentry to complete the integration setup.',
-            {service: serviceName}
-          )}
+          {description ??
+            tct(
+              'Authorize your [service] account with Sentry to complete the integration setup.',
+              {service: serviceName}
+            )}
         </Text>
         {popupStatus === 'popup-open' && (
           <Text variant="muted" size="sm">

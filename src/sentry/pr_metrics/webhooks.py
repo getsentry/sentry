@@ -43,15 +43,22 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.pr_metrics.activity_types import (
     AssignedPayload,
+    AutoMergeDisabledPayload,
+    AutoMergeEnabledPayload,
+    CheckRunCompletedPayload,
+    CheckSuiteCompletedPayload,
     ClosedPayload,
     CommentCreatedPayload,
     CommentEditedPayload,
     ConvertedToDraftPayload,
+    DequeuedPayload,
     EditedPayload,
+    EnqueuedPayload,
     LabeledPayload,
     OpenedPayload,
     ReadyForReviewPayload,
     ReopenedPayload,
+    ReviewDismissedPayload,
     ReviewRequestedPayload,
     ReviewRequestRemovedPayload,
     ReviewSubmittedPayload,
@@ -93,6 +100,10 @@ _ACTIVITY_ACTIONS = frozenset(
         "ready_for_review",
         "assigned",
         "unassigned",
+        "auto_merge_enabled",
+        "auto_merge_disabled",
+        "enqueued",
+        "dequeued",
     }
 )
 
@@ -111,6 +122,10 @@ _ACTION_TO_ACTIVITY_TYPE: dict[str, PullRequestActivityType] = {
     "ready_for_review": PullRequestActivityType.READY_FOR_REVIEW,
     "assigned": PullRequestActivityType.ASSIGNED,
     "unassigned": PullRequestActivityType.UNASSIGNED,
+    "auto_merge_enabled": PullRequestActivityType.AUTO_MERGE_ENABLED,
+    "auto_merge_disabled": PullRequestActivityType.AUTO_MERGE_DISABLED,
+    "enqueued": PullRequestActivityType.ENQUEUED,
+    "dequeued": PullRequestActivityType.DEQUEUED,
 }
 
 
@@ -133,7 +148,7 @@ def handle_attribution(
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    pr = _get_pull_request(organization, repo, pull_request)
+    pr = _get_pull_request(organization, repo, pull_request, kwargs.get("github_delivery_id"))
     if pr is None:
         return
 
@@ -205,6 +220,7 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
             "pr_metrics.emit.needs_judge",
             extra={
                 "organization_id": organization.id,
+                "repository_id": pr.repository_id,
                 "pull_request_id": pr.id,
                 "reason": "no_seer_access",
             },
@@ -221,6 +237,7 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
             "pr_metrics.emit.needs_judge",
             extra={
                 "organization_id": organization.id,
+                "repository_id": pr.repository_id,
                 "pull_request_id": pr.id,
                 "reason": "not_agent_attribution",
             },
@@ -233,6 +250,7 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
             "pr_metrics.emit.needs_judge",
             extra={
                 "organization_id": organization.id,
+                "repository_id": pr.repository_id,
                 "pull_request_id": pr.id,
                 "reason": "blocked_by_flag",
             },
@@ -257,7 +275,14 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
             pull_request=pr, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
         ).update(verdict=None)
         metrics.incr("pr_metrics.judge.enqueue_failed")
-        logger.exception("pr_metrics.judge.enqueue_failed", extra={"pull_request_id": pr.id})
+        logger.exception(
+            "pr_metrics.judge.enqueue_failed",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": pr.repository_id,
+                "pull_request_id": pr.id,
+            },
+        )
         return
     metrics.incr("pr_metrics.judge.enqueued")
 
@@ -291,7 +316,9 @@ def handle_emission(
     if not features.has("organizations:pr-metrics-emit", organization):
         return
 
-    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    pr = _get_pull_request(
+        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+    )
     if pr is None:
         return
 
@@ -340,7 +367,7 @@ def handle_metrics(
     if not features.has("organizations:pr-metrics-emit", organization):
         return
 
-    pr = _get_pull_request(organization, repo, pull_request)
+    pr = _get_pull_request(organization, repo, pull_request, kwargs.get("github_delivery_id"))
     if pr is None:
         return
 
@@ -365,7 +392,7 @@ def handle_activity(
     if not action or action not in _ACTIVITY_ACTIONS:
         return
 
-    pr = _get_pull_request(organization, repo, pull_request_data)
+    pr = _get_pull_request(organization, repo, pull_request_data, kwargs.get("github_delivery_id"))
     if pr is None:
         return
 
@@ -401,6 +428,7 @@ def handle_comment(
     if not issue.get("pull_request"):
         return
 
+    webhook_id: str | None = kwargs.get("github_delivery_id")
     try:
         pr = PullRequest.objects.get(
             organization_id=organization.id,
@@ -409,8 +437,15 @@ def handle_comment(
         )
     except PullRequest.DoesNotExist:
         logger.warning(
-            "github.pr_metrics.comment.pr_not_found",
-            extra={"repository_id": repo.id, "issue_number": issue["number"]},
+            "pr_metrics.comment.pr_not_found",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": repo.id,
+                "repo_name": repo.name,
+                "pr_number": issue["number"],
+                "action": action,
+                "github_delivery_id": webhook_id,
+            },
         )
         return
 
@@ -432,7 +467,6 @@ def handle_comment(
             author_association=comment.get("author_association", "NONE"),
         )
 
-    webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
 
@@ -448,34 +482,52 @@ def handle_review(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record a submitted PR review (approved / changes_requested / commented)."""
+    """Record a PR review event.
+
+    ``submitted`` captures the review state (approved / changes_requested /
+    commented); ``dismissed`` captures an approval or changes-request being
+    undone — review signal the comment judge can use. Other actions are ignored.
+    """
     action = event.get("action")
-    if action != "submitted":
+    if action not in ("submitted", "dismissed"):
         return
 
     if not is_activity_tracking_enabled(organization):
         return
 
-    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    pr = _get_pull_request(
+        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+    )
     if pr is None:
         return
 
     review = event.get("review") or {}
     sender = event.get("sender") or {}
-    payload = asdict(
-        ReviewSubmittedPayload(
-            action=action,
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            review_state=review.get("state", ""),
-            review_id=review.get("id", 0),
+    if action == "submitted":
+        event_type = PullRequestActivityType.REVIEW_SUBMITTED
+        payload = asdict(
+            ReviewSubmittedPayload(
+                action=action,
+                sender_login=sender.get("login", ""),
+                sender_type=sender.get("type", ""),
+                review_state=review.get("state", ""),
+                review_id=review.get("id", 0),
+            )
         )
-    )
+    else:
+        event_type = PullRequestActivityType.REVIEW_DISMISSED
+        payload = asdict(
+            ReviewDismissedPayload(
+                sender_login=sender.get("login", ""),
+                sender_type=sender.get("type", ""),
+                review_id=review.get("id", 0),
+            )
+        )
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, PullRequestActivityType.REVIEW_SUBMITTED, payload)
+    _write_activity_row(pr, webhook_id, event_type, payload)
 
 
 def handle_review_comment(
@@ -495,7 +547,9 @@ def handle_review_comment(
     if not is_activity_tracking_enabled(organization):
         return
 
-    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    pr = _get_pull_request(
+        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+    )
     if pr is None:
         return
 
@@ -544,7 +598,9 @@ def handle_review_thread(
     if not is_activity_tracking_enabled(organization):
         return
 
-    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    pr = _get_pull_request(
+        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+    )
     if pr is None:
         return
 
@@ -572,14 +628,128 @@ def handle_review_thread(
     _write_activity_row(pr, webhook_id, event_type, payload)
 
 
+def handle_check_suite(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Record the aggregate CI outcome from a completed check_suite event.
+
+    Only ``completed`` carries a conclusion; ``requested``/``rerequested`` are
+    ignored. The suite's ``pull_requests`` array lists the same-repo PRs the run
+    pertains to (empty for fork PRs) — one activity row is written per PR.
+    """
+    if event.get("action") != "completed":
+        return
+
+    if not is_activity_tracking_enabled(organization):
+        return
+
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
+
+    check_suite = event.get("check_suite") or {}
+    sender = event.get("sender") or {}
+    app = check_suite.get("app") or {}
+    payload = asdict(
+        CheckSuiteCompletedPayload(
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            head_sha=check_suite.get("head_sha"),
+            conclusion=check_suite.get("conclusion") or "",
+            app_slug=app.get("slug", ""),
+            check_runs_count=check_suite.get("latest_check_runs_count") or 0,
+        )
+    )
+
+    for pr in _prs_from_check_payload(organization, repo, check_suite, webhook_id):
+        _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload)
+
+
+def handle_check_run(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Record an individual CI check outcome from a completed check_run event.
+
+    Per-check granularity beneath ``check_suite``; only ``completed`` carries a
+    conclusion. ``check_run.pull_requests`` resolves the affected same-repo PRs.
+    """
+    if event.get("action") != "completed":
+        return
+
+    if not is_activity_tracking_enabled(organization):
+        return
+
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
+
+    check_run = event.get("check_run") or {}
+    sender = event.get("sender") or {}
+    app = check_run.get("app") or {}
+    payload = asdict(
+        CheckRunCompletedPayload(
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            head_sha=check_run.get("head_sha"),
+            check_name=check_run.get("name", ""),
+            conclusion=check_run.get("conclusion") or "",
+            app_slug=app.get("slug", ""),
+        )
+    )
+
+    for pr in _prs_from_check_payload(organization, repo, check_run, webhook_id):
+        _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload)
+
+
+def _prs_from_check_payload(
+    organization: Organization,
+    repo: Repository,
+    container: Mapping[str, Any],
+    webhook_id: str,
+) -> list[PullRequest]:
+    """Resolve the tracked PRs a check_suite/check_run payload references.
+
+    Both events carry a ``pull_requests`` array of same-repo PR refs (empty for
+    fork PRs, and a suite can span more than one PR). Numbers are deduped before
+    resolving each to its stored row; unknown PRs are dropped by ``_get_pull_request``.
+    """
+    seen: set[str] = set()
+    prs: list[PullRequest] = []
+    for ref in container.get("pull_requests") or ():
+        number = ref.get("number")
+        if number is None or str(number) in seen:
+            continue
+        seen.add(str(number))
+        pr = _get_pull_request(organization, repo, {"number": number}, webhook_id)
+        if pr is not None:
+            prs.append(pr)
+    return prs
+
+
 def _get_pull_request(
-    organization: Organization, repo: Repository, pull_request: dict[str, Any] | None
+    organization: Organization,
+    repo: Repository,
+    pull_request: dict[str, Any] | None,
+    github_delivery_id: str | None = None,
 ) -> PullRequest | None:
     """Resolve the canonical PullRequest row for a webhook payload, or None.
 
     Returns None when the event carries no pull_request. Otherwise the row is
     upserted by ``PullRequestEventWebhook._handle`` before processors run, so a
-    miss is unexpected — log it and let the caller bail.
+    miss is unexpected — log it (with the delivery id, to pull the raw payload)
+    and let the caller bail.
     """
     if not pull_request:
         return None
@@ -591,8 +761,14 @@ def _get_pull_request(
         )
     except PullRequest.DoesNotExist:
         logger.warning(
-            "github.pr_metrics.pr_not_found",
-            extra={"repository_id": repo.id, "pr_number": pull_request["number"]},
+            "pr_metrics.pr_not_found",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": repo.id,
+                "repo_name": repo.name,
+                "pr_number": pull_request["number"],
+                "github_delivery_id": github_delivery_id,
+            },
         )
         return None
 
@@ -833,5 +1009,18 @@ def _build_activity_payload(
             return asdict(ConvertedToDraftPayload(**base_kw))
         case "ready_for_review":
             return asdict(ReadyForReviewPayload(**base_kw))
+        case "auto_merge_enabled":
+            auto_merge = pull_request.get("auto_merge") or {}
+            return asdict(
+                AutoMergeEnabledPayload(
+                    **base_kw, merge_method=auto_merge.get("merge_method") or ""
+                )
+            )
+        case "auto_merge_disabled":
+            return asdict(AutoMergeDisabledPayload(**base_kw))
+        case "enqueued":
+            return asdict(EnqueuedPayload(**base_kw))
+        case "dequeued":
+            return asdict(DequeuedPayload(**base_kw, reason=event.get("reason") or ""))
         case _:
             raise ValueError(f"No payload builder for action {action!r}")
