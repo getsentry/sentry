@@ -80,25 +80,26 @@ export function IntegrationRow(props: Props) {
       return publishStatus !== 'published' && <PublishStatus status={publishStatus} />;
     }
     // TODO: Use proper translations
-    return configurations > 0 ? (
-      <StyledLink to={`${baseUrl}?tab=configurations`}>{`${configurations} Configuration${
-        configurations > 1 ? 's' : ''
-      }`}</StyledLink>
-    ) : null;
+    if (configurations <= 0) {
+      return null;
+    }
+    return (
+      <>
+        <StyledLink to={`${baseUrl}?tab=configurations`}>{`${configurations} Configuration${
+          configurations > 1 ? 's' : ''
+        }`}</StyledLink>
+        {disabledConfigurations && disabledConfigurations > 0 ? (
+          <DisabledTag variant="warning">
+            {disabledConfigurations === 1
+              ? t('1 disabled')
+              : t('%s disabled', disabledConfigurations)}
+          </DisabledTag>
+        ) : null}
+      </>
+    );
   };
 
   const renderStatus = () => {
-    // If any configs are disabled, surface a warning badge regardless of the overall
-    // provider status (which can still read 'Installed' when some configs are active).
-    if (disabledConfigurations && disabledConfigurations > 0) {
-      return (
-        <Tag variant="warning">
-          {disabledConfigurations === 1
-            ? t('1 Disabled')
-            : t('%s Disabled', disabledConfigurations)}
-        </Tag>
-      );
-    }
     // status should be undefined for document integrations
     if (status) {
       return <IntegrationStatus status={status} />;
@@ -212,4 +213,8 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
 const ResolveNowButton = styled(LinkButton)`
   color: ${p => p.theme.tokens.content.secondary};
   float: right;
+`;
+
+const DisabledTag = styled(Tag)`
+  margin-left: ${p => p.theme.space.xs};
 `;
