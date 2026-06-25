@@ -1,8 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import {motion} from 'framer-motion';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
@@ -10,8 +11,8 @@ import {
   platformProductAvailability,
 } from 'sentry/components/onboarding/productSelection';
 import {PLATFORM_PRODUCT_INFO} from 'sentry/data/platformProductInfo.generated';
-import {IconBusiness} from 'sentry/icons';
-import {tct} from 'sentry/locale';
+import {IconBusiness, IconInfo} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -161,14 +162,17 @@ export function ScmFeatureSelectionPanel({
     ]
   );
 
-  if (featureMode === 'none') {
+  if (featureMode === 'none' && isOnboarding) {
     return null;
   }
 
   return (
     <MotionStack layout="position" width="100%">
-      <Stack gap="2xl" paddingTop="xs">
-        {isOnboarding && (
+      <Stack
+        gap={isOnboarding ? '2xl' : 'lg'}
+        paddingTop={isOnboarding ? 'xs' : undefined}
+      >
+        {isOnboarding ? (
           <Flex
             padding="lg"
             background="secondary"
@@ -190,7 +194,21 @@ export function ScmFeatureSelectionPanel({
               )}
             </Text>
           </Flex>
+        ) : null}
+
+        {isOnboarding ? null : (
+          <Flex justify="between" align="center" gap="md">
+            <Heading as="h4">{t('Products')}</Heading>
+            {currentPlatformKey ? null : (
+              <Tag variant="muted" icon={<IconInfo />} style={{minWidth: 0}}>
+                <Text ellipsis variant="inherit">
+                  {t('Select a platform to configure products')}
+                </Text>
+              </Tag>
+            )}
+          </Flex>
         )}
+
         {featureMode === 'toggleable' ? (
           <ScmFeatureSelectionCards
             availableFeatures={availableFeatures}
@@ -199,18 +217,18 @@ export function ScmFeatureSelectionPanel({
             onToggleFeature={handleToggleFeature}
             featureMeta={featureMeta}
             isVolumeLoading={isFeatureMetaLoading}
-            showVolume={isOnboarding}
+            isOnboarding={isOnboarding}
           />
-        ) : (
+        ) : featureMode === 'informational' ? (
           <ScmFeatureInfoCards
             availableFeatures={availableFeatures}
             disabledProducts={disabledProducts}
             featureMeta={featureMeta}
             platformName={currentPlatformName}
             isVolumeLoading={isFeatureMetaLoading}
-            showVolume={isOnboarding}
+            isOnboarding={isOnboarding}
           />
-        )}
+        ) : null}
       </Stack>
     </MotionStack>
   );

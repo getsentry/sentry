@@ -101,11 +101,11 @@ describe('ScmCreateProject', () => {
   it('shows all steps with the Create CTA disabled on a fresh visit', async () => {
     render(<ScmCreateProject />, {organization});
 
-    // All sections render up front (no progressive disclosure).
-    expect(
-      await screen.findByRole('heading', {name: 'Platform & features'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Project details'})).toBeInTheDocument();
+    // All sections render up front (no progressive disclosure): the repository,
+    // platform, and project-details sections are all present at once.
+    expect(await screen.findByRole('heading', {name: 'Repository'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Platform'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Project name'})).toBeInTheDocument();
 
     // Nothing is filled in yet, so the primary action stays disabled.
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
@@ -135,7 +135,7 @@ describe('ScmCreateProject', () => {
     });
 
     expect(
-      await screen.findByRole('heading', {name: 'Project details'})
+      await screen.findByRole('heading', {name: 'Project name'})
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
   });

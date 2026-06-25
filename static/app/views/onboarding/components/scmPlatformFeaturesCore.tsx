@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -76,6 +76,7 @@ export function ScmPlatformFeaturesCore({
   selectedPlatform,
   selectedRepository,
 }: ScmPlatformFeaturesCoreProps) {
+  const isOnboarding = analyticsFlow === 'onboarding';
   const {openModal} = useModal();
   const organization = useOrganization();
 
@@ -97,11 +98,11 @@ export function ScmPlatformFeaturesCore({
     // Onboarding views this as a discrete step. Single-view project creation
     // shows all sections at once and fires one page-viewed event in
     // scmCreateProject, so suppress the per-section step_viewed there.
-    if (analyticsFlow !== 'onboarding') {
+    if (!isOnboarding) {
       return;
     }
     trackAnalytics('onboarding.scm_platform_features_step_viewed', {organization});
-  }, [organization, analyticsFlow]);
+  }, [organization, isOnboarding]);
 
   const setPlatform = useCallback(
     (platformKey: PlatformKey) => {
@@ -203,7 +204,7 @@ export function ScmPlatformFeaturesCore({
               applyPlatformSelection(baseSdk);
               closeModal();
             }}
-            newOrg={analyticsFlow === 'onboarding'}
+            newOrg={isOnboarding}
             hasScmOnboarding
             analyticsFlow={analyticsFlow}
           />
@@ -311,9 +312,7 @@ export function ScmPlatformFeaturesCore({
       <Flex justify="between" align="center">
         <Flex align="center" gap="sm">
           <IconBroadcast size="sm" />
-          <Text bold size="md" density="comfortable">
-            {t('Auto-detected from your repository')}
-          </Text>
+          <Heading as="h4">{t('Auto-detected from your repository')}</Heading>
         </Flex>
         <Button size="xs" variant="link" onClick={handleChangePlatformClick}>
           {isDetecting
@@ -330,10 +329,10 @@ export function ScmPlatformFeaturesCore({
           <Grid
             columns={{
               xs: '1fr',
-              md: `repeat(${resolvedPlatforms.length}, minmax(200px, 1fr))`,
+              md: `repeat(${resolvedPlatforms.length}, .5fr)`,
             }}
             width="100%"
-            justify="center"
+            justify="start"
             gap="md"
             role="radiogroup"
           >
@@ -359,11 +358,16 @@ export function ScmPlatformFeaturesCore({
       initial={{opacity: 0}}
       animate={{opacity: 1}}
     >
-      <Flex justify="between" align="center">
-        <Flex align="center" gap="sm">
-          <Text bold size="md" density="comfortable">
-            {t('Select a platform')}
-          </Text>
+      <Flex justify="between" align="end">
+        <Flex gap="sm" direction={isOnboarding ? undefined : 'column'}>
+          <Heading as="h4">
+            {isOnboarding ? t('Select a platform') : t('Platform')}
+          </Heading>
+          {isOnboarding ? null : (
+            <Text variant="secondary" density="comfortable" size="sm">
+              {t('Determines your SDK and available monitoring features')}
+            </Text>
+          )}
         </Flex>
         {hasScmConnected && !isDetectionError && hasDetectedPlatforms && (
           <Button size="xs" variant="link" onClick={handleBackToRecommended}>

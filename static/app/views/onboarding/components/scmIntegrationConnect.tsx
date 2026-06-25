@@ -191,13 +191,7 @@ export function ScmIntegrationConnect({
       maxWidth={maxWidth}
       paddingTop={allowIntegrationSwitching ? undefined : '2xl'}
     >
-      {allowIntegrationSwitching ? (
-        <ScmIntegrationSelect
-          integrations={activeIntegrations}
-          selectedIntegration={effectiveIntegration}
-          onChange={handleIntegrationSelect}
-        />
-      ) : (
+      {allowIntegrationSwitching ? null : (
         <Text bold size="sm" density="compressed" uppercase>
           {t(
             'Connected to %s / %s',
@@ -206,13 +200,27 @@ export function ScmIntegrationConnect({
           )}
         </Text>
       )}
-      <ScmRepoSelector
-        analyticsFlow={analyticsFlow}
-        integration={effectiveIntegration}
-        selectedRepository={selectedRepository}
-        onRepositoryChange={onRepositoryChange}
-        onClearDerivedState={onClearDerivedState}
-      />
+      <Flex
+        direction={{sm: 'column-reverse', md: 'row'}}
+        width="100%"
+        gap="md"
+        align={{sm: 'start', md: 'center'}}
+      >
+        <ScmRepoSelector
+          analyticsFlow={analyticsFlow}
+          integration={effectiveIntegration}
+          selectedRepository={selectedRepository}
+          onRepositoryChange={onRepositoryChange}
+          onClearDerivedState={onClearDerivedState}
+        />
+        {allowIntegrationSwitching ? (
+          <ScmIntegrationSelect
+            integrations={activeIntegrations}
+            selectedIntegration={effectiveIntegration}
+            onChange={handleIntegrationSelect}
+          />
+        ) : null}
+      </Flex>
     </MotionStack>
   ) : (
     <MotionStack key="without-integration" gap="2xl" width="100%" maxWidth={maxWidth}>
