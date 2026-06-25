@@ -178,6 +178,18 @@ class ConfigOptionsTest(CliTestCase):
         assert value == 1e-05
         assert isinstance(value, float)
 
+    def test_yaml_input_is_accepted(self) -> None:
+        # Hand-authored YAML (e.g. the local flagpole devloop) is not valid JSON,
+        # so it must fall back to the YAML parser.
+        rv = self.invoke(
+            "patch",
+            input="options:\n  int_option: 40\n  str_option: 'new value'\n",
+        )
+
+        assert rv.exit_code == 0, rv.output
+        assert options.get("int_option") == 40
+        assert options.get("str_option") == "new value"
+
     def test_sync(self) -> None:
         rv = self.invoke(
             "-f",
