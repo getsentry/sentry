@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 
 from django.db.models import Prefetch, Q, prefetch_related_objects
 from rest_framework import serializers
@@ -113,7 +113,7 @@ class RuleSerializerResponse(RuleSerializerResponseOptional):
     name: str
     dateCreated: datetime
     projects: list[str]
-    status: str
+    status: Literal["active", "disabled"]
     snooze: bool
 
 
