@@ -319,20 +319,6 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             return None
         return ClaudeCodeIntegrationMetadata.parse_obj(fresh.metadata or {})
 
-    def get_vault_id_for_installation(self, installation_id: int) -> str | None:
-        metadata = self._read_fresh_metadata()
-        if metadata is None:
-            return None
-        return metadata.installation_vault_ids.get(str(installation_id))
-
-    def set_vault_id_for_installation(self, installation_id: int, vault_id: str) -> None:
-        with self._vault_metadata_lock().acquire():
-            metadata = self._read_fresh_metadata()
-            if metadata is None:
-                return
-            metadata.installation_vault_ids[str(installation_id)] = vault_id
-            self._persist_metadata(metadata)
-
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         with self._vault_metadata_lock().acquire():
             metadata = self._read_fresh_metadata()
@@ -411,6 +397,25 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
                     extra={"vault_id": vault_id, "integration_id": self.model.id},
                 )
 
+    def _sync_client_ids(self, client: Any) -> None:
+        """Persist environment/agent IDs the client resolved during launch."""
+        stale = self._get_metadata()
+        env_changed = client.environment_id and client.environment_id != stale.environment_id
+        agent_changed = client.agent_id and client.agent_id != stale.agent_id
+        if not env_changed and not agent_changed:
+            return
+
+        with self._vault_metadata_lock().acquire():
+            metadata = self._read_fresh_metadata()
+            if metadata is None:
+                return
+            if env_changed:
+                metadata.environment_id = client.environment_id
+            if agent_changed:
+                metadata.agent_id = client.agent_id
+                metadata.agent_version = client.agent_version
+            self._persist_metadata(metadata)
+
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent and persist resolved environment/agent IDs."""
         webhook_url = self.get_webhook_url()
@@ -420,24 +425,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         state = client.launch(webhook_url=webhook_url, request=request, vault_id=vault_id)
         state.integration_id = self.model.id
 
-        with self._vault_metadata_lock().acquire():
-            metadata = self._read_fresh_metadata()
-            if metadata is None:
-                return state
-            metadata_changed = False
-
-            if client.environment_id and client.environment_id != metadata.environment_id:
-                metadata.environment_id = client.environment_id
-                metadata_changed = True
-
-            if client.agent_id and client.agent_id != metadata.agent_id:
-                metadata.agent_id = client.agent_id
-                metadata.agent_version = client.agent_version
-                metadata_changed = True
-
-            if metadata_changed:
-                self._persist_metadata(metadata)
-
+        self._sync_client_ids(client)
         return state
 
     @property

@@ -395,6 +395,17 @@ def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None
     if integration_id in clients:
         return clients[integration_id]
 
+    org_integration = integration_service.get_organization_integration(
+        organization_id=org_id,
+        integration_id=integration_id,
+    )
+    if not org_integration:
+        logger.warning(
+            "coding_agent.claude_code.integration_not_found",
+            extra={"organization_id": org_id, "integration_id": integration_id},
+        )
+        return None
+
     integration = integration_service.get_integration(integration_id=integration_id)
     if not integration:
         logger.warning(

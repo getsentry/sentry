@@ -412,55 +412,6 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert fields["workspace_is_default"]["type"] == "boolean"
         assert "workspace_name" not in fields
 
-    # ── installation_vault_ids helpers ───────────────────────────────
-
-    def test_installation_vault_ids_default_empty(self) -> None:
-        installation = self._create_installation()
-        assert installation.get_vault_id_for_installation(42) is None
-
-    def test_installation_vault_ids_round_trip(self) -> None:
-        installation = self._create_installation(
-            installation_vault_ids={"42": "vault_pre"},
-        )
-        assert installation.get_vault_id_for_installation(42) == "vault_pre"
-
-    def test_set_vault_id_for_installation_writes_metadata(self) -> None:
-        installation = self._create_installation()
-
-        installation.set_vault_id_for_installation(42, "vault_abc")
-
-        assert installation.get_vault_id_for_installation(42) == "vault_abc"
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.get(id=installation.model.id)
-        assert integration.metadata["installation_vault_ids"] == {"42": "vault_abc"}
-
-    def test_set_vault_id_for_installation_merges_concurrent_writer(self) -> None:
-        installation = self._create_installation()
-
-        original_read = installation._read_fresh_metadata
-
-        def read_with_concurrent_writer():
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                Integration.objects.filter(id=installation.model.id).update(
-                    metadata={
-                        **installation.model.metadata,
-                        "installation_vault_ids": {"99": "vault_other"},
-                    }
-                )
-            return original_read()
-
-        with patch.object(
-            installation, "_read_fresh_metadata", side_effect=read_with_concurrent_writer
-        ):
-            installation.set_vault_id_for_installation(42, "vault_mine")
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.get(id=installation.model.id)
-        assert integration.metadata["installation_vault_ids"] == {
-            "99": "vault_other",
-            "42": "vault_mine",
-        }
-
     # ── uninstall ────────────────────────────────────────────────────
 
     def test_uninstall_archives_each_vault_and_clears_metadata(self) -> None:
@@ -509,7 +460,10 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         mock_cls, mock_client = _mock_client_class()
 
         def archive_with_concurrent_write(vault_id):
-            installation.set_vault_id_for_installation(99, "vault_new")
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                fresh = Integration.objects.get(id=installation.model.id)
+                fresh.metadata["installation_vault_ids"]["99"] = "vault_new"
+                fresh.save()
 
         mock_client.archive_vault.side_effect = archive_with_concurrent_write
 
