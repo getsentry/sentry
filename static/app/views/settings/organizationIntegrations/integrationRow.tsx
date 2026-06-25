@@ -84,7 +84,7 @@ export function IntegrationRow(props: Props) {
       return null;
     }
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledLink
           to={`${baseUrl}?tab=configurations`}
         >{`${configurations} Configuration${configurations > 1 ? 's' : ''}`}</StyledLink>
