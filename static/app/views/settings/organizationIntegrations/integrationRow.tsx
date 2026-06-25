@@ -84,10 +84,10 @@ export function IntegrationRow(props: Props) {
       return null;
     }
     return (
-      <>
-        <StyledLink to={`${baseUrl}?tab=configurations`}>{`${configurations} Configuration${
-          configurations > 1 ? 's' : ''
-        }`}</StyledLink>
+      <React.Fragment>
+        <StyledLink
+          to={`${baseUrl}?tab=configurations`}
+        >{`${configurations} Configuration${configurations > 1 ? 's' : ''}`}</StyledLink>
         {disabledConfigurations && disabledConfigurations > 0 ? (
           <DisabledTag variant="warning">
             {disabledConfigurations === 1
@@ -95,7 +95,7 @@ export function IntegrationRow(props: Props) {
               : t('%s disabled', disabledConfigurations)}
           </DisabledTag>
         ) : null}
-      </>
+      </React.Fragment>
     );
   };
 
