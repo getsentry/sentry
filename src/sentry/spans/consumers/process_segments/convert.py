@@ -32,6 +32,13 @@ FIELD_TO_ATTRIBUTE = {
     "start_timestamp": "sentry.start_timestamp_precise",
 }
 
+# Like FIELD_TO_ATTRIBUTE, but does not overwrite existing attribute values.
+FIELD_TO_MISSING_ATTRIBUTE = {
+    # Keep backwards compatibility for v1 spans, which write their own
+    # sentry.status values upstream.
+    "status": "sentry.status",
+}
+
 RENAME_ATTRIBUTES = {
     ATTRIBUTE_NAMES.SENTRY_DESCRIPTION: "sentry.raw_description",
     ATTRIBUTE_NAMES.SENTRY_SEGMENT_ID: "sentry.segment_id",
@@ -74,6 +81,12 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         attribute = span.get(field_name)  # type:ignore[assignment]
         if attribute is not None:
             attributes[attribute_name] = _anyvalue(attribute)
+
+    for field_name, attribute_name in FIELD_TO_MISSING_ATTRIBUTE.items():
+        if attribute_name not in attributes:
+            attribute = span.get(field_name)  # type:ignore[assignment]
+            if attribute is not None:
+                attributes[attribute_name] = _anyvalue(attribute)
 
     # Rename some attributes from their sentry-conventions name to what the product currently expects.
     # Eventually this should all be handled by deprecation policies in sentry-conventions.
