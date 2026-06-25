@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useRef} from 'react';
-import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, type StackProps} from '@sentry/scraps/layout';
@@ -184,7 +183,7 @@ export function ScmIntegrationConnect({
   }
 
   return effectiveIntegration ? (
-    <MotionStack
+    <Stack
       key="with-integration"
       gap="md"
       width="100%"
@@ -221,12 +220,10 @@ export function ScmIntegrationConnect({
           />
         ) : null}
       </Flex>
-    </MotionStack>
+    </Stack>
   ) : (
-    <MotionStack key="without-integration" gap="2xl" width="100%" maxWidth={maxWidth}>
+    <Stack key="without-integration" gap="2xl" width="100%" maxWidth={maxWidth}>
       <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
-    </MotionStack>
+    </Stack>
   );
 }
-
-const MotionStack = motion.create(Stack);
