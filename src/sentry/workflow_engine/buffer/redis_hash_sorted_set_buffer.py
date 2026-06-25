@@ -44,7 +44,6 @@ def _by_pairs(seq: list[T]) -> Iterable[tuple[T, T]]:
 # For write operations, we set expiry.
 _NEED_EXPIRE = {
     "hset": True,
-    "hmset": True,
     "hgetall": False,
     "hlen": False,
     "zadd": True,
@@ -143,7 +142,7 @@ class RedisHashSortedSetBuffer:
     ) -> None:
         """Push multiple field-value pairs to a Redis hash."""
         key = make_key(model, filters)
-        self._execute_redis_operation(key, "hmset", data)
+        self._execute_redis_operation(key, "hset", mapping=data)
 
     def get_hash(
         self, model: type[models.Model], filters: Mapping[str, BufferField]

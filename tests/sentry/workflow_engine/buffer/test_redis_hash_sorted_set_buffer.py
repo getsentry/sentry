@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 import rb
 from redis.exceptions import ConnectionError as RedisConnectionError
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import options
 from sentry.buffer.base import BufferField
@@ -52,7 +53,9 @@ class TestRedisHashSortedSetBuffer:
                         buf = RedisHashSortedSetBuffer(
                             "", {"cluster": "cluster"}, now_fn=mock_time_provider
                         )
-                        for _, info in buf.cluster.info("server").items():
+                        for _, info in buf.cluster.info(
+                            "server", target_nodes=RedisCluster.PRIMARIES
+                        ).items():
                             assert info["redis_mode"] == "cluster"
                         buf.cluster.flushdb()
                         yield buf

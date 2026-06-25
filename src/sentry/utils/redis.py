@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.resources
 import logging
+from collections.abc import Iterable
 from threading import Lock
 from typing import Any, TypeGuard
 
@@ -128,7 +129,7 @@ class RedisClusterManager:
         client_args: dict[str, Any] | None = None,
         **config: Any,
     ) -> RedisCluster | StrictRedis:
-        # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
+        # RedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
         if not hosts:
             hosts = []
@@ -279,6 +280,20 @@ def disconnect_redis_client(client: RedisCluster | StrictRedis) -> None:
         client.disconnect_connection_pools()
     else:
         client.connection_pool.disconnect()
+
+
+def mget_nonatomic(client: RedisCluster | StrictRedis, keys: Iterable[str]) -> list[Any]:
+    """
+    Fetch multiple keys regardless of whether ``client`` is a cluster or a
+    single node. redis-py's ``RedisCluster.mget`` requires every key to map to
+    the same hash slot and raises ``RedisClusterException`` otherwise; its
+    ``mget_nonatomic`` fans out per-slot GETs instead (the behaviour the old
+    redis-py-cluster ``mget`` provided). ``StrictRedis`` only has ``mget``.
+    """
+    key_list = list(keys)
+    if isinstance(client, RedisCluster):
+        return client.mget_nonatomic(key_list)
+    return client.mget(key_list)
 
 
 def is_instance_redis_cluster(

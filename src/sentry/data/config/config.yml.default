@@ -46,7 +46,7 @@ system.secret-key: '%(secret_key)s'
 #   A redis blaster cluster is the traditional cluster used by most services
 #   within sentry. This is the default type cluster type.
 #
-#   rediscluster.StrictRedisCluster
+#   redis.cluster.RedisCluster
 #   An official Redis Cluster can be configured by marking the named group with
 #   the ``is_redis_cluster: True`` flag. In future versions of Sentry more
 #   services will require this type of cluster.

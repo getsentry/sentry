@@ -373,6 +373,7 @@ module = [
   "pymemcache.*",
   "P4",
   "rb.*",
+  "redis.*",
   "statsd.*",
   "tokenizers.*",
   "u2flib_server.model.*",

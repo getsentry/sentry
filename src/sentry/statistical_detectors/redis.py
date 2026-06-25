@@ -55,7 +55,7 @@ class RedisDetectorStore(DetectorStore):
                 if state is None:
                     continue
                 key = self.make_key(payload)
-                pipeline.hmset(key, state)
+                pipeline.hset(key, mapping=state)
                 pipeline.expire(key, self.ttl)
 
             pipeline.execute()
