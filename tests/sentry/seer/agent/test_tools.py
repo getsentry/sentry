@@ -2079,6 +2079,54 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         )
         return group
 
+    def _make_event_with_multiple_release_commits(self, author_email):
+        """Store an event linked to a release shipping several commits with differing
+        numbers of file changes, to exercise the per-commit file-change-count mapping.
+        """
+        repo = self.create_repo(project=self.project, name="getsentry/sentry")
+        release = self.create_release(project=self.project, version="multi-v1")
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["tags"] = {"sentry:release": release.version}
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+        GroupRelease.objects.create(
+            group_id=group.id, project_id=self.project.id, release_id=release.id
+        )
+        release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": repo.name,
+                    "author_email": author_email,
+                    "author_name": "Bob",
+                    "message": "one file changed",
+                    "patch_set": [{"path": "src/one.py", "type": "M"}],
+                },
+                {
+                    "id": "b" * 40,
+                    "repository": repo.name,
+                    "author_email": author_email,
+                    "author_name": "Bob",
+                    "message": "three files changed",
+                    "patch_set": [
+                        {"path": "src/x.py", "type": "M"},
+                        {"path": "src/y.py", "type": "A"},
+                        {"path": "src/z.py", "type": "D"},
+                    ],
+                },
+                {
+                    "id": "c" * 40,
+                    "repository": repo.name,
+                    "author_email": author_email,
+                    "author_name": "Bob",
+                    "message": "Merge pull request #1",
+                    "patch_set": [{"path": "src/two.py", "type": "M"}],
+                },
+            ]
+        )
+        return group
+
     def test_returns_suspect_commits(self):
         event = self._make_error_event()
         group = event.group
@@ -2145,6 +2193,32 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         commit = next(c for c in release if c["id"] == "a" * 40)
         assert commit["files_changed_count"] == 1
         assert commit["is_merge_commit"] is False
+
+    def test_release_commits_file_change_counts_are_per_commit(self):
+        """Regression test: with multiple candidate commits, the per-commit
+        ``files_changed_count`` is built from
+        ``values_list("commit_id").annotate(n=Count("id"))`` passed to ``dict()``.
+        A single ``values_list`` field still yields ``(commit_id, n)`` tuples, so
+        ``dict()`` does not raise and each commit gets its own correct count.
+        """
+        group = self._make_event_with_multiple_release_commits(self.user.email)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+            start=before_now(days=30).isoformat(),
+            end=(before_now(minutes=0) + timedelta(days=1)).isoformat(),
+        )
+
+        assert result is not None
+        release = result["release_commits"]
+        counts = {c["id"]: c["files_changed_count"] for c in release}
+        assert counts["a" * 40] == 1
+        assert counts["b" * 40] == 3
+        assert counts["c" * 40] == 1
+
+        merge_commit = next(c for c in release if c["id"] == "c" * 40)
+        assert merge_commit["is_merge_commit"] is True
 
     def test_no_commit_data_returns_empty_lists(self):
         event = self._make_error_event()
