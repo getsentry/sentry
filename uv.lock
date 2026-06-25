@@ -2399,10 +2399,10 @@ requires-dist = [
     { name = "sentry-kafka-schemas", specifier = ">=2.1.36" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
     { name = "sentry-options", specifier = ">=1.0.13" },
-    { name = "sentry-protos", specifier = ">=0.32.5" },
+    { name = "sentry-protos", specifier = ">=0.33.1" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.27" },
-    { name = "sentry-scm", specifier = "==0.22.0" },
+    { name = "sentry-scm", specifier = "==0.30.0" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.63.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
@@ -2583,7 +2583,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.32.5"
+version = "0.33.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2591,7 +2591,7 @@ dependencies = [
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.32.5-py3-none-any.whl", hash = "sha256:a5c83fdf65875ed858e4c4ee7b4bdc908814640ce5db57cce00e92e7c4f0cae4" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.33.1-py3-none-any.whl", hash = "sha256:fe5522af805ae47da7a85820712a63bffee5d9aa27bb9c69c47cd4d10022142d" },
 ]
 
 [[package]]
@@ -2620,14 +2620,14 @@ wheels = [
 
 [[package]]
 name = "sentry-scm"
-version = "0.22.0"
+version = "0.30.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "msgspec", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-0.22.0-py3-none-any.whl", hash = "sha256:e6eb96e85a7f0d1b3cfd9a348843aba2b8f1668869a9e63365c5fa1a26da44f8" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-0.30.0-py3-none-any.whl", hash = "sha256:dd0ee3f8551b6c2ee315184716af8a848da4a1613b5cfa35d61a14d2e6f0fc83" },
 ]
 
 [[package]]
