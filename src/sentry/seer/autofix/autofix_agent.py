@@ -623,7 +623,9 @@ def generate_autofix_handoff_prompt(
 
     if short_id:
         if issue_url:
-            parts.append(f"Include 'Fixes [{short_id}]({issue_url})' in the commit message and PR description.")
+            parts.append(
+                f"Include 'Fixes [{short_id}]({issue_url})' in the commit message and PR description."
+            )
         else:
             parts.append(f"Include 'Fixes {short_id}' in the commit message.")
 
