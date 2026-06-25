@@ -1587,6 +1587,8 @@ class _IssueCommitters:
     ) -> None:
         self.organization_id = organization_id
         self.issue_id = issue_id
+        self.start_dt: datetime | None
+        self.end_dt: datetime | None
         self.start_dt, self.end_dt = get_date_range_from_params(
             {"start": start, "end": end}, optional=True
         )
