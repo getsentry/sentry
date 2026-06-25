@@ -29,12 +29,12 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.apitoken import ApiToken
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )
