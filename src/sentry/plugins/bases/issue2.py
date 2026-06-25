@@ -15,8 +15,6 @@ from sentry.analytics.events.issue_tracker_used import IssueTrackerUsedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
-from sentry.api.serializers.base import serialize
-from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 
@@ -460,26 +458,6 @@ class IssueTrackingPlugin2(Plugin):
             self.unlink_issue(request, group, issue)
             return Response({"message": "Successfully unlinked issue."})
         return Response({"message": "No issues to unlink."}, status=400)
-
-    def plugin_issues(self, group, plugin_issues, **kwargs) -> None:
-        if not self.is_configured(project=group.project):
-            return
-
-        item: _PluginIssue = {
-            "slug": self.slug,
-            "allowed_actions": self.allowed_actions,
-            "title": self.get_title(),
-        }
-        issue = self.build_issue(group)
-        if issue:
-            item["issue"] = {
-                "issue_id": issue.get("id"),
-                "url": self.get_issue_url(group, issue["id"]),
-                "label": self.get_issue_label(group, issue["id"]),
-            }
-
-        item.update(serialize(self, serializer=PluginSerializer(group.project)))
-        plugin_issues.append(item)
 
     def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         # TODO(dcramer): update existing plugins to just use get_config

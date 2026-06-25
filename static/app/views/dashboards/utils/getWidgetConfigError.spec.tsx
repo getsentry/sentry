@@ -1,7 +1,7 @@
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import {getWidgetConfigError} from './getWidgetConfigError';
 
@@ -51,6 +51,40 @@ describe('getWidgetConfigError', () => {
       queries: [
         WidgetQueryFixture({aggregates: []}),
         WidgetQueryFixture({aggregates: ['count()']}),
+      ],
+    });
+
+    expect(getWidgetConfigError(widget)).toBeUndefined();
+  });
+
+  it('returns an error for heat map widgets on an unsupported dataset', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        WidgetQueryFixture({aggregates: ['count(value,test_metric,distribution,none)']}),
+      ],
+    });
+
+    expect(getWidgetConfigError(widget)).toBeDefined();
+  });
+
+  it('returns an error for heat map widgets whose aggregate has no metric', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [WidgetQueryFixture({aggregates: ['sum(value)']})],
+    });
+
+    expect(getWidgetConfigError(widget)).toBeDefined();
+  });
+
+  it('returns undefined for heat map widgets with a resolvable metric', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        WidgetQueryFixture({aggregates: ['count(value,test_metric,distribution,none)']}),
       ],
     });
 

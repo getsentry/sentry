@@ -45,6 +45,13 @@ type PartBuckets = {
 // parsers together whenever adding or changing a supported format.
 
 /**
+ * Rendered when a text content part is structurally present but carries no
+ * usable text (e.g. `{type: "text", chars: 56}`). Matches the product-wide
+ * empty-value convention so the message still renders instead of vanishing.
+ */
+export const EMPTY_TEXT_CONTENT = '(no value)';
+
+/**
  * Normalizes AI attribute values into a list of messages.
  *
  * Accepts every shape the codebase supports on supported attributes:
@@ -319,7 +326,9 @@ function collapseParts(parts: unknown[]): unknown {
   const buckets = bucketParts(parts);
 
   if (buckets.hasRenderableTextPart) {
-    return buckets.textParts.join('\n');
+    return buckets.textParts.length > 0
+      ? buckets.textParts.join('\n')
+      : EMPTY_TEXT_CONTENT;
   }
   if (buckets.objectParts.length > 0) {
     return buckets.objectParts.length === 1
@@ -444,12 +453,16 @@ function appendOutputFromParts(
   }
 ): void {
   const {textParts, reasoningParts, toolCallParts, objectParts} = buckets;
+  let hasEmptyTextPart = false;
+  const textPartsLengthBefore = textParts.length;
   for (const part of parts) {
     const partType = getPartType(part);
     if (partType === 'text' && isRecord(part)) {
       const text = getStringField(part, 'content') ?? getStringField(part, 'text');
       if (text) {
         textParts.push(text);
+      } else {
+        hasEmptyTextPart = true;
       }
       continue;
     }
@@ -471,6 +484,11 @@ function appendOutputFromParts(
     if (isFileContentPartType(partType) && isRecord(part)) {
       textParts.push(redactedFileContent(part));
     }
+  }
+  // If there were empty text parts but no real text was added for this message's
+  // parts, emit exactly one placeholder so the message still renders.
+  if (hasEmptyTextPart && textParts.length === textPartsLengthBefore) {
+    textParts.push(EMPTY_TEXT_CONTENT);
   }
 }
 
@@ -506,7 +524,11 @@ function looksLikeJson(raw: string): boolean {
 }
 
 function extractTextFromContentParts(parts: unknown[]): string {
-  return bucketParts(parts).textParts.join('\n');
+  const buckets = bucketParts(parts);
+  if (buckets.textParts.length > 0) {
+    return buckets.textParts.join('\n');
+  }
+  return buckets.hasRenderableTextPart ? EMPTY_TEXT_CONTENT : '';
 }
 
 function isRecord(value: unknown): value is UnknownRecord {

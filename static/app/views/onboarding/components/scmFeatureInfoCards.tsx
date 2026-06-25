@@ -1,6 +1,6 @@
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -14,9 +14,9 @@ interface ScmFeatureInfoCardsProps {
   availableFeatures: ProductSolution[];
   disabledProducts: DisabledProducts;
   featureMeta: Record<ProductSolution, FeatureMeta>;
+  isOnboarding: boolean;
   isVolumeLoading?: boolean;
   platformName?: string;
-  showVolume?: boolean;
 }
 
 // Informational variant of the SCM feature card list. Renders the products
@@ -30,26 +30,29 @@ export function ScmFeatureInfoCards({
   featureMeta,
   platformName,
   isVolumeLoading,
-  showVolume = true,
+  isOnboarding,
 }: ScmFeatureInfoCardsProps) {
   return (
     <Stack gap="xl" width="100%" justify="center">
-      <Stack gap="md">
-        {platformName ? (
-          <Text bold size="md" density="comfortable">
-            {tct('Available with [platformName]', {
-              platformName: (
-                <Text as="span" bold variant="accent">
-                  {platformName}
-                </Text>
-              ),
-            })}
+      {isOnboarding ? (
+        <Stack gap="md">
+          {platformName ? (
+            <Heading as="h4">
+              {tct('Available with [platformName]', {
+                platformName: (
+                  <Text as="span" bold variant="accent">
+                    {platformName}
+                  </Text>
+                ),
+              })}
+            </Heading>
+          ) : null}
+          <Text size="md" variant="secondary" density="comfortable">
+            {t('In the next step, run our setup wizard to choose what to instrument')}
           </Text>
-        ) : null}
-        <Text size="md" variant="secondary" density="comfortable">
-          {t('In the next step, run our setup wizard to choose what to instrument')}
-        </Text>
-      </Stack>
+        </Stack>
+      ) : null}
+
       <Grid
         gap="2xl"
         columns={{xs: '1fr', sm: '1fr 1fr'}}
@@ -103,7 +106,7 @@ export function ScmFeatureInfoCards({
                   >
                     {meta.description}
                   </Text>
-                  {showVolume ? (
+                  {isOnboarding ? (
                     <Container>
                       {isVolumeLoading ? (
                         <Placeholder height="20px" width="100px" />

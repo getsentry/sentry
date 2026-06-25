@@ -948,20 +948,6 @@ function buildRoutes(): RouteObject[] {
       redirectTo: 'integrations/',
     },
     {
-      path: 'plugins/',
-      name: t('Integrations'),
-      children: [
-        {
-          path: ':integrationSlug/',
-          name: t('Integration Details'),
-          component: make(
-            () =>
-              import('sentry/views/settings/organizationIntegrations/pluginDetailedView')
-          ),
-        },
-      ],
-    },
-    {
       path: 'sentry-apps/',
       redirectTo: 'integrations/',
     },

@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0022_drop_night_shift_run_seer_run_column
 
-sentry: 1118_add_group_derived_data
+sentry: 1122_profilechunkattachment
 
 social_auth: 0003_social_auth_json_field
 
@@ -39,4 +39,4 @@ tempest: 0001_squashed_0003_use_encrypted_char_field
 
 uptime: 0055_backfill_2xx_status_assertion
 
-workflow_engine: 0114_sanitize_dynamic_form_field_choices
+workflow_engine: 0115_add_group_index_to_wfh

@@ -129,46 +129,7 @@ describe('SeerWorkflows', () => {
     expect(screen.queryByText('seer-1')).not.toBeInTheDocument();
   });
 
-  it('links the Result cell to Seer Explorer when agent_run_id is present', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
-      body: [
-        {
-          id: '1',
-          dateAdded: '2026-04-20T00:00:00Z',
-          triageStrategy: 'agentic',
-          errorMessage: null,
-          extras: {agent_run_id: 42},
-          issues: [
-            {
-              id: '10',
-              groupId: '100',
-              action: 'autofix_triggered',
-              seerRunId: 'seer-1',
-              dateAdded: '2026-04-20T00:00:01Z',
-            },
-            {
-              id: '11',
-              groupId: '101',
-              action: 'autofix_triggered',
-              seerRunId: 'seer-2',
-              dateAdded: '2026-04-20T00:00:02Z',
-            },
-          ],
-        },
-      ],
-    });
-
-    render(<SeerWorkflows />, {organization});
-
-    const link = await screen.findByRole('link', {name: '2 issues'});
-    expect(link).toHaveAttribute(
-      'href',
-      `/organizations/${organization.slug}/issues/autofix/?explorerRunId=42`
-    );
-  });
-
-  it('renders the Result cell as plain text when agent_run_id is missing', async () => {
+  it('links the Result cell to Seer Explorer once per seer run', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -187,6 +148,72 @@ describe('SeerWorkflows', () => {
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
+          // The null-id run (not yet mirrored back from Seer) is skipped.
+          seerRuns: [{seerRunId: '42'}, {seerRunId: '43'}, {seerRunId: null}],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    expect(await screen.findByText('1 issue')).toBeInTheDocument();
+    const links = screen.getAllByRole('link', {name: 'Open run in Seer Explorer'});
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/autofix/?explorerRunId=42`
+    );
+    expect(links[1]).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/autofix/?explorerRunId=43`
+    );
+  });
+
+  it('falls back to extras.agent_run_id when a run has no seer runs', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {agent_run_id: 42},
+          issues: [],
+          seerRuns: [],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    const link = await screen.findByRole('link', {name: 'Open run in Seer Explorer'});
+    expect(link).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/autofix/?explorerRunId=42`
+    );
+  });
+
+  it('renders the Result cell as plain text when there is no run to link', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          issues: [
+            {
+              id: '10',
+              groupId: '100',
+              action: 'autofix_triggered',
+              seerRunId: 'seer-1',
+              dateAdded: '2026-04-20T00:00:01Z',
+            },
+          ],
+          seerRuns: [],
         },
       ],
     });
@@ -194,7 +221,9 @@ describe('SeerWorkflows', () => {
     render(<SeerWorkflows />, {organization});
 
     await screen.findByText('1 issue');
-    expect(screen.queryByRole('link', {name: '1 issue'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Open run in Seer Explorer'})
+    ).not.toBeInTheDocument();
   });
 
   it('sorts by date desc by default and toggles asc on Date header click', async () => {

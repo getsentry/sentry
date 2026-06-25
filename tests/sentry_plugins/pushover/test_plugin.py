@@ -1,9 +1,7 @@
 from functools import cached_property
 from urllib.parse import parse_qs
 
-import orjson
 import responses
-from django.urls import reverse
 
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
@@ -101,28 +99,3 @@ class PushoverPluginTest(PluginTestCase):
             "expire": ["90"],
             "retry": ["30"],
         }
-
-    def test_no_secrets(self) -> None:
-        self.user = self.create_user("foo@example.com")
-        self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
-        self.team = self.create_team(organization=self.org, name="Mariachi Band")
-        self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-        self.login_as(self.user)
-        self.plugin.set_option("userkey", "abcdef", self.project)
-        self.plugin.set_option("apikey", "abcdef", self.project)
-        url = reverse(
-            "sentry-api-0-project-plugin-details",
-            args=[self.org.slug, self.project.slug, "pushover"],
-        )
-        res = self.client.get(url)
-        config = orjson.loads(res.content)["config"]
-        userkey_config = [item for item in config if item["name"] == "userkey"][0]
-        apikey_config = [item for item in config if item["name"] == "apikey"][0]
-        assert userkey_config.get("type") == "secret"
-        assert userkey_config.get("value") is None
-        assert userkey_config.get("hasSavedValue") is True
-        assert userkey_config.get("prefix") == "abcd"
-        assert apikey_config.get("type") == "secret"
-        assert apikey_config.get("value") is None
-        assert apikey_config.get("hasSavedValue") is True
-        assert apikey_config.get("prefix") == "abcd"
