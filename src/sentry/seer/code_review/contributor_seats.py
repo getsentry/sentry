@@ -124,6 +124,12 @@ def track_contributor_seat(
             )
             locked_contributor.num_actions += 1
             locked_contributor.save(update_fields=["num_actions", "date_updated"])
+
+            metrics.incr(
+                "scm.webhook.organization_contributor.num_actions_incremented",
+                sample_rate=1.0,
+                tags={"provider": provider},
+            )
         except OrganizationContributors.DoesNotExist:
             logger.warning(
                 "scm.webhook.organization_contributor.not_found",
