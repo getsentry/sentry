@@ -1,18 +1,23 @@
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {
+  isGithubRepoProvider,
+  NON_GITHUB_HANDOFF_WARNING,
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
 } from 'sentry/utils/seer/preferredAgent';
+import {getSeerProjectReposInfiniteQueryOptions} from 'sentry/utils/seer/seerProjectRepos';
 import {
   getMutateSeerProjectSettingsOptions,
   getSeerProjectSettingsQueryOptions,
@@ -41,6 +46,16 @@ export function AutofixAgent({canWrite, project}: Props) {
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
+
+  // Only GitHub repos can hand off to an external coding agent, so the agent
+  // dropdown is disabled when this project has any non-GitHub repo attached.
+  const reposResult = useInfiniteQuery(
+    getSeerProjectReposInfiniteQueryOptions({organization, project: {slug: project.slug}})
+  );
+  useFetchAllPages({result: reposResult});
+  const isOnlyGithubRepos = (reposResult.data?.pages ?? [])
+    .flatMap(page => page.json)
+    .every(repo => isGithubRepoProvider(repo.provider));
 
   const {data, isPending, isError, error} = useQuery(
     getSeerProjectSettingsQueryOptions({
@@ -87,30 +102,35 @@ export function AutofixAgent({canWrite, project}: Props) {
         })}
       >
         {field => (
-          <field.Layout.Row
-            label={t('Handoff to Agent')}
-            hintText={tct(
-              'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. [manageLink:Manage Coding Agents].',
-              {
-                manageLink: (
-                  <Link
-                    to={{
-                      pathname: `/settings/${organization.slug}/integrations/`,
-                      query: {category: 'coding agent'},
-                    }}
-                  />
-                ),
-              }
+          <Stack gap="md">
+            {!isOnlyGithubRepos && (
+              <Alert variant="warning">{NON_GITHUB_HANDOFF_WARNING}</Alert>
             )}
-          >
-            <field.Select
-              disabled={!canWrite}
-              multiple={false}
-              onChange={field.handleChange}
-              options={agentSelectOptions}
-              value={field.state.value}
-            />
-          </field.Layout.Row>
+            <field.Layout.Row
+              label={t('Handoff to Agent')}
+              hintText={tct(
+                'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. [manageLink:Manage Coding Agents].',
+                {
+                  manageLink: (
+                    <Link
+                      to={{
+                        pathname: `/settings/${organization.slug}/integrations/`,
+                        query: {category: 'coding agent'},
+                      }}
+                    />
+                  ),
+                }
+              )}
+            >
+              <field.Select
+                disabled={!canWrite || !isOnlyGithubRepos}
+                multiple={false}
+                onChange={field.handleChange}
+                options={agentSelectOptions}
+                value={isOnlyGithubRepos ? field.state.value : 'seer'}
+              />
+            </field.Layout.Row>
+          </Stack>
         )}
       </AutoSaveForm>
 
