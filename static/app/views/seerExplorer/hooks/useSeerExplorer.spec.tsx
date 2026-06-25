@@ -344,9 +344,9 @@ describe('useSeerExplorer', () => {
       });
     });
 
-    it('encodes a non-numeric runId in explorer-update URLs to prevent path traversal', async () => {
-      // A crafted `explorerRunId` deep link can set runId to an arbitrary
-      // string; it must be encoded so the same-origin POST can't traverse.
+    it('URL-encodes the runId when building explorer-update URLs', async () => {
+      // A runId carrying path separators must be encoded so the same-origin
+      // POST can't traverse to another endpoint.
       const maliciousRunId = '../../foo';
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/..%2F..%2Ffoo/`,
