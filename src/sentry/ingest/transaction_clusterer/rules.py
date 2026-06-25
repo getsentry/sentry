@@ -67,8 +67,7 @@ class RedisRuleStore:
             p.delete(key)
             if len(rules) > 0:
                 # Cast for hset's str|bytes key requirement.
-                rules = cast("Mapping[str | bytes, int]", rules)
-                p.hset(name=key, mapping=rules)
+                p.hset(name=key, mapping=cast("Mapping[str | bytes, int]", rules))
             p.execute()
 
     def update_rule(self, project: Project, rule: str, last_used: int) -> None:
