@@ -54,8 +54,15 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
   const traceNode = tree.root.children[0];
   const theme = useTheme();
 
+  // For EAP traces, mobile vitals are stored as root event span attributes rather
+  // than in tree.vitals, so hasVitals (which reads tree.vitals) is always false for
+  // EAP app.start traces. Compute EAP vitals early so we can use them as the gate.
+  const eapMobileVitals = traceNode?.isEAPEvent
+    ? getMobileVitalsFromRootEventResults(rootEventResults.data)
+    : null;
+
   // TODO Abdullah Khan: Ignoring loading/error states for now
-  if (!hasVitals || !rootEventResults.data || !traceNode) {
+  if ((!hasVitals && !eapMobileVitals?.length) || !rootEventResults.data || !traceNode) {
     return null;
   }
 
@@ -63,9 +70,11 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
     ? TRACE_VIEW_WEB_VITALS
     : TRACE_VIEW_MOBILE_VITALS;
 
+  // Prefer EAP attribute-sourced vitals; fall back to tree.vitals for non-EAP or
+  // EAP traces where vitals are present as measurements (e.g. web vitals).
   const collectedVitals =
-    traceNode.isEAPEvent && tree.vital_types.has('mobile')
-      ? getMobileVitalsFromRootEventResults(rootEventResults.data)
+    eapMobileVitals?.length
+      ? eapMobileVitals
       : Array.from(tree.vitals.values()).flat();
 
   const primaryVitalsCount = getPrimaryVitalsCount(
