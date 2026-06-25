@@ -1765,9 +1765,12 @@ def get_event_details(
 
         # Fetch the group then get a sample event from the time range.
         assert issue_id is not None
-        group = _resolve_seer_group(
-            organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
-        )
+        try:
+            group = _resolve_seer_group(
+                organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
+            )
+        except Group.DoesNotExist:
+            return None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
@@ -1866,9 +1869,12 @@ def get_issue_and_event_details_v2(
     if event_id is None:
         # Fetch the group then get a sample event from the time range.
         assert issue_id is not None
-        group = _resolve_seer_group(
-            organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
-        )
+        try:
+            group = _resolve_seer_group(
+                organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
+            )
+        except Group.DoesNotExist:
+            return None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
