@@ -34,6 +34,7 @@ class NightShiftTweaks(pydantic.BaseModel):
     extra_triage_instructions: str = DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS
     intelligence_level: IntelligenceLevel = DEFAULT_INTELLIGENCE_LEVEL
     reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT
+    allowed_project_slugs: list[str] | None = None
 
     class Config:
         alias_generator = snake_to_camel_case

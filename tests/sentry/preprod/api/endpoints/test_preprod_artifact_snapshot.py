@@ -5,12 +5,14 @@ import zstandard
 from django.urls import reverse
 
 from sentry.models.commitcomparison import CommitComparison
+from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
 from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base import (
     LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS,
 )
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
 
 class ProjectPreprodSnapshotTest(APITestCase):
@@ -628,6 +630,50 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.data["images"][0]["key"] == "img1"
         assert response.data["images"][0]["image_file_name"] == "img1"
         assert response.data["images"][1]["key"] == "img2"
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
+    def test_get_snapshot_details_records_web_client(self, mock_get_session, mock_record):
+        artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        response = self.client.get(self._get_detail_url(artifact.id))
+
+        assert response.status_code == 200
+        assert_last_analytics_event(
+            mock_record,
+            PreprodArtifactApiGetSnapshotDetailsEvent(
+                organization_id=self.org.id,
+                project_id=self.project.id,
+                user_id=self.user.id,
+                artifact_id=str(artifact.id),
+                client="web",
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
+    def test_get_snapshot_details_records_mcp_client(self, mock_get_session, mock_record):
+        artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        response = self.client.get(
+            self._get_detail_url(artifact.id),
+            HTTP_USER_AGENT="sentry-mcp/1.0",
+            HTTP_X_SENTRY_MCP_CLIENT_FAMILY="cursor",
+        )
+
+        assert response.status_code == 200
+        assert_last_analytics_event(
+            mock_record,
+            PreprodArtifactApiGetSnapshotDetailsEvent(
+                organization_id=self.org.id,
+                project_id=self.project.id,
+                user_id=self.user.id,
+                artifact_id=str(artifact.id),
+                client="mcp:cursor",
+            ),
+        )
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
     def test_get_snapshot_details_with_vcs_info(self, mock_get_session):

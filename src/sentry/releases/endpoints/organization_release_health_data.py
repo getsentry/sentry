@@ -28,7 +28,7 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     permission_classes = (OrganizationAndStaffPermission,)
 
     """

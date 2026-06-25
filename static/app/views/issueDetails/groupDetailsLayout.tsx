@@ -9,6 +9,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   IssueDetailsContextProvider,
   useIssueDetails,
@@ -20,8 +21,10 @@ import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
+import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
 import {IssueDetailsSidebar} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/sidebar/toggleSidebar';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
@@ -53,9 +56,14 @@ export function GroupDetailsLayout({
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
   const theme = useTheme();
+  const organization = useOrganization();
+  const isSampleError = useIsSampleEvent();
 
   return (
     <IssueDetailsContextProvider>
+      {isSampleError && (
+        <SampleEventAlert project={group.project} organization={organization} />
+      )}
       <Container
         display="contents"
         style={{'--issue-details-inset': theme.space.xl} as React.CSSProperties}

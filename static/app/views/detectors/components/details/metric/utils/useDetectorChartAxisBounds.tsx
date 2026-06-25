@@ -41,6 +41,8 @@ export function useDetectorChartAxisBounds({
     const seriesMax = Math.max(...allSeriesValues);
     const seriesMin = Math.min(...allSeriesValues);
 
+    const isPercentage = aggregate && aggregateOutputType(aggregate) === 'percentage';
+
     // Determine the max value: use threshold if it's higher than data, otherwise add padding to data
     let maxValue: number;
     if (thresholdMaxValue && thresholdMaxValue >= seriesMax) {
@@ -53,14 +55,18 @@ export function useDetectorChartAxisBounds({
     }
 
     // Cap percentage metrics at 100% (1.0 in 0-1 scale)
-    const isPercentage = aggregate && aggregateOutputType(aggregate) === 'percentage';
     if (isPercentage && maxValue > 1) {
       maxValue = 1;
     }
 
-    // Add padding to min value
-    const minPadding = seriesMin * 0.1;
-    const minValue = Math.max(0, seriesMin - minPadding);
+    // For percentage metrics, zoom into the data range (e.g. 90% -> 100%) since
+    // pinning to 0 hides small variations. For all other metrics, anchor the
+    // axis at 0.
+    let minValue = 0;
+    if (isPercentage) {
+      const minPadding = seriesMin * 0.1;
+      minValue = Math.max(0, seriesMin - minPadding);
+    }
 
     return {
       maxValue,
