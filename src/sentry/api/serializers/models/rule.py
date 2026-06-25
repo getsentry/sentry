@@ -671,6 +671,15 @@ class WorkflowEngineRuleSerializer(Serializer):
                 if not action_data:
                     continue
 
+                # XXX: default an empty/missing fallthrough_type before rendering the
+                # label so the label and the fallthroughType we return below agree
+                if (
+                    action.type == Action.Type.EMAIL.value
+                    and action_data.get("targetType")
+                    and not action_data.get("fallthrough_type")
+                ):
+                    action_data["fallthrough_type"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+
                 action_data["name"] = action_to_handler[action].render_label(
                     workflow.organization_id, action_data, integration_cache=integration_cache
                 )
@@ -707,14 +716,6 @@ class WorkflowEngineRuleSerializer(Serializer):
                     fallthrough_type = action_data.pop("fallthrough_type")
                     if fallthrough_type:
                         action_data["fallthroughType"] = fallthrough_type
-
-                # XXX: add default fallthroughType for email Team/Member/IssueOwners actions
-                if (
-                    action.type == Action.Type.EMAIL.value
-                    and "fallthroughType" not in action_data
-                    and action_data.get("targetType")
-                ):
-                    action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
 
                 # XXX: add a targetIdentifier empty string for email only
                 if (
