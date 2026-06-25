@@ -132,6 +132,8 @@ export type CommitAuthor = {
   name?: string;
 };
 
+export type PullRequestAuthor = User | CommitAuthor;
+
 export type CommitFile = {
   author: CommitAuthor;
   commitMessage: string;
@@ -161,10 +163,11 @@ type SeerAttribution = {
 
 export type PullRequestAttribution = SeerAttribution;
 
-export interface LinkedPullRequest extends PullRequest {
+export interface LinkedPullRequest extends Omit<PullRequest, 'author'> {
   attribution: PullRequestAttribution | null;
   dateLinked: string;
   status: PullRequestStatus;
+  author?: PullRequestAuthor;
 }
 
 export interface LinkedPullRequestsResponse {
