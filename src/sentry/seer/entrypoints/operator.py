@@ -716,15 +716,24 @@ def process_autofix_updates(
             attribution_enabled = features.has("organizations:pr-metrics-attribution", organization)
 
             if link_enabled or attribution_enabled:
-                resolved_prs = resolve_seer_created_pull_requests(
-                    organization_id=organization.id,
-                    pull_requests=event_payload.get("pull_requests", []),
-                    log_context={
-                        "organization_id": organization.id,
-                        "run_id": run_id,
-                        "group_id": group_id,
-                    },
-                )
+                try:
+                    resolved_prs = resolve_seer_created_pull_requests(
+                        organization_id=organization.id,
+                        # `pull_requests` may be present but null; coerce to a list
+                        # so resolution doesn't choke on a non-iterable.
+                        pull_requests=event_payload.get("pull_requests") or [],
+                        log_context={
+                            "organization_id": organization.id,
+                            "run_id": run_id,
+                            "group_id": group_id,
+                        },
+                    )
+                except Exception:
+                    logger.exception(
+                        "seer.pr_resolution.failed",
+                        extra={"organization_id": organization.id, "run_id": run_id},
+                    )
+                    resolved_prs = []
 
                 if link_enabled:
                     try:

@@ -444,6 +444,28 @@ class SeerOperatorTest(TestCase):
         assert not SeerRunPullRequest.objects.exists()
         assert not PullRequest.objects.filter(repository_id=repo.id).exists()
 
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_process_autofix_updates_null_pull_requests_does_not_raise(self, _mock_has_access):
+        self.create_seer_run(organization=self.organization, seer_run_state_id=MOCK_RUN_ID)
+
+        # A present-but-null "pull_requests" must not raise and abort the task.
+        payload = {**self._pr_created_event_payload(), "pull_requests": None}
+        with (
+            override_options({"issues.record-seer-actions-as-activities": False}),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
+                {},
+                clear=True,
+            ),
+        ):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_PR_CREATED,
+                event_payload=payload,
+                organization_id=self.organization.id,
+            )
+
+        assert not SeerRunPullRequest.objects.exists()
+
     def test_process_autofix_updates_no_operator_access(self) -> None:
         mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
