@@ -252,7 +252,6 @@ export const AM3_PLANS = {
     userSelectable: true,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -981,7 +980,6 @@ export const AM3_PLANS = {
     userSelectable: true,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -1494,7 +1492,6 @@ export const AM3_PLANS = {
     userSelectable: false,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -1605,7 +1602,6 @@ export const AM3_PLANS = {
     userSelectable: false,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -1716,7 +1712,6 @@ export const AM3_PLANS = {
     userSelectable: true,
     features: AM3_FREE_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
       errors: [
@@ -1827,7 +1822,6 @@ export const AM3_PLANS = {
     userSelectable: false,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
       errors: [
@@ -1938,7 +1932,6 @@ export const AM3_PLANS = {
     userSelectable: true,
     features: AM3_TEAM_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -2451,7 +2444,6 @@ export const AM3_PLANS = {
     userSelectable: true,
     features: AM3_TEAM_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -2964,7 +2956,6 @@ export const AM3_PLANS = {
     userSelectable: false,
     features: AM3_TRIAL_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: false,
     dashboardLimit: 20,
     metricDetectorLimit: 20,

@@ -197,8 +197,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:preprod-artifact-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable preprod PR comments for build distribution
     manager.add("organizations:preprod-build-distribution-pr-comments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable enforcement of preprod size quota checks (when disabled, size quota checks always return True)
-    manager.add("organizations:preprod-enforce-size-quota", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable enforcement of preprod distribution quota checks (when disabled, distribution quota checks always return True)
     manager.add("organizations:preprod-enforce-distribution-quota", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable preprod size monitors frontend
@@ -304,6 +302,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-activity-feed-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new stack trace component for issue details
     manager.add("organizations:issue-details-new-stack-trace", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable invalidating group derived data when groups are merged
+    manager.add("organizations:hard-delete-derived-data-invalidation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable double-reading from EAP for issue feed search queries
     manager.add("organizations:issue-feed.eap-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Remove trace and breadcrumbs from issue summary input
@@ -394,8 +394,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ourlogs-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product to be ingested via Relay.
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the export modal (rather than direct button click) in the logs UI
-    manager.add("organizations:ourlogs-modal-export", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable pinning logs to the top of the table in the logs UI and query parameters
     manager.add("organizations:ourlogs-pinning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable alerting on trace metrics

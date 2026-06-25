@@ -10,8 +10,7 @@ from typing import Any
 from django.db import router, transaction
 from django.db.models.base import Model
 
-from sentry import analytics, similarity, tsdb
-from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
+from sentry import similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.culprit import generate_culprit
 from sentry.models.activity import Activity
@@ -359,12 +358,6 @@ def repair_group_release_data(
 
 
 def get_event_user_from_interface(value: dict[str, Any], project: Project) -> EventUser:
-    analytics.record(
-        EventUserEndpointRequest(
-            project_id=project.id,
-            endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
-        )
-    )
     return EventUser(
         user_ident=value.get("id"),
         email=value.get("email"),

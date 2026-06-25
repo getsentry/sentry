@@ -126,8 +126,8 @@ def get_monitoring_provider_connections(
             continue
 
         try:
-            identities = identity_service.get_user_identities_by_provider_type(
-                user_id=user_id, provider_type=provider_type
+            identities = identity_service.get_org_user_identities_by_provider_type(
+                organization_id=organization.id, user_id=user_id, provider_type=provider_type
             )
         except RpcException:
             # Monitoring providers are optional enrichment. A control-silo RPC failure

@@ -9,6 +9,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -24,8 +25,10 @@ from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.constants import ObjectStatus
+from sentry.issues.action_log import resolve_action_source
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
+from sentry.preprod.analytics import PreprodArtifactApiGetLatestBaseSnapshotEvent
 from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot import (
     _strip_to_compact,
     build_snapshot_image_response,
@@ -176,6 +179,19 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
 
         if artifact is None:
             return Response({"detail": "No snapshot found"}, status=404)
+
+        analytics.record(
+            PreprodArtifactApiGetLatestBaseSnapshotEvent(
+                organization_id=organization.id,
+                project_id=artifact.project_id,
+                user_id=(
+                    request.user.id if request.user and request.user.is_authenticated else None
+                ),
+                artifact_id=str(artifact.id),
+                app_id=app_id,
+                client=resolve_action_source(request),
+            )
+        )
 
         snapshot_metrics = artifact.preprodsnapshotmetrics
         manifest_key = (snapshot_metrics.extras or {}).get("manifest_key")

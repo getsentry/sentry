@@ -15,8 +15,8 @@ import {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {IconSeer} from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
