@@ -57,6 +57,9 @@ export function IssueListSortOptions({
   const organization = useOrganization();
   const hasRecommendedSort =
     organization.features.includes('issue-stream-recommended-sort') ||
+    // If Recommended is the default sort it must also be selectable, otherwise a
+    // user with a stored non-recommended sort can't switch back to it.
+    organization.features.includes('issue-stream-recommended-sort-default') ||
     sort === IssueSortOptions.RECOMMENDED;
   const hasExperimentalRecommendedSort =
     organization.features.includes('issue-stream-recommended-sort-experimental') ||
