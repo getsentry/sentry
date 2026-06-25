@@ -23,7 +23,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -63,6 +63,20 @@ def _get_valid_group_pull_request_links(group: Group, organization_id: int) -> l
         .filter(Exists(valid_pull_requests))
         .order_by("-datetime")[:DEFAULT_LIMIT]
     )
+
+
+def _get_stored_pull_request_status(pull_request: PullRequest) -> PullRequestStatus | None:
+    if pull_request.state == PullRequestLifecycleState.MERGED:
+        return "merged"
+    if pull_request.state == PullRequestLifecycleState.CLOSED:
+        return "closed"
+    if pull_request.draft is True:
+        return "draft"
+    # `draft` is nullable for older rows, so only trust `open` when we know the PR
+    # is not a draft.
+    if pull_request.state == PullRequestLifecycleState.OPEN and pull_request.draft is False:
+        return "open"
+    return None
 
 
 def _get_pull_request_repo_name(repository: Repository) -> str:
@@ -107,7 +121,7 @@ def _fetch_pull_request_status_response(
     return provider_response
 
 
-def _get_pull_request_status(
+def _get_provider_pull_request_status(
     pull_request: PullRequest, repository: Repository | None
 ) -> PullRequestStatus:
     if repository is None:
@@ -140,6 +154,16 @@ def _get_pull_request_status(
     if state == "open":
         return "open"
     return "unknown"
+
+
+def _get_pull_request_status(
+    pull_request: PullRequest, repository: Repository | None
+) -> PullRequestStatus:
+    stored_status = _get_stored_pull_request_status(pull_request)
+    if stored_status is not None:
+        return stored_status
+
+    return _get_provider_pull_request_status(pull_request, repository)
 
 
 @cell_silo_endpoint
