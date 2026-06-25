@@ -576,3 +576,25 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert head is not None
         assert head["context"] == {"viewport": "mobile"}
         assert head["custom_field"] == "value"
+
+    @patch(MOCK_TARGET)
+    def test_canvas_theme_passed_through(self, mock_get_session):
+        images = {
+            "screen.png": {
+                "content_hash": "hash1",
+                "display_name": "Screen",
+                "width": 375,
+                "height": 812,
+                "canvas_theme": "dark",
+            },
+        }
+        artifact, _, manifest_key, manifest_json = self._create_artifact_with_manifest(images)
+        mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
+
+        url = self._get_url(artifact.id, "screen.png")
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        head = response.data["head_image"]
+        assert head is not None
+        assert head["canvas_theme"] == "dark"

@@ -350,6 +350,7 @@ class PreprodExamples:
         "image_file_name": "home_screen_iphone15.png",
         "width": 1170,
         "height": 2532,
+        "canvas_theme": "dark",
     }
 
     EXAMPLE_SNAPSHOT_DETAILS_DIFF = {
@@ -476,6 +477,7 @@ class PreprodExamples:
             "diff_threshold": 0.01,
             "description": None,
             "tags": None,
+            "canvas_theme": "dark",
             "image_url": "/api/0/projects/org-slug/project-slug/files/images/a1b2c3d4e5f6/",
         },
         "base_image": {
@@ -488,6 +490,7 @@ class PreprodExamples:
             "diff_threshold": 0.01,
             "description": None,
             "tags": None,
+            "canvas_theme": "dark",
             "image_url": "/api/0/projects/org-slug/project-slug/files/images/old_hash_123/",
         },
         "diff_image_url": "/api/0/projects/org-slug/project-slug/files/images/diff_hash_456/",
@@ -508,6 +511,7 @@ class PreprodExamples:
             "diff_threshold": None,
             "description": None,
             "tags": None,
+            "canvas_theme": "light",
             "image_url": "/api/0/projects/org-slug/project-slug/files/images/new_hash_789/",
         },
         "base_image": None,

@@ -705,6 +705,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         and optional VCS fields (`head_sha`, `base_sha`, `provider`,
         `head_repo_name`, `head_ref`, `base_repo_name`, `base_ref`, `pr_number`).
 
+        Each image object may include an optional `canvas_theme` (`light` or
+        `dark`) hint for the background canvas the web UI renders behind it.
+
         When VCS info with a `base_sha` is provided and a matching base snapshot
         exists, a comparison is automatically triggered.
 

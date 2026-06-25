@@ -21,6 +21,7 @@ class SnapshotImageResponseDict(TypedDict, total=False):
     image_file_name: str
     width: int
     height: int
+    canvas_theme: str | None
 
 
 class SnapshotDiffPairResponseDict(TypedDict, total=False):
@@ -90,6 +91,7 @@ class SnapshotImageDetailImageInfoResponseDict(TypedDict, total=False):
     description: str | None
     tags: dict[str, str] | None
     image_url: str
+    canvas_theme: str | None
 
 
 class SnapshotImageDetailResponseDict(TypedDict, total=False):
