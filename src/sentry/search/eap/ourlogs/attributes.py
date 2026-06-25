@@ -6,7 +6,8 @@ from sentry.search.eap.columns import (
     simple_sentry_field,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS, project_virtual_contexts
-from sentry.utils.validators import is_event_id_or_list, normalize_event_id_strict
+from sentry.search.utils import is_event_id_or_list
+from sentry.utils.validators import normalize_event_id_strict
 
 OURLOG_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column

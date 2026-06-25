@@ -4,8 +4,6 @@ from typing import TypeGuard
 
 from django.utils.encoding import force_str
 
-from sentry.exceptions import InvalidSearchQuery
-
 INVALID_ID_DETAILS = "`{}` must be a valid UUID hex (32-36 characters long, containing only digits, dashes, or a-f characters)"
 
 WILDCARD_NOT_ALLOWED = "Wildcard conditions are not permitted on `{}` field"
@@ -21,11 +19,11 @@ def normalize_event_id(value):
     try:
         return uuid.UUID(force_str(value)).hex
     except (TypeError, AttributeError, ValueError):
-        raise InvalidSearchQuery(INVALID_ID_DETAILS.format(value))
+        return None
 
 
 def is_event_id(value):
-    return normalize_event_id(value)
+    return normalize_event_id(value) is not None
 
 
 def is_event_id_or_list(value):
@@ -42,10 +40,7 @@ def normalize_event_id_strict(value):
 
 
 def is_span_id(value: object) -> TypeGuard[str]:
-    if hex_string := bool(HEXADECIMAL_16_DIGITS.search(force_str(value))):
-        return hex_string
-    else:
-        raise InvalidSearchQuery(INVALID_SPAN_ID.format(value))
+    return bool(HEXADECIMAL_16_DIGITS.search(force_str(value)))
 
 
 def is_span_id_or_list(value):
