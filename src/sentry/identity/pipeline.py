@@ -75,7 +75,7 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
 
                 assert self.provider_model is not None
 
-                self._linked_identity = Identity.objects.link_identity(
+                linked_identity = Identity.objects.link_identity(
                     user=self.request.user,
                     idp=self.provider_model,
                     external_id=identity["id"],
@@ -89,11 +89,11 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
                 if (
                     self.provider.create_organization_identity
                     and self.organization
-                    and self._linked_identity is not None
+                    and linked_identity is not None
                 ):
                     OrganizationIdentity.objects.get_or_create(
                         organization_id=self.organization.id,
-                        identity=self._linked_identity,
+                        identity=linked_identity,
                     )
 
             # Let providers react to a freshly linked identity (e.g. backfilling
