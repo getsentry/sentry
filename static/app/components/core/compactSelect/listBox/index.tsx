@@ -196,7 +196,7 @@ export function ListBox<T extends ListItemBase>({
     if (
       !virtualized ||
       listState.selectionManager.focusedKey === null ||
-      getInteractionModality() !== 'keyboard'
+      getInteractionModality() === 'pointer'
     ) {
       return;
     }
