@@ -391,32 +391,12 @@ class SeerOperatorTest(TestCase):
         assert attribution.signal_details["run_id"] == MOCK_RUN_ID
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
-    def test_process_autofix_updates_pr_attribution_disabled(self, _mock_has_access):
-        self.create_repo(self.project, name="getsentry/sentry")
-
-        # Feature flag off (default) — no attribution signal is recorded. (The PR
-        # itself may still be resolved/created by the always-on linking path.)
-        with (
-            override_options({"issues.record-seer-actions-as-activities": False}),
-            patch.dict(
-                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
-                {},
-                clear=True,
-            ),
-        ):
-            process_autofix_updates(
-                event_type=SentryAppEventType.SEER_PR_CREATED,
-                event_payload=self._pr_created_event_payload(),
-                organization_id=self.organization.id,
-            )
-
-        assert not PullRequestAttribution.objects.exists()
-
-    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_process_autofix_updates_links_run_to_pr(self, _mock_has_access):
         repo = self.create_repo(self.project, name="getsentry/sentry")
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=MOCK_RUN_ID)
 
+        # Linking is on by default; the attribution flag is off, so the run is
+        # linked but no attribution signal is recorded — the two paths are independent.
         with (
             override_options({"issues.record-seer-actions-as-activities": False}),
             patch.dict(
@@ -434,6 +414,7 @@ class SeerOperatorTest(TestCase):
         pull_request = PullRequest.objects.get(repository_id=repo.id, key="99")
         link = SeerRunPullRequest.objects.get(pull_request=pull_request)
         assert link.seer_run_id == run.id
+        assert not PullRequestAttribution.objects.exists()
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_process_autofix_updates_killswitch_skips_linking(self, _mock_has_access):

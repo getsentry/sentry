@@ -643,7 +643,6 @@ def _link_run_to_pull_requests(
         try:
             SeerRunPullRequest.objects.get_or_create(seer_run=run, pull_request=pull_request)
         except Exception:
-            # Isolate per entry so one bad write doesn't drop the rest.
             logger.exception("seer.pr_link.failed", extra=log_context)
             continue
 
