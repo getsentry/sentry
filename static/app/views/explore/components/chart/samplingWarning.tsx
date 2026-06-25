@@ -34,7 +34,7 @@ export function SamplingWarning({yAxis, series, dataScanned}: SamplingWarningPro
 
   return (
     <Tooltip isHoverable skipWrapper position="top" title={title}>
-      <IconWarning variant="warning" size="sm" />
+      <IconWarning variant="warning" size="sm" data-test-id="sampling-warning" />
     </Tooltip>
   );
 }
