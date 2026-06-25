@@ -221,9 +221,7 @@ class TestConsumeQueuedAutofixFeedbackDedup(SentryTestCase):
         return QueuedAutofixFeedback(
             organization_id=self.organization.id,
             group_id=self.group.id,
-            feedback=Feedback(
-                text=message, source={"type": "user-ui", "user_id": 1, "user": None}
-            ),
+            feedback=Feedback(text=message, source={"type": "user-ui", "user_id": 1, "user": None}),
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
         )
 
