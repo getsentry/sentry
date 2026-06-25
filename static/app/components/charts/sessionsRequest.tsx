@@ -1,20 +1,10 @@
-import {Component} from 'react';
-import isEqual from 'lodash/isEqual';
-import omitBy from 'lodash/omitBy';
-
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {t} from 'sentry/locale';
+import {useSessionsRequest} from 'sentry/components/charts/useSessionsRequest';
 import type {
   Organization,
   SessionApiResponse,
   SessionFieldWithOperation,
 } from 'sentry/types/organization';
-import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
-
-const propNamesToIgnore = ['api', 'children', 'organization'];
-const omitIgnoredProps = (props: Props) =>
-  omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
 type SessionsRequestRenderProps = {
   errored: boolean;
@@ -40,112 +30,26 @@ type Props = {
   statsPeriod?: string | null;
 };
 
-type State = {
-  errored: boolean;
-  reloading: boolean;
-  response: SessionApiResponse | null;
-};
+export function SessionsRequest({
+  children,
+  // `api` and `organization` are no longer needed: the request is made via the
+  // `useSessionsRequest` hook (which resolves the organization from context and
+  // uses the query client). They remain in the props for backwards
+  // compatibility with existing callers.
+  api: _api,
+  organization: _organization,
+  ...requestProps
+}: Props) {
+  const {
+    data: response,
+    isError,
+    isRefetching,
+  } = useSessionsRequest(requestProps);
 
-export class SessionsRequest extends Component<Props, State> {
-  state: State = {
-    reloading: false,
-    errored: false,
-    response: null,
-  };
-
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (isEqual(omitIgnoredProps(prevProps), omitIgnoredProps(this.props))) {
-      return;
-    }
-
-    this.fetchData();
-  }
-
-  get path() {
-    const {organization} = this.props;
-
-    return `/organizations/${organization.slug}/sessions/`;
-  }
-
-  get baseQueryParams() {
-    const {
-      project,
-      environment,
-      field,
-      statsPeriod,
-      start,
-      end,
-      query,
-      groupBy,
-      interval,
-    } = this.props;
-
-    return {
-      project,
-      environment,
-      field,
-      statsPeriod,
-      query,
-      groupBy,
-      start,
-      end,
-      interval: interval
-        ? interval
-        : getSessionsInterval({start, end, period: statsPeriod}),
-    };
-  }
-
-  fetchData = async () => {
-    const {api, isDisabled, shouldFilterSessionsInTimeWindow} = this.props;
-
-    if (isDisabled) {
-      return;
-    }
-
-    this.setState(state => ({
-      reloading: state.response !== null,
-      errored: false,
-    }));
-
-    try {
-      const response: SessionApiResponse = await api.requestPromise(this.path, {
-        query: this.baseQueryParams,
-      });
-
-      this.setState({
-        reloading: false,
-        response: shouldFilterSessionsInTimeWindow
-          ? filterSessionsInTimeWindow(
-              response,
-              this.baseQueryParams.start,
-              this.baseQueryParams.end
-            )
-          : response,
-      });
-    } catch (error: any) {
-      addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));
-      this.setState({
-        reloading: false,
-        errored: true,
-      });
-    }
-  };
-
-  render() {
-    const {reloading, errored, response} = this.state;
-    const {children} = this.props;
-
-    const loading = response === null;
-
-    return children({
-      loading,
-      reloading,
-      errored,
-      response,
-    });
-  }
+  return children({
+    loading: response === null,
+    reloading: response !== null && isRefetching,
+    errored: isError,
+    response,
+  });
 }
