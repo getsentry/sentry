@@ -69,7 +69,8 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
                 except ValueError:
                     pass
             elif k == ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID:
-                conversation_id = _uuid_or_empty(value)
+                if isinstance(value, str):
+                    conversation_id = value
             elif k == ATTRIBUTE_NAMES.SESSION_ID:
                 session_id = _uuid_or_empty(value)
 
