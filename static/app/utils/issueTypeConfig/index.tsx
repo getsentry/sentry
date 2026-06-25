@@ -71,6 +71,8 @@ const BASE_CONFIG: IssueTypeConfig = {
     tagsTab: {enabled: true},
   },
   autofix: false,
+  configurationProblem: {enabled: false},
+  configurationTroubleshooting: {enabled: false},
   eventAndUserCounts: {enabled: true},
   detector: {enabled: false},
   logLevel: {enabled: false},

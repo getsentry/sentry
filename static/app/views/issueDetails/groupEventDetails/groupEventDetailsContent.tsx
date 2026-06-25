@@ -68,7 +68,8 @@ import {
 } from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {LowValueSpanIssueDetails} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanIssueDetails';
+import {ProblemSection as LowValueSpanProblemSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/problemSection';
+import {TroubleshootingSection as LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/troubleshootingSection';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
@@ -127,10 +128,6 @@ export function EventDetailsContent({
     return <SourceMapIssueDetails group={group} event={event} project={project} />;
   }
 
-  if (group.issueType === IssueType.LOW_VALUE_SPAN_CONFIGURATION) {
-    return <LowValueSpanIssueDetails group={group} event={event} project={project} />;
-  }
-
   return (
     <DebugMetaSearchProvider key={event.id}>
       <ErrorBoundary mini>
@@ -145,6 +142,25 @@ export function EventDetailsContent({
       {event.userReport && (
         <FoldSection title={t('User Feedback')} sectionKey={SectionKey.USER_FEEDBACK}>
           <EventUserFeedback report={event.userReport} />
+        </FoldSection>
+      )}
+      {issueTypeConfig.configurationProblem.enabled && (
+        <FoldSection sectionKey={SectionKey.CONFIGURATION_PROBLEM} title={t('Problem')}>
+          {/* Low-value spans is the only consumer of configurationProblem today;
+              the implementation will be generalized once more configuration
+              issues opt into this flag. */}
+          <LowValueSpanProblemSection event={event} project={project} />
+        </FoldSection>
+      )}
+      {issueTypeConfig.configurationTroubleshooting.enabled && (
+        <FoldSection
+          sectionKey={SectionKey.CONFIGURATION_TROUBLESHOOTING}
+          title={t('Troubleshooting')}
+        >
+          {/* Low-value spans is the only consumer of configurationTroubleshooting
+              today; the implementation will be generalized once more
+              configuration issues opt into this flag. */}
+          <LowValueSpanTroubleshootingSection event={event} project={project} />
         </FoldSection>
       )}
       <EventEvidence event={event} group={group} project={project} />

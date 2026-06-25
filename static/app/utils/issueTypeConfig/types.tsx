@@ -31,6 +31,14 @@ export type IssueTypeConfig = {
    */
   autofix: boolean;
   /**
+   * Shows the Problem section in the configuration issue details
+   */
+  configurationProblem: DisabledWithReasonConfig;
+  /**
+   * Shows the Troubleshooting section in the configuration issue details
+   */
+  configurationTroubleshooting: DisabledWithReasonConfig;
+  /**
    * Custom copy for actions and other UI elements
    */
   customCopy: {

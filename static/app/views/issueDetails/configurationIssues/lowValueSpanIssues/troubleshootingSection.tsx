@@ -5,12 +5,15 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconDocs} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 
 import type {LowValueSpanEvidenceData} from './types';
 import {
   getCustomInstrumentationDocsUrl,
   getJavaScriptSpanFilterSnippet,
+  getLowValueSpanEvidenceData,
   getPythonSpanFilterSnippet,
   getSpanFilteringDocsUrl,
   getSpanLabel,
@@ -19,8 +22,8 @@ import {
 } from './utils';
 
 interface TroubleshootingSectionProps {
-  evidenceData: LowValueSpanEvidenceData;
-  projectPlatform?: PlatformKey | null;
+  event: Event;
+  project: Project;
 }
 
 function AutomaticInstrumentationFix({
@@ -137,10 +140,8 @@ function AutomaticInstrumentationTroubleshooting({
   );
 }
 
-export function TroubleshootingSection({
-  evidenceData,
-  projectPlatform,
-}: TroubleshootingSectionProps) {
+export function TroubleshootingSection({event, project}: TroubleshootingSectionProps) {
+  const evidenceData = getLowValueSpanEvidenceData(event.occurrence?.evidenceData);
   const isManualInstrumentation = evidenceData.spanOrigin === 'manual';
 
   return (
@@ -150,7 +151,7 @@ export function TroubleshootingSection({
       ) : (
         <AutomaticInstrumentationTroubleshooting
           evidenceData={evidenceData}
-          projectPlatform={projectPlatform}
+          projectPlatform={project.platform}
         />
       )}
     </Stack>

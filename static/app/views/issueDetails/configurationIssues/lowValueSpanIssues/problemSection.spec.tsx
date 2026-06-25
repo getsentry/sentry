@@ -1,3 +1,6 @@
+import {EventFixture} from 'sentry-fixture/event';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProblemSection} from './problemSection';
@@ -13,9 +16,20 @@ const evidenceData: LowValueSpanEvidenceData = {
   spanOrigin: 'auto',
 };
 
+function makeEvent(overrides: Partial<LowValueSpanEvidenceData> = {}) {
+  return EventFixture({
+    occurrence: {
+      evidenceData: {...evidenceData, ...overrides},
+      type: 13002,
+    },
+  });
+}
+
+const project = ProjectFixture();
+
 describe('LowValueSpanIssues ProblemSection', () => {
   it('renders low-value span evidence from the occurrence', () => {
-    render(<ProblemSection evidenceData={evidenceData} />);
+    render(<ProblemSection event={makeEvent()} project={project} />);
 
     expect(screen.getByText(/frequently created span/)).toBeInTheDocument();
     expect(screen.getByText('Affected span')).toBeInTheDocument();
@@ -30,12 +44,7 @@ describe('LowValueSpanIssues ProblemSection', () => {
 
   it('falls back to the sampled span count when extrapolated count is unavailable', () => {
     render(
-      <ProblemSection
-        evidenceData={{
-          ...evidenceData,
-          extrapolatedCount: null,
-        }}
-      />
+      <ProblemSection event={makeEvent({extrapolatedCount: null})} project={project} />
     );
 
     expect(screen.getByText('1.2K')).toBeInTheDocument();
@@ -44,39 +53,20 @@ describe('LowValueSpanIssues ProblemSection', () => {
 
   it('does not render estimated cost when unavailable', () => {
     render(
-      <ProblemSection
-        evidenceData={{
-          ...evidenceData,
-          estimatedCostUsd: null,
-        }}
-      />
+      <ProblemSection event={makeEvent({estimatedCostUsd: null})} project={project} />
     );
 
     expect(screen.queryByText('Estimated cost')).not.toBeInTheDocument();
   });
 
   it('does not render estimated cost when zero', () => {
-    render(
-      <ProblemSection
-        evidenceData={{
-          ...evidenceData,
-          estimatedCostUsd: 0,
-        }}
-      />
-    );
+    render(<ProblemSection event={makeEvent({estimatedCostUsd: 0})} project={project} />);
 
     expect(screen.queryByText('Estimated cost')).not.toBeInTheDocument();
   });
 
   it('links to explore filtering for missing description when description is null', () => {
-    render(
-      <ProblemSection
-        evidenceData={{
-          ...evidenceData,
-          description: null,
-        }}
-      />
-    );
+    render(<ProblemSection event={makeEvent({description: null})} project={project} />);
 
     const exploreLink = screen.getByRole('link', {name: 'function'});
     expect(exploreLink).toHaveAttribute(
@@ -90,14 +80,7 @@ describe('LowValueSpanIssues ProblemSection', () => {
   });
 
   it('links to explore filtering for missing op when op is null', () => {
-    render(
-      <ProblemSection
-        evidenceData={{
-          ...evidenceData,
-          op: null,
-        }}
-      />
-    );
+    render(<ProblemSection event={makeEvent({op: null})} project={project} />);
 
     const exploreLink = screen.getByRole('link', {name: 'compute_checksum'});
     expect(exploreLink).toHaveAttribute(
@@ -109,11 +92,8 @@ describe('LowValueSpanIssues ProblemSection', () => {
   it('does not link to explore when both op and description are null', () => {
     render(
       <ProblemSection
-        evidenceData={{
-          ...evidenceData,
-          op: null,
-          description: null,
-        }}
+        event={makeEvent({op: null, description: null})}
+        project={project}
       />
     );
 

@@ -17,6 +17,8 @@ const staticConfigurationIssueDetails = {
 const lowValueSpanConfigurationIssueDetails = {
   ...staticConfigurationIssueDetails,
   autofix: true,
+  configurationProblem: {enabled: true},
+  configurationTroubleshooting: {enabled: true},
 };
 
 export const configurationIssuesConfig: IssueCategoryConfigMapping = {
