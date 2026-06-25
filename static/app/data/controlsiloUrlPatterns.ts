@@ -252,4 +252,10 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^extensions/discord/configure/$'),
   new RegExp('^extensions/discord/link-identity/[^/]+/$'),
   new RegExp('^extensions/discord/unlink-identity/[^/]+/$'),
+  new RegExp('^\\.well-known/mcp\\.json$'),
+  new RegExp('^\\.well-known/api-catalog$'),
+  new RegExp('^\\.well-known/oauth-authorization-server$'),
+  new RegExp('^\\.well-known/oauth-protected-resource$'),
+  new RegExp('^\\.well-known/mcp/server-card\\.json$'),
+  new RegExp('^\\.well-known/agent-skills/index\\.json$'),
 ];

@@ -975,7 +975,7 @@ function IssueListOverviewInner({
           headerActions={headerActions}
         />
         <StyledBody>
-          <Grid area="content" padding={{sm: 'md lg', md: 'md xl'}}>
+          <Grid area="content" padding={{sm: 'md lg', md: 'lg xl'}}>
             <IssuesDataConsentBanner source="issues" />
             <IssueListFilters
               query={query}

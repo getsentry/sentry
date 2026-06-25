@@ -29,6 +29,7 @@ import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
+import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {useSeerExplorerDocumentTitle} from 'sentry/views/seerExplorer/components/useSeerExplorerDocumentTitle';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
@@ -106,25 +107,27 @@ function AppLayout({organization}: LayoutProps) {
           position="relative"
         >
           <Navigation />
-          {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
-          <ContentStack
-            id="main"
-            tabIndex={-1}
-            flex="1"
-            minWidth="0"
-            background="secondary"
-          >
-            <DemoHeader />
-            {organization && <OrganizationHeader organization={organization} />}
-            <OrganizationDetailsBody>
-              <TopBar.Slot.Provider>
-                <TopBar />
-                <Layout.Page>
-                  <Outlet />
-                </Layout.Page>
-              </TopBar.Slot.Provider>
-            </OrganizationDetailsBody>
-          </ContentStack>
+          <SeerExplorerSidebarLayout>
+            {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
+            <ContentStack
+              id="main"
+              tabIndex={-1}
+              flex="1"
+              minWidth="0"
+              background="secondary"
+            >
+              <DemoHeader />
+              {organization && <OrganizationHeader organization={organization} />}
+              <OrganizationDetailsBody>
+                <TopBar.Slot.Provider>
+                  <TopBar />
+                  <Layout.Page>
+                    <Outlet />
+                  </Layout.Page>
+                </TopBar.Slot.Provider>
+              </OrganizationDetailsBody>
+            </ContentStack>
+          </SeerExplorerSidebarLayout>
         </Flex>
       </Stack>
       {organization ? <AppDrawers /> : null}

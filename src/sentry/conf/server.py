@@ -413,6 +413,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "sentry.middleware.devtoolbar.DevToolbarAnalyticsMiddleware",
+    "sentry.middleware.agent_discovery.AgentDiscoveryMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"

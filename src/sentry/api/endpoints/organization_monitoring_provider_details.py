@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from django.db import IntegrityError
+from django.db import IntegrityError, router, transaction
 from django.http import HttpResponseRedirect
 from requests.exceptions import RequestException
 from rest_framework.request import Request
@@ -21,7 +21,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.base import Provider
 from sentry.identity.oauth2 import OAuth2Provider
-from sentry.identity.pipeline import MonitoringIdentityPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.models.identity import Identity, IdentityProvider, OrganizationIdentity
 
@@ -62,7 +62,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if not provider_type.auto_create_provider_model:
             idp, _ = IdentityProvider.objects.get_or_create(type=provider_key, external_id="")
 
-        pipeline = MonitoringIdentityPipeline(
+        pipeline = IdentityPipeline(
             request=request._request,
             provider_key=provider_key,
             organization=organization,
@@ -130,7 +130,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if provider_key not in MONITORING_PROVIDERS:
             return Response({"detail": "Unknown monitoring provider."}, status=400)
 
-        org_identities = list(
+        org_identities: list[OrganizationIdentity] = list(
             OrganizationIdentity.objects.filter(
                 organization_id=organization.id,
                 identity__user_id=request.user.id,  # type: ignore[misc]
@@ -142,9 +142,10 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
             return Response({"detail": "Not connected to this provider."}, status=404)
 
         for org_identity in org_identities:
-            identity = org_identity.identity
-            org_identity.delete()
-            if not OrganizationIdentity.objects.filter(identity=identity).exists():
-                identity.delete()
+            with transaction.atomic(router.db_for_write(OrganizationIdentity)):
+                identity: Identity = org_identity.identity
+                org_identity.delete()
+                if not OrganizationIdentity.objects.filter(identity=identity).exists():
+                    identity.delete()
 
         return Response(status=204)

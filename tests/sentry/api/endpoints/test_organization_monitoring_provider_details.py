@@ -24,10 +24,10 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         assert response.status_code == 404
 
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.current_step"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.initialize"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
     )
     def test_connect_returns_redirect_url(
         self, mock_initialize: MagicMock, mock_current_step: MagicMock
@@ -44,10 +44,10 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         mock_initialize.assert_called_once()
 
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.current_step"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.initialize"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
     )
     def test_connect_gcp_creates_identity_provider(
         self, mock_initialize: MagicMock, mock_current_step: MagicMock
@@ -62,13 +62,13 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         assert IdentityProvider.objects.filter(type="gcp").exists()
 
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.current_step"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.initialize"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.__init__",
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.__init__",
         return_value=None,
     )
     def test_connect_datadog_does_not_create_identity_provider(
@@ -108,13 +108,13 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         assert "Unknown monitoring provider" in response.data["detail"]
 
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.current_step"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.initialize"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.__init__",
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.__init__",
         return_value=None,
     )
     def test_connect_allowed_for_org_read_member(
