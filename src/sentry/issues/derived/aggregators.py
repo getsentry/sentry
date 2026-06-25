@@ -35,8 +35,8 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
 )
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     from_merged = entry.original_group_id is not None
-    merged_status_locked = state[STATUS_FROM_MERGED]
-    if merged_status_locked and not from_merged:
+    has_merged_status = state[STATUS_FROM_MERGED]
+    if has_merged_status and not from_merged:
         return None
 
     current = state[STATUS]
@@ -55,10 +55,10 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
     elif entry.type in reopens and current == IssueStatus.CLOSED:
         new_status = IssueStatus.OPEN
 
-    if new_status == current and not (from_merged and not merged_status_locked):
+    if new_status == current and not (from_merged and not has_merged_status):
         return None
     return emit(
-        STATUS.value(new_status), STATUS_FROM_MERGED.value(merged_status_locked or from_merged)
+        STATUS.value(new_status), STATUS_FROM_MERGED.value(has_merged_status or from_merged)
     )
 
 

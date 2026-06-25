@@ -240,6 +240,20 @@ def test_resolved_in_pr_when_already_closed_is_noop() -> None:
     )
 
 
+def test_archive_unresolve() -> None:
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.ARCHIVE, date_added=_ts(hour=1)),
+                FakeEntry(type=GroupActionType.UNRESOLVE, date_added=_ts(hour=2)),
+                FakeEntry(type=GroupActionType.ARCHIVE, date_added=_ts(hour=3)),
+            ],
+        )
+        == IssueStatus.CLOSED
+    )
+
+
 def test_merged_archive_unresolve() -> None:
     assert (
         _run_for_feature(
