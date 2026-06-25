@@ -40,11 +40,7 @@ export function SessionsRequest({
   organization: _organization,
   ...requestProps
 }: Props) {
-  const {
-    data: response,
-    isError,
-    isRefetching,
-  } = useSessionsRequest(requestProps);
+  const {data: response, isError, isRefetching} = useSessionsRequest(requestProps);
 
   return children({
     loading: response === null,
