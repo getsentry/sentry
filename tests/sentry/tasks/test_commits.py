@@ -13,6 +13,7 @@ from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironm
 from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.commits import (
     GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS,
@@ -413,7 +414,7 @@ class FetchCommitsTest(TestCase):
     @patch.object(
         ExampleRepositoryProvider,
         "compare_commits",
-        side_effect=Exception("repository not found"),
+        side_effect=IntegrationError("repository not found"),
     )
     def test_fetch_error_random_exception_integration(
         self, mock_compare_commits: MagicMock, mock_record: MagicMock

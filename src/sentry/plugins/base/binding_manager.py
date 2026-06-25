@@ -27,18 +27,12 @@ class ProviderManager:
         return self._items.items()
 
 
-class RepositoryProviderManager(ProviderManager):
-    # No type constraint — the legacy RepositoryProvider base class has been removed.
-    pass
-
-
 class IntegrationRepositoryProviderManager(ProviderManager):
     type = IntegrationRepositoryProvider
 
 
 class BindingManager:
     BINDINGS = {
-        "repository.provider": RepositoryProviderManager,
         "integration-repository.provider": IntegrationRepositoryProviderManager,
     }
 
