@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
@@ -10,7 +10,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -49,7 +49,6 @@ import {getDashboardsTab} from 'sentry/views/dashboards/manage/utils/getDashboar
 import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {RouteError} from 'sentry/views/routeError';
 
 import DashboardGrid from './dashboardGrid';
@@ -127,7 +126,6 @@ function ManageDashboards() {
   const navigate = useNavigate();
   const location = useLocation();
   const api = useApi();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const dashboardGridRef = useRef<HTMLDivElement>(null);
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
@@ -387,81 +385,79 @@ function ManageDashboards() {
           position="bottom-end"
           data-test-id="sort-by-select"
         />
-        {hasPageFrameFeature ? (
-          <Feature features={['dashboards-ai-generate']}>
-            {({hasFeature: hasAiGenerate}) =>
-              hasAiGenerate && areAiFeaturesAllowed ? (
-                <DashboardCreateLimitWrapper>
-                  {({
-                    hasReachedDashboardLimit,
-                    isLoading: isLoadingDashboardsLimit,
-                    limitMessage,
-                  }) => (
-                    <DropdownMenu
-                      items={[
-                        {
-                          key: 'create-dashboard',
-                          label: t('Create dashboard manually'),
-                          onAction: () => onCreate(),
-                          disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
-                          details: limitMessage,
-                        },
-                        {
-                          key: 'create-dashboard-agent',
-                          textValue: t('Generate dashboard'),
-                          label: (
-                            <Flex gap="sm" align="center" as="span">
-                              {t('Generate dashboard')}
-                              <FeatureBadge type="beta" />
-                            </Flex>
-                          ),
-                          onAction: () => onGenerateDashboard(),
-                          disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
-                          details: limitMessage,
-                        },
-                      ]}
-                      trigger={triggerProps => (
-                        <Button
-                          {...triggerProps}
-                          data-test-id="dashboard-create"
-                          variant="primary"
-                          icon={<IconAdd />}
-                        >
-                          {t('Create Dashboard')}
-                        </Button>
-                      )}
-                    />
-                  )}
-                </DashboardCreateLimitWrapper>
-              ) : (
-                <DashboardCreateLimitWrapper>
-                  {({
-                    hasReachedDashboardLimit,
-                    isLoading: isLoadingDashboardsLimit,
-                    limitMessage,
-                  }) => (
-                    <Button
-                      data-test-id="dashboard-create"
-                      onClick={event => {
-                        event.preventDefault();
-                        onCreate();
-                      }}
-                      variant="primary"
-                      icon={<IconAdd />}
-                      disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-                      tooltipProps={{
-                        isHoverable: true,
-                        title: limitMessage,
-                      }}
-                    >
-                      {t('Create Dashboard')}
-                    </Button>
-                  )}
-                </DashboardCreateLimitWrapper>
-              )
-            }
-          </Feature>
-        ) : null}
+        <Feature features={['dashboards-ai-generate']}>
+          {({hasFeature: hasAiGenerate}) =>
+            hasAiGenerate && areAiFeaturesAllowed ? (
+              <DashboardCreateLimitWrapper>
+                {({
+                  hasReachedDashboardLimit,
+                  isLoading: isLoadingDashboardsLimit,
+                  limitMessage,
+                }) => (
+                  <DropdownMenu
+                    items={[
+                      {
+                        key: 'create-dashboard',
+                        label: t('Create dashboard manually'),
+                        onAction: () => onCreate(),
+                        disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
+                        details: limitMessage,
+                      },
+                      {
+                        key: 'create-dashboard-agent',
+                        textValue: t('Generate dashboard'),
+                        label: (
+                          <Flex gap="sm" align="center" as="span">
+                            {t('Generate dashboard')}
+                            <FeatureBadge type="beta" />
+                          </Flex>
+                        ),
+                        onAction: () => onGenerateDashboard(),
+                        disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
+                        details: limitMessage,
+                      },
+                    ]}
+                    trigger={triggerProps => (
+                      <Button
+                        {...triggerProps}
+                        data-test-id="dashboard-create"
+                        variant="primary"
+                        icon={<IconAdd />}
+                      >
+                        {t('Create Dashboard')}
+                      </Button>
+                    )}
+                  />
+                )}
+              </DashboardCreateLimitWrapper>
+            ) : (
+              <DashboardCreateLimitWrapper>
+                {({
+                  hasReachedDashboardLimit,
+                  isLoading: isLoadingDashboardsLimit,
+                  limitMessage,
+                }) => (
+                  <Button
+                    data-test-id="dashboard-create"
+                    onClick={event => {
+                      event.preventDefault();
+                      onCreate();
+                    }}
+                    variant="primary"
+                    icon={<IconAdd />}
+                    disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+                    tooltipProps={{
+                      isHoverable: true,
+                      title: limitMessage,
+                    }}
+                  >
+                    {t('Create Dashboard')}
+                  </Button>
+                )}
+              </DashboardCreateLimitWrapper>
+            )
+          }
+        </Feature>
       </StyledActions>
     );
   }
@@ -604,138 +600,31 @@ function ManageDashboards() {
                       />
                     </Layout.Title>
                   </Layout.HeaderContent>
-                  {hasPageFrameFeature ? (
-                    <Fragment>
-                      <TopBar.Slot name="actions">
-                        <Feature features="dashboards-import">
-                          <Button
-                            onClick={() => {
-                              openImportDashboardFromFileModal({
-                                organization,
-                                api,
-                                location,
-                              });
-                            }}
-                            variant="primary"
-                            icon={<IconAdd />}
-                          >
-                            {t('Import Dashboard from JSON')}
-                          </Button>
-                        </Feature>
-                      </TopBar.Slot>
-                      <TopBar.Slot name="feedback">
-                        <FeedbackButton
-                          aria-label={t('Give Feedback')}
-                          tooltipProps={{title: t('Give Feedback')}}
-                        >
-                          {null}
-                        </FeedbackButton>
-                      </TopBar.Slot>
-                    </Fragment>
-                  ) : (
-                    <Layout.HeaderActions>
-                      <Grid flow="column" align="center" gap="lg">
-                        <FeedbackButton />
-                        <Feature features={['dashboards-ai-generate']}>
-                          {({hasFeature: hasAiGenerate}) =>
-                            hasAiGenerate && areAiFeaturesAllowed ? (
-                              <DashboardCreateLimitWrapper>
-                                {({
-                                  hasReachedDashboardLimit,
-                                  isLoading: isLoadingDashboardsLimit,
-                                  limitMessage,
-                                }) => (
-                                  <DropdownMenu
-                                    items={[
-                                      {
-                                        key: 'create-dashboard',
-                                        label: t('Create dashboard manually'),
-                                        onAction: () => onCreate(),
-                                        disabled:
-                                          hasReachedDashboardLimit ||
-                                          isLoadingDashboardsLimit,
-                                        details: limitMessage,
-                                      },
-                                      {
-                                        key: 'create-dashboard-agent',
-                                        textValue: t('Generate dashboard'),
-                                        label: (
-                                          <Flex gap="sm" align="center" as="span">
-                                            {t('Generate dashboard')}
-                                            <FeatureBadge type="beta" />
-                                          </Flex>
-                                        ),
-                                        onAction: () => onGenerateDashboard(),
-                                        disabled:
-                                          hasReachedDashboardLimit ||
-                                          isLoadingDashboardsLimit,
-                                        details: limitMessage,
-                                      },
-                                    ]}
-                                    trigger={triggerProps => (
-                                      <Button
-                                        {...triggerProps}
-                                        data-test-id="dashboard-create"
-                                        size="sm"
-                                        variant="primary"
-                                        icon={<IconAdd />}
-                                      >
-                                        {t('Create Dashboard')}
-                                      </Button>
-                                    )}
-                                  />
-                                )}
-                              </DashboardCreateLimitWrapper>
-                            ) : (
-                              <DashboardCreateLimitWrapper>
-                                {({
-                                  hasReachedDashboardLimit,
-                                  isLoading: isLoadingDashboardsLimit,
-                                  limitMessage,
-                                }) => (
-                                  <Button
-                                    data-test-id="dashboard-create"
-                                    onClick={event => {
-                                      event.preventDefault();
-                                      onCreate();
-                                    }}
-                                    size="sm"
-                                    variant="primary"
-                                    icon={<IconAdd />}
-                                    disabled={
-                                      hasReachedDashboardLimit || isLoadingDashboardsLimit
-                                    }
-                                    tooltipProps={{
-                                      isHoverable: true,
-                                      title: limitMessage,
-                                    }}
-                                  >
-                                    {t('Create Dashboard')}
-                                  </Button>
-                                )}
-                              </DashboardCreateLimitWrapper>
-                            )
-                          }
-                        </Feature>
-                        <Feature features="dashboards-import">
-                          <Button
-                            onClick={() => {
-                              openImportDashboardFromFileModal({
-                                organization,
-                                api,
-                                location,
-                              });
-                            }}
-                            size="sm"
-                            variant="primary"
-                            icon={<IconAdd />}
-                          >
-                            {t('Import Dashboard from JSON')}
-                          </Button>
-                        </Feature>
-                      </Grid>
-                    </Layout.HeaderActions>
-                  )}
+                  <TopBar.Slot name="actions">
+                    <Feature features="dashboards-import">
+                      <Button
+                        onClick={() => {
+                          openImportDashboardFromFileModal({
+                            organization,
+                            api,
+                            location,
+                          });
+                        }}
+                        variant="primary"
+                        icon={<IconAdd />}
+                      >
+                        {t('Import Dashboard from JSON')}
+                      </Button>
+                    </Feature>
+                  </TopBar.Slot>
+                  <TopBar.Slot name="feedback">
+                    <FeedbackButton
+                      aria-label={t('Give Feedback')}
+                      tooltipProps={{title: t('Give Feedback')}}
+                    >
+                      {null}
+                    </FeedbackButton>
+                  </TopBar.Slot>
                 </Layout.Header>
                 <Layout.Body>
                   <Layout.Main width="full">

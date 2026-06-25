@@ -2,8 +2,8 @@ import type {Release} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 interface GroupRelease {
-  firstRelease: Release;
-  lastRelease: Release;
+  firstRelease: Release | null;
+  lastRelease: Release | null;
 }
 
 type FirstLastReleaseQueryOptions = {

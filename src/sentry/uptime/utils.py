@@ -1,6 +1,6 @@
 from django.conf import settings
 from redis.client import StrictRedis
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.utils import redis
 from sentry.workflow_engine.models.detector import Detector

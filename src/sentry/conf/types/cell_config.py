@@ -18,3 +18,4 @@ class LocalityConfig(TypedDict):
     cells: list[str]
     new_org_cell: str
     visible: NotRequired[bool]
+    signup_visible: NotRequired[bool]

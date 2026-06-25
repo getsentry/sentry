@@ -8,6 +8,7 @@ import {render as baseRender, screen, userEvent} from 'sentry-test/reactTestingL
 
 import type {Organization} from 'sentry/types/organization';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {GroupReplaysPlayer} from './groupReplaysPlayer';
 
@@ -104,5 +105,35 @@ describe('GroupReplaysPlayer', () => {
     expect(handleBackClick).toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button', {name: 'Next Clip'}));
     expect(handleForwardClick).toHaveBeenCalled();
+  });
+
+  it('shows a retryable error when the recording-segment fetch fails', async () => {
+    const onRetry = jest.fn();
+
+    render(
+      <GroupReplaysPlayer
+        {...defaultProps}
+        handleBackClick={undefined}
+        handleForwardClick={undefined}
+        replayReaderResult={{
+          ...defaultProps.replayReaderResult,
+          attachmentError: [
+            new RequestError('GET', '/recording-segments/', new Error('boom'), {
+              status: 500,
+              statusText: '',
+              responseText: '',
+              responseJSON: {detail: 'boom'},
+              getResponseHeader: () => null,
+            }),
+          ],
+          isError: true,
+          status: 'error' as const,
+          onRetry,
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+    expect(onRetry).toHaveBeenCalled();
   });
 });

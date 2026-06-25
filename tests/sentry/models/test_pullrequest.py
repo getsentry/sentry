@@ -134,6 +134,15 @@ class FindReferencedGroupsTest(TestCase):
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
 
+        pr.message = "no groups here"
+        pr.save()
+
+        assert not GroupLink.objects.filter(
+            group=group,
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=pr.id,
+        ).exists()
+
     def test_resolve_in_pull_request_resolved_via_release(self) -> None:
         group = self.create_group()
         repo = Repository.objects.create(name="example", organization_id=group.organization.id)

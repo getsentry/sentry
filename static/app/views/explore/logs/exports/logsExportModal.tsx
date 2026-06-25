@@ -86,7 +86,6 @@ export function LogsExportModal({
       const isAllColumns = value.columns === 'all';
       const passedSyncLimit = value.limit > ROW_COUNT_VALUE_SYNC_LIMIT;
 
-      // The backend only supports exporting all columns in JSONL format.
       const format = isAllColumns ? 'jsonl' : value.format;
 
       trackAnalytics('explore.table_exported', {
@@ -148,20 +147,6 @@ export function LogsExportModal({
               'When a high number of rows is selected and events are large, the results may be sent to your email.'
             )}
           </Text>
-          <form.AppField name="columns">
-            {field => (
-              <field.Layout.Stack label={t('All Columns?')}>
-                <field.Switch
-                  checked={field.state.value === ModalColumnValue.ALL}
-                  onChange={checked =>
-                    field.handleChange(
-                      checked ? ModalColumnValue.ALL : ModalColumnValue.SELECTED
-                    )
-                  }
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
           <form.AppField name="format">
             {field => (
               <field.Radio.Group
@@ -184,6 +169,23 @@ export function LogsExportModal({
                   </field.Radio.Item>
                 </field.Layout.Stack>
               </field.Radio.Group>
+            )}
+          </form.AppField>
+          <form.AppField name="columns">
+            {field => (
+              <field.Layout.Stack
+                hintText={t('All columns are only supported by JSONL.')}
+                label={t('All Columns?')}
+              >
+                <field.Switch
+                  checked={field.state.value === ModalColumnValue.ALL}
+                  onChange={checked =>
+                    field.handleChange(
+                      checked ? ModalColumnValue.ALL : ModalColumnValue.SELECTED
+                    )
+                  }
+                />
+              </field.Layout.Stack>
             )}
           </form.AppField>
           <form.AppField name="limit">

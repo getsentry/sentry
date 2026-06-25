@@ -105,7 +105,7 @@ export function getLogsSeerLocationQuery({
       currentAggregateFields,
       groupBys: seerQuery.groupBys,
       visualizes: seerQuery.visualizes,
-      fallbackVisualizes: defaultVisualizes(true).map(visualize => visualize.serialize()),
+      fallbackVisualizes: defaultVisualizes().map(visualize => visualize.serialize()),
     });
     targetLocation.query[LOGS_AGGREGATE_FIELD_KEY] = aggregateFields.map(field =>
       JSON.stringify(field)

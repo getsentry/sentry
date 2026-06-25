@@ -402,8 +402,8 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+        assert sdk_span_mock.set_tag.call_count == 6
+        sdk_span_mock.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",

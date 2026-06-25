@@ -12,9 +12,9 @@ describe('ConversationsLayout', () => {
     PageFiltersStore.init();
   });
 
-  it('renders detail breadcrumbs in the top bar when page frame is enabled', async () => {
+  it('renders detail breadcrumbs in the top bar', async () => {
     const organization = OrganizationFixture({
-      features: ['page-frame', 'performance-view', 'gen-ai-conversations'],
+      features: ['performance-view', 'gen-ai-conversations'],
     });
 
     render(

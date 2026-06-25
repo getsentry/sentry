@@ -24,7 +24,6 @@ from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.api.utils import to_valid_int_id_list
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -39,6 +38,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
 )
+from sentry.incidents.serializers.utils import validate_object_ids_belong
 from sentry.incidents.utils.subscription_limits import get_max_metric_alert_subscriptions
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.snuba.dataset import Dataset
@@ -49,10 +49,15 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_update_alert_rule,
     dual_write_alert_rule,
 )
+from sentry.workflow_engine.types import AlertRuleNotDualWritten
 
 from .alert_rule_trigger import AlertRuleTriggerSerializer
 
 logger = logging.getLogger(__name__)
+
+UNSUPPORTED_LEGACY_API = (
+    "This Alert cannot be modified with the legacy API. See: https://docs.sentry.io/api/monitors/"
+)
 
 
 class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRule]):
@@ -408,6 +413,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             self._handle_triggers(alert_rule, triggers)
             try:
                 dual_update_alert_rule(alert_rule)
+            except AlertRuleNotDualWritten:
+                raise serializers.ValidationError(UNSUPPORTED_LEGACY_API)
             except Exception:
                 sentry_sdk.capture_exception()
                 raise BadRequest(message="Error when updating alert rule")
@@ -422,24 +429,22 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         if triggers is not None:
             # Delete triggers we don't have present in the incoming data
             raw_trigger_ids = [x["id"] for x in triggers if "id" in x]
-            trigger_ids = to_valid_int_id_list("triggers", raw_trigger_ids)
-            if trigger_ids:
-                existing_trigger_ids = set(
-                    AlertRuleTrigger.objects.filter(
-                        alert_rule=alert_rule, id__in=trigger_ids
-                    ).values_list("id", flat=True)
-                )
-                missing_ids = [tid for tid in trigger_ids if tid not in existing_trigger_ids]
-                if missing_ids:
-                    raise serializers.ValidationError(
-                        f"Trigger IDs do not belong to this alert rule: {missing_ids}"
-                    )
+            trigger_ids = validate_object_ids_belong(
+                "triggers",
+                raw_trigger_ids,
+                AlertRuleTrigger.objects.filter(alert_rule=alert_rule),
+                "Trigger IDs do not belong to this alert rule, this alert rule may be incompatible with the legacy API.",
+            )
             triggers_to_delete = AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(
                 id__in=trigger_ids
             )
             for trigger in triggers_to_delete:
                 with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
-                    dual_delete_migrated_alert_rule_trigger(trigger)
+                    try:
+                        dual_delete_migrated_alert_rule_trigger(trigger)
+                    except AlertRuleNotDualWritten:
+                        raise serializers.ValidationError(UNSUPPORTED_LEGACY_API)
+
                     delete_alert_rule_trigger(trigger)
 
             for trigger_data in triggers:

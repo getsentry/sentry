@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -68,7 +68,6 @@ import {
   ORDERED_ISSUE_DETAILS_TOUR,
   type IssueDetailsTour,
 } from 'sentry/views/issueDetails/issueDetailsTour';
-import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
@@ -81,7 +80,6 @@ import {
   ReprocessingStatus,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
-  useIsSampleEvent,
 } from 'sentry/views/issueDetails/utils';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -857,7 +855,6 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
 function GroupDetails() {
   const organization = useOrganization();
   const {group, ...fetchGroupDetailsProps} = useFetchGroupDetails();
-  const isSampleError = useIsSampleEvent();
 
   const getGroupDetailsTitle = () => {
     const defaultTitle = 'Sentry';
@@ -881,23 +878,18 @@ function GroupDetails() {
   const config = group && getConfigForIssueType(group, group.project);
 
   return (
-    <Fragment>
-      {isSampleError && group && (
-        <SampleEventAlert project={group.project} organization={organization} />
-      )}
-      <SentryDocumentTitle noSuffix title={getGroupDetailsTitle()}>
-        <PageFiltersContainer
-          skipLoadLastUsed
-          forceProject={group?.project}
-          shouldForceProject
-        >
-          {config?.showFeedbackWidget && <FloatingFeedbackButton />}
-          <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
-            <Outlet />
-          </GroupDetailsPageContent>
-        </PageFiltersContainer>
-      </SentryDocumentTitle>
-    </Fragment>
+    <SentryDocumentTitle noSuffix title={getGroupDetailsTitle()}>
+      <PageFiltersContainer
+        skipLoadLastUsed
+        forceProject={group?.project}
+        shouldForceProject
+      >
+        {config?.showFeedbackWidget && <FloatingFeedbackButton />}
+        <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
+          <Outlet />
+        </GroupDetailsPageContent>
+      </PageFiltersContainer>
+    </SentryDocumentTitle>
   );
 }
 

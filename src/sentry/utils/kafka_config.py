@@ -32,6 +32,7 @@ SUPPORTED_KAFKA_CONFIGURATION = (
     "ssl.keystore.location",
     "ssl.keystore.password",
     "ssl.sigalgs.list",
+    "acks",
 )
 COMMON_SECTION = "common"
 PRODUCERS_SECTION = "producers"

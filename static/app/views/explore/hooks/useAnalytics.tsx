@@ -51,7 +51,7 @@ import {
   combineConfidenceForSeries,
   computeVisualizeSampleTotals,
 } from 'sentry/views/explore/utils';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
 const {info, fmt} = Sentry.logger;
@@ -68,7 +68,7 @@ interface UseTrackAnalyticsProps {
   query: string;
   queryType: QueryType;
   spansTableResult: SpansTableResult;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
   visualizes: readonly Visualize[];
   attributeBreakdownsMode?: 'breakdowns' | 'cohort_comparison';
   crossEventQueries?: CrossEventQueryExtras;
@@ -648,7 +648,7 @@ export function useLogAnalytics({
   isTopN: boolean;
   logsAggregatesTableResult: LogsAggregatesTableResult;
   logsTableResult: UseInfiniteLogsQueryResult;
-  logsTimeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  logsTimeseriesResult: SortedTimeSeries;
   mode: Mode;
   sortBys: readonly Sort[];
   source: LogsAnalyticsPageSource;
@@ -890,10 +890,7 @@ export function useLogAnalytics({
   ]);
 }
 
-function computeConfidence(
-  yAxes: string[],
-  data: ReturnType<typeof useSortedTimeSeries>['data']
-) {
+function computeConfidence(yAxes: string[], data: SortedTimeSeries['data']) {
   return yAxes.map(yAxis => {
     const series = data[yAxis]?.filter(defined) ?? [];
     return String(combineConfidenceForSeries(series));
@@ -910,10 +907,7 @@ function computeEmptyBucketsForSeries(series: Pick<TimeSeries, 'values'>): numbe
   return Math.floor((emptyBucketsForSeries / series.values.length) * 100);
 }
 
-function computeEmptyBuckets(
-  yAxes: string[],
-  data: ReturnType<typeof useSortedTimeSeries>['data']
-) {
+function computeEmptyBuckets(yAxes: string[], data: SortedTimeSeries['data']) {
   return yAxes.flatMap(yAxis => {
     const series = data?.[yAxis]?.filter(defined) ?? [];
     return series.map(computeEmptyBucketsForSeries);
@@ -937,7 +931,7 @@ export function useMetricsPanelAnalytics({
   isTopN: boolean;
   metricAggregatesTableResult: ReturnType<typeof useMetricAggregatesTable>;
   metricSamplesTableResult: ReturnType<typeof useMetricSamplesTable>;
-  metricTimeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  metricTimeseriesResult: SortedTimeSeries;
   mode: Mode;
   sortBys: readonly Sort[];
   traceMetric: TraceMetric;

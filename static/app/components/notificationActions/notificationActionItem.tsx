@@ -18,8 +18,8 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {OnCallServiceForm} from 'sentry/components/notificationActions/forms/onCallServiceForm';
 import {SlackForm} from 'sentry/components/notificationActions/forms/slackForm';
 import {IconEllipsis, IconMail} from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {
   AvailableNotificationAction,
   NotificationAction,
