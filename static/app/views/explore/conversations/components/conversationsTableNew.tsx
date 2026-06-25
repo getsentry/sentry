@@ -293,13 +293,13 @@ const BodyCell = memo(function BodyCell({
       return dataRow.firstInput ? (
         <InputOutputTooltipCell text={dataRow.firstInput} />
       ) : (
-        <Text variant="muted">&mdash;</Text>
+        <Text>&mdash;</Text>
       );
     case 'output':
       return dataRow.lastOutput ? (
         <InputOutputTooltipCell text={dataRow.lastOutput} />
       ) : (
-        <Text variant="muted">&mdash;</Text>
+        <Text>&mdash;</Text>
       );
     case 'inputTokens':
       return (
