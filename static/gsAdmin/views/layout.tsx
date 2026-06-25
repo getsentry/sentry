@@ -140,6 +140,7 @@ export function Layout() {
                 </NavLink>
                 <NavLink to="/_admin/customers/">Customers</NavLink>
                 <NavLink to="/_admin/users/">Users</NavLink>
+                <NavLink to="/_admin/published-integrations/">Published Integrations</NavLink>
                 <NavLink to="/_admin/sentry-apps/">Sentry Apps</NavLink>
                 <NavLink to="/_admin/doc-integrations/">Doc Integrations</NavLink>
                 <NavLink to="/_admin/broadcasts/">Broadcasts</NavLink>
