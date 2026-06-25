@@ -48,7 +48,6 @@ export function isDefaultFields(location: Location): boolean {
 }
 
 export function getReadableQueryParamsFromLocation(
-  defaultVisible: boolean,
   location: Location
 ): ReadableQueryParams {
   const mode = getModeFromLocation(location, LOGS_MODE_KEY);
@@ -60,7 +59,7 @@ export function getReadableQueryParamsFromLocation(
     getSortBysFromLocation(location, LOGS_SORT_BYS_KEY, fields) ?? defaultSortBys(fields);
 
   const aggregateCursor = getCursorFromLocation(location, LOGS_AGGREGATE_CURSOR_KEY);
-  const aggregateFields = getLogsAggregateFieldsFromLocation(defaultVisible, location);
+  const aggregateFields = getLogsAggregateFieldsFromLocation(location);
   const aggregateSortBys =
     getAggregateSortBysFromLocation(
       location,
@@ -171,11 +170,9 @@ function defaultSortBys(fields: string[]) {
   return [];
 }
 
-export function defaultVisualizes(defaultVisible: boolean) {
+export function defaultVisualizes() {
   return [
-    new VisualizeFunction(`${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`, {
-      visible: defaultVisible,
-    }),
+    new VisualizeFunction(`${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`),
   ];
 }
 
@@ -195,10 +192,7 @@ function getVisualizesFromLocation(location: Location): Visualize[] | null {
   return [new VisualizeFunction(`${aggregateFn}(${aggregateParam})`)];
 }
 
-function getLogsAggregateFieldsFromLocation(
-  defaultVisible: boolean,
-  location: Location
-): AggregateField[] {
+function getLogsAggregateFieldsFromLocation(location: Location): AggregateField[] {
   const aggregateFields = getAggregateFieldsFromLocation(
     location,
     LOGS_AGGREGATE_FIELD_KEY
@@ -223,7 +217,7 @@ function getLogsAggregateFieldsFromLocation(
     }
 
     if (!hasVisualize) {
-      aggregateFields.push(...defaultVisualizes(defaultVisible));
+      aggregateFields.push(...defaultVisualizes());
     }
 
     return aggregateFields;
@@ -233,7 +227,7 @@ function getLogsAggregateFieldsFromLocation(
   // needed for re-ordering columns in aggregate mode
   return [
     ...(getGroupBysFromLocation(location, LOGS_GROUP_BY_KEY) ?? defaultGroupBys()),
-    ...(getVisualizesFromLocation(location) ?? defaultVisualizes(defaultVisible)),
+    ...(getVisualizesFromLocation(location) ?? defaultVisualizes()),
   ];
 }
 
