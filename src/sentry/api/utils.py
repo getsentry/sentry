@@ -384,6 +384,8 @@ def handle_query_errors() -> Generator[None]:
             message = "Invalid ID used in a filter"
         elif message.endswith(INVALID_SPAN_ID[5:]):
             message = "Invalid Span ID used in a filter"
+        elif message.startswith("Empty string after"):
+            message = "Filter key was followed by nothing (eg. thing:)"
         sentry_sdk.set_tag("query.error_reason", message)
         sentry_sdk.set_attribute("query.error_reason", message)
         logger.info("A query error was handled", extra={"query.error_reason": message})
