@@ -5,10 +5,7 @@ import {Text} from '@sentry/scraps/text';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TagVariant} from 'sentry/utils/theme';
-import {
-  IssueAlertNotificationOptions,
-  type IssueAlertNotificationProps,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {type IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   type AlertRuleOptions,
   RuleAction,
@@ -17,6 +14,7 @@ import {
 import {ScmAlertFrequency} from './scmAlertFrequency';
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {ScmCollapsibleSection} from './scmCollapsibleSection';
+import {ScmIssueAlertNotificationOptions} from './scmIssueAlertNotificationOptions';
 
 interface ScmAlertFrequencySectionProps {
   alertRuleConfig: AlertRuleOptions;
@@ -47,7 +45,7 @@ export function ScmAlertFrequencySection({
   // hide them for "create alerts later" (mirrors issueAlertOptions).
   const notificationOptions =
     alertRuleConfig.alertSetting === RuleAction.CREATE_ALERT_LATER ? null : (
-      <IssueAlertNotificationOptions {...notificationProps} />
+      <ScmIssueAlertNotificationOptions {...notificationProps} />
     );
 
   const footer = (
