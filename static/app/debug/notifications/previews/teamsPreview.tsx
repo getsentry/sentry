@@ -99,7 +99,19 @@ export function TeamsPreview({
                   />
                 </Flex>
               )}
-              {footer && <TeamsBlackText size="sm">{footer}</TeamsBlackText>}
+              {footer && (
+                <TeamsBlackText size="sm">
+                  {typeof footer === 'string' ? (
+                    footer
+                  ) : (
+                    <NotificationBodyRenderer
+                      body={footer}
+                      codeBlockBackground="#f3f2f1"
+                      codeBlockBorder="#e1dfdd"
+                    />
+                  )}
+                </TeamsBlackText>
+              )}
             </TeamsCard>
           </TeamsMessage>
         </TeamsPreviewContainer>

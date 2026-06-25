@@ -88,7 +88,15 @@ export function SlackPreview({
             )}
             {footer && (
               <SlackBlackText size="xs" variant="muted">
-                {footer}
+                {typeof footer === 'string' ? (
+                  footer
+                ) : (
+                  <NotificationBodyRenderer
+                    body={footer}
+                    codeBlockBackground="#f8f8f8"
+                    codeBlockBorder="#e0e0e0"
+                  />
+                )}
               </SlackBlackText>
             )}
           </Flex>

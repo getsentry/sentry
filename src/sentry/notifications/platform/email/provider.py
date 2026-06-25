@@ -47,16 +47,25 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
         html_body_blocks = cls.render_body_blocks_to_html_string(rendered_template.body)
         txt_body_blocks = cls.render_body_blocks_to_txt_string(rendered_template.body)
 
+        footer_html = (
+            cls.render_body_blocks_to_html_string(rendered_template.footer)
+            if isinstance(rendered_template.footer, list)
+            else rendered_template.footer
+        )
+        footer_txt = (
+            cls.render_body_blocks_to_txt_string(rendered_template.footer)
+            if isinstance(rendered_template.footer, list)
+            else rendered_template.footer
+        )
         email_context = {
             "subject": rendered_template.subject,
             "actions": [(action.label, action.link) for action in rendered_template.actions],
             "chart_url": rendered_template.chart.url if rendered_template.chart else None,
             "chart_alt_text": rendered_template.chart.alt_text if rendered_template.chart else None,
-            "footer": rendered_template.footer,
         }
 
-        html_email_context = {**email_context, "body": html_body_blocks}
-        txt_email_context = {**email_context, "body": txt_body_blocks}
+        html_email_context = {**email_context, "body": html_body_blocks, "footer": footer_html}
+        txt_email_context = {**email_context, "body": txt_body_blocks, "footer": footer_txt}
 
         html_body = inline_css(
             render_to_string(

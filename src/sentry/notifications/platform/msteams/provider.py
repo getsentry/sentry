@@ -32,7 +32,7 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 from sentry.shared_integrations.exceptions import IntegrationError
 
 if TYPE_CHECKING:
-    from sentry.integrations.msteams.card_builder.block import AdaptiveCard, Block
+    from sentry.integrations.msteams.card_builder.block import AdaptiveCard, Block, TextSize
 
 type MSTeamsRenderable = AdaptiveCard
 
@@ -81,9 +81,13 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             )
             body_blocks.append(chart_image)
 
-        if rendered_template.footer is not None:
-            footer_text = create_text_block(text=rendered_template.footer, size=TextSize.SMALL)
-            body_blocks.append(footer_text)
+        if footer := rendered_template.footer is not None:
+            if isinstance(footer, list):
+                footer_blocks = cls.render_body_blocks(footer, size=TextSize.SMALL)
+                body_blocks.extend(footer_blocks)
+            else:
+                footer_text = create_text_block(text=footer, size=TextSize.SMALL)
+                body_blocks.append(footer_text)
 
         card: AdaptiveCard = {
             "type": "AdaptiveCard",
@@ -94,7 +98,9 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         return card
 
     @classmethod
-    def render_body_blocks(cls, body: list[NotificationBodyFormattingBlock]) -> list[Block]:
+    def render_body_blocks(
+        cls, body: list[NotificationBodyFormattingBlock], size: TextSize = TextSize.MEDIUM
+    ) -> list[Block]:
         from sentry.integrations.msteams.card_builder.block import (
             create_code_block,
             create_text_block,
@@ -103,9 +109,13 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         body_blocks: list[Block] = []
         for block in body:
             if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
-                body_blocks.append(create_text_block(text=cls.render_text_blocks(block.blocks)))
+                body_blocks.append(
+                    create_text_block(text=cls.render_text_blocks(block.blocks), size=size)
+                )
             elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
-                body_blocks.append(create_code_block(text=cls.render_text_blocks(block.blocks)))
+                body_blocks.append(
+                    create_code_block(text=cls.render_text_blocks(block.blocks), size=size)
+                )
         return body_blocks
 
     @classmethod

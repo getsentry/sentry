@@ -79,7 +79,13 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
                     else None
                 ),
                 footer=(
-                    DiscordMessageEmbedFooter(text=rendered_template.footer)
+                    DiscordMessageEmbedFooter(
+                        text=(
+                            cls.render_body_blocks(rendered_template.footer)
+                            if isinstance(rendered_template.footer, list)
+                            else rendered_template.footer
+                        )
+                    )
                     if rendered_template.footer
                     else None
                 ),

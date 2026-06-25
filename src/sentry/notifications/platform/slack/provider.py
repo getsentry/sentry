@@ -89,8 +89,12 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
             )
             blocks.append(chart)
         if rendered_template.footer:
-            footer = ContextBlock(elements=[MarkdownTextObject(text=rendered_template.footer)])
-            blocks.append(footer)
+            if isinstance(rendered_template.footer, list):
+                footer_blocks = cls._render_body(rendered_template.footer)
+                blocks.extend(footer_blocks)
+            else:
+                footer = ContextBlock(elements=[MarkdownTextObject(text=rendered_template.footer)])
+                blocks.append(footer)
 
         return SlackRenderable(blocks=blocks, text=rendered_template.subject)
 

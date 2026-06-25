@@ -118,13 +118,9 @@ export function DebugNotificationsExample({
             <Text variant="success" bold>
               Footer
             </Text>
-            {displayFormat === ExampleDataFormat.FORMATTED ? (
-              <Text>{registration.example.footer}</Text>
-            ) : (
-              <CodeBlock language="javascript">
-                {JSON.stringify(registration.example.footer)}
-              </CodeBlock>
-            )}
+            <CodeBlock language="json">
+              {JSON.stringify(registration.example.footer, null, 2)}
+            </CodeBlock>
           </Fragment>
         )}
       </ExampleGrid>

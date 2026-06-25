@@ -14,7 +14,7 @@ export interface NotificationTemplateRegistration {
     body: NotificationBodyFormattingBlock[];
     subject: string;
     chart?: {alt_text: string; url: string};
-    footer?: string;
+    footer?: string | NotificationBodyFormattingBlock[];
   };
   previews: {
     [NotificationProviderKey.EMAIL]: {

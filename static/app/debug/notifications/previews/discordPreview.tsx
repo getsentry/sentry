@@ -64,7 +64,20 @@ export function DiscordPreview({
                 objectFit="contain"
               />
             )}
-            {footer && <DiscordWhiteText size="xs">{footer}</DiscordWhiteText>}
+            {footer && (
+              <DiscordWhiteText size="xs">
+                {typeof footer === 'string' ? (
+                  footer
+                ) : (
+                  <NotificationBodyRenderer
+                    body={footer}
+                    codeBlockBackground="#2f3136"
+                    codeBlockBorder="#202225"
+                    codeBlockTextColor="#dcddde"
+                  />
+                )}
+              </DiscordWhiteText>
+            )}
           </DiscordEmbedContainer>
           <Flex gap="xs">
             {actions.map(action => (

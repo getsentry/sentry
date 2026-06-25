@@ -250,11 +250,12 @@ class NotificationRenderedTemplate:
     """
     The image that will be displayed in the notification.
     """
-    footer: str | None = None
+    footer: str | list[NotificationBodyFormattingBlock] | None = None
     """
     Extra notification content that will appear after any actions, separate from the body. Optional,
     and consider omitting if the extra data is not necessary for your notification to be useful.
-    This string should not contain any formatting, and will be displayed as is.
+    Accepts a plain string for simple text, or a list of NotificationBodyFormattingBlock for rich
+    formatting (links, bold, code, etc.).
     """
 
     # The following are optional, as omitting them will use a default email template which expects

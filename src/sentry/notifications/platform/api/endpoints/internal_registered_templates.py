@@ -62,7 +62,19 @@ def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) 
             "alt_text": rendered_template.chart.alt_text,
         }
     if rendered_template.footer:
-        response["footer"] = rendered_template.footer
+        if isinstance(rendered_template.footer, list):
+            response["footer"] = [
+                {
+                    "type": block.type,
+                    "blocks": [
+                        {"type": text_block.type, "text": text_block.text}
+                        for text_block in block.blocks
+                    ],
+                }
+                for block in rendered_template.footer
+            ]
+        else:
+            response["footer"] = rendered_template.footer
     return response
 
 
