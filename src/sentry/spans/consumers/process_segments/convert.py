@@ -43,6 +43,8 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
 
     client_sample_rate = 1.0
     server_sample_rate = 1.0
+    conversation_id = ""
+    session_id = ""
 
     for k, attribute in (span.get("attributes") or {}).items():
         if attribute is None:
@@ -65,6 +67,12 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
                     server_sample_rate = float(value)  # type:ignore[arg-type]
                 except ValueError:
                     pass
+            elif k == ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID:
+                if isinstance(value, str):
+                    conversation_id = value
+            elif k == ATTRIBUTE_NAMES.SESSION_ID:
+                if isinstance(value, str):
+                    session_id = value
 
     # For `is_segment`, we trust the value written by `flush_segments` over a pre-existing attribute:
     if (is_segment := span.get("is_segment")) is not None:
@@ -129,6 +137,8 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         attributes=attributes,
         client_sample_rate=client_sample_rate,
         server_sample_rate=server_sample_rate,
+        conversation_id=conversation_id,
+        session_id=session_id,
         retention_days=span["retention_days"],
         downsampled_retention_days=span.get("downsampled_retention_days", 0),
         received=_timestamp(span["received"]),

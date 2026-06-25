@@ -207,6 +207,31 @@ def test_convert_span_to_item() -> None:
     }
 
 
+def test_convert_conversation_and_session_id() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"]["gen_ai.conversation.id"] = {
+        "value": "conv-123",
+        "type": "string",
+    }
+    message["attributes"]["session.id"] = {"value": "sess-456", "type": "string"}
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.conversation_id == "conv-123"
+    assert item.session_id == "sess-456"
+
+    # The values are also retained as regular attributes.
+    assert item.attributes.get("gen_ai.conversation.id") == AnyValue(string_value="conv-123")
+    assert item.attributes.get("session.id") == AnyValue(string_value="sess-456")
+
+
+def test_convert_conversation_and_session_id_missing() -> None:
+    item = convert_span_to_item(cast(CompatibleSpan, SPAN_KAFKA_MESSAGE))
+
+    assert item.conversation_id == ""
+    assert item.session_id == ""
+
+
 def test_convert_falsy_fields() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
     message["is_segment"] = False
