@@ -6,6 +6,7 @@ from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
@@ -37,6 +38,7 @@ def _get_signature(project_id, plugin_id, token):
 
 @cell_silo_endpoint
 class ProjectReleasesTokenEndpoint(ProjectEndpoint):
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
