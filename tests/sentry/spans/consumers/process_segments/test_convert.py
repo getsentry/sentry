@@ -207,22 +207,26 @@ def test_convert_span_to_item() -> None:
     }
 
 
+CONVERSATION_UUID = "12345678-1234-5678-1234-567812345678"
+SESSION_UUID = "87654321-4321-8765-4321-876543218765"
+
+
 def test_convert_conversation_and_session_id() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
     message["attributes"] = {
         **(message["attributes"] or {}),
-        "gen_ai.conversation.id": {"value": "conv-123", "type": "string"},
-        "session.id": {"value": "sess-456", "type": "string"},
+        "gen_ai.conversation.id": {"value": CONVERSATION_UUID, "type": "string"},
+        "session.id": {"value": SESSION_UUID, "type": "string"},
     }
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 
-    assert item.conversation_id == "conv-123"
-    assert item.session_id == "sess-456"
+    assert item.conversation_id == CONVERSATION_UUID
+    assert item.session_id == SESSION_UUID
 
     # The values are also retained as regular attributes.
-    assert item.attributes.get("gen_ai.conversation.id") == AnyValue(string_value="conv-123")
-    assert item.attributes.get("session.id") == AnyValue(string_value="sess-456")
+    assert item.attributes.get("gen_ai.conversation.id") == AnyValue(string_value=CONVERSATION_UUID)
+    assert item.attributes.get("session.id") == AnyValue(string_value=SESSION_UUID)
 
 
 def test_convert_conversation_and_session_id_missing() -> None:
@@ -230,6 +234,25 @@ def test_convert_conversation_and_session_id_missing() -> None:
 
     assert item.conversation_id == ""
     assert item.session_id == ""
+
+
+def test_convert_conversation_and_session_id_non_uuid() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"] = {
+        **(message["attributes"] or {}),
+        "gen_ai.conversation.id": {"value": "not-a-uuid", "type": "string"},
+        "session.id": {"value": "12345", "type": "string"},
+    }
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    # Non-UUID values are not hoisted onto the dedicated fields...
+    assert item.conversation_id == ""
+    assert item.session_id == ""
+
+    # ...but are still retained as regular attributes.
+    assert item.attributes.get("gen_ai.conversation.id") == AnyValue(string_value="not-a-uuid")
+    assert item.attributes.get("session.id") == AnyValue(string_value="12345")
 
 
 def test_convert_falsy_fields() -> None:

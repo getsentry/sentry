@@ -1,3 +1,4 @@
+import uuid
 from typing import Any, cast
 
 import orjson
@@ -68,11 +69,9 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
                 except ValueError:
                     pass
             elif k == ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID:
-                if isinstance(value, str):
-                    conversation_id = value
+                conversation_id = _uuid_or_empty(value)
             elif k == ATTRIBUTE_NAMES.SESSION_ID:
-                if isinstance(value, str):
-                    session_id = value
+                session_id = _uuid_or_empty(value)
 
     # For `is_segment`, we trust the value written by `flush_segments` over a pre-existing attribute:
     if (is_segment := span.get("is_segment")) is not None:
@@ -144,6 +143,17 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         received=_timestamp(span["received"]),
         outcomes=outcomes,
     )
+
+
+def _uuid_or_empty(value: Any) -> str:
+    """Return the value if it is a valid UUID string, otherwise an empty string."""
+    if not isinstance(value, str):
+        return ""
+    try:
+        uuid.UUID(value)
+    except ValueError:
+        return ""
+    return value
 
 
 def _anyvalue(value: Any) -> AnyValue:
