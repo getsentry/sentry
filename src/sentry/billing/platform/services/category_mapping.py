@@ -5,38 +5,29 @@ from sentry_protos.billing.v1.data_category_pb2 import DataCategory as ProtoData
 from sentry.constants import DataCategory
 from sentry.utils import metrics
 
-SENTRY_TO_PROTO_CATEGORY: dict[int, int] = {
-    int(DataCategory.ERROR): ProtoDataCategory.DATA_CATEGORY_ERROR,
-    int(DataCategory.TRANSACTION): ProtoDataCategory.DATA_CATEGORY_TRANSACTION,
-    int(DataCategory.ATTACHMENT): ProtoDataCategory.DATA_CATEGORY_ATTACHMENT,
-    int(DataCategory.PROFILE): ProtoDataCategory.DATA_CATEGORY_PROFILE,
-    int(DataCategory.REPLAY): ProtoDataCategory.DATA_CATEGORY_REPLAY,
-    int(DataCategory.MONITOR): ProtoDataCategory.DATA_CATEGORY_MONITOR,
-    int(DataCategory.SPAN): ProtoDataCategory.DATA_CATEGORY_SPAN,
-    int(DataCategory.SPAN_INDEXED): ProtoDataCategory.DATA_CATEGORY_SPAN_INDEXED,
-    int(DataCategory.USER_REPORT_V2): ProtoDataCategory.DATA_CATEGORY_USER_REPORT_V2,
-    int(DataCategory.PROFILE_DURATION): ProtoDataCategory.DATA_CATEGORY_PROFILE_DURATION,
-    int(DataCategory.LOG_BYTE): ProtoDataCategory.DATA_CATEGORY_LOG_BYTE,
-    int(DataCategory.PROFILE_DURATION_UI): ProtoDataCategory.DATA_CATEGORY_PROFILE_DURATION_UI,
-    int(DataCategory.SEER_AUTOFIX): ProtoDataCategory.DATA_CATEGORY_SEER_AUTOFIX,
-    int(DataCategory.SEER_SCANNER): ProtoDataCategory.DATA_CATEGORY_SEER_SCANNER,
-    int(DataCategory.SIZE_ANALYSIS): ProtoDataCategory.DATA_CATEGORY_SIZE_ANALYSIS,
-    int(DataCategory.INSTALLABLE_BUILD): ProtoDataCategory.DATA_CATEGORY_INSTALLABLE_BUILD,
-    int(DataCategory.TRACE_METRIC): ProtoDataCategory.DATA_CATEGORY_TRACE_METRIC,
-    int(DataCategory.DEFAULT): ProtoDataCategory.DATA_CATEGORY_DEFAULT,
-    int(DataCategory.SECURITY): ProtoDataCategory.DATA_CATEGORY_SECURITY,
-    int(DataCategory.PROFILE_CHUNK): ProtoDataCategory.DATA_CATEGORY_PROFILE_CHUNK,
-    int(DataCategory.PROFILE_CHUNK_UI): ProtoDataCategory.DATA_CATEGORY_PROFILE_CHUNK_UI,
-    int(DataCategory.TRANSACTION_PROCESSED): ProtoDataCategory.DATA_CATEGORY_TRANSACTION_PROCESSED,
-    int(DataCategory.TRANSACTION_INDEXED): ProtoDataCategory.DATA_CATEGORY_TRANSACTION_INDEXED,
-    int(DataCategory.PROFILE_INDEXED): ProtoDataCategory.DATA_CATEGORY_PROFILE_INDEXED,
-    int(DataCategory.METRIC_BUCKET): ProtoDataCategory.DATA_CATEGORY_METRIC_BUCKET,
-    int(DataCategory.ATTACHMENT_ITEM): ProtoDataCategory.DATA_CATEGORY_ATTACHMENT_ITEM,
-    int(DataCategory.LOG_ITEM): ProtoDataCategory.DATA_CATEGORY_LOG_ITEM,
-    int(DataCategory.PROFILE_BACKEND): ProtoDataCategory.DATA_CATEGORY_PROFILE_BACKEND,
-    int(DataCategory.PROFILE_UI): ProtoDataCategory.DATA_CATEGORY_PROFILE_UI,
-    int(DataCategory.TRACE_METRIC_BYTE): ProtoDataCategory.DATA_CATEGORY_TRACE_METRIC_BYTE,
-}
+
+def _build_category_mapping() -> dict[int, int]:
+    """Build mapping from Sentry DataCategory int values to Proto DataCategory
+    int values by matching on enum member names.
+
+    The two enums use different integer values for the same logical categories,
+    so we match by name: e.g. Sentry's ``ERROR`` matches proto's
+    ``DATA_CATEGORY_ERROR``.
+    """
+    proto_by_name: dict[str, int] = {
+        desc.name.removeprefix("DATA_CATEGORY_"): desc.number
+        for desc in ProtoDataCategory.DESCRIPTOR.values
+        if desc.name not in ("DATA_CATEGORY_UNSPECIFIED", "DATA_CATEGORY_UNKNOWN")
+    }
+    mapping: dict[int, int] = {}
+    for member in DataCategory:
+        proto_value = proto_by_name.get(member.name)
+        if proto_value is not None:
+            mapping[int(member)] = proto_value
+    return mapping
+
+
+SENTRY_TO_PROTO_CATEGORY: dict[int, int] = _build_category_mapping()
 
 
 PROTO_TO_SENTRY_CATEGORY: dict[int, int] = {v: k for k, v in SENTRY_TO_PROTO_CATEGORY.items()}
