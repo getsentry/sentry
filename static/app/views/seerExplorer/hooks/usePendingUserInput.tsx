@@ -1,7 +1,10 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {t} from 'sentry/locale';
-import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
+import type {
+  PendingUserInput,
+  ReauthMonitoringProviderData,
+} from 'sentry/views/seerExplorer/types';
 
 interface PendingFilePatch {
   patch: any;
@@ -31,7 +34,7 @@ interface UsePendingUserInputProps {
   pendingInput: PendingUserInput | null | undefined;
   respondToUserInput: (
     inputId: string,
-    data: {decisions: boolean[]} | {answers: string[]}
+    data?: {decisions: boolean[]} | {answers: string[]}
   ) => void;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   userScrolledUpRef: React.MutableRefObject<boolean>;
@@ -277,6 +280,37 @@ export function usePendingUserInput({
   // Can submit current question (always true for options, need text for "Other")
   const canSubmitQuestion = !isOtherSelected || customText.trim().length > 0;
 
+  // ===== Reauth Monitoring Provider State =====
+  const isReauthPending =
+    isAwaitingUserInput && pendingInputType === 'reauth_monitoring_provider';
+
+  const reauthData = useMemo(() => {
+    if (!pendingInput || pendingInputType !== 'reauth_monitoring_provider') {
+      return null;
+    }
+    return pendingInput.data as ReauthMonitoringProviderData;
+  }, [pendingInput, pendingInputType]);
+
+  // Auto-scroll to reauth block when it appears
+  useEffect(() => {
+    if (isReauthPending && scrollContainerRef.current) {
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+          userScrolledUpRef.current = false;
+        }
+      }, 150);
+    }
+  }, [isReauthPending, pendingInput?.id, scrollContainerRef, userScrolledUpRef]);
+
+  // Resume the run after the user has reconnected the provider. The backend
+  // re-pulls the (now valid) connections, so no response payload is needed.
+  const handleReauthComplete = useCallback(() => {
+    if (pendingInput?.id) {
+      respondToUserInput(pendingInput.id);
+    }
+  }, [pendingInput?.id, respondToUserInput]);
+
   return {
     // Generic pending input info
     pendingInputType,
@@ -305,5 +339,10 @@ export function usePendingUserInput({
     handleQuestionMoveUp,
     handleQuestionMoveDown,
     handleQuestionCustomTextChange,
+
+    // Reauth monitoring provider specific
+    isReauthPending,
+    reauthData,
+    handleReauthComplete,
   };
 }
