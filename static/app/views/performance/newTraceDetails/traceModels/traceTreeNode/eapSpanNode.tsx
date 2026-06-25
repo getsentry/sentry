@@ -146,7 +146,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   get measurements(): Record<string, Measurement> | undefined {
-    if (!this.value.measurements) {
+    if (!this.value.measurements && !this.value.mobile_app_vital && !this.value.browser_web_vital) {
       return undefined;
     }
 
