@@ -162,7 +162,7 @@ def process_outbox_backfill_batch(
                 target_cells: list[str] | None = None
                 try:
                     target_cells = options.get(
-                        f"outbox_replication.{inst._meta.db_table}.target-cells"
+                        f"outbox_replication.{inst._meta.db_table}.backfill.target_cells"
                     )
                 except options.UnknownOption:
                     pass

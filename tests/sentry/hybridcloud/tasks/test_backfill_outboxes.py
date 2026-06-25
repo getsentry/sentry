@@ -175,7 +175,7 @@ def test_control_processing_auth(task_runner: Callable[..., Any]) -> None:
 
 @django_db_all
 @control_silo_test(cells=create_test_cells("us", "de"))
-@override_options({"outbox_replication.sentry_apitoken.target-cells": ["us"]})
+@override_options({"outbox_replication.sentry_apitoken.backfill.target_cells": ["us"]})
 def test_control_processing_target_cells(task_runner: Callable[..., Any]) -> None:
     reset_processing_state()
 

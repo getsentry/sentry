@@ -157,7 +157,7 @@ register(
 )
 
 register(
-    "outbox_replication.sentry_apitoken.target_cells",
+    "outbox_replication.sentry_apitoken.backfill.target_cells",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
