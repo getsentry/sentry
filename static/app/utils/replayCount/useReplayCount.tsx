@@ -3,6 +3,7 @@ import {useCallback} from 'react';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
+import {useHasReplayAccess} from 'sentry/utils/replays/hooks/useHasReplayAccess';
 
 interface Props {
   bufferLimit: number;
@@ -53,6 +54,8 @@ export function useReplayCount({
   start,
   end,
 }: Props) {
+  const hasReplayAccess = useHasReplayAccess();
+
   const _statsPeriod = start && end ? undefined : statsPeriod;
   const cachePeriod = start && end ? `${start}-${end}` : statsPeriod;
 
@@ -89,19 +92,25 @@ export function useReplayCount({
 
   const getMany = useCallback(
     (ids: readonly string[]) => {
+      if (!hasReplayAccess) {
+        return {};
+      }
       cache.buffer(ids);
       return filterKeysInList(cache.data ?? {}, ids);
     },
-    [cache]
+    [cache, hasReplayAccess]
   );
 
   const getOne = useCallback(
     (id: string) => {
+      if (!hasReplayAccess) {
+        return;
+      }
       cache.buffer([id]);
 
       return cache.data?.[id];
     },
-    [cache]
+    [cache, hasReplayAccess]
   );
 
   const hasMany = useCallback(

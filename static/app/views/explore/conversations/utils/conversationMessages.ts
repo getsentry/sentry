@@ -1,5 +1,6 @@
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
+  EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
   normalizeToMessages,
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
@@ -173,7 +174,9 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
 
     if (
       turn.userContent &&
-      (turn.userContent === FILTERED || !seenUserContent.has(turn.userContent))
+      (turn.userContent === FILTERED ||
+        turn.userContent === EMPTY_TEXT_CONTENT ||
+        !seenUserContent.has(turn.userContent))
     ) {
       seenUserContent.add(turn.userContent);
       messages.push({
@@ -189,6 +192,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
     const hasAssistantContent =
       turn.assistantContent &&
       (turn.assistantContent === FILTERED ||
+        turn.assistantContent === EMPTY_TEXT_CONTENT ||
         !seenAssistantContent.has(turn.assistantContent));
     const hasToolCalls = turn.toolCalls.length > 0;
 

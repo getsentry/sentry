@@ -10,17 +10,8 @@ logger = logging.getLogger(__name__)
 
 def get_activity_notifiers(project):
     from sentry.mail import mail_adapter
-    from sentry.plugins.base import plugins
-    from sentry.plugins.bases.notify import NotificationPlugin
 
-    results = []
-    for plugin in plugins.for_project(project, version=1):
-        if isinstance(plugin, NotificationPlugin):
-            results.append(plugin)
-
-    results.append(mail_adapter)
-
-    return results
+    return [mail_adapter]
 
 
 @instrumented_task(

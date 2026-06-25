@@ -334,6 +334,47 @@ describe('ParentAutogroupNode', () => {
       // Should include all nodes from head to tail
     });
 
+    it('should preserve the furthest end when grouped segments overlap', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeParentAutogroup({});
+
+      const headSpanValue = makeEAPSpan({
+        event_id: 'head',
+        start_timestamp: 1000,
+        end_timestamp: 1500,
+      });
+      const middleSpanValue = makeEAPSpan({
+        event_id: 'middle',
+        start_timestamp: 1100,
+        end_timestamp: 1200,
+      });
+      const tailSpanValue = makeEAPSpan({
+        event_id: 'tail',
+        start_timestamp: 1600,
+        end_timestamp: 1700,
+      });
+
+      const headNode = new EapSpanNode(null, headSpanValue, extra);
+      const middleNode = new EapSpanNode(headNode, middleSpanValue, extra);
+      const tailNode = new EapSpanNode(middleNode, tailSpanValue, extra);
+
+      headNode.children = [middleNode];
+      middleNode.children = [tailNode];
+
+      const node = new ParentAutogroupNode(
+        null,
+        autogroupValue,
+        extra,
+        headNode,
+        tailNode
+      );
+
+      expect(node.autogroupedSegments).toEqual([
+        [1000000, 500000],
+        [1600000, 100000],
+      ]);
+    });
+
     it('should cache autogroupedSegments for performance', () => {
       const extra = createMockExtra();
       const autogroupValue = makeParentAutogroup({});

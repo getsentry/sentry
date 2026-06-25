@@ -161,7 +161,7 @@ def _attribute_pull_request(
     # A present-but-unrecognized provider means the source sent something we don't
     # map — warn so it can be corrected upstream, but still attempt to resolve.
     if normalized_provider is not None and normalized_provider not in _KNOWN_SCM_PROVIDERS:
-        logger.warning("seer.pr_attribution.unrecognized_provider", extra=log_context)
+        logger.warning("pr_metrics.attribution.unrecognized_provider", extra=log_context)
 
     repository, resolution = _resolve_repository(
         organization_id=organization_id,
@@ -170,10 +170,13 @@ def _attribute_pull_request(
     )
     if repository is None:
         if resolution == "ambiguous":
-            logger.warning("seer.pr_attribution.repo_ambiguous", extra=log_context)
+            logger.warning("pr_metrics.attribution.repo_ambiguous", extra=log_context)
         else:
-            logger.warning("seer.pr_attribution.repo_not_found", extra=log_context)
+            logger.warning("pr_metrics.attribution.repo_not_found", extra=log_context)
         return
+
+    # The repo is resolved now, so its id sharpens every log from here on.
+    log_context = {**log_context, "repository_id": repository.id}
 
     # get_or_create is race-safe via the unique constraints — Django retries the
     # get on IntegrityError.
@@ -190,10 +193,13 @@ def _attribute_pull_request(
             signal_details=signal_details,
         )
     except Exception:
-        logger.exception("seer.pr_attribution.record_failed", extra=log_context)
+        logger.exception("pr_metrics.attribution.record_failed", extra=log_context)
         return
 
-    logger.info("seer.pr_attribution.recorded", extra=log_context)
+    logger.info(
+        "pr_metrics.attribution.recorded",
+        extra={**log_context, "pull_request_id": pull_request.id},
+    )
 
 
 def attribute_seer_created_pull_requests(
@@ -228,7 +234,7 @@ def attribute_seer_created_pull_requests(
         }
 
         if not repo_name or pr_number is None:
-            logger.warning("seer.pr_attribution.missing_fields", extra=log_context)
+            logger.warning("pr_metrics.attribution.missing_fields", extra=log_context)
             continue
 
         _attribute_pull_request(
@@ -315,12 +321,13 @@ def attribute_delegated_agent_pull_request(
         "signal_type": signal_type,
         "agent_id": agent_id,
         "repo_name": repo_full_name,
+        "provider": repo_provider,
         "pr_url": pr_url,
         "pr_number": pr_number,
     }
 
     if pr_number is None:
-        logger.warning("seer.pr_attribution.invalid_pr_url", extra=log_context)
+        logger.warning("pr_metrics.attribution.invalid_pr_url", extra=log_context)
         return
 
     _attribute_pull_request(

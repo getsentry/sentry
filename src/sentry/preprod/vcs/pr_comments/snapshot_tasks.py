@@ -6,7 +6,6 @@ from typing import Any
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.preprod.integration_utils import get_commit_context_client
@@ -35,7 +34,6 @@ POST_ON_ADDED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_added"
 POST_ON_REMOVED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_removed"
 POST_ON_CHANGED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_changed"
 POST_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_renamed"
-FEATURE_FLAG = "organizations:preprod-snapshot-pr-comments"
 
 
 @instrumented_task(
@@ -96,13 +94,6 @@ def create_preprod_snapshot_pr_comment_task(
         return
 
     organization = artifact.project.organization
-    if not features.has(FEATURE_FLAG, organization):
-        logger.info(
-            "preprod.snapshot_pr_comments.create.feature_disabled",
-            extra={"preprod_artifact_id": artifact.id, "organization_id": organization.id},
-        )
-        return
-
     client = get_commit_context_client(
         organization, commit_comparison.head_repo_name, commit_comparison.provider
     )

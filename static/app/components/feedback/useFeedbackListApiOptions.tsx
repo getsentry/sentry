@@ -59,13 +59,7 @@ function buildQuery(params: {
     ...params.fixedQueryView,
     expand: params.prefetch
       ? []
-      : [
-          'pluginActions',
-          'pluginIssues',
-          'integrationIssues',
-          'sentryAppIssues',
-          'latestEventHasAttachments',
-        ],
+      : ['integrationIssues', 'sentryAppIssues', 'latestEventHasAttachments'],
     shortIdLookup: 0,
     query: `issue.category:feedback status:${params.mailbox} ${params.fixedQueryView.query}`,
   };

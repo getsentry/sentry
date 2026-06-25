@@ -94,6 +94,7 @@ export function ArithmeticBuilder({
           aria-disabled={disabled}
           data-test-id={dataTestId ?? 'arithmetic-builder'}
           state={state.expression.isValid ? 'valid' : 'invalid'}
+          disabled={disabled}
         >
           <TokenGrid tokens={state.expression.tokens} />
         </Wrapper>
@@ -110,6 +111,12 @@ const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>
   position: relative;
   font-size: ${p => p.theme.font.size.md};
   cursor: text;
+
+  ${p =>
+    p.disabled &&
+    css`
+      pointer-events: none;
+    `}
 
   ${p =>
     p.state === 'valid'

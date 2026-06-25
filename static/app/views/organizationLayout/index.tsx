@@ -8,7 +8,6 @@ import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
-import {Footer} from 'sentry/components/footer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Override} from 'sentry/components/override';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -23,15 +22,14 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import {useInitSentryToolbar} from 'sentry/utils/useInitSentryToolbar';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
+import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {useSeerExplorerDocumentTitle} from 'sentry/views/seerExplorer/components/useSeerExplorerDocumentTitle';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
@@ -89,7 +87,6 @@ function AppDrawers() {
 
 function AppLayout({organization}: LayoutProps) {
   useSeerExplorerDocumentTitle();
-  const hasPageFrame = useHasPageFrameFeature();
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
@@ -98,10 +95,10 @@ function AppLayout({organization}: LayoutProps) {
   return (
     <PrimaryNavigationContextProvider>
       <Stack flex="1" minWidth="0" minHeight="100dvh">
-        {hasPageFrame && showSuperuserWarning && (
+        {showSuperuserWarning && (
           <Override name="component:superuser-warning" organization={organization} />
         )}
-        {hasPageFrame && <SystemAlerts className="messages-container" />}
+        <SystemAlerts className="messages-container" />
         <Flex
           flex="1"
           minWidth="0"
@@ -110,28 +107,27 @@ function AppLayout({organization}: LayoutProps) {
           position="relative"
         >
           <Navigation />
-          {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
-          <ContentStack
-            id="main"
-            tabIndex={-1}
-            flex="1"
-            minWidth="0"
-            background={hasPageFrame ? 'secondary' : undefined}
-          >
-            <DemoHeader />
-            <AppBodyContent>
+          <SeerExplorerSidebarLayout>
+            {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
+            <ContentStack
+              id="main"
+              tabIndex={-1}
+              flex="1"
+              minWidth="0"
+              background="secondary"
+            >
+              <DemoHeader />
               {organization && <OrganizationHeader organization={organization} />}
               <OrganizationDetailsBody>
                 <TopBar.Slot.Provider>
                   <TopBar />
                   <Layout.Page>
                     <Outlet />
-                    <Footer />
                   </Layout.Page>
                 </TopBar.Slot.Provider>
               </OrganizationDetailsBody>
-            </AppBodyContent>
-          </ContentStack>
+            </ContentStack>
+          </SeerExplorerSidebarLayout>
         </Flex>
       </Stack>
       {organization ? <AppDrawers /> : null}

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {IconMail} from 'sentry/icons';
+import {PluginIcon, type PluginIconProps} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 const ICON_SIZE = 20;

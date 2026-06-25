@@ -1,7 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {getPeriod} from 'sentry/utils/duration/getPeriod';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
@@ -33,13 +32,9 @@ export function useGroupEvent({
   const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
   const isSpecificEventId = eventId && !isReservedEventId;
 
-  const {selection: pageFilters} = usePageFilters();
-
-  const hasSetStatsPeriod =
-    // If we are on a specific event, the endpoint will return it regardless of the time range
-    !isSpecificEventId &&
-    (location.query.statsPeriod || location.query.start || location.query.end);
-  const periodQuery = hasSetStatsPeriod ? getPeriod(pageFilters.datetime) : {};
+  const statsPeriod = decodeScalar(location.query.statsPeriod);
+  const start = decodeScalar(location.query.start);
+  const end = decodeScalar(location.query.end);
 
   const staleTime = isSpecificEventId ? Infinity : 30_000;
 
@@ -50,7 +45,9 @@ export function useGroupEvent({
       eventId,
       environments,
       query: eventQuery,
-      ...periodQuery,
+      statsPeriod,
+      start,
+      end,
     }),
     staleTime,
     enabled: options?.enabled && !!eventId,

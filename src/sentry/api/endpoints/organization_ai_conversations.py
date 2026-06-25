@@ -154,6 +154,8 @@ def _build_conversation_response(
     llm_calls: int,
     tool_calls: int,
     total_tokens: int,
+    input_tokens: int,
+    output_tokens: int,
     total_cost: float,
     trace_ids: list[str],
     flow: list[str],
@@ -170,6 +172,8 @@ def _build_conversation_response(
         "llmCalls": llm_calls,
         "toolCalls": tool_calls,
         "totalTokens": total_tokens,
+        "inputTokens": input_tokens,
+        "outputTokens": output_tokens,
         "totalCost": total_cost,
         "startTimestamp": start_timestamp,
         "endTimestamp": end_timestamp,
@@ -315,6 +319,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "count_if(gen_ai.operation.type,equals,ai_client)",
                 "count_if(gen_ai.operation.type,equals,tool)",
                 "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)",
+                "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)",
+                "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)",
                 "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)",
                 "min(precise.start_ts)",
                 "max(precise.finish_ts)",
@@ -400,6 +406,18 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                     total_tokens=int(
                         row.get(
                             "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
+                    input_tokens=int(
+                        row.get(
+                            "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
+                    output_tokens=int(
+                        row.get(
+                            "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)"
                         )
                         or 0
                     ),

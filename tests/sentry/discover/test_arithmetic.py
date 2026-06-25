@@ -248,6 +248,7 @@ def test_field_values(a, op, b) -> None:
         (100, "-", 'count_if(some_tag,notEquals,"something(really)annoying,like\\"this\\"")'),
         ("p50_if(span.duration,is_transaction,equals,true)", "/", 2),
         ("tpm()", "+", "failure_rate_if(is_transaction,equals,true)"),
+        ("failure_count_if(is_transaction,equals,true)", "+", 0),
         ("avg_if(span.duration,is_transaction,equals,true)", "*", 100),
         ("ttid_contribution_rate()", "+", "ttfd_contribution_rate()"),
         (100, "*", "ttid_contribution_rate()"),

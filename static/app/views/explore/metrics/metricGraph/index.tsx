@@ -45,7 +45,7 @@ import {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 import {WidgetWrapper} from './styles';
@@ -65,7 +65,7 @@ export function getMetricsChartTypeOptions(
 
 interface MetricsGraphProps {
   actions: React.ReactNode;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
   isMetricOptionsEmpty?: boolean;
   title?: string;
 }
@@ -100,7 +100,7 @@ export function MetricsGraph({
 
 interface GraphProps {
   actions: React.ReactNode;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
   visualize: ReturnType<typeof useMetricVisualize>;
   visualizes: ReturnType<typeof useMetricVisualizes>;
   isMetricOptionsEmpty?: boolean;

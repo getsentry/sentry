@@ -245,6 +245,29 @@ interface ResultGridProps {
    */
   probeAcrossRegions?: boolean;
   /**
+   * Always probe every *other* data region for records and surface a hint when
+   * any of them has matches — regardless of whether the active region has
+   * results or a search query is present.
+   *
+   * Use this for cell-scoped detail grids that show a record's presence in the
+   * currently selected region but where the same subject (e.g. a user) may also
+   * belong to records in other regions. It lets an admin viewing a user's
+   * organization memberships know the user also belongs to orgs in other regions
+   * and that they should look there too.
+   *
+   * Unlike `probeAcrossRegions`, this is not search-driven: it fires on every
+   * load. Prefer `probeAcrossRegions` for search grids.
+   *
+   * @default false
+   */
+  probeAllRegions?: boolean;
+  /**
+   * Lead text shown above the cross-region "view in" buttons when
+   * `probeAllRegions` surfaces matches in other regions. Defaults to a generic
+   * message; override it to give context for the specific record type.
+   */
+  probeAllRegionsHint?: string;
+  /**
    * Translates the data object from the request into rows
    */
   rowsFromData?: (data: any, cell: Cell | undefined) => any[];
@@ -311,6 +334,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     isCellScoped: false,
     isRegional: false,
     probeAcrossRegions: false,
+    probeAllRegions: false,
     useQueryString: true,
   };
 
@@ -491,7 +515,10 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
           this.props.onLoad();
         }
 
-        if (missingExactMatch) {
+        // `probeAllRegions` always checks the other regions for presence, even
+        // when the active region has results or no search is active. This flags
+        // that the same subject (e.g. a user) also has records elsewhere.
+        if (missingExactMatch || this.props.probeAllRegions) {
           this.probeOtherRegions({...queryParams, query});
         }
       },
@@ -634,12 +661,19 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   }
 
   renderRegionHint() {
+    const {probeAcrossRegions, probeAllRegions} = this.props;
+
     if (
-      !this.props.probeAcrossRegions ||
+      (!probeAcrossRegions && !probeAllRegions) ||
       this.state.loading ||
-      this.state.error ||
-      !this.state.missingExactMatch
+      this.state.error
     ) {
+      return null;
+    }
+
+    // The search-driven hint only surfaces when the active region lacked an
+    // exact match. The always-on `probeAllRegions` hint has no such gate.
+    if (!probeAllRegions && !this.state.missingExactMatch) {
       return null;
     }
 
@@ -649,6 +683,28 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
 
     if (this.state.regionMatches.length === 0) {
       return null;
+    }
+
+    if (probeAllRegions) {
+      const lead =
+        this.props.probeAllRegionsHint ??
+        'Also found in other data regions — look there too:';
+      return (
+        <RegionHintAlert variant="info" showIcon>
+          <Flex align="center" gap="md" wrap="wrap">
+            <span>{lead}</span>
+            {this.state.regionMatches.map(cell => (
+              <Button
+                key={cell.locality_url}
+                size="xs"
+                onClick={() => this.onChangeCell(cell.locality_url)}
+              >
+                {`View in ${cell.name}`}
+              </Button>
+            ))}
+          </Flex>
+        </RegionHintAlert>
+      );
     }
 
     const currentName = this.state.cell?.name ?? 'this region';

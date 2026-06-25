@@ -1,6 +1,8 @@
 import {useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import type {RequestState} from 'sentry/types/core';
 import {
@@ -14,7 +16,6 @@ import {useTransactionAsSpans} from 'sentry/utils/profiling/hooks/useTransaction
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {LayoutPageWithHiddenFooter} from 'sentry/views/explore/profiling/layoutPageWithHiddenFooter';
 
 import {ProfileTransactionContext, TransactionProfileProvider} from './profilesProvider';
 
@@ -48,14 +49,14 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
       setProfile={setProfile}
     >
       <ProfileTransactionContext value={transactionResult}>
-        <LayoutPageWithHiddenFooter flex={1}>
+        <Stack flex={1}>
           <ProfileHeader
             eventId={params.eventId!}
             projectId={projectSlug}
             transactionSpan={transactionResult.data.transactionSpan}
           />
           <Outlet />
-        </LayoutPageWithHiddenFooter>
+        </Stack>
       </ProfileTransactionContext>
     </TransactionProfileProvider>
   );

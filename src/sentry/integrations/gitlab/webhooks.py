@@ -44,6 +44,7 @@ from sentry.seer.code_review.webhooks.merge_request import (
     handle_merge_request_note_event,
 )
 from sentry.seer.code_review.webhooks.seat_tracking import (
+    track_gitlab_contributor_action_processor,
     track_gitlab_contributor_seat_processor,
 )
 from sentry.utils import metrics
@@ -393,6 +394,7 @@ class MergeEventWebhook(GitlabWebhook):
     # contributor would be denied with ORG_CONTRIBUTOR_NOT_FOUND.
     WEBHOOK_EVENT_PROCESSORS = (
         track_gitlab_contributor_seat_processor,
+        track_gitlab_contributor_action_processor,
         handle_merge_request_event,
     )
 
@@ -708,8 +710,10 @@ class GitlabWebhookEndpoint(Endpoint):
             "webhook.integration.status": integration.status,  # 0 seems to be active
             # Logs/EAP attributes are scalar-first; a list serializes as an
             # "array" attribute that the Logs explorer won't expose as a
-            # queryable column. Join to a string so it's filterable.
-            "webhook.org_ids": ",".join(str(install.organization_id) for install in installs),
+            # queryable column. Join to a string so it's filterable. Some
+            # integrations are installed on a huge number of orgs, so cap the
+            # list to keep the log attribute from blowing up.
+            "webhook.org_ids": ",".join(str(install.organization_id) for install in installs[:25]),
         }
 
         if not constant_time_compare(secret, integration.metadata["webhook_secret"]):

@@ -55,7 +55,7 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export interface GetExploreUrlArgs {
@@ -459,7 +459,7 @@ export function getDefaultExploreRoute(organization: Organization) {
 
 export function computeVisualizeSampleTotals(
   yAxes: string[],
-  data: ReturnType<typeof useSortedTimeSeries>['data'],
+  data: SortedTimeSeries['data'],
   isTopN: boolean
 ) {
   return yAxes.map(yAxis => {

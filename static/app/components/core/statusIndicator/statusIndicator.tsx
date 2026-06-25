@@ -1,3 +1,4 @@
+import isPropValid from '@emotion/is-prop-valid';
 import {keyframes, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -13,8 +14,11 @@ type StatusIndicatorVariant =
   | 'promotion'
   | 'muted';
 
+type StatusIndicatorAnimationIterationCount = number | 'infinite';
+
 interface StatusIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant: StatusIndicatorVariant;
+  animationIterationCount?: StatusIndicatorAnimationIterationCount;
 }
 
 /**
@@ -33,13 +37,14 @@ interface StatusIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
  * Placement is the caller's responsibility — no positioning props are provided.
  */
 export function StatusIndicator(props: StatusIndicatorProps) {
-  const {variant, ...spanProps} = props;
+  const {animationIterationCount = 'infinite', variant, ...spanProps} = props;
   return (
     <Container flexShrink={0}>
       {p => (
         <Dot
           {...p}
           {...spanProps}
+          animationIterationCount={animationIterationCount}
           variant={variant}
           role={spanProps.role ?? (spanProps['aria-label'] ? 'img' : undefined)}
           aria-hidden={!spanProps['aria-label'] && !spanProps.role ? true : undefined}
@@ -105,22 +110,24 @@ const gentlePulse = keyframes`
 const gentleSpin = keyframes`
   0% {
     opacity: 0;
-    border-radius: 6px;
     transform: scale(0.9) rotate(0);
   }
   75% {
     opacity: 1;
-    border-radius: 3px;
     transform: scale(1) rotate(1turn);
   }
   100% {
     opacity: 0;
-    border-radius: 3px;
     transform: scale(1.25) rotate(1turn);
   }
 `;
 
-const Dot = styled('span')<{variant: StatusIndicatorVariant}>`
+const Dot = styled('span', {
+  shouldForwardProp: prop => isPropValid(prop) && prop !== 'animationIterationCount',
+})<{
+  animationIterationCount: StatusIndicatorAnimationIterationCount;
+  variant: StatusIndicatorVariant;
+}>`
   position: relative;
   width: 8px;
   height: 8px;
@@ -133,7 +140,9 @@ const Dot = styled('span')<{variant: StatusIndicatorVariant}>`
     height: 12px;
     border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => getDotTokens(p.variant, p.theme).pulse};
-    animation: ${gentleSpin} 2.2s cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
+    animation: ${gentleSpin} 2.2s cubic-bezier(0.785, 0.135, 0.15, 0.86)
+      ${p => p.animationIterationCount}
+      ${p => (p.animationIterationCount === 'infinite' ? 'none' : 'forwards')};
   }
   &::after {
     content: '';
@@ -144,6 +153,24 @@ const Dot = styled('span')<{variant: StatusIndicatorVariant}>`
     height: 8px;
     border-radius: ${p => p.theme.radius.xs};
     background-color: ${p => getDotTokens(p.variant, p.theme).dot};
-    animation: ${gentlePulse} 2.2s cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite;
+    animation: ${gentlePulse} 2.2s cubic-bezier(0.445, 0.05, 0.55, 0.95)
+      ${p => p.animationIterationCount}
+      ${p => (p.animationIterationCount === 'infinite' ? 'none' : 'forwards')};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before,
+    &::after {
+      animation: none;
+    }
+
+    &::before {
+      opacity: 0;
+      transform: scale(1.25) rotate(1turn);
+    }
+
+    &::after {
+      transform: scale(1);
+    }
   }
 `;
