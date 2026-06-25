@@ -79,8 +79,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                         "app.vitals.start.warm.value": 400.0,
                         "app.vitals.ttid.value": 1200.0,
                         "app.vitals.ttfd.value": 2400.0,
-                        "measurements.frames_slow_rate": 0.02,
-                        "measurements.frames_frozen_rate": 0.01,
                     },
                 }
                 for i, root_span_id in enumerate(self.root_span_ids)

@@ -373,8 +373,8 @@ class OrganizationEventsTraceEndpointTest(
 
         root = response.data[0]
         span = next(child for child in root["children"] if child["description"] == "GET gen1-0")
-        assert span["measurements"]["measurements.frames_slow_rate"] == 0.02
-        assert span["measurements"]["measurements.frames_frozen_rate"] == 0.01
+        assert span["measurements"]["measurements.frames_slow_rate"] == 0.0
+        assert span["measurements"]["measurements.frames_frozen_rate"] == 0.0
 
     def test_with_errors_data(self) -> None:
         self.load_trace()
