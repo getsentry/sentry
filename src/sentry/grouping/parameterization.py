@@ -144,6 +144,14 @@ RANDOM_ID_REGEX = r"""
 COMPILED_RANDOM_ID_REGEX = re.compile(rf"(?x){RANDOM_ID_REGEX}")
 
 
+def is_valid_random_id_without_separators(maybe_random_id_str: str) -> bool:
+    # Strip separators from the candidate string and check whether the result would qualify as a
+    # random id. Used to catch multi-part ids like `R2D2-H1N1` and `ab32-bwX4`, where neither part
+    # qualifies on its own but the joined version does.
+    stripped = maybe_random_id_str.replace("-", "")
+    return COMPILED_RANDOM_ID_REGEX.match(stripped) is not None
+
+
 DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="email",
@@ -467,43 +475,47 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (\b(?=[a-f]*[0-9])(?=[0-9]*[a-f])[0-9a-f]{7}\b)
         """,
     ),
-    # This pattern must come after the hex-based patterns so it doesn't catch strings which happen
-    # to contain only letters between A and F.
+    # IDs made up of random nonsense combos of letters and numbers, either broken up by dashes (the
+    # first pattern) or not (the second pattern). In the no-dash pattern we have various checks in
+    # place to guard against false positives (depending on the length, we look for different combos
+    # of letters and numbers, mixed cases, and switches between letters and numbers), and for the
+    # dashed pattern, we remove the dashes and validate against the no-dash pattern before making
+    # the replacement. Note that these random_id patterns must come after the hex-based patterns so
+    # they don't catch strings which happen to contain only letters between A and F.
     ParameterizationRegex(
-        name="random_id",
+        name="multi_part_random_id",
         raw_pattern=r"""
-            # Random nonsense alphanumeric id strings. To avoid false positives, we require the
-            # following:
-            #   - A minimum of 4 characters, with at least a certain level of "mixed-up-ness". For
-            #     our purposes, that means the string must switch back and forth between letters and
-            #     numbers at least 3 times. This rules out human-readable strings like `dogNumber1`
-            #     (1 switch) and `bball4lyfe` (2 switches), while catching strings like `aKj8XLr2`.
-            #   - For strings shorter than 6 characters, a mix of uppercase letters, lowercase
-            #     letters, and numbers. (For 6+ character strings, the switching requirement alone
-            #     is restrictive enough.)
-            #
-            # Negative lookbehind to create a word boundary but with underscores allowed (to permit
-            # things like `some_file_k9cm2.py`)
+            # Like \b, but with underscores counting as wordbreak characters
             (?<![a-zA-Z0-9])
-            # Lookaheads guaranteeing either a) at least 6 characters or b) at least one uppercase
-            # or at least one lowercase letter, respectively. Together, they guarantee that matches
-            # of fewer than 6 charactes have both.
-            (?= [a-zA-Z0-9]{6} | [a-z0-9]* [A-Z])
-            (?= [a-zA-Z0-9]{6} | [A-Z0-9]* [a-z])
-            # Lookahead enforcing letter/number switches. Two versions depending on whether the
-            # string starts with a letter or number. This also takes care of the "contains a number"
-            # requirement.
-            (?=
-                \d+ [a-zA-Z]+ \d+ [a-zA-Z]+
-                |
-                [a-zA-Z]+ \d+ [a-zA-Z]+ \d+
+            # Lookaheads guaranteeing at least one letter and one number in the overall match
+            (
+                (?= [a-zA-Z0-9\-]* [a-zA-Z])
+                (?= [a-zA-Z0-9\-]* \d)
             )
-            # The pattern itself
-            [a-zA-Z0-9]{4,128}
-            # Negative lookahead similar to the negative lookbehind above - \b, but with underscores
-            # allowed
+            # First part, containing some combination of letters and numbers. The length is capped
+            # based on the fact that the no-dash pattern only matches strings up to 128 characters.
+            [a-zA-Z0-9]{1,126}
+            # At least one dash-separated additional part. Both the individual segment lengths and
+            # the number of segments are limited by the same overall length requirement cited above.
+            (
+                -
+                [a-zA-Z0-9]{1,126}
+            ){1,63}
+            # Same word-boundary-with-underscores as above
             (?![a-zA-Z0-9])
         """,
+        # Validate that the matched string, with dashes removed, actually qualifies as a random ID
+        # before replacing it. If not, leave it alone.
+        replacement_callback=lambda orig_value: "<random_id>"
+        if is_valid_random_id_without_separators(orig_value)
+        else orig_value,
+    ),
+    ParameterizationRegex(
+        name="random_id",
+        # This pattern is pulled into a variable so it can be used both here and in the validation
+        # for the pattern above. See the `RANDOM_ID_REGEX` docstring for more details on how the
+        # matching is done.
+        raw_pattern=RANDOM_ID_REGEX,
     ),
     ParameterizationRegex(
         name="float",
