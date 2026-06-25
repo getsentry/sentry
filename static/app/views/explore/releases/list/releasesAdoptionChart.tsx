@@ -11,7 +11,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {useSessionsRequest} from 'sentry/components/charts/useSessionsRequest';
 import {
   HeaderTitleLegend,
   InlineContainer,
@@ -20,6 +19,7 @@ import {
 } from 'sentry/components/charts/styles';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
+import {useSessionsRequest} from 'sentry/components/charts/useSessionsRequest';
 import {
   getDiffInMinutes,
   ONE_WEEK,
@@ -288,9 +288,7 @@ export function ReleasesAdoptionChart({
           <SectionHeading>
             {tct('Total [display]', {
               display:
-                activeDisplay === ReleasesDisplayOption.USERS
-                  ? 'Users'
-                  : 'Sessions',
+                activeDisplay === ReleasesDisplayOption.USERS ? 'Users' : 'Sessions',
             })}
           </SectionHeading>
           <SectionValue>
