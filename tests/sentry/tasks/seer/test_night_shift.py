@@ -343,6 +343,20 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 
         assert [ep.project for ep in result] == [opens_pr]
 
+    def test_cron_respects_org_allowed_project_slugs_manual_ignores(self) -> None:
+        org = self.create_organization()
+        for slug in ("keep", "drop"):
+            self._make_eligible(self.create_project(organization=org, slug=slug))
+
+        with self.options(
+            {"seer.night_shift.org_tweaks": {str(org.id): {"allowed_project_slugs": ["keep"]}}}
+        ):
+            cron_result = _get_eligible_projects(org, "cron")
+            manual_result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project.slug for ep in cron_result] == ["keep"]
+        assert sorted(ep.project.slug for ep in manual_result) == ["drop", "keep"]
+
 
 @django_db_all
 class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
