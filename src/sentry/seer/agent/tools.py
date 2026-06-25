@@ -1524,8 +1524,7 @@ def get_issue_committers(
     issue_id: str,
     start: str | None = None,
     end: str | None = None,
-    project_slug: str | None = None,
-) -> IssueCommittersResponse:
+) -> IssueCommittersResponse | None:
     """
     Get the likely code authors for an issue from Sentry's ingested commit data.
 
@@ -1551,25 +1550,28 @@ def get_issue_committers(
 
     Args:
         organization_id: The ID of the organization.
-        issue_id: The issue ID (numeric) or qualified short ID (e.g. PROJECT-123).
+        issue_id: The issue ID (numeric) or qualified short ID (e.g. PROJECT-123). The
+            project is derived from the issue, so no project identifier is needed.
         start: ISO timestamp for the start of the time range (optional).
         end: ISO timestamp for the end of the time range (optional).
-        project_slug: The slug of the project (optional, used to improve numeric ID lookups).
 
     Returns:
         An ``IssueCommittersResponse`` with ``stack_commits``, ``suspect_commits``,
         ``release_commits``, ``project_id``, ``project_slug``. The commit lists may be
         empty (e.g. no release/commit data linked to the issue) — callers can iterate
-        them without ``None`` checks. Raises ``NotFound`` if the project/issue cannot
-        be resolved.
+        them without ``None`` checks. Returns ``None`` if the project/issue cannot be
+        resolved.
     """
-    return _IssueCommitters(
-        organization_id=organization_id,
-        issue_id=issue_id,
-        start=start,
-        end=end,
-        project_slug=project_slug,
-    ).get()
+    try:
+        committers = _IssueCommitters(
+            organization_id=organization_id,
+            issue_id=issue_id,
+            start=start,
+            end=end,
+        )
+    except Group.DoesNotExist:
+        return None
+    return committers.get()
 
 
 class _IssueCommitters:
@@ -1588,7 +1590,6 @@ class _IssueCommitters:
         issue_id: str,
         start: str | None = None,
         end: str | None = None,
-        project_slug: str | None = None,
     ) -> None:
         self.organization_id = organization_id
         self.issue_id = issue_id
@@ -1598,12 +1599,9 @@ class _IssueCommitters:
             {"start": start, "end": end}, optional=True
         )
         self.organization = Organization.objects.get(id=organization_id)
-        try:
-            self.group = _resolve_seer_group(
-                organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
-            )
-        except Group.DoesNotExist:
-            raise NotFound("Issue not found. Check the issue_id and project_slug.")
+        # Lets ``Group.DoesNotExist`` propagate so ``get_issue_committers`` can map it to
+        # ``None`` (the shared "issue not found" signal for the seer issue methods).
+        self.group = _resolve_seer_group(organization_id=organization_id, issue_id=issue_id)
 
     def get(self) -> IssueCommittersResponse:
         return IssueCommittersResponse(

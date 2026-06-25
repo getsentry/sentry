@@ -6,7 +6,6 @@ from unittest.mock import Mock, patch
 import pytest
 from django.core.exceptions import BadRequest, ObjectDoesNotExist
 from pydantic import BaseModel
-from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
@@ -2235,24 +2234,12 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         assert result["suspect_commits"] == []
         assert result["release_commits"] == []
 
-    def test_raises_not_found_when_project_slug_does_not_match(self):
-        event = self._make_error_event()
-        group = event.group
-        assert isinstance(group, Group)
-
-        with pytest.raises(NotFound):
-            get_issue_committers(
-                organization_id=self.organization.id,
-                issue_id=str(group.id),
-                project_slug="nonexistent-project",
-            )
-
-    def test_raises_not_found_when_issue_does_not_exist(self):
-        with pytest.raises(NotFound):
-            get_issue_committers(
-                organization_id=self.organization.id,
-                issue_id="123456789",
-            )
+    def test_returns_none_when_issue_does_not_exist(self):
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id="123456789",
+        )
+        assert result is None
 
 
 class TestGetEventDetails(
