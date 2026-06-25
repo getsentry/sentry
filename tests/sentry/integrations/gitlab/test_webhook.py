@@ -20,7 +20,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
@@ -42,6 +42,13 @@ class WebhookTest(GitLabTestCase):
         assert pull.author == author
         assert pull.merge_commit_sha is None
         assert pull.organization_id == self.organization.id
+        # Lifecycle facts populated from the "opened" merge request event.
+        assert pull.state == PullRequestLifecycleState.OPEN
+        assert pull.opened_at is not None
+        assert pull.closed_at is None
+        assert pull.merged_at is None
+        assert pull.head_commit_sha == "ba3e0d8ff79c80d5b0bbb4f3e2e343e0aaa662b7"
+        assert pull.draft is False
 
     def assert_group_link(self, group, pull):
         link = GroupLink.objects.get()
@@ -452,6 +459,31 @@ class WebhookTest(GitLabTestCase):
 
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)
+
+    def test_merge_event_merged_pull_request_state(self) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+        self.create_group(project=self.project, short_id=9)
+
+        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        payload["object_attributes"]["state"] = "merged"
+        payload["object_attributes"]["action"] = "merge"
+        payload["object_attributes"]["merge_commit_sha"] = "abc123"
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+
+        pull = PullRequest.objects.get()
+        assert pull.state == PullRequestLifecycleState.MERGED
+        assert pull.merge_commit_sha == "abc123"
+        assert pull.merged_at is not None
+        # A merged merge request is also closed.
+        assert pull.closed_at is not None
 
     def test_update_repo_path(self) -> None:
         repo_out_of_date_path = self.create_gitlab_repo(
