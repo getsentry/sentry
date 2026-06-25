@@ -20,6 +20,7 @@ export function getActivityColorConfig(theme: Theme, type: GroupActivityType) {
     case GroupActivityType.SEER_SOLUTION_COMPLETED:
     case GroupActivityType.SEER_CODING_COMPLETED:
     case GroupActivityType.SEER_PR_CREATED:
+    case GroupActivityType.SEER_ITERATION_COMPLETED:
       return {
         ...defaultConfig,
         icon: theme.tokens.graphics.success.vibrant,
