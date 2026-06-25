@@ -156,11 +156,7 @@ export function OrganizationMemberRow({
           </Fragment>
         ) : (
           <AuthStatus>
-            {has2fa ? (
-              <IconCheckmark variant="success" />
-            ) : (
-              <IconFlag variant="danger" />
-            )}
+            {has2fa ? <IconCheckmark variant="success" /> : <IconFlag variant="danger" />}
             {has2fa ? t('2FA Enabled') : t('2FA Not Enabled')}
           </AuthStatus>
         )}
@@ -176,12 +172,7 @@ export function OrganizationMemberRow({
               })}
               onConfirm={handleRemove}
             >
-              <Button
-                data-test-id="remove"
-                icon={<IconSubtract />}
-                size="sm"
-                busy={busy}
-              >
+              <Button data-test-id="remove" icon={<IconSubtract />} size="sm" busy={busy}>
                 {t('Remove')}
               </Button>
             </Confirm>
