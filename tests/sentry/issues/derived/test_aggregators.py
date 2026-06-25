@@ -57,6 +57,8 @@ class FakeEntry:
     actor_type: int = GroupActorType.SYSTEM
     actor_id: int = 0
     data: dict[str, object] = field(default_factory=dict)
+    group_id: int = 1
+    original_group_id: int | None = None
 
 
 def _ts(year: int = 2025, month: int = 1, day: int = 1, hour: int = 0) -> datetime:
@@ -514,6 +516,96 @@ def test_last_progressed_at_set_on_reopen() -> None:
             FakeEntry(type=GroupActionType.UNRESOLVE, date_added=_ts(hour=2)),
         ],
     ) == _ts(hour=2)
+
+
+# ---------------------------------------------------------------------------
+# Merge-aware behavior
+# ---------------------------------------------------------------------------
+
+
+def _merged(type: int, **kwargs: Any) -> FakeEntry:
+    """An entry inherited from a group that was merged into the canonical one."""
+    return FakeEntry(type=type, group_id=1, original_group_id=2, **kwargs)
+
+
+def test_merged_resolve_does_not_close() -> None:
+    # track_status ignores transitions inherited from a merged-away group.
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                _merged(GroupActionType.RESOLVE),
+            ],
+        )
+        == IssueStatus.OPEN
+    )
+
+
+def test_merged_unresolve_does_not_reopen() -> None:
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE),
+                _merged(GroupActionType.UNRESOLVE),
+            ],
+        )
+        == IssueStatus.CLOSED
+    )
+
+
+def test_merged_assign_advances_progress() -> None:
+    # ASSIGN advances progress regardless of which group it came from.
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                _merged(GroupActionType.ASSIGN),
+            ],
+        )
+        == IssueProgressState.ASSIGNED
+    )
+
+
+def test_merged_set_priority_does_not_advance_progress() -> None:
+    # Merged-in SET_PRIORITY doesn't advance the canonical issue's progress.
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                _merged(GroupActionType.SET_PRIORITY),
+            ],
+        )
+        == IssueProgressState.IDENTIFIED
+    )
+
+
+def test_merged_set_priority_does_not_override_native() -> None:
+    # The non-merged group's contribution stands even if the merged-in
+    # SET_PRIORITY is more recent.
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED, date_added=_ts(hour=1)),
+                _merged(GroupActionType.SET_PRIORITY, date_added=_ts(hour=2)),
+            ],
+        )
+        == IssueProgressState.DIAGNOSED
+    )
+
+
+def test_merged_root_cause_does_not_advance_progress() -> None:
+    # Only ASSIGN falls through; other merged-in actions stay a no-op.
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                _merged(GroupActionType.ROOT_CAUSE_IDENTIFIED),
+            ],
+        )
+        == IssueProgressState.IDENTIFIED
+    )
 
 
 # ---------------------------------------------------------------------------

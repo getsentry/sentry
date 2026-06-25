@@ -13,6 +13,7 @@ from sentry.issues.derived.framework import (
     aggregator,
     emit,
 )
+from sentry.issues.derived.merge import merge_aware
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.progress_state import IssueProgressState
 
@@ -20,6 +21,12 @@ from sentry.issues.progress_state import IssueProgressState
 @aggregator((VIEW_COUNT,), scope=(GroupActionType.VIEW,))
 def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     return emit(VIEW_COUNT.value(state[VIEW_COUNT] + 1))
+
+
+def _track_status_merged(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    # Status transitions inherited from a group that was merged away don't drive
+    # the canonical issue's status; that's owned by the surviving group's actions.
+    return None
 
 
 @aggregator(
@@ -32,6 +39,7 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
         GroupActionType.SET_REGRESSED,
     ),
 )
+@merge_aware(_track_status_merged)
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     current = state[STATUS]
     resolves = (
@@ -99,11 +107,7 @@ _ACTION_TO_MIN_PROGRESS: dict[int, IssueProgressState] = {
 }
 
 
-@aggregator(
-    (PROGRESS, LAST_PROGRESSED_AT),
-    deps=(STATUS,),
-)
-def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+def _track_progress_impl(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     current = state[PROGRESS]
     ts = entry.date_added
 
@@ -128,6 +132,26 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
         return emit(PROGRESS.value(min_progress), LAST_PROGRESSED_AT.value(ts))
 
     return None
+
+
+def _track_progress_merged(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    # ASSIGN advances progress the same way regardless of which group it came
+    # from, so merged-in assignments fall through to the default behavior.
+    if entry.type == GroupActionType.ASSIGN:
+        return _track_progress_impl(state, entry)
+    # Other merged-in actions (e.g. SET_PRIORITY) don't advance the canonical
+    # issue's progress; the non-merged group's contribution stands even if the
+    # merged-in entry is more recent.
+    return None
+
+
+@aggregator(
+    (PROGRESS, LAST_PROGRESSED_AT),
+    deps=(STATUS,),
+)
+@merge_aware(_track_progress_merged)
+def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    return _track_progress_impl(state, entry)
 
 
 AGGREGATORS: list[Aggregator[GroupActionLogEntry]] = [
