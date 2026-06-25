@@ -83,7 +83,7 @@ export function IntegrationRow(props: Props) {
       return null;
     }
     return (
-      <Flex gap="xs">
+      <Flex align="center" gap="xs">
         <StyledLink to={`${baseUrl}?tab=configurations`}>
           {tn('%s Configuration', '%s Configurations', configurations)}
         </StyledLink>
