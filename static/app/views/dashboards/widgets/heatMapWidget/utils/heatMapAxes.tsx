@@ -10,9 +10,8 @@ import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWi
  * ECharts requires category axes for heat map series, but a category axis can
  * only put ticks on the bucket boundaries, which rarely fall on readable
  * values. So on each dimension we pair the hidden category axis below (which
- * positions the cells) with an overlay axis — `heatMapValueAxis` on Y,
- * `heatMapTimeAxis` on X — that ECharts can put clean ticks on. Callers compose
- * the pair themselves so they can tweak either axis (e.g. label fonts).
+ * positions the cells) with an overlay axis (`heatMapValueAxis` on Y,
+ * `heatMapTimeAxis` on X) that ECharts can put clean ticks on.
  */
 
 /**
@@ -25,11 +24,6 @@ import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWi
  * space for an axis's labels based on `axisLabel.show` alone — it ignores the
  * axis-level `show` — so without this the hidden category axis pads the chart
  * with room for its (never-rendered) bucket-boundary labels.
- *
- * We also deliberately don't set `data`: ECharts collects the categories from
- * the series' values and matches cells to them by value. Supplying our own list
- * would make ECharts treat those same values as category *indices* instead,
- * dropping every cell whose value isn't a valid index.
  */
 export const HIDDEN_CATEGORY_AXIS = {
   type: 'category',
@@ -54,7 +48,6 @@ export function heatMapValueAxis({
 }): YAXisComponentOption {
   return {
     type: 'value',
-    // A second y-axis defaults to the right, so we pin it to the left.
     position: 'left',
     min,
     max,
@@ -83,7 +76,6 @@ export function heatMapTimeAxis({
 }): XAXisComponentOption {
   return {
     type: 'time',
-    // A second x-axis defaults to the top, so we pin it to the bottom.
     position: 'bottom',
     min,
     max,

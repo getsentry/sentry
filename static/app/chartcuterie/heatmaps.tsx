@@ -30,9 +30,11 @@ export function buildHeatmapChartOption({
   const heatMapPlottable = new HeatMap(heatMapSeries);
   const {xAxis: xAxisMeta, yAxis: yAxisMeta} = heatMapSeries.meta;
 
-  // Chartcuterie renders without BaseChart's axis wrappers, so we set the label
-  // font on the overlay (visible) axes ourselves.
+  // Chartcuterie is more limited in rendering, so it sets its own font
+  // properties. Also we're not using the `YAxis` and `XAxis` base helpers here,
+  // so we have a bit more control
   const labelFont = {fontSize: FONT_SIZE, fontFamily: DEFAULT_FONT_FAMILY};
+
   const timeAxis = heatMapTimeAxis({min: xAxisMeta.start, max: xAxisMeta.end, utc: true});
   const valueAxis = heatMapValueAxis({
     min: yAxisMeta.start,
