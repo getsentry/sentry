@@ -63,7 +63,10 @@ export function ExploreTables(props: ExploreTablesProps) {
   const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
-  const {data: validatedColumnsData} = useValidateSpansTab({enabled: tab === Tab.SPAN});
+  const {data: validatedColumnsData, isFetching: isValidatingColumns} =
+    useValidateSpansTab({
+      enabled: tab === Tab.SPAN,
+    });
   const {
     validatedBooleanTags,
     validatedFields,
@@ -82,6 +85,10 @@ export function ExploreTables(props: ExploreTablesProps) {
   );
 
   useEffect(() => {
+    if (tab !== Tab.SPAN || isValidatingColumns) {
+      return;
+    }
+
     const fieldsChanged =
       validatedFields.length !== fields.length ||
       validatedFields.some((field, index) => field !== fields[index]);
@@ -89,7 +96,7 @@ export function ExploreTables(props: ExploreTablesProps) {
     if (fieldsChanged) {
       setFields([...validatedFields]);
     }
-  }, [fields, setFields, validatedFields]);
+  }, [fields, isValidatingColumns, setFields, tab, validatedFields]);
 
   const openColumnEditor = () => {
     openModal(
