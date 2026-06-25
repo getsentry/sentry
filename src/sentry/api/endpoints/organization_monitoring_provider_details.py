@@ -23,7 +23,12 @@ from sentry.identity.base import Provider
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.users.models.identity import Identity, IdentityProvider, OrganizationIdentity
+from sentry.users.models.identity import (
+    Identity,
+    IdentityProvider,
+    OrganizationIdentity,
+    link_provider_identity,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -87,37 +92,20 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
     ) -> Response:
         """Verify a user-submitted token and link the identity (no OAuth flow)."""
         try:
-            identity = provider_type.build_identity(request.data)
+            identity_data = provider_type.build_identity(request.data)
         except (ValueError, IdentityNotValid) as e:
             return Response({"detail": str(e)}, status=400)
         except RequestException:
             return Response({"detail": "Failed to verify token with provider."}, status=400)
 
-        idp, _ = IdentityProvider.objects.get_or_create(
-            type=identity["type"],
-            external_id=identity["idp_external_id"],
-            defaults={"config": identity.get("idp_config", {})},
-        )
-
         try:
-            linked_identity = Identity.objects.link_identity(
+            link_provider_identity(
                 user=request.user,  # type: ignore[arg-type]
-                idp=idp,
-                external_id=identity["id"],
-                should_reattach=False,
-                defaults={
-                    "scopes": identity.get("scopes", []),
-                    "data": identity.get("data", {}),
-                },
+                identity_data=identity_data,
+                organization_id=organization.id,
             )
         except IntegrityError:
             return Response({"detail": "This account is already connected."}, status=409)
-
-        if linked_identity:
-            OrganizationIdentity.objects.get_or_create(
-                organization_id=organization.id,
-                identity=linked_identity,
-            )
 
         return Response(status=204)
 
