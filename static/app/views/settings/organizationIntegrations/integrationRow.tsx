@@ -212,7 +212,3 @@ const ResolveNowButton = styled(LinkButton)`
   color: ${p => p.theme.tokens.content.secondary};
   float: right;
 `;
-
-const DisabledTag = styled(Tag)`
-  margin-left: ${p => p.theme.space.xs};
-`;
