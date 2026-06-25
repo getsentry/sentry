@@ -2482,6 +2482,34 @@ describe('SearchQueryBuilder', () => {
       expect(listBox).toBeChecked();
     });
 
+    it('splits a pasted comma-separated value into separate values', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          onChange={mockOnChange}
+          initialQuery="browser.name:Firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      // Pasting bypasses the per-keystroke comma delimiter, so the whole string
+      // reaches the commit path and must still split into separate values rather
+      // than collapse into one quoted value.
+      await userEvent.paste('foo,bar');
+      await userEvent.keyboard('{enter}');
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          'browser.name:[Firefox,foo,bar]',
+          expect.anything()
+        );
+      });
+    });
+
     it('strips multiple wildcards into a single wildcard', async () => {
       const mockOnChange = jest.fn();
       render(
@@ -3270,6 +3298,33 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(removeButtons[0]!);
         expect(
           await screen.findByRole('row', {name: 'browser.name:firefox'})
+        ).toBeInTheDocument();
+      });
+
+      it('re-quotes an edited value that contains spaces', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery='browser.name:["foo bar",chrome]'
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // The chip lifts into the input in its unescaped form
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: foo bar'})
+        );
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+          'foo bar'
+        );
+
+        // Committing it unchanged must round-trip the quotes, not corrupt the query
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:["foo bar",chrome]'})
         ).toBeInTheDocument();
       });
 

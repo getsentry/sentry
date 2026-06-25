@@ -32,7 +32,6 @@ import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/
 import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
 import {
-  escapeTagValue,
   escapeTagValueForSearch,
   formatFilterValue,
   getFilterValueType,
@@ -985,16 +984,10 @@ export function SearchQueryBuilderValueCombobox({
       if (!value) {
         return;
       }
-      // editValue lifts a chip into the input in its unescaped form (e.g.
-      // `"foo bar"` -> `foo bar`), and freshly typed values are unescaped too.
-      // Re-quote spaces/special chars so the value round-trips through
-      // parseMultiSelectFilterValue instead of corrupting the query. Values the
-      // user already quoted are left as-is to avoid double-escaping.
-      const isAlreadyQuoted = value.startsWith('"') && value.endsWith('"');
-      const valueForSaving =
-        !isAlreadyQuoted && valueType === FieldValueType.STRING
-          ? escapeTagValue(value)
-          : value;
+      // The raw input is left unescaped: prepareInputValueForSaving splits on
+      // unquoted commas and quotes any value containing spaces/special chars, so
+      // both pasted multi-values (`foo,bar`) and edited chips lifted in their
+      // unescaped form (`foo bar`) round-trip correctly without escaping here.
       dispatch({
         type: 'UPDATE_TOKEN_VALUE',
         token,
@@ -1002,7 +995,7 @@ export function SearchQueryBuilderValueCombobox({
           getFilterValueType(token, fieldDefinition),
           insertMultiSelectValue(
             committedValues.map(v => v.text),
-            valueForSaving,
+            value,
             editingChip?.index
           ).join(',')
         ),
@@ -1010,7 +1003,7 @@ export function SearchQueryBuilderValueCombobox({
       setInputValue('');
       setEditingChip(null);
     },
-    [committedValues, dispatch, editingChip, fieldDefinition, token, valueType]
+    [committedValues, dispatch, editingChip, fieldDefinition, token]
   );
 
   const handleInputValueConfirmed = useCallback(
