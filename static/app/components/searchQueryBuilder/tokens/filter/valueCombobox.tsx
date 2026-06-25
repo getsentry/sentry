@@ -8,6 +8,7 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DeviceName} from 'sentry/components/deviceName';
 import {
@@ -734,12 +735,34 @@ export function SearchQueryBuilderValueCombobox({
     [token, ctrlKeyPressed, selectedValueMap]
   );
 
-  // On mount, scroll to the end of the input
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.scrollLeft = inputRef.current.scrollWidth;
+  // Keep the active input in view within the horizontally-scrolling chip row.
+  const scrollInputIntoView = useCallback(() => {
+    const input = inputRef.current;
+    const container = ref.current;
+    if (!input) {
+      return;
+    }
+    // Show the tail (and caret) of a long value inside the input itself.
+    input.scrollLeft = input.scrollWidth;
+    if (!container) {
+      return;
+    }
+    // Scroll the row just enough to bring the input into view wherever it sits —
+    // at the end when adding a value, or in a chip's slot when editing one — so
+    // a long neighbouring chip can't keep it off-screen.
+    const containerRect = container.getBoundingClientRect();
+    const inputRect = input.getBoundingClientRect();
+    if (inputRect.right > containerRect.right) {
+      container.scrollLeft += inputRect.right - containerRect.right;
+    } else if (inputRect.left < containerRect.left) {
+      container.scrollLeft -= containerRect.left - inputRect.left;
     }
   }, []);
+
+  // Re-run as the value changes (typing, or lifting a chip into the input).
+  useEffect(() => {
+    scrollInputIntoView();
+  }, [inputValue, scrollInputIntoView]);
 
   // While typing, surface the typed text as a custom option so results rank by
   // relevance; committed chips are pinned to the top only at rest. Checkbox
@@ -1174,6 +1197,80 @@ export function SearchQueryBuilderValueCombobox({
               valueType,
             });
 
+  const chips = committedValues.map(({value, index}) => (
+    <ValueChip key={`${index}-${value}`}>
+      <Tooltip title={value} showOnlyOnOverflow skipWrapper>
+        <ValueChipLabel
+          type="button"
+          aria-label={t('Edit value: %s', value)}
+          onClick={() => editValue(index)}
+        >
+          {value}
+        </ValueChipLabel>
+      </Tooltip>
+      <ValueChipRemove
+        type="button"
+        aria-label={t('Remove value: %s', value)}
+        onClick={() => removeValue(index)}
+      >
+        <IconClose legacySize="8px" />
+      </ValueChipRemove>
+    </ValueChip>
+  ));
+
+  const valueInput = (
+    <ValueInputContainer key="value-input">
+      <SearchQueryBuilderCombobox
+        ref={inputRef}
+        items={items}
+        onOptionSelected={handleOptionSelected}
+        onCustomValueBlurred={handleInputValueConfirmed}
+        onCustomValueCommitted={handleInputValueConfirmed}
+        onExit={() => {
+          setEditingChip(null);
+          setInputValue('');
+          onCommit();
+        }}
+        inputValue={inputValue}
+        filterValue={filterValue}
+        placeholder={placeholder}
+        token={token}
+        inputLabel={t('Edit filter value')}
+        keepVisibleRef={ref}
+        onFocus={scrollInputIntoView}
+        onInputChange={e => setInputValue(e.target.value)}
+        onKeyDown={onKeyDown}
+        autoFocus
+        maxOptions={50}
+        openOnFocus
+        customMenu={customMenu}
+        shouldFilterResults={!shouldUseDefaultNumericSuggestions(filterValue, valueType)}
+        shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
+      >
+        {suggestionSectionItems.map(section => (
+          <Section key={section.sectionText} title={section.sectionText}>
+            {section.items.map(item => (
+              <Item {...item} key={item.key}>
+                {item.label}
+              </Item>
+            ))}
+          </Section>
+        ))}
+      </SearchQueryBuilderCombobox>
+    </ValueInputContainer>
+  );
+
+  // Render the input where the edited chip was, so the value stays in place
+  // instead of jumping to the end of the row. committedValues keep their
+  // ascending index order, so the slot is the count of chips before the edited
+  // index; with no edit in progress the input stays at the end. The input keeps
+  // a stable key so React repositions the same node (preserving focus and the
+  // open popover) rather than remounting it.
+  const inputSlot = editingChip
+    ? committedValues.filter(v => v.index < editingChip.index).length
+    : chips.length;
+  const chipRow = [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
+
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>
       <ValueComboboxMenuContext.Provider value={menuContextValue}>
@@ -1185,62 +1282,7 @@ export function SearchQueryBuilderValueCombobox({
           ref={ref}
           data-test-id="filter-value-editing"
         >
-          {committedValues.map(({value, index}) => (
-            <ValueChip key={`${index}-${value}`}>
-              <ValueChipLabel
-                type="button"
-                aria-label={t('Edit value: %s', value)}
-                onClick={() => editValue(index)}
-              >
-                {value}
-              </ValueChipLabel>
-              <ValueChipRemove
-                type="button"
-                aria-label={t('Remove value: %s', value)}
-                onClick={() => removeValue(index)}
-              >
-                <IconClose legacySize="8px" />
-              </ValueChipRemove>
-            </ValueChip>
-          ))}
-          <SearchQueryBuilderCombobox
-            ref={inputRef}
-            items={items}
-            onOptionSelected={handleOptionSelected}
-            onCustomValueBlurred={handleInputValueConfirmed}
-            onCustomValueCommitted={handleInputValueConfirmed}
-            onExit={() => {
-              setEditingChip(null);
-              setInputValue('');
-              onCommit();
-            }}
-            inputValue={inputValue}
-            filterValue={filterValue}
-            placeholder={placeholder}
-            token={token}
-            inputLabel={t('Edit filter value')}
-            keepVisibleRef={ref}
-            onInputChange={e => setInputValue(e.target.value)}
-            onKeyDown={onKeyDown}
-            autoFocus
-            maxOptions={50}
-            openOnFocus
-            customMenu={customMenu}
-            shouldFilterResults={
-              !shouldUseDefaultNumericSuggestions(filterValue, valueType)
-            }
-            shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
-          >
-            {suggestionSectionItems.map(section => (
-              <Section key={section.sectionText} title={section.sectionText}>
-                {section.items.map(item => (
-                  <Item {...item} key={item.key}>
-                    {item.label}
-                  </Item>
-                ))}
-              </Section>
-            ))}
-          </SearchQueryBuilderCombobox>
+          {chipRow}
         </ValueEditingChips>
       </ValueComboboxMenuContext.Provider>
     </ValueComboboxContext.Provider>
@@ -1256,11 +1298,20 @@ const ValueEditingChips = styled(Flex)`
   &::-webkit-scrollbar {
     display: none;
   }
+`;
 
-  & > *:last-child {
+// Wraps the single combobox input. It sizes to its content while editing a chip
+// in place (so it doesn't push later chips around), but grows to fill the
+// trailing space when it sits at the end of the row (the add-a-value state).
+const ValueInputContainer = styled('div')`
+  display: flex;
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+
+  &:last-child {
     flex: 1 1 0%;
-    width: auto;
-    min-width: 0;
+    min-width: ${p => p.theme.space.lg};
   }
 `;
 
@@ -1276,6 +1327,11 @@ const ValueChip = styled('span')`
 `;
 
 const ValueChipLabel = styled('button')`
+  display: block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   border: none;
   background: transparent;
   padding: 0;
