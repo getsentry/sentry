@@ -24,6 +24,8 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.slack.utils.constants import SlackScope
+from sentry.integrations.slack.utils.nudge import should_send_nudge_block
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
@@ -64,6 +66,14 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "notes": {"type": "string", "placeholder": "e.g., @jane, @on-call-team"},
         }
 
+    def _should_send_nudge(self, channel_id: str | None) -> bool:
+        return bool(
+            channel_id
+            and should_send_nudge_block(
+                channel_id=channel_id, organization=self.project.organization
+            )
+        )
+
     def _build_notification_blocks(
         self,
         event: GroupEvent,
@@ -75,14 +85,17 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     ) -> tuple[dict[str, Any], str | None]:
         """Build the notification blocks and return the blocks and JSON representation."""
         additional_attachment = get_additional_attachment(integration, self.project.organization)
+        scopes = set(integration.metadata.get("scopes") or [])
         blocks = SlackIssuesMessageBuilder(
             group=event.group,
             event=event,
             tags=tags,
             rules=list(rules),
             notes=self.get_option("notes", ""),
-            channel_id=channel_id,
-            integration_id=integration.id,
+            send_nudge=self._should_send_nudge(channel_id),
+            # app_mentions:read is mandatory for every new Slack app installation, so its
+            # presence tells us the app is up to date.
+            has_mentions_read_scope=SlackScope.APP_MENTIONS_READ in scopes,
         ).build(notification_uuid=notification_uuid)
 
         if additional_attachment:
