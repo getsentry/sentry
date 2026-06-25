@@ -34,22 +34,14 @@ from sentry.utils.ai_message_normalizer import (
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
 
 
-# Conversation-level duration (wall-clock span of the whole conversation).
-# Passed as an equation so it can be ordered on in the conversation-id query.
+# Duration equation used for sorting; passed via the `equations` param.
 _DURATION_EQUATION = "max(precise.finish_ts) - min(precise.start_ts)"
 
-# Always selected (and used as a pagination tiebreaker) in the conversation-id query.
+# Always included as a stable pagination tiebreaker in the sort query.
 _TIMESTAMP_AGGREGATE = "max(precise.finish_ts)"
 
-# Maps an API sort field to the aggregate column that must be selected and
-# ordered on in the paginated conversation-id query. `duration` is handled
-# separately via _DURATION_EQUATION.
-#
-# The conversation-id query filters on has:gen_ai.operation.type, so every
-# gen_ai span (ai_client, tool, invoke_agent) is included and these aggregates
-# are conversation-wide, consistent with the values returned by the aggregation
-# query. `toolErrors` is intentionally absent: it needs a compound condition
-# (operation.type == tool AND a failure status) that count_if cannot express.
+# `toolErrors` is absent: it needs a compound condition (operation.type == tool
+# AND a failure status) that count_if cannot express with a single filter.
 _SORT_FIELD_TO_AGGREGATE = {
     "timestamp": _TIMESTAMP_AGGREGATE,
     "errors": "failure_count()",
@@ -266,18 +258,9 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         sort: str = "-timestamp",
         sampling_mode: SAMPLING_MODES = "NORMAL",
     ) -> list[dict]:
-        # Filter on has:gen_ai.operation.type (rather than the presence of
-        # messages) so every gen_ai span (ai_client, tool, invoke_agent) is
-        # visible. This makes conversation-wide aggregates correct to sort on.
         base_filter = "has:gen_ai.conversation.id has:gen_ai.operation.type"
         filter_query = _build_conversation_query(base_filter, user_query)
 
-        # Phase 1: find all conversation IDs that match the user query.
-        # Sort aggregates must not be filtered by the user query — the user query
-        # determines which *conversations* qualify, not which spans within them
-        # count toward a metric. Computing sort aggregates over user-query-filtered
-        # spans would cause sort order to disagree with the displayed values (which
-        # are always full-conversation aggregates).
         all_ids_results = self._fetch_qualifying_conversation_ids(
             snuba_params, filter_query, sampling_mode
         )
@@ -289,8 +272,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         if not all_ids:
             return []
 
-        # Phase 2: sort and paginate using full-conversation aggregates scoped
-        # only to the qualifying IDs (no user query in this filter).
         sorted_ids_results = self._fetch_sorted_page(
             snuba_params, all_ids, offset, limit, sort, sampling_mode
         )
@@ -331,16 +312,15 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         sort: str,
         sampling_mode: SAMPLING_MODES,
     ) -> EAPResponse:
-        """Sort and paginate the given conversation IDs using full-conversation aggregates.
+        """Sort and paginate conversation_ids using full-conversation aggregates.
 
-        The query is scoped only to the provided IDs so that sort aggregates
-        reflect the complete conversation, not a user-query-filtered subset.
+        Scoped to the provided IDs only (no user query) so sort order matches
+        the displayed values, which are also full-conversation aggregates.
         """
         descending = sort.startswith("-")
         field = sort.lstrip("-")
         prefix = "-" if descending else ""
 
-        # max(precise.finish_ts) is always selected as a stable tiebreaker.
         selected_columns = ["gen_ai.conversation.id", _TIMESTAMP_AGGREGATE]
         equations: list[str] | None = None
 
