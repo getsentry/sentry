@@ -128,7 +128,7 @@ class OrganizationProjectIdsResponse(BaseModel):
 class OrganizationProjectDetail(BaseModel):
     id: int
     slug: str
-    instrumentation_types: list[str]
+    instrumentation: list[str]
 
 
 class OrganizationProjectsResponse(BaseModel):

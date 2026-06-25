@@ -380,7 +380,7 @@ def get_organization_projects(*, org_id: int) -> OrganizationProjectsResponse:
         OrganizationProjectDetail(
             id=project.id,
             slug=project.slug,
-            instrumentation_types=get_instrumentation_types(project),
+            instrumentation=get_instrumentation_types(project),
         )
         for project in Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
     ]

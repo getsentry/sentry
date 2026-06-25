@@ -66,14 +66,14 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
 
     @with_feature("organizations:seer-public-rpc")
     def test_get_organization_projects(self) -> None:
-        """instrumentation_types reflects project flags via get_instrumentation_types"""
+        """instrumentation reflects project flags via get_instrumentation"""
         path = self._get_path("get_organization_projects")
 
-        # No flags set — instrumentation_types should be empty
+        # No flags set — instrumentation should be empty
         response = self.client.post(path, data={"args": {}}, format="json")
         assert response.status_code == 200
         project_data = next(p for p in response.data["projects"] if p["id"] == self.project.id)
-        assert project_data["instrumentation_types"] == []
+        assert project_data["instrumentation"] == []
 
         # Set has_transactions and has_logs flags
         self.project.update(
@@ -83,7 +83,7 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         response = self.client.post(path, data={"args": {}}, format="json")
         assert response.status_code == 200
         project_data = next(p for p in response.data["projects"] if p["id"] == self.project.id)
-        assert set(project_data["instrumentation_types"]) == {"transactions", "spans", "logs"}
+        assert set(project_data["instrumentation"]) == {"transactions", "spans", "logs"}
 
     @with_feature("organizations:seer-public-rpc")
     def test_org_level_method_get_organization_features(self) -> None:
