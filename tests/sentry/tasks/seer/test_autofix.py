@@ -211,7 +211,7 @@ class TestConsumeQueuedAutofixFeedbackDedup(SentryTestCase):
             organization_id=self.organization.id,
             group_id=self.group.id,
             feedback=Feedback(
-                message=message,
+                text=message,
                 source={"type": "github-pr-comment", "comment": {"id": comment_id}},
             ),
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
@@ -222,7 +222,7 @@ class TestConsumeQueuedAutofixFeedbackDedup(SentryTestCase):
             organization_id=self.organization.id,
             group_id=self.group.id,
             feedback=Feedback(
-                message=message, source={"type": "user-ui", "user_id": 1, "user": None}
+                text=message, source={"type": "user-ui", "user_id": 1, "user": None}
             ),
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
         )
@@ -240,7 +240,7 @@ class TestConsumeQueuedAutofixFeedbackDedup(SentryTestCase):
                             "feedback": json.dumps(
                                 [
                                     {
-                                        "text": f.message,
+                                        "text": f.text,
                                         "source": f.source,
                                         "timestamp": "2024-01-01T00:00:00Z",
                                     }

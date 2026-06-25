@@ -168,7 +168,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
         assert kwargs["organization_id"] == self.organization.id
         assert kwargs["group_id"] == self.group.id
         assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
-        assert kwargs["feedback"].message == "fix it"
+        assert kwargs["feedback"].text == "fix it"
         mock_consume.assert_called_once_with(
             kwargs={
                 "run_id": 67890,
