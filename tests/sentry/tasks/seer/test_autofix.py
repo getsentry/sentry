@@ -1,4 +1,3 @@
-import json
 from collections.abc import Sequence
 from unittest.mock import MagicMock, patch
 
@@ -19,6 +18,7 @@ from sentry.tasks.seer.autofix import (
     generate_issue_summary_only,
 )
 from sentry.testutils.cases import TestCase as SentryTestCase
+from sentry.utils import json
 from sentry.utils.cache import cache
 
 
