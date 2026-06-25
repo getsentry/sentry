@@ -79,18 +79,17 @@ export function IntegrationRow(props: Props) {
     if (type === 'sentryApp') {
       return publishStatus !== 'published' && <PublishStatus status={publishStatus} />;
     }
-    // TODO: Use proper translations
     if (configurations <= 0) {
       return null;
+    }
+    return (
       <Flex gap="xs">
-        <StyledLink
-          to={`${baseUrl}?tab=configurations`}
-        >{`${configurations} Configuration${configurations > 1 ? 's' : ''}`}</StyledLink>
-        {disabledConfigurations && disabledConfigurations > 0 ? (
+        <StyledLink to={`${baseUrl}?tab=configurations`}>
+          {tn('%s Configuration', '%s Configurations', configurations)}
+        </StyledLink>
+        {disabledConfigurations ? (
           <Tag variant="warning">
-            {disabledConfigurations === 1
-              ? t('1 disabled')
-              : t('%s disabled', disabledConfigurations)}
+            {tn('%s disabled', '%s disabled', disabledConfigurations)}
           </Tag>
         ) : null}
       </Flex>
