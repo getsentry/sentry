@@ -83,6 +83,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.Project, defaults.ProjectDeletionTask)
     manager.register(models.ProjectBookmark, BulkModelDeletionTask)
     manager.register(models.ProjectKey, BulkModelDeletionTask)
+    manager.register(models.WeeklyReportProjectExclusion, BulkModelDeletionTask)
     manager.register(models.PullRequest, defaults.PullRequestDeletionTask)
     manager.register(models.PullRequestActivity, BulkModelDeletionTask)
     manager.register(models.Release, defaults.ReleaseDeletionTask)

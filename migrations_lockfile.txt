@@ -31,7 +31,11 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0023_add_seer_run_pull_request
 
-sentry: 1123_pending_user
+<<<<<<< HEAD
+sentry: 1124_weeklyreportprojectexclusion
+=======
+sentry: 1123_weeklyreportprojectexclusion
+>>>>>>> defec4fcdd4 (create WeeklyReportProjectExclusion model so that users can omit certain projects from weekly report)
 
 social_auth: 0003_social_auth_json_field
 
