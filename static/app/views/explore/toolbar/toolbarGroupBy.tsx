@@ -30,6 +30,7 @@ interface ToolbarGroupByProps {
 export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
   const {
     data: validatedSearchQueryData,
+    isFetching: validationFetching,
     isLoading: validationLoading,
     isPlaceholderData: validationIsPlaceholderData,
   } = useValidateSpansTab();
@@ -37,7 +38,12 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
     from: readonly string[];
     to: readonly string[];
   } | null>(null);
-  const validationIsPending = validationLoading || validationIsPlaceholderData;
+  const validationGroupBys = useRef<{
+    data: EventValidationData;
+    groupBys: readonly string[];
+  } | null>(null);
+  const validationIsPending =
+    validationFetching || validationLoading || validationIsPlaceholderData;
 
   const validatedGroupBys = useMemo(
     () => filterInvalidGroupBys(groupBys, validatedSearchQueryData?.field),
@@ -54,6 +60,18 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
   );
 
   useEffect(() => {
+    if (
+      validatedSearchQueryData &&
+      validationGroupBys.current?.data !== validatedSearchQueryData
+    ) {
+      validationGroupBys.current = {
+        data: validatedSearchQueryData,
+        groupBys,
+      };
+    }
+  }, [groupBys, validatedSearchQueryData]);
+
+  useEffect(() => {
     if (pendingValidatedGroupBys.current) {
       if (arraysAreEqual(groupBys, pendingValidatedGroupBys.current.to)) {
         pendingValidatedGroupBys.current = null;
@@ -65,7 +83,13 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
       }
     }
 
-    if (!validatedSearchQueryData || arraysAreEqual(groupBys, validatedGroupBys)) {
+    if (
+      validationIsPending ||
+      !validatedSearchQueryData ||
+      validationGroupBys.current?.data !== validatedSearchQueryData ||
+      !arraysAreEqual(groupBys, validationGroupBys.current.groupBys) ||
+      arraysAreEqual(groupBys, validatedGroupBys)
+    ) {
       return;
     }
 
@@ -79,7 +103,13 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
     } else {
       setGroupBys(validatedGroupBys, Mode.SAMPLES);
     }
-  }, [groupBys, setGroupBys, validatedGroupBys, validatedSearchQueryData]);
+  }, [
+    groupBys,
+    setGroupBys,
+    validatedGroupBys,
+    validatedSearchQueryData,
+    validationIsPending,
+  ]);
 
   const setGroupBysWithOp = useCallback(
     (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
