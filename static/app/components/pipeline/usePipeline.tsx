@@ -66,6 +66,10 @@ interface UsePipelineOptions<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T],
 > {
+  /**
+   * Copy override forwarded to step components that render descriptive intro text.
+   */
+  description?: string;
   enabled?: boolean;
   /**
    * Data that will be passed through to the initialization call.
@@ -135,7 +139,7 @@ export function usePipeline<
   onCompleteRef.current = options.onComplete;
   const generationRef = useRef(0);
 
-  const {enabled = true, initialData} = options;
+  const {enabled = true, initialData, description} = options;
 
   const pipelineName = getBackendPipelineType(type);
   const apiUrl = getApiUrl(
@@ -333,6 +337,7 @@ export function usePipeline<
             isAdvancing: isAdvancePending,
             isInitializing: false,
             advanceError,
+            description,
           }
         : {
             stepIndex: 0,
@@ -342,6 +347,7 @@ export function usePipeline<
             isAdvancing: false,
             isInitializing: true,
             advanceError: null,
+            description,
           };
 
     return <Component {...stepProps} />;
@@ -353,6 +359,7 @@ export function usePipeline<
     isAdvancePending,
     advanceError,
     finish,
+    description,
   ]);
 
   const {stepIndex, totalSteps} =

@@ -582,50 +582,46 @@ function ManageDashboards() {
           ) : (
             <Stack flex={1}>
               <NoProjectMessage organization={organization}>
-                <Layout.Header unified>
-                  <Layout.HeaderContent unified>
-                    <Layout.Title>
-                      {pageTitle}
-                      <PageHeadingQuestionTooltip
-                        docsUrl="https://docs.sentry.io/product/dashboards/"
-                        title={
-                          isOnlyPrebuilt
-                            ? t(
-                                'Dashboards built by Sentry to help monitor your application out of the box.'
-                              )
-                            : t(
-                                "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
-                              )
-                        }
-                      />
-                    </Layout.Title>
-                  </Layout.HeaderContent>
-                  <TopBar.Slot name="actions">
-                    <Feature features="dashboards-import">
-                      <Button
-                        onClick={() => {
-                          openImportDashboardFromFileModal({
-                            organization,
-                            api,
-                            location,
-                          });
-                        }}
-                        variant="primary"
-                        icon={<IconAdd />}
-                      >
-                        {t('Import Dashboard from JSON')}
-                      </Button>
-                    </Feature>
-                  </TopBar.Slot>
-                  <TopBar.Slot name="feedback">
-                    <FeedbackButton
-                      aria-label={t('Give Feedback')}
-                      tooltipProps={{title: t('Give Feedback')}}
+                <Layout.Title>
+                  {pageTitle}
+                  <PageHeadingQuestionTooltip
+                    docsUrl="https://docs.sentry.io/product/dashboards/"
+                    title={
+                      isOnlyPrebuilt
+                        ? t(
+                            'Dashboards built by Sentry to help monitor your application out of the box.'
+                          )
+                        : t(
+                            "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                          )
+                    }
+                  />
+                </Layout.Title>
+                <TopBar.Slot name="actions">
+                  <Feature features="dashboards-import">
+                    <Button
+                      onClick={() => {
+                        openImportDashboardFromFileModal({
+                          organization,
+                          api,
+                          location,
+                        });
+                      }}
+                      variant="primary"
+                      icon={<IconAdd />}
                     >
-                      {null}
-                    </FeedbackButton>
-                  </TopBar.Slot>
-                </Layout.Header>
+                      {t('Import Dashboard from JSON')}
+                    </Button>
+                  </Feature>
+                </TopBar.Slot>
+                <TopBar.Slot name="feedback">
+                  <FeedbackButton
+                    aria-label={t('Give Feedback')}
+                    tooltipProps={{title: t('Give Feedback')}}
+                  >
+                    {null}
+                  </FeedbackButton>
+                </TopBar.Slot>
                 <Layout.Body>
                   <Layout.Main width="full">
                     {renderActions()}

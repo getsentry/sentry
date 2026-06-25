@@ -1,9 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import * as analytics from 'sentry/utils/analytics';
-import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {ScmProjectDetailsCore} from './scmProjectDetailsCore';
 
@@ -17,8 +16,6 @@ function renderCore(overrides: Partial<CoreProps> = {}) {
     onProjectNameBlur: jest.fn(),
     teamSlug: 'my-team',
     onTeamChange: jest.fn(),
-    alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
-    onAlertChange: jest.fn(),
     isOrgMemberWithNoAccess: false,
     ...overrides,
   };
@@ -32,12 +29,11 @@ describe('ScmProjectDetailsCore', () => {
     jest.restoreAllMocks();
   });
 
-  it('renders the project name, team, and alert-frequency fields', () => {
+  it('renders the project name and team fields', () => {
     renderCore();
 
     expect(screen.getByText('Project name')).toBeInTheDocument();
     expect(screen.getByText('Team')).toBeInTheDocument();
-    expect(screen.getByText('Alert frequency')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-project');
   });
 
@@ -56,27 +52,5 @@ describe('ScmProjectDetailsCore', () => {
 
     expect(screen.getByText('Project name')).toBeInTheDocument();
     expect(screen.queryByText('Team')).not.toBeInTheDocument();
-  });
-
-  it('makes the alert-frequency section a collapsible toggle in project creation', async () => {
-    renderCore({analyticsFlow: 'project-creation'});
-
-    const toggle = screen.getByRole('button', {name: 'Alert frequency'});
-    expect(screen.getByText('Get notified when things go wrong')).toBeInTheDocument();
-
-    await userEvent.click(toggle);
-    expect(
-      screen.queryByText('Get notified when things go wrong')
-    ).not.toBeInTheDocument();
-  });
-
-  it('keeps the alert-frequency section always expanded in onboarding', () => {
-    renderCore({analyticsFlow: 'onboarding'});
-
-    expect(
-      screen.queryByRole('button', {name: 'Alert frequency'})
-    ).not.toBeInTheDocument();
-    expect(screen.getByText('Alert frequency')).toBeInTheDocument();
-    expect(screen.getByText('Get notified when things go wrong')).toBeInTheDocument();
   });
 });

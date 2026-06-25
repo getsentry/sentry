@@ -79,68 +79,66 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
   }
 
   return (
-    <Layout.HeaderContent unified>
-      <Layout.Title>
-        <Global styles={topBarShrinkOverride} />
+    <Layout.Title>
+      <Global styles={topBarShrinkOverride} />
+      <Flex
+        align="center"
+        gap="md"
+        minWidth={0}
+        overflow="hidden"
+        {...{[TITLE_MARKER_ATTR]: ''}}
+      >
+        {t('Snapshots')}
+        <Container display={{'2xs': 'none', xs: 'flex'}}>
+          <PageHeadingQuestionTooltip
+            docsUrl="https://docs.sentry.io/product/snapshots/"
+            title={t('Catch visual regressions before they reach users.')}
+          />
+        </Container>
+
+        {project && (
+          <Container display={{'2xs': 'none', lg: 'block'}}>
+            <Text as="div" size="sm">
+              <IdBadge project={project} avatarSize={16} />
+            </Text>
+          </Container>
+        )}
+
         <Flex
           align="center"
           gap="md"
+          flexShrink={1}
           minWidth={0}
           overflow="hidden"
-          {...{[TITLE_MARKER_ATTR]: ''}}
+          display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
         >
-          {t('Snapshots')}
-          <Container display={{'2xs': 'none', xs: 'flex'}}>
-            <PageHeadingQuestionTooltip
-              docsUrl="https://docs.sentry.io/product/snapshots/"
-              title={t('Catch visual regressions before they reach users.')}
-            />
-          </Container>
-
-          {project && (
-            <Container display={{'2xs': 'none', lg: 'block'}}>
-              <Text as="div" size="sm">
-                <IdBadge project={project} avatarSize={16} />
-              </Text>
-            </Container>
+          {shortSha && shaUrl && (
+            <Flex align="center" gap="xs" flexShrink={0}>
+              <IconCommit size="xs" />
+              <ExternalLink href={shaUrl}>
+                <Text size="sm" variant="accent" monospace wrap="nowrap">
+                  {shortSha}
+                </Text>
+              </ExternalLink>
+            </Flex>
           )}
 
-          <Flex
-            align="center"
-            gap="md"
-            flexShrink={1}
-            minWidth={0}
-            overflow="hidden"
-            display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
-          >
-            {shortSha && shaUrl && (
-              <Flex align="center" gap="xs" flexShrink={0}>
-                <IconCommit size="xs" />
-                <ExternalLink href={shaUrl}>
-                  <Text size="sm" variant="accent" monospace wrap="nowrap">
-                    {shortSha}
-                  </Text>
-                </ExternalLink>
-              </Flex>
-            )}
+          {renderVcsRef()}
 
-            {renderVcsRef()}
-
-            {appId && (
-              <Flex align="center" gap="xs" minWidth={0}>
-                <IconCode size="xs" style={{flexShrink: 0}} />
-                <Link
-                  to={`/organizations/${organization.slug}/explore/releases/?query=${encodeURIComponent(`app_id:${appId}`)}&tab=snapshots`}
-                >
-                  <Text size="sm" variant="accent" monospace ellipsis>
-                    {appId}
-                  </Text>
-                </Link>
-              </Flex>
-            )}
-          </Flex>
+          {appId && (
+            <Flex align="center" gap="xs" minWidth={0}>
+              <IconCode size="xs" style={{flexShrink: 0}} />
+              <Link
+                to={`/organizations/${organization.slug}/explore/releases/?query=${encodeURIComponent(`app_id:${appId}`)}&tab=snapshots`}
+              >
+                <Text size="sm" variant="accent" monospace ellipsis>
+                  {appId}
+                </Text>
+              </Link>
+            </Flex>
+          )}
         </Flex>
-      </Layout.Title>
-    </Layout.HeaderContent>
+      </Flex>
+    </Layout.Title>
   );
 }

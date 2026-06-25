@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {getInteractionModality} from '@react-aria/interactions';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -192,7 +193,11 @@ export function ListBox<T extends ListItemBase>({
   });
 
   useEffect(() => {
-    if (!virtualized || listState.selectionManager.focusedKey === null) {
+    if (
+      !virtualized ||
+      listState.selectionManager.focusedKey === null ||
+      getInteractionModality() === 'pointer'
+    ) {
       return;
     }
 

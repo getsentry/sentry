@@ -1192,7 +1192,7 @@ class DashboardDetail extends Component<Props, State> {
           <MetricsResultsMetaProvider>
             <NoProjectMessage organization={organization}>
               {this.isEmbedded ? null : (
-                <Layout.Header unified>
+                <Fragment>
                   <TopBar.Slot name="title">
                     <Breadcrumbs
                       crumbs={[
@@ -1229,7 +1229,7 @@ class DashboardDetail extends Component<Props, State> {
                       isSaving={isCommittingChanges}
                     />
                   </TopBar.Slot>
-                </Layout.Header>
+                </Fragment>
               )}
               <Layout.Body>
                 <Layout.Main width="full">

@@ -1,1 +1,1 @@
-export {SplitPanel} from './splitPanel';
+export {SplitPanel, type SplitPanelHandle} from './splitPanel';

@@ -376,21 +376,17 @@ export default function IssueViewsList() {
   return (
     <SentryDocumentTitle title={t('All Views')} orgSlug={organization.slug}>
       <Stack flex={1}>
-        <Layout.Header unified>
-          <Layout.HeaderContent>
-            <Layout.Title>{t('All Views')}</Layout.Title>
-          </Layout.HeaderContent>
-          <TopBar.Slot name="feedback">
-            <FeedbackButton
-              size="sm"
-              feedbackOptions={issueViewsFeedbackOptions}
-              aria-label={t('Give Feedback')}
-              tooltipProps={{title: t('Give Feedback')}}
-            >
-              {null}
-            </FeedbackButton>
-          </TopBar.Slot>
-        </Layout.Header>
+        <Layout.Title>{t('All Views')}</Layout.Title>
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            size="sm"
+            feedbackOptions={issueViewsFeedbackOptions}
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
         <Layout.Body>
           <MainTableLayout width="full">
             <FilterSortBar>

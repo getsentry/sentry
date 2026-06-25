@@ -96,11 +96,9 @@ export function NewDetectorLayout<
   return (
     <EditLayoutDeprecated formProps={formProps}>
       <EditLayoutDeprecated.Header maxWidth={maxWidth}>
-        <EditLayoutDeprecated.HeaderContent>
-          <TopBar.Slot name="title">
-            <DetectorFormBreadcrumbs />
-          </TopBar.Slot>
-        </EditLayoutDeprecated.HeaderContent>
+        <TopBar.Slot name="title">
+          <DetectorFormBreadcrumbs />
+        </TopBar.Slot>
 
         <div>
           <MonitorFeedbackButton />

@@ -915,11 +915,6 @@ export function useWidgetBuilderState(): {
               options
             );
           }
-
-          // Reset legend breakdown when more than one column is selected
-          if (action.payload.length > 1 && legendType === 'breakdown') {
-            setLegendType(undefined, options);
-          }
           break;
         }
         case BuilderStateAction.SET_Y_AXIS: {

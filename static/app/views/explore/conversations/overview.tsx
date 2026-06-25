@@ -23,9 +23,11 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
+import {ConversationsTableNew} from 'sentry/views/explore/conversations/components/conversationsTableNew';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
+import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
@@ -76,6 +78,8 @@ function ConversationsOverviewPage() {
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
     useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
+  const showConversationsTableNew = hasGenAiConversationsRedesignFeature(organization);
+
   return (
     <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
       <ExploreBodySearch>
@@ -111,6 +115,8 @@ function ConversationsOverviewPage() {
             <LoadingIndicator />
           ) : showOnboarding ? (
             <ConversationOnboarding onDismiss={refetchOnboarding} />
+          ) : showConversationsTableNew ? (
+            <ConversationsTableNew />
           ) : (
             <ConversationsTable />
           )}

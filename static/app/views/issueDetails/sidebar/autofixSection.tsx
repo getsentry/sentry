@@ -170,6 +170,20 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
 
   useLLMContext(autofixContextData);
 
+  const needOrgSetup =
+    // scm integration doesn't exist
+    !setupCheck?.hasSupportedScmIntegration;
+
+  const needProjSetup =
+    // scm integration not linked to project
+    !aiConfig.seerReposLinked;
+
+  useRouteAnalyticsParams({
+    seerNeedOrgSetup: isPending ? undefined : needOrgSetup,
+    seerNeedProjSetup:
+      isPending || aiConfig.isAutofixSetupLoading ? undefined : needProjSetup,
+  });
+
   if (
     // waiting on the onboarding checks to load
     isPending ||
@@ -182,14 +196,6 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
   ) {
     return <Placeholder height="160px" />;
   }
-
-  const needOrgSetup =
-    // scm integration doesn't exist
-    !setupCheck?.hasSupportedScmIntegration;
-
-  const needProjSetup =
-    // scm integration not linked to project
-    !aiConfig.seerReposLinked;
 
   // non seat based seer plans are allowed to run autofix without the SCM integration
   if (organization.features.includes('seat-based-seer-enabled')) {

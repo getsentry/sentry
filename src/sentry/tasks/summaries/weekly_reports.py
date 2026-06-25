@@ -222,6 +222,18 @@ def prepare_organization_report(
             lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
             return
 
+    # Deliver the reports
+    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
+    with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
+        logger.info(
+            "weekly_reports.deliver_reports",
+            extra={"batch_id": str(batch_id), "organization": organization_id},
+        )
+        with metrics.timer("weekly_report.deliver_reports.duration"):
+            batch.deliver_reports()
+
+    # Cache after delivery so a failed attempt doesn't poison the
+    # previous-week lookup on retry.
     if not dry_run:
         try:
             project_metrics: dict[int, dict[str, int]] = {}
@@ -235,16 +247,6 @@ def prepare_organization_report(
                 cache_project_metrics(organization_id, project_metrics)
         except Exception:
             sentry_sdk.capture_exception()
-
-    # Finally, deliver the reports
-    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
-    with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
-        logger.info(
-            "weekly_reports.deliver_reports",
-            extra={"batch_id": str(batch_id), "organization": organization_id},
-        )
-        with metrics.timer("weekly_report.deliver_reports.duration"):
-            batch.deliver_reports()
 
 
 @dataclass(frozen=True)

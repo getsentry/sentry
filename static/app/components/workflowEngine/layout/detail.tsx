@@ -5,7 +5,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {HeaderActions} from 'sentry/components/layouts/thirds';
 import type {AvatarProject} from 'sentry/types/project';
 
 interface WorkflowEngineDetailLayoutProps {
@@ -51,22 +50,6 @@ function Sidebar({children}: RequiredChildren) {
   );
 }
 
-function Header({children}: RequiredChildren) {
-  return <Layout.Header>{children}</Layout.Header>;
-}
-
-function HeaderContent({children}: RequiredChildren) {
-  return <Layout.HeaderContent>{children}</Layout.HeaderContent>;
-}
-
-function Actions({children}: RequiredChildren) {
-  return (
-    <HeaderActions>
-      <Flex gap="md">{children}</Flex>
-    </HeaderActions>
-  );
-}
-
 function Title({title, project}: {title: string; project?: AvatarProject}) {
   return (
     <Fragment>
@@ -84,8 +67,5 @@ export const DetailLayout = Object.assign(DetailLayoutComponent, {
   Body: StyledBody,
   Main,
   Sidebar,
-  Header,
-  HeaderContent,
-  Actions,
   Title,
 });

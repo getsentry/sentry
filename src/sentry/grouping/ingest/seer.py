@@ -357,7 +357,7 @@ def get_seer_similar_issues(
     event_hash = event.get_primary_hash()
     event_fingerprint = event.data.get("fingerprint")
     event_has_hybrid_fingerprint = get_fingerprint_type(event_fingerprint) == "hybrid"
-    event_exception_type = _get_event_exception_type(event)
+    event_exception_type, event_exception_value = _get_event_exception(event)
 
     request_data, seer_request_metric_tags = _build_seer_request(event, variants)
 
@@ -398,6 +398,7 @@ def get_seer_similar_issues(
                 parent_grouphash,
                 event_has_hybrid_fingerprint,
                 event_exception_type,
+                event_exception_value,
                 hybrid_fingerprint_checks,
             )
             if match_result.hybrid_related:
@@ -494,18 +495,19 @@ def get_seer_similar_issues(
     return (stacktrace_distance, winning_parent_grouphash, model_used)
 
 
-def _get_event_exception_type(event: Event) -> str | None:
+def _get_event_exception(event: Event) -> tuple[str | None, str | None]:
     """
-    Return the event's main exception type, normalized exactly as it is stored in group
-    metadata (``group.data.metadata.type``) — so it compares apples-to-apples with the parent's
-    stored type. Reuses ``ErrorEvent.extract_metadata`` (the same code path that produced the
-    parent's value), which respects ``main_exception_id`` and returns no type for synthetic
-    exceptions. Returns None when there is no exception type to compare.
+    Return the event's main exception type and value, normalized exactly as they are stored in
+    group metadata (``group.data.metadata.{type,value}``) — so they compare apples-to-apples with
+    the parent's stored values. Reuses ``ErrorEvent.extract_metadata`` (the same code path that
+    produced the parent's values), which respects ``main_exception_id`` and returns nothing for
+    synthetic exceptions. Returns ``(None, None)`` when there is no exception to compare.
 
     Note: this reads the exception values directly (via ErrorEvent), so it does not depend on
     the event's ``type`` discriminator being populated.
     """
-    return ErrorEvent().extract_metadata(event.data).get("type")
+    metadata = ErrorEvent().extract_metadata(event.data)
+    return metadata.get("type"), metadata.get("value")
 
 
 @dataclass(frozen=True)
@@ -520,6 +522,7 @@ def _should_use_seer_match_for_grouping(
     parent_grouphash: GroupHash,
     event_has_hybrid_fingerprint: bool,
     event_exception_type: str | None,
+    event_exception_value: str | None,
     num_hybrid_fingerprint_checks: int,
 ) -> SeerMatchResult:
     """
@@ -556,9 +559,14 @@ def _should_use_seer_match_for_grouping(
             "seer.exception_type_mismatch",
             extra={
                 "event_id": event.event_id,
+                "organization_id": event.project.organization_id,
                 "project_id": event.project.id,
+                "platform": event.platform,
+                "sdk": get_path(event.data, "sdk", "name"),
                 "event_exception_type": event_exception_type,
+                "event_exception_value": event_exception_value,
                 "parent_exception_type": parent_exception_type,
+                "parent_exception_value": get_path(parent_group.data, "metadata", "value"),
                 "parent_group_id": parent_group.id,
                 "parent_hash": parent_grouphash.hash,
             },

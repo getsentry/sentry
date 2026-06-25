@@ -73,6 +73,7 @@ EXPOSABLE_FEATURES = [
     "projects:relay-minidump-attachment-uploads",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
+    "projects:minidump-multi-exception",
 ]
 
 EXTRACT_METRICS_VERSION = 1

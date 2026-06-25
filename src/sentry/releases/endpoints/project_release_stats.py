@@ -64,7 +64,7 @@ def upsert_missing_release(project, version) -> datetime | None:
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseStatsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

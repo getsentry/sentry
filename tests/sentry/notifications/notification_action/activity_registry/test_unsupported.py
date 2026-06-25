@@ -18,9 +18,7 @@ UNSUPPORTED_ACTION_TYPES = [
     Action.Type.JIRA,
     Action.Type.JIRA_SERVER,
     Action.Type.AZURE_DEVOPS,
-    Action.Type.SENTRY_APP,
     Action.Type.PLUGIN,
-    Action.Type.WEBHOOK,
 ]
 
 

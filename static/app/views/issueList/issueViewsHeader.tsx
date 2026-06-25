@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -226,16 +226,14 @@ export function IssueViewsHeader({
   );
 
   return (
-    <Layout.Header noActionWrap unified>
-      <Layout.HeaderContent unified>
-        <PageTitle title={title} description={description} />
-      </Layout.HeaderContent>
+    <Fragment>
+      <PageTitle title={title} description={description} />
       <TopBar.Slot name="actions">
         {headerActions}
         {realtimeButton}
         <IssueViewStarButton />
         <IssueViewEditMenu />
       </TopBar.Slot>
-    </Layout.Header>
+    </Fragment>
   );
 }

@@ -28,6 +28,14 @@ export interface AddIntegrationParams {
       | 'test_analytics_org_selector';
   };
   /**
+   * Overrides for the install modal's copy. Passed straight through to
+   * `openPipelineModal`; this hook does not read them.
+   */
+  modalParams?: {
+    description?: string;
+    title?: string;
+  };
+  /**
    * When true, the "%s added" success toast is not shown on install.
    * Use when the surrounding UI already communicates the connected state.
    */
@@ -53,6 +61,7 @@ export function useAddIntegration() {
       analyticsParams,
       suppressSuccessMessage,
       urlParams,
+      modalParams,
     } = params;
 
     const is_scm = isScmProvider(provider);
@@ -69,6 +78,7 @@ export function useAddIntegration() {
       type: 'integration',
       provider: provider.key as ProvidersByType['integration'],
       initialData: urlParams,
+      ...modalParams,
       onComplete: data => {
         trackIntegrationAnalytics('integrations.installation_complete', {
           integration: provider.key,

@@ -8,7 +8,6 @@ import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {HeatMapWidgetVisualization} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
-import {HEATMAP_Z_AXIS_SCALE} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetWrapper} from 'sentry/views/explore/metrics/metricGraph/styles';
 import {
@@ -76,7 +75,6 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
           ) : (
             <HeatMapWidgetVisualization
               plottables={[new HeatMap(heatMapSeries)]}
-              scale={HEATMAP_Z_AXIS_SCALE}
               tooltipActionHandlers={{[ADD_TO_FILTER_ACTION]: updateMetricQuery}}
               renderTooltipActions={({
                 valueMin,

@@ -5,7 +5,7 @@ import logging
 import re
 from collections.abc import Callable, Mapping
 from datetime import timedelta
-from typing import Any, TypedDict
+from typing import Any, NamedTuple, TypedDict
 from urllib.parse import urlparse
 
 from django.http.request import QueryDict
@@ -27,6 +27,8 @@ from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, Unfur
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.events.constants import DURATION_UNITS, PERCENT_UNITS, SIZE_UNITS
+from sentry.search.events.fields import is_function, parse_arguments
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -73,7 +75,9 @@ def _query_time_range(params: QueryDict) -> timedelta:
     return parsed if parsed is not None else timedelta(0)
 
 
-def _default_interval_for_query(params: QueryDict) -> str:
+def _interval_for_query(params: QueryDict) -> str:
+    """Pick the interval the ladder assigns to the query's time range, mirroring
+    the frontend's ``GranularityLadder.getInterval``."""
     diff = _query_time_range(params)
     for threshold, interval in _DEFAULT_INTERVAL_LADDER:
         if diff >= threshold:
@@ -143,6 +147,133 @@ def _parse_aggregate_field_entries(
     return y_axes, group_bys, chart_type
 
 
+def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
+    """Assemble the QueryDict sent to the events-heatmap API. Like
+    ``_build_timeseries_query`` but adds the heatmap params (xAxis/yAxis/zAxis/
+    yBuckets). The interval is the per-range ladder value (the URL interval is
+    ignored); yBuckets is derived from it to keep cells ~square."""
+    out = QueryDict(mutable=True)
+
+    for param in ("project", "statsPeriod", "start", "end", "environment"):
+        values = raw_query.getlist(param)
+        if values:
+            out.setlist(param, values)
+
+    # The heat map plots the generic `value`, so scope the metric via the query
+    # filter (mirroring createTraceMetricEventsFilter), ANDed with the user query.
+    y_axes = raw_query.getlist("yAxis")
+    trace_metric = _trace_metric_from_aggregate(y_axes[0]) if y_axes else None
+    metric_filter = _create_trace_metric_events_filter(*trace_metric) if trace_metric else None
+
+    user_query = raw_query.get("query")
+    if metric_filter and user_query:
+        out["query"] = f"{metric_filter} ({user_query})"
+    elif metric_filter:
+        out["query"] = metric_filter
+    elif user_query:
+        out["query"] = user_query
+
+    if not out.get("statsPeriod") and not out.get("start"):
+        out["statsPeriod"] = DEFAULT_PERIOD
+
+    # Per-range ladder interval (fine end, for plenty of columns), then size
+    # yBuckets to keep cells roughly square: yBuckets ≈ xBuckets * (height / width).
+    interval = _interval_for_query(out)
+    out["interval"] = interval
+    interval_td = parse_stats_period(interval)
+    x_buckets = round(_query_time_range(out) / interval_td) if interval_td else 0
+    y_buckets = max(
+        1, round(x_buckets * EXPLORE_CHART_SIZE["height"] / EXPLORE_CHART_SIZE["width"])
+    )
+    out["yBuckets"] = str(y_buckets)
+
+    # Fixed axes — the endpoint currently only supports these values.
+    out["xAxis"] = "time"
+    out["yAxis"] = "value"
+    out["zAxis"] = "count()"
+    out["dataset"] = "tracemetrics"
+    out["referrer"] = Referrer.EXPLORE_SLACK_UNFURL.value
+
+    return out
+
+
+def _map_metric_unit_to_field_type(metric_unit: str | None) -> tuple[str, str | None]:
+    """Port of the frontend's ``mapMetricUnitToFieldType``: map a metric unit to the
+    ``(valueType, valueUnit)`` the renderer formats with. Unknown/absent -> number."""
+    if not metric_unit or metric_unit == "-":
+        return "number", None
+    if metric_unit in DURATION_UNITS:
+        return "duration", metric_unit
+    if metric_unit in SIZE_UNITS:
+        return "size", metric_unit
+    if metric_unit in PERCENT_UNITS:
+        return "percentage", metric_unit
+    return "number", None
+
+
+class TraceMetric(NamedTuple):
+    name: str
+    type: str
+    unit: str | None
+
+
+def _trace_metric_from_aggregate(aggregate: str) -> TraceMetric | None:
+    """Parse ``(name, type, unit)`` from a trace metric aggregate like
+    ``aggregate(value,name,type,unit)``; ``None`` for non-metric aggregates (e.g.
+    ``sum(value)``). Mirrors ``parseMetricAggregate``, reusing ``parse_arguments``."""
+    match = is_function(aggregate)
+    if match is None:
+        return None
+    function = match.group("function")
+    args = parse_arguments(function, match.group("columns"))
+    # Drop the leading conditional query (for `_if`) and the `value` attribute.
+    metric_args = args[(1 if function.endswith("_if") else 0) + 1 :]
+    if len(metric_args) < 2 or not metric_args[0] or not metric_args[1]:
+        return None
+    unit = metric_args[2] if len(metric_args) >= 3 else None
+    return TraceMetric(name=metric_args[0], type=metric_args[1], unit=unit)
+
+
+def _create_trace_metric_events_filter(name: str, metric_type: str, unit: str | None) -> str:
+    """Port of the frontend's ``createTraceMetricEventsFilter``: the search filter
+    scoping a heat map query to one metric. A missing unit (``None``/``-``) matches
+    unit-less items and the ``none`` sentinel."""
+    none_unit = "none"
+    normalized_unit = unit if unit and unit != "-" else none_unit
+    clauses = [f"metric.name:{name}", f"metric.type:{metric_type}"]
+    if normalized_unit == none_unit:
+        clauses.append("( !has:metric.unit OR metric.unit:none )")
+    else:
+        clauses.append(f"metric.unit:{normalized_unit}")
+    return "( " + " ".join(clauses) + " )"
+
+
+def _merge_metric_unit(heatmap_data: dict[str, Any], metric_unit: str | None) -> dict[str, Any]:
+    """Port of the frontend's ``mergeMetricUnit``. The events-heatmap API returns the
+    Y axis as the generic ``value`` with no unit, so patch the meta with the metric's
+    unit/type to format values (ms, bytes) instead of raw numbers."""
+    field_type, unit = _map_metric_unit_to_field_type(metric_unit)
+    if unit is None:
+        return heatmap_data
+    meta = heatmap_data.get("meta")
+    if not isinstance(meta, dict):
+        return heatmap_data
+    y_axis = meta.get("yAxis")
+    if not isinstance(y_axis, dict):
+        return heatmap_data
+    return {
+        **heatmap_data,
+        "meta": {
+            **meta,
+            "yAxis": {
+                **y_axis,
+                "valueType": field_type,
+                "valueUnit": unit,
+            },
+        },
+    }
+
+
 def _build_timeseries_query(
     raw_query: QueryDict,
     y_axes: list[str],
@@ -171,7 +302,7 @@ def _build_timeseries_query(
     if not out.get("statsPeriod") and not out.get("start"):
         out["statsPeriod"] = DEFAULT_PERIOD
 
-    minimum_interval = _default_interval_for_query(out)
+    minimum_interval = _interval_for_query(out)
     url_interval = out.get("interval")
     out["interval"] = (
         _clamp_interval(url_interval, minimum_interval) if url_interval else minimum_interval
@@ -380,6 +511,13 @@ def _unfurl_explore(
         for slug, org in orgs_by_slug.items()
         if features.has("organizations:visibility-explore-view", org, actor=user)
     }
+
+    heatmap_enabled_orgs = {
+        slug: org
+        for slug, org in orgs_by_slug.items()
+        if features.has("organizations:data-browsing-heat-map-widget", org, actor=user)
+    }
+
     if not enabled_orgs:
         return {}
 
@@ -411,42 +549,79 @@ def _unfurl_explore(
         if display_type not in SUPPORTED_DISPLAY_TYPES:
             continue
 
-        group_bys = params.getlist("groupBy")
+        if display_type == "heatmap":
+            # Heat maps are a metrics-only visualization, so chartType 3 only ever
+            # comes from metrics URLs — traces/logs never offer it. This branch
+            # therefore assumes the trace metrics dataset (events-heatmap with
+            # metric-style axes); it is not reached for other Explore datasets.
+            heatmap_org = heatmap_enabled_orgs.get(org_slug)
+            if not heatmap_org:
+                continue
 
-        style = ChartType.SLACK_TIMESERIES
-        if group_bys:
-            params.setlist("topEvents", [str(TOP_N)])
-            if not params.getlist("sort"):
-                # Default to descending by the first yAxis, matching Explore's
-                # defaultAggregateSortBys behavior
-                params.setlist("sort", [f"-{y_axes[0]}"])
+            style = ChartType.SLACK_HEATMAP
+            heatmap_params = _build_heatmap_query(params)
+            api_params: dict[str, str | list[str]] = {
+                key: values if len(values) > 1 else values[0]
+                for key, values in heatmap_params.lists()
+            }
 
-        params["dataset"] = explore_dataset.value
-        params["referrer"] = Referrer.EXPLORE_SLACK_UNFURL.value
+            try:
+                resp = client.get(
+                    auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
+                    user=user,
+                    path=f"/organizations/{org_slug}/events-heatmap/",
+                    params=api_params,
+                )
+            except Exception:
+                _logger.warning("Failed to load events-heatmap for explore unfurl")
+                continue
 
-        # ApiClient iterates params via .items(), which collapses multi-value
-        # QueryDict keys to the last value. Walk lists() and emit a real list
-        # for multi-value keys (e.g. multiple groupBy entries from aggregateField)
-        # so all values reach events-timeseries.
-        api_params: dict[str, str | list[str]] = {
-            key: values if len(values) > 1 else values[0] for key, values in params.lists()
-        }
+            # The endpoint returns a non-HeatMapSeries shape ({"heatmap": []}) when
+            # there are no projects/results; skip rather than render it.
+            heatmap_data = resp.data
+            if not isinstance(heatmap_data, dict) or "meta" not in heatmap_data:
+                continue
 
-        try:
-            resp = client.get(
-                auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
-                user=user,
-                path=f"/organizations/{org_slug}/events-timeseries/",
-                params=api_params,
-            )
-        except Exception:
-            _logger.warning("Failed to load events-timeseries for explore unfurl")
-            continue
+            # Patch the unit-less `value` Y axis with the metric's unit (mergeMetricUnit).
+            heatmap_metric = _trace_metric_from_aggregate(y_axes[0]) if y_axes else None
+            metric_unit = heatmap_metric.unit if heatmap_metric else None
+            chart_data: dict[str, Any] = {"heatmap": _merge_metric_unit(heatmap_data, metric_unit)}
+        else:
+            style = ChartType.SLACK_TIMESERIES
+            group_bys = params.getlist("groupBy")
+            if group_bys:
+                params.setlist("topEvents", [str(TOP_N)])
+                if not params.getlist("sort"):
+                    # Default to descending by the first yAxis, matching Explore's
+                    # defaultAggregateSortBys behavior
+                    params.setlist("sort", [f"-{y_axes[0]}"])
 
-        chart_data: dict[str, Any] = {
-            "timeSeries": resp.data.get("timeSeries", []),
-            "type": display_type,
-        }
+            params["dataset"] = explore_dataset.value
+            params["referrer"] = Referrer.EXPLORE_SLACK_UNFURL.value
+
+            # ApiClient iterates params via .items(), which collapses multi-value
+            # QueryDict keys to the last value. Walk lists() and emit a real list
+            # for multi-value keys (e.g. multiple groupBy entries from aggregateField)
+            # so all values reach events-timeseries.
+            api_params = {
+                key: values if len(values) > 1 else values[0] for key, values in params.lists()
+            }
+
+            try:
+                resp = client.get(
+                    auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
+                    user=user,
+                    path=f"/organizations/{org_slug}/events-timeseries/",
+                    params=api_params,
+                )
+            except Exception:
+                _logger.warning("Failed to load events-timeseries for explore unfurl")
+                continue
+
+            chart_data = {
+                "timeSeries": resp.data.get("timeSeries", []),
+                "type": display_type,
+            }
 
         try:
             url = charts.generate_chart(style, chart_data, size=EXPLORE_CHART_SIZE)
@@ -478,13 +653,13 @@ CHART_TYPE_TO_DISPLAY_TYPE = {
     0: "bar",
     1: "line",
     2: "area",
-    3: "histogram",
+    3: "heatmap",
 }
 
 # Display types the Slack timeseries renderer can produce. Any chartType that
 # resolves outside this set (e.g. histogram) should not unfurl, since
 # rendering it as a line chart would be misleading.
-SUPPORTED_DISPLAY_TYPES = frozenset({"bar", "line", "area"})
+SUPPORTED_DISPLAY_TYPES = frozenset({"bar", "line", "area", "heatmap"})
 
 # Aggregates that default to bar charts in Explore's determineDefaultChartType.
 # All other aggregates default to line.

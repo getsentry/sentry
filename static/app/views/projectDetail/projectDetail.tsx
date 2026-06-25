@@ -155,37 +155,35 @@ export function ProjectDetail() {
         <Stack flex={1}>
           <NoProjectMessage organization={organization}>
             <Layout.Header unified>
-              <Layout.HeaderContent unified>
-                <TopBar.Slot name="title">
-                  <Breadcrumbs
-                    crumbs={[
-                      {
-                        to: makeProjectsPathname({path: '/', organization}),
-                        label: t('Projects'),
-                      },
-                      {
-                        label: (
-                          <Flex align="center" gap="xs">
-                            {project ? (
-                              <IdBadge
-                                project={project}
-                                avatarSize={16}
-                                hideOverflow="100%"
-                                disableLink
-                                hideName
-                              />
-                            ) : null}
-                            {project?.slug}
-                          </Flex>
-                        ),
-                      },
-                    ]}
-                  />
-                </TopBar.Slot>
-              </Layout.HeaderContent>
+              <TopBar.Slot name="title">
+                <Breadcrumbs
+                  crumbs={[
+                    {
+                      to: makeProjectsPathname({path: '/', organization}),
+                      label: t('Projects'),
+                    },
+                    {
+                      label: (
+                        <Flex align="center" gap="xs">
+                          {project ? (
+                            <IdBadge
+                              project={project}
+                              avatarSize={16}
+                              hideOverflow="100%"
+                              disableLink
+                              hideName
+                            />
+                          ) : null}
+                          {project?.slug}
+                        </Flex>
+                      ),
+                    },
+                  ]}
+                />
+              </TopBar.Slot>
 
               <Layout.HeaderActions>
-                <Grid flow="column" align="center" gap="md">
+                <Grid flow="column" align="center" justify="end" gap="md">
                   <TopBar.Slot name="feedback">
                     <FeedbackButton
                       aria-label={t('Give Feedback')}
