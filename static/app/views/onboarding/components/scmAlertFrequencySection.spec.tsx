@@ -69,7 +69,10 @@ describe('ScmAlertFrequencySection', () => {
   it('shows the notification options when alerts are enabled', () => {
     renderSection({analyticsFlow: 'onboarding'});
 
-    expect(screen.getByText('Notify via email')).toBeInTheDocument();
+    expect(screen.getByText('Notify via')).toBeInTheDocument();
+    expect(
+      screen.getByText('Integration (Slack, Discord, MS Teams, etc.)')
+    ).toBeInTheDocument();
   });
 
   it('hides the notification options when alerts are turned off', () => {
@@ -81,6 +84,6 @@ describe('ScmAlertFrequencySection', () => {
       },
     });
 
-    expect(screen.queryByText('Notify via email')).not.toBeInTheDocument();
+    expect(screen.queryByText('Notify via')).not.toBeInTheDocument();
   });
 });
