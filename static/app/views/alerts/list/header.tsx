@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -77,8 +76,8 @@ export function AlertHeader({activeTab}: Props) {
           {null}
         </FeedbackButton>
       </TopBar.Slot>
-      <Layout.HeaderTabs value={activeTab}>
-        <Container padding={{sm: 'md lg 0 lg', md: 'lg xl 0 xl'}}>
+      <Layout.Header>
+        <Layout.HeaderTabs value={activeTab}>
           <TabList>
             {alertRulesLink}
             <TabList.Item
@@ -91,8 +90,8 @@ export function AlertHeader({activeTab}: Props) {
               {t('History')}
             </TabList.Item>
           </TabList>
-        </Container>
-      </Layout.HeaderTabs>
+        </Layout.HeaderTabs>
+      </Layout.Header>
     </Fragment>
   );
 }
