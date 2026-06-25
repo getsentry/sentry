@@ -432,7 +432,7 @@ class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
         return f"{base}{MCP_ENDPOINT_PATH}" if base else None
 
     def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
-        access_token = data.get("access_token")
+        access_token = (data.get("access_token") or "").strip()
         if not access_token:
             raise ValueError("Datadog requires an 'access_token' parameter.")
 
