@@ -695,6 +695,7 @@ class Referrer(StrEnum):
 
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     BILLING_USAGE_SERVICE_CLICKHOUSE = "billing.usage_service.clickhouse"
+    QUOTAS_OVER_USAGE_SHADOW = "getsentry.quotas.over_usage_shadow"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"
     PREVIEW_GET_EVENTS = "preview.get_events"
