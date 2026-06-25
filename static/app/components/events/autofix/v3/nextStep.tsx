@@ -621,17 +621,17 @@ function useCodingAgents({
   });
   useFetchAllPages({result: reposQuery});
   const repos = reposQuery.data ?? [];
-  const isGitLabOnly =
-    repos.length > 0 && repos.every(repo => !isGitHubProvider(repo.provider));
+  const isGithubOnly =
+    repos.length > 0 && repos.every(repo => isGitHubProvider(repo.provider));
 
   const codingAgentIntegrations = useMemo(
     () => (reposQuery.isPending ? undefined : codingAgentResponse?.integrations),
     [codingAgentResponse?.integrations, reposQuery.isPending]
   );
 
-  const codingAgentDisabledReason = isGitLabOnly
-    ? t('Handing off to a coding agent requires a connected GitHub repository.')
-    : undefined;
+  const codingAgentDisabledReason = isGithubOnly
+    ? undefined
+    : t('Handing off to a coding agent requires a connected GitHub repository.');
 
   const handleCodingAgentHandoff = useCallback(
     (integration: CodingAgentIntegration) => {
