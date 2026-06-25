@@ -57,17 +57,6 @@ describe('getWidgetConfigError', () => {
     expect(getWidgetConfigError(widget)).toBeUndefined();
   });
 
-  it('returns an error when the dataset does not support the display type', () => {
-    // Issues don't support big number widgets.
-    const widget = WidgetFixture({
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.ISSUE,
-      queries: [WidgetQueryFixture({aggregates: ['count()']})],
-    });
-
-    expect(getWidgetConfigError(widget)).toBeDefined();
-  });
-
   it('returns an error for heat map widgets on an unsupported dataset', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.HEATMAP,

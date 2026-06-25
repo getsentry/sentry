@@ -21,7 +21,10 @@ import {
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {computeVisualizeSampleTotals} from 'sentry/views/explore/utils';
-import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {
+  useSortedTimeSeries,
+  type SortedTimeSeries,
+} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface UseExploreTimeseriesOptions {
   enabled: boolean;
@@ -30,7 +33,7 @@ interface UseExploreTimeseriesOptions {
 }
 
 interface UseExploreTimeseriesResults {
-  result: ReturnType<typeof useSortedTimeSeries>;
+  result: SortedTimeSeries;
 }
 
 export const useExploreTimeseries = ({
@@ -125,7 +128,7 @@ function useExploreTimeseriesImpl({
 }
 
 export function shouldTriggerHighAccuracy(
-  data: ReturnType<typeof useSortedTimeSeries>['data'],
+  data: SortedTimeSeries['data'],
   visualizes: readonly Visualize[],
   isTopN: boolean
 ) {
@@ -138,7 +141,7 @@ export function shouldTriggerHighAccuracy(
 }
 
 function _checkCanQueryForMoreData(
-  data: ReturnType<typeof useSortedTimeSeries>['data'],
+  data: SortedTimeSeries['data'],
   visualizes: readonly Visualize[],
   isTopN: boolean
 ) {

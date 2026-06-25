@@ -1,7 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
@@ -14,13 +13,6 @@ import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import {UnsupportedAlert} from 'sentry/components/alerts/unsupportedAlert';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -68,7 +60,6 @@ import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
@@ -140,87 +131,12 @@ export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-type SampleButtonProps = {
-  api: Client;
-  errorMessage: React.ReactNode;
-  loadingMessage: React.ReactNode;
-  organization: Organization;
-  project: Project;
-  triggerText: React.ReactNode;
-};
-
-function SampleButton({
-  triggerText,
-  loadingMessage,
-  errorMessage,
-  project,
-  organization,
-  api,
-}: SampleButtonProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  // Creating a sample transaction POSTs to an endpoint that requires the
-  // event:write (or event:admin) scope. Members without that scope get a 403,
-  // so hide the button entirely rather than letting them click into a failure.
-  const hasEventWriteAccess =
-    hasEveryAccess(['event:write'], {organization, project}) ||
-    hasEveryAccess(['event:admin'], {organization, project});
-
-  if (!hasEventWriteAccess) {
-    return null;
-  }
-
-  return (
-    <Button
-      data-test-id="create-sample-transaction-btn"
-      onClick={async () => {
-        trackAnalytics('performance_views.create_sample_transaction', {
-          platform: project.platform,
-          organization,
-        });
-        addLoadingMessage(loadingMessage, {
-          duration: 15000,
-        });
-        const url = `/projects/${organization.slug}/${project.slug}/create-sample-transaction/`;
-        try {
-          const eventData = await api.requestPromise(url, {method: 'POST'});
-          const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
-
-          navigate(
-            generateLinkToEventInTraceView({
-              eventId: eventData.eventID,
-              location,
-              organization,
-              timestamp: eventData.endTimestamp,
-              traceSlug,
-              demo: `${project.slug}:${eventData.eventID}`,
-            })
-          );
-          clearIndicators();
-        } catch (error) {
-          Sentry.withScope(scope => {
-            scope.setExtra('error', error);
-            Sentry.captureException(new Error('Failed to create sample event'));
-          });
-          clearIndicators();
-          addErrorMessage(errorMessage);
-          return;
-        }
-      }}
-    >
-      {triggerText}
-    </Button>
-  );
-}
-
 type OnboardingProps = {
   organization: Organization;
   project: Project;
 };
 
 export function LegacyOnboarding({organization, project}: OnboardingProps) {
-  const api = useApi();
   const {projects} = useProjects();
   const location = useLocation();
 
@@ -295,17 +211,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
             'Something seem slow? Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
           )}
         </p>
-        <ButtonList>
-          {setupButton}
-          <SampleButton
-            triggerText={t('View Sample Transaction')}
-            loadingMessage={t('Processing sample transaction...')}
-            errorMessage={t('Failed to create sample transaction')}
-            organization={organization}
-            project={project}
-            api={api}
-          />
-        </ButtonList>
+        <ButtonList>{setupButton}</ButtonList>
         <FeatureTourModal
           steps={PERFORMANCE_TOUR_STEPS}
           onAdvance={handleAdvance}
@@ -449,7 +355,6 @@ export function Onboarding({organization, project}: OnboardingProps) {
   });
   const received = !!firstIssue;
 
-  const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
   const tracesQuery = useQuery({
     ...useTracesApiOptions({
       limit: 1,
@@ -659,16 +564,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
                       >
                         {t('Take me to my trace')}
                       </Button>
-                    ) : isEAPTraceEnabled ? null : (
-                      <SampleButton
-                        triggerText={t('Take me to an example')}
-                        loadingMessage={t('Processing sample trace...')}
-                        errorMessage={t('Failed to create sample trace')}
-                        organization={organization}
-                        project={project}
-                        api={api}
-                      />
-                    )}
+                    ) : null}
                   </GuidedSteps.ButtonWrapper>
                 </Fragment>
               ) : (

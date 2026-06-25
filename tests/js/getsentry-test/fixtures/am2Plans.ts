@@ -136,7 +136,6 @@ export const AM2_PLANS = {
     id: 'am2_business',
     isEnterprise: false,
     name: 'Business',
-    price: 8900,
     basePrice: 8900,
     totalPrice: 8900,
     trialPlan: null,
@@ -146,7 +145,6 @@ export const AM2_PLANS = {
     userSelectable: true,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -871,7 +869,6 @@ export const AM2_PLANS = {
     id: 'am2_f',
     isEnterprise: false,
     name: 'Developer',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am2_t',
@@ -881,7 +878,6 @@ export const AM2_PLANS = {
     userSelectable: true,
     features: AM2_FREE_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
       errors: [
@@ -974,7 +970,6 @@ export const AM2_PLANS = {
     id: 'am2_team',
     isEnterprise: false,
     name: 'Team',
-    price: 2900,
     basePrice: 2900,
     totalPrice: 2900,
     trialPlan: 'am2_business',
@@ -984,7 +979,6 @@ export const AM2_PLANS = {
     userSelectable: true,
     features: AM2_TEAM_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -1709,7 +1703,6 @@ export const AM2_PLANS = {
     id: 'am2_t',
     isEnterprise: false,
     name: 'Trial',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: null,
@@ -1719,7 +1712,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_TRIAL_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
       errors: [
@@ -1812,7 +1804,6 @@ export const AM2_PLANS = {
     id: 'am2_team_auf',
     isEnterprise: false,
     name: 'Team',
-    price: 31200,
     basePrice: 31200,
     totalPrice: 31200,
     trialPlan: 'am2_business',
@@ -1822,7 +1813,6 @@ export const AM2_PLANS = {
     userSelectable: true,
     features: AM2_TEAM_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -2510,7 +2500,6 @@ export const AM2_PLANS = {
     id: 'am2_business_auf',
     isEnterprise: false,
     name: 'Business',
-    price: 96000,
     basePrice: 96000,
     totalPrice: 96000,
     trialPlan: null,
@@ -2520,7 +2509,6 @@ export const AM2_PLANS = {
     userSelectable: true,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -3209,7 +3197,6 @@ export const AM2_PLANS = {
     id: 'am2_sponsored',
     isEnterprise: false,
     name: 'Sponsored',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: null,
@@ -3219,7 +3206,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_TEAM_FEATURES,
     billingInterval: 'monthly',
-    contractInterval: 'monthly',
     allowOnDemand: true,
     planCategories: {
       errors: [{events: 5000000, unitPrice: 0.015, price: 0}],
@@ -3244,7 +3230,6 @@ export const AM2_PLANS = {
     id: 'am2_sponsored_team_auf',
     isEnterprise: false,
     name: 'Sponsored Team',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: null,
@@ -3254,7 +3239,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_TEAM_FEATURES,
     billingInterval: 'annual',
-    contractInterval: 'annual',
     allowOnDemand: true,
     planCategories: {
       errors: [{events: 50_000, unitPrice: 0.015, price: 0}],
@@ -3279,7 +3263,6 @@ export const AM2_PLANS = {
     id: 'am2_business_bundle',
     isEnterprise: false,
     name: 'Business Bundle',
-    price: 50000,
     basePrice: 50000,
     totalPrice: 50000,
     trialPlan: null,
@@ -3289,7 +3272,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -3787,7 +3769,6 @@ export const AM2_PLANS = {
     id: 'am2_business_249_bundle',
     isEnterprise: false,
     name: 'Business Bundle',
-    price: 24900,
     basePrice: 24900,
     totalPrice: 24900,
     trialPlan: null,
@@ -3797,7 +3778,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -4345,7 +4325,6 @@ export const AM2_PLANS = {
     id: 'am2_team_bundle',
     isEnterprise: false,
     name: 'Team Bundle',
-    price: 9900,
     basePrice: 9900,
     totalPrice: 9900,
     trialPlan: 'am2_business',
@@ -4355,7 +4334,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_TEAM_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -4918,7 +4896,6 @@ export const AM2_PLANS = {
     id: 'am2_business_ent_auf',
     isEnterprise: true,
     name: 'Enterprise (Business)',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am2_business',
@@ -4928,7 +4905,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -5020,7 +4996,6 @@ export const AM2_PLANS = {
     id: 'am2_business_ent',
     isEnterprise: true,
     name: 'Enterprise (Business)',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am2_business',
@@ -5030,7 +5005,6 @@ export const AM2_PLANS = {
     userSelectable: false,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [

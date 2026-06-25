@@ -8,8 +8,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {PanelItem} from 'sentry/components/panels/panelItem';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {
   IntegrationInstallationStatus,
   SentryApp,

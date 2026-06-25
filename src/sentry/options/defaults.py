@@ -246,6 +246,13 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
+register(
+    "auth.email-verification-at-signup.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
 # User Settings
 register(
     "user-settings.signed-url-confirmation-emails-salt",
@@ -511,22 +518,6 @@ register(
 # Rollout rate for the Spans V2 format in Kafka.
 register(
     "relay.kafka.span-v2.sample-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rollout rate for moving accepted outcome emission from Relay to EAP.
-register(
-    "relay.eap-outcomes.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rollout rate for moving accepted outcome emission for spans from Relay to the Segment Consumer.
-register(
-    "relay.eap-span-outcomes.rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -823,6 +814,31 @@ register(
 register(
     "snuba.search.recommended.agent-weight",
     default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Additive boost for regressed issues (GroupSubStatus.REGRESSED). A regression that just
+# came back is worth surfacing again; new/escalating issues are already lifted by recency
+# and the spike factor, so they aren't boosted here.
+register(
+    "snuba.search.recommended.regressed-weight",
+    default=0.10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Additive boost for newly-seen issues, decayed on Group.first_seen. The base recency
+# factor decays on last_seen (recent activity), so it can't distinguish a brand-new issue
+# from an old chronic one that just fired; this rewards true first appearance. Boost is
+# newness-weight * 1/2^(hours_since_first_seen / newness-halflife-hours).
+register(
+    "snuba.search.recommended.newness-weight",
+    default=0.10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Halflife (hours) of the newness decay. Governs how far back "new" reaches: at 24h the
+# boost is ~spent within a day or two; raise it (e.g. 168 = 1 week) to keep distinguishing
+# week-old from month-old issues. Set to 0 to disable newness.
+register(
+    "snuba.search.recommended.newness-halflife-hours",
+    default=24.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2641,16 +2657,6 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Relocation: populates the target region drop down in the control silo. Note: this option has NO
-# EFFECT in region silos. However, the control silos `relocation.selectable-regions` array should be
-# a complete list of all regions where `relocation.enabled`. If a region is enabled/disabled, it
-# should also be added to/removed from this array in the control silo at the same time.
-register(
-    "relocation.selectable-regions",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Relocation: the step at which new relocations should be autopaused, requiring admin approval
 # before continuing.
 # DEPRECATED: will be removed after the new `relocation.autopause.*` options are fully rolled out.
@@ -2767,14 +2773,6 @@ register(
 # Enable sending a post update signal after we update groups using a queryset update
 register(
     "groups.enable-post-update-signal",
-    default=False,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Store the regression-triggering event's metadata in the activity data so
-# notifications show the correct title/message instead of stale group data.
-register(
-    "groups.regression-activity-event-metadata",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3741,6 +3739,15 @@ register(
     "tasks.producer.profiles.rollout",
     type=Float,
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# If False, TaskWorkers will wait for a task's producer futures to complete
+# before marking a task as complete
+register(
+    "taskworker.skip.awaiting.futures",
+    type=Bool,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

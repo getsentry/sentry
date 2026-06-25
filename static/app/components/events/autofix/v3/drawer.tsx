@@ -83,7 +83,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
   );
 }
 
-function useHandleCopyMarkdown({
+export function useHandleCopyMarkdown({
   aiAutofix,
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
@@ -107,7 +107,7 @@ function useHandleCopyMarkdown({
   }, [aiAutofix, copy]);
 }
 
-function useHandleRestart({
+export function useHandleRestart({
   aiAutofix,
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;

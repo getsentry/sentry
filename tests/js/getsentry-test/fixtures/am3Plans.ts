@@ -243,7 +243,6 @@ export const AM3_PLANS = {
     id: 'am3_business',
     isEnterprise: false,
     name: 'Business',
-    price: 8900,
     basePrice: 8900,
     totalPrice: 8900,
     trialPlan: null,
@@ -253,7 +252,6 @@ export const AM3_PLANS = {
     userSelectable: true,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -973,7 +971,6 @@ export const AM3_PLANS = {
     id: 'am3_business_auf',
     isEnterprise: false,
     name: 'Business',
-    price: 96000,
     basePrice: 96000,
     totalPrice: 96000,
     trialPlan: null,
@@ -983,7 +980,6 @@ export const AM3_PLANS = {
     userSelectable: true,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -1487,7 +1483,6 @@ export const AM3_PLANS = {
     id: 'am3_business_ent',
     isEnterprise: true,
     name: 'Enterprise (Business)',
-    price: 10_000_00,
     basePrice: 0,
     totalPrice: 10_000_00,
     trialPlan: 'am3_business',
@@ -1497,7 +1492,6 @@ export const AM3_PLANS = {
     userSelectable: false,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -1599,7 +1593,6 @@ export const AM3_PLANS = {
     id: 'am3_business_ent_auf',
     isEnterprise: true,
     name: 'Enterprise (Business)',
-    price: 10_000_00,
     basePrice: 0,
     totalPrice: 10_000_00,
     trialPlan: 'am3_business',
@@ -1609,7 +1602,6 @@ export const AM3_PLANS = {
     userSelectable: false,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -1711,7 +1703,6 @@ export const AM3_PLANS = {
     id: 'am3_f',
     isEnterprise: false,
     name: 'Developer',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am3_t',
@@ -1721,7 +1712,6 @@ export const AM3_PLANS = {
     userSelectable: true,
     features: AM3_FREE_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
       errors: [
@@ -1823,7 +1813,6 @@ export const AM3_PLANS = {
     id: 'am3_t_ent',
     isEnterprise: true,
     name: 'Enterprise Trial',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: null,
@@ -1833,7 +1822,6 @@ export const AM3_PLANS = {
     userSelectable: false,
     features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
       errors: [
@@ -1935,7 +1923,6 @@ export const AM3_PLANS = {
     id: 'am3_team',
     isEnterprise: false,
     name: 'Team',
-    price: 2900,
     basePrice: 2900,
     totalPrice: 2900,
     trialPlan: 'am3_business',
@@ -1945,7 +1932,6 @@ export const AM3_PLANS = {
     userSelectable: true,
     features: AM3_TEAM_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -2449,7 +2435,6 @@ export const AM3_PLANS = {
     id: 'am3_team_auf',
     isEnterprise: false,
     name: 'Team',
-    price: 31200,
     basePrice: 31200,
     totalPrice: 31200,
     trialPlan: 'am3_business',
@@ -2459,7 +2444,6 @@ export const AM3_PLANS = {
     userSelectable: true,
     features: AM3_TEAM_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -2963,7 +2947,6 @@ export const AM3_PLANS = {
     id: 'am3_t',
     isEnterprise: false,
     name: 'Trial',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: null,
@@ -2973,7 +2956,6 @@ export const AM3_PLANS = {
     userSelectable: false,
     features: AM3_TRIAL_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: false,
     dashboardLimit: 20,
     metricDetectorLimit: 20,

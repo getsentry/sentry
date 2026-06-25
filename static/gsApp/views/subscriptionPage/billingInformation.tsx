@@ -70,5 +70,4 @@ function BillingInformation({subscription}: Props) {
 
 export default withSubscription(BillingInformation);
 
-/** @internal exported for tests only */
 export {BillingInformation};

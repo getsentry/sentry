@@ -1,12 +1,13 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClock, IconGraph} from 'sentry/icons';
+import {IconClock, IconContract, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
@@ -15,11 +16,16 @@ import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {CHART_SELECTION_ALERT_KEY} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
-import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  ChartVisualization,
+  useChartVisualizationPlottables,
+} from 'sentry/views/explore/components/chart/chartVisualization';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
@@ -39,7 +45,7 @@ import {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface ExploreChartsProps {
   confidences: Confidence[];
@@ -47,7 +53,7 @@ interface ExploreChartsProps {
   query: string;
   rawSpanCounts: RawCounts;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
   visualizes: readonly Visualize[];
   samplingMode?: SamplingMode;
 }
@@ -140,7 +146,7 @@ interface ChartProps {
   onChartVisibilityChange: (visible: boolean) => void;
   query: string;
   rawSpanCounts: RawCounts;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
   visualize: Visualize;
   samplingMode?: SamplingMode;
   topEvents?: number;
@@ -205,9 +211,22 @@ function Chart({
     };
   }, [chartType, timeseriesResult, visualize, samplingMode, topEvents]);
 
+  const plottables = useChartVisualizationPlottables(chartInfo);
+
   const Title = (
     <Flex align="center" gap="xs">
       <Widget.WidgetTitle
+        summary={
+          !visualize.visible && plottablesCanBeVisualized(plottables) ? (
+            <TimeSeriesWidgetVisualization
+              plottables={plottables}
+              notMerge={false}
+              showLegend="never"
+              showXAxis="never"
+              showYAxis="never"
+            />
+          ) : null
+        }
         title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
       />
       <SamplingWarning
@@ -218,7 +237,7 @@ function Chart({
     </Flex>
   );
 
-  const Actions = (
+  const Actions = visualize.visible ? (
     <Fragment>
       <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
         <CompactSelect
@@ -260,10 +279,21 @@ function Chart({
         query={query}
         interval={interval}
         visualizeIndex={index}
-        visible={visualize.visible}
-        setVisible={onChartVisibilityChange}
+      />
+      <Button
+        aria-label={t('Collapse chart')}
+        icon={<IconContract />}
+        onClick={() => onChartVisibilityChange(false)}
+        size="xs"
       />
     </Fragment>
+  ) : (
+    <Button
+      aria-label={t('Expand chart')}
+      icon={<IconExpand />}
+      onClick={() => onChartVisibilityChange(true)}
+      size="xs"
+    />
   );
 
   const initialChartSelection =

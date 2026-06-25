@@ -263,6 +263,28 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         )
         assert response.status_code == 400
 
+    def test_deprecated_plugin_returns_400(self) -> None:
+        self.project.update_option("twilio:enabled", True)
+
+        action_data = [
+            {
+                "type": Action.Type.WEBHOOK.value,
+                "data": {},
+                "config": {
+                    "target_identifier": "twilio",
+                    "target_type": None,
+                },
+            }
+        ]
+
+        response = self.get_error_response(self.organization.slug, actions=action_data)
+        assert response.status_code == 400
+        assert response.data == {
+            "actions": {
+                "service": ["Select a valid choice. twilio is not one of the available choices."]
+            }
+        }
+
     @mock.patch(
         "sentry.notifications.notification_action.types.BaseIssueAlertHandler.send_test_notification"
     )
