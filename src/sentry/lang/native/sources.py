@@ -15,7 +15,7 @@ from django.conf import settings
 from django.urls import reverse
 from google.auth import impersonated_credentials
 from google.auth.transport.requests import Request
-from sentry_redis_tools.clients import RedisCluster
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
@@ -261,7 +261,7 @@ LAST_UPLOAD_TTL = 24 * 3600
 TOKEN_TTL_SECONDS = 3600
 
 
-def _get_cluster() -> RedisCluster:
+def _get_cluster() -> RedisCluster[str] | StrictRedis[str]:
     cluster_key = settings.SENTRY_DEBUG_FILES_REDIS_CLUSTER
     return redis.redis_clusters.get(cluster_key)
 

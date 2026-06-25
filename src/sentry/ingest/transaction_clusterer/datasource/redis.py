@@ -1,5 +1,7 @@
 """Write transactions into redis sets"""
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from typing import Any
@@ -8,7 +10,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
-from sentry_redis_tools.clients import RedisCluster
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
@@ -48,7 +50,7 @@ def _get_projects_key(namespace: ClustererNamespace) -> str:
     return f"{prefix}:projects"
 
 
-def get_redis_client() -> RedisCluster:
+def get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
     cluster_key = settings.SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER
     return redis.redis_clusters.get(cluster_key)
 
