@@ -414,6 +414,134 @@ describe('ExploreToolbar', () => {
     await waitFor(() => expect(option).toHaveTextContent('number'));
   });
 
+  it('does not render unvalidated selected group bys while validation loads', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      asyncDelay: 100000,
+      body: {
+        dataset: [],
+        environment: [],
+        field: [
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.attribute',
+            valid: false,
+          },
+        ],
+        orderby: [],
+        projects: [],
+        query: {
+          error: null,
+          fields: [],
+          valid: true,
+        },
+        valid: false,
+      },
+    });
+
+    render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/traces/`,
+          query: {
+            aggregateField: [
+              JSON.stringify({groupBy: 'invalid.attribute'}),
+              JSON.stringify({yAxes: ['count(span.duration)'], chartType: 0}),
+            ],
+          },
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-group-by');
+
+    await waitFor(() => {
+      expect(
+        within(section).queryByRole('button', {name: 'invalid.attribute'})
+      ).not.toBeInTheDocument();
+      expect(within(section).getAllByRole('button', {name: '—'}).length).toBeGreaterThan(
+        0
+      );
+    });
+  });
+
+  it('removes invalid selected group bys and preserves empty values', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      body: {
+        dataset: [],
+        environment: [],
+        field: [
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.attribute',
+            valid: false,
+          },
+          {
+            attrType: 'string',
+            error: null,
+            name: 'span.op',
+            valid: true,
+          },
+        ],
+        orderby: [],
+        projects: [],
+        query: {
+          error: null,
+          fields: [],
+          valid: true,
+        },
+        valid: false,
+      },
+    });
+
+    let groupBys: readonly string[] = [];
+
+    function Component() {
+      groupBys = useQueryParamsGroupBys();
+      return <ExploreToolbar />;
+    }
+
+    const {router} = render(<Component />, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/traces/`,
+          query: {
+            aggregateField: [
+              JSON.stringify({groupBy: 'invalid.attribute'}),
+              JSON.stringify({groupBy: ''}),
+              JSON.stringify({groupBy: 'span.op'}),
+              JSON.stringify({yAxes: ['count(span.duration)'], chartType: 0}),
+            ],
+          },
+        },
+      },
+    });
+
+    await waitFor(() => expect(groupBys).toEqual(['', 'span.op']));
+
+    const aggregateFieldQuery = router.location.query.aggregateField;
+    const aggregateFields = (
+      Array.isArray(aggregateFieldQuery) ? aggregateFieldQuery : [aggregateFieldQuery]
+    )
+      .filter((field): field is string => typeof field === 'string')
+      .map(field => JSON.parse(field));
+
+    expect(aggregateFields).toEqual([
+      {groupBy: ''},
+      {groupBy: 'span.op'},
+      {yAxes: ['count(span.duration)'], chartType: 0},
+    ]);
+
+    expect(
+      screen.queryByRole('button', {name: 'invalid.attribute'})
+    ).not.toBeInTheDocument();
+  });
+
   it('clears the last selected group by', async () => {
     let groupBys: readonly string[] = [];
     let mode: Mode | undefined;
