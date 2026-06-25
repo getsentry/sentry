@@ -1,6 +1,7 @@
 import {useEffect, useRef} from 'react';
 import {useQueryState} from 'nuqs';
 
+import {t} from 'sentry/locale';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
@@ -54,12 +55,25 @@ export function useAutoOpenInstallModal({
 
     autoOpenedForRef.current = provider.key;
 
+    // NOTE: The `?showInstallModal=1` entry point is currently only used by the
+    // Slack reinstall/upgrade nudge, so we override the generic install modal
+    // copy to frame it as a reauthorization. `useAddIntegration` itself is
+    // provider-agnostic and may outlive this usage; if other providers start
+    // auto-opening, lift this out rather than hardcoding it to Slack here.
     startFlow({
       provider,
       organization,
       onInstall,
       analyticsParams,
       suppressSuccessMessage,
+      ...(provider.key === 'slack' && {
+        modalParams: {
+          title: t('Upgrade Slack Integration'),
+          description: t(
+            'Reauthorize the Sentry app in your Slack Workspace so you can chat with Seer directly.'
+          ),
+        },
+      }),
     });
 
     setShowInstallModal(null);

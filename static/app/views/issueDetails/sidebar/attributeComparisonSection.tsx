@@ -74,7 +74,7 @@ export function AttributeComparisonSection({
     nextPage,
     previousPage,
   } = useFilteredRankedAttributes({
-    rankedAttributes: data?.rankedAttributes,
+    rankedAttributes: data?.json?.rankedAttributes,
     searchQuery,
     pageSize: CHARTS_PER_PAGE,
   });
@@ -164,8 +164,8 @@ export function AttributeComparisonSection({
                   key={attribute.attributeName}
                   attribute={attribute}
                   theme={theme}
-                  cohort1Total={data?.cohort1Total ?? 0}
-                  cohort2Total={data?.cohort2Total ?? 0}
+                  cohort1Total={data?.json?.cohort1Total ?? 0}
+                  cohort2Total={data?.json?.cohort2Total ?? 0}
                   query={snubaQuery.query}
                 />
               ))}
