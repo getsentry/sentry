@@ -531,7 +531,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         traceNode.occurrences.add(occurrence);
       }
 
-      if (c.value && 'measurements' in c.value) {
+      if (c.value && ('measurements' in c.value || 'mobile_app_vital' in c.value)) {
         tree.indicators = tree.indicators.concat(
           collectTraceMeasurements(
             tree,
