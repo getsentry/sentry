@@ -32,3 +32,9 @@ class SizeAnalysisComparePOSTResponse(BaseModel):
     status: str
     message: str
     comparisons: list[SizeAnalysisComparison] | None
+
+
+class SizeAnalysisComparisonListItem(BaseModel):
+    # The base build this head was compared against.
+    base_build_details: BuildDetailsApiResponse
+    date_added: str
