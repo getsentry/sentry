@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
@@ -28,6 +28,50 @@ interface ToolbarGroupByProps {
 }
 
 export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
+  const {
+    data: validatedSearchQueryData,
+    isLoading: validationLoading,
+    isPlaceholderData: validationIsPlaceholderData,
+  } = useValidateSpansTab();
+  const pendingValidatedGroupBys = useRef<string[] | null>(null);
+  const validationIsPending = validationLoading || validationIsPlaceholderData;
+
+  const validatedGroupBys = useMemo(
+    () => filterInvalidGroupBys(groupBys, validatedSearchQueryData?.field),
+    [groupBys, validatedSearchQueryData?.field]
+  );
+  const visibleGroupBys = useMemo(
+    () =>
+      filterVisibleGroupBys(
+        groupBys,
+        validatedSearchQueryData?.field,
+        validationIsPending
+      ),
+    [groupBys, validatedSearchQueryData?.field, validationIsPending]
+  );
+
+  useEffect(() => {
+    if (pendingValidatedGroupBys.current) {
+      if (arraysAreEqual(groupBys, pendingValidatedGroupBys.current)) {
+        pendingValidatedGroupBys.current = null;
+      } else if (arraysAreEqual(validatedGroupBys, pendingValidatedGroupBys.current)) {
+        return;
+      }
+    }
+
+    if (!validatedSearchQueryData || arraysAreEqual(groupBys, validatedGroupBys)) {
+      return;
+    }
+
+    pendingValidatedGroupBys.current = validatedGroupBys;
+
+    if (validatedGroupBys.some(Boolean)) {
+      setGroupBys(validatedGroupBys);
+    } else {
+      setGroupBys(validatedGroupBys, Mode.SAMPLES);
+    }
+  }, [groupBys, setGroupBys, validatedGroupBys, validatedSearchQueryData]);
+
   const setGroupBysWithOp = useCallback(
     (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
       const hasValidGroupBy = columns.some(Boolean);
@@ -60,7 +104,9 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
               column={column}
               onColumnChange={c => updateColumnAtIndex(i, c)}
               onColumnDelete={() => deleteColumnAtIndex(i)}
-              groupBys={groupBys}
+              groupBys={visibleGroupBys}
+              validationIsPending={validationIsPending}
+              validatedSearchQueryData={validatedSearchQueryData}
             />
           ))}
           <ToolbarFooter>
@@ -78,6 +124,8 @@ interface ToolbarGroupByItemProps {
   groupBys: readonly string[];
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
+  validationIsPending: boolean;
+  validatedSearchQueryData?: EventValidationData;
 }
 
 function ToolbarGroupByItem({
@@ -86,6 +134,8 @@ function ToolbarGroupByItem({
   column,
   onColumnChange,
   onColumnDelete,
+  validationIsPending,
+  validatedSearchQueryData,
 }: ToolbarGroupByItemProps) {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
@@ -102,7 +152,6 @@ function ToolbarGroupByItem({
     {search: debouncedSearch},
     'boolean'
   );
-  const {data: validatedSearchQueryData} = useValidateSpansTab();
 
   const {validatedBooleanTags, validatedNumberTags, validatedStringTags} = useMemo(() => {
     const validatedField = validatedSearchQueryData?.field.find(
@@ -128,11 +177,19 @@ function ToolbarGroupByItem({
     traceItemType: TraceItemDataset.SPANS,
   });
 
-  const loading = numberTagsLoading || stringTagsLoading || booleanTagsLoading;
+  const loading =
+    validationIsPending || numberTagsLoading || stringTagsLoading || booleanTagsLoading;
+  const displayColumn = shouldHideGroupByForValidation(
+    column.column,
+    validatedSearchQueryData?.field,
+    validationIsPending
+  )
+    ? {...column, column: ''}
+    : column;
 
   return (
     <ToolbarGroupByDropdown
-      column={column}
+      column={displayColumn}
       options={options}
       loading={loading}
       onClose={() => setSearch(undefined)}
@@ -142,6 +199,53 @@ function ToolbarGroupByItem({
       onColumnDelete={onColumnDelete}
     />
   );
+}
+
+function filterInvalidGroupBys(
+  groupBys: readonly string[],
+  fields: EventValidationData['field'] | undefined
+): string[] {
+  const invalidFields = new Set(
+    fields?.filter(field => !field.valid).map(field => field.name)
+  );
+
+  if (invalidFields.size === 0) {
+    return [...groupBys];
+  }
+
+  return groupBys.filter(groupBy => groupBy === '' || !invalidFields.has(groupBy));
+}
+
+function filterVisibleGroupBys(
+  groupBys: readonly string[],
+  fields: EventValidationData['field'] | undefined,
+  validationIsPending: boolean
+): string[] {
+  return groupBys.filter(
+    groupBy => !shouldHideGroupByForValidation(groupBy, fields, validationIsPending)
+  );
+}
+
+function shouldHideGroupByForValidation(
+  groupBy: string,
+  fields: EventValidationData['field'] | undefined,
+  validationIsPending: boolean
+): boolean {
+  if (groupBy === '') {
+    return false;
+  }
+
+  const field = fields?.find(({name}) => name === groupBy);
+
+  if (field?.valid) {
+    return false;
+  }
+
+  return validationIsPending || field?.valid === false;
+}
+
+function arraysAreEqual(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
 function mergeValidatedTags({

@@ -405,7 +405,7 @@ describe('ExploreToolbar', () => {
     const editorColumn = screen.getAllByTestId('editor-column')[0]!;
 
     await userEvent.click(
-      within(editorColumn).getByRole('button', {name: 'custom.measurement'})
+      await within(editorColumn).findByRole('button', {name: 'custom.measurement'})
     );
 
     const option = await within(section).findByRole('option', {
