@@ -79,11 +79,9 @@ def _processed_github_comment_ids(state: SeerRunState) -> set[int]:
         if not raw:
             continue
         for entry in parse_feedback(raw):
-            source = entry.source
-            if source.get("type") == "github-pr-comment":
-                cid = (source.get("comment") or {}).get("id")
-                if cid is not None:
-                    ids.add(cid)
+            cid = _github_comment_id(entry)
+            if cid is not None:
+                ids.add(cid)
     return ids
 
 
@@ -161,7 +159,7 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id:
                 step=AutofixStep.PR_ITERATION,
                 referrer=_get_feedback_referrer(queued_items),
                 run_id=run_id,
-                user_context="\n\n".join(item.message for item in feedback_items),
+                user_context="\n\n".join(item.text for item in feedback_items),
                 feedback=feedback_items,
             )
         except (

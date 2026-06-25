@@ -100,21 +100,9 @@ FeedbackSource = UserUIFeedbackSource | GithubPrCommentFeedbackSource
 
 
 class Feedback(BaseModel):
-    message: str = Field(alias="text")
-    source: FeedbackSource
-    timestamp: datetime = Field(default_factory=timezone.now)
-
-    class Config:
-        allow_population_by_field_name = True
-
-
-class LegacyFeedback(BaseModel):
     text: str
     source: FeedbackSource
-    timestamp: datetime
-
-    def to_feedback(self) -> Feedback:
-        return Feedback(text=self.text, source=self.source, timestamp=self.timestamp)
+    timestamp: datetime = Field(default_factory=timezone.now)
 
 
 def parse_feedback(raw: str) -> list[Feedback]:
@@ -123,13 +111,13 @@ def parse_feedback(raw: str) -> list[Feedback]:
     except (ValidationError, ValueError):
         pass
     try:
-        return [LegacyFeedback.parse_raw(raw).to_feedback()]
+        return [parse_raw_as(Feedback, raw)]
     except (ValidationError, ValueError):
         return []
 
 
 def serialize_feedback(items: Sequence[Feedback]) -> str:
-    return json.dumps([item.dict(by_alias=True) for item in items])
+    return json.dumps([item.dict() for item in items])
 
 
 class NoSeerQuotaException(Exception):

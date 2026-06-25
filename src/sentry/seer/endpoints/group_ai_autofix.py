@@ -353,7 +353,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     filter={"user_ids": [request.user.id]},
                 )
                 feedback = Feedback(
-                    message=user_context,
+                    text=user_context,
                     source={
                         "type": "user-ui",
                         "user_id": request.user.id,
@@ -477,7 +477,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         run = get_seer_run(state.run_id, group.organization)
         blocks = [block.dict() for block in state.blocks]
         queued_feedback = [
-            item.feedback.dict(by_alias=True) for item in peek_queued_autofix_feedback(state.run_id)
+            item.feedback.dict() for item in peek_queued_autofix_feedback(state.run_id)
         ]
         return Response(
             {

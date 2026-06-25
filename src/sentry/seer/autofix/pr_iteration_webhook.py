@@ -239,7 +239,7 @@ def trigger_pr_iteration_from_comment(
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
     feedback_obj = Feedback(
-        message=feedback,
+        text=feedback,
         source={"type": "github-pr-comment", "comment": comment},
     )
 
