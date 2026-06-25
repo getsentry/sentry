@@ -103,19 +103,28 @@ export function getLocalityUrlOptions(
     });
 }
 
+interface LocalitySelectValue extends SelectValue<string> {
+  url: string;
+}
+
 /**
- * Create a list of option objects with {label: displayName, value: name}
+ * Get a list of option objects with {label: displayName: value: locality.name}
+ * for all the localities that are available for signups.
  */
-export function getLocalityNameOptions(): Array<SelectValue<string>> {
+export function getSignupLocalities(): LocalitySelectValue[] {
+  const signupLocalities = ConfigStore.get('signupLocalities');
   const localities = getLocalities();
 
-  return localities.map(locality => {
-    return {
-      value: locality.name,
-      label:
-        `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`.trim(),
-    };
-  });
+  return localities
+    .filter(locality => signupLocalities.includes(locality.name))
+    .map(locality => {
+      return {
+        value: locality.name,
+        url: locality.url,
+        label:
+          `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`.trim(),
+      };
+    });
 }
 
 export function shouldDisplayLocalities(): boolean {

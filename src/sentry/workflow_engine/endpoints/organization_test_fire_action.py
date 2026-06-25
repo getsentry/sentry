@@ -19,6 +19,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.notification_action.grouptype import get_test_notification_event_data
 from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.plugins import HIDDEN_PLUGINS
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.workflow_engine.endpoints.organization_workflow_index import (
@@ -135,6 +136,13 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project) -> tuple[
     )
 
     for action_data in actions:
+        target_identifier = action_data.get("config", {}).get("target_identifier")
+        if action_data.get("type") == Action.Type.WEBHOOK and target_identifier in HIDDEN_PLUGINS:
+            action_exceptions.append(
+                f"The {target_identifier} plugin has been deprecated and cannot send notifications."
+            )
+            continue
+
         # Create a temporary Action object (not saved to database)
         action = Action(
             id=TEST_NOTIFICATION_ID,

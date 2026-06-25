@@ -383,6 +383,34 @@ class ProjectSeerReposGetTest(APITestCase):
         assert project_repo_relay["branchName"] is None
         assert project_repo_relay["instructions"] is None
 
+    def test_gitlab_repo_uses_display_name(self):
+        """The settings serializer's owner/name are display-only and must mirror
+        repo.name (GitLab's name_with_namespace), the same value the repo picker
+        shows. The URL-safe config['path'] is used only when building SCM links
+        sent to Seer (see seer/autofix/utils.py::get_repo_url_path), not here."""
+        gitlab_integration = self.create_integration(
+            organization=self.organization, provider="gitlab", external_id="gl123"
+        )
+        gitlab_repo = self.create_repo(
+            project=self.project,
+            # name_with_namespace: human-readable display name that contains spaces
+            name="My Group / My Project",
+            provider="integrations:gitlab",
+            external_id="gl-999",
+            integration_id=gitlab_integration.id,
+        )
+        self.create_seer_project_repository(self.project, repository=gitlab_repo)
+
+        with self.feature("organizations:seer-gitlab-support"):
+            response = self.get_success_response()
+        assert len(response.data) == 1
+        repo_data = response.data[0]
+        # owner/name come from the display name (repo.name) and reconstruct it,
+        # matching the picker — they are NOT slugified to the config['path'].
+        assert repo_data["owner"] == "My Group "
+        assert repo_data["name"] == " My Project"
+        assert f"{repo_data['owner']}/{repo_data['name']}" == gitlab_repo.name
+
     def test_excludes_inactive_repos(self):
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.repo1.status = ObjectStatus.HIDDEN

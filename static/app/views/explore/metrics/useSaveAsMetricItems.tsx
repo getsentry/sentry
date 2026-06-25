@@ -29,7 +29,6 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 import {
@@ -197,14 +196,10 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
                     addToDashboard(
                       metricQueries.filter(
                         metricQuery =>
-                          metricQuery.queryParams.visualizes[0]?.chartType !==
-                            ChartType.HEATMAP &&
                           // Allow all charts if you have the flag, otherwise only allow non-equation charts without the flag
-                          (metricsEquationsInDashboardsEnabled ||
-                            (!metricsEquationsInDashboardsEnabled &&
-                              !isVisualizeEquation(
-                                metricQuery.queryParams.visualizes[0]!
-                              )))
+                          metricsEquationsInDashboardsEnabled ||
+                          (!metricsEquationsInDashboardsEnabled &&
+                            !isVisualizeEquation(metricQuery.queryParams.visualizes[0]!))
                       )
                     );
                   },
@@ -214,8 +209,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
           ...metricQueries.map((metricQuery, index) => {
             const visualize = metricQuery.queryParams.visualizes[0]!;
             const isUnsupported =
-              (!metricsEquationsInDashboardsEnabled && isVisualizeEquation(visualize)) ||
-              visualize.chartType === ChartType.HEATMAP;
+              !metricsEquationsInDashboardsEnabled && isVisualizeEquation(visualize);
             const label = isVisualizeFunction(visualize)
               ? `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${
                   formatTraceMetricsFunction(
@@ -238,9 +232,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
               tooltip:
                 !metricsEquationsInDashboardsEnabled && isVisualizeEquation(visualize)
                   ? t('Equations cannot currently be added to a dashboard')
-                  : visualize.chartType === ChartType.HEATMAP
-                    ? t('Heat maps cannot currently be added to a dashboard')
-                    : undefined,
+                  : undefined,
             };
           }),
         ],

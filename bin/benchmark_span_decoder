@@ -20,10 +20,7 @@ import time
 import orjson
 import sentry_sdk
 
-from sentry.spans.consumers.process.factory import (
-    SPANS_CODEC,
-    decode_process_span_event,
-)
+from sentry.spans.consumers.process.factory import decode_process_span_event
 
 # Disable sentry as it creates lots of noise in the output.
 sentry_sdk.init(None)
@@ -79,9 +76,10 @@ def time_decoder(name, fn, payloads, iterations):
 def main(num_spans, iterations):
     payloads = [orjson.dumps(make_span(i)) for i in range(num_spans)]
 
-    # Sanity check: both decoders agree on the fields they share, and the
-    # msgspec output validates against the schema.
-    SPANS_CODEC.validate(decode_process_span_event(payloads[0]))
+    # Sanity check: the msgspec decoder produces the expected struct.
+    event = decode_process_span_event(payloads[0])
+    assert event.trace_id == f"{0:032x}"
+    assert event.segment_id == f"{0:016x}"
 
     avg_bytes = sum(len(p) for p in payloads) / len(payloads)
     logger.info("spans=%d iterations=%d avg_payload=%.0f bytes\n", num_spans, iterations, avg_bytes)

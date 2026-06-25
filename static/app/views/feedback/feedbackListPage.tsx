@@ -20,8 +20,6 @@ import {useHaveSelectedProjectsSetupFeedback} from 'sentry/components/feedback/u
 import {useFeedbackSlug} from 'sentry/components/feedback/useFeedbackSlug';
 import {useRedirectToFeedbackFromEvent} from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {FullViewport} from 'sentry/components/layouts/fullViewport';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -33,7 +31,6 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const userFeedbackFeedbackOptions = {
   messagePlaceholder: t('How can we improve the User Feedback experience?'),
@@ -54,7 +51,6 @@ function PageContent({
   hideTop: boolean;
 }) {
   const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const createAlertAction = {
     icon: <IconSiren />,
     to: {
@@ -94,11 +90,9 @@ function PageContent({
                   <SearchContainer>
                     <FeedbackSearch />
                   </SearchContainer>
-                  {hasPageFrameFeature ? (
-                    <LinkButton {...createAlertAction} variant="primary">
-                      {t('Create Alert')}
-                    </LinkButton>
-                  ) : null}
+                  <LinkButton {...createAlertAction} variant="primary">
+                    {t('Create Alert')}
+                  </LinkButton>
                 </Flex>
               </Stack>
             )}
@@ -117,7 +111,6 @@ function PageContent({
 }
 
 export default function FeedbackListPage() {
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
   const pageFilters = usePageFilters();
@@ -233,67 +226,22 @@ export default function FeedbackListPage() {
       />
     </Fragment>
   );
-  const createAlertAction = {
-    icon: <IconSiren />,
-    to: {
-      pathname: makeAlertsPathname({
-        path: '/new/issue/',
-        organization,
-      }),
-      query: {
-        alert_option: 'issues',
-        referrer: 'feedback-list-page',
-        detectorType: 'metric_issue',
-        ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
-      },
-    },
-  };
-
-  if (hasPageFrameFeature) {
-    return (
-      <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
-        <Stack flex={1} contain="size">
-          <FeedbackApiOptions organization={organization}>
-            <TopBar.Slot name="title">{titleContent}</TopBar.Slot>
-            <TopBar.Slot name="feedback">
-              <FeedbackButton
-                size="sm"
-                feedbackOptions={userFeedbackFeedbackOptions}
-                aria-label={t('Give Feedback')}
-                tooltipProps={{title: t('Give Feedback')}}
-              >
-                {null}
-              </FeedbackButton>
-            </TopBar.Slot>
-            <PageContent
-              feedbackProjectSlug={feedbackProjectSlug}
-              hideTop={hideTop}
-              hasFeedbackContent={hasFeedbackContent}
-              content={pageContent}
-            />
-          </FeedbackApiOptions>
-        </Stack>
-      </SentryDocumentTitle>
-    );
-  }
 
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
-      <FullViewport>
+      <Stack flex={1} contain="size">
         <FeedbackApiOptions organization={organization}>
-          <Layout.Header unified>
-            <Layout.HeaderContent unified>
-              <Layout.Title>{titleContent}</Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <Flex gap="lg">
-                <FeedbackButton size="sm" feedbackOptions={userFeedbackFeedbackOptions} />
-                <LinkButton size="sm" {...createAlertAction}>
-                  {t('Create Alert')}
-                </LinkButton>
-              </Flex>
-            </Layout.HeaderActions>
-          </Layout.Header>
+          <TopBar.Slot name="title">{titleContent}</TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton
+              size="sm"
+              feedbackOptions={userFeedbackFeedbackOptions}
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
+              {null}
+            </FeedbackButton>
+          </TopBar.Slot>
           <PageContent
             feedbackProjectSlug={feedbackProjectSlug}
             hideTop={hideTop}
@@ -301,7 +249,7 @@ export default function FeedbackListPage() {
             content={pageContent}
           />
         </FeedbackApiOptions>
-      </FullViewport>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

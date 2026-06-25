@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import orjson
@@ -8,7 +9,9 @@ import pytest
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
+    SLIDING_WINDOW_METRIC_PREFIX,
     apply_project_sample_rate_overrides,
+    compare_organization_sliding_window_sample_rates,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
     get_cached_rebalanced_project_sample_rates,
@@ -19,6 +22,7 @@ from sentry.dynamic_sampling.per_org.calculations import (
 )
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
+from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
@@ -31,6 +35,163 @@ from sentry.testutils.helpers.options import override_options
 
 def _project_volume(project_id: int, total: int = 100, keep: int = 25) -> ProjectVolume:
     return ProjectVolume(project_id=project_id, total=total, keep=keep, drop=max(total - keep, 0))
+
+
+class CompareOrganizationSlidingWindowSampleRatesTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization()
+        self.config = Mock()
+        self.config.organization = self.org
+
+    @patch(
+        "sentry.dynamic_sampling.per_org.calculations.get_outcomes_organization_volume",
+        return_value=None,
+    )
+    @patch(
+        "sentry.dynamic_sampling.per_org.calculations.get_eap_organization_volume",
+        return_value=None,
+    )
+    def test_emits_generic_metrics_volume_and_sample_rate(
+        self, mock_eap_volume, mock_outcomes_volume
+    ) -> None:
+        gm_volume = OrganizationDataVolume(org_id=self.org.id, total=2000, indexed=500)
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.get_generic_metrics_organization_volume",
+                return_value=gm_volume,
+            ) as mock_gm_volume,
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.compute_sliding_window_sample_rate",
+                return_value=0.3,
+            ),
+            patch("sentry.dynamic_sampling.per_org.calculations.metrics") as mock_metrics,
+        ):
+            compare_organization_sliding_window_sample_rates(self.config)
+
+        assert mock_gm_volume.call_count == 1
+        call_kwargs = mock_gm_volume.call_args
+        assert call_kwargs.args[0] == self.org.id
+        assert call_kwargs.kwargs["time_interval"] == timedelta(hours=24)
+        assert call_kwargs.kwargs["end"] is not None
+
+        distribution_calls = {
+            call.args[0]: call.args[1] for call in mock_metrics.distribution.call_args_list
+        }
+        assert (
+            distribution_calls[f"{SLIDING_WINDOW_METRIC_PREFIX}.generic_metrics_sample_rate"] == 0.3
+        )
+        assert distribution_calls[f"{SLIDING_WINDOW_METRIC_PREFIX}.generic_metrics_volume"] == 2000
+
+    @patch(
+        "sentry.dynamic_sampling.per_org.calculations.get_outcomes_organization_volume",
+        return_value=None,
+    )
+    @patch(
+        "sentry.dynamic_sampling.per_org.calculations.get_eap_organization_volume",
+        return_value=None,
+    )
+    def test_skips_generic_metrics_when_volume_is_none(
+        self, mock_eap_volume, mock_outcomes_volume
+    ) -> None:
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.get_generic_metrics_organization_volume",
+                return_value=None,
+            ),
+            patch("sentry.dynamic_sampling.per_org.calculations.metrics") as mock_metrics,
+        ):
+            compare_organization_sliding_window_sample_rates(self.config)
+
+        emitted_metric_names = {call.args[0] for call in mock_metrics.distribution.call_args_list}
+        assert (
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.generic_metrics_sample_rate"
+            not in emitted_metric_names
+        )
+        assert f"{SLIDING_WINDOW_METRIC_PREFIX}.generic_metrics_volume" not in emitted_metric_names
+
+    @patch(
+        "sentry.dynamic_sampling.per_org.calculations.get_outcomes_organization_volume",
+        return_value=None,
+    )
+    @patch(
+        "sentry.dynamic_sampling.per_org.calculations.get_eap_organization_volume",
+        return_value=None,
+    )
+    def test_all_three_sources_emitted_together(
+        self, mock_eap_volume, mock_outcomes_volume
+    ) -> None:
+        eap_vol = OrganizationDataVolume(org_id=self.org.id, total=1000, indexed=250)
+        outcomes_vol = OrganizationDataVolume(org_id=self.org.id, total=1500, indexed=375)
+        gm_vol = OrganizationDataVolume(org_id=self.org.id, total=2000, indexed=500)
+
+        mock_eap_volume.return_value = eap_vol
+        mock_outcomes_volume.return_value = outcomes_vol
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.get_generic_metrics_organization_volume",
+                return_value=gm_vol,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.compute_sliding_window_sample_rate",
+                return_value=0.5,
+            ),
+            patch("sentry.dynamic_sampling.per_org.calculations.metrics") as mock_metrics,
+        ):
+            compare_organization_sliding_window_sample_rates(self.config)
+
+        emitted_metric_names = {call.args[0] for call in mock_metrics.distribution.call_args_list}
+        assert f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_sample_rate" in emitted_metric_names
+        assert f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_volume" in emitted_metric_names
+        assert (
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_volume_without_extrapolation"
+            in emitted_metric_names
+        )
+        assert f"{SLIDING_WINDOW_METRIC_PREFIX}.outcomes_sample_rate" in emitted_metric_names
+        assert f"{SLIDING_WINDOW_METRIC_PREFIX}.outcomes_volume" in emitted_metric_names
+        assert f"{SLIDING_WINDOW_METRIC_PREFIX}.generic_metrics_sample_rate" in emitted_metric_names
+        assert f"{SLIDING_WINDOW_METRIC_PREFIX}.generic_metrics_volume" in emitted_metric_names
+
+        distribution_calls = {
+            call.args[0]: call.args[1] for call in mock_metrics.distribution.call_args_list
+        }
+        assert (
+            distribution_calls[f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_volume_without_extrapolation"]
+            == 250
+        )
+
+    @patch(
+        "sentry.dynamic_sampling.per_org.calculations.get_outcomes_organization_volume",
+        return_value=None,
+    )
+    @patch(
+        "sentry.dynamic_sampling.per_org.calculations.get_eap_organization_volume",
+        return_value=OrganizationDataVolume(org_id=1, total=1000, indexed=None),
+    )
+    def test_skips_eap_volume_without_extrapolation_when_indexed_is_none(
+        self, mock_eap_volume, mock_outcomes_volume
+    ) -> None:
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.get_generic_metrics_organization_volume",
+                return_value=None,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.compute_sliding_window_sample_rate",
+                return_value=0.5,
+            ),
+            patch("sentry.dynamic_sampling.per_org.calculations.metrics") as mock_metrics,
+        ):
+            compare_organization_sliding_window_sample_rates(self.config)
+
+        emitted_metric_names = {call.args[0] for call in mock_metrics.distribution.call_args_list}
+        assert f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_volume" in emitted_metric_names
+        assert (
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_volume_without_extrapolation"
+            not in emitted_metric_names
+        )
 
 
 class ProjectBalancingCalculationsTest(TestCase):

@@ -15,7 +15,6 @@ def find_base_snapshot_artifact(
     app_id: str | None,
     artifact_type: str | None,
     build_configuration: PreprodBuildConfiguration | None,
-    allow_selective: bool = False,
 ) -> PreprodArtifact | None:
     qs = PreprodArtifact.objects.filter(
         commit_comparison__organization_id=organization_id,
@@ -27,8 +26,6 @@ def find_base_snapshot_artifact(
         artifact_type=artifact_type,
         build_configuration=build_configuration,
     )
-    if not allow_selective:
-        qs = qs.filter(preprodsnapshotmetrics__is_selective=False)
     return qs.order_by("-date_added").first()
 
 

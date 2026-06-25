@@ -32,7 +32,7 @@ from sentry.releases.endpoints.project_release_file_details import (
 class OrganizationReleaseFileDetailsEndpoint(
     OrganizationReleasesBaseEndpoint, ReleaseFileDetailsMixin
 ):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

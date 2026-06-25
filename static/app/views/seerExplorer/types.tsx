@@ -3,6 +3,12 @@ import {z} from 'zod';
 import {isFilePatch, type FilePatch} from 'sentry/components/events/autofix/types';
 
 /**
+ * Where the Seer Explorer sidebar docks. `auto` picks right/bottom based on
+ * screen size; `right`/`bottom` force a position. Persisted in localStorage.
+ */
+export type SeerExplorerSidebarPosition = 'auto' | 'right' | 'bottom';
+
+/**
  * z.enum but forward-compatible: accepts any string at runtime while preserving
  * autocomplete for the known values via the `(string & {})` trick.
  */

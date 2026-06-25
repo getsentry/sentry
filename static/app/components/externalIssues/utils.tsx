@@ -32,6 +32,6 @@ export function getDynamicFields({
   return Object.fromEntries(
     (config || [])
       .filter((field: IssueConfigField) => field.updatesForm)
-      .map((field: IssueConfigField) => [field.name, field.default || null])
+      .map((field: IssueConfigField) => [field.name, field.default ?? null])
   );
 }

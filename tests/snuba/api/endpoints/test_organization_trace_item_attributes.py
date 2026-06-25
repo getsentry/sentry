@@ -5,8 +5,10 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from sentry_conventions.attributes import ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
+from sentry.api.endpoints.organization_trace_item_attributes import build_sentry_convention_context
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeKey,
 )
@@ -25,6 +27,35 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
+
+
+class TestBuildAttributeContext:
+    def test_lookup_by_public_name(self) -> None:
+        context = build_sentry_convention_context("device.class", "sentry.device.class")
+        assert context is not None
+        assert context["brief"].startswith("The classification of the device.")
+        assert context["isDeprecated"] is False
+
+    def test_falls_back_to_internal_name(self) -> None:
+        # The convention is keyed by the internal name (`sentry.op`), not the
+        # public alias (`span.op`), so the public-name lookup misses and the
+        # fallback must resolve it.
+        assert "span.op" not in ATTRIBUTE_METADATA
+        context = build_sentry_convention_context("span.op", "sentry.op")
+        assert context == {
+            "brief": "The operation of a span.",
+            "examples": ["http.client"],
+            "isDeprecated": False,
+        }
+
+    def test_deprecated_attribute_includes_replacement(self) -> None:
+        context = build_sentry_convention_context("transaction", "sentry.transaction")
+        assert context is not None
+        assert context["isDeprecated"] is True
+        assert context["replacementAttribute"] == "sentry.segment.name"
+
+    def test_unknown_attribute_returns_none(self) -> None:
+        assert build_sentry_convention_context("not.a.convention", "also.not.a.convention") is None
 
 
 class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase):
@@ -461,6 +492,77 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.content
         assert response.data == []
 
+    def _store_basic_segment(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            # `gen_ai.request.model` is a sentry convention name, but as a
+            # user-supplied tag it resolves to a `user` source. It must not pick
+            # up convention metadata.
+            tags={"foo": "foo", "gen_ai.request.model": "gpt-4"},
+        )
+
+    def test_expand_context(self) -> None:
+        self._store_basic_segment()
+
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+
+        # A non-deprecated sentry convention gets brief + examples + isDeprecated.
+        assert attributes["device.class"]["context"] == {
+            "brief": (
+                "The classification of the device. For example, `low`, `medium`, or `high`. "
+                "Typically inferred by Relay - SDKs generally do not need to set this directly."
+            ),
+            "examples": ["medium"],
+            "isDeprecated": False,
+        }
+        # A deprecated convention also surfaces the replacement attribute.
+        assert attributes["transaction"]["context"] == {
+            "brief": "The sentry transaction (segment name).",
+            "examples": ["GET /"],
+            "isDeprecated": True,
+            "replacementAttribute": "sentry.segment.name",
+        }
+        # Custom attribute context isn't served yet, so user tags get an empty
+        # context for now.
+        assert attributes["foo"]["context"] == {}
+        # A user tag whose name collides with a sentry convention still gets an
+        # empty context, because only `sentry`-source attributes are expanded.
+        assert attributes["gen_ai.request.model"]["attributeSource"]["source_type"] == "user"
+        assert attributes["gen_ai.request.model"]["context"] == {}
+
+    def test_expand_context_without_feature_flag(self) -> None:
+        self._store_basic_segment()
+
+        # Context is no longer gated by a feature flag: expand=context alone is
+        # enough, even with the data-browsing-attribute-context flag disabled.
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": False,
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert all("context" in item for item in response.data)
+
+    def test_context_not_included_without_expand(self) -> None:
+        self._store_basic_segment()
+
+        response = self.do_request(
+            query={"attributeType": "string"},
+        )
+        assert response.status_code == 200, response.data
+        assert all("context" not in item for item in response.data)
+
     def test_tags_list_str(self) -> None:
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -574,62 +676,67 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             }
         )
         assert response.status_code == 200, response.data
-        assert response.data == [
-            {
-                "key": "tags[bar,number]",
-                "name": "bar",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "user"},
-            },
-            {
-                "key": "tags[baz,number]",
-                "name": "baz",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "user"},
-            },
-            {
-                "key": "measurements.fcp",
-                "name": "measurements.fcp",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "tags[foo,number]",
-                "name": "foo",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "user"},
-            },
-            {
-                "key": "http.decoded_response_content_length",
-                "name": "http.decoded_response_content_length",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "http.response_content_length",
-                "name": "http.response_content_length",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "http.response_transfer_size",
-                "name": "http.response_transfer_size",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "measurements.lcp",
-                "name": "measurements.lcp",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "span.duration",
-                "name": "span.duration",
-                "attributeType": "number",
-                "attributeSource": {"source_type": "sentry"},
-            },
-        ]
+        # Don't depend on the order of the values, just that they're all
+        # present. snuba PR getsentry/snuba#8062 changes the default sort.
+        assert sorted(response.data, key=itemgetter("key")) == sorted(
+            [
+                {
+                    "key": "tags[bar,number]",
+                    "name": "bar",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "user"},
+                },
+                {
+                    "key": "tags[baz,number]",
+                    "name": "baz",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "user"},
+                },
+                {
+                    "key": "measurements.fcp",
+                    "name": "measurements.fcp",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "tags[foo,number]",
+                    "name": "foo",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "user"},
+                },
+                {
+                    "key": "http.decoded_response_content_length",
+                    "name": "http.decoded_response_content_length",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "http.response_content_length",
+                    "name": "http.response_content_length",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "http.response_transfer_size",
+                    "name": "http.response_transfer_size",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "measurements.lcp",
+                    "name": "measurements.lcp",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+                {
+                    "key": "span.duration",
+                    "name": "span.duration",
+                    "attributeType": "number",
+                    "attributeSource": {"source_type": "sentry"},
+                },
+            ],
+            key=itemgetter("key"),
+        )
 
     @override_options({"explore.trace-items.keys.max": 3})
     def test_pagination(self) -> None:
