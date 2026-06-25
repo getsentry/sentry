@@ -153,7 +153,11 @@ export function ReleasesAdoptionChart({
 
   const {start, end, period, utc} = selection.datetime;
   const field = sessionDisplayToField(activeDisplay);
-  const {data: response, isRefetching, isError} = useSessionsRequest({
+  const {
+    data: response,
+    isRefetching,
+    isError,
+  } = useSessionsRequest({
     interval,
     groupBy: ['release'],
     field: [field],
