@@ -41,7 +41,6 @@ import type {EChartClickHandler} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {sessionDisplayToField} from 'sentry/views/explore/releases/list/releasesRequest';
@@ -62,7 +61,6 @@ export function ReleasesAdoptionChart({
   organization,
   location,
 }: Props) {
-  const api = useApi();
   const navigate = useNavigate();
 
   // needs to have different granularity, that's why we use custom getInterval instead of getSessionsInterval
@@ -158,8 +156,6 @@ export function ReleasesAdoptionChart({
 
   return (
     <SessionsRequest
-      api={api}
-      organization={organization}
       interval={interval}
       groupBy={['release']}
       field={[field]}
