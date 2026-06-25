@@ -194,7 +194,7 @@ export function ExploreTables(props: ExploreTablesProps) {
   );
 }
 
-export function getValidatedColumnEditorData({
+function getValidatedColumnEditorData({
   booleanTags,
   fields,
   numberTags,
