@@ -3249,6 +3249,30 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
+      it('removes only the targeted duplicate when deleting a chip', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,firefox]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const removeButtons = await screen.findAllByRole('button', {
+          name: 'Remove value: firefox',
+        });
+        expect(removeButtons).toHaveLength(2);
+
+        // Removing one chip leaves the other intact
+        await userEvent.click(removeButtons[0]!);
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:firefox'})
+        ).toBeInTheDocument();
+      });
+
       it('collapses many selected options', async () => {
         render(
           <SearchQueryBuilder

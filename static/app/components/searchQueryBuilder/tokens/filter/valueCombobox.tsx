@@ -1057,15 +1057,22 @@ export function SearchQueryBuilderValueCombobox({
   );
 
   const removeValue = useCallback(
-    (value: string) => {
+    (index: number) => {
+      const next = selectedValues
+        .filter((_, i) => i !== index)
+        .map(v => v.text)
+        .join(',');
       dispatch({
-        type: 'TOGGLE_FILTER_VALUE',
+        type: 'UPDATE_TOKEN_VALUE',
         token,
-        value: escapeTagValueForSearch(value),
+        value: prepareInputValueForSaving(
+          getFilterValueType(token, fieldDefinition),
+          next
+        ),
       });
       inputRef.current?.focus();
     },
-    [dispatch, token]
+    [dispatch, fieldDefinition, selectedValues, token]
   );
 
   const editValue = (index: number) => {
@@ -1108,7 +1115,7 @@ export function SearchQueryBuilderValueCombobox({
         }
         const lastValue = committedValues.at(-1);
         if (canSelectMultipleValues && lastValue) {
-          removeValue(lastValue.value);
+          removeValue(lastValue.index);
           return;
         }
         onDelete();
@@ -1179,7 +1186,7 @@ export function SearchQueryBuilderValueCombobox({
               <ValueChipRemove
                 type="button"
                 aria-label={t('Remove value: %s', value)}
-                onClick={() => removeValue(value)}
+                onClick={() => removeValue(index)}
               >
                 <IconClose legacySize="8px" />
               </ValueChipRemove>
