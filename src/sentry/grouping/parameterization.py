@@ -108,6 +108,42 @@ def is_valid_hostname(maybe_hostname_str: str) -> bool:
     return True
 
 
+# Raw and compiled versions of the regex for the `random_id` pattern, pulled into constants so the
+# raw pattern can be used in multiple places and so that the compiled version only compiles once
+RANDOM_ID_REGEX = r"""
+    # Random nonsense alphanumeric id strings. To avoid false positives, we require the following:
+    #   - A minimum of 4 characters, with at least a certain level of "mixed-up-ness". For our
+    #     purposes, that means the string must switch back and forth between letters and numbers at
+    #     least 3 times. This rules out human-readable strings like `dogNumber1` (1 switch) and
+    #     `bball4lyfe` (2 switches), while catching strings like `aKj8XLr2`.
+    #   - For strings shorter than 6 characters, a mix of uppercase letters, lowercase letters, and
+    #     numbers. (For 6+ character strings, the switching requirement alone is restrictive
+    #     enough.)
+    #
+    # Negative lookbehind to create a word boundary but with underscores allowed to count as
+    # wordbreak characters (to permit things like `some_file_k9cm2.py`)
+    (?<![a-zA-Z0-9])
+    # Lookaheads, each of which guarantees either a) at least 6 characters or b) at least one
+    # uppercase or at least one lowercase letter, respectively. Together, they guarantee that
+    # matches of fewer than of fewer than 6 characters have both upper- and lowercase letters..
+    (?= [a-zA-Z0-9]{6} | [a-z0-9]* [A-Z])
+    (?= [a-zA-Z0-9]{6} | [A-Z0-9]* [a-z])
+    # Lookahead enforcing letter/number switches. Two versions depending on whether the string
+    # starts with a letter or number. This also takes care of the "contains a number" requirement.
+    (?=
+        \d+ [a-zA-Z]+ \d+ [a-zA-Z]+
+        |
+        [a-zA-Z]+ \d+ [a-zA-Z]+ \d+
+    )
+    # The pattern itself
+    [a-zA-Z0-9]{4,128}
+    # Negative lookahead similar to the negative lookbehind above - \b, but with underscores
+    # counting for wordbreaks
+    (?![a-zA-Z0-9])
+"""
+COMPILED_RANDOM_ID_REGEX = re.compile(rf"(?x){RANDOM_ID_REGEX}")
+
+
 DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="email",
