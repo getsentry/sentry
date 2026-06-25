@@ -154,7 +154,15 @@ export interface PullRequest {
 
 export type PullRequestStatus = 'merged' | 'open' | 'closed' | 'draft' | 'unknown';
 
+type SeerAttribution = {
+  id: 'seer';
+  type: 'seer';
+};
+
+export type PullRequestAttribution = SeerAttribution;
+
 export interface LinkedPullRequest extends PullRequest {
+  attribution: PullRequestAttribution | null;
   dateLinked: string;
   status: PullRequestStatus;
 }
