@@ -57,6 +57,8 @@ class SeerRun(DefaultFieldsModel):
     last_triggered_at = models.DateTimeField()
     extras = models.JSONField(db_default={}, default=dict)
 
+    pull_requests = models.ManyToManyField("sentry.PullRequest", through="seer.SeerRunPullRequest")
+
     class Meta:
         app_label = "seer"
         db_table = "seer_seerrun"
