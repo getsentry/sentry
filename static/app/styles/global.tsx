@@ -155,6 +155,11 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
     scrollbar-color: ${theme.tokens.graphics.neutral.moderate} transparent;
   }
 
+  html {
+    scrollbar-color: ${theme.tokens.graphics.neutral.moderate}
+      ${theme.tokens.background.secondary};
+  }
+
   body {
     .sentry-error-embed-wrapper {
       z-index: ${theme.zIndex.sentryErrorEmbed};
