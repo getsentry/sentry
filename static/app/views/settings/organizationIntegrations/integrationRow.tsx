@@ -90,9 +90,7 @@ export function IntegrationRow(props: Props) {
         >{`${configurations} Configuration${configurations > 1 ? 's' : ''}`}</StyledLink>
         {disabledConfigurations && disabledConfigurations > 0 ? (
           <DisabledTag variant="warning">
-            {disabledConfigurations === 1
-              ? t('1 disabled')
-              : t('%s disabled', disabledConfigurations)}
+            {tn('%s disabled', '%s disabled', disabledConfigurations)}
           </DisabledTag>
         ) : null}
       </Fragment>
