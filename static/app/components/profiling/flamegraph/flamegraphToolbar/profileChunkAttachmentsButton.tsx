@@ -8,6 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -48,10 +49,9 @@ export function ProfileChunkAttachmentsButton() {
   const project = useCurrentProjectFromRouteParam();
   const {hasRole: hasAttachmentRole} = useRole({role: 'attachmentsRole'});
 
-  const profilerId =
-    typeof location.query.profilerId === 'string' ? location.query.profilerId : null;
-  const start = typeof location.query.start === 'string' ? location.query.start : null;
-  const end = typeof location.query.end === 'string' ? location.query.end : null;
+  const profilerId = decodeScalar(location.query.profilerId);
+  const start = decodeScalar(location.query.start);
+  const end = decodeScalar(location.query.end);
 
   const enabled = Boolean(project && profilerId && start && end);
 
@@ -86,7 +86,9 @@ export function ProfileChunkAttachmentsButton() {
           ? {}
           : {
               tooltipProps: {
-                title: t('Insufficient permissions to download attachments'),
+                title: t(
+                  'Insufficient permissions. Ask your org admin to download attachments on your behalf or grant you the required permission.'
+                ),
               },
             }),
       }}
