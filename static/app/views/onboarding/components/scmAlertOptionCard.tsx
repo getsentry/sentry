@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
@@ -38,23 +38,22 @@ export function ScmAlertOptionCard({
             <Grid
               columns="min-content 1fr"
               gap="0 md"
-              align="center"
               areas={`
                 "radio label"
                 ".     description"
               `}
             >
-              <Container area="radio">
-                <Radio size="md" readOnly checked={isSelected} tabIndex={-1} />
-              </Container>
+              <Flex area="radio" align="center">
+                <Radio size="xs" readOnly checked={isSelected} tabIndex={-1} />
+              </Flex>
               <Container area="label">
-                <Text bold size="md" density="comfortable">
+                <Text bold size="sm" density="comfortable">
                   {label}
                 </Text>
               </Container>
               {description && (
                 <Container area="description">
-                  <Text variant="secondary" size="md" density="comfortable">
+                  <Text variant="secondary" size="sm" density="comfortable">
                     {description}
                   </Text>
                 </Container>
@@ -73,11 +72,11 @@ export function ScmAlertOptionCard({
   );
 }
 
-// The body indents to line up under the label (button padding + the md radio's
-// 24px width + grid column gap) and carries its own right/bottom padding so
+// The body indents to line up under the label (button padding + the xs radio's
+// 12px width + grid column gap) and carries its own right/bottom padding so
 // input focus rings clear the animated overflow:hidden bounds. The top gap
 // comes from the header button's own bottom padding.
 const ExpandedBody = styled('div')`
   padding: 0 ${p => p.theme.space.lg} ${p => p.theme.space.lg};
-  padding-left: calc(${p => p.theme.space.lg} + 24px + ${p => p.theme.space.md});
+  padding-left: calc(${p => p.theme.space.lg} + 12px + ${p => p.theme.space.md});
 `;
