@@ -523,15 +523,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for moving accepted outcome emission from Relay to EAP.
-register(
-    "relay.eap-outcomes.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 # Killswitch for fetching projects in the endpoints.
 register(
     "relay.endpoint-fetch-config.enabled",
