@@ -137,6 +137,7 @@ type LogsRowProps = {
   onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
+  onViewInTable?: (logItemId: string) => void;
   setHoveredRowId?: (logItemId: string | null) => void;
   showCellActions?: boolean;
   showExploreSimilarSpansLink?: boolean;
@@ -231,6 +232,7 @@ export const LogRowContent = memo(function LogRowContent({
   isHoverLinked,
   setHoveredRowId,
   togglePinnedRow,
+  onViewInTable,
   showCellActions,
   showExploreSimilarSpansLink,
 }: LogsRowProps) {
@@ -498,15 +500,31 @@ export const LogRowContent = memo(function LogRowContent({
 
           const value = (dataRow as OurLogsResponseItem)[field];
 
-          const extraMenuItems =
-            field === OurLogKnownFieldKey.MESSAGE
-              ? getExploreSimilarSpansMenuItems({
-                  message: value,
+          const extraMenuItems: MenuItemProps[] = [];
+          if (field === OurLogKnownFieldKey.MESSAGE) {
+            extraMenuItems.push(
+              ...(getExploreSimilarSpansMenuItems({
+                message: value,
+                organization,
+                selection,
+                showExploreSimilarSpansLink,
+              }) ?? [])
+            );
+          }
+          if (onViewInTable) {
+            extraMenuItems.push({
+              key: 'view-in-table',
+              label: t('View in table'),
+              onAction: () => {
+                trackAnalytics('logs.table.pinned_row_view_in_table', {
+                  log_id: rowId,
+                  page_source: analyticsPageSource,
                   organization,
-                  selection,
-                  showExploreSimilarSpansLink,
-                })
-              : undefined;
+                });
+                onViewInTable(rowId);
+              },
+            });
+          }
 
           if (!defined(value)) {
             return (
@@ -593,7 +611,7 @@ export const LogRowContent = memo(function LogRowContent({
                     }
                   }}
                   allowActions={ALLOWED_CELL_ACTIONS}
-                  extraMenuItems={extraMenuItems}
+                  extraMenuItems={extraMenuItems.length ? extraMenuItems : undefined}
                   pin={pin}
                   triggerType={ActionTriggerType.ELLIPSIS}
                 >

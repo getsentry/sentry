@@ -28,6 +28,8 @@ import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParams
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
+const mockScrollToIndex = jest.fn();
+
 jest.mock('@tanstack/react-virtual', () => {
   return {
     useWindowVirtualizer: jest.fn().mockReturnValue({
@@ -53,6 +55,7 @@ jest.mock('@tanstack/react-virtual', () => {
       ]),
       getTotalSize: jest.fn().mockReturnValue(150),
       measure: jest.fn(),
+      scrollToIndex: (...args: unknown[]) => mockScrollToIndex(...args),
       options: {
         scrollMargin: 0,
       },
@@ -554,6 +557,68 @@ describe('LogsInfiniteTable', () => {
     expect(screen.getByTestId('pinned-logs-table-body').contains(firstRow ?? null)).toBe(
       true
     );
+  });
+
+  it('scrolls the table to a pinned row when "View in table" is selected', async () => {
+    mockScrollToIndex.mockClear();
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: '-timestamp',
+              [LOGS_QUERY_KEY]: 'severity:error',
+              logsPinning: 'true',
+              logsPinned: '1',
+            },
+          },
+        },
+      }
+    );
+
+    const pinnedTableBody = await screen.findByTestId('pinned-logs-table-body');
+    const rows = await screen.findAllByTestId('log-table-row');
+    const pinnedRow = rows.find(row => pinnedTableBody.contains(row))!;
+
+    const [actionsButton] = within(pinnedRow).getAllByRole('button', {name: 'Actions'});
+    await userEvent.click(actionsButton!);
+
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'View in table'}));
+
+    expect(mockScrollToIndex).toHaveBeenCalledWith(0, expect.anything());
+  });
+
+  it('does not show "View in table" on a non-pinned row', async () => {
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: '-timestamp',
+              [LOGS_QUERY_KEY]: 'severity:error',
+              logsPinning: 'true',
+            },
+          },
+        },
+      }
+    );
+
+    const [firstRow] = await screen.findAllByTestId('log-table-row');
+    await userEvent.hover(firstRow!);
+
+    const [actionsButton] = within(firstRow!).getAllByRole('button', {name: 'Actions'});
+    await userEvent.click(actionsButton!);
+
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'View in table'})
+    ).not.toBeInTheDocument();
   });
 
   it('links the body instance hover state when the pinned instance is hovered', async () => {

@@ -462,10 +462,19 @@ export function LogsInfiniteTable({
     [logsPinning]
   );
 
+  const rowIndexById = useMemo(() => {
+    const map = new Map<string, number>();
+    data?.forEach((row, index) => {
+      map.set(row[OurLogKnownFieldKey.ID], index);
+    });
+    return map;
+  }, [data]);
+
   const renderRow = useCallback(
     (dataRow: LogTableRowItem) => {
       const rowId = dataRow[OurLogKnownFieldKey.ID];
       const pinnedExpandKey = `pinned-${rowId}`;
+      const indexInList = rowIndexById.get(rowId);
       return (
         <LogRowContent
           dataRow={dataRow}
@@ -484,6 +493,9 @@ export function LogsInfiniteTable({
           isHoverLinked={hoveredRowId === rowId}
           setHoveredRowId={setHoveredRowId}
           togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
+          onViewInTable={
+            indexInList === undefined ? undefined : () => handleScrollToRow(indexInList)
+          }
         />
       );
     },
@@ -492,6 +504,7 @@ export function LogsInfiniteTable({
       handleCollapse,
       handleExpand,
       handleExpandHeight,
+      handleScrollToRow,
       handleTogglePinnedRow,
       highlightTerms,
       hoveredRowId,
@@ -499,6 +512,7 @@ export function LogsInfiniteTable({
       logStart,
       logsPinning,
       meta,
+      rowIndexById,
     ]
   );
 

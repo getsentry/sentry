@@ -79,6 +79,10 @@ export type LogsAnalyticsEventParameters = {
     save_type: 'save_new_query' | 'rename_query';
     ui_source: 'toolbar' | 'table';
   };
+  'logs.table.pinned_row_view_in_table': {
+    log_id: string;
+    page_source: LogsAnalyticsPageSource;
+  };
   'logs.table.row_copied_as_json': {
     log_id: string;
     organization: Organization;
@@ -135,4 +139,5 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
     'Logs Explore Empty State (Onboarding) - Platform Docs Viewed',
   'logs.table.row_copied_as_json': 'Logs Row Copied as JSON',
   'logs.table.row_link_copied': 'Logs Row Link Copied',
+  'logs.table.pinned_row_view_in_table': 'Logs Pinned Row View In Table',
 };
