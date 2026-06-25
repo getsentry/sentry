@@ -87,44 +87,38 @@ function CronsOverview() {
   const page = (
     <Fragment>
       <CronsListPageHeader organization={organization} />
-      <Layout.Header unified>
-        <Layout.HeaderContent>
-          <Layout.Title>
-            {t('Cron Monitors')}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <TopBar.Slot name="actions">
-          <Button
-            icon={<IconList />}
-            onClick={() =>
-              openBulkEditMonitorsModal({
-                onClose: () => refetch(),
-              })
-            }
-            analyticsEventKey="crons.bulk_edit_modal_button_clicked"
-            analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
-          >
-            {t('Manage Monitors')}
-          </Button>
-          {!guideVisible && (
-            <NewMonitorButton icon={<IconAdd />}>
-              {t('Add Cron Monitor')}
-            </NewMonitorButton>
-          )}
-        </TopBar.Slot>
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
-      </Layout.Header>
+      <Layout.Title>
+        {t('Cron Monitors')}
+        <PageHeadingQuestionTooltip
+          docsUrl={MODULE_DOC_LINK}
+          title={MODULE_DESCRIPTION}
+        />
+      </Layout.Title>
+      <TopBar.Slot name="actions">
+        <Button
+          icon={<IconList />}
+          onClick={() =>
+            openBulkEditMonitorsModal({
+              onClose: () => refetch(),
+            })
+          }
+          analyticsEventKey="crons.bulk_edit_modal_button_clicked"
+          analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
+        >
+          {t('Manage Monitors')}
+        </Button>
+        {!guideVisible && (
+          <NewMonitorButton icon={<IconAdd />}>{t('Add Cron Monitor')}</NewMonitorButton>
+        )}
+      </TopBar.Slot>
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
       <Layout.Body>
         <Layout.Main width="full">
           <Filters>
