@@ -23,6 +23,14 @@ export function Subscriptions({
   permissions,
   webhookDisabled = false,
 }: Props) {
+  // Keep a stable ref to the latest `onChange` so the effect below can call
+  // it without listing it as a dependency (avoiding spurious re-runs when the
+  // parent re-renders and passes a new function identity).
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
+
   // Track the previously-seen props so we can mirror the class component's
   // `componentDidUpdate`, which only ran on updates (never on the initial mount)
   // and compared against the previous props. A ref keeps these out of the
@@ -46,14 +54,14 @@ export function Subscriptions({
 
     // When disabling webhooks unset the events
     if (!prevProps.webhookDisabled && webhookDisabled && prevProps.events.length) {
-      onChange([]);
+      onChangeRef.current([]);
       return;
     }
 
     if (JSON.stringify(events) !== JSON.stringify(permittedEvents)) {
-      onChange(permittedEvents);
+      onChangeRef.current(permittedEvents);
     }
-  }, [webhookDisabled, permissions, events, onChange]);
+  }, [webhookDisabled, permissions, events]);
 
   const handleChange = (resource: Resource, checked: boolean) => {
     const newEvents = new Set(events);
@@ -62,7 +70,7 @@ export function Subscriptions({
     } else {
       newEvents.delete(resource);
     }
-    onChange(Array.from(newEvents));
+    onChangeRef.current(Array.from(newEvents));
   };
 
   return (
