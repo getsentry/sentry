@@ -37,6 +37,7 @@ interface ExternalIssueParams extends CommonGroupAnalyticsData {
 }
 
 interface ExternalIssuePullRequestParams extends CommonGroupAnalyticsData {
+  is_seer: boolean;
   pull_request_id: string;
   pull_request_status: string;
   repository_id: string;
