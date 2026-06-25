@@ -21,7 +21,7 @@ class WorkflowFireHistory(DefaultFieldsModel):
         db_table = "workflow_engine_workflowfirehistory"
         app_label = "workflow_engine"
         indexes = [
-            Index(fields=["workflow", "date_added"]),
+            Index(fields=["workflow", "date_added", "group"]),
             Index(fields=["date_added"]),
         ]
 

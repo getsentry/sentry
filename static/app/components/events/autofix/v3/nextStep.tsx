@@ -29,8 +29,8 @@ import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIte
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconOpen} from 'sentry/icons/iconOpen';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Group} from 'sentry/types/group';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';

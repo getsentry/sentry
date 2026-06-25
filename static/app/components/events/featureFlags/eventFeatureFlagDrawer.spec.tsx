@@ -8,6 +8,7 @@ import {
   MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG,
   MOCK_FLAGS,
 } from 'sentry/components/events/featureFlags/testUtils';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 async function renderFlagDrawer() {
   // Needed to mock useVirtualizer lists.
@@ -24,7 +25,14 @@ async function renderFlagDrawer() {
       bottom: 0,
       toJSON: jest.fn(),
     }));
-  render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />);
+  render(
+    <GroupDataContextProvider
+      group={MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG.group}
+      project={MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG.group.project}
+    >
+      <EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />
+    </GroupDataContextProvider>
+  );
   await userEvent.click(screen.getByRole('button', {name: 'View 1 More Flag'}));
   return screen.getByRole('complementary', {name: 'Feature flags drawer'});
 }

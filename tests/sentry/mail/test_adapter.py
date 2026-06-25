@@ -61,7 +61,6 @@ from sentry.types.rules import RuleFuture
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.utils.email import MessageBuilder, get_email_addresses
-from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, mock_notify
 
 pytestmark = requires_snuba
@@ -985,32 +984,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             not in msg.alternatives[0][0]
         )
         assert "notification_uuid" in msg.body
-
-    def test_slack_link_with_plugin(self) -> None:
-        project = self.project
-        organization = project.organization
-        event = self.store_event(data=make_event_data("foo.jx"), project_id=project.id)
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
-        OpsGeniePlugin().enable(project)
-
-        with self.tasks():
-            notification = Notification(event=event)
-            self.adapter.notify(
-                notification,
-                ActionTargetType.ISSUE_OWNERS,
-                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
-            )
-
-        assert len(mail.outbox) >= 1
-
-        msg = mail.outbox[-1]
-        assert isinstance(msg, EmailMultiAlternatives)
-        assert isinstance(msg.alternatives[0][0], str)
-        assert (
-            f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
-            not in msg.alternatives[0][0]
-        )
 
     def test_notify_team_members(self) -> None:
         """Test that each member of a team is notified"""

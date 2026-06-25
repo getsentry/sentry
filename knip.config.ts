@@ -27,8 +27,6 @@ const productionEntryPoints = [
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
   // TODO: Remove when wired into the connect repository modal
   'static/app/components/connectRepository/**/*.{ts,tsx}',
-  // TODO: Remove when consumed in production (#117849 wires it into alert frequency)
-  'static/app/views/onboarding/components/scmCollapsibleSection.tsx',
 ];
 
 const testingEntryPoints = [
@@ -92,6 +90,8 @@ const config: KnipConfig = {
   mdx: {
     config: 'tsconfig.mdx.json',
   },
+  treatConfigHintsAsErrors: true,
+  treatTagHintsAsErrors: true,
 };
 
 export default config;

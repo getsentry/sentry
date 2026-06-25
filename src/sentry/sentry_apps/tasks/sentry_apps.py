@@ -66,6 +66,7 @@ from sentry.sentry_apps.services.app.service import (
 from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.sentry_apps.utils.webhooks import (
+    ActivityAlertActionType,
     IssueAlertActionType,
     MetricAlertActionType,
     SentryAppResourceType,
@@ -1043,6 +1044,62 @@ def send_metric_alert_webhook(
         organization_id, project_id, alert_id, sentry_app.id, notification_uuid
     )
     _record_metric_alert_ui_component_analytics(organization_id, sentry_app.id, app_platform_event)
+
+
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.send_activity_alert_webhook",
+    namespace=sentryapp_tasks,
+    retry=Retry(
+        times=3,
+        delay=60 * 5,
+        on=_SENTRY_APP_WEBHOOK_RETRY_ON,
+        ignore=_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
+    ),
+    silo_mode=SiloMode.CELL,
+    silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
+)
+def send_activity_alert_webhook(
+    sentry_app_id: int,
+    organization_id: int,
+    payload_json: str,
+    **kwargs: Any,
+) -> None:
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type=SentryAppEventType.ACTIVITY_ALERT_TRIGGERED,
+    ).capture() as lifecycle:
+        sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
+        if sentry_app is None:
+            lifecycle.record_failure(SentryAppWebhookFailureReason.MISSING_SENTRY_APP)
+            return
+
+        if _is_sentry_app_disabled_for_webhooks(sentry_app):
+            lifecycle.record_halt(halt_reason=SentryAppWebhookHaltReason.APP_DISABLED)
+            return
+
+        installations = app_service.get_many(
+            filter=dict(
+                organization_id=organization_id,
+                app_ids=[sentry_app.id],
+                status=SentryAppInstallationStatus.INSTALLED,
+            )
+        )
+        if not installations:
+            lifecycle.record_failure(SentryAppWebhookFailureReason.MISSING_INSTALLATION)
+            return
+
+        if len(installations) > 1:
+            lifecycle.record_failure(SentryAppWebhookFailureReason.MULTIPLE_INSTALLATIONS)
+            return
+
+        app_platform_event = AppPlatformEvent(
+            resource=SentryAppResourceType.ACTIVITY_ALERT,
+            action=ActivityAlertActionType.TRIGGERED,
+            install=installations[0],
+            data=json.loads(payload_json),
+        )
+
+    send_and_save_webhook_request(sentry_app, app_platform_event)
 
 
 @instrumented_task(
