@@ -32,3 +32,13 @@ class SizeAnalysisComparePOSTResponse(BaseModel):
     status: str
     message: str
     comparisons: list[SizeAnalysisComparison] | None
+
+
+class SizeAnalysisComparisonListItem(BaseModel):
+    # The build the head build was compared against. Reuses the build-details
+    # shape so the frontend can render it with existing build components.
+    base_build_details: BuildDetailsApiResponse
+    # Aggregate of the per-metric comparison states for this base build:
+    # "success" | "processing" | "failed".
+    state: str
+    date_added: str
