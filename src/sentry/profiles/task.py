@@ -327,7 +327,7 @@ def process_profile_task(
 
     if attachments and "profiler_id" in profile and "chunk_id" in profile:
         if features.has("organizations:continuous-profiling-perfetto", organization):
-            _track_chunk_attachments(profile, project, attachments)
+            _save_chunk_attachments(profile, project, attachments)
 
     if sampled:
         with metrics.timer("process_profile.track_outcome.accepted"):
@@ -364,7 +364,7 @@ def process_profile_task(
             )
 
 
-def _track_chunk_attachments(
+def _save_chunk_attachments(
     profile: Profile, project: Project, attachments: Sequence[Mapping[str, Any]]
 ) -> None:
     """
