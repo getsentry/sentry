@@ -66,9 +66,9 @@ class RedisRuleStore:
             # to be consistent with other stores, clear previous hash entries:
             p.delete(key)
             if len(rules) > 0:
-                # ReplacementRule is a NewType over str, but Mapping is invariant
-                # in its key type, so cast for hset's str|bytes key requirement.
-                p.hset(name=key, mapping=cast("Mapping[str | bytes, int]", rules))
+                # Cast for hset's str|bytes key requirement.
+                rules = cast("Mapping[str | bytes, int]", rules)
+                p.hset(name=key, mapping=rules)
             p.execute()
 
     def update_rule(self, project: Project, rule: str, last_used: int) -> None:

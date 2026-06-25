@@ -197,8 +197,7 @@ def record_clock_tick_volume_metric(tick: datetime) -> None:
         historic_ts = historic_ts - MONITOR_VOLUME_DECISION_STEP
         historic_timestamps.append(historic_ts)
 
-    # Bulk fetch volume counts. The keys are not hash-tagged, so they may span
-    # multiple cluster slots; mget_nonatomic fans the GETs out per-slot.
+    # Bulk fetch volume counts. Keys are cross-slot and must be requested non-atomically.
     volumes = redis.mget_nonatomic(
         redis_client,
         (MONITOR_VOLUME_HISTORY.format(ts=_make_reference_ts(ts)) for ts in historic_timestamps),

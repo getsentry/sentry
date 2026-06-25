@@ -224,8 +224,7 @@ def get_latest_threshold(project: Project) -> float:
         STALE_DATE_KEY.format(project_id=project.id),
     ]
     client = get_redis_client()
-    # The two keys aren't hash-tagged, so on a cluster they span slots; mget_nonatomic
-    # fans the GETs out per-slot (plain mget would raise RedisClusterException).
+    # Keys are cross-slot and must be requested non-atomically.
     cache_results = mget_nonatomic(client, keys)  # returns None if key is nonexistent
     # Redis stores values as strings, so convert to float for downstream comparisons
     threshold = float(cache_results[0]) if cache_results[0] is not None else None

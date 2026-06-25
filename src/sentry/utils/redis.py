@@ -301,12 +301,7 @@ def get_cluster_routing_client(
 
 
 def disconnect_redis_client(client: RedisCluster[Any] | StrictRedis[Any]) -> None:
-    """
-    Disconnect all connection pools for a client, regardless of whether it is a
-    cluster or a single node. redis-py's ``RedisCluster`` manages a pool per
-    node and exposes ``disconnect_connection_pools()`` rather than the single
-    ``connection_pool`` attribute that ``StrictRedis`` has.
-    """
+    """Disconnect all connection pools for a client."""
     if isinstance(client, RedisCluster):
         client.disconnect_connection_pools()
     else:
@@ -315,11 +310,13 @@ def disconnect_redis_client(client: RedisCluster[Any] | StrictRedis[Any]) -> Non
 
 def mget_nonatomic(client: RedisCluster[Any] | StrictRedis[Any], keys: Iterable[str]) -> list[Any]:
     """
-    Fetch multiple keys regardless of whether ``client`` is a cluster or a
-    single node. redis-py's ``RedisCluster.mget`` requires every key to map to
-    the same hash slot and raises ``RedisClusterException`` otherwise; its
-    ``mget_nonatomic`` fans out per-slot GETs instead (the behaviour the old
-    redis-py-cluster ``mget`` provided). ``StrictRedis`` only has ``mget``.
+    Bulk fetch multiple keys _non-atomically_.
+
+    This function pipelines mget requests per node. It is required when using keys which are not
+    guaranteed to be in the same node. Node slot is determined by the hash identifier in the key
+    `some-key{identifier}`.
+
+    Failure to use this function with cross slot keys will raise `RedisClusterException`.
     """
     key_list = list(keys)
     if isinstance(client, RedisCluster):
