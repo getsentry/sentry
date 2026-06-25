@@ -9,7 +9,12 @@ from sentry.constants import ObjectStatus
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestAttribution,
+    PullRequestAttributionSignalType,
+    PullRequestAttributionSource,
+)
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 from sentry.types.activity import ActivityType
@@ -112,6 +117,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
         )
         assert response.data["pullRequests"][0]["dateLinked"] == newer_link.datetime
         assert "author" in response.data["pullRequests"][0]
+        assert response.data["pullRequests"][0]["attribution"] is None
 
     def test_limits_to_five_most_recent_pull_requests(self) -> None:
         for index in range(6):
@@ -213,6 +219,46 @@ class GroupPullRequestsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"pullRequests": []}
+
+    def test_returns_display_pull_request_attribution(self) -> None:
+        delegated_pull_request, _ = self.create_linked_pull_request(key="1")
+        PullRequestAttribution.objects.create(
+            pull_request=delegated_pull_request,
+            signal_type=PullRequestAttributionSignalType.MCP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+        )
+        PullRequestAttribution.objects.create(
+            pull_request=delegated_pull_request,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+            source=PullRequestAttributionSource.SEER_DATA,
+        )
+        sentry_app_pull_request, _ = self.create_linked_pull_request(key="2")
+        PullRequestAttribution.objects.create(
+            pull_request=sentry_app_pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+        )
+        PullRequestAttribution.objects.create(
+            pull_request=sentry_app_pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+        )
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        attribution_by_id = {
+            item["id"]: item["attribution"] for item in response.data["pullRequests"]
+        }
+        assert attribution_by_id["1"] == {
+            "type": "seer",
+            "id": "seer",
+        }
+        assert attribution_by_id["2"] == {
+            "type": "seer",
+            "id": "seer",
+        }
 
     @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
     def test_status_derivation(self, mock_get_integration: Mock) -> None:
