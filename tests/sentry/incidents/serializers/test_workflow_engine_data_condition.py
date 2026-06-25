@@ -108,10 +108,9 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
     def test_action_filter_without_priority_condition(self) -> None:
         """
         A natively-created connected alert (workflow) seeds its action filter with no conditions
-        (see automationBuilderContext.tsx). Such a priority-less action filter fires for any
-        priority, so its actions must still be attributed to the detector's triggers. Previously
-        these actions were dropped, producing an empty `triggers[].actions` in the metric_alert
-        webhook payload sent to Sentry Apps (ENG-7988).
+        (see automationBuilderContext.tsx) if they don't include an Issue Priority WHEN clause.
+        Priority-less action filter should fire for any priority. Previously these actions were dropped,
+        producing an empty `triggers[].actions` in the metric_alert webhook payload
         """
         sentry_app = self.create_sentry_app(
             organization=self.organization,
