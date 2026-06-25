@@ -23,6 +23,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
 import {ScmAlertFrequencySection} from 'sentry/views/onboarding/components/scmAlertFrequencySection';
+import {ScmFeatureSelectionPanel} from 'sentry/views/onboarding/components/scmFeatureSelectionPanel';
 import {ScmIntegrationConnect} from 'sentry/views/onboarding/components/scmIntegrationConnect';
 import {ScmPlatformFeaturesCore} from 'sentry/views/onboarding/components/scmPlatformFeaturesCore';
 import {ScmProjectDetailsCore} from 'sentry/views/onboarding/components/scmProjectDetailsCore';
@@ -293,10 +294,16 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 analyticsFlow="project-creation"
                 selectedRepository={selectedRepository}
                 selectedPlatform={selectedPlatform}
-                selectedFeatures={selectedFeatures}
                 onPlatformChange={handlePlatformChange}
                 onFeaturesChange={handleFeaturesChange}
                 onClearProjectDetailsForm={handleClearProjectDetailsForm}
+              />
+              <ScmFeatureSelectionPanel
+                analyticsFlow="project-creation"
+                selectedRepository={selectedRepository}
+                selectedPlatform={selectedPlatform}
+                selectedFeatures={selectedFeatures}
+                onFeaturesChange={handleFeaturesChange}
               />
             </MotionStack>
 

@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import * as analytics from 'sentry/utils/analytics';
 
 import {ScmPlatformFeaturesCore} from './scmPlatformFeaturesCore';
 
@@ -50,7 +50,6 @@ function defaultProps(overrides: Partial<Record<string, unknown>> = {}) {
     analyticsFlow: 'onboarding' as const,
     selectedRepository: undefined,
     selectedPlatform: pythonPlatform,
-    selectedFeatures: [ProductSolution.ERROR_MONITORING],
     onPlatformChange: jest.fn(),
     onFeaturesChange: jest.fn(),
     onClearProjectDetailsForm: jest.fn(),
@@ -59,42 +58,30 @@ function defaultProps(overrides: Partial<Record<string, unknown>> = {}) {
 }
 
 describe('ScmPlatformFeaturesCore', () => {
-  const organization = OrganizationFixture({
-    features: ['performance-view', 'session-replay', 'profiling-view'],
+  const organization = OrganizationFixture();
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
-  describe('trial/billing framing', () => {
-    it('shows the trial banner and per-feature volumes during onboarding', async () => {
-      render(
-        <ScmPlatformFeaturesCore {...defaultProps({analyticsFlow: 'onboarding'})} />,
-        {
-          organization,
-        }
-      );
+  it('renders the manual platform picker when no repository is connected', () => {
+    render(<ScmPlatformFeaturesCore {...defaultProps()} />, {organization});
 
-      expect(
-        await screen.findByText('What do you want to instrument?')
-      ).toBeInTheDocument();
-      expect(screen.getByText(/unlimited volume for 14 days/)).toBeInTheDocument();
-      expect(screen.getByText('5,000 errors / mo')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Select a platform')).toBeInTheDocument();
+  });
 
-    it('hides the trial banner and per-feature volumes outside onboarding', async () => {
-      render(
-        <ScmPlatformFeaturesCore
-          {...defaultProps({analyticsFlow: 'project-creation'})}
-        />,
-        {organization}
-      );
+  it('fires step_viewed analytics for the given flow on mount', () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    render(
+      <ScmPlatformFeaturesCore {...defaultProps({analyticsFlow: 'project-creation'})} />,
+      {
+        organization,
+      }
+    );
 
-      // Feature cards still render, just without the trial/billing framing.
-      expect(
-        await screen.findByText('What do you want to instrument?')
-      ).toBeInTheDocument();
-      expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeInTheDocument();
-
-      expect(screen.queryByText(/unlimited volume for 14 days/)).not.toBeInTheDocument();
-      expect(screen.queryByText('5,000 errors / mo')).not.toBeInTheDocument();
-    });
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.scm_platform_features_step_viewed',
+      expect.anything()
+    );
   });
 });
