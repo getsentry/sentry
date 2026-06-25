@@ -268,19 +268,20 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     <SentryDocumentTitle title={t('Create a new project')}>
       <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
         <Stack padding="3xl" gap="2xl" align="center">
-          <Stack
-            flexGrow={1}
-            gap="2xl"
-            padding="2xl"
-            maxWidth={CREATE_PROJECT_MAX_WIDTH}
-            width="100%"
-            border="primary"
-            radius="lg"
-          >
-            <LayoutGroup>
+          <LayoutGroup>
+            <MotionStack
+              flexGrow={1}
+              gap="2xl"
+              padding="2xl"
+              maxWidth={CREATE_PROJECT_MAX_WIDTH}
+              width="100%"
+              border="primary"
+              radius="lg"
+              layout="size"
+            >
               <Layout.Title>{t('Create a new project')}</Layout.Title>
 
-              <Stack paddingBottom="lg" gap="md">
+              <MotionStack paddingBottom="lg" gap="md" layout="position">
                 <Heading as="h1">{t('Create a project')}</Heading>
                 <Text variant="secondary" density="comfortable">
                   {tct(
@@ -292,7 +293,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                     }
                   )}
                 </Text>
-              </Stack>
+              </MotionStack>
 
               <MotionStack gap="md" layout="position">
                 <Flex justify="between" align="center">
@@ -370,26 +371,31 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   onAlertChange={form.onAlertChange}
                 />
               </motion.div>
-            </LayoutGroup>
-          </Stack>
-          {/* Page-level CTA: disabled until a platform and project details are
+            </MotionStack>
+            {/* Page-level CTA: disabled until a platform and project details are
               ready. */}
-          <Stack gap="md" maxWidth={CREATE_PROJECT_MAX_WIDTH} width="100%">
-            <ProjectCreationErrorAlert error={form.error} />
-            <Flex justify="end">
-              <Tooltip title={submitTooltipText} disabled={!submitTooltipText}>
-                <Button
-                  variant="primary"
-                  onClick={form.submit}
-                  disabled={!form.canSubmit}
-                  busy={form.isBusy}
-                  icon={<IconProject />}
-                >
-                  {t('Create project')}
-                </Button>
-              </Tooltip>
-            </Flex>
-          </Stack>
+            <MotionStack
+              gap="md"
+              maxWidth={CREATE_PROJECT_MAX_WIDTH}
+              width="100%"
+              layout="position"
+            >
+              <ProjectCreationErrorAlert error={form.error} />
+              <Flex justify="end">
+                <Tooltip title={submitTooltipText} disabled={!submitTooltipText}>
+                  <Button
+                    variant="primary"
+                    onClick={form.submit}
+                    disabled={!form.canSubmit}
+                    busy={form.isBusy}
+                    icon={<IconProject />}
+                  >
+                    {t('Create project')}
+                  </Button>
+                </Tooltip>
+              </Flex>
+            </MotionStack>
+          </LayoutGroup>
         </Stack>
       </Access>
     </SentryDocumentTitle>
