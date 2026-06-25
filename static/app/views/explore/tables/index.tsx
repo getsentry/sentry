@@ -82,7 +82,11 @@ export function ExploreTables(props: ExploreTablesProps) {
   );
 
   useEffect(() => {
-    if (validatedFields.length < fields.length) {
+    const fieldsChanged =
+      validatedFields.length !== fields.length ||
+      validatedFields.some((field, index) => field !== fields[index]);
+
+    if (fieldsChanged) {
       setFields([...validatedFields]);
     }
   }, [fields, setFields, validatedFields]);
