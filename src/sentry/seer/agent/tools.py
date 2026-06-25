@@ -1397,7 +1397,12 @@ def _resolve_seer_group(
     if issue_id.isdigit():
         group = Group.objects.get_from_cache(id=int(issue_id))
         # ``group.project`` is the org/project boundary the numeric query used to enforce.
-        project = group.project
+        # A hard-deleted project makes this FK access raise ``Project.DoesNotExist``; translate
+        # it so callers' ``except Group.DoesNotExist`` handling still applies.
+        try:
+            project = group.project
+        except Project.DoesNotExist:
+            raise Group.DoesNotExist() from None
         if (
             project.organization_id != organization_id
             or project.status != ObjectStatus.ACTIVE
