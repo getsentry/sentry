@@ -16,6 +16,7 @@ from sentry.issues.action_log import (
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphistory import (
     GroupHistoryStatus,
