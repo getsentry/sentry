@@ -7,7 +7,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Mapping
 from typing import Any, cast
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.urls import reverse
@@ -221,11 +221,9 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             metadata=self._make_metadata(),
         )
         installation = integration.get_installation(organization_id=self.organization.id)
-        assert isinstance(installation, ClaudeCodeAgentIntegration)
 
-        with self.feature("organizations:claude-code-vault-reuse"):
-            with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
-                client = installation.get_client()
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            client = installation.get_client()
 
         assert client is mock_client
         mock_cls.assert_called_once_with(
@@ -235,12 +233,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id=None,
             agent_version=None,
             model=None,
-            installation_vault_lookup=ANY,
-            installation_vault_writer=ANY,
         )
-        passed = mock_cls.call_args.kwargs
-        assert passed["installation_vault_lookup"] == installation.get_vault_id_for_installation
-        assert passed["installation_vault_writer"] == installation.set_vault_id_for_installation
 
     def test_get_client_with_environment_and_workspace(self) -> None:
         mock_cls, mock_client = _mock_client_class()
@@ -268,8 +261,6 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id="agent-123",
             agent_version=1,
             model=None,
-            installation_vault_lookup=None,
-            installation_vault_writer=None,
         )
 
     def test_get_client_passes_model_from_metadata(self) -> None:
@@ -292,8 +283,6 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id=None,
             agent_version=None,
             model="claude-sonnet-4-6",
-            installation_vault_lookup=None,
-            installation_vault_writer=None,
         )
 
     def test_get_client_passes_none_model_when_metadata_has_none(self) -> None:
@@ -316,8 +305,6 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id=None,
             agent_version=None,
             model=None,
-            installation_vault_lookup=None,
-            installation_vault_writer=None,
         )
 
     def test_get_client_class_not_configured(self) -> None:

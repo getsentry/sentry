@@ -320,11 +320,10 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         return ClaudeCodeIntegrationMetadata.parse_obj(fresh.metadata or {})
 
     def get_vault_id_for_installation(self, installation_id: int) -> str | None:
-        with self._vault_metadata_lock().acquire():
-            metadata = self._read_fresh_metadata()
-            if metadata is None:
-                return None
-            return metadata.installation_vault_ids.get(str(installation_id))
+        metadata = self._read_fresh_metadata()
+        if metadata is None:
+            return None
+        return metadata.installation_vault_ids.get(str(installation_id))
 
     def set_vault_id_for_installation(self, installation_id: int, vault_id: str) -> None:
         with self._vault_metadata_lock().acquire():
@@ -357,12 +356,6 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
     def get_client(self) -> Any:
         metadata = self._get_metadata()
         client_class = _get_client_class()
-
-        vault_reuse = features.has(
-            "organizations:claude-code-vault-reuse",
-            self.organization,
-        )
-
         return client_class(
             api_key=metadata.api_key,
             environment_id=metadata.environment_id,
@@ -370,9 +363,33 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             agent_id=metadata.agent_id,
             agent_version=metadata.agent_version,
             model=metadata.model,
-            installation_vault_lookup=self.get_vault_id_for_installation if vault_reuse else None,
-            installation_vault_writer=self.set_vault_id_for_installation if vault_reuse else None,
         )
+
+    def _resolve_vault(self, client: Any, request: CodingAgentLaunchRequest) -> str | None:
+        """Look up or create a vault for the request's GitHub installation under lock."""
+        if not features.has("organizations:claude-code-vault-reuse", self.organization):
+            return None
+
+        installation_id = request.repository.integration_id
+        if not installation_id:
+            return None
+
+        with self._vault_metadata_lock().acquire():
+            metadata = self._read_fresh_metadata()
+            if metadata is None:
+                return None
+            vault_id = metadata.installation_vault_ids.get(str(installation_id))
+            if vault_id:
+                return vault_id
+            vault_metadata: dict[str, str] = {
+                "github_installation_id": str(installation_id),
+            }
+            if request.repository.organization_id is not None:
+                vault_metadata["organization_id"] = str(request.repository.organization_id)
+            vault_id = client.create_vault(metadata=vault_metadata)
+            metadata.installation_vault_ids[str(installation_id)] = vault_id
+            self._persist_metadata(metadata)
+            return vault_id
 
     def uninstall(self) -> None:
         with self._vault_metadata_lock().acquire():
@@ -383,13 +400,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             fresh.installation_vault_ids = {}
             self._persist_metadata(fresh)
 
-        metadata = self._get_metadata()
-        client_class = _get_client_class()
-        client = client_class(
-            api_key=metadata.api_key,
-            environment_id=metadata.environment_id,
-            workspace_name=metadata.workspace_name,
-        )
+        client = self.get_client()
 
         for vault_id in vault_ids:
             try:
@@ -404,8 +415,9 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         """Launch coding agent and persist resolved environment/agent IDs."""
         webhook_url = self.get_webhook_url()
         client = self.get_client()
+        vault_id = self._resolve_vault(client, request)
 
-        state = client.launch(webhook_url=webhook_url, request=request)
+        state = client.launch(webhook_url=webhook_url, request=request, vault_id=vault_id)
         state.integration_id = self.model.id
 
         with self._vault_metadata_lock().acquire():
