@@ -1,4 +1,7 @@
+import {Fragment} from 'react';
+
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -47,18 +50,16 @@ export function AlertHeader({activeTab}: Props) {
   );
 
   return (
-    <Layout.Header>
-      <Layout.HeaderContent>
-        <Layout.Title>
-          {t('Alerts')}
-          <PageHeadingQuestionTooltip
-            docsUrl="https://docs.sentry.io/product/alerts/"
-            title={t(
-              'Real-time visibility into problems with your code and the impact on your users, along with a view of your existing alert rules, their status, project, team, and creation date.'
-            )}
-          />
-        </Layout.Title>
-      </Layout.HeaderContent>
+    <Fragment>
+      <Layout.Title>
+        {t('Alerts')}
+        <PageHeadingQuestionTooltip
+          docsUrl="https://docs.sentry.io/product/alerts/"
+          title={t(
+            'Real-time visibility into problems with your code and the impact on your users, along with a view of your existing alert rules, their status, project, team, and creation date.'
+          )}
+        />
+      </Layout.Title>
       <TopBar.Slot name="actions">
         <LinkButton
           onClick={handleNavigateToSettings}
@@ -77,19 +78,21 @@ export function AlertHeader({activeTab}: Props) {
         </FeedbackButton>
       </TopBar.Slot>
       <Layout.HeaderTabs value={activeTab}>
-        <TabList>
-          {alertRulesLink}
-          <TabList.Item
-            key="stream"
-            to={makeAlertsPathname({
-              path: '/',
-              organization,
-            })}
-          >
-            {t('History')}
-          </TabList.Item>
-        </TabList>
+        <Container padding={{sm: 'md lg 0 lg', md: 'lg xl 0 xl'}}>
+          <TabList>
+            {alertRulesLink}
+            <TabList.Item
+              key="stream"
+              to={makeAlertsPathname({
+                path: '/',
+                organization,
+              })}
+            >
+              {t('History')}
+            </TabList.Item>
+          </TabList>
+        </Container>
       </Layout.HeaderTabs>
-    </Layout.Header>
+    </Fragment>
   );
 }

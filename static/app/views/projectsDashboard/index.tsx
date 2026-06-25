@@ -197,51 +197,47 @@ function Dashboard() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Projects Dashboard')} orgSlug={organization.slug} />
-      <Layout.Header unified>
-        <Layout.HeaderContent unified>
-          <Layout.Title>
-            {t('All Projects')}
-            <PageHeadingQuestionTooltip
-              docsUrl="https://docs.sentry.io/product/projects/"
-              title={t(
-                "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
-              )}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <TopBar.Slot name="actions">
-          <LinkButton
-            icon={<IconUser />}
-            tooltipProps={{
-              title: canJoinTeam
-                ? undefined
-                : t('You do not have permission to join a team.'),
-            }}
-            disabled={!canJoinTeam}
-            to={`/settings/${organization.slug}/teams/`}
-            data-test-id="join-team"
-          >
-            {t('Join a Team')}
-          </LinkButton>
-          <LinkButton
-            variant="primary"
-            disabled={!canUserCreateProject}
-            tooltipProps={{
-              title: canUserCreateProject
-                ? undefined
-                : t('You do not have permission to create projects'),
-            }}
-            to={makeProjectsPathname({
-              path: '/new/',
-              organization,
-            })}
-            icon={<IconAdd />}
-            data-test-id="create-project"
-          >
-            {t('Create Project')}
-          </LinkButton>
-        </TopBar.Slot>
-      </Layout.Header>
+      <Layout.Title>
+        {t('All Projects')}
+        <PageHeadingQuestionTooltip
+          docsUrl="https://docs.sentry.io/product/projects/"
+          title={t(
+            "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
+          )}
+        />
+      </Layout.Title>
+      <TopBar.Slot name="actions">
+        <LinkButton
+          icon={<IconUser />}
+          tooltipProps={{
+            title: canJoinTeam
+              ? undefined
+              : t('You do not have permission to join a team.'),
+          }}
+          disabled={!canJoinTeam}
+          to={`/settings/${organization.slug}/teams/`}
+          data-test-id="join-team"
+        >
+          {t('Join a Team')}
+        </LinkButton>
+        <LinkButton
+          variant="primary"
+          disabled={!canUserCreateProject}
+          tooltipProps={{
+            title: canUserCreateProject
+              ? undefined
+              : t('You do not have permission to create projects'),
+          }}
+          to={makeProjectsPathname({
+            path: '/new/',
+            organization,
+          })}
+          icon={<IconAdd />}
+          data-test-id="create-project"
+        >
+          {t('Create Project')}
+        </LinkButton>
+      </TopBar.Slot>
       <Layout.Body>
         <Layout.Main width="full">
           <SearchAndSelectorWrapper>

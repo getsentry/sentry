@@ -130,10 +130,12 @@ export function DomainViewHeader({
   return (
     <Fragment>
       <Layout.Header unified={unified}>
-        <Layout.HeaderContent>
-          {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
-          <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
-        </Layout.HeaderContent>
+        {crumbs.length > 1 && (
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
+          </Layout.HeaderContent>
+        )}
+        <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
         {additonalHeaderActions && (
           <TopBar.Slot name="actions">{additonalHeaderActions}</TopBar.Slot>
         )}

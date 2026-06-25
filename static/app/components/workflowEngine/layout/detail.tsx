@@ -51,14 +51,6 @@ function Sidebar({children}: RequiredChildren) {
   );
 }
 
-function Header({children}: RequiredChildren) {
-  return <Layout.Header>{children}</Layout.Header>;
-}
-
-function HeaderContent({children}: RequiredChildren) {
-  return <Layout.HeaderContent>{children}</Layout.HeaderContent>;
-}
-
 function Actions({children}: RequiredChildren) {
   return (
     <HeaderActions>
@@ -84,8 +76,6 @@ export const DetailLayout = Object.assign(DetailLayoutComponent, {
   Body: StyledBody,
   Main,
   Sidebar,
-  Header,
-  HeaderContent,
   Actions,
   Title,
 });

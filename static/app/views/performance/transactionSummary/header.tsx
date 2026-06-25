@@ -257,33 +257,31 @@ export function TransactionHeader({
 
   return (
     <Layout.Header>
-      <Layout.HeaderContent>
-        <TopBar.Slot name="title">
-          <Breadcrumbs
-            crumbs={getCrumbs({
-              organization,
-              location,
-              transaction: {project: projectId, name: transactionName},
-            }).concat({
-              label: (
-                <Flex align="center" gap="sm">
-                  {project && (
-                    <IdBadge
-                      project={project}
-                      avatarSize={16}
-                      hideName
-                      avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                    />
-                  )}
-                  <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
-                    <TransactionName>{transactionName}</TransactionName>
-                  </Tooltip>
-                </Flex>
-              ),
-            })}
-          />
-        </TopBar.Slot>
-      </Layout.HeaderContent>
+      <TopBar.Slot name="title">
+        <Breadcrumbs
+          crumbs={getCrumbs({
+            organization,
+            location,
+            transaction: {project: projectId, name: transactionName},
+          }).concat({
+            label: (
+              <Flex align="center" gap="sm">
+                {project && (
+                  <IdBadge
+                    project={project}
+                    avatarSize={16}
+                    hideName
+                    avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                  />
+                )}
+                <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
+                  <TransactionName>{transactionName}</TransactionName>
+                </Tooltip>
+              </Flex>
+            ),
+          })}
+        />
+      </TopBar.Slot>
       <TopBar.Slot name="actions">
         <Feature organization={organization} features="incidents">
           {({hasFeature}) =>
