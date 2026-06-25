@@ -104,6 +104,7 @@ function ToolbarGroupByItem({
     stringTags,
     booleanTags,
     traceItemType: TraceItemDataset.SPANS,
+    hideEmptyOption: true,
   });
 
   const loading = numberTagsLoading || stringTagsLoading || booleanTagsLoading;

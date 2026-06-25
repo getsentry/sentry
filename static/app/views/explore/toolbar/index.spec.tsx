@@ -339,6 +339,7 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(spanOpColumn).getByRole('button', {name: 'span.op'}));
     options = await within(section).findAllByRole('option');
     expect(options.length).toBeGreaterThan(0);
+    expect(within(section).queryByRole('option', {name: '—'})).not.toBeInTheDocument();
     await userEvent.click(within(section).getByRole('option', {name: 'project'}));
     expect(groupBys).toEqual(['project']);
 

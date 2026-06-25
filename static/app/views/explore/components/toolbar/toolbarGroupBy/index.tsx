@@ -73,8 +73,11 @@ export function ToolbarGroupByDropdown({
   }
 
   const label = useMemo(() => {
-    const tag = options.find(option => option.value === column.column);
-    return <TriggerLabel>{tag?.label ?? column.column}</TriggerLabel>;
+    const tag = column.column
+      ? options.find(option => option.value === column.column)
+      : undefined;
+    const labelText = tag?.label ?? (column.column || t('—'));
+    return <TriggerLabel>{labelText}</TriggerLabel>;
   }, [column.column, options]);
 
   return (

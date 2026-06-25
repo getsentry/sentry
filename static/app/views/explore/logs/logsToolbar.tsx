@@ -311,6 +311,7 @@ function ToolbarGroupBy() {
     booleanTags: booleanTags ?? {},
     groupBys,
     traceItemType: TraceItemDataset.LOGS,
+    hideEmptyOption: true,
   });
 
   const setGroupBysWithOp = useCallback(

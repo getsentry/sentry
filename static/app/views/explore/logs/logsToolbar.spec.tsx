@@ -311,6 +311,10 @@ describe('LogsToolbar', () => {
       expect(mode).toEqual(Mode.AGGREGATE);
       expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
 
+      await userEvent.click(within(editorColumn).getByRole('button', {name: 'message'}));
+      expect(within(section).queryByRole('option', {name: '—'})).not.toBeInTheDocument();
+      await userEvent.keyboard('{Escape}');
+
       await userEvent.click(within(section).getByLabelText('Clear Group By'));
       expect(router.location.query.aggregateField).toEqual(
         [{groupBy: ''}, {yAxes: ['count(message)'], visible: false}].map(aggregateField =>
