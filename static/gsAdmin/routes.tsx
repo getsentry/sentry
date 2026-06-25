@@ -38,6 +38,7 @@ import {RelocationDetails} from 'admin/views/relocationDetails';
 import {Relocations} from 'admin/views/relocations';
 import {SeerAdminPage} from 'admin/views/seerAdminPage';
 import {SentryAppDetails} from 'admin/views/sentryAppDetails';
+import {PublishedIntegrations} from 'admin/views/publishedIntegrations';
 import {SentryApps} from 'admin/views/sentryApps';
 import {SentryEmployees} from 'admin/views/sentryEmployees';
 import {UserDetails} from 'admin/views/userDetails';
@@ -192,6 +193,15 @@ function buildRoutes() {
           {
             path: ':codeId/',
             component: PromoCodeDetails,
+          },
+        ],
+      },
+      {
+        path: 'published-integrations/',
+        children: [
+          {
+            index: true,
+            component: PublishedIntegrations,
           },
         ],
       },
