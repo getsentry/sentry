@@ -84,6 +84,29 @@ describe('ExploreToolbar', () => {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      body: {
+        dataset: [],
+        environment: [],
+        field: [
+          {
+            attrType: 'number',
+            error: null,
+            name: 'custom.measurement',
+            valid: true,
+          },
+        ],
+        orderby: [],
+        projects: [],
+        query: {
+          error: null,
+          fields: [],
+          valid: true,
+        },
+        valid: true,
+      },
+    });
   });
 
   it('disables changing visualize fields for count', async () => {
@@ -363,6 +386,32 @@ describe('ExploreToolbar', () => {
 
     // last one so remove column button is hidden
     expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
+  });
+
+  it('uses validated field type for the selected group by', async () => {
+    render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/traces/`,
+          query: {
+            groupBy: 'custom.measurement',
+          },
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-group-by');
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+
+    await userEvent.click(
+      within(editorColumn).getByRole('button', {name: 'custom.measurement'})
+    );
+
+    const option = await within(section).findByRole('option', {
+      name: 'custom.measurement',
+    });
+    await waitFor(() => expect(option).toHaveTextContent('number'));
   });
 
   it('clears the last selected group by', async () => {
