@@ -800,7 +800,7 @@ const SAMPLING_SENSITIVE_AGGREGATES = new Set([
   'failure_count',
   'failure_rate',
 ]);
-const LOW_SAMPLE_RATE_THRESHOLD = 0.8;
+const LOW_SAMPLE_RATE_THRESHOLD = 0.1;
 
 export type SamplingWarningReason = 'partialData' | 'lowSampleRate';
 
