@@ -1,14 +1,12 @@
-// we need forwardRef for class components
-// eslint-disable-next-line no-restricted-syntax
-import {Component, forwardRef} from 'react';
+import {forwardRef, useMemo, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import type {ReactSelect} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {t} from 'sentry/locale';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 
 import type {ControlProps, GeneralSelectValue} from './';
 import {Select} from './';
@@ -26,66 +24,57 @@ export interface SelectAsyncControlProps<TData = any> {
   value: ControlProps['value'];
   defaultOptions?: boolean | GeneralSelectValue[];
   forwardedRef?: React.Ref<typeof ReactSelect<GeneralSelectValue>>;
+  placeholder?: React.ReactNode;
 }
-
-type State = {
-  query?: string;
-};
 
 /**
  * Performs an API request to `url` to fetch the options
  */
-class SelectAsyncControl<TData = unknown> extends Component<
-  SelectAsyncControlProps<TData>
-> {
-  static defaultProps = {
-    placeholder: '--',
-    defaultOptions: true,
-  };
+function SelectAsyncControl<TData = unknown>({
+  url,
+  value,
+  onQuery,
+  onResults,
+  forwardedRef,
+  placeholder = '--',
+  defaultOptions = true,
+  ...props
+}: SelectAsyncControlProps<TData>) {
+  // The API client clears in-flight requests automatically on unmount
+  const api = useApi();
+  const cache = useRef<Record<string, unknown>>({});
+  const [query, setQuery] = useState('');
 
-  constructor(props: SelectAsyncControlProps<TData>) {
-    super(props);
-    this.api = new Client();
-    this.state = {
-      query: '',
-    };
-    this.cache = {};
-  }
+  // Keep the latest values accessible inside the debounced callback without
+  // recreating the debounced function on every render.
+  const queryRef = useRef(query);
+  queryRef.current = query;
+  const urlRef = useRef(url);
+  urlRef.current = url;
+  const onQueryRef = useRef(onQuery);
+  onQueryRef.current = onQuery;
 
-  state: State = {};
+  const doQuery = useMemo(
+    () =>
+      debounce((cb: (...args: [Error] | [null, TData]) => void) => {
+        return api
+          .requestPromise(urlRef.current, {
+            query:
+              typeof onQueryRef.current === 'function'
+                ? onQueryRef.current(queryRef.current)
+                : {query: queryRef.current},
+          })
+          .then(
+            (data: TData) => cb(null, data),
+            (err: Error) => cb(err)
+          );
+      }, 250),
+    [api]
+  );
 
-  componentWillUnmount() {
-    if (!this.api) {
-      return;
-    }
-    this.api.clear();
-    this.api = null;
-  }
-
-  api: Client | null;
-  cache: Record<string, unknown>;
-
-  doQuery = debounce((cb: (...args: [Error] | [null, TData]) => void) => {
-    const {url, onQuery} = this.props;
-    const {query} = this.state;
-
-    if (!this.api) {
-      return null;
-    }
-
-    return this.api
-      .requestPromise(url, {
-        query: typeof onQuery === 'function' ? onQuery(query) : {query},
-      })
-      .then(
-        (data: TData) => cb(null, data),
-        (err: Error) => cb(err)
-      );
-  }, 250);
-
-  handleLoadOptions = (): Promise<any> =>
+  const handleLoadOptions = (): Promise<any> =>
     new Promise<TData>((resolve, reject) => {
-      this.doQuery((...errorOrData) => {
+      doQuery((...errorOrData) => {
         if (errorOrData[0]) {
           reject(errorOrData[0]);
         } else {
@@ -94,7 +83,6 @@ class SelectAsyncControl<TData = unknown> extends Component<
       });
     }).then(
       resp => {
-        const {onResults} = this.props;
         return typeof onResults === 'function' ? onResults(resp) : resp;
       },
       (err: RequestError) => {
@@ -105,28 +93,26 @@ class SelectAsyncControl<TData = unknown> extends Component<
       }
     );
 
-  handleInputChange = (query: any) => {
-    this.setState({query});
+  const handleInputChange = (newQuery: any) => {
+    setQuery(newQuery);
   };
 
-  render() {
-    const {value, forwardedRef, defaultOptions, ...props} = this.props;
-    return (
-      <Select
-        // The key is used as a way to force a reload of the options:
-        // https://github.com/JedWatson/react-select/issues/1879#issuecomment-316871520
-        key={String(value)}
-        ref={forwardedRef}
-        value={value}
-        defaultOptions={defaultOptions}
-        loadOptions={this.handleLoadOptions}
-        onInputChange={this.handleInputChange}
-        async
-        cache={this.cache}
-        {...props}
-      />
-    );
-  }
+  return (
+    <Select
+      // The key is used as a way to force a reload of the options:
+      // https://github.com/JedWatson/react-select/issues/1879#issuecomment-316871520
+      key={String(value)}
+      ref={forwardedRef}
+      value={value}
+      placeholder={placeholder}
+      defaultOptions={defaultOptions}
+      loadOptions={handleLoadOptions}
+      onInputChange={handleInputChange}
+      async
+      cache={cache.current}
+      {...props}
+    />
+  );
 }
 
 export const SelectAsync = forwardRef((p: any, ref: any) => {
