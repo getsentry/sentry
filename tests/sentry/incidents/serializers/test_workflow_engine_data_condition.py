@@ -267,6 +267,10 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
         assert serialized["thresholdType"] == AlertRuleThresholdType.ABOVE_AND_BELOW.value
         assert serialized["alertThreshold"] == 0
         assert serialized["resolveThreshold"] is None
+        # The non-numeric ANOMALY_DETECTION condition is skipped during matching without dropping
+        # the DCG's action (which still matches via the priority condition) or duplicating it.
+        action_ids = [action["id"] for action in serialized["actions"]]
+        assert action_ids == [str(trigger_action.id)]
 
     def test_multiple_rules(self) -> None:
         # create another comprehensive alert rule in the DB
