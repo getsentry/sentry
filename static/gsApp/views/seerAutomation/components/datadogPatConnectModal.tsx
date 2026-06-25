@@ -57,7 +57,7 @@ export function DatadogPatConnectModal({
             },
           }
         ),
-        data: {access_token: accessToken, site},
+        data: {access_token: accessToken.trim(), site},
       }),
     onSuccess: () => {
       closeModal();
