@@ -52,11 +52,11 @@ export function PermissionsObserver({
   const [permissions, setPermissions] = useState<Permissions>(() =>
     toResourcePermissions(scopes)
   );
-  const [events, setEvents] = useState<WebhookEvent[]>(initialEvents);
+  const [events, setEvents] = useState(initialEvents);
   const [hasContinuousIntegration, setHasContinuousIntegration] = useState<boolean>(() =>
     checkContinuousIntegration()
   );
-  const [elevating, setElevating] = useState<boolean>(false);
+  const [elevating, setElevating] = useState(false);
 
   const handlePermissionChange = (
     newPermissions: Permissions,
