@@ -1,8 +1,7 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
-import {usePrevious} from 'sentry/utils/usePrevious';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
@@ -24,16 +23,29 @@ export function Subscriptions({
   permissions,
   webhookDisabled = false,
 }: Props) {
-  const prevWebhookDisabled = usePrevious(webhookDisabled);
-  const prevEvents = usePrevious(events);
+  // Track the previously-seen props so we can mirror the class component's
+  // `componentDidUpdate`, which only ran on updates (never on the initial mount)
+  // and compared against the previous props. A ref keeps these out of the
+  // effect's dependency array, which a `usePrevious` value must not be.
+  const prevPropsRef = useRef<{events: WebhookEvent[]; webhookDisabled: boolean} | null>(
+    null
+  );
 
   useEffect(() => {
+    const prevProps = prevPropsRef.current;
+    prevPropsRef.current = {events, webhookDisabled};
+
+    // Skip the initial mount, matching `componentDidUpdate`.
+    if (!prevProps) {
+      return;
+    }
+
     const permittedEvents = events.filter(
       resource => permissions[PERMISSIONS_MAP[resource]] !== 'no-access'
     );
 
     // When disabling webhooks unset the events
-    if (!prevWebhookDisabled && webhookDisabled && prevEvents?.length) {
+    if (!prevProps.webhookDisabled && webhookDisabled && prevProps.events.length) {
       onChange([]);
       return;
     }
@@ -41,7 +53,7 @@ export function Subscriptions({
     if (JSON.stringify(events) !== JSON.stringify(permittedEvents)) {
       onChange(permittedEvents);
     }
-  }, [webhookDisabled, permissions, events, prevWebhookDisabled, prevEvents, onChange]);
+  }, [webhookDisabled, permissions, events, onChange]);
 
   const handleChange = (resource: Resource, checked: boolean) => {
     const newEvents = new Set(events);
