@@ -133,5 +133,5 @@ class LinkedPullRequestSerializer(PullRequestSerializer):
             **super().serialize(obj, attrs, user, **kwargs),
             "attribution": attrs["attribution"],
             "dateLinked": self.date_linked_by_pr_id[obj.id],
-            "status": self.status_by_pr_id.get(obj.id, "unknown"),
+            "status": self.status_by_pr_id[obj.id],
         }
