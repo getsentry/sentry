@@ -630,7 +630,7 @@ function useCodingAgents({
   );
 
   const codingAgentDisabledReason = isGitLabOnly
-    ? t('Handing off to a coding agent is only supported for GitHub repositories.')
+    ? t('Handing off to a coding agent requires a connected GitHub repository.')
     : undefined;
 
   const handleCodingAgentHandoff = useCallback(

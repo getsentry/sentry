@@ -116,6 +116,10 @@ describe('SeerDrawer', () => {
       url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/autofix-repos/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/seer/repos/`,
+      body: [],
+    });
   });
 
   it('renders loading state while autofix setup is pending', async () => {
