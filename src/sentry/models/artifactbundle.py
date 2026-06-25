@@ -126,12 +126,7 @@ def delete_file_for_artifact_bundle(instance, **kwargs):
                 instance.organization_id,
                 checksum,
             )
-
-    finally:
-        try:
-            instance.file.delete()
-        except File.DoesNotExist:
-            pass
+        instance.file.delete()
 
 
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
