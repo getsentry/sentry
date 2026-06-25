@@ -33,7 +33,10 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
     isLoading: validationLoading,
     isPlaceholderData: validationIsPlaceholderData,
   } = useValidateSpansTab();
-  const pendingValidatedGroupBys = useRef<string[] | null>(null);
+  const pendingValidatedGroupBys = useRef<{
+    from: readonly string[];
+    to: readonly string[];
+  } | null>(null);
   const validationIsPending = validationLoading || validationIsPlaceholderData;
 
   const validatedGroupBys = useMemo(
@@ -52,9 +55,12 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
 
   useEffect(() => {
     if (pendingValidatedGroupBys.current) {
-      if (arraysAreEqual(groupBys, pendingValidatedGroupBys.current)) {
+      if (arraysAreEqual(groupBys, pendingValidatedGroupBys.current.to)) {
         pendingValidatedGroupBys.current = null;
-      } else if (arraysAreEqual(validatedGroupBys, pendingValidatedGroupBys.current)) {
+      } else if (
+        arraysAreEqual(groupBys, pendingValidatedGroupBys.current.from) &&
+        arraysAreEqual(validatedGroupBys, pendingValidatedGroupBys.current.to)
+      ) {
         return;
       }
     }
@@ -63,7 +69,10 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
       return;
     }
 
-    pendingValidatedGroupBys.current = validatedGroupBys;
+    pendingValidatedGroupBys.current = {
+      from: groupBys,
+      to: validatedGroupBys,
+    };
 
     if (validatedGroupBys.some(Boolean)) {
       setGroupBys(validatedGroupBys);

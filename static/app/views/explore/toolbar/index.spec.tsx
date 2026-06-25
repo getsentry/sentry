@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {useCallback, useState, type ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -27,6 +27,7 @@ import {
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
+import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -540,6 +541,57 @@ describe('ExploreToolbar', () => {
     expect(
       screen.queryByRole('button', {name: 'invalid.attribute'})
     ).not.toBeInTheDocument();
+  });
+
+  it('removes invalid selected group bys when selection changes before cleanup applies', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      body: {
+        dataset: [],
+        environment: [],
+        field: [
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.attribute',
+            valid: false,
+          },
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.other',
+            valid: false,
+          },
+        ],
+        orderby: [],
+        projects: [],
+        query: {
+          error: null,
+          fields: [],
+          valid: true,
+        },
+        valid: false,
+      },
+    });
+
+    const setGroupBysMock = jest.fn();
+
+    function Component() {
+      const [localGroupBys, setLocalGroupBys] = useState(['invalid.attribute']);
+      const setGroupBys = useCallback((nextGroupBys: string[], mode?: Mode) => {
+        setGroupBysMock(nextGroupBys, mode);
+        setLocalGroupBys(currentGroupBys =>
+          currentGroupBys[0] === 'invalid.attribute' ? ['invalid.other'] : nextGroupBys
+        );
+      }, []);
+
+      return <ToolbarGroupBy groupBys={localGroupBys} setGroupBys={setGroupBys} />;
+    }
+
+    render(<Component />, {additionalWrapper: Wrapper});
+
+    await waitFor(() => expect(setGroupBysMock).toHaveBeenCalledTimes(2));
+    expect(setGroupBysMock).toHaveBeenLastCalledWith([], Mode.SAMPLES);
   });
 
   it('clears the last selected group by', async () => {
