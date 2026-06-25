@@ -88,7 +88,7 @@ export function IntegrationRow(props: Props) {
         <StyledLink
           to={`${baseUrl}?tab=configurations`}
         >{`${configurations} Configuration${configurations > 1 ? 's' : ''}`}</StyledLink>
-        {disabledConfigurations && disabledConfigurations > 0 ? (
+        {disabledConfigurations ? (
           <DisabledTag variant="warning">
             {tn('%s disabled', '%s disabled', disabledConfigurations)}
           </DisabledTag>
