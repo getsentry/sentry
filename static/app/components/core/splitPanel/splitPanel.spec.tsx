@@ -28,6 +28,23 @@ describe('SplitPanel', () => {
     expect(screen.queryByRole('separator')).not.toBeInTheDocument();
   });
 
+  it('floors the sized pane at minSize when the seeded size is below it', () => {
+    // A persisted/seeded size below min (here negative) must not produce a
+    // negative flex-basis; the rendered size is floored at minSize.
+    render(
+      <SplitPanel
+        orientation="horizontal"
+        defaultSize={200}
+        initialSize={-50}
+        minSize={100}
+        sized={<div>sized</div>}
+        fill={<div>fill</div>}
+      />
+    );
+
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '100');
+  });
+
   it('preserves the sized pane DOM node when the fill pane is toggled', () => {
     const sized = <div>sized</div>;
     const {rerender} = render(
@@ -157,6 +174,106 @@ describe('SplitPanel', () => {
         endSize: 200,
         direction: 'decrease',
       });
+    });
+
+    it('reports the clamped visible size as startSize when seeded below min', async () => {
+      const onResizeEnd = jest.fn();
+      render(
+        <SplitPanel
+          orientation="horizontal"
+          defaultSize={200}
+          initialSize={-50}
+          minSize={100}
+          onResizeEnd={onResizeEnd}
+          sized={<div>sized</div>}
+          fill={<div>fill</div>}
+        />
+      );
+
+      const separator = screen.getByRole('separator');
+      // Renders floored at min, not the seeded -50.
+      expect(separator).toHaveAttribute('aria-valuenow', '100');
+
+      await userEvent.dblClick(separator);
+
+      // startSize must match the rendered size (100), not the unclamped -50.
+      expect(onResizeEnd).toHaveBeenCalledWith({
+        startSize: 100,
+        endSize: 200,
+        direction: 'increase',
+      });
+    });
+
+    it('keyboard grow steps from the clamped visible size when seeded below min', async () => {
+      const onResizeEnd = jest.fn();
+      render(
+        <SplitPanel
+          orientation="horizontal"
+          defaultSize={200}
+          initialSize={-50}
+          minSize={100}
+          onResizeEnd={onResizeEnd}
+          sized={<div>sized</div>}
+          fill={<div>fill</div>}
+        />
+      );
+
+      const separator = screen.getByRole('separator');
+      separator.focus();
+      // A single grow keypress must move off min (110), not produce a sub-min
+      // value (-40) that leaves the pane visually pinned at min.
+      await userEvent.keyboard('{ArrowRight}');
+
+      expect(onResizeEnd).toHaveBeenCalledWith({
+        startSize: 100,
+        endSize: 110,
+        direction: 'increase',
+      });
+      expect(separator).toHaveAttribute('aria-valuenow', '110');
+    });
+
+    it('reports a clamped size to onResize at mount when seeded below min', () => {
+      const onResize = jest.fn();
+      render(
+        <SplitPanel
+          orientation="horizontal"
+          defaultSize={200}
+          initialSize={-50}
+          minSize={100}
+          onResize={onResize}
+          sized={<div>sized</div>}
+          fill={<div>fill</div>}
+        />
+      );
+
+      // The drawer hook fires onResize at mount with the raw initialSize; it
+      // must be floored at min so it matches the rendered size.
+      expect(onResize).toHaveBeenCalledWith(100);
+      expect(onResize).not.toHaveBeenCalledWith(-50);
+    });
+
+    it('treats a Home/End edge as a no-op while max is unbounded', async () => {
+      const onResizeEnd = jest.fn();
+      render(
+        <SplitPanel
+          orientation="horizontal"
+          placement="end"
+          defaultSize={200}
+          minSize={100}
+          onResizeEnd={onResizeEnd}
+          sized={<div>sized</div>}
+          fill={<div>fill</div>}
+        />
+      );
+
+      const separator = screen.getByRole('separator');
+      separator.focus();
+      // With the sized pane last, Home targets max — but max is unbounded until
+      // the container is measured, so it must not set an infinite size.
+      await userEvent.keyboard('{Home}');
+
+      expect(separator).toHaveAttribute('aria-valuenow', '200');
+      expect(onResizeEnd).not.toHaveBeenCalled();
     });
 
     it('fires onResizeEnd on keyboard resize so the size can be persisted', async () => {
