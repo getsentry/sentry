@@ -288,7 +288,13 @@ export function useScmProjectDetails({
     alertRuleConfig.alertSetting === savedAlert?.alertSetting &&
     alertRuleConfig.interval === savedAlert?.interval &&
     alertRuleConfig.metric === savedAlert?.metric &&
-    alertRuleConfig.threshold === savedAlert?.threshold;
+    alertRuleConfig.threshold === savedAlert?.threshold &&
+    // A configured messaging-integration notification would create a rule the
+    // reused project lacks: the selection isn't persisted across nav, so the
+    // baseline is always "no integration". Treat it as a change so the reuse
+    // shortcut can't silently drop the notification rule. Persisting the
+    // selection (and comparing it precisely) is tracked as follow-up work.
+    !notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION);
 
   const submit = useCallback(async () => {
     if (!selectedPlatform || !canSubmit || isCompletingRef.current) {
