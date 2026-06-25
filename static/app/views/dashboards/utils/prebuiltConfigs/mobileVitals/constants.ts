@@ -21,7 +21,13 @@ export const WARM_START_CONDITION = `(${ROOT_APP_START_TRANSACTION_CONDITION} ha
 export const TTID_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTID_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.initial_display has:${SpanFields.APP_VITALS_TTID_VALUE})`;
 export const TTFD_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTFD_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.full_display has:${SpanFields.APP_VITALS_TTFD_VALUE})`;
 
-const APP_START_CONDITION = `(${COLD_START_CONDITION} OR ${WARM_START_CONDITION})`;
+// The App Starts table groups rows by screen (transaction), so it keeps the
+// narrower ROOT_TRANSACTION_CONDITION op list. app.start root transactions are
+// not per-screen rows and would otherwise show up as spurious table entries —
+// only the cold/warm start metric widgets should pull them in.
+const COLD_START_TABLE_VALUE_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_COLD_VALUE} OR ${SpanFields.SPAN_OP}:app.start.cold has:${SpanFields.APP_VITALS_START_COLD_VALUE})`;
+const WARM_START_TABLE_VALUE_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_WARM_VALUE} OR ${SpanFields.SPAN_OP}:app.start.warm has:${SpanFields.APP_VITALS_START_WARM_VALUE})`;
+const APP_START_CONDITION = `(${COLD_START_TABLE_VALUE_CONDITION} OR ${WARM_START_TABLE_VALUE_CONDITION})`;
 export const APP_START_TABLE_CONDITION = `${APP_START_CONDITION} has:${SpanFields.TRANSACTION}`;
 
 // TTFD can be absent while TTID is present because reportFullyDrawn() is opt-in.
