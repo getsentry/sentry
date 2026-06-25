@@ -54,9 +54,6 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
     ? TRACE_VIEW_WEB_VITALS
     : TRACE_VIEW_MOBILE_VITALS;
 
-  // tree.vitals aggregates vitals from every span in the trace (including mobile
-  // app.start vitals collected from EAP span attributes), so app.start Cold/Warm
-  // show up regardless of which transaction the SDK attached them to.
   const collectedVitals = Array.from(tree.vitals.values()).flat();
 
   const primaryVitalsCount = getPrimaryVitalsCount(

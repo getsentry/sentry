@@ -13,9 +13,7 @@ import {TraceContextVitals} from './traceContextVitals';
 
 const organization = OrganizationFixture();
 
-// The representative root event carries NO app-start attributes, mirroring the
-// real bug: the cold/warm vitals live on a separate app.start transaction, not
-// on the ui.load root that gets selected as the representative trace node.
+// Representative root event has no app-start attributes; they live on app.start.
 const rootEventResults = {
   data: {attributes: []},
 } as unknown as TraceRootEventQueryResults;
@@ -54,10 +52,8 @@ describe('TraceContextVitals', () => {
       {organization}
     );
 
-    // Asserting the labels alone is insufficient: a pill renders for every
-    // displayed vital regardless of whether a value was found (missing values
-    // show an em-dash). Assert the formatted values so a regression to the
-    // representative-node source (which lacks these attributes) fails here.
+    // Assert the values, not just the labels: a pill renders for every vital
+    // even when no value is found (it shows an em-dash).
     expect(screen.getByText('App Start Cold')).toBeInTheDocument();
     expect(screen.getByText('1.60s')).toBeInTheDocument();
     expect(screen.getByText('App Start Warm')).toBeInTheDocument();
