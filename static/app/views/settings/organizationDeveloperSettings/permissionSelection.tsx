@@ -218,7 +218,7 @@ export function PermissionSelection({
 }: Props) {
   const {form} = useContext(FormContext);
 
-  const [state, setState] = useState<State>({
+  const [state, setState] = useState({
     hasContinuousIntegration: hasContinuousIntegrationProp ?? false,
     permissions: permissionsProp,
   });
@@ -282,7 +282,9 @@ export function PermissionSelection({
               options={options}
               help={config.help}
               label={config.label || config.resource}
-              onChange={(choice: PermissionValue) => handleChange(config.resource, choice)}
+              onChange={(choice: PermissionValue) =>
+                handleChange(config.resource, choice)
+              }
               value={value}
               defaultValue={value}
               disabled={appPublished}
