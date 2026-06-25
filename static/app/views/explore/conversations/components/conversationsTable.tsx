@@ -42,7 +42,7 @@ import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceD
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
-function getConversationDetailUrl(
+export function getConversationDetailUrl(
   orgSlug: string,
   conversation: Conversation,
   projects: number[]
@@ -166,8 +166,8 @@ function ConversationsTableInner() {
   );
 }
 
-function getUserDisplayName(user: ConversationUser): string {
-  return user.email || user.username || user.ip_address || t('Unknown');
+export function getUserDisplayName(user: ConversationUser): string | null {
+  return user.email || user.username || user.ip_address || null;
 }
 
 const TOOLTIP_MAX_CHARS = 2048;
@@ -217,7 +217,7 @@ export function InputOutputTooltipCell({text}: {text: string}) {
   );
 }
 
-function UserNotInstrumentedTooltip() {
+export function UserNotInstrumentedTooltip() {
   return (
     <Text>
       {tct(
@@ -284,7 +284,7 @@ const BodyCell = memo(function BodyCell({
           </InfoText>
         );
       }
-      const displayName = getUserDisplayName(dataRow.user);
+      const displayName = getUserDisplayName(dataRow.user) ?? t('Unknown');
       return (
         <Tooltip title={displayName} showOnlyOnOverflow>
           <Flex align="center" gap="xs" minWidth={0}>
