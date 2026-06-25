@@ -82,18 +82,18 @@ export function IntegrationRow(props: Props) {
     // TODO: Use proper translations
     if (configurations <= 0) {
       return null;
-    }
-    return (
-      <Fragment>
+      <Flex gap="xs">
         <StyledLink
           to={`${baseUrl}?tab=configurations`}
-        >{tn('%s Configuration', '%s Configurations', configurations)}</StyledLink>
-        {disabledConfigurations ? (
-          <DisabledTag variant="warning">
-            {tn('%s disabled', '%s disabled', disabledConfigurations)}
-          </DisabledTag>
+        >{`${configurations} Configuration${configurations > 1 ? 's' : ''}`}</StyledLink>
+        {disabledConfigurations && disabledConfigurations > 0 ? (
+          <Tag variant="warning">
+            {disabledConfigurations === 1
+              ? t('1 disabled')
+              : t('%s disabled', disabledConfigurations)}
+          </Tag>
         ) : null}
-      </Fragment>
+      </Flex>
     );
   };
 
