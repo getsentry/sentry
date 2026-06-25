@@ -1,6 +1,6 @@
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {PriorityLevel} from 'sentry/types/group';
-import type {IntegrationType} from 'sentry/types/integrations';
+import type {IntegrationType, PullRequestAttribution} from 'sentry/types/integrations';
 import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
@@ -37,11 +37,11 @@ interface ExternalIssueParams extends CommonGroupAnalyticsData {
 }
 
 interface ExternalIssuePullRequestParams extends CommonGroupAnalyticsData {
-  is_seer: boolean;
   pull_request_id: string;
   pull_request_status: string;
   repository_id: string;
   repository_provider: string;
+  attribution_type?: PullRequestAttribution['type'];
 }
 
 interface SetPriorityParams extends CommonGroupAnalyticsData {

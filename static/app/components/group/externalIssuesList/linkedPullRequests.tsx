@@ -83,7 +83,7 @@ function LinkedPullRequestRow({
         onClick={() =>
           trackAnalytics('issue_details.external_issue_pull_request_clicked', {
             organization,
-            is_seer: pullRequest.attribution?.type === 'seer',
+            attribution_type: pullRequest.attribution?.type,
             pull_request_id: pullRequest.id,
             pull_request_status: pullRequest.status,
             repository_id: pullRequest.repository.id,
