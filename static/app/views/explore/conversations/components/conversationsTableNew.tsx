@@ -48,8 +48,8 @@ type ColumnKey =
 
 const DEFAULT_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'conversationId', name: t('Conv. ID'), width: 150},
-  {key: 'llmCalls', name: t('LLM Calls'), width: 100},
   {key: 'user', name: t('User'), width: COL_WIDTH_UNDEFINED},
+  {key: 'llmCalls', name: t('LLM Calls'), width: 100},
   {key: 'toolCalls', name: t('Tool Calls'), width: 120},
   {key: 'errors', name: t('Errors'), width: 100},
   {key: 'cost', name: t('Cost'), width: 110},
