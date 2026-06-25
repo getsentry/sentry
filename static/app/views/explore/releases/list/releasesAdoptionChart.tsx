@@ -153,14 +153,14 @@ export function ReleasesAdoptionChart({
 
   const {start, end, period, utc} = selection.datetime;
   const field = sessionDisplayToField(activeDisplay);
-  const {data: response, isRefetching} = useSessionsRequest({
+  const {data: response, isRefetching, isError} = useSessionsRequest({
     interval,
     groupBy: ['release'],
     field: [field],
     ...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM))),
   });
 
-  const loading = response === null;
+  const loading = response === null && !isError;
   const reloading = response !== null && isRefetching;
   const totalCount = getCount(response?.groups, field);
   const releasesSeries = getReleasesSeries(response);

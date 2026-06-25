@@ -1,3 +1,7 @@
+import {useEffect} from 'react';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
 import type {
   SessionApiResponse,
   SessionFieldWithOperation,
@@ -59,8 +63,19 @@ export function useSessionsRequest({
     ],
     {
       staleTime: 0,
+      retry: false,
     }
   );
+
+  // Fix 1: restore the error toast that the old SessionsRequest class component provided.
+  // React Query does not call addErrorMessage automatically; we do it here so all
+  // callers (render-prop wrapper and direct hook consumers) get the same behaviour.
+  useEffect(() => {
+    if (sessionQuery.isError) {
+      const error = sessionQuery.error as any;
+      addErrorMessage(error?.responseJSON?.detail ?? t('Error loading health data'));
+    }
+  }, [sessionQuery.isError, sessionQuery.error]);
 
   return {
     ...sessionQuery,
