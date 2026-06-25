@@ -219,9 +219,6 @@ export function getValidatedColumnEditorData({
 
     if (!item.valid) {
       invalidFields.add(item.name);
-      delete validatedBooleanTags[item.name];
-      delete validatedNumberTags[item.name];
-      delete validatedStringTags[item.name];
       continue;
     }
 
