@@ -60,11 +60,10 @@ describe('buttonTracking', () => {
 
   it('calls rawTrackAnalyticsEvent with default values', () => {
     const {result} = renderHook(useButtonTracking, {
-      initialProps: {'aria-label': 'Create Alert'},
       wrapper,
     });
 
-    result.current();
+    result.current({'aria-label': 'Create Alert'});
 
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
       eventName: null,
@@ -78,16 +77,15 @@ describe('buttonTracking', () => {
 
   it('calls rawTrackAnalyticsEvent with data', () => {
     const {result} = renderHook(useButtonTracking, {
-      initialProps: {
-        'aria-label': 'Create Alert',
-        analyticsEventKey: 'settings.create_alert',
-        analyticsEventName: 'Settings: Create Alert',
-        analyticsParams: {priority: 'primary', href: 'sentry.io/settings/create_alert'},
-      },
       wrapper,
     });
 
-    result.current();
+    result.current({
+      'aria-label': 'Create Alert',
+      analyticsEventKey: 'settings.create_alert',
+      analyticsEventName: 'Settings: Create Alert',
+      analyticsParams: {priority: 'primary', href: 'sentry.io/settings/create_alert'},
+    });
 
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
       eventName: 'Settings: Create Alert',
@@ -103,15 +101,14 @@ describe('buttonTracking', () => {
 
   it('calls rawTrackAnalyticsEvent with new event names', () => {
     const {result} = renderHook(useButtonTracking, {
-      initialProps: {
-        'aria-label': 'Create Alert',
-        analyticsEventKey: 'settings.create_alert',
-        analyticsEventName: 'Settings: Create Alert',
-      },
       wrapper,
     });
 
-    result.current();
+    result.current({
+      'aria-label': 'Create Alert',
+      analyticsEventKey: 'settings.create_alert',
+      analyticsEventName: 'Settings: Create Alert',
+    });
 
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
       eventName: 'Settings: Create Alert',

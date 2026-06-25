@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 
@@ -23,147 +23,114 @@ import {
 } from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
-type DefaultProps = {
-  appPublished: boolean;
-  webhookDisabled: boolean;
-};
-
-type Props = DefaultProps & {
+type Props = {
   events: WebhookEvent[];
   newApp: boolean;
   scopes: Scope[];
+  appPublished?: boolean;
   continuousIntegrationError?: string;
   onEventsChange?: (events: WebhookEvent[]) => void;
   onScopesChange?: (scopes: Scope[]) => void;
   permissionErrors?: Partial<Record<PermissionResource, string>>;
+  webhookDisabled?: boolean;
 };
 
-type State = {
-  elevating: boolean;
-  events: WebhookEvent[];
-  hasContinuousIntegration: boolean;
-  permissions: Permissions;
-};
+export function PermissionsObserver({
+  appPublished = false,
+  webhookDisabled = false,
+  events: initialEvents,
+  newApp,
+  scopes,
+  continuousIntegrationError,
+  onEventsChange,
+  onScopesChange,
+  permissionErrors,
+}: Props) {
+  const checkContinuousIntegration = () =>
+    scopes.includes(CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.scope);
 
-export class PermissionsObserver extends Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    webhookDisabled: false,
-    appPublished: false,
-  };
+  const [permissions, setPermissions] = useState<Permissions>(() =>
+    toResourcePermissions(scopes)
+  );
+  const [events, setEvents] = useState(initialEvents);
+  const [hasContinuousIntegration, setHasContinuousIntegration] = useState<boolean>(() =>
+    checkContinuousIntegration()
+  );
+  const [elevating, setElevating] = useState(false);
 
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      permissions: this.scopeListToPermissionState(),
-      events: this.props.events,
-      hasContinuousIntegration: this.hasContinuousIntegration(),
-      elevating: false,
-    };
-  }
+  const handlePermissionChange = (
+    newPermissions: Permissions,
+    newHasContinuousIntegration: boolean
+  ) => {
+    setPermissions(newPermissions);
+    setHasContinuousIntegration(newHasContinuousIntegration);
+    onScopesChange?.(permissionStateToList(newPermissions, newHasContinuousIntegration));
 
-  /**
-   * Converts the list of raw API scopes passed in to an object that can
-   * before stored and used via `state`. This object is structured by
-   * resource and holds "Permission" values. For example:
-   *
-   *    {
-   *      'Project': 'read',
-   *      ...,
-   *    }
-   *
-   */
-  scopeListToPermissionState() {
-    return toResourcePermissions(this.props.scopes);
-  }
+    const originalPermissions = toResourcePermissions(scopes);
 
-  hasContinuousIntegration() {
-    return this.props.scopes.includes(CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.scope);
-  }
-
-  onPermissionChange = (permissions: Permissions, hasContinuousIntegration: boolean) => {
-    this.setState({permissions, hasContinuousIntegration});
-    this.props.onScopesChange?.(
-      permissionStateToList(permissions, hasContinuousIntegration)
-    );
-    const new_permissions = toResourcePermissions(this.props.scopes);
-
-    let elevating = false;
-    Object.keys(permissions).some((resource_name: string) => {
+    let isElevating = false;
+    Object.keys(newPermissions).some((resource_name: string) => {
       if (
         comparePermissionLevels(
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          permissions[resource_name],
+          newPermissions[resource_name],
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          new_permissions[resource_name]
+          originalPermissions[resource_name]
         ) > 0
       ) {
-        elevating = true;
+        isElevating = true;
         return true;
       }
       return false;
     });
 
-    if (!elevating && hasContinuousIntegration && !this.hasContinuousIntegration()) {
-      elevating = true;
+    if (!isElevating && newHasContinuousIntegration && !checkContinuousIntegration()) {
+      isElevating = true;
     }
 
-    this.setState({elevating});
+    setElevating(isElevating);
   };
 
-  onEventChange = (events: WebhookEvent[]) => {
-    this.setState({events});
-    this.props.onEventsChange?.(events);
+  const handleEventChange = (newEvents: WebhookEvent[]) => {
+    setEvents(newEvents);
+    onEventsChange?.(newEvents);
   };
 
-  renderCallout() {
-    const {elevating} = this.state;
-
-    if (!this.props.newApp && elevating) {
-      return (
-        <Alert.Container>
-          <Alert variant="warning">
-            {t(
-              'You are going to increase privileges for this integration. Organization members who already had access to the Client Secret may gain extra permissions due to this change. If this is not what you are expecting, consider rotating the Client Secret below.'
-            )}
-          </Alert>
-        </Alert.Container>
-      );
-    }
-
-    return null;
-  }
-
-  render() {
-    const {hasContinuousIntegration, permissions, events} = this.state;
-
-    return (
-      <Fragment>
-        <Panel>
-          <PanelHeader>{t('Permissions')}</PanelHeader>
-          <PanelBody>
-            <PermissionSelection
-              hasContinuousIntegration={hasContinuousIntegration}
-              permissions={permissions}
-              onChange={this.onPermissionChange}
-              appPublished={this.props.appPublished}
-              errors={this.props.permissionErrors}
-              continuousIntegrationError={this.props.continuousIntegrationError}
-            />
-            {this.renderCallout()}
-          </PanelBody>
-        </Panel>
-        <Panel>
-          <PanelHeader>{t('Webhooks')}</PanelHeader>
-          <PanelBody>
-            <Subscriptions
-              permissions={permissions}
-              events={events}
-              onChange={this.onEventChange}
-              webhookDisabled={this.props.webhookDisabled}
-            />
-          </PanelBody>
-        </Panel>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <Panel>
+        <PanelHeader>{t('Permissions')}</PanelHeader>
+        <PanelBody>
+          <PermissionSelection
+            hasContinuousIntegration={hasContinuousIntegration}
+            permissions={permissions}
+            onChange={handlePermissionChange}
+            appPublished={appPublished}
+            errors={permissionErrors}
+            continuousIntegrationError={continuousIntegrationError}
+          />
+          {!newApp && elevating && (
+            <Alert.Container>
+              <Alert variant="warning">
+                {t(
+                  'You are going to increase privileges for this integration. Organization members who already had access to the Client Secret may gain extra permissions due to this change. If this is not what you are expecting, consider rotating the Client Secret below.'
+                )}
+              </Alert>
+            </Alert.Container>
+          )}
+        </PanelBody>
+      </Panel>
+      <Panel>
+        <PanelHeader>{t('Webhooks')}</PanelHeader>
+        <PanelBody>
+          <Subscriptions
+            permissions={permissions}
+            events={events}
+            onChange={handleEventChange}
+            webhookDisabled={webhookDisabled}
+          />
+        </PanelBody>
+      </Panel>
+    </Fragment>
+  );
 }

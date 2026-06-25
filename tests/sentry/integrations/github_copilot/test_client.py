@@ -210,6 +210,51 @@ class GithubCopilotAgentClientTest(TestCase):
 
         assert result is None
 
+    @patch.object(GithubCopilotAgentClient, "get")
+    def test_get_pr_from_branch_success(self, mock_get: Mock) -> None:
+        """get_pr_from_branch resolves a PR from the head branch via the REST API"""
+        mock_response = Mock()
+        mock_response.json = [
+            {
+                "number": 46,
+                "title": "Fix the bug",
+                "html_url": "https://github.com/getsentry/sentry/pull/46",
+                "node_id": "PR_abc123",
+            }
+        ]
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        result = self.copilot_client.get_pr_from_branch(
+            owner="getsentry", repo="sentry", head_ref="copilot/fix-bug"
+        )
+
+        assert result is not None
+        assert result.number == 46
+        assert result.title == "Fix the bug"
+        assert result.url == "https://github.com/getsentry/sentry/pull/46"
+
+        mock_get.assert_called_once_with(
+            "https://api.github.com/repos/getsentry/sentry/pulls",
+            headers={"Authorization": "Bearer test_access_token", "User-Agent": "sentry"},
+            params={"head": "getsentry:copilot/fix-bug", "state": "all"},
+            timeout=30,
+        )
+
+    @patch.object(GithubCopilotAgentClient, "get")
+    def test_get_pr_from_branch_no_pr(self, mock_get: Mock) -> None:
+        """get_pr_from_branch returns None when no PR exists for the branch"""
+        mock_response = Mock()
+        mock_response.json = []
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        result = self.copilot_client.get_pr_from_branch(
+            owner="getsentry", repo="sentry", head_ref="no-pr-branch"
+        )
+
+        assert result is None
+
     @patch.object(GithubCopilotAgentClient, "post")
     def test_launch_truncates_long_prompt(self, mock_post: Mock) -> None:
         """Prompts exceeding 25,000 chars are truncated"""

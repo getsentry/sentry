@@ -1,45 +1,52 @@
-import importlib
+from django.db.migrations.state import StateApps
+from django.utils import timezone
 
-from django.apps import apps as global_apps
-
-from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunShard
-from sentry.testutils.cases import TestCase
-from sentry.testutils.pytest.fixtures import django_db_all
-
-# Module name starts with a digit, so it can't be imported with `import`.
-_migration = importlib.import_module("sentry.seer.migrations.0020_backfill_night_shift_run_shards")
+from sentry.testutils.cases import TestMigrations
 
 
-@django_db_all
-class BackfillNightShiftRunShardsTest(TestCase):
-    def _backfill(self) -> None:
-        _migration.backfill_night_shift_run_shards(global_apps, None)
+class BackfillNightShiftRunShardsTest(TestMigrations):
+    app = "seer"
+    migrate_from = "0019_add_night_shift_run_shard"
+    migrate_to = "0020_backfill_night_shift_run_shards"
 
-    def test_backfills_pre_shard_run(self) -> None:
-        org = self.create_organization()
-        seer_run = self.create_seer_run(organization=org)
-        run = SeerNightShiftRun.objects.create(organization=org, seer_run=seer_run)
+    def setup_before_migration(self, apps: StateApps) -> None:
+        SeerRun = apps.get_model("seer", "SeerRun")
+        SeerNightShiftRun = apps.get_model("seer", "SeerNightShiftRun")
+        SeerNightShiftRunShard = apps.get_model("seer", "SeerNightShiftRunShard")
 
-        self._backfill()
+        org_id = self.organization.id
 
-        shard = SeerNightShiftRunShard.objects.get(run=run)
-        assert shard.seer_run_id == seer_run.id
+        # Pre-shard run: scalar seer_run, no shard -> should get a shard.
+        self.pre_shard_seer_run = SeerRun.objects.create(
+            organization_id=org_id, type="feature_run", last_triggered_at=timezone.now()
+        )
+        self.pre_shard_run = SeerNightShiftRun.objects.create(
+            organization_id=org_id, seer_run=self.pre_shard_seer_run
+        )
 
-    def test_skips_run_without_seer_run(self) -> None:
-        org = self.create_organization()
-        run = SeerNightShiftRun.objects.create(organization=org)
+        # No seer_run -> skipped.
+        self.no_seer_run = SeerNightShiftRun.objects.create(organization_id=org_id)
 
-        self._backfill()
+        # Already sharded -> not duplicated (idempotent).
+        already_seer_run = SeerRun.objects.create(
+            organization_id=org_id, type="feature_run", last_triggered_at=timezone.now()
+        )
+        self.already_sharded_run = SeerNightShiftRun.objects.create(
+            organization_id=org_id, seer_run=already_seer_run
+        )
+        SeerNightShiftRunShard.objects.create(
+            run=self.already_sharded_run, seer_run=already_seer_run
+        )
 
-        assert not SeerNightShiftRunShard.objects.filter(run=run).exists()
+    def test_backfill(self) -> None:
+        SeerNightShiftRunShard = self.apps.get_model("seer", "SeerNightShiftRunShard")
 
-    def test_idempotent_for_already_sharded_run(self) -> None:
-        org = self.create_organization()
-        seer_run = self.create_seer_run(organization=org)
-        run = SeerNightShiftRun.objects.create(organization=org, seer_run=seer_run)
-        existing = SeerNightShiftRunShard.objects.create(run=run, seer_run=seer_run)
+        shards = list(SeerNightShiftRunShard.objects.filter(run_id=self.pre_shard_run.id))
+        assert len(shards) == 1
+        assert shards[0].seer_run_id == self.pre_shard_seer_run.id
 
-        self._backfill()
+        assert not SeerNightShiftRunShard.objects.filter(run_id=self.no_seer_run.id).exists()
 
-        shards = list(SeerNightShiftRunShard.objects.filter(run=run))
-        assert [s.id for s in shards] == [existing.id]
+        assert (
+            SeerNightShiftRunShard.objects.filter(run_id=self.already_sharded_run.id).count() == 1
+        )

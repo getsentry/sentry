@@ -152,26 +152,24 @@ export function ReleaseHeader({
 
   return (
     <Layout.Header>
-      <Layout.HeaderContent>
-        <TopBar.Slot name="title">
-          <Breadcrumbs
-            crumbs={[
-              {
-                to: makeReleasesPathname({organization, path: '/'}),
-                label: t('Releases'),
-                preservePageFilters: true,
-              },
-              {
-                label: (
-                  <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
-                    {titleContent}
-                  </Flex>
-                ),
-              },
-            ]}
-          />
-        </TopBar.Slot>
-      </Layout.HeaderContent>
+      <TopBar.Slot name="title">
+        <Breadcrumbs
+          crumbs={[
+            {
+              to: makeReleasesPathname({organization, path: '/'}),
+              label: t('Releases'),
+              preservePageFilters: true,
+            },
+            {
+              label: (
+                <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
+                  {titleContent}
+                </Flex>
+              ),
+            },
+          ]}
+        />
+      </TopBar.Slot>
       <TopBar.Slot name="actions">
         <ReleaseActions
           projectSlug={project.slug}

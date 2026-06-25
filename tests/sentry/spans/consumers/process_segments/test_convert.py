@@ -266,9 +266,8 @@ def test_convert_renamed_attribute_meta() -> None:
     [(123, 123), ("123", 123), (None, 0)],
     ids=["int_key_id", "str_key_id", "none_key_id"],
 )
-def test_convert_outcomes_when_not_emitted(key_id, expected_key_id) -> None:
+def test_convert_outcomes(key_id, expected_key_id) -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
-    message["accepted_outcome_emitted"] = False
     message["key_id"] = key_id
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
@@ -285,9 +284,8 @@ def test_convert_outcomes_when_not_emitted(key_id, expected_key_id) -> None:
     )
 
 
-def test_convert_outcomes_when_not_emitted_missing_key_id() -> None:
+def test_convert_outcomes_missing_key_id() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
-    message["accepted_outcome_emitted"] = False
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 
@@ -303,14 +301,21 @@ def test_convert_outcomes_when_not_emitted_missing_key_id() -> None:
     )
 
 
-def test_convert_outcomes_when_already_emitted() -> None:
+def test_field_to_missing_attribute_writes_if_missing() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
-    message["accepted_outcome_emitted"] = True
+    message["status"] = "error"
+    del message["attributes"]["sentry.status"]  # type: ignore[union-attr]
+
     item = convert_span_to_item(cast(CompatibleSpan, message))
-    assert not item.HasField("outcomes")
+
+    assert item.attributes.get("sentry.status") == AnyValue(string_value="error")
 
 
-def test_convert_outcomes_when_field_missing() -> None:
+def test_field_to_missing_attribute_keeps_existing_value() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["status"] = "error"
+    message["attributes"]["sentry.status"] = {"value": "ok", "type": "string"}  # type: ignore[index]
+
     item = convert_span_to_item(cast(CompatibleSpan, message))
-    assert not item.HasField("outcomes")
+
+    assert item.attributes.get("sentry.status") == AnyValue(string_value="ok")

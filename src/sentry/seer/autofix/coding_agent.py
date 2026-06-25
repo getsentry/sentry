@@ -208,68 +208,95 @@ def poll_github_copilot_agents(
                 branch_artifact.data.head_ref if branch_artifact and branch_artifact.data else None
             )
 
-            if pr_artifact and pr_artifact.data and pr_artifact.data.global_id:
-                # Get PR info from GraphQL using the global_id
-                pr_info = client.get_pr_from_graphql(pr_artifact.data.global_id)
+            # Map the Copilot task lifecycle to our status. The Copilot API uses
+            # `state` (not `status`). Derive this purely from `state` so a
+            # terminal task is never left on RUNNING just because a (possibly
+            # draft) PR exists on its head branch.
+            is_task_done = task_status.state == "completed"
+            is_task_failed = task_status.state in ("failed", "timed_out")
+
+            # Resolve PR details. The documented path is the PR artifact's
+            # `global_id` -> GraphQL node lookup, but the Copilot API
+            # intermittently returns an empty `global_id` even for completed
+            # tasks whose PR exists. Fall back to resolving the PR from the head
+            # branch, which relies only on the reliably-populated branch artifact
+            # and public PR fields.
+            #
+            # PR resolution is enrichment only: isolate its failures so a GitHub
+            # API error (these clients raise on HTTP errors) can never block the
+            # terminal status update below and leave the agent stuck on RUNNING.
+            pr_info = None
+            try:
+                if pr_artifact and pr_artifact.data and pr_artifact.data.global_id:
+                    pr_info = client.get_pr_from_graphql(pr_artifact.data.global_id)
+                if pr_info is None and branch_name:
+                    pr_info = client.get_pr_from_branch(owner, repo, branch_name)
+            except Exception:
+                logger.exception(
+                    "coding_agent.github_copilot.pr_resolution_failed",
+                    extra={
+                        "agent_id": agent_id,
+                        "owner": owner,
+                        "repo": repo,
+                        "task_id": task_id,
+                    },
+                )
+
+            if is_task_done:
+                new_status = CodingAgentStatus.COMPLETED
+            elif is_task_failed:
+                new_status = CodingAgentStatus.FAILED
+            else:
+                new_status = CodingAgentStatus.RUNNING
+
+            # Push an update when the task reached a terminal state (so the
+            # status never gets stuck) or when we have PR details to surface
+            # while it is still running.
+            if is_task_done or is_task_failed or pr_info is not None:
+                pr_url = None
+                result = None
                 if pr_info:
                     pr_url = pr_info.url
-                    description = pr_info.title
-
                     result = CodingAgentResult(
-                        description=description,
+                        description=pr_info.title,
                         repo_provider="github",
                         repo_full_name=f"{owner}/{repo}",
                         pr_url=pr_url,
                         branch_name=branch_name,
                     )
 
-                    # The Copilot API uses `state` (not `status`) for task lifecycle.
-                    is_task_done = task_status.state == "completed"
-                    new_status = (
-                        CodingAgentStatus.COMPLETED if is_task_done else CodingAgentStatus.RUNNING
-                    )
-
-                    update_coding_agent_state(
-                        agent_id=agent_id,
-                        status=new_status,
-                        result=result,
-                    )
-
-                    if is_task_done and pr_url:
-                        try:
-                            attribute_delegated_agent_pull_request(
-                                organization_id=organization_id,
-                                signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT,
-                                repo_full_name=f"{owner}/{repo}",
-                                repo_provider="github",
-                                pr_url=pr_url,
-                                agent_id=agent_id,
-                                run_id=run_id,
-                            )
-                        except Exception:
-                            logger.exception(
-                                "coding_agent.github_copilot.pr_attribution_failed",
-                                extra={"agent_id": agent_id, "pr_url": pr_url},
-                            )
-
-                    logger.info(
-                        "coding_agent.github_copilot.pr_update",
-                        extra={
-                            "agent_id": agent_id,
-                            "pr_url": pr_url,
-                            "task_state": task_status.state,
-                            "is_task_done": is_task_done,
-                        },
-                    )
-
-            elif task_status.state in ("failed", "timed_out"):
                 update_coding_agent_state(
                     agent_id=agent_id,
-                    status=CodingAgentStatus.FAILED,
+                    status=new_status,
+                    result=result,
                 )
+
+                if is_task_done and pr_url:
+                    try:
+                        attribute_delegated_agent_pull_request(
+                            organization_id=organization_id,
+                            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT,
+                            repo_full_name=f"{owner}/{repo}",
+                            repo_provider="github",
+                            pr_url=pr_url,
+                            agent_id=agent_id,
+                            run_id=run_id,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "coding_agent.github_copilot.pr_attribution_failed",
+                            extra={"agent_id": agent_id, "pr_url": pr_url},
+                        )
+
                 logger.info(
-                    "coding_agent.github_copilot.task_failed",
-                    extra={"agent_id": agent_id, "task_state": task_status.state},
+                    "coding_agent.github_copilot.pr_update",
+                    extra={
+                        "agent_id": agent_id,
+                        "pr_url": pr_url,
+                        "task_state": task_status.state,
+                        "is_task_done": is_task_done,
+                        "is_task_failed": is_task_failed,
+                    },
                 )
 
         except Exception:

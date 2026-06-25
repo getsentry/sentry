@@ -88,6 +88,13 @@ JUDGE_ELIGIBLE_SIGNAL_TYPES = DELEGATED_SIGNAL_TYPES | frozenset(
 )
 
 
+def is_seer_attribution(attribution: PullRequestAttribution) -> bool:
+    return (
+        attribution.source == PullRequestAttributionSource.SEER_DATA
+        or attribution.signal_type in DELEGATED_SIGNAL_TYPES
+    )
+
+
 class ResolvedPullRequest(NamedTuple):
     """Result of resolving a Seer-reported PR to its canonical ``PullRequest``."""
 

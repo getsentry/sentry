@@ -130,7 +130,7 @@ export function ConversationAggregatesBar({
   const errorsUrl = getExploreUrl({
     organization,
     selection,
-    query: `gen_ai.conversation.id:"${conversationId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}" span.status:internal_error`,
+    query: `gen_ai.conversation.id:"${conversationId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}" span.status:[internal_error,error]`,
   });
 
   return (
@@ -266,8 +266,8 @@ export function ConversationSummary({
         >
           <Heading as="h2" ellipsis style={{minWidth: 0, flexShrink: 1}}>
             {isUUID(conversationId)
-              ? t('Conversation #%s', conversationId.slice(0, 8))
-              : t('Conversation #%s', conversationId)}
+              ? t('Conversation %s', conversationId.slice(0, 8))
+              : t('Conversation %s', conversationId)}
           </Heading>
         </Tooltip>
         <Tooltip title={t('Copy conversation ID')}>

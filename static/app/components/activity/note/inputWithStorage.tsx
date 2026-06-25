@@ -2,22 +2,32 @@ import {useCallback, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CompactNoteInput} from 'sentry/components/activity/note/compact';
 import {NoteInput} from 'sentry/components/activity/note/input';
 import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
+import {t, tct} from 'sentry/locale';
+import {GroupStore} from 'sentry/stores/groupStore';
 import type {NoteType} from 'sentry/types/alerts';
+import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 
 type InputProps = React.ComponentProps<typeof NoteInput>;
 
 type Props = {
+  group: Group;
   itemKey: string;
   storageKey: string;
+  onCommentCreated?: (activity: GroupActivity[]) => void;
+  onCommentEdited?: (activity: GroupActivity[]) => void;
   onLoad?: (data: string) => string;
   onSave?: (data: string) => string;
   text?: string;
   variant?: 'compact' | 'full';
-} & InputProps;
+} & Omit<InputProps, 'onCreate' | 'onUpdate'>;
 
 function fetchFromStorage(storageKey: string) {
   const storage = localStorageWrapper.getItem(storageKey);
@@ -52,13 +62,19 @@ function NoteInputWithStorage({
   itemKey,
   storageKey,
   onChange,
-  onCreate,
   onLoad,
   onSave,
   text,
   variant,
+  group,
+  onCommentCreated,
+  onCommentEdited,
+  noteId,
   ...props
 }: Props) {
+  const organization = useOrganization();
+  const mutators = useMutateActivity({organization, group});
+
   const value = useMemo(() => {
     if (text) {
       return text;
@@ -108,29 +124,64 @@ function NoteInputWithStorage({
     [onChange, save]
   );
 
-  /**
-   * Handler when note is created.
-   *
-   * Remove in progress item from local storage if it exists
-   */
   const handleCreate = useCallback(
-    (data: NoteType) => {
-      onCreate?.(data);
+    async (data: NoteType) => {
+      save.cancel();
+      const result = await mutators.handleCreate(data, group.activity, {
+        onSuccess: () => {
+          addSuccessMessage(t('Comment posted'));
+        },
+        onError: error => {
+          const errMessage = error.responseJSON?.detail
+            ? tct('Error: [msg]', {msg: error.responseJSON?.detail as string})
+            : t('Unable to post comment');
+          addErrorMessage(errMessage);
+        },
+      });
 
-      // Remove from local storage
+      // Clear the localStorage draft on success
       const storageObj = fetchFromStorage(storageKey) ?? {};
-
-      // Nothing from this `itemKey` is saved to storage, do nothing
-      if (!Object.hasOwn(storageObj, itemKey)) {
-        return;
+      if (Object.hasOwn(storageObj, itemKey)) {
+        const {[itemKey]: _oldItem, ...newStorageObj} = storageObj;
+        saveToStorage(storageKey, newStorageObj);
       }
 
-      // Remove `itemKey` from stored object and save to storage
-
-      const {[itemKey]: _oldItem, ...newStorageObj} = storageObj;
-      saveToStorage(storageKey, newStorageObj);
+      GroupStore.addActivity(group.id, result);
+      trackAnalytics('issue_details.comment_created', {organization});
+      onCommentCreated?.([result, ...group.activity]);
     },
-    [itemKey, onCreate, storageKey]
+    [
+      save,
+      itemKey,
+      storageKey,
+      mutators,
+      group.activity,
+      group.id,
+      organization,
+      onCommentCreated,
+    ]
+  );
+
+  const handleUpdate = useCallback(
+    async (data: NoteType) => {
+      if (!noteId) {
+        return;
+      }
+      const result = await mutators.handleUpdate(data, noteId, group.activity, {
+        onSuccess: () => {
+          addSuccessMessage(t('Comment updated'));
+        },
+        onError: () => {
+          addErrorMessage(t('Unable to update comment'));
+        },
+      });
+
+      const d = result as GroupActivityNote;
+      GroupStore.updateActivity(group.id, result.id, {text: d.data.text});
+      trackAnalytics('issue_details.comment_updated', {organization});
+      onCommentEdited?.(group.activity.map(a => (a.id === result.id ? result : a)));
+    },
+    [mutators, noteId, group.activity, group.id, organization, onCommentEdited]
   );
 
   if (variant === 'compact') {
@@ -138,17 +189,24 @@ function NoteInputWithStorage({
       <CompactNoteInput
         text={value}
         onCreate={handleCreate}
+        onUpdate={handleUpdate}
         onChange={handleChange}
         placeholder={props.placeholder}
-        noteId={props.noteId}
-        onUpdate={props.onUpdate}
+        noteId={noteId}
         onCancel={props.onCancel}
       />
     );
   }
 
   return (
-    <NoteInput {...props} text={value} onCreate={handleCreate} onChange={handleChange} />
+    <NoteInput
+      {...props}
+      text={value}
+      noteId={noteId}
+      onCreate={handleCreate}
+      onUpdate={handleUpdate}
+      onChange={handleChange}
+    />
   );
 }
 
