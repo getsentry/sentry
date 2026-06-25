@@ -340,7 +340,7 @@ export function getProviderIntegrationStatus(integrations: Integration[]) {
 }
 
 /**
- * Returns 0 if uninstalled, 1 if pending, 2 if installed
+ * Returns 0 if uninstalled, 1 if pending, 2 if installed, 3 if disabled
  */
 function getInstallValue({
   integration,
