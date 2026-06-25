@@ -85,8 +85,10 @@ export const Heading = styled(
   ${p =>
     p.variant === 'inherit' && p.density === undefined
       ? 'line-height: inherit'
-      : rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
-  ${p => rc('text-align', p.align, p.theme)};
+      : rc('line-height', p.density, p.theme, 'viewport', v =>
+          getLineHeight(v, p.theme)
+        )};
+  ${p => rc('text-align', p.align, p.theme, 'viewport')};
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};
 
