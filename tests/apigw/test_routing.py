@@ -43,7 +43,6 @@ KNOWN_MISLEADING = {
     "",
     "robots\\.txt",
     "\\.well-known/security\\.txt",
-    "\\.well-known/mcp\\.json",
     "favicon\\.ico",
     "plugins/github/installations/webhook/",
 }
