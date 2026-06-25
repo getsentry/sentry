@@ -267,42 +267,80 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         sampling_mode: SAMPLING_MODES = "NORMAL",
     ) -> list[dict]:
         # Filter on has:gen_ai.operation.type (rather than the presence of
-        # messages) so the conversation-id query sees every gen_ai span
-        # (ai_client, tool, invoke_agent). This is what makes conversation-wide
-        # aggregates (errors, toolCalls, duration) correct to sort/paginate on.
+        # messages) so every gen_ai span (ai_client, tool, invoke_agent) is
+        # visible. This makes conversation-wide aggregates correct to sort on.
         base_filter = "has:gen_ai.conversation.id has:gen_ai.operation.type"
-        query_string = _build_conversation_query(base_filter, user_query)
+        filter_query = _build_conversation_query(base_filter, user_query)
 
-        conversation_ids_results = self._fetch_conversation_ids(
-            snuba_params, query_string, offset, limit, sort, sampling_mode
+        # Phase 1: find all conversation IDs that match the user query.
+        # Sort aggregates must not be filtered by the user query — the user query
+        # determines which *conversations* qualify, not which spans within them
+        # count toward a metric. Computing sort aggregates over user-query-filtered
+        # spans would cause sort order to disagree with the displayed values (which
+        # are always full-conversation aggregates).
+        all_ids_results = self._fetch_qualifying_conversation_ids(
+            snuba_params, filter_query, sampling_mode
         )
-        conversation_ids = _extract_conversation_ids(conversation_ids_results)
+        all_ids = _extract_conversation_ids(all_ids_results)
 
-        sentry_sdk.set_tag("ai_conversations.count", len(conversation_ids))
-        sentry_sdk.set_attribute("ai_conversations.count", len(conversation_ids))
+        sentry_sdk.set_tag("ai_conversations.count", len(all_ids))
+        sentry_sdk.set_attribute("ai_conversations.count", len(all_ids))
 
-        if not conversation_ids:
+        if not all_ids:
             return []
 
-        return self._get_conversations_data(snuba_params, conversation_ids)
+        # Phase 2: sort and paginate using full-conversation aggregates scoped
+        # only to the qualifying IDs (no user query in this filter).
+        sorted_ids_results = self._fetch_sorted_page(
+            snuba_params, all_ids, offset, limit, sort, sampling_mode
+        )
+        page_ids = _extract_conversation_ids(sorted_ids_results)
+
+        if not page_ids:
+            return []
+
+        return self._get_conversations_data(snuba_params, page_ids)
 
     @sentry_sdk.trace
-    def _fetch_conversation_ids(
+    def _fetch_qualifying_conversation_ids(
         self,
         snuba_params,
-        query_string: str,
+        filter_query: str,
+        sampling_mode: SAMPLING_MODES,
+    ) -> EAPResponse:
+        """Return all conversation IDs matching the user query (no sort, no pagination)."""
+        return Spans.run_table_query(
+            params=snuba_params,
+            query_string=filter_query,
+            selected_columns=["gen_ai.conversation.id", _TIMESTAMP_AGGREGATE],
+            orderby=None,
+            offset=0,
+            limit=10_000,
+            referrer=Referrer.API_AI_CONVERSATIONS_IDS.value,
+            config=SearchResolverConfig(auto_fields=True),
+            sampling_mode=sampling_mode,
+        )
+
+    @sentry_sdk.trace
+    def _fetch_sorted_page(
+        self,
+        snuba_params,
+        conversation_ids: list[str],
         offset: int,
         limit: int,
         sort: str,
         sampling_mode: SAMPLING_MODES,
     ) -> EAPResponse:
+        """Sort and paginate the given conversation IDs using full-conversation aggregates.
+
+        The query is scoped only to the provided IDs so that sort aggregates
+        reflect the complete conversation, not a user-query-filtered subset.
+        """
         descending = sort.startswith("-")
         field = sort.lstrip("-")
         prefix = "-" if descending else ""
 
-        # The conversation-id query groups by gen_ai.conversation.id, so we sort
-        # on an aggregate of the matching spans. max(precise.finish_ts) is always
-        # selected and used as a secondary, stable-pagination tiebreaker.
+        # max(precise.finish_ts) is always selected as a stable tiebreaker.
         selected_columns = ["gen_ai.conversation.id", _TIMESTAMP_AGGREGATE]
         equations: list[str] | None = None
 
@@ -321,7 +359,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         return Spans.run_table_query(
             params=snuba_params,
-            query_string=query_string,
+            query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
             selected_columns=selected_columns,
             orderby=orderby,
             equations=equations,
