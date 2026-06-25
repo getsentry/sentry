@@ -68,7 +68,7 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
 
           return <Fragment key={rowId}>{renderRow(dataRow)}</Fragment>;
         })}
-      <GridRow role="toolbar">
+      <PinnedActionsRow role="toolbar">
         <PinnedGridBodyCell>
           <Flex justify="end">
             <Button
@@ -91,19 +91,24 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
             </Button>
           </Flex>
         </PinnedGridBodyCell>
-      </GridRow>
+      </PinnedActionsRow>
     </PinnedTableBody>
   );
 }
 
 const PinnedTableBody = styled(TableBody)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  height: max-content;
-  flex-shrink: 0;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
+`;
+
+const PinnedActionsRow = styled(GridRow)`
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const PinnedGridBodyCell = styled('td')`
