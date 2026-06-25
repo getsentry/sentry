@@ -30,7 +30,7 @@ class NodeInfo:
 
 
 # Based on configuration, this could be:
-# - a `rediscluster` Cluster (actually `RetryingRedisCluster`)
+# - a `redis` RedisCluster (actually `RetryingRedisCluster`)
 # - a `rb.Cluster` (client side routing cluster client)
 Cluster = Union[RedisCluster, rb.Cluster, StrictRedis]
 
@@ -50,9 +50,11 @@ def get_host_port_info(node_id: str, cluster: Cluster) -> NodeInfo:
     """
     try:
         if isinstance(cluster, RedisCluster):
-            # RedisCluster node mapping
-            node = cluster.connection_pool.nodes.nodes.get(node_id)
-            return NodeInfo(node["host"], node["port"])
+            # redis-py keys cluster results by node name ("host:port"); resolve
+            # it back to the node to read its host/port.
+            node = cluster.get_node(node_name=node_id)
+            if node is not None:
+                return NodeInfo(node.host, node.port)
         elif isinstance(cluster, rb.Cluster):
             # rb.Cluster node mapping
             node = cluster.hosts[node_id]
@@ -68,8 +70,10 @@ def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory]:
     A generator that yields redis `INFO` results for each of the nodes in the `cluster`.
     """
     if isinstance(cluster, RedisCluster):
-        # `RedisCluster` returns these as a dictionary, with the node-id as key
-        cluster_info = cluster.info()
+        # redis-py routes INFO to a single default node unless we explicitly
+        # target the primaries; the result is then a dict keyed by node name
+        # ("host:port").
+        cluster_info = cluster.info(target_nodes=RedisCluster.PRIMARIES)
     elif isinstance(cluster, StrictRedis):
         cluster_info = {"main": cluster.info()}
     else:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from typing import Any
 
 import pytest
@@ -36,7 +37,7 @@ def _has_root_span_key(segment_key: bytes) -> bytes:
 
 
 @pytest.fixture
-def redis_client() -> StrictRedis[bytes] | RedisCluster[bytes]:
+def redis_client() -> Generator[StrictRedis[bytes] | RedisCluster[bytes]]:
     buf = SpansBuffer(assigned_shards=list(range(32)))
     buf.client.flushdb()
     yield buf.client
@@ -55,7 +56,8 @@ def eval_add_buffer_script(
     max_segment_bytes: int = 0,
     check_flush_lock: bool = False,
 ) -> list[Any]:
-    sha = client.script_load(add_buffer_script.script)
+    # stub package omits script_load on RedisCluster and Script.script
+    sha = client.script_load(add_buffer_script.script)  # type: ignore[union-attr, attr-defined]
     return client.execute_command(
         "EVALSHA",
         sha,

@@ -44,7 +44,7 @@ from sentry.utils.sdk import bind_organization_context
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry_redis_tools.clients import RedisCluster
+    from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 
 class ChunkFileState:
@@ -183,7 +183,7 @@ def _get_cache_key(task, scope, checksum):
     )
 
 
-def _get_redis_cluster_for_assemble() -> RedisCluster:
+def _get_redis_cluster_for_assemble() -> RedisCluster[str] | StrictRedis[str]:
     cluster_key = settings.SENTRY_ASSEMBLE_CLUSTER
     return redis.redis_clusters.get(cluster_key)
 

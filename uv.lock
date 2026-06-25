@@ -1966,21 +1966,10 @@ wheels = [
 
 [[package]]
 name = "redis"
-version = "3.4.1"
+version = "4.6.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/redis-3.4.1-py2.py3-none-any.whl", hash = "sha256:b205cffd05ebfd0a468db74f0eedbff8df1a7bfc47521516ade4692991bb0833" },
-]
-
-[[package]]
-name = "redis-py-cluster"
-version = "2.1.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "redis", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/redis_py_cluster-2.1.0-py2.py3-none-any.whl", hash = "sha256:22aaa35c145c7a278fea593e94916b6fdf377e49c0af0508d89112f3e79aab06" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/redis-4.6.0-py3-none-any.whl", hash = "sha256:e2b03db868160ee4591de3cb90d40ebb50a90dd302138775937f6a42b7ed183c" },
 ]
 
 [[package]]
@@ -2227,7 +2216,6 @@ dependencies = [
     { name = "pyvat", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "rb", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "redis", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "redis-py-cluster", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "reportlab", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "requests-oauthlib", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2399,8 +2387,7 @@ requires-dist = [
     { name = "python3-saml", specifier = ">=1.15.0" },
     { name = "pyvat", specifier = ">=1.3.15" },
     { name = "rb", specifier = ">=1.10.0" },
-    { name = "redis", specifier = ">=3.4.1" },
-    { name = "redis-py-cluster", specifier = ">=2.1.0" },
+    { name = "redis", specifier = ">=4.6,<5" },
     { name = "reportlab", specifier = ">=4.4.0" },
     { name = "requests", specifier = ">=2.33.0" },
     { name = "requests-oauthlib", specifier = ">=1.2.0" },
@@ -2427,7 +2414,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=13.1.1" },
-    { name = "taskbroker-client", specifier = ">=0.20.4" },
+    { name = "taskbroker-client", specifier = ">=0.20.5" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2489,7 +2476,7 @@ dev = [
     { name = "types-psycopg2", specifier = ">=2.9.21" },
     { name = "types-python-dateutil", specifier = ">=2.8.19" },
     { name = "types-pyyaml", specifier = ">=6.0.11" },
-    { name = "types-redis", specifier = ">=3.5.18" },
+    { name = "types-redis", specifier = ">=4.6,<5" },
     { name = "types-requests", specifier = ">=2.32.0.20241016" },
     { name = "types-requests-oauthlib", specifier = ">=2.0.0.20250119" },
     { name = "types-setuptools", specifier = ">=69.0.0.0" },
@@ -2820,7 +2807,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.20.4"
+version = "0.20.5"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2830,14 +2817,13 @@ dependencies = [
     { name = "msgpack", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "redis", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "redis-py-cluster", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-arroyo", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-protos", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-sdk", extra = ["http2"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.4-py3-none-any.whl", hash = "sha256:bdb61d9fff1fe2eb29739800170d170b8af5c13c60bedce9f04d6c476548cdc3" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.5-py3-none-any.whl", hash = "sha256:ed7e2a871f12b36b28f86d796f9692654434d7df7fc67ace1801d886bd75ae8a" },
 ]
 
 [[package]]
@@ -3041,6 +3027,17 @@ wheels = [
 ]
 
 [[package]]
+name = "types-pyopenssl"
+version = "23.2.0.2"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "cryptography", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/types_pyOpenSSL-23.2.0.2-py3-none-any.whl", hash = "sha256:19536aa3debfbe25a918cf0d898e9f5fbbe6f3594a429da7914bf331deb1b342" },
+]
+
+[[package]]
 name = "types-python-dateutil"
 version = "2.8.19"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -3058,10 +3055,14 @@ wheels = [
 
 [[package]]
 name = "types-redis"
-version = "3.5.18"
+version = "4.6.0.3"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "cryptography", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "types-pyopenssl", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/types_redis-3.5.18-py3-none-any.whl", hash = "sha256:5c55c4b9e8ebdc6d57d4e47900b77d99f19ca0a563264af3f701246ed0926335" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/types_redis-4.6.0.3-py3-none-any.whl", hash = "sha256:67c44c14369c33c2a300da2a50b5607c0fc888f7b85eeb7c73e15c78a0f05edd" },
 ]
 
 [[package]]

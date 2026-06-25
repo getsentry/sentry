@@ -146,7 +146,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
     def validate(self) -> None:
         try:
             self.client.ping()
-            self.client.connection_pool.disconnect()
+            redis.disconnect_redis_client(self.client)
         except Exception as e:
             raise InvalidConfiguration(str(e))
 

@@ -30,7 +30,7 @@ from sentry.tasks.post_process import locks
 from sentry.utils import metrics
 from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.utils.redis import redis_clusters
+from sentry.utils.redis import mget_nonatomic, redis_clusters
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -224,7 +224,8 @@ def get_latest_threshold(project: Project) -> float:
         STALE_DATE_KEY.format(project_id=project.id),
     ]
     client = get_redis_client()
-    cache_results = client.mget(keys)  # returns None if key is nonexistent
+    # Keys are cross-slot and must be requested non-atomically.
+    cache_results = mget_nonatomic(client, keys)  # returns None if key is nonexistent
     # Redis stores values as strings, so convert to float for downstream comparisons
     threshold = float(cache_results[0]) if cache_results[0] is not None else None
     stale_date = None

@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Protocol
+from typing import Protocol, cast
 
 import sentry_sdk
 
@@ -52,7 +52,7 @@ class RedisRuleStore:
         client = get_redis_client()
         key = self._get_rules_key(project)
         data = client.hgetall(key)
-        return {rule: int(timestamp) for rule, timestamp in data.items()}
+        return {ReplacementRule(rule): int(timestamp) for rule, timestamp in data.items()}
 
     def read_sorted(self, project: Project) -> list[tuple[ReplacementRule, int]]:
         rule_set = self.read(project)
@@ -66,7 +66,8 @@ class RedisRuleStore:
             # to be consistent with other stores, clear previous hash entries:
             p.delete(key)
             if len(rules) > 0:
-                p.hmset(name=key, mapping=rules)
+                # Cast for hset's str|bytes key requirement.
+                p.hset(name=key, mapping=cast("Mapping[str | bytes, int]", rules))
             p.execute()
 
     def update_rule(self, project: Project, rule: str, last_used: int) -> None:

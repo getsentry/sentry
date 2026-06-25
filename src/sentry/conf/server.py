@@ -1363,7 +1363,7 @@ LOGGING: LoggingConfig = {
         },
         "boto3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "botocore": {"level": "WARNING", "handlers": ["console"], "propagate": False},
-        "rediscluster": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+        "redis.cluster": {"level": "WARNING", "handlers": ["console"], "propagate": False},
     },
 }
 

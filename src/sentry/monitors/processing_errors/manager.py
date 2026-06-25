@@ -18,6 +18,7 @@ from sentry.models.project import Project
 from sentry.monitors.models import Monitor
 from sentry.monitors.types import CheckinItem
 from sentry.utils import json, metrics, redis
+from sentry.utils.redis import mget_nonatomic
 
 from .errors import CheckinProcessingError, ProcessingErrorsException, ProcessingErrorType
 
@@ -86,7 +87,7 @@ def _get_for_entities(entity_identifiers: list[str]) -> list[CheckinProcessingEr
     ]
     errors = [
         CheckinProcessingError.from_dict(json.loads(raw_error))
-        for raw_error in redis.mget(error_identifiers)
+        for raw_error in mget_nonatomic(redis, error_identifiers)
         if raw_error is not None
     ]
     errors.sort(key=lambda error: error.checkin.ts.timestamp(), reverse=True)

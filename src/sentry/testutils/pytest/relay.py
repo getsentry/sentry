@@ -12,6 +12,7 @@ import docker.errors
 import ephemeral_port_reserve
 import pytest
 import requests
+from sentry_redis_tools.clients import StrictRedis
 
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.testutils.pytest import xdist
@@ -79,7 +80,11 @@ def relay_server_setup(live_server, tmpdir_factory):
     projectconfig_backend = projectconfig_cache.backend.test_only__downcast_to(
         RedisProjectConfigCache
     )
-    assert redis_db == projectconfig_backend.cluster.connection_pool.connection_kwargs["db"]
+    # The test projectconfig cache runs against a standalone redis; connection_pool
+    # only exists on StrictRedis (not RedisCluster), so narrow before accessing it.
+    cluster = projectconfig_backend.cluster
+    assert isinstance(cluster, StrictRedis)
+    assert redis_db == cluster.connection_pool.connection_kwargs["db"]
 
     template_vars = {
         "SENTRY_HOST": f"http://host.docker.internal:{port}/",

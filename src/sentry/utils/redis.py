@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import importlib.resources
 import logging
-from copy import deepcopy
+from collections.abc import Iterable
 from threading import Lock
-from typing import Any, Literal, TypeGuard, TypeVar, overload
+from typing import Any, Literal, TypeGuard, TypeVar, cast, overload
 
 import rb
 from django.utils.functional import SimpleLazyObject
-from redis.client import Script, StrictRedis
+from redis.client import StrictRedis
+from redis.cluster import ClusterNode
+from redis.commands.core import Script
 from redis.connection import ConnectionPool
 from sentry_redis_tools.clients import RedisCluster
 from sentry_redis_tools.failover_redis import FailoverRedis
@@ -153,7 +155,7 @@ class RedisClusterManager:
         client_args: dict[str, Any] | None = None,
         **config: Any,
     ) -> RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]:
-        # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
+        # RedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
         if not hosts:
             hosts = []
@@ -174,19 +176,19 @@ class RedisClusterManager:
         ):
             if is_redis_cluster:
                 return RetryingRedisCluster(
-                    # Intentionally copy hosts here because redis-cluster-py
-                    # mutates the inner dicts and this closure can be run
-                    # concurrently, as SimpleLazyObject is not threadsafe. This
-                    # is likely triggered by RetryingRedisCluster running
-                    # reset() after startup
-                    #
-                    # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
-                    startup_nodes=deepcopy(hosts_list),
+                    # redis-py discovers the full topology from the seed nodes;
+                    # `max_connections` is per-node by default (replacing the
+                    # redis-py-cluster `max_connections_per_node` flag), and
+                    # `read_from_replicas` replaces the old `readonly_mode`.
+                    # Full-coverage checking is off by default (the old
+                    # `skip_full_coverage_check=True`).
+                    startup_nodes=[
+                        ClusterNode(node.get("host", "localhost"), node.get("port", 6379))
+                        for node in hosts_list
+                    ],
                     decode_responses=decode_responses,
-                    skip_full_coverage_check=True,
+                    read_from_replicas=readonly_mode,
                     max_connections=16,
-                    max_connections_per_node=True,
-                    readonly_mode=readonly_mode,
                     **client_args,
                 )
             else:
@@ -196,7 +198,10 @@ class RedisClusterManager:
                 return FailoverRedis(**host, **client_args)
 
         # losing some type safety: SimpleLazyObject acts like the underlying type
-        return SimpleLazyObject(cluster_factory)
+        return cast(
+            "RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]",
+            SimpleLazyObject(cluster_factory),
+        )
 
     def get(self, key: str) -> RedisCluster[str] | StrictRedis[str]:
         try:
@@ -295,6 +300,30 @@ def get_cluster_routing_client(
         raise AssertionError("unreachable")
 
 
+def disconnect_redis_client(client: RedisCluster[Any] | StrictRedis[Any]) -> None:
+    """Disconnect all connection pools for a client."""
+    if isinstance(client, RedisCluster):
+        client.disconnect_connection_pools()
+    else:
+        client.connection_pool.disconnect()
+
+
+def mget_nonatomic(client: RedisCluster[Any] | StrictRedis[Any], keys: Iterable[str]) -> list[Any]:
+    """
+    Bulk fetch multiple keys _non-atomically_.
+
+    This function pipelines mget requests per node. It is required when using keys which are not
+    guaranteed to be in the same node. Node slot is determined by the hash identifier in the key
+    `some-key{identifier}`.
+
+    Failure to use this function with cross slot keys will raise `RedisClusterException`.
+    """
+    key_list = list(keys)
+    if isinstance(client, RedisCluster):
+        return client.mget_nonatomic(key_list)
+    return client.mget(key_list)
+
+
 def is_instance_redis_cluster(
     val: rb.Cluster | RedisCluster[str], is_redis_cluster: bool
 ) -> TypeGuard[RedisCluster[str]]:
@@ -313,7 +342,7 @@ def validate_dynamic_cluster(
     try:
         if is_instance_redis_cluster(cluster, is_redis_cluster):
             cluster.ping()
-            cluster.connection_pool.disconnect()
+            disconnect_redis_client(cluster)
         elif is_instance_rb_cluster(cluster, is_redis_cluster):
             with cluster.all() as client:
                 client.ping()
