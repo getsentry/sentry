@@ -436,7 +436,6 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="random_id",
         raw_pattern=r"""
-            \b
             # Random nonsense alphanumeric id strings. To avoid false positives, we require the
             # following:
             #   - A minimum of 4 characters, with at least a certain level of "mixed-up-ness". For
@@ -447,6 +446,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             #     letters, and numbers. (For 6+ character strings, the switching requirement alone
             #     is restrictive enough.)
             #
+            # Negative lookbehind to create a word boundary but with underscores allowed (to permit
+            # things like `some_file_k9cm2.py`)
+            (?<![a-zA-Z0-9])
             # Lookaheads guaranteeing either a) at least 6 characters or b) at least one uppercase
             # or at least one lowercase letter, respectively. Together, they guarantee that matches
             # of fewer than 6 charactes have both.
@@ -462,7 +464,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             )
             # The pattern itself
             [a-zA-Z0-9]{4,128}
-            \b
+            # Negative lookahead similar to the negative lookbehind above - \b, but with underscores
+            # allowed
+            (?![a-zA-Z0-9])
         """,
     ),
     ParameterizationRegex(
