@@ -553,15 +553,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # groups/channels:history scopes are optional, so they may not be present in
         # new Slack app installations.
         if SlackScope.APP_MENTIONS_READ in scopes:
-            nudge_text = "You can tag Sentry directly on any message to help investigate"
+            nudge_text = "Mention or tag Sentry to investigate issues more deeply."
         else:
             reinstall_url = org.absolute_url(
                 f"/settings/{org.slug}/integrations/slack/",
                 query="showInstallModal=1",
             )
-            nudge_text = (
-                f"<{reinstall_url}|Reinstall Sentry in Slack> to ask questions and debug faster"
-            )
+            nudge_text = f"Ask Sentry questions and debug faster, <{reinstall_url}|reinstall Sentry Slack app>."
         return self.get_context_block(text=nudge_text)
 
     def build_description_block(self, description_text: str) -> SlackBlock | None:
