@@ -175,7 +175,7 @@ const CELL_MAX_CHARS = 256;
 
 function TooltipContent({text}: {text: string}) {
   return (
-    <TooltipTextContainer>
+    <TooltipTextContainer onClick={e => e.stopPropagation()}>
       <AIContentRenderer text={ellipsize(text, TOOLTIP_MAX_CHARS)} inline />
     </TooltipTextContainer>
   );

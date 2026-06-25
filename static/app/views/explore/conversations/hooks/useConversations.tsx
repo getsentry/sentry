@@ -21,8 +21,10 @@ export interface Conversation {
   endTimestamp: number;
   errors: number;
   firstInput: string | null;
+  inputTokens: number;
   lastOutput: string | null;
   llmCalls: number;
+  outputTokens: number;
   startTimestamp: number;
   toolCalls: number;
   toolErrors: number;
