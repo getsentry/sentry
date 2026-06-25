@@ -349,7 +349,8 @@ export default function IntegrationListDirectory() {
           publishStatus="published"
           configurations={providerIntegrations.length}
           disabledConfigurations={
-            providerIntegrations.filter(i => getIntegrationStatus(i) === 'disabled').length
+            providerIntegrations.filter(i => getIntegrationStatus(i) === 'disabled')
+              .length
           }
           categories={getCategoriesForIntegration(provider)}
           alertText={getAlertText(providerIntegrations)}
