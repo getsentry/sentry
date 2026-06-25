@@ -5,7 +5,7 @@ from time import time
 
 import rb
 import sentry_sdk
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project

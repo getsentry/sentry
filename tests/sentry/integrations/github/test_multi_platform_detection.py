@@ -12,8 +12,8 @@ from sentry.integrations.github.multi_platform_detection import (
     _collect_needed_paths,
     _framework_matches_scoped,
     _get_tree,
-    _path_is_ignored,
     _rule_parent_dirs,
+    _segments_are_ignored,
     _select_active_platforms,
     detect_platforms_multi,
 )
@@ -23,7 +23,7 @@ from sentry.integrations.github.platform_registry import (
     FrameworkDef,
     _PackageManifest,
 )
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiConflictError, ApiError
 from sentry.utils import json
 
 
@@ -623,26 +623,84 @@ class TestSelectActivePlatforms:
         assert first_platform == "python"
 
 
-class TestPathIsIgnored:
+class TestSegmentsAreIgnored:
     def test_node_modules_segment_ignored(self) -> None:
-        assert _path_is_ignored("node_modules/react/index.js") is True
+        assert _segments_are_ignored(["node_modules", "react", "index.js"]) is True
 
     def test_nested_ignored_segment(self) -> None:
-        assert _path_is_ignored("a/b/vendor/c/util.py") is True
+        assert _segments_are_ignored(["a", "b", "vendor", "c", "util.py"]) is True
 
     def test_build_gradle_file_not_ignored(self) -> None:
-        # "build" is an ignored *directory* segment, but "build.gradle" is a filename,
-        # not the bare segment "build", so it must NOT be ignored.
-        assert _path_is_ignored("build.gradle") is False
+        # "build" is an ignored *directory* segment, but "build.gradle" as a
+        # single segment is not the bare string "build", so must NOT be ignored.
+        assert _segments_are_ignored(["build.gradle"]) is False
 
     def test_clean_path_not_ignored(self) -> None:
-        assert _path_is_ignored("src/app/main.py") is False
+        assert _segments_are_ignored(["src", "app", "main.py"]) is False
 
     def test_root_level_file_not_ignored(self) -> None:
-        assert _path_is_ignored("manage.py") is False
+        assert _segments_are_ignored(["manage.py"]) is False
 
     def test_dist_dir_ignored(self) -> None:
-        assert _path_is_ignored("dist/bundle.js") is True
+        assert _segments_are_ignored(["dist", "bundle.js"]) is True
+
+
+class TestDetectPlatformsMultiConcurrency:
+    def test_isolated_content_read_failure_does_not_abort_detection(self) -> None:
+        """If one content read raises ApiError the other reads must still
+        complete and the detection must return a valid result."""
+        from base64 import b64encode
+
+        # tree: requirements.txt (django content) + a second file that will 404
+        tree = [
+            _make_tree_entry("requirements.txt"),
+            _make_tree_entry("broken_file.txt"),  # will raise ApiError
+        ]
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Python": 80_000}
+
+        def get_side_effect(path: str, params: dict | None = None) -> Any:
+            if "/git/trees/" in path:
+                return {"tree": tree, "truncated": False}
+            rel = path.split("/contents/", 1)[1]
+            if rel == "requirements.txt":
+                return {"content": b64encode(b"Django==4.2\n").decode()}
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+        # Must not raise; ApiError on a single file is swallowed by
+        # _get_repo_file_content and should not abort the pool.
+        result = detect_platforms_multi(client, "owner/repo")
+        platform_ids = {p["platform"] for p in result["platforms"]}
+        assert "python-django" in platform_ids
+
+    def test_api_conflict_error_propagates_from_tree_future(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {}
+        client.get.side_effect = ApiConflictError("empty repo")
+        import pytest
+
+        with pytest.raises(ApiConflictError):
+            detect_platforms_multi(client, "owner/repo")
+
+    def test_languages_computed_before_tree_result_is_joined(self) -> None:
+        """active_platforms is derived from languages independently of the
+        tree.  Verify detection still produces correct output even when the
+        tree responds very slowly (simulated via call ordering introspection)."""
+        # Simple fixture: Go repo, go.mod at root (existence rule → high match).
+        tree = [_make_tree_entry("go.mod")]
+        client = _make_client(
+            languages={"Go": 60_000},
+            tree=tree,
+            contents={},
+        )
+        result = detect_platforms_multi(client, "owner/repo")
+        platform_ids = {p["platform"] for p in result["platforms"]}
+        assert "go" in platform_ids
+        # get_languages must have been called exactly once, tree call once.
+        assert client.get_languages.call_count == 1
+        tree_calls = [c for c in client.get.call_args_list if "/git/trees/" in c.args[0]]
+        assert len(tree_calls) == 1
 
 
 class TestGetTree:

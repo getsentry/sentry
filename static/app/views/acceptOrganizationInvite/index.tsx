@@ -6,9 +6,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -282,7 +282,7 @@ function AcceptOrganizationInvite() {
   return (
     <NarrowLayout>
       <SentryDocumentTitle title={t('Accept Organization Invite')} />
-      <Layout.Title>{t('Accept organization invite')}</Layout.Title>
+      <Heading as="h1">{t('Accept organization invite')}</Heading>
       {isAcceptError && (
         <Alert.Container>
           <Alert variant="danger" showIcon={false}>

@@ -50,7 +50,7 @@ type CheckoutChange<K, V> = {
 
 type PlanChange = CheckoutChange<'plan', string>;
 
-type CycleChange = CheckoutChange<'contractInterval', string>;
+type CycleChange = CheckoutChange<'billingInterval', string>;
 
 type ProductChange = CheckoutChange<AddOnCategory, boolean>;
 
@@ -120,7 +120,7 @@ function PlanDiff({
             leftComponent = <ChangeSectionTitle>{t('Plan')}</ChangeSectionTitle>;
           }
           let formattingFunction = (value: any) => value;
-          if (key === 'plan' || key === 'contractInterval') {
+          if (key === 'plan' || key === 'billingInterval') {
             formattingFunction = (value: any) =>
               value === 'annual'
                 ? t('Yearly')
@@ -317,12 +317,12 @@ export function CartDiff({
   }, [activePlan, currentPlan]);
 
   const getCycleChanges = useCallback((): CycleChange[] => {
-    if (activePlan.contractInterval !== currentPlan.contractInterval) {
+    if (activePlan.billingInterval !== currentPlan.billingInterval) {
       return [
         {
-          key: 'contractInterval',
-          currentValue: currentPlan.contractInterval,
-          newValue: activePlan.contractInterval,
+          key: 'billingInterval',
+          currentValue: currentPlan.billingInterval,
+          newValue: activePlan.billingInterval,
         },
       ];
     }

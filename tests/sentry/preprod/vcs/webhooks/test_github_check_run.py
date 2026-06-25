@@ -7,10 +7,12 @@ from unittest.mock import patch
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.repository import Repository
+from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.vcs.status_checks.size.tasks import APPROVE_SIZE_ACTION_IDENTIFIER
 from sentry.preprod.vcs.webhooks.github_check_run import handle_preprod_check_run_event
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.silo import cell_silo_test
 
 
@@ -162,7 +164,8 @@ class HandlePreprodCheckRunEventTest(TestCase):
             == 0
         )
 
-    def test_creates_approval_for_valid_request(self) -> None:
+    @patch("sentry.analytics.record")
+    def test_creates_approval_for_valid_request(self, mock_analytics) -> None:
         artifact = self._create_preprod_artifact()
         event = self._create_webhook_event(
             action="requested_action",
@@ -196,6 +199,17 @@ class HandlePreprodCheckRunEventTest(TestCase):
         mock_task.assert_called_once_with(
             preprod_artifact_id=artifact.id,
             caller="github_approve_webhook",
+        )
+
+        assert_any_analytics_event(
+            mock_analytics,
+            PreprodStatusCheckApprovalCreatedEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                artifact_id=artifact.id,
+                product="size",
+                source="vcs",
+            ),
         )
 
     def test_creates_approvals_for_all_sibling_artifacts(self) -> None:

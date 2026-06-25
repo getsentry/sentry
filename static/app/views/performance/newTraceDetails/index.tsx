@@ -13,7 +13,6 @@ import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/log
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {TraceAiTab} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiTab';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
@@ -273,11 +272,10 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
 const TraceViewImpl = registerLLMContext('trace', TraceViewImplInner);
 
 function TraceInnerLayout(props: FlexProps) {
-  const hasPageFrame = useHasPageFrameFeature();
   return (
     <Flex
       {...props}
-      background={hasPageFrame ? 'primary' : undefined}
+      background="primary"
       direction="column"
       gap="md"
       padding="xl"

@@ -5,7 +5,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Access} from 'sentry/components/acl/access';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';

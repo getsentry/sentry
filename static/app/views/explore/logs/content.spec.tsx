@@ -85,6 +85,20 @@ describe('LogsPage', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: null, fields: [], valid: true},
+        valid: true,
+      },
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/stats_v2/`,
       method: 'GET',
       body: {},

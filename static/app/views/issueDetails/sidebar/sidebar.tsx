@@ -91,7 +91,7 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
     >
       {tourProps => (
         <Side {...tourProps}>
-          <FirstLastSeenSection group={group} />
+          <FirstLastSeenSection group={group} event={event} />
           <StyledBreak />
           {showSeerSection && (
             <ErrorBoundary mini>

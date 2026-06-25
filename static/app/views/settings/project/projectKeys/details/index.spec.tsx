@@ -156,7 +156,7 @@ describe('ProjectKeyDetails', () => {
     project = ProjectFixture({features: ['rate-limits']});
     projectKeys = [
       {
-        ...ProjectKeysFixture()[0]!,
+        ...ProjectKeysFixture()[0],
         rateLimit: {count: 5, window: 60},
       },
     ];
@@ -168,10 +168,14 @@ describe('ProjectKeyDetails', () => {
 
     renderProjectKeyDetails();
 
-    const countInput = await screen.findByPlaceholderText('Count');
+    const countInput = await screen.findByRole('spinbutton', {name: 'Count'});
 
+    // Change count to a different value
     await userEvent.clear(countInput);
-    await userEvent.tab();
+    await userEvent.type(countInput, '10');
+
+    // Click Save to submit the form
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledTimes(1);
@@ -180,17 +184,13 @@ describe('ProjectKeyDetails', () => {
     expect(putMock).toHaveBeenLastCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       expect.objectContaining({
-        data: {rateLimit: null},
+        data: {rateLimit: {count: 10, window: 60}},
       })
     );
 
+    // After API responds with null, the form resets — Reset should be disabled (pristine)
     await waitFor(() => {
-      expect((countInput as HTMLInputElement).value).toBe('');
+      expect(screen.getByRole('button', {name: 'Reset'})).toBeDisabled();
     });
-
-    await userEvent.click(countInput);
-    await userEvent.tab();
-
-    expect(putMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -48,7 +48,6 @@ describe('Subscription > PendingChanges', () => {
         onDemandEffectiveDate: '2021-02-01',
         planDetails: PlanFixture({
           name: 'Team',
-          contractInterval: MONTHLY,
           budgetTerm: 'on-demand',
           categories: [DataCategory.ERRORS, DataCategory.TRANSACTIONS],
         }),
@@ -65,11 +64,10 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.getByText('Feb 1, 2021')).toBeInTheDocument();
     expect(getItemWithText('Plan change to Team')).toBeInTheDocument();
     expect(screen.queryByText('Billing period')).not.toBeInTheDocument();
-    expect(getItemWithText('Contract period change to monthly')).toBeInTheDocument();
     expect(getItemWithText('Reserved errors change to 100,000')).toBeInTheDocument();
     expect(getItemWithText('On-Demand spend change from $100 to $0')).toBeInTheDocument();
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(4);
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
   });
 
   it('renders mmx to AM plan and ondemand changes', async () => {
@@ -86,7 +84,6 @@ describe('Subscription > PendingChanges', () => {
         planDetails: PlanFixture({
           name: 'Team',
           billingInterval: MONTHLY,
-          contractInterval: MONTHLY,
           categories: [
             DataCategory.ERRORS,
             DataCategory.TRANSACTIONS,
@@ -104,7 +101,6 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.getByText('Feb 1, 2021')).toBeInTheDocument();
     expect(getItemWithText('Plan change to Team')).toBeInTheDocument();
     expect(getItemWithText('Billing period change to monthly')).toBeInTheDocument();
-    expect(getItemWithText('Contract period change to monthly')).toBeInTheDocument();
 
     expect(getItemWithText('Reserved errors change to 100,000')).toBeInTheDocument();
     expect(
@@ -115,7 +111,7 @@ describe('Subscription > PendingChanges', () => {
       getItemWithText('On-Demand spend change from $100 to $50')
     ).toBeInTheDocument();
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(7);
+    expect(screen.getAllByRole('listitem')).toHaveLength(6);
   });
 
   it('renders plan and ondemand changes for AM tier change', async () => {
@@ -136,7 +132,6 @@ describe('Subscription > PendingChanges', () => {
         planDetails: PlanFixture({
           name: 'Business',
           billingInterval: MONTHLY,
-          contractInterval: MONTHLY,
           categories: [
             DataCategory.ERRORS,
             DataCategory.TRANSACTIONS,
@@ -154,7 +149,6 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.getByText('Feb 1, 2021')).toBeInTheDocument();
     expect(getItemWithText('Plan change to Business')).toBeInTheDocument();
     expect(getItemWithText('Billing period change to monthly')).toBeInTheDocument();
-    expect(getItemWithText('Contract period change to monthly')).toBeInTheDocument();
 
     expect(
       getItemWithText('Reserved transactions change to 250,000')
@@ -164,7 +158,7 @@ describe('Subscription > PendingChanges', () => {
       getItemWithText('On-Demand spend change from $100 to $50')
     ).toBeInTheDocument();
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(6);
+    expect(screen.getAllByRole('listitem')).toHaveLength(5);
   });
 
   it('renders AM plan and pending shared ondemand changes', async () => {
@@ -198,7 +192,6 @@ describe('Subscription > PendingChanges', () => {
         planDetails: PlanFixture({
           name: 'Team',
           billingInterval: MONTHLY,
-          contractInterval: MONTHLY,
           categories: [
             DataCategory.ERRORS,
             DataCategory.TRANSACTIONS,
@@ -248,7 +241,6 @@ describe('Subscription > PendingChanges', () => {
         planDetails: PlanFixture({
           name: 'Team',
           billingInterval: MONTHLY,
-          contractInterval: MONTHLY,
           categories: [
             DataCategory.ERRORS,
             DataCategory.TRANSACTIONS,
@@ -293,7 +285,6 @@ describe('Subscription > PendingChanges', () => {
             DataCategory.ATTACHMENTS,
           ],
           billingInterval: ANNUAL,
-          contractInterval: ANNUAL,
           budgetTerm: 'on-demand',
         }),
       }),
@@ -359,7 +350,6 @@ describe('Subscription > PendingChanges', () => {
         onDemandEffectiveDate: '2021-03-01',
         planDetails: PlanFixture({
           name: 'Team',
-          contractInterval: ANNUAL,
           categories: [
             DataCategory.ERRORS,
             DataCategory.TRANSACTIONS,

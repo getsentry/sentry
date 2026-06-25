@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -15,6 +16,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.auth.staff import is_active_staff
 from sentry.models.organization import Organization
+from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
@@ -74,6 +76,16 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
             approved_by_id=request.user.id,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
             approved_at=datetime.now(timezone.utc),
+        )
+
+        analytics.record(
+            PreprodStatusCheckApprovalCreatedEvent(
+                organization_id=organization.id,
+                project_id=artifact.project_id,
+                artifact_id=artifact.id,
+                product=feature_type_str,
+                source="web",
+            )
         )
 
         PreprodComparisonApproval.objects.filter(

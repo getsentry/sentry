@@ -195,7 +195,7 @@ function CancelSubscriptionForm() {
              Cancelling your subscription will downgrade your account to a free plan at the end
              of your contract on [contractEndDate].`,
             {
-              interval: subscription?.contractInterval === ANNUAL ? 'annual' : 'monthly',
+              interval: subscription?.billingInterval === ANNUAL ? 'annual' : 'monthly',
               planName: <strong>{subscription?.planDetails?.name}</strong>,
               contractEndDate: (
                 <strong>{moment(subscription.billingPeriodEnd).format('ll')}</strong>
