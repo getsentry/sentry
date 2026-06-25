@@ -254,6 +254,7 @@ export default typescript.config([
   globalIgnores([
     '.devenv/**/*',
     '.github/**/*',
+    '.sentry-refactor-tasks/**/*',
     '.mypy_cache/**/*',
     '.pytest_cache/**/*',
     '.venv/**/*',
