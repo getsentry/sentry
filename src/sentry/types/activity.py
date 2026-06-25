@@ -89,7 +89,6 @@ CHOICES = tuple(
     ]
 )
 
-# TODO(Leander): Omitting iteration for now, adding it to alerting all at once
 SEER_ACTIVITY_TYPES = (
     ActivityType.SEER_RCA_STARTED,
     ActivityType.SEER_RCA_COMPLETED,
@@ -98,6 +97,8 @@ SEER_ACTIVITY_TYPES = (
     ActivityType.SEER_CODING_STARTED,
     ActivityType.SEER_CODING_COMPLETED,
     ActivityType.SEER_PR_CREATED,
+    ActivityType.SEER_ITERATION_STARTED,
+    ActivityType.SEER_ITERATION_COMPLETED,
 )
 
 
