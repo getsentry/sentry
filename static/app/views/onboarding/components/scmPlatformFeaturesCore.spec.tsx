@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RepositoryFixture} from 'sentry-fixture/repository';
@@ -148,5 +149,103 @@ describe('ScmPlatformFeaturesCore', () => {
       screen.getByRole('button', {name: 'Back to recommended platforms'})
     ).toBeInTheDocument();
     expect(screen.queryByTestId('icon-close')).not.toBeInTheDocument();
+  });
+
+  it('keeps a non-default detected selection when returning to the recommended view', async () => {
+    const onFeaturesChange = jest.fn();
+    const onClearProjectDetailsForm = jest.fn();
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    // python is the recommendation (first detected); javascript is the second.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {
+        platforms: [
+          DetectedPlatformFixture({platform: 'python'}),
+          DetectedPlatformFixture({platform: 'javascript'}),
+        ],
+      },
+    });
+
+    // Controlled, so hold the selection in state for the manual-pick flow.
+    function Host() {
+      const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(
+        pythonPlatform
+      );
+      return (
+        <ScmPlatformFeaturesCore
+          analyticsFlow="onboarding"
+          selectedRepository={repository}
+          selectedPlatform={platform}
+          onPlatformChange={setPlatform}
+          onFeaturesChange={onFeaturesChange}
+          onClearProjectDetailsForm={onClearProjectDetailsForm}
+        />
+      );
+    }
+
+    render(<Host />, {organization});
+
+    // Select the second detected platform, then open the manual picker.
+    await userEvent.click(
+      await screen.findByRole('radio', {name: 'Browser JavaScript Language'})
+    );
+    await userEvent.click(
+      screen.getByRole('button', {name: "Doesn't look right? Change platform"})
+    );
+    onFeaturesChange.mockClear();
+    onClearProjectDetailsForm.mockClear();
+
+    // Returning keeps the chosen detected platform: it is already detected, so
+    // nothing is reset and the card stays selected.
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Back to recommended platforms'})
+    );
+
+    expect(
+      await screen.findByRole('radio', {name: 'Browser JavaScript Language'})
+    ).toBeChecked();
+    expect(onFeaturesChange).not.toHaveBeenCalled();
+    expect(onClearProjectDetailsForm).not.toHaveBeenCalled();
+  });
+
+  it('does not reset state when returning without a change', async () => {
+    const onFeaturesChange = jest.fn();
+    const onClearProjectDetailsForm = jest.fn();
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    // python is both the recommendation and the already-selected platform.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+    });
+
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({
+          selectedRepository: repository,
+          selectedPlatform: pythonPlatform,
+          onFeaturesChange,
+          onClearProjectDetailsForm,
+        })}
+      />,
+      {organization}
+    );
+
+    // Open the manual picker from the detected view, then return without
+    // choosing a different platform.
+    await userEvent.click(
+      await screen.findByRole('button', {name: "Doesn't look right? Change platform"})
+    );
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Back to recommended platforms'})
+    );
+
+    expect(onFeaturesChange).not.toHaveBeenCalled();
+    expect(onClearProjectDetailsForm).not.toHaveBeenCalled();
   });
 });
