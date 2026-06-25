@@ -168,6 +168,11 @@ export function ScmPlatformFeaturesCore({
   // and stranding Create behind a "select a platform" tooltip. Reverting to a
   // detected platform is handled by "Back to recommended platforms" instead.
   const handleClearPlatform = () => {
+    // Treat the clear as resolving auto-adoption for this repo, so a detection
+    // request that finishes *after* an explicit clear (reachable via "Skip
+    // detection and select manually" while detection is still pending) does not
+    // re-adopt the detected platform and silently undo the clear.
+    autoDetectionTrackedRef.current = true;
     onPlatformChange(undefined);
     onFeaturesChange(undefined);
     onClearProjectDetailsForm();
