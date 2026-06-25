@@ -232,7 +232,7 @@ class ReleaseFileDetailsMixin:
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

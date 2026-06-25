@@ -37,7 +37,6 @@ function ChangePlanAction({
   closeModal,
 }: Props) {
   const [billingInterval, setBillingInterval] = useState(MONTHLY);
-  const [contractInterval, setContractInterval] = useState(MONTHLY);
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [formModel] = useState(() => new FormModel());
   const orgId = organization.slug;
@@ -79,7 +78,6 @@ function ChangePlanAction({
         plan.totalPrice &&
         plan.userSelectable &&
         plan.billingInterval === billingInterval &&
-        plan.contractInterval === contractInterval &&
         // Plan id on partner sponsored subscriptions is not modifiable so only
         // including the existing plan in the list
         (partnerPlanId === null || partnerPlanId === plan.id)
@@ -189,13 +187,12 @@ function ChangePlanAction({
     <ul className="nav nav-pills">
       <li
         className={classNames({
-          active: contractInterval === MONTHLY && billingInterval === MONTHLY,
+          active: billingInterval === MONTHLY,
         })}
       >
         <a
           onClick={() => {
             setBillingInterval(MONTHLY);
-            setContractInterval(MONTHLY);
           }}
         >
           Monthly
@@ -203,13 +200,12 @@ function ChangePlanAction({
       </li>
       <li
         className={classNames({
-          active: contractInterval === ANNUAL && billingInterval === ANNUAL,
+          active: billingInterval === ANNUAL,
         })}
       >
         <a
           onClick={() => {
             setBillingInterval(ANNUAL);
-            setContractInterval(ANNUAL);
           }}
         >
           Annual (Upfront)

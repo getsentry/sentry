@@ -12,7 +12,7 @@ from sentry.api.bases.organization import (
     OrganizationPermission,
 )
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.users.models.identity import Identity
+from sentry.users.models.identity import OrganizationIdentity
 
 MONITORING_PROVIDERS: dict[str, dict[str, str]] = {
     "datadog": {"name": "Datadog"},
@@ -41,22 +41,21 @@ class OrganizationMonitoringProviderIndexEndpoint(ControlSiloOrganizationEndpoin
         if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
             return Response(status=404)
 
-        connected_identities = {
-            identity.idp.type: identity
-            for identity in Identity.objects.filter(
-                idp__type__in=MONITORING_PROVIDERS.keys(),
-                user_id=request.user.id,  # type: ignore[misc]
-            ).select_related("idp")
-        }
+        connected_providers = set(
+            OrganizationIdentity.objects.filter(
+                organization_id=organization.id,
+                identity__user_id=request.user.id,  # type: ignore[misc]
+                identity__idp__type__in=MONITORING_PROVIDERS.keys(),
+            ).values_list("identity__idp__type", flat=True)
+        )
 
         providers = []
         for key, meta in MONITORING_PROVIDERS.items():
-            identity = connected_identities.get(key)
             providers.append(
                 {
                     "provider": key,
                     "name": meta["name"],
-                    "connected": identity is not None,
+                    "connected": key in connected_providers,
                 }
             )
 
