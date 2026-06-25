@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import collections
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -77,7 +77,9 @@ class AuditLogEvent:
     def render(self, audit_log_entry: AuditLogEntry) -> str:
         if not self.template:
             return ""
-        return self.template.format_map(collections.defaultdict(str, **(audit_log_entry.data or {})))
+        return self.template.format_map(
+            collections.defaultdict(str, **(audit_log_entry.data or {}))
+        )
 
 
 class AuditLogEventManager:
