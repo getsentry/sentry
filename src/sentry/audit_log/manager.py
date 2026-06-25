@@ -77,9 +77,13 @@ class AuditLogEvent:
     def render(self, audit_log_entry: AuditLogEntry) -> str:
         if not self.template:
             return ""
-        return self.template.format_map(
-            collections.defaultdict(str, **(audit_log_entry.data or {}))
-        )
+
+        data = audit_log_entry.data or {}
+        # If data is empty, return empty string to avoid rendering partial templates
+        if not data:
+            return ""
+
+        return self.template.format_map(collections.defaultdict(str, **data))
 
 
 class AuditLogEventManager:
