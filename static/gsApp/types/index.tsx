@@ -159,7 +159,6 @@ export type Plan = {
    */
   categories: DataCategory[];
   checkoutCategories: DataCategory[];
-  contractInterval: 'monthly' | 'annual';
   dashboardLimit: number;
   features: string[];
 
@@ -176,7 +175,6 @@ export type Plan = {
   name: string;
   onDemandCategories: DataCategory[];
   planCategories: Partial<Record<DataCategory, EventBucket[]>>;
-  price: number;
 
   retentionDays: number;
   totalPrice: number;
@@ -295,7 +293,6 @@ export type Subscription = {
    * Current history per data category
    */
   categories: Partial<Record<DataCategory, BillingMetricHistory>>;
-  contractInterval: 'monthly' | 'annual';
   customPrice: number | null;
   customPricePcss: number | null;
   // Event details
@@ -315,9 +312,7 @@ export type Subscription = {
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
   hasMigratedToBillingPlatform: boolean;
-  hasOverageNotificationsDisabled: boolean;
   hasRestrictedIntegration: boolean | null;
-  hasSoftCap: boolean;
   id: string;
 
   // Added by SubscriptionStore to show/hide a UI element

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import random
 from collections.abc import AsyncGenerator, AsyncIterator
 from urllib.parse import urljoin
 
@@ -15,9 +16,10 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 
+from sentry import options
 from sentry.objectstore.endpoints.organization import get_raw_body_async
-from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
+    PRESERVE_CONTENT_ENCODING_URL_NAMES,
     PROXY_APIGATEWAY_HEADER,
     PROXY_DIRECT_LOCATION_HEADER,
     clean_outbound_headers,
@@ -118,7 +120,12 @@ async def proxy_cell_request(
 ) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
     host = cell.address
-    if cell.api_gateway_address and in_random_rollout("apigateway.proxy.use_gateway_address"):
+    rollout_option = await sync_to_async(options.get)("apigateway.proxy.cell-rollout")
+    if (
+        cell.api_gateway_address
+        and isinstance(rollout_option, dict)
+        and random.random() < rollout_option.get(cell.name, 0.0)
+    ):
         host = cell.api_gateway_address
 
     metric_tags = {
@@ -145,9 +152,10 @@ async def proxy_cell_request(
 
     try:
         async with circuitbreakers.get(cell.name) as circuitbreaker:
+            if content_encoding and url_name in PRESERVE_CONTENT_ENCODING_URL_NAMES:
+                header_dict["Content-Encoding"] = content_encoding
+
             if url_name == "sentry-api-0-organization-objectstore":
-                if content_encoding:
-                    header_dict["Content-Encoding"] = content_encoding
                 data = get_raw_body_async(request)
             else:
                 data = BodyAsyncWrapper(request.body)

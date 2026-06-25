@@ -250,9 +250,6 @@ from sentry.integrations.api.endpoints.organization_integration_direct_enable im
 from sentry.integrations.api.endpoints.organization_integration_issues import (
     OrganizationIntegrationIssuesEndpoint,
 )
-from sentry.integrations.api.endpoints.organization_integration_migrate_opsgenie import (
-    OrganizationIntegrationMigrateOpsgenieEndpoint,
-)
 from sentry.integrations.api.endpoints.organization_integration_repo_sync import (
     OrganizationIntegrationRepoSyncEndpoint,
 )
@@ -806,7 +803,6 @@ from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundl
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
-from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
@@ -1968,11 +1964,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-integration-issues",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/migrate-opsgenie/$",
-        OrganizationIntegrationMigrateOpsgenieEndpoint.as_view(),
-        name="sentry-api-0-organization-integration-migrate-opsgenie",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/serverless-functions/$",
         OrganizationIntegrationServerlessFunctionsEndpoint.as_view(),
         name="sentry-api-0-organization-integration-serverless-functions",
@@ -2717,11 +2708,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/create-sample/$",
         ProjectCreateSampleEndpoint.as_view(),
         name="sentry-api-0-project-create-sample",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/create-sample-transaction/$",
-        ProjectCreateSampleTransactionEndpoint.as_view(),
-        name="sentry-api-0-project-create-sample-transaction",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/environments/$",

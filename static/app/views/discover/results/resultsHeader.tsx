@@ -1,5 +1,4 @@
-import {Component, Fragment, type ComponentProps} from 'react';
-import styled from '@emotion/styled';
+import {Component, Fragment} from 'react';
 import type {Location} from 'history';
 
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
@@ -8,25 +7,21 @@ import type {Client} from 'sentry/api';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {withApi} from 'sentry/utils/withApi';
 import {DiscoverBreadcrumb} from 'sentry/views/discover/breadcrumb';
-import {EventInputName} from 'sentry/views/discover/eventInputName';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type Props = {
   api: Client;
   errorCode: number;
   eventView: EventView;
-  hasPageFrameFeature: boolean;
   location: Location;
   organization: Organization;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
@@ -41,7 +36,7 @@ type State = {
   savedQuery: SavedQuery | undefined;
 };
 
-class ResultsHeader extends Component<Props, State> {
+class ResultsHeaderBase extends Component<Props, State> {
   state: State = {
     homepageQuery: undefined,
     savedQuery: undefined,
@@ -96,26 +91,6 @@ class ResultsHeader extends Component<Props, State> {
     });
   }
 
-  renderAuthor() {
-    const {eventView, isHomepage} = this.props;
-    const {savedQuery} = this.state;
-    // No saved query in use.
-    if (!eventView.id || isHomepage) {
-      return null;
-    }
-    let createdBy = ' \u2014 ';
-    let lastEdit: React.ReactNode = ' \u2014 ';
-    if (savedQuery !== undefined) {
-      createdBy = savedQuery.createdBy?.email || '\u2014';
-      lastEdit = <TimeSince date={savedQuery.dateUpdated} />;
-    }
-    return (
-      <Subtitle>
-        {t('Created by:')} {createdBy} | {t('Last edited:')} {lastEdit}
-      </Subtitle>
-    );
-  }
-
   render() {
     const {
       organization,
@@ -126,7 +101,6 @@ class ResultsHeader extends Component<Props, State> {
       setSavedQuery,
       isHomepage,
       splitDecision,
-      hasPageFrameFeature,
     } = this.props;
     const {savedQuery, loading, homepageQuery} = this.state;
     const hasDiscoverQueryFeature = organization.features.includes('discover-query');
@@ -143,7 +117,6 @@ class ResultsHeader extends Component<Props, State> {
         updateCallback={() => this.fetchData()}
         yAxis={yAxis}
         isHomepage={isHomepage}
-        hasPageFrameFeature={hasPageFrameFeature}
         setHomepageQuery={updatedHomepageQuery => {
           this.setState({
             homepageQuery: getSavedQueryWithDataset(updatedHomepageQuery)!,
@@ -166,23 +139,6 @@ class ResultsHeader extends Component<Props, State> {
       </Fragment>
     );
 
-    const legacyBreadcrumbAndInput = (
-      <Fragment>
-        <DiscoverBreadcrumb
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          isHomepage={isHomepage}
-        />
-        <EventInputName
-          savedQuery={savedQuery}
-          organization={organization}
-          eventView={eventView}
-          isHomepage={isHomepage}
-        />
-      </Fragment>
-    );
-
     const pageFrameBreadcrumb = (
       <DiscoverBreadcrumb
         eventView={eventView}
@@ -195,37 +151,16 @@ class ResultsHeader extends Component<Props, State> {
 
     return (
       <Layout.Header>
-        {hasPageFrameFeature ? (
-          <Fragment>
-            <TopBar.Slot name="title">
-              {isHomepage ? (
-                <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
-              ) : hasDiscoverQueryFeature ? (
-                pageFrameBreadcrumb
-              ) : (
-                title
-              )}
-            </TopBar.Slot>
-            <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
-          </Fragment>
-        ) : (
-          <Fragment>
-            <Layout.HeaderContent>
-              {isHomepage ? (
-                <GuideAnchor target="discover_landing_header">
-                  <Layout.Title>{title}</Layout.Title>
-                </GuideAnchor>
-              ) : hasDiscoverQueryFeature ? (
-                legacyBreadcrumbAndInput
-              ) : (
-                // Only has discover-basic
-                <Layout.Title>{title}</Layout.Title>
-              )}
-              {this.renderAuthor()}
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>{savedQueryButton}</Layout.HeaderActions>
-          </Fragment>
-        )}
+        <TopBar.Slot name="title">
+          {isHomepage ? (
+            <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
+          ) : hasDiscoverQueryFeature ? (
+            pageFrameBreadcrumb
+          ) : (
+            title
+          )}
+        </TopBar.Slot>
+        <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
         <DatasetSelectorTabs
           eventView={eventView}
           isHomepage={isHomepage}
@@ -237,23 +172,4 @@ class ResultsHeader extends Component<Props, State> {
   }
 }
 
-const Subtitle = styled('h4')`
-  font-size: ${p => p.theme.font.size.lg};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-  margin: ${p => p.theme.space.xs} 0 0 0;
-`;
-
-const ResultsHeaderWithApi = withApi(ResultsHeader);
-
-type ResultsHeaderWrapperProps = Omit<
-  ComponentProps<typeof ResultsHeaderWithApi>,
-  'hasPageFrameFeature'
->;
-
-function ResultsHeaderWrapper(props: ResultsHeaderWrapperProps) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-  return <ResultsHeaderWithApi {...props} hasPageFrameFeature={hasPageFrameFeature} />;
-}
-
-export {ResultsHeaderWrapper};
+export const ResultsHeader = withApi(ResultsHeaderBase);

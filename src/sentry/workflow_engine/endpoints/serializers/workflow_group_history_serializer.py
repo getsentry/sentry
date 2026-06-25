@@ -157,8 +157,7 @@ def fetch_workflow_groups_paginated(
     ).values("detector_id")[:1]
 
     qs = (
-        filtered_history.select_related("group")
-        .values("group")
+        filtered_history.values("group")
         .annotate(count=Count("group"))
         .annotate(event_id=Subquery(group_max_dates.values("event_id")))
         .annotate(last_triggered=Max("date_added"))
@@ -166,7 +165,7 @@ def fetch_workflow_groups_paginated(
     )
 
     # Count distinct groups for pagination
-    group_count = qs.count()
+    group_count = filtered_history.values("group").distinct().count()
     order_by = _parse_sort(sort)
 
     return cast(

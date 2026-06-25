@@ -510,10 +510,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         response = self.do_request(
             query={"attributeType": "string", "expand": "context"},
-            features={
-                **self.feature_flags,
-                "organizations:data-browsing-attribute-context": True,
-            },
         )
         assert response.status_code == 200, response.data
 
@@ -546,22 +542,23 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
     def test_expand_context_without_feature_flag(self) -> None:
         self._store_basic_segment()
 
-        # expand=context is requested, but the gating feature is disabled.
+        # Context is no longer gated by a feature flag: expand=context alone is
+        # enough, even with the data-browsing-attribute-context flag disabled.
         response = self.do_request(
             query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": False,
+            },
         )
         assert response.status_code == 200, response.data
-        assert all("context" not in item for item in response.data)
+        assert all("context" in item for item in response.data)
 
     def test_context_not_included_without_expand(self) -> None:
         self._store_basic_segment()
 
         response = self.do_request(
             query={"attributeType": "string"},
-            features={
-                **self.feature_flags,
-                "organizations:data-browsing-attribute-context": True,
-            },
         )
         assert response.status_code == 200, response.data
         assert all("context" not in item for item in response.data)

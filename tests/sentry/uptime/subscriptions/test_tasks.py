@@ -13,7 +13,7 @@ from django.conf import settings
 from django.test import override_settings
 from django.utils import timezone
 from redis import StrictRedis
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import ObjectStatus

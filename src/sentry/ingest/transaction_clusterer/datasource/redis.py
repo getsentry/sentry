@@ -7,8 +7,8 @@ from typing import Any
 import orjson
 import sentry_sdk
 from django.conf import settings
-from rediscluster import RedisCluster
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
@@ -50,7 +50,7 @@ def _get_projects_key(namespace: ClustererNamespace) -> str:
 
 def get_redis_client() -> RedisCluster:
     cluster_key = settings.SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+    return redis.redis_clusters.get(cluster_key)
 
 
 def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:

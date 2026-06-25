@@ -1,13 +1,15 @@
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SeenInfo} from 'sentry/components/group/seenInfo';
+import {Placeholder} from 'sentry/components/placeholder';
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -30,15 +32,16 @@ function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Grou
   });
 }
 
-export function FirstLastSeenSection({group}: {group: Group}) {
+export function FirstLastSeenSection({event, group}: {group: Group; event?: Event}) {
   const organization = useOrganization();
   const {project} = group;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const shouldReserveReleaseSpace = !!event?.release;
 
   const environments = useEnvironmentsFromUrl();
 
   const {data: allEnvsGroupData} = useFetchAllEnvsGroupData(organization, group);
-  const {data: groupReleaseData} = useQuery(
+  const {data: groupReleaseData, isPending: isReleaseDataPending} = useQuery(
     issueFirstLastReleaseQueryOptions({
       groupId: group.id,
       organizationSlug: organization.slug,
@@ -80,7 +83,11 @@ export function FirstLastSeenSection({group}: {group: Group}) {
           />
         </Flex>
         {lastSeen && (
-          <ReleaseText project={group.project} release={groupReleaseData?.lastRelease} />
+          <ReleaseText
+            project={group.project}
+            release={groupReleaseData?.lastRelease}
+            preserveSpace={isReleaseDataPending && shouldReserveReleaseSpace}
+          />
         )}
       </Stack>
       <Stack>
@@ -96,35 +103,79 @@ export function FirstLastSeenSection({group}: {group: Group}) {
           />
         </Flex>
         {group.firstSeen && (
-          <ReleaseText project={group.project} release={groupReleaseData?.firstRelease} />
+          <ReleaseText
+            project={group.project}
+            release={groupReleaseData?.firstRelease}
+            preserveSpace={isReleaseDataPending && shouldReserveReleaseSpace}
+          />
         )}
       </Stack>
     </Flex>
   );
 }
 
-function ReleaseText({project, release}: {project: Project; release?: Release}) {
+function ReleaseText({
+  project,
+  release,
+  preserveSpace,
+}: {
+  project: Project;
+  preserveSpace?: boolean;
+  release?: Release | null;
+}) {
   const organization = useOrganization();
 
   if (!release) {
-    return null;
+    return preserveSpace ? <ReleaseTextPlaceholder /> : null;
   }
 
   return (
-    <Text size="sm" variant="muted">
-      {t('in release')}{' '}
-      <VersionHoverCard
-        organization={organization}
-        projectSlug={project.slug}
-        releaseVersion={release.version}
-      >
-        <ReleaseVersion version={release.version} projectId={project.id} />
-      </VersionHoverCard>
-    </Text>
+    <Grid
+      columns="max-content minmax(0, 1fr)"
+      align="center"
+      gap="xs"
+      minWidth={0}
+      maxWidth="100%"
+    >
+      <Container as="span" whiteSpace="nowrap">
+        <Text size="sm" variant="muted">
+          {t('in release')}{' '}
+        </Text>
+      </Container>
+      <ReleaseVersionWrapper>
+        <VersionHoverCard
+          organization={organization}
+          projectSlug={project.slug}
+          releaseVersion={release.version}
+        >
+          <ReleaseVersion version={release.version} projectId={project.id} truncate />
+        </VersionHoverCard>
+      </ReleaseVersionWrapper>
+    </Grid>
   );
 }
 
+function ReleaseTextPlaceholder() {
+  return (
+    <Container aria-hidden="true" maxWidth="100%">
+      <Placeholder height="20px" />
+    </Container>
+  );
+}
+
+const ReleaseVersionWrapper = styled('span')`
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+`;
+
 const ReleaseVersion = styled(Version)`
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
   color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
   text-decoration-style: dotted;

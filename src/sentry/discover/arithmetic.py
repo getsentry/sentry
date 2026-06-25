@@ -213,6 +213,7 @@ class ArithmeticVisitor(NodeVisitor):
         "avg_if",
         "division_if",
         "failure_rate_if",
+        "failure_count_if",
         # Mobile vitals uses these functions
         "ttid_contribution_rate",
         "ttfd_contribution_rate",

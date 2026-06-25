@@ -113,7 +113,7 @@ function ScheduledChanges({
   effectiveDate,
   total,
 }: ScheduledChangesProps) {
-  const shortInterval = plan ? utils.getShortInterval(plan.contractInterval) : undefined;
+  const shortInterval = plan ? utils.getShortInterval(plan.billingInterval) : undefined;
   return (
     <Flex
       data-test-id="scheduled-changes"

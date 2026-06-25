@@ -4,9 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {InfoText} from '@sentry/scraps/info';
 import {Flex, Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -16,7 +14,6 @@ import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {SUPERUSER_MARQUEE_HEIGHT} from 'sentry/views/navigation/constants';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const POLICY_URL =
   'https://www.notion.so/sentry/Sentry-Rules-for-Handling-Customer-Data-9612532c37e14eeb943a6a584abbac99';
@@ -71,8 +68,7 @@ type Props = {
   organization?: Organization;
 };
 
-export function SuperuserWarning({organization, className}: Props) {
-  const hasPageFrame = useHasPageFrameFeature();
+export function SuperuserWarning({organization}: Props) {
   const {addAlert} = useGlobalAlerts();
   const isExcludedOrg = shouldExcludeOrg(organization);
 
@@ -103,90 +99,63 @@ export function SuperuserWarning({organization, className}: Props) {
     if (!isExcludedOrg) {
       addAlert({
         id: 'superuser-warning',
-        message: (
-          <Fragment>
-            {hasPageFrame ? null : SUPERUSER_MESSAGE} {WARNING_MESSAGE}
-          </Fragment>
-        ),
+        message: WARNING_MESSAGE,
         variant: 'danger',
         opaque: true,
         neverExpire: true,
         noDuplicates: true,
       });
     }
-  }, [hasPageFrame, isExcludedOrg, addAlert]);
+  }, [isExcludedOrg, addAlert]);
 
   if (isExcludedOrg) {
     return null;
   }
 
-  if (hasPageFrame) {
-    return (
-      <Fragment>
-        <Container height={`${SUPERUSER_MARQUEE_HEIGHT}px`} />
-        <Frame
-          position="fixed"
-          top="0"
-          right="0"
-          bottom="0"
-          left="0"
-          border="danger"
-          display="flex"
-        >
-          <Tooltip
-            isHoverable
-            position="bottom-start"
-            containerDisplayMode="block"
-            title={
-              <TooltipContent>
-                <Content>{WARNING_MESSAGE}</Content>
-                <ExitSuperuserButton />
-              </TooltipContent>
-            }
-          >
-            <MarqueeStrip ref={stripRef} align="baseline" overflow="hidden">
-              <MarqueeText
-                ref={textRef}
-                wrap="nowrap"
-                monospace
-                bold
-                uppercase
-                style={
-                  {
-                    '--len': `${SUPERUSER_MESSAGE}${SUPERUSER_SEPARATOR}`.length,
-                  } as React.CSSProperties
-                }
-              >
-                {`${SUPERUSER_MESSAGE}${SUPERUSER_SEPARATOR}`.repeat(marqueeCount)}
-              </MarqueeText>
-            </MarqueeStrip>
-          </Tooltip>
-        </Frame>
-      </Fragment>
-    );
-  }
-
   return (
-    <StyledBadge variant="warning" className={className}>
-      <InfoText
-        variant="inherit"
-        title={
-          <TooltipContent>
-            <Content>{WARNING_MESSAGE}</Content>
-            <ExitSuperuserButton />
-          </TooltipContent>
-        }
+    <Fragment>
+      <Container height={`${SUPERUSER_MARQUEE_HEIGHT}px`} />
+      <Frame
+        position="fixed"
+        top="0"
+        right="0"
+        bottom="0"
+        left="0"
+        border="danger"
+        display="flex"
       >
-        Superuser
-      </InfoText>
-    </StyledBadge>
+        <Tooltip
+          isHoverable
+          position="bottom-start"
+          containerDisplayMode="block"
+          title={
+            <TooltipContent>
+              <Content>{WARNING_MESSAGE}</Content>
+              <ExitSuperuserButton />
+            </TooltipContent>
+          }
+        >
+          <MarqueeStrip ref={stripRef} align="baseline" overflow="hidden">
+            <MarqueeText
+              ref={textRef}
+              wrap="nowrap"
+              monospace
+              bold
+              uppercase
+              style={
+                {
+                  '--len': `${SUPERUSER_MESSAGE}${SUPERUSER_SEPARATOR}`.length,
+                } as React.CSSProperties
+              }
+            >
+              {`${SUPERUSER_MESSAGE}${SUPERUSER_SEPARATOR}`.repeat(marqueeCount)}
+            </MarqueeText>
+          </MarqueeStrip>
+        </Tooltip>
+      </Frame>
+    </Fragment>
   );
 }
-
-const StyledBadge = styled(Badge)`
-  color: ${p => p.theme.tokens.content.onVibrant.light};
-  background: ${p => p.theme.tokens.background.danger.vibrant};
-`;
 
 const TooltipContent = styled('div')`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space['2xs']};
