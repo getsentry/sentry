@@ -146,6 +146,12 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 organization,
                 actor=request.user,
             )
+        if strategy == "Issues":
+            has_feature = has_feature and features.has(
+                "organizations:gen-ai-issues-search",
+                organization,
+                actor=request.user,
+            )
         if not has_feature:
             return Response(
                 {"detail": "Feature flag not enabled"},
