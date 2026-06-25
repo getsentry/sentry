@@ -320,7 +320,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         return ClaudeCodeIntegrationMetadata.parse_obj(fresh.metadata or {})
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        with self._vault_metadata_lock().acquire():
+        with self._vault_metadata_lock().blocking_acquire(initial_delay=0.1, timeout=10):
             metadata = self._read_fresh_metadata()
             if metadata is not None:
                 if "environment_id" in data:
@@ -360,7 +360,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         if not installation_id:
             return None
 
-        with self._vault_metadata_lock().acquire():
+        with self._vault_metadata_lock().blocking_acquire(initial_delay=0.1, timeout=10):
             metadata = self._read_fresh_metadata()
             if metadata is None:
                 return None
@@ -378,7 +378,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             return vault_id
 
     def uninstall(self) -> None:
-        with self._vault_metadata_lock().acquire():
+        with self._vault_metadata_lock().blocking_acquire(initial_delay=0.1, timeout=10):
             fresh = self._read_fresh_metadata()
             if fresh is None or not fresh.installation_vault_ids:
                 return
@@ -399,22 +399,23 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
 
     def _sync_client_ids(self, client: Any) -> None:
         """Persist environment/agent IDs the client resolved during launch."""
-        stale = self._get_metadata()
-        env_changed = client.environment_id and client.environment_id != stale.environment_id
-        agent_changed = client.agent_id and client.agent_id != stale.agent_id
-        if not env_changed and not agent_changed:
-            return
-
-        with self._vault_metadata_lock().acquire():
+        with self._vault_metadata_lock().blocking_acquire(initial_delay=0.1, timeout=10):
             metadata = self._read_fresh_metadata()
             if metadata is None:
                 return
-            if env_changed:
+            metadata_changed = False
+
+            if client.environment_id and client.environment_id != metadata.environment_id:
                 metadata.environment_id = client.environment_id
-            if agent_changed:
+                metadata_changed = True
+
+            if client.agent_id and client.agent_id != metadata.agent_id:
                 metadata.agent_id = client.agent_id
                 metadata.agent_version = client.agent_version
-            self._persist_metadata(metadata)
+                metadata_changed = True
+
+            if metadata_changed:
+                self._persist_metadata(metadata)
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent and persist resolved environment/agent IDs."""
