@@ -29,7 +29,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0021_drop_night_shift_run_seer_run_state
+seer: 0022_drop_night_shift_run_seer_run_column
 
 sentry: 1122_profilechunkattachment
 
