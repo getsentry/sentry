@@ -3,9 +3,9 @@ from __future__ import annotations
 import io
 import logging
 from base64 import b64decode
-from collections.abc import Generator
+from collections.abc import Generator, Mapping, Sequence
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from operator import itemgetter
 from time import time
 from typing import Any
@@ -41,6 +41,7 @@ from sentry.lang.native.utils import native_images_from_data
 from sentry.models.eventerror import EventErrorType
 from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
+from sentry.models.profilechunkattachment import ProfileChunkAttachment
 from sentry.models.project import Project
 from sentry.models.projectsdk import (
     EventType,
@@ -48,6 +49,7 @@ from sentry.models.projectsdk import (
     get_minimum_sdk_version,
     get_rejected_sdk_version,
 )
+from sentry.objectstore import default_attachment_retention
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.options.rollout import in_random_rollout
 from sentry.profiles.java import (
@@ -201,6 +203,10 @@ def process_profile_task(
     if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
         return
 
+    # Attachments (e.g. Perfetto traces) are only present on profile-chunk
+    # messages produced by Relay, alongside the profile payload.
+    attachments: Sequence[Mapping[str, Any]] = ()
+
     if payload:
         # Handle both bytes (new) and base64 string (legacy) payloads
         if isinstance(payload, str):
@@ -219,6 +225,8 @@ def process_profile_task(
                 "sampled": sampled,
             }
         )
+
+        attachments = message_dict.get("attachments") or ()
 
     assert profile is not None
 
@@ -317,6 +325,10 @@ def process_profile_task(
     if not _process_vroomrs_profile(profile, project):
         return
 
+    if attachments and "profiler_id" in profile and "chunk_id" in profile:
+        if features.has("organizations:continuous-profiling-perfetto", organization):
+            _save_chunk_attachments(profile, project, attachments)
+
     if sampled:
         with metrics.timer("process_profile.track_outcome.accepted"):
             set_project_flag_and_signal(project, "has_profiles", first_profile_received)
@@ -350,6 +362,44 @@ def process_profile_task(
                 categories=[DataCategory.PROFILE_INDEXED],
                 reason="sampled",
             )
+
+
+def _save_chunk_attachments(
+    profile: Profile, project: Project, attachments: Sequence[Mapping[str, Any]]
+) -> None:
+    """
+    Persist references to profile-chunk attachments that Relay stored in
+    Objectstore. The blob itself lives in Objectstore (keyed by ``stored_id``)
+    and expires via its TTL; we only record the metadata so it can be listed
+    and downloaded. ``date_expires`` mirrors the chunk's retention so the row is
+    pruned on the same schedule.
+    """
+    try:
+        retention_days = profile.get("retention_days") or default_attachment_retention()
+        date_expires = datetime.now(timezone.utc) + timedelta(days=retention_days)
+        ProfileChunkAttachment.objects.bulk_create(
+            [
+                ProfileChunkAttachment(
+                    project_id=project.id,
+                    profiler_id=profile["profiler_id"],
+                    chunk_id=profile["chunk_id"],
+                    name=attachment["name"],
+                    content_type=attachment.get("content_type"),
+                    stored_id=attachment["stored_id"],
+                    date_expires=date_expires,
+                )
+                for attachment in attachments
+            ],
+            ignore_conflicts=True,
+        )
+        metrics.incr(
+            "process_profile.chunk_attachments.tracked",
+            len(attachments),
+            tags={"platform": profile["platform"]},
+            sample_rate=1.0,
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 def _is_deprecated(profile: Profile, project: Project, organization: Organization) -> bool:
