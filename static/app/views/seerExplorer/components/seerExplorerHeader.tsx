@@ -1,11 +1,10 @@
-import {useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Switch} from '@sentry/scraps/switch';
@@ -16,17 +15,33 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconAdd,
+  IconCheckmark,
   IconClock,
   IconCopy,
   IconEllipsis,
   IconLink,
+  IconPanel,
   IconWindow,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
 
-interface ExplorerDrawerHeaderProps {
+const POSITION_ICON_DIRECTION = {
+  auto: undefined,
+  right: 'right',
+  bottom: 'down',
+} as const satisfies Record<SeerExplorerSidebarPosition, string | undefined>;
+
+/**
+ * The shared inner header content (title + action cluster) for Seer Explorer.
+ * Returns a fragment — the surface (drawer / sidebar) provides the outer
+ * `<header>` wrapper and the close affordance via a slot. The dock-position
+ * dropdown renders only when an `onSidebarPositionChange` handler is supplied
+ * (i.e. the sidebar surface) and the content isn't popped out.
+ */
+interface SeerExplorerHeaderProps {
   isPipSupported: boolean;
   isPoppedOut: boolean;
   onChangeSession: (runId: number) => void;
@@ -41,9 +56,11 @@ interface ExplorerDrawerHeaderProps {
   showThinking: boolean;
   showThinkingToggle: boolean;
   disableNewChatButton?: boolean;
+  onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
+  sidebarPosition?: SeerExplorerSidebarPosition;
 }
 
-export function ExplorerDrawerHeader({
+export function SeerExplorerHeader({
   onNewChatClick,
   onChangeSession,
   onCopySessionClick,
@@ -57,8 +74,10 @@ export function ExplorerDrawerHeader({
   isPipSupported,
   isPoppedOut,
   onTogglePictureInPicture,
+  sidebarPosition = 'auto',
+  onSidebarPositionChange,
   disableNewChatButton = false,
-}: ExplorerDrawerHeaderProps) {
+}: SeerExplorerHeaderProps) {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -117,8 +136,42 @@ export function ExplorerDrawerHeader({
     [onCopySessionClick, onCopyLinkClick]
   );
 
+  const positionMenuItems: MenuItemProps[] = [
+    {
+      key: 'auto',
+      label: t('Auto'),
+      leadingItems: <IconPanel />,
+      trailingItems: sidebarPosition === 'auto' ? <IconCheckmark size="sm" /> : null,
+      onAction: () => onSidebarPositionChange?.('auto'),
+    },
+    {
+      key: 'right',
+      label: t('Right'),
+      leadingItems: <IconPanel direction="right" />,
+      trailingItems: sidebarPosition === 'right' ? <IconCheckmark size="sm" /> : null,
+      onAction: () => onSidebarPositionChange?.('right'),
+    },
+    {
+      key: 'bottom',
+      label: t('Bottom'),
+      leadingItems: <IconPanel direction="down" />,
+      trailingItems: sidebarPosition === 'bottom' ? <IconCheckmark size="sm" /> : null,
+      onAction: () => onSidebarPositionChange?.('bottom'),
+    },
+    ...(isPipSupported
+      ? [
+          {
+            key: 'windowed',
+            label: t('Windowed'),
+            leadingItems: <IconWindow />,
+            onAction: onTogglePictureInPicture,
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <DrawerHeader hideBar hideCloseButtonText hideCloseButton={isPoppedOut}>
+    <Fragment>
       <Flex align="center" gap="xs" height="100%">
         <Text wrap="nowrap" size="md">
           {t('Seer Agent')}
@@ -207,19 +260,37 @@ export function ExplorerDrawerHeader({
               }}
             />
           </OverflowActions>
-          {isPipSupported && (
+          {/* Drawer-only pop-out button (in sidebar mode the toggle lives in the
+              dock-position menu as the `Windowed` item). Hidden once popped out —
+              the floating window is dismissed via its close button or Escape. */}
+          {isPipSupported && !onSidebarPositionChange && !isPoppedOut && (
             <Button
               icon={<IconWindow />}
               onClick={onTogglePictureInPicture}
               variant="transparent"
               size="xs"
-              aria-label={
-                isPoppedOut ? t('Dock back into drawer') : t('Open in a separate window')
-              }
-              tooltipProps={{
-                title: isPoppedOut
-                  ? t('Dock back into drawer')
-                  : t('Open in a separate window'),
+              aria-label={t('Open in a separate window')}
+              tooltipProps={{title: t('Open in a separate window')}}
+            />
+          )}
+          {/* Sidebar-only (an `onSidebarPositionChange` handler is supplied), and
+              meaningless for the floating popped-out window — which is dismissed
+              via its close/dock button or Escape. */}
+          {!isPoppedOut && onSidebarPositionChange && (
+            <DropdownMenu
+              items={positionMenuItems}
+              size="xs"
+              position="bottom-end"
+              menuTitle={t('Dock position')}
+              triggerProps={{
+                tooltipProps: {
+                  title: t('Dock position'),
+                },
+                'aria-label': t('Dock position'),
+                icon: <IconPanel direction={POSITION_ICON_DIRECTION[sidebarPosition]} />,
+                showChevron: false,
+                variant: 'transparent',
+                size: 'xs',
               }}
             />
           )}
@@ -277,7 +348,7 @@ export function ExplorerDrawerHeader({
           </Button>
         </InlineActions>
       </Flex>
-    </DrawerHeader>
+    </Fragment>
   );
 }
 

@@ -804,6 +804,28 @@ export function getGroupActivityItem(
           message: t('Seer created a pull request'),
         };
       }
+      case GroupActivityType.SEER_ITERATION_STARTED:
+        return {
+          title: t('PR Iteration'),
+          message: t('Seer started iterating on the pull request'),
+        };
+      case GroupActivityType.SEER_ITERATION_COMPLETED: {
+        const {data: iterationData} = activity;
+        const pr = iterationData.pull_requests?.[0];
+        if (pr) {
+          return {
+            title: t('PR Iteration'),
+            message: tct('Seer updated the [link:pull request] in [repo]', {
+              link: <ExternalLink href={pr.pull_request.pr_url} />,
+              repo: pr.repo_name,
+            }),
+          };
+        }
+        return {
+          title: t('PR Iteration'),
+          message: t('Seer finished iterating on the pull request'),
+        };
+      }
       default:
         return {title: '', message: ''}; // should never hit (?)
     }

@@ -343,6 +343,20 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 
         assert [ep.project for ep in result] == [opens_pr]
 
+    def test_cron_respects_org_allowed_project_slugs_manual_ignores(self) -> None:
+        org = self.create_organization()
+        for slug in ("keep", "drop"):
+            self._make_eligible(self.create_project(organization=org, slug=slug))
+
+        with self.options(
+            {"seer.night_shift.org_tweaks": {str(org.id): {"allowed_project_slugs": ["keep"]}}}
+        ):
+            cron_result = _get_eligible_projects(org, "cron")
+            manual_result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project.slug for ep in cron_result] == ["keep"]
+        assert sorted(ep.project.slug for ep in manual_result) == ["drop", "keep"]
+
 
 @django_db_all
 class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
@@ -709,7 +723,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.seer_run is None
+        assert not run.shards.exists()
         # No SeerRun for the org -> no outbox either (created in one transaction).
         assert not SeerRun.objects.filter(organization=org).exists()
 
@@ -725,7 +739,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.seer_run is None
+        assert not run.shards.exists()
         assert run.extras["error_message"] == "Organization does not have Seer access"
         assert not SeerRun.objects.filter(organization=org).exists()
 
@@ -747,7 +761,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.seer_run is None
+        assert not run.shards.exists()
         assert run.extras["error_message"] == "Night shift dispatch failed"
 
     def test_outbox_drain_mirrors_run_against_seer(self) -> None:
