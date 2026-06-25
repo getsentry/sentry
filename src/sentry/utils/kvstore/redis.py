@@ -17,8 +17,8 @@ class RedisKVStorage(KVStorage[str, T]):
     or cluster.)
     """
 
-    def __init__(self, client: StrictRedis | RedisCluster) -> None:
-        self.client: StrictRedis | RedisCluster = client
+    def __init__(self, client: StrictRedis[T] | RedisCluster[T]) -> None:
+        self.client: StrictRedis[T] | RedisCluster[T] = client
 
     def get(self, key: str) -> T | None:
         return self.client.get(key.encode("utf8"))

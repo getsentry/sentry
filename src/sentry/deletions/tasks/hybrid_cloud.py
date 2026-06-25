@@ -46,7 +46,7 @@ class WatermarkBatch:
     transaction_id: str
 
 
-def _get_redis_client() -> RedisCluster | StrictRedis:
+def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
     return redis.redis_clusters.get(settings.SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER)
 
 

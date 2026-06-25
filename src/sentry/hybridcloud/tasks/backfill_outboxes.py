@@ -25,7 +25,7 @@ from sentry.utils import json, metrics, redis
 logger = logging.getLogger(__name__)
 
 
-def _get_redis_client() -> RedisCluster | StrictRedis:
+def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
     return redis.redis_clusters.get(settings.SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER)
 
 

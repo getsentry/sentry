@@ -336,7 +336,7 @@ class DeadlineUpdateLog(NamedTuple):
 
     def emit(
         self,
-        client: RedisCluster | StrictRedis,
+        client: RedisCluster[bytes] | StrictRedis[bytes],
         get_debug_trace_logger: Callable[[], DebugTraceLogger],
     ) -> None:
         try:

@@ -6,7 +6,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from time import time
-from typing import Any
+from typing import Any, TypeVar
 
 import rb
 from django.utils.encoding import force_bytes, force_str
@@ -28,6 +28,7 @@ from sentry.utils.redis import (
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T", str, bytes)
 # Debounce our JSON validation a bit in order to not cause too much additional
 # load everywhere
 _last_validation_log: float | None = None
@@ -249,7 +250,9 @@ class RedisBuffer(Buffer):
     def _make_lock_key(self, key: str) -> str:
         return f"l:{key}"
 
-    def _lock_key(self, client: RedisCluster | rb.RoutingClient, key: str, ex: int) -> None | str:
+    def _lock_key(
+        self, client: RedisCluster[T] | rb.RoutingClient, key: str, ex: int
+    ) -> None | str:
         lock_key = self._make_lock_key(key)
         # prevent a stampede due to scheduled tasks + periodic task
         if not client.set(lock_key, "1", nx=True, ex=ex):

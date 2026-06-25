@@ -15,7 +15,7 @@ def _make_cache_key(org_id: int, project_id: int) -> str:
     return f"{KEY_PREFIX}:{org_id}:{project_id}"
 
 
-def _get_redis_client() -> RedisCluster | StrictRedis:
+def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
     return redis.redis_clusters.get(settings.SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER)
 
 

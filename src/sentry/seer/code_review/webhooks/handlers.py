@@ -30,7 +30,7 @@ WEBHOOK_SEEN_TTL_SECONDS = 20
 WEBHOOK_SEEN_KEY_PREFIX = "webhook:github:delivery:"
 
 
-def _get_webhook_seen_cluster() -> RedisCluster | StrictRedis:
+def _get_webhook_seen_cluster() -> RedisCluster[str] | StrictRedis[str]:
     return redis_clusters.get("default")
 
 

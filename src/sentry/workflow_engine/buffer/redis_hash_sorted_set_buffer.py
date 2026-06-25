@@ -79,9 +79,9 @@ class RedisHashSortedSetBuffer:
 
     def _get_redis_connection(
         self, key: str | None, transaction: bool = True
-    ) -> ClusterPipeline | Pipeline:
+    ) -> ClusterPipeline | Pipeline[str]:
         """Get a Redis connection pipeline for the given key."""
-        conn: ClusterPipeline | Pipeline
+        conn: ClusterPipeline | Pipeline[str]
         if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             conn = self.cluster
         elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
@@ -266,9 +266,11 @@ class RedisHashSortedSetBuffer:
         if not self.is_redis_cluster:
             return 0  # All keys go to same "slot" for non-cluster
 
-        # Use the cluster client's built-in slot calculation
+        # Use the cluster client's built-in slot calculation. `keyslot` only
+        # exists on RedisCluster; the AttributeError fallback handles the
+        # standalone client (the types-redis stub doesn't model this union).
         try:
-            return self.cluster.keyslot(key)
+            return self.cluster.keyslot(key)  # type: ignore[union-attr]
         except AttributeError:
             # Fallback for standalone Redis using cluster client
             return 0  # Treat as single slot
@@ -303,8 +305,9 @@ class RedisHashSortedSetBuffer:
         if not self.is_redis_cluster:
             return  # Not needed for non-cluster setups
 
-        # Check if script exists on the cluster
-        script_exists = self.cluster.script_exists(self._conditional_zrem_script.sha)
+        # Check if script exists on the cluster. The types-redis stub omits
+        # script_exists/script_load on RedisCluster and .sha/.script on Script.
+        script_exists = self.cluster.script_exists(self._conditional_zrem_script.sha)  # type: ignore[union-attr, attr-defined]
 
         # script_exists returns a list in cluster mode, True/False in standalone
         needs_loading = False
@@ -316,7 +319,7 @@ class RedisHashSortedSetBuffer:
 
         if needs_loading:
             # Load script on all master nodes
-            self.cluster.script_load(self._conditional_zrem_script.script)
+            self.cluster.script_load(self._conditional_zrem_script.script)  # type: ignore[union-attr, attr-defined]
 
     def conditional_delete_from_sorted_sets(
         self, keys: Sequence[str], members_and_scores: list[tuple[int, float]]
@@ -356,7 +359,7 @@ class RedisHashSortedSetBuffer:
         for slot_keys in slot_groups:
             pipe.execute_command(
                 "EVALSHA",
-                self._conditional_zrem_script.sha,
+                self._conditional_zrem_script.sha,  # type: ignore[attr-defined]  # stub omits Script.sha
                 len(slot_keys),
                 *slot_keys,
                 *script_args,

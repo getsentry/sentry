@@ -16,7 +16,7 @@ delete_lock = redis.load_redis_script("utils/locking/delete_lock.lua")
 class BaseRedisLockBackend(LockBackend):
     def __init__(
         self,
-        cluster: rb.Cluster | RedisCluster | StrictRedis,
+        cluster: rb.Cluster | RedisCluster[str] | StrictRedis[str],
         prefix: str = "l:",
         uuid: str | None = None,
     ):
@@ -79,11 +79,11 @@ class RedisBlasterLockBackend(BaseRedisLockBackend):
 
 
 class RedisClusterLockBackend(BaseRedisLockBackend):
-    cluster: RedisCluster | StrictRedis
+    cluster: RedisCluster[str] | StrictRedis[str]
 
     def __init__(
         self,
-        cluster: str | RedisCluster | StrictRedis,
+        cluster: str | RedisCluster[str] | StrictRedis[str],
         prefix: str = "l:",
         uuid: str | None = None,
     ):
@@ -93,7 +93,7 @@ class RedisClusterLockBackend(BaseRedisLockBackend):
 
     def get_client(
         self, key: str, routing_key: int | str | None = None
-    ) -> RedisCluster | StrictRedis:
+    ) -> RedisCluster[str] | StrictRedis[str]:
         return self.cluster
 
 

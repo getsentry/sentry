@@ -48,5 +48,5 @@ def key(group_id: int) -> str:
     return f"{KEY_PREFIX}{group_id}"
 
 
-def _client() -> RedisCluster | StrictRedis:
+def _client() -> RedisCluster[str] | StrictRedis[str]:
     return redis_clusters.get("default")

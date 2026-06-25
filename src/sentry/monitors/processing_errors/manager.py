@@ -35,7 +35,7 @@ class InvalidProjectError(Exception):
     pass
 
 
-def _get_cluster() -> RedisCluster | StrictRedis:
+def _get_cluster() -> RedisCluster | StrictRedis[str]:
     return redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
 

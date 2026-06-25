@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from typing import Any
 
 import pytest
@@ -36,14 +37,14 @@ def _has_root_span_key(segment_key: bytes) -> bytes:
 
 
 @pytest.fixture
-def redis_client() -> StrictRedis | RedisCluster:
+def redis_client() -> Generator[StrictRedis[bytes] | RedisCluster[bytes]]:
     buf = SpansBuffer(assigned_shards=list(range(32)))
     buf.client.flushdb()
     yield buf.client
 
 
 def eval_add_buffer_script(
-    client: StrictRedis | RedisCluster,
+    client: StrictRedis[bytes] | RedisCluster[bytes],
     *,
     project_and_trace: str,
     parent_span_id: str,
@@ -55,7 +56,8 @@ def eval_add_buffer_script(
     max_segment_bytes: int = 0,
     check_flush_lock: bool = False,
 ) -> list[Any]:
-    sha = client.script_load(add_buffer_script.script)
+    # stub package omits script_load on RedisCluster and Script.script
+    sha = client.script_load(add_buffer_script.script)  # type: ignore[union-attr, attr-defined]
     return client.execute_command(
         "EVALSHA",
         sha,
@@ -79,7 +81,7 @@ def _metrics_table(result: list[Any]) -> dict[bytes, int]:
     return dict(zip(flat[::2], flat[1::2]))
 
 
-def test_creates_segment_metadata(redis_client: StrictRedis | RedisCluster) -> None:
+def test_creates_segment_metadata(redis_client: StrictRedis[bytes] | RedisCluster[bytes]) -> None:
     trace_id = "a" * 32
     project_and_trace = f"1:{trace_id}"
     root_span_id = "b" * 16
@@ -120,7 +122,7 @@ def test_creates_segment_metadata(redis_client: StrictRedis | RedisCluster) -> N
 
 
 def test_merges_existing_child_segment(
-    redis_client: StrictRedis | RedisCluster,
+    redis_client: StrictRedis[bytes] | RedisCluster[bytes],
 ) -> None:
     trace_id = "b" * 32
     project_and_trace = f"1:{trace_id}"
@@ -164,7 +166,7 @@ def test_merges_existing_child_segment(
 
 
 def test_merges_large_child_member_key_set(
-    redis_client: StrictRedis | RedisCluster,
+    redis_client: StrictRedis[bytes] | RedisCluster[bytes],
 ) -> None:
     trace_id = "e" * 32
     project_and_trace = f"1:{trace_id}"
@@ -203,7 +205,7 @@ def test_merges_large_child_member_key_set(
 
 
 def test_detaches_when_segment_exceeds_byte_limit(
-    redis_client: StrictRedis | RedisCluster,
+    redis_client: StrictRedis[bytes] | RedisCluster[bytes],
 ) -> None:
     trace_id = "c" * 32
     project_and_trace = f"1:{trace_id}"
@@ -241,7 +243,7 @@ def test_detaches_when_segment_exceeds_byte_limit(
 
 
 def test_detaches_when_segment_is_flush_locked(
-    redis_client: StrictRedis | RedisCluster,
+    redis_client: StrictRedis[bytes] | RedisCluster[bytes],
 ) -> None:
     trace_id = "d" * 32
     project_and_trace = f"1:{trace_id}"

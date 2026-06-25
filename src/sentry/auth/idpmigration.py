@@ -48,7 +48,7 @@ def send_one_time_account_confirm_link(
     return link
 
 
-def _get_redis_client() -> RedisCluster | StrictRedis:
+def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
     return redis.redis_clusters.get(settings.SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER)
 
 

@@ -153,7 +153,7 @@ def buffer(request):
             yield buf
 
 
-def assert_ttls(client: StrictRedis | RedisCluster):
+def assert_ttls(client: StrictRedis[bytes] | RedisCluster[bytes]):
     """
     Check that all keys have a TTL, because if the consumer dies before
     flushing, we should not leak memory.
@@ -163,7 +163,7 @@ def assert_ttls(client: StrictRedis | RedisCluster):
         assert client.ttl(k) > -1, k
 
 
-def assert_clean(client: StrictRedis | RedisCluster):
+def assert_clean(client: StrictRedis[bytes] | RedisCluster[bytes]):
     """
     Check that there's no leakage.
 

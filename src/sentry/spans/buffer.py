@@ -146,7 +146,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 logger = logging.getLogger(__name__)
 
 
-def get_redis_client() -> RedisCluster | StrictRedis:
+def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
     return redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
 
 
@@ -168,7 +168,7 @@ class SpansBuffer:
         self._debug_trace_logger: DebugTraceLogger | None = None
 
     @cached_property
-    def client(self) -> RedisCluster | StrictRedis:
+    def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
         return get_redis_client()
 
     @cached_property
