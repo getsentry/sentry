@@ -80,7 +80,9 @@ function getSubmitTooltipText({
   projectName: boolean;
   team: boolean;
 }): string | undefined {
-  const missingCount = [platform, projectName, team].filter(Boolean).length;
+  const missingCount = [platform, projectName, team, notificationChannel].filter(
+    Boolean
+  ).length;
   if (missingCount > 1) {
     return t('Please fill out all the required fields');
   }
