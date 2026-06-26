@@ -234,11 +234,15 @@ const hasCreatedPullRequest = (autofixState: ExplorerAutofixState | null): boole
 /**
  * Gets the appropriate poll interval based on state.
  */
-const getPollInterval = (
-  autofixState: ExplorerAutofixState | null,
-  runStarted: boolean,
-  pollPR = false
-): number | false => {
+export const getPollInterval = ({
+  autofixState,
+  runStarted,
+  pollPR = false,
+}: {
+  autofixState: ExplorerAutofixState | null;
+  runStarted: boolean;
+  pollPR?: boolean;
+}): number | false => {
   const shouldPollPR = pollPR && hasCreatedPullRequest(autofixState);
   const shouldPollProcessing = isActivelyProcessing(autofixState, runStarted);
 
@@ -531,7 +535,7 @@ export function useExplorerAutofix(
       }
 
       const autofixState = query.state.data?.json?.autofix || null;
-      return getPollInterval(autofixState, waitingForResponse, pollPR);
+      return getPollInterval({autofixState, runStarted: waitingForResponse, pollPR});
     },
   });
 

@@ -7,6 +7,7 @@ import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types
 import {
   collectPatches,
   getOrderedAutofixSections,
+  getPollInterval,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
   isLastStepPrIteration,
@@ -31,6 +32,51 @@ function makeValidArtifact<T>(data: T): Artifact<T> {
     data,
   };
 }
+
+describe('getPollInterval', () => {
+  function makeState(
+    overrides: Partial<ExplorerAutofixState> = {}
+  ): ExplorerAutofixState {
+    return {
+      run_id: 1,
+      blocks: [],
+      status: 'completed',
+      updated_at: '2026-01-01T00:00:00Z',
+      ...overrides,
+    };
+  }
+
+  const completedPr: ExplorerAutofixState['repo_pr_states'] = {
+    'org/repo': {pr_creation_status: 'completed'} as any,
+  };
+
+  it('polls when pollPR is set and a PR has been created, even when idle', () => {
+    const state = makeState({status: 'completed', repo_pr_states: completedPr});
+    expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
+      1000
+    );
+  });
+
+  it('does not poll when pollPR is set but no PR has been created', () => {
+    const state = makeState({status: 'completed', repo_pr_states: {}});
+    expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
+      false
+    );
+  });
+
+  it('ignores PR state when pollPR is not set', () => {
+    const state = makeState({status: 'completed', repo_pr_states: completedPr});
+    expect(getPollInterval({autofixState: state, runStarted: false})).toBe(false);
+  });
+
+  it('polls while processing regardless of pollPR', () => {
+    const state = makeState({status: 'processing'});
+    expect(getPollInterval({autofixState: state, runStarted: false})).toBe(1000);
+    expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
+      1000
+    );
+  });
+});
 
 describe('isRootCauseArtifact', () => {
   function makeValidRootCauseData(): RootCauseArtifact {
