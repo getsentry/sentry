@@ -118,8 +118,9 @@ export function IntegrationRow(props: Props) {
             <Alert
               variant="warning"
               trailingItems={
-                <ResolveNowButton
+                <LinkButton
                   href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
+                  variant="primary"
                   size="xs"
                   onClick={() =>
                     trackIntegrationAnalytics('integrations.resolve_now_clicked', {
@@ -130,7 +131,7 @@ export function IntegrationRow(props: Props) {
                   }
                 >
                   {resolveText || t('Resolve Now')}
-                </ResolveNowButton>
+                </LinkButton>
               }
             >
               {alertText}
@@ -194,9 +195,4 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
     margin-right: ${p => p.theme.space.sm};
     font-weight: ${p => p.theme.font.weight.sans.regular};
   }
-`;
-
-const ResolveNowButton = styled(LinkButton)`
-  color: ${p => p.theme.tokens.content.secondary};
-  float: right;
 `;
