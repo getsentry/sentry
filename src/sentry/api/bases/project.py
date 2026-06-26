@@ -163,10 +163,14 @@ class ProjectEndpoint(Endpoint):
                 "project_slug"
             )
         try:
-            project = Project.objects.filter(
-                organization__slug__id_or_slug=organization_id_or_slug,
-                slug__id_or_slug=project_id_or_slug,
-            ).get()
+            project = (
+                Project.objects.filter(
+                    organization__slug__id_or_slug=organization_id_or_slug,
+                    slug__id_or_slug=project_id_or_slug,
+                )
+                .select_related("organization")
+                .get()
+            )
         except Project.DoesNotExist:
             try:
                 # Project may have been renamed
