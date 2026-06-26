@@ -1,20 +1,4 @@
-"""Product-facing record of the pull requests Seer directly creates.
-
-This module owns the write side of :class:`SeerRunPullRequest` — the link
-between a Seer run and the pull request(s) it opened. Its purpose is to give us
-a durable, product-focused record of Seer's PR output that can be queried
-straight from the ORM (``seer_run.pull_requests``).
-
-It is intentionally kept separate from the PR Merge Live Metrics pipeline
-(``sentry.pr_metrics``): metrics judges PR *outcomes* (was it merged, did it get
-iterated on), while this records PR *authorship* (which run opened it). They
-share only the PR-resolution query (``PullRequest.objects.get_or_create_from_reference``)
-and the run lookup (``get_seer_run``) — never each other's logic, flags, or
-failure modes.
-
-Writes are best-effort and guarded by a killswitch so they can be turned off
-without a deploy if anything goes wrong.
-"""
+"""Records the pull requests Seer directly creates via :class:`SeerRunPullRequest`."""
 
 from __future__ import annotations
 
@@ -30,9 +14,6 @@ from sentry.seer.models.run import SeerRunPullRequest
 
 logger = logging.getLogger(__name__)
 
-# Killswitch for SeerRunPullRequest writes. Follows the Seer killswitch
-# convention: default off (``False`` -> writes happen); flip to ``True`` to stop
-# all writes without a deploy.
 PULL_REQUEST_LINKING_KILLSWITCH = "seer.pull-request-linking.killswitch.enabled"
 
 
@@ -70,9 +51,8 @@ def link_seer_run_pull_requests(
         )
         return
 
-    # The run id in the event equals SeerRun.seer_run_state_id; the mirror row may
-    # still be absent if its create outbox hasn't drained yet, or for legacy runs
-    # predating SeerRun mirroring. Either way there is nothing to link to.
+    # The mirror row may not exist yet (create outbox not drained) or for legacy
+    # runs predating SeerRun mirroring — nothing to link to in either case.
     seer_run = get_seer_run(seer_run_state_id, organization)
     if seer_run is None:
         logger.info(
@@ -111,9 +91,6 @@ def link_seer_run_pull_requests(
             continue
 
         if resolved.pull_request is None:
-            # Repo couldn't be uniquely resolved (not found / ambiguous). The
-            # metrics path logs the precise reason under its own namespace; here
-            # we only need to know we couldn't link.
             logger.warning("seer.pull_request_link.repo_unresolved", extra=log_context)
             continue
 

@@ -53,7 +53,6 @@ class LinkSeerRunPullRequestsTest(TestCase):
         pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="42")
         link = SeerRunPullRequest.objects.get(pull_request=pull_request)
         assert link.seer_run_id == self.seer_run.id
-        # The run convenience accessor surfaces the linked PR.
         assert list(self.seer_run.pull_requests) == [pull_request]
 
     def test_reuses_existing_pull_request(self) -> None:
@@ -75,7 +74,6 @@ class LinkSeerRunPullRequestsTest(TestCase):
         assert SeerRunPullRequest.objects.filter(pull_request=pull_request).count() == 1
 
     def test_first_run_keeps_pull_request(self) -> None:
-        """A PR belongs to exactly one run; a later run reporting it is a no-op."""
         self._link(self._payload())
 
         other_run = self.create_seer_run(
@@ -102,7 +100,6 @@ class LinkSeerRunPullRequestsTest(TestCase):
         self._link(self._payload(), seer_run_state_id=999999)
 
         assert not SeerRunPullRequest.objects.exists()
-        # Resolution is skipped entirely when the run can't be found.
         assert not PullRequest.objects.filter(repository_id=self.repo.id, key="42").exists()
         assert mock_logger.info.call_args.args[0] == "seer.pull_request_link.run_not_found"
 

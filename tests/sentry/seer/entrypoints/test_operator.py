@@ -417,8 +417,6 @@ class SeerOperatorTest(TestCase):
             self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=MOCK_RUN_ID
         )
 
-        # Metrics attribution flag intentionally off — linking is decoupled and
-        # must still record the run<->PR link.
         with (
             override_options({"issues.record-seer-actions-as-activities": False}),
             patch.dict(
@@ -436,7 +434,6 @@ class SeerOperatorTest(TestCase):
         pull_request = PullRequest.objects.get(repository_id=repo.id, key="99")
         link = SeerRunPullRequest.objects.get(pull_request=pull_request)
         assert link.seer_run_id == seer_run.id
-        # Attribution did not run (flag off), confirming the paths are independent.
         assert not PullRequestAttribution.objects.exists()
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)

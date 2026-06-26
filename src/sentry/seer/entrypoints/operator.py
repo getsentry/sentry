@@ -686,8 +686,6 @@ def process_autofix_updates(
                         extra={"group_id": group_id, "run_id": run_id},
                     )
 
-            # Record the product-facing run<->PR link. Decoupled from metrics:
-            # its own killswitch, its own best-effort failure handling.
             try:
                 link_seer_run_pull_requests(
                     organization=organization,
