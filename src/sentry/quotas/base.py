@@ -232,6 +232,9 @@ class QuotaConfig:
 
         return prune_empty_keys(data)
 
+    def __str__(self) -> str:
+        return str(self.to_json())
+
 
 class RateLimit:
     """
