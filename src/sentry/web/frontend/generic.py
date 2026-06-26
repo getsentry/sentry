@@ -65,7 +65,7 @@ def service_worker(request):
     a root-scoped path so it can register with `scope: '/'`.
     """
     try:
-        path = get_frontend_app_asset_module_path("entrypoints/serviceWorker.js")
+        path = get_frontend_app_asset_module_path("entrypoints/service-worker.js")
     except KeyError:
         # The entrypoint may be absent from `frontend-versions.json` during a
         # deploy window where the backend ships before the frontend config is
