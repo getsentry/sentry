@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -18,7 +17,6 @@ import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface PullRequestsCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -26,8 +24,6 @@ interface PullRequestsCardProps {
 }
 
 export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
-  const organization = useOrganization();
-  const hasPrIterationFeature = organization.features.includes('autofix-pr-iteration');
   const runId = autofix.runState?.run_id;
   const {createPR} = autofix;
   const artifact = useMemo(() => {
@@ -47,16 +43,7 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
   return (
     <ArtifactCard
       icon={<IconPullRequest />}
-      title={
-        hasPrIterationFeature ? (
-          <Flex gap="xs" align="center">
-            {t('Pull Requests')}
-            <FeatureBadge type="alpha" />
-          </Flex>
-        ) : (
-          t('Pull Requests')
-        )
-      }
+      title={t('Pull Requests')}
       onCopy={
         markdown
           ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
