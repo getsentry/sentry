@@ -12,7 +12,6 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
 )
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pr_metrics.attribution import SeerCreatedPullRequest
 from sentry.seer.agent.client_models import (
     CodingAgentState,
     MemoryBlock,
@@ -42,6 +41,7 @@ from sentry.seer.entrypoints.types import (
     SeerOperatorCacheResult,
 )
 from sentry.seer.models.run import SeerRunPullRequest
+from sentry.seer.pull_requests import SeerCreatedPullRequest
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase

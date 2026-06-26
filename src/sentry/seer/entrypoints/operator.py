@@ -8,11 +8,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
-from sentry.pr_metrics.attribution import (
-    SeerCreatedPullRequest,
-    record_seer_created_attributions,
-    resolve_seer_created_pull_requests,
-)
+from sentry.pr_metrics.attribution import record_seer_created_attributions
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
@@ -35,6 +31,7 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.run import SeerRun, SeerRunPullRequest
+from sentry.seer.pull_requests import SeerCreatedPullRequest, resolve_seer_created_pull_requests
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
