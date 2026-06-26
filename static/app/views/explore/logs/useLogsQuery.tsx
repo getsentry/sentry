@@ -290,13 +290,33 @@ function getPageParam(
  */
 function getInitialPageParam(
   autoRefresh: boolean,
-  sortBys: readonly Sort[]
+  sortBys: readonly Sort[],
+  anchorTimestampPrecise?: bigint | null
 ): LogPageParam {
+  const sortBy = getTimeBasedSortBy(sortBys);
+
+  // When seeking to a specific log (e.g. "View in table" on a pinned row that
+  // isn't in the loaded window), anchor the first page at its precise timestamp
+  // so the row and its temporal neighbors load directly instead of paging there.
+  if (anchorTimestampPrecise !== null && anchorTimestampPrecise !== undefined) {
+    if (!sortBy) {
+      // Only sort by timestamp precise is supported for infinite queries.
+      return null;
+    }
+    return {
+      logId: '',
+      timestampPrecise: anchorTimestampPrecise,
+      sortByDirection: sortBy.kind,
+      indexFromInitialPage: 0,
+      querySortDirection: undefined,
+      autoRefresh,
+    };
+  }
+
   if (!autoRefresh) {
     return null;
   }
 
-  const sortBy = getTimeBasedSortBy(sortBys);
   if (!sortBy) {
     // Only sort by timestamp precise is supported for infinite queries.
     return null;
@@ -430,15 +450,78 @@ export function useInfiniteLogsQuery({
   // disable high fidelity mode.
   highFidelity = autoRefreshHasInitialized ? false : highFidelity;
 
+  // A transient seek target for "View in table". While an anchor is active we
+  // run the query in timestamp-window mode (high fidelity OFF): high fidelity
+  // paginates by Link cursors, which cannot move to rows newer than the anchor's
+  // `timestamp_precise:<=T` filter, so the anchored window would be one-directional
+  // (no scrolling up). The timestamp-window path issues a fresh `>=T` query for the
+  // previous page, so the anchored window can be paged in both directions.
+  const [seekAnchor, setSeekAnchor] = useState<{
+    baseQuerySignature: string;
+    timestampPrecise: bigint;
+  } | null>(null);
+  const anchorTimestampPrecise = seekAnchor?.timestampPrecise ?? null;
+  const effectiveHighFidelity = anchorTimestampPrecise === null ? highFidelity : false;
+
   const {infiniteApiOptions, other} = useLogsApiOptionsWithInfinite({
     referrer: _referrer,
     autoRefresh,
-    highFidelity,
+    highFidelity: effectiveHighFidelity,
   });
   const queryKeyWithInfinite = infiniteApiOptions.queryKey;
   const queryClient = useQueryClient();
 
   const sortBys = useQueryParamsSortBys();
+
+  // Identity of the underlying query independent of the seek anchor. The anchor
+  // only changes `sampling` (via high fidelity) within the query params, so
+  // omitting it keeps this stable across seek toggles. We use it to drop a
+  // now-stale anchor once the user changes search/sort/time.
+  const baseQuerySignature = useMemo(() => {
+    const {url, options} = parseQueryKey(queryKeyWithInfinite);
+    const {sampling: _sampling, ...restQuery} = options?.query ?? {};
+    return JSON.stringify([url, restQuery]);
+  }, [queryKeyWithInfinite]);
+
+  useEffect(() => {
+    if (seekAnchor && seekAnchor.baseQuerySignature !== baseQuerySignature) {
+      setSeekAnchor(null);
+    }
+  }, [seekAnchor, baseQuerySignature]);
+
+  // initialPageParam is not part of the query key, so when toggling high fidelity
+  // doesn't change the key (e.g. high fidelity was already off), a new anchor
+  // wouldn't refetch on its own. Remove the cached query so the observer
+  // re-creates it fresh and reads the current (anchored) initialPageParam. We
+  // only do this when there is cached data to replace; a key change from the
+  // high-fidelity toggle already fetches fresh.
+  const lastSeekResetRef = useRef<bigint | null>(null);
+  useEffect(() => {
+    if (anchorTimestampPrecise === null) {
+      lastSeekResetRef.current = null;
+      return;
+    }
+    if (lastSeekResetRef.current === anchorTimestampPrecise) {
+      return;
+    }
+    lastSeekResetRef.current = anchorTimestampPrecise;
+    if (queryClient.getQueryData(queryKeyWithInfinite)) {
+      queryClient.removeQueries({queryKey: queryKeyWithInfinite});
+    }
+  }, [anchorTimestampPrecise, queryClient, queryKeyWithInfinite]);
+
+  const seekToTimestamp = useCallback(
+    (timestampPrecise: string | number | bigint) => {
+      let value: bigint;
+      try {
+        value = BigInt(timestampPrecise);
+      } catch {
+        return;
+      }
+      setSeekAnchor({baseQuerySignature, timestampPrecise: value});
+    },
+    [baseQuerySignature]
+  );
 
   const getPreviousPageParam = useCallback(
     (data: ApiResponse<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
@@ -446,9 +529,9 @@ export function useInfiniteLogsQuery({
         'previous',
         sortBys.slice(),
         autoRefresh,
-        highFidelity
+        effectiveHighFidelity
       )(data, _, pageParam),
-    [sortBys, autoRefresh, highFidelity]
+    [sortBys, autoRefresh, effectiveHighFidelity]
   );
   const getNextPageParam = useCallback(
     (data: ApiResponse<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
@@ -456,14 +539,14 @@ export function useInfiniteLogsQuery({
         'next',
         sortBys.slice(),
         autoRefresh,
-        highFidelity
+        effectiveHighFidelity
       )(data, _, pageParam),
-    [sortBys, autoRefresh, highFidelity]
+    [sortBys, autoRefresh, effectiveHighFidelity]
   );
 
   const initialPageParam = useMemo(
-    () => getInitialPageParam(autoRefresh, sortBys),
-    [autoRefresh, sortBys]
+    () => getInitialPageParam(autoRefresh, sortBys, anchorTimestampPrecise),
+    [autoRefresh, sortBys, anchorTimestampPrecise]
   );
 
   const queryResult = useInfiniteQuery({
@@ -554,7 +637,7 @@ export function useInfiniteLogsQuery({
         return oldData;
       }
 
-      if (highFidelity) {
+      if (effectiveHighFidelity) {
         // When high fidelity is enabled, the strategy for cleaning out the cached data is a little different.
         // Each page contains the cursor to the next page so we can't just remove empty pages. Instead, we
         // remove all empty pages excluding the first and last page. Those are always kept around.
@@ -595,9 +678,12 @@ export function useInfiniteLogsQuery({
         ),
       };
     });
-  }, [highFidelity, queryClient, queryKeyWithInfinite, sortBys]);
+  }, [effectiveHighFidelity, queryClient, queryKeyWithInfinite, sortBys]);
 
-  const {virtualStreamedTimestamp} = useVirtualStreaming({data, highFidelity});
+  const {virtualStreamedTimestamp} = useVirtualStreaming({
+    data,
+    highFidelity: effectiveHighFidelity,
+  });
 
   // Due to the way we prune empty pages, we cannot simply compute the sum of bytes scanned
   // for all pages as most empty pages would have been evicted already.
@@ -688,7 +774,7 @@ export function useInfiniteLogsQuery({
   const limit = autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT;
 
   const canAutoFetchNextPage =
-    !!highFidelity &&
+    !!effectiveHighFidelity &&
     hasNextPage &&
     nextPageHasData &&
     (lastPageLength === 0 || _data.length < limit);
@@ -722,6 +808,7 @@ export function useInfiniteLogsQuery({
       !shouldAutoFetchNextPage,
     fetchNextPage: _fetchNextPage,
     fetchPreviousPage: _fetchPreviousPage,
+    seekToTimestamp,
     refetch,
     hasNextPage,
     queryKey: queryKeyWithInfinite,

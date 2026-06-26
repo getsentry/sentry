@@ -146,6 +146,7 @@ export function LogsInfiniteTable({
     isError,
     fetchNextPage,
     fetchPreviousPage,
+    seekToTimestamp,
     isFetchingNextPage,
     isFetchingPreviousPage,
     lastPageLength,
@@ -242,6 +243,7 @@ export function LogsInfiniteTable({
   >({});
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+  const [pendingSeekRowId, setPendingSeekRowId] = useState<string | null>(null);
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
@@ -470,6 +472,38 @@ export function LogsInfiniteTable({
     return map;
   }, [data]);
 
+  // After a "View in table" seek re-anchors the query, the target row loads at
+  // the top of a window of older rows. Pull in one previous page so the newer
+  // rows above it aren't lost, then center the target and briefly highlight it.
+  const seekScrolledRef = useRef<string | null>(null);
+  const rowIndexByIdRef = useRef(rowIndexById);
+  rowIndexByIdRef.current = rowIndexById;
+  useEffect(() => {
+    if (!pendingSeekRowId || seekScrolledRef.current === pendingSeekRowId) {
+      return;
+    }
+    if (rowIndexById.get(pendingSeekRowId) === undefined) {
+      // Anchored page hasn't loaded yet; wait for the next data update.
+      return;
+    }
+    const id = pendingSeekRowId;
+    seekScrolledRef.current = id;
+    setPendingSeekRowId(null);
+    Promise.resolve(fetchPreviousPage()).finally(() => {
+      setTimeout(() => {
+        const index = rowIndexByIdRef.current.get(id);
+        if (index === undefined) {
+          return;
+        }
+        virtualizer.scrollToIndex(index, {align: 'center'});
+        setHoveredRowId(id);
+        setTimeout(() => {
+          setHoveredRowId(current => (current === id ? null : current));
+        }, 2500);
+      }, 100);
+    });
+  }, [pendingSeekRowId, rowIndexById, fetchPreviousPage, virtualizer]);
+
   const renderRow = useCallback(
     (dataRow: LogTableRowItem) => {
       const rowId = dataRow[OurLogKnownFieldKey.ID];
@@ -493,9 +527,17 @@ export function LogsInfiniteTable({
           isHoverLinked={hoveredRowId === rowId}
           setHoveredRowId={setHoveredRowId}
           togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
-          onViewInTable={
-            indexInList === undefined ? undefined : () => handleScrollToRow(indexInList)
-          }
+          onViewInTable={() => {
+            if (indexInList !== undefined) {
+              handleScrollToRow(indexInList);
+              return;
+            }
+            const timestampPrecise = dataRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
+            if (defined(timestampPrecise)) {
+              setPendingSeekRowId(rowId);
+              seekToTimestamp(timestampPrecise);
+            }
+          }}
         />
       );
     },
@@ -513,6 +555,7 @@ export function LogsInfiniteTable({
       logsPinning,
       meta,
       rowIndexById,
+      seekToTimestamp,
     ]
   );
 

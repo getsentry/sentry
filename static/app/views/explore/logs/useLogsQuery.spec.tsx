@@ -172,6 +172,84 @@ describe('useInfiniteLogsQuery', () => {
     );
   });
 
+  it('re-anchors the query at a precise timestamp when seekToTimestamp is called', async () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+
+    const initialMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([
+        {id: '6', timestamp_precise: '600', timestamp: '600'},
+        {id: '5', timestamp_precise: '500', timestamp: '500'},
+      ]),
+      match: [(_, options) => (options?.query?.query ?? '').length === 0],
+      headers: linkHeaders,
+    });
+
+    const anchoredMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([
+        {id: '99', timestamp_precise: '100', timestamp: '100'},
+        {id: '98', timestamp_precise: '90', timestamp: '90'},
+      ]),
+      match: [
+        (_, options) =>
+          (options?.query?.query ?? '').includes(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=100`
+          ),
+      ],
+      headers: linkHeaders,
+    });
+
+    // Paging "previous" (toward newer rows) from the anchor must issue a fresh
+    // >=T window query, which is only possible in timestamp-window mode. If the
+    // anchor left the query in high-fidelity cursor mode this would never fire.
+    const newerMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([
+        {id: '100', timestamp_precise: '110', timestamp: '110'},
+        {id: '101', timestamp_precise: '120', timestamp: '120'},
+      ]),
+      match: [
+        (_, options) =>
+          (options?.query?.query ?? '').includes(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=100`
+          ),
+      ],
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper(),
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(initialMock).toHaveBeenCalled();
+    expect(result.current.data.map(r => r[OurLogKnownFieldKey.ID])).toEqual(['6', '5']);
+
+    act(() => result.current.seekToTimestamp('100'));
+
+    await waitFor(() => expect(anchoredMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(result.current.data.map(r => r[OurLogKnownFieldKey.ID])).toEqual([
+        '99',
+        '98',
+      ])
+    );
+
+    await result.current.fetchPreviousPage();
+
+    await waitFor(() => expect(newerMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(result.current.data.map(r => r[OurLogKnownFieldKey.ID])).toEqual([
+        '101',
+        '100',
+        '99',
+        '98',
+      ])
+    );
+  });
+
   it('should remove empty pages but maintain hasNextPage', async () => {
     const eventsEndpoint = `/organizations/${organization.slug}/events/`;
 
