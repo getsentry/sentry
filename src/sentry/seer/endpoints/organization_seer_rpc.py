@@ -68,6 +68,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_github_enterprise_integration_config,
     get_organization_features,
     get_organization_project_ids,
+    get_organization_projects,
     get_organization_slug,
     has_repo_code_mappings,
     validate_repo,
@@ -105,6 +106,7 @@ logger = logging.getLogger(__name__)
 public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     # Common to Seer features
     "get_organization_project_ids": seer_rpc(map_org_id_param(get_organization_project_ids)),
+    "get_organization_projects": seer_rpc(map_org_id_param(get_organization_projects)),
     "get_organization_slug": seer_rpc(map_org_id_param(get_organization_slug)),
     "get_organization_features": seer_rpc(map_org_id_param(get_organization_features)),
     "validate_repo": seer_rpc(validate_repo),
