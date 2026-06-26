@@ -903,6 +903,11 @@ def build_pr_description_suffix(group: Group) -> str | None:
             linear_id = external_issue.display_name.replace("#", "-")
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
 
+    if features.has("organizations:autofix-pr-iteration", group.organization):
+        lines.append(
+            "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
+        )
+
     if lines:
         return "\n".join(lines)
 

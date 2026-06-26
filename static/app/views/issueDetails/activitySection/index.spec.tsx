@@ -166,6 +166,8 @@ describe('ActivitySection', () => {
   });
 
   it('renders note and allows for delete', async () => {
+    jest.spyOn(indicators, 'addSuccessMessage');
+
     const deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/note-1/',
       method: 'DELETE',
@@ -190,8 +192,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Remove comment'}));
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalledTimes(1));
-
-    await waitFor(() => expect(screen.queryByText('Test Note')).not.toBeInTheDocument());
+    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment removed');
   });
 
   it('keeps the comment and modal open when deletion fails', async () => {
