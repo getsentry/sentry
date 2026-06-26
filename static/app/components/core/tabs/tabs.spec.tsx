@@ -419,4 +419,51 @@ describe('Tabs overflow', () => {
 
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
   });
+
+  it('recomputes overflow when tabs are reordered without a resize', async () => {
+    // Fits the first three tabs (budget = 380 - 48 = 332 >= 3 * 100).
+    containerWidth = 380;
+
+    function TabsWithItems({
+      items,
+    }: {
+      items: ReadonlyArray<{key: string; label: string}>;
+    }) {
+      return (
+        <Tabs>
+          <TabList>
+            {items.map(tab => (
+              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+            ))}
+          </TabList>
+        </Tabs>
+      );
+    }
+
+    const {rerender} = render(<TabsWithItems items={TABS} />);
+
+    // Initially the trailing tab (Attachments) is the one that overflows.
+    expect(screen.getByRole('button', {name: 'More tabs'})).toBeInTheDocument();
+
+    // Reorder so Activity becomes the trailing tab. The total width is
+    // unchanged, so the ResizeObserver never fires – overflow must still be
+    // recomputed from the new order.
+    rerender(
+      <TabsWithItems
+        items={[
+          {key: 'details', label: 'Details'},
+          {key: 'user-feedback', label: 'User Feedback'},
+          {key: 'attachments', label: 'Attachments'},
+          {key: 'activity', label: 'Activity'},
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
+
+    // The new trailing tab overflows; the previously-overflowing one is now
+    // visible (not stuck in the menu based on the old order).
+    expect(screen.getByRole('option', {name: 'Activity'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Attachments'})).not.toBeInTheDocument();
+  });
 });

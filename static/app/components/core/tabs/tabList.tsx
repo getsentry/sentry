@@ -93,14 +93,12 @@ function useOverflowTabs({
   tabListRef,
   tabItemsRef,
   tabItems,
-  orientation,
   disabled,
 }: {
   /**
    * Prevent tabs from being put in the overflow menu.
    */
   disabled: boolean | undefined;
-  orientation: Orientation;
   /**
    * The relatively-positioned wrapper around the list. Its width is the space
    * available to the tabs and is unaffected by the list overflowing.
@@ -118,6 +116,11 @@ function useOverflowTabs({
 
   // Measures the list against the available space and updates the overflow set.
   const recompute = useEffectEvent(() => {
+    if (disabled) {
+      setOverflowTabs(prev => (prev.length === 0 ? prev : []));
+      return;
+    }
+
     const outerWrap = outerWrapRef.current;
     const tabList = tabListRef.current;
     if (!outerWrap || !tabList) {
@@ -185,9 +188,23 @@ function useOverflowTabs({
     );
   });
 
+  // Recompute whenever an input that affects the overflow result changes: the
+  // disabled state, or the set/order/hidden-state of the tabs. Width changes are
+  // handled by the ResizeObserver below; a reorder can leave the total width
+  // unchanged, so the observer alone wouldn't catch it.
+  const recomputeSignature = [
+    disabled ? 'disabled' : 'enabled',
+    ...tabItems.map(item => `${item.key}:${item.hidden ? 1 : 0}`),
+  ].join('|');
+
   useLayoutEffect(() => {
-    if (disabled || orientation !== 'horizontal') {
-      setOverflowTabs(prev => (prev.length === 0 ? prev : []));
+    recompute();
+  }, [recomputeSignature]);
+
+  // Recompute on container resize (available space changes) and on list resize
+  // (tabs added/removed/relabeled change its intrinsic width). Keyed only on the
+  useEffect(() => {
+    if (disabled) {
       return;
     }
 
@@ -197,15 +214,12 @@ function useOverflowTabs({
       return;
     }
 
-    // Recompute on container resize (available space changes) and on list
-    // resize (tabs added/removed/relabeled change its intrinsic width).
     const resizeObserver = new ResizeObserver(() => recompute());
     resizeObserver.observe(outerWrap);
     resizeObserver.observe(tabList);
-    recompute();
 
     return () => resizeObserver.disconnect();
-  }, [disabled, orientation, outerWrapRef, tabListRef]);
+  }, [disabled, outerWrapRef, tabListRef]);
 
   // Tabs with the `hidden` prop render with display: none; never surface them
   // in the overflow menu.
@@ -305,8 +319,8 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
     tabListRef,
     tabItemsRef,
     tabItems: props.items,
-    orientation,
-    disabled: disableOverflow,
+    // Overflow only applies to horizontal tab lists.
+    disabled: disableOverflow || orientation !== 'horizontal',
   });
 
   const overflowMenuItems = useMemo(() => {
