@@ -148,13 +148,6 @@ export type PendingUserInput = {
   input_type: 'file_change_approval' | 'ask_user_question' | 'reauth_monitoring_provider';
 };
 
-/**
- * Shape of `PendingUserInput.data` when `input_type` is
- * `reauth_monitoring_provider`. Emitted by Seer when a monitoring provider's
- * token has expired and cannot be silently refreshed, pausing the run until
- * the user reconnects the provider. `auth_method` mirrors the backend value
- * (`oauth` for OAuth providers, `pat` for token-based ones).
- */
 export interface ReauthMonitoringProviderData {
   auth_method: 'oauth' | 'pat';
   message: string;
