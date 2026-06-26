@@ -150,7 +150,6 @@ export type PendingUserInput = {
 
 export interface ReauthMonitoringProviderData {
   auth_method: 'oauth' | 'pat';
-  message: string;
   provider_key: string;
   identity_id?: number;
 }

@@ -14,6 +14,12 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReauthMonitoringProviderData} from 'sentry/views/seerExplorer/types';
 
+const PROVIDER_LABELS: Record<string, string> = {
+  datadog: 'Datadog',
+  datadog_pat: 'Datadog',
+  gcp: 'Google Cloud Platform',
+};
+
 interface ReauthMonitoringProviderBlockProps {
   data: ReauthMonitoringProviderData;
   onComplete: () => void;
@@ -25,6 +31,7 @@ export function ReauthMonitoringProviderBlock({
 }: ReauthMonitoringProviderBlockProps) {
   const organization = useOrganization();
   const isPat = data.auth_method === 'pat';
+  const providerLabel = PROVIDER_LABELS[data.provider_key] ?? data.provider_key;
 
   const connectOAuthMutation = useMutation({
     mutationFn: () =>
@@ -72,7 +79,9 @@ export function ReauthMonitoringProviderBlock({
     <Container padding="xl">
       <Container padding="xl" border="primary" radius="md">
         <Flex direction="column" gap="lg">
-          <Text>{data.message}</Text>
+          <Text>
+            {t('Your %s connection has expired. Reconnect to continue.', providerLabel)}
+          </Text>
           <Flex gap="sm" align="center">
             <Button
               variant="primary"
