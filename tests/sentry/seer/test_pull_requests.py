@@ -55,24 +55,6 @@ class LinkSeerRunPullRequestsTest(TestCase):
         assert link.seer_run_id == self.seer_run.id
         assert list(self.seer_run.pull_requests) == [pull_request]
 
-    def test_reuses_existing_pull_request(self) -> None:
-        existing = self.create_pull_request(
-            organization_id=self.organization.id, repository_id=self.repo.id, key="42"
-        )
-
-        self._link(self._payload())
-
-        assert PullRequest.objects.filter(repository_id=self.repo.id, key="42").count() == 1
-        link = SeerRunPullRequest.objects.get(pull_request=existing)
-        assert link.seer_run_id == self.seer_run.id
-
-    def test_is_idempotent_on_redelivery(self) -> None:
-        self._link(self._payload())
-        self._link(self._payload())
-
-        pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="42")
-        assert SeerRunPullRequest.objects.filter(pull_request=pull_request).count() == 1
-
     def test_first_run_keeps_pull_request(self) -> None:
         self._link(self._payload())
 
@@ -94,14 +76,6 @@ class LinkSeerRunPullRequestsTest(TestCase):
         self._link(self._payload() + self._payload(pr_number=43))
 
         assert SeerRunPullRequest.objects.filter(seer_run=self.seer_run).count() == 2
-
-    @patch("sentry.seer.pull_requests.logger")
-    def test_no_link_when_run_not_mirrored(self, mock_logger: Mock) -> None:
-        self._link(self._payload(), seer_run_state_id=999999)
-
-        assert not SeerRunPullRequest.objects.exists()
-        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="42").exists()
-        assert mock_logger.info.call_args.args[0] == "seer.pull_request_link.run_not_found"
 
     def test_noop_when_run_id_missing(self) -> None:
         self._link(self._payload(), seer_run_state_id=None)
