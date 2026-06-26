@@ -176,7 +176,12 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
             data = span.get("data")
             if data is None:
                 continue
-            for item in data.get("call_stack", []):
+            call_stack = data.get("call_stack", [])
+            if not isinstance(call_stack, list):
+                continue
+            for item in call_stack:
+                if not isinstance(item, dict):
+                    continue
                 module = self._deobfuscate_module(item.get("module", ""))
                 function = self._deobfuscate_function(item)
                 call_stack_strings.append(f"{module}.{function}")
