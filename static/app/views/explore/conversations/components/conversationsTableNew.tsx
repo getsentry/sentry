@@ -12,6 +12,7 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
+  COL_WIDTH_UNDEFINED,
   GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
@@ -67,13 +68,23 @@ export function ConversationsTableNew() {
   const handleResizeColumn = useCallback(
     (columnIndex: number, nextColumn: GridColumnOrder<ConversationColumnKey>) => {
       const {width} = nextColumn;
-      if (typeof width === 'number' && width > 0) {
-        setColumns(
-          columns.map((c, i) =>
-            i === columnIndex ? {...c, width: Math.round(width)} : c
-          )
-        );
-      }
+      // A double-click reset sends COL_WIDTH_UNDEFINED (-1); drop the persisted
+      // width so the column falls back to its default instead of keeping the old
+      // value. Any other non-positive width is ignored.
+      setColumns(
+        columns.map((c, i) => {
+          if (i !== columnIndex) {
+            return c;
+          }
+          if (typeof width === 'number' && width > 0) {
+            return {...c, width: Math.round(width)};
+          }
+          if (width === COL_WIDTH_UNDEFINED) {
+            return {key: c.key};
+          }
+          return c;
+        })
+      );
     },
     [columns, setColumns]
   );
