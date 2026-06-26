@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
@@ -161,7 +162,12 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
       menuTitle={t('Agent')}
       data-test-id="agent-selector"
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} prefix={t('Agent')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Agent')}>
+          {selectedAgents.length === 0 &&
+          hasGenAiConversationsRedesignFeature(organization)
+            ? t('All')
+            : triggerProps.children}
+        </OverlayTrigger.Button>
       )}
       onChange={newValue => {
         const values = newValue.map(v => v.value).filter(Boolean);
