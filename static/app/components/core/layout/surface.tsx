@@ -104,7 +104,7 @@ export const Surface = styled(
   }
 )<SurfaceProps<any>>`
   ${p =>
-    rc('background', p.variant, p.theme, 'viewport', v =>
+    rc('background', p.variant, p.theme, p.responsiveTo, v =>
       v ? p.theme.tokens.background[v] : undefined
     )};
   ${p =>
@@ -112,7 +112,7 @@ export const Surface = styled(
       'border',
       p.variant === 'overlay' ? 'primary' : undefined,
       p.theme,
-      'viewport',
+      p.responsiveTo,
       getBorder
     )};
   ${p =>
@@ -120,7 +120,7 @@ export const Surface = styled(
       'border-radius',
       p.radius ?? (p.variant === 'overlay' ? 'md' : undefined),
       p.theme,
-      'viewport',
+      p.responsiveTo,
       getRadius
     )};
   ${p =>
@@ -128,7 +128,7 @@ export const Surface = styled(
       'box-shadow',
       p.elevation ?? (p.variant === 'overlay' ? ('low' as const) : undefined),
       p.theme,
-      'viewport',
+      p.responsiveTo,
       v => (v ? p.theme.shadow[v] : undefined)
     )};
 ` as unknown as <T extends ContainerElement = 'div'>(

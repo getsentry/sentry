@@ -77,7 +77,7 @@ export const Heading = styled(
           'font-size',
           p.size ?? (p.as ? getDefaultHeadingFontSize(p.as) : undefined),
           p.theme,
-          'viewport',
+          p.responsiveTo,
           v => {
             return getFontSize(v, p.theme);
           }
@@ -85,10 +85,10 @@ export const Heading = styled(
   ${p =>
     p.variant === 'inherit' && p.density === undefined
       ? 'line-height: inherit'
-      : rc('line-height', p.density, p.theme, 'viewport', v =>
+      : rc('line-height', p.density, p.theme, p.responsiveTo, v =>
           getLineHeight(v, p.theme)
         )};
-  ${p => rc('text-align', p.align, p.theme, 'viewport')};
+  ${p => rc('text-align', p.align, p.theme, p.responsiveTo)};
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};
 

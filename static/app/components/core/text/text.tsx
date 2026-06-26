@@ -1,7 +1,7 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {rc, type Responsive} from '@sentry/scraps/layout';
+import {rc, type Responsive, type ResponsiveMode} from '@sentry/scraps/layout';
 
 import type {ContentVariant, TextSize} from 'sentry/utils/theme';
 
@@ -50,6 +50,8 @@ export interface BaseTextProps {
    * If true, the text will be displayed in a monospace font.
    */
   monospace?: boolean;
+
+  responsiveTo?: ResponsiveMode;
 
   /**
    * Strikethrough the text.
@@ -198,10 +200,12 @@ export const Text = styled(
     shouldForwardProp: p => isPropValid(p),
   }
 )`
-  ${p => rc('font-size', p.size, p.theme, 'viewport', v => getFontSize(v, p.theme))};
+  ${p => rc('font-size', p.size, p.theme, p.responsiveTo, v => getFontSize(v, p.theme))};
   ${p =>
-    rc('line-height', p.density, p.theme, 'viewport', v => getLineHeight(v, p.theme))};
-  ${p => rc('text-align', p.align, p.theme, 'viewport')};
+    rc('line-height', p.density, p.theme, p.responsiveTo, v =>
+      getLineHeight(v, p.theme)
+    )};
+  ${p => rc('text-align', p.align, p.theme, p.responsiveTo)};
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};
   text-decoration: ${p => getTextDecoration(p)};

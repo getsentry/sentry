@@ -4,7 +4,10 @@ import styled from '@emotion/styled';
 import type {ContainerProps} from '@sentry/scraps/layout';
 import {getBorder, getMargin, getSpacing, rc} from '@sentry/scraps/layout';
 
-export type SeparatorProps = Pick<ContainerProps, 'border' | 'margin' | 'padding'> & {
+export type SeparatorProps = Pick<
+  ContainerProps,
+  'border' | 'margin' | 'padding' | 'responsiveTo'
+> & {
   orientation: 'horizontal' | 'vertical';
   children?: never;
 } & Omit<React.HTMLAttributes<HTMLHRElement>, 'aria-orientation'>;
@@ -31,8 +34,8 @@ export const Separator = styled(
   width: ${p => (p.orientation === 'horizontal' ? 'auto' : '1px')};
   height: ${p => (p.orientation === 'horizontal' ? '1px' : 'auto')};
 
-  ${p => rc('padding', p.padding, p.theme, 'viewport', getSpacing)};
-  ${p => rc('margin', p.margin ?? '0', p.theme, 'viewport', getMargin)};
+  ${p => rc('padding', p.padding, p.theme, p.responsiveTo, getSpacing)};
+  ${p => rc('margin', p.margin ?? '0', p.theme, p.responsiveTo, getMargin)};
 
   flex-shrink: 0;
   align-self: stretch;
@@ -43,7 +46,7 @@ export const Separator = styled(
       p.orientation === 'horizontal' ? 'border-bottom' : 'border-left',
       p.border ?? 'primary',
       p.theme,
-      'viewport',
+      p.responsiveTo,
       (...args) => `${getBorder(...args)} !important`
     )};
 `;
