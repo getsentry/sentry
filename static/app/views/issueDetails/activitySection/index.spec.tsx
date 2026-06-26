@@ -298,35 +298,9 @@ describe('ActivitySection', () => {
 
     expect(await screen.findByText('User note')).toBeInTheDocument();
     expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
-    expect(screen.queryByTestId('sentry-activity-marker')).not.toBeInTheDocument();
   });
 
-  it('does not render activity actor markers when the feature is disabled', async () => {
-    const activityGroup = GroupFixture({
-      id: '1338',
-      activity: [
-        {
-          type: GroupActivityType.NOTE,
-          id: 'note-1',
-          data: {text: 'User note'},
-          dateCreated: '2020-01-01T00:00:00',
-          user,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
-        <ActivitySection group={activityGroup} />
-      </GroupDataContextProvider>
-    );
-
-    expect(await screen.findByText('User note')).toBeInTheDocument();
-    expect(screen.queryByTestId('user-activity-marker')).not.toBeInTheDocument();
-  });
-
-  it('renders user actor for notes in two-column layout', async () => {
+  it('renders user actor for notes in activity line items', async () => {
     const activityGroup = GroupFixture({
       id: '1338',
       activity: [
@@ -352,10 +326,9 @@ describe('ActivitySection', () => {
 
     expect(await screen.findByText('User note')).toBeInTheDocument();
     expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
-    expect(screen.queryByTestId('user-activity-marker')).not.toBeInTheDocument();
   });
 
-  it('renders provider-specific icon for create issue in two-column layout', async () => {
+  it('renders provider-specific icon for create issue in activity line items', async () => {
     const createIssueGroup = GroupFixture({
       id: '1345',
       activity: [

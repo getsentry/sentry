@@ -55,9 +55,9 @@ function TimelineItem({
 }) {
   const organization = useOrganization();
   const [editing, setEditing] = useState(false);
-  const useTwoColumnLayout = organization.features.includes('issue-activity-feed-v2');
+  const useActivityLineItems = organization.features.includes('issue-activity-feed-v2');
 
-  if (useTwoColumnLayout) {
+  if (useActivityLineItems) {
     return (
       <ActivityLineItem
         item={item}
@@ -259,10 +259,10 @@ export function ActivitySection({
   const showSeerActivities = organization.features.includes(
     'display-seer-actions-as-issue-activities'
   );
-  const useTwoColumnLayout = organization.features.includes('issue-activity-feed-v2');
+  const useActivityLineItems = organization.features.includes('issue-activity-feed-v2');
   const visibleActivities = showSeerActivities
     ? group.activity.filter(
-        item => useTwoColumnLayout || item.type !== GroupActivityType.SEER_PR_CREATED
+        item => useActivityLineItems || item.type !== GroupActivityType.SEER_PR_CREATED
       )
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
@@ -286,7 +286,7 @@ export function ActivitySection({
     />
   );
   const renderActivityList = (children: React.ReactNode) =>
-    useTwoColumnLayout ? (
+    useActivityLineItems ? (
       <ActivityLineList data-test-id="activity-timeline">{children}</ActivityLineList>
     ) : (
       <Timeline.Container data-test-id="activity-timeline">{children}</Timeline.Container>

@@ -1,4 +1,4 @@
-import {css, type Theme} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 interface InlineChipProps {
@@ -6,16 +6,33 @@ interface InlineChipProps {
   variant?: 'compactLeading' | 'constrained' | 'default';
 }
 
+interface ChipFrameProps {
+  children: React.ReactNode;
+  maxWidth?: React.CSSProperties['maxWidth'];
+  minWidth?: React.CSSProperties['minWidth'];
+  paddingLeft?: React.CSSProperties['paddingLeft'];
+}
+
 export function InlineChip({children, variant = 'default'}: InlineChipProps) {
-  if (variant === 'compactLeading') {
-    return <CompactLeadingChipFrame>{children}</CompactLeadingChipFrame>;
-  }
+  const theme = useTheme();
 
-  if (variant === 'constrained') {
-    return <ConstrainedChipFrame>{children}</ConstrainedChipFrame>;
-  }
+  return (
+    <ChipFrame
+      maxWidth={variant === 'constrained' ? '100%' : undefined}
+      minWidth={variant === 'constrained' ? 0 : undefined}
+      paddingLeft={variant === 'compactLeading' ? theme.space.xs : undefined}
+    >
+      {children}
+    </ChipFrame>
+  );
+}
 
-  return <ChipFrame>{children}</ChipFrame>;
+function ChipFrame({children, maxWidth, minWidth, paddingLeft}: ChipFrameProps) {
+  return (
+    <ChipFrameElement style={{maxWidth, minWidth, paddingLeft}}>
+      {children}
+    </ChipFrameElement>
+  );
 }
 
 const chipFrameStyles = (p: {theme: Theme}) => css`
@@ -45,17 +62,6 @@ const chipFrameStyles = (p: {theme: Theme}) => css`
   }
 `;
 
-const ChipFrame = styled('span')`
+const ChipFrameElement = styled('span')`
   ${chipFrameStyles};
-`;
-
-const CompactLeadingChipFrame = styled('span')`
-  ${chipFrameStyles};
-  padding-left: ${p => p.theme.space.xs};
-`;
-
-const ConstrainedChipFrame = styled('span')`
-  ${chipFrameStyles};
-  max-width: 100%;
-  min-width: 0;
 `;
