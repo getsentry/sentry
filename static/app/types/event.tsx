@@ -662,6 +662,9 @@ export type EventContexts = {
   device?: DeviceContext;
   feedback?: Record<string, any>;
   flags?: Flags;
+  // Flattened GPU crash context emitted by teapot symbolication. The dedicated
+  // renderer narrows this to `GPUCrashContext`.
+  gpu_crash?: Record<string, any>;
   memory_info?: MemoryInfoContext;
   metric_alert?: MetricAlertContextType;
   missing_instrumentation?: MissingInstrumentationContext;

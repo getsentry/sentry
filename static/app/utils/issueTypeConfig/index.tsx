@@ -1,5 +1,9 @@
 import {t} from 'sentry/locale';
-import {IssueCategory, IssueType} from 'sentry/types/group';
+import {
+  getIssueTypeFromOccurrenceType,
+  IssueCategory,
+  IssueType,
+} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {aiDetectedConfig} from 'sentry/utils/issueTypeConfig/aiDetectedConfig';
 import {configurationIssuesConfig} from 'sentry/utils/issueTypeConfig/configurationIssuesConfig';
@@ -137,6 +141,16 @@ function shouldShowCustomErrorResourceConfig(
 }
 
 const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {
+  // Explicit overrides for issue types that don't fit the "anything >= 1000
+  // is performance" heuristic. This heuristic is a known stopgap for the
+  // group-less path (there's no shared type_id -> category source of truth on
+  // the frontend); keep this list short.
+  if (eventOccurrenceType === 9100) {
+    // GpuCrashGroupType — a TDR-style GPU hang is an outage, not a perf issue.
+    // Without this it maps to PERFORMANCE and renders SpanEvidenceKeyValueList,
+    // which expects spans a synthetic GPU event doesn't carry.
+    return IssueCategory.OUTAGE;
+  }
   if (eventOccurrenceType >= 1000) {
     return IssueCategory.PERFORMANCE;
   }
@@ -148,6 +162,11 @@ export const getIssueCategoryAndTypeFromOccurrenceType = (
 ): IssueCategoryAndType => {
   return {
     issueCategory: eventOccurrenceTypeToIssueCategory(eventOccurrenceType),
+    // Reuse the canonical occurrence-type -> IssueType map rather than a second
+    // hand-maintained mapping. Carrying issueType here is what lets config
+    // overrides (e.g. outageConfig[GPU_CRASH]'s `evidence: null`) apply in the
+    // group-less path — shared event views, the trace drawer.
+    issueType: getIssueTypeFromOccurrenceType(eventOccurrenceType) ?? undefined,
   };
 };
 
