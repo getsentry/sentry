@@ -21,6 +21,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
@@ -38,10 +39,12 @@ import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxSta
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {
   seerAgentIntegrationsSelectQueryOptions,
+  isGithubRepoProvider,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
+import {getSeerProjectReposInfiniteQueryOptions} from 'sentry/utils/seer/seerProjectRepos';
 import {
   getMutateSeerProjectSettingsOptions,
   getInfiniteSeerProjectsSettingsQueryOptions,
@@ -275,7 +278,53 @@ export function SeerProjectTable() {
                               disabled={!canWrite}
                               menuPortalTarget={document.body}
                               multiple={false}
-                              onChange={field.handleChange}
+                              onMenuOpen={() => {
+                                // Warm the cache so the on-change check below
+                                // resolves instantly.
+                                void queryClient.prefetchInfiniteQuery(
+                                  getSeerProjectReposInfiniteQueryOptions({
+                                    organization,
+                                    project: {slug: item.projectSlug},
+                                  })
+                                );
+                              }}
+                              onChange={async newValue => {
+                                // Coding-agent handoff only works for GitHub
+                                // repos. Verify before committing so a project
+                                // with any non-GitHub repo stays on Seer (and
+                                // nothing is persisted).
+                                if (newValue !== 'seer') {
+                                  let hasNonGithubRepo: boolean;
+                                  try {
+                                    const reposData =
+                                      await queryClient.fetchInfiniteQuery(
+                                        getSeerProjectReposInfiniteQueryOptions({
+                                          organization,
+                                          project: {slug: item.projectSlug},
+                                        })
+                                      );
+                                    hasNonGithubRepo = reposData.pages
+                                      .flatMap(page => page.json)
+                                      .some(repo => !isGithubRepoProvider(repo.provider));
+                                  } catch {
+                                    addErrorMessage(
+                                      t(
+                                        'Could not verify repositories. Please try again.'
+                                      )
+                                    );
+                                    return;
+                                  }
+                                  if (hasNonGithubRepo) {
+                                    addErrorMessage(
+                                      t(
+                                        'Non-GitHub repositories only support handing off to Seer.'
+                                      )
+                                    );
+                                    return;
+                                  }
+                                }
+                                field.handleChange(newValue);
+                              }}
                               options={agentSelectOptions}
                               // @ts-expect-error: Select component does not have a size prop defined
                               size="xs"

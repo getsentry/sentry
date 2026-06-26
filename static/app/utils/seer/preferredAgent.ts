@@ -27,6 +27,13 @@ export function coalesePreferredAgent(
   return `${agent}::${integrationId ?? ''}` as const;
 }
 
+// Coding-agent handoff only works for GitHub repos. Provider arrives as the repo
+// `provider.id` (`integrations:github`, `github`, …) or the lowercased Seer-repo
+// provider name (`github`), so match on the substring.
+export function isGithubRepoProvider(provider: string | undefined | null): boolean {
+  return Boolean(provider?.toLowerCase().includes('github'));
+}
+
 export function isPreferredAgentProvider(
   provider: string | undefined
 ): provider is PreferredAgentProvider {
