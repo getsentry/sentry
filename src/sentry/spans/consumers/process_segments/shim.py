@@ -4,12 +4,10 @@ This is only necessary for logic that is shared between the event processing pip
 and thus cannot (yet) be refactored to use the new span schema.
 """
 
-import logging
 import uuid
 from copy import deepcopy
 from typing import Any, cast
 
-import orjson
 import sentry_sdk
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
@@ -21,12 +19,6 @@ from sentry.spans.consumers.process_segments.types import (
     get_span_op,
 )
 from sentry.utils.dates import to_datetime
-
-logger = logging.getLogger(__name__)
-
-# Span attributes that detectors expect as structured JSON (list/dict) but which
-# arrive on EAP spans serialized as JSON strings.
-_JSON_DECODED_ATTRIBUTES = frozenset({"call_stack"})
 
 
 def make_compatible(span: SpanEvent) -> CompatibleSpan:
@@ -120,17 +112,6 @@ def build_shim_event_data(
                 if key == ATTRIBUTE_NAMES.SENTRY_DESCRIPTION:
                     event_span["description"] = value
                 else:
-                    # Some attributes (e.g. call_stack) arrive as JSON strings on
-                    # EAP spans but detectors expect the deserialized structure.
-                    if key in _JSON_DECODED_ATTRIBUTES and isinstance(value, str):
-                        try:
-                            value = orjson.loads(value)
-                        except orjson.JSONDecodeError:
-                            logger.warning(
-                                "process_segments.shim.invalid_json_attribute",
-                                extra={"attribute": key},
-                            )
-                            continue
                     event_span["data"][key] = value
 
         event["spans"].append(event_span)

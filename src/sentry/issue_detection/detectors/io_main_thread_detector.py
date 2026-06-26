@@ -4,6 +4,7 @@ import hashlib
 from collections import defaultdict
 from typing import Any
 
+import orjson
 import sentry_sdk
 from symbolic.proguard import ProguardMapper
 
@@ -177,6 +178,13 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
             if data is None:
                 continue
             call_stack = data.get("call_stack", [])
+            # On EAP spans, `call_stack` arrives as a JSON-encoded string because
+            # span attributes can only hold scalar values. Restore the structure.
+            if isinstance(call_stack, (str, bytes)):
+                try:
+                    call_stack = orjson.loads(call_stack)
+                except orjson.JSONDecodeError:
+                    continue
             if not isinstance(call_stack, list):
                 continue
             for item in call_stack:
