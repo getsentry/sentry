@@ -35,7 +35,7 @@ function setupTrackedMatchMedia(initialMatches: (query: string) => boolean) {
     };
     queries[query] = mock;
     return mock;
-  }) as unknown as typeof window.matchMedia;
+  });
 
   return {
     setMatches(query: string, matches: boolean) {
