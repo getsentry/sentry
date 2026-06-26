@@ -5,7 +5,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {
   MessagingIntegrationAnalyticsView,
   SetupMessagingIntegrationButton,
@@ -13,6 +12,7 @@ import {
 import {
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,
+  useIssueAlertNotificationOptions,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 import {ScmCollapsibleReveal} from './scmCollapsibleReveal';
@@ -26,15 +26,9 @@ import {ScmMessagingIntegrationAlertRule} from './scmMessagingIntegrationAlertRu
  * instead of the classic inline card.
  */
 export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationProps) {
-  const {actions, setActions, querySuccess, shouldRenderSetupButton} = props;
-
-  const shouldRenderNotificationConfigs = actions.some(
-    v => v !== MultipleCheckboxOptions.EMAIL
-  );
-
-  useRouteAnalyticsParams({
-    setup_message_integration_button_shown: shouldRenderSetupButton,
-  });
+  const {actions, setActions} = props;
+  const {querySuccess, shouldRenderNotificationConfigs, shouldRenderSetupButton} =
+    useIssueAlertNotificationOptions(props);
 
   if (!querySuccess) {
     return null;
