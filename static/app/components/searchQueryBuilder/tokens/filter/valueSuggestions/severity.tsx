@@ -53,6 +53,7 @@ const SeverityDot = styled('span')<{variant: SeverityColorVariant}>`
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
+  align-self: center;
   background-color: ${p => getDotColor(p.variant, p.theme)};
 `;
 
