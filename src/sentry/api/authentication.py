@@ -14,6 +14,7 @@ from django.http import HttpHeaders
 from django.urls import resolve
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
+from jwt import PyJWTError
 from rest_framework.authentication import (
     BaseAuthentication,
     BasicAuthentication,
@@ -603,6 +604,43 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             api_token_type=self.token_name,
             api_token_is_sentry_app=getattr(user, "is_sentry_app", False),
         )
+
+
+@AuthenticationSiloLimit(SiloMode.CELL, SiloMode.CONTROL)
+class AgentTokenAuthentication(StandardAuthentication):
+    """Authenticates the Seer agent's short-lived capability token.
+
+    The token is a Sentry-signed JWT (see ``sentry.seer.agent_token``), not a stored
+    ``ApiToken``. ``accepts_auth`` defers (returns False) for any bearer credential that is
+    not one of our agent tokens, so this class is inert for all other traffic. The verified
+    claims become a normal ``api_token``-kind ``request.auth`` whose scopes are intersected
+    with the member's role in the access layer.
+    """
+
+    token_name = b"bearer"
+
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        from sentry.seer import agent_token
+
+        if not super().accepts_auth(auth) or len(auth) != 2:
+            return False
+        return agent_token.looks_like_agent_token(force_str(auth[1]))
+
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        from sentry.seer import agent_token
+
+        try:
+            claims = agent_token.decode_agent_token(token_str)
+        except PyJWTError:
+            raise AuthenticationFailed("Invalid agent token")
+
+        user = user_service.get_user(user_id=int(claims["sub"]))
+        if user is None or not user.is_active or getattr(user, "is_suspended", False):
+            raise AuthenticationFailed("Invalid agent token")
+
+        auth_token = agent_token.build_authenticated_token(claims)
+        agent_token.mark_agent_request(request, claims)
+        return self.transform_auth(user, auth_token, "api_token", api_token_type=self.token_name)
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)

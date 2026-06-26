@@ -40,6 +40,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.seer import agent_token
 from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
@@ -71,6 +72,14 @@ class SingleProjectIdOrSlug(NamedTuple):
         if self.project_slug is None:
             return None
         return {self.project_slug}
+
+
+def _extract_organization_id(
+    organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+) -> int:
+    if isinstance(organization, RpcUserOrganizationContext):
+        return organization.organization.id
+    return organization.id
 
 
 class OrganizationPermission(DemoSafePermission):
@@ -118,9 +127,26 @@ class OrganizationPermission(DemoSafePermission):
         view: APIView,
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
+        claims = agent_token.get_agent_claims(request)
+        if claims is not None and int(claims["org"]) != _extract_organization_id(organization):
+            # An agent token is bound to the org it was minted for. Its scopes (including
+            # any user-granted write) were de-escalated for *that* org, so it must never be
+            # honored against a different org — mirrors the org-scoped token check below.
+            raise PermissionDenied
         self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        allowed = super().has_permission(request, view)
+        if not allowed and agent_token.get_agent_claims(request) is not None:
+            # An agent token is read-only by default, so a write fails the view-level
+            # scope check here (before object permissions). If the acting user could grant
+            # the missing scope, turn the bare 403 into a structured approval challenge.
+            # No-op for all non-agent traffic.
+            required_scopes = set(self.scope_map.get(request.method or "", []))
+            agent_token.maybe_challenge(request, required_scopes)
+        return allowed
 
     def is_member_disabled_from_limit(
         self,
