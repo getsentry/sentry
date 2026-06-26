@@ -264,34 +264,28 @@ def link_provider_identity(
     identity_data: dict[str, Any],
     organization_id: int,
 ) -> Identity | None:
-    """Create/get an IdentityProvider, link an Identity, and create an
-    OrganizationIdentity.
-
-    ``identity_data`` is the dict returned by ``Provider.build_identity()``.
-    Propagates ``IntegrityError`` from ``link_identity`` when the identity is
-    already linked to another user.
-    """
-    idp, _ = IdentityProvider.objects.get_or_create(
-        type=identity_data["type"],
-        external_id=identity_data["idp_external_id"],
-        defaults={"config": identity_data.get("idp_config", {})},
-    )
-
-    linked_identity = Identity.objects.link_identity(
-        user=user,
-        idp=idp,
-        external_id=identity_data["id"],
-        should_reattach=False,
-        defaults={
-            "scopes": identity_data.get("scopes", []),
-            "data": identity_data.get("data", {}),
-        },
-    )
-
-    if linked_identity:
-        OrganizationIdentity.objects.get_or_create(
-            organization_id=organization_id,
-            identity=linked_identity,
+    with transaction.atomic(router.db_for_write(Identity)):
+        idp, _ = IdentityProvider.objects.get_or_create(
+            type=identity_data["type"],
+            external_id=identity_data["idp_external_id"],
+            defaults={"config": identity_data.get("idp_config", {})},
         )
+
+        linked_identity = Identity.objects.link_identity(
+            user=user,
+            idp=idp,
+            external_id=identity_data["id"],
+            should_reattach=False,
+            defaults={
+                "scopes": identity_data.get("scopes", []),
+                "data": identity_data.get("data", {}),
+            },
+        )
+
+        if linked_identity:
+            OrganizationIdentity.objects.get_or_create(
+                organization_id=organization_id,
+                identity=linked_identity,
+            )
 
     return linked_identity
