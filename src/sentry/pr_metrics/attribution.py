@@ -132,6 +132,76 @@ def recompute_pull_request_attribution(pull_request: PullRequest) -> str | None:
     )
 
 
+def _log_unresolved_reported_pull_request(
+    resolved: ResolvedPullRequest, log_context: Mapping[str, Any]
+) -> None:
+    """Emit the attribution warnings for a reported PR that didn't resolve to a unique repo."""
+    # A present-but-unrecognized provider means the source sent something we don't map —
+    # warn so it can be corrected upstream.
+    if resolved.provider_unmappable:
+        logger.warning("pr_metrics.attribution.unrecognized_provider", extra=log_context)
+
+    if resolved.pull_request is None:
+        if resolved.repo_resolution == "ambiguous":
+            logger.warning("pr_metrics.attribution.repo_ambiguous", extra=log_context)
+        else:
+            logger.warning("pr_metrics.attribution.repo_not_found", extra=log_context)
+
+
+def _attribute_pull_request(
+    *,
+    organization_id: int,
+    repo_name: str,
+    provider: str | None,
+    pr_number: int | str,
+    signal_type: PullRequestAttributionSignalType,
+    source: PullRequestAttributionSource,
+    signal_details: Mapping[str, Any] | None,
+    log_context: Mapping[str, Any],
+) -> None:
+    """Resolve a single reported PR to its canonical ``PullRequest`` and idempotently
+    record one attribution signal. Used by the delegated-agent path.
+
+    Resolution (repo lookup + find-or-create) lives on ``PullRequest.objects`` so every
+    PR-reporting path converges on the same row; here we add only the attribution write.
+    Failures are logged and swallowed rather than raised, so a batch caller's remaining
+    PRs are unaffected.
+    """
+    try:
+        resolved = PullRequest.objects.get_or_create_from_reference(
+            organization_id=organization_id,
+            repo_name=repo_name,
+            provider=provider,
+            key=pr_number,
+        )
+    except Exception:
+        logger.exception("pr_metrics.attribution.record_failed", extra=log_context)
+        return
+
+    _log_unresolved_reported_pull_request(resolved, log_context)
+    if resolved.pull_request is None:
+        return
+
+    # The repo is resolved now, so its id sharpens every log from here on.
+    log_context = {**log_context, "repository_id": resolved.pull_request.repository_id}
+
+    try:
+        record_attribution_signal(
+            pull_request=resolved.pull_request,
+            signal_type=signal_type,
+            source=source,
+            signal_details=signal_details,
+        )
+    except Exception:
+        logger.exception("pr_metrics.attribution.record_failed", extra=log_context)
+        return
+
+    logger.info(
+        "pr_metrics.attribution.recorded",
+        extra={**log_context, "pull_request_id": resolved.pull_request.id},
+    )
+
+
 def resolve_seer_created_pull_requests(
     *,
     organization_id: int,
@@ -242,76 +312,6 @@ def attribute_seer_created_pull_requests(
         },
     )
     record_seer_created_attributions(resolved_prs=resolved_prs, run_id=run_id, group_id=group_id)
-
-
-def _log_unresolved_reported_pull_request(
-    resolved: ResolvedPullRequest, log_context: Mapping[str, Any]
-) -> None:
-    """Emit the attribution warnings for a reported PR that didn't resolve to a unique repo."""
-    # A present-but-unrecognized provider means the source sent something we don't map —
-    # warn so it can be corrected upstream.
-    if resolved.provider_unmappable:
-        logger.warning("pr_metrics.attribution.unrecognized_provider", extra=log_context)
-
-    if resolved.pull_request is None:
-        if resolved.repo_resolution == "ambiguous":
-            logger.warning("pr_metrics.attribution.repo_ambiguous", extra=log_context)
-        else:
-            logger.warning("pr_metrics.attribution.repo_not_found", extra=log_context)
-
-
-def _attribute_pull_request(
-    *,
-    organization_id: int,
-    repo_name: str,
-    provider: str | None,
-    pr_number: int | str,
-    signal_type: PullRequestAttributionSignalType,
-    source: PullRequestAttributionSource,
-    signal_details: Mapping[str, Any] | None,
-    log_context: Mapping[str, Any],
-) -> None:
-    """Resolve a single reported PR to its canonical ``PullRequest`` and idempotently
-    record one attribution signal. Used by the delegated-agent path.
-
-    Resolution (repo lookup + find-or-create) lives on ``PullRequest.objects`` so every
-    PR-reporting path converges on the same row; here we add only the attribution write.
-    Failures are logged and swallowed rather than raised, so a batch caller's remaining
-    PRs are unaffected.
-    """
-    try:
-        resolved = PullRequest.objects.get_or_create_from_reference(
-            organization_id=organization_id,
-            repo_name=repo_name,
-            provider=provider,
-            key=pr_number,
-        )
-    except Exception:
-        logger.exception("pr_metrics.attribution.record_failed", extra=log_context)
-        return
-
-    _log_unresolved_reported_pull_request(resolved, log_context)
-    if resolved.pull_request is None:
-        return
-
-    # The repo is resolved now, so its id sharpens every log from here on.
-    log_context = {**log_context, "repository_id": resolved.pull_request.repository_id}
-
-    try:
-        record_attribution_signal(
-            pull_request=resolved.pull_request,
-            signal_type=signal_type,
-            source=source,
-            signal_details=signal_details,
-        )
-    except Exception:
-        logger.exception("pr_metrics.attribution.record_failed", extra=log_context)
-        return
-
-    logger.info(
-        "pr_metrics.attribution.recorded",
-        extra={**log_context, "pull_request_id": resolved.pull_request.id},
-    )
 
 
 def attribute_delegated_agent_pull_request(
