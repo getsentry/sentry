@@ -175,7 +175,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       }
       return [{...parsed, iterationIndex: Number(iterationIndex)}];
     });
-    const maxIndex = processed.reduce<number>((m, f) => Math.max(m, f.iterationIndex), -1);
+    const maxIndex = processed.reduce((m, f) => Math.max(m, f.iterationIndex), -1);
     const queued = (autofix.runState?.queued_feedback ?? []).flatMap((item, i) => {
       const parsed = parseQueuedFeedback(item, maxIndex + 1 + i);
       return parsed ? [parsed] : [];

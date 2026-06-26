@@ -126,12 +126,12 @@ export function isCodingAgentsArtifact(
  * This extends the SeerExplorer types with autofix-specific data.
  */
 export interface QueuedFeedbackItem {
+  text: string;
   source?: {
     comment?: {html_url?: string; user?: {login: string}};
     type?: string;
     user?: User;
   };
-  text: string;
   timestamp?: string;
 }
 
