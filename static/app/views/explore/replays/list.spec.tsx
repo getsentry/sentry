@@ -219,6 +219,7 @@ describe('ReplayList', () => {
     expect(widgets).toHaveLength(2);
     expect(within(widgets[0]!).getAllByTestId('loading-placeholder')).toHaveLength(3);
     expect(within(widgets[1]!).getAllByTestId('loading-placeholder')).toHaveLength(3);
+    expect(screen.getByRole('button', {name: 'Hide Widgets'})).toBeInTheDocument();
     expect(mockUseDeadRageSelectors).not.toHaveBeenCalled();
   });
 

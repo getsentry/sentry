@@ -144,6 +144,8 @@ function ReplaysListBody() {
     !rageClicksSdkVersion.needsUpdate &&
     !allMobileProj &&
     isLoading;
+  const showDeadRageClickWidgets =
+    showDeadRageClickCards || showDeadRageClickCardsPlaceholder;
   const [widgetIsOpen, setWidgetIsOpen] = useLocalStorageState(
     'replay-dead-rage-widget-open',
     true
@@ -166,7 +168,7 @@ function ReplaysListBody() {
           <Layout.Main width="full">
             <ReplayListControls
               onToggleWidgets={toggleWidgets}
-              showDeadRageClickCards={showDeadRageClickCards}
+              showDeadRageClickCards={showDeadRageClickWidgets}
               widgetIsOpen={widgetIsOpen}
             />
           </Layout.Main>
