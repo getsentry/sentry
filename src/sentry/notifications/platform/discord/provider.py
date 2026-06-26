@@ -18,16 +18,16 @@ from sentry.notifications.platform.target import (
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     LinkTextBlock,
-    NotificationBodyFormattingBlock,
-    NotificationBodyFormattingBlockType,
-    NotificationBodyTextBlock,
-    NotificationBodyTextBlockType,
     NotificationCategory,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSection,
+    NotificationSectionType,
     NotificationTarget,
     NotificationTargetResourceType,
+    NotificationTextBlock,
+    NotificationTextBlockType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -100,18 +100,18 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         return builder.build()
 
     @classmethod
-    def render_body_blocks(cls, body: list[NotificationBodyFormattingBlock]) -> str:
+    def render_body_blocks(cls, body: list[NotificationSection]) -> str:
         description = []
         for block in body:
-            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
+            if block.type == NotificationSectionType.PARAGRAPH:
                 description.append(f"\n{cls.render_text_blocks(block.blocks)}")
-            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+            elif block.type == NotificationSectionType.CODE_BLOCK:
                 description.append(f"\n```{cls.render_text_blocks(block.blocks)}```")
         return "".join(description)
 
     @classmethod
     def render_text_blocks(
-        cls, blocks: list[NotificationBodyTextBlock], include_links: bool = True
+        cls, blocks: list[NotificationTextBlock], include_links: bool = True
     ) -> str:
         """
         For Discord, in some cases links will not be supported even though other rich text is.
@@ -119,15 +119,13 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         """
         texts = []
         for block in blocks:
-            if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+            if block.type == NotificationTextBlockType.PLAIN_TEXT:
                 texts.append(block.text)
-            elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+            elif block.type == NotificationTextBlockType.BOLD_TEXT:
                 texts.append(f"**{block.text}**")
-            elif block.type == NotificationBodyTextBlockType.CODE:
+            elif block.type == NotificationTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
-            elif block.type == NotificationBodyTextBlockType.LINK and isinstance(
-                block, LinkTextBlock
-            ):
+            elif block.type == NotificationTextBlockType.LINK and isinstance(block, LinkTextBlock):
                 if include_links:
                     texts.append(f"[{block.text}]({block.url})")
                 else:

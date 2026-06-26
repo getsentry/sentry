@@ -14,12 +14,12 @@ from sentry.notifications.platform.msteams.provider import MSTeamsRenderable, MS
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.types import (
-    NotificationBodyFormattingBlock,
-    NotificationBodyTextBlock,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSection,
     NotificationTemplate,
+    NotificationTextBlock,
 )
 
 
@@ -42,7 +42,7 @@ class InternalRegisteredTemplatesEndpoint(Endpoint):
 
 
 def _serialize_sections(
-    sections: list[NotificationBodyFormattingBlock],
+    sections: list[NotificationSection],
 ) -> list[dict[str, Any]]:
     return [
         {"type": section.type, "blocks": [_serialize_blocks(block) for block in section.blocks]}
@@ -50,7 +50,7 @@ def _serialize_sections(
     ]
 
 
-def _serialize_blocks(blocks: list[NotificationBodyTextBlock]) -> list[dict[str, Any]]:
+def _serialize_blocks(blocks: list[NotificationTextBlock]) -> list[dict[str, Any]]:
     return [{"type": block.type, "text": block.text} for block in blocks]
 
 

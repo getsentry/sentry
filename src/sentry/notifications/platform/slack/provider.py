@@ -32,16 +32,16 @@ from sentry.notifications.platform.target import (
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     LinkTextBlock,
-    NotificationBodyFormattingBlock,
-    NotificationBodyFormattingBlockType,
-    NotificationBodyTextBlock,
-    NotificationBodyTextBlockType,
     NotificationCategory,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSection,
+    NotificationSectionType,
     NotificationTarget,
     NotificationTargetResourceType,
+    NotificationTextBlock,
+    NotificationTextBlockType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -96,30 +96,28 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
         return SlackRenderable(blocks=blocks, text=rendered_template.subject_text)
 
     @classmethod
-    def _render_body(cls, body: list[NotificationBodyFormattingBlock]) -> list[Block]:
+    def _render_body(cls, body: list[NotificationSection]) -> list[Block]:
         blocks: list[Block] = []
         for block in body:
-            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
+            if block.type == NotificationSectionType.PARAGRAPH:
                 text = cls._render_text_blocks(block.blocks)
                 blocks.append(SectionBlock(text=MarkdownTextObject(text=text)))
-            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+            elif block.type == NotificationSectionType.CODE_BLOCK:
                 text = cls._render_text_blocks(block.blocks)
                 blocks.append(SectionBlock(text=MarkdownTextObject(text=f"```{text}```")))
         return blocks
 
     @classmethod
-    def _render_text_blocks(cls, blocks: list[NotificationBodyTextBlock]) -> str:
+    def _render_text_blocks(cls, blocks: list[NotificationTextBlock]) -> str:
         texts = []
         for block in blocks:
-            if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+            if block.type == NotificationTextBlockType.PLAIN_TEXT:
                 texts.append(block.text)
-            elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+            elif block.type == NotificationTextBlockType.BOLD_TEXT:
                 texts.append(f"*{block.text}*")
-            elif block.type == NotificationBodyTextBlockType.CODE:
+            elif block.type == NotificationTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
-            elif block.type == NotificationBodyTextBlockType.LINK and isinstance(
-                block, LinkTextBlock
-            ):
+            elif block.type == NotificationTextBlockType.LINK and isinstance(block, LinkTextBlock):
                 texts.append(f"<{block.url}|{block.text}>")
         return " ".join(texts)
 
