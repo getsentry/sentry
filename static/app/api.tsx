@@ -131,7 +131,7 @@ export const initApiClientErrorHandling = () =>
     }
 
     if (EXPERIMENTAL_SPA) {
-      apiNavigate?.('/auth/login/', {replace: true});
+      apiNavigate?.('/auth/login/');
     } else {
       window.location.reload();
     }
