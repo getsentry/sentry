@@ -54,7 +54,7 @@ class CustomInboundFilterResponse(TypedDict):
     dateUpdated: str
 
 
-class CustomInboundFilterConditionSerializer(serializers.Serializer):
+class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboundFilterCondition]):
     type = serializers.ChoiceField(
         choices=[condition_type.value for condition_type in CustomInboundFilterConditionType]
     )
@@ -64,7 +64,7 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer):
     )
 
 
-class CustomInboundFilterSerializer(serializers.Serializer):
+class CustomInboundFilterSerializer(serializers.Serializer[CustomInboundFilter]):
     id = serializers.CharField(read_only=True)
     name = serializers.CharField(
         max_length=256, allow_blank=True, allow_null=True, required=False, trim_whitespace=True
@@ -73,7 +73,7 @@ class CustomInboundFilterSerializer(serializers.Serializer):
     conditions = CustomInboundFilterConditionSerializer(
         many=True,
         allow_empty=False,
-        max_length=MAX_CONDITIONS_PER_FILTER,
+        max_length=MAX_CONDITIONS_PER_FILTER,  # type: ignore[call-arg]  # max_length is a ListSerializer kwarg, applied via many=True
         help_text=(
             "Conditions are combined with AND: an event must match every condition to be "
             "filtered out. There is no OR between conditions, so e.g. two release conditions "
