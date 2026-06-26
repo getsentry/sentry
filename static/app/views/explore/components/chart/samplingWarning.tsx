@@ -36,7 +36,11 @@ export function SamplingWarning({yAxis, series, dataScanned}: SamplingWarningPro
       isHoverable
       skipWrapper
       position="top"
-      title={<Text as="span">{title}</Text>}
+      title={
+        <Text as="span" monospace>
+          {title}
+        </Text>
+      }
     >
       <IconWarning variant="warning" size="sm" data-test-id="sampling-warning" />
     </Tooltip>
