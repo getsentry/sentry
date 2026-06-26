@@ -502,9 +502,6 @@ def trigger_autofix_agent(
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
-    # start_run returns the mirror row directly, so we can read its uuid without
-    # a requery. continue_run only returns the run id, so the else branch leaves
-    # `run` None and we look the mirror up below (it may not exist).
     run: SeerRun | None = None
     if run_id is None:
         metadata: dict[str, Any] = {
