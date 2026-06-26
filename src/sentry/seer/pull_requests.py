@@ -43,7 +43,6 @@ def link_seer_run_pull_requests(
         )
         return
 
-    # No mirror row yet (outbox not drained) or legacy run — nothing to link to.
     seer_run = get_seer_run(seer_run_state_id, organization)
     if seer_run is None:
         logger.info(
