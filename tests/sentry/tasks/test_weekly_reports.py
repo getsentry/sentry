@@ -2104,11 +2104,10 @@ class WeeklyReportsTest(
 
         rendered = render_template_context(ctx, user.id)
         assert rendered is not None
-        assert rendered["recommended_sort"] is True
-        assert len(rendered["key_errors"]) == 2
+        assert len(rendered["recommended_issues"]) == 2
         # group2 has higher base_score so it comes first
-        assert rendered["key_errors"][0]["group"] == group2
-        assert rendered["key_errors"][1]["group"] == group1
+        assert rendered["recommended_issues"][0]["group"] == group2
+        assert rendered["recommended_issues"][1]["group"] == group1
 
     def test_recommended_sort_flag_off_uses_key_errors(self) -> None:
         """When flag is off, render_template_context uses traditional key_errors."""
@@ -2131,7 +2130,7 @@ class WeeklyReportsTest(
 
         rendered = render_template_context(ctx, user.id)
         assert rendered is not None
-        assert rendered["recommended_sort"] is False
+        assert rendered["recommended_issues"] == []
         assert len(rendered["key_errors"]) == 1
         assert rendered["key_errors"][0]["count"] == 10
 
@@ -2175,5 +2174,5 @@ class WeeklyReportsTest(
 
         rendered = render_template_context(ctx, user.id)
         assert rendered is not None
-        assert rendered["key_errors"][0]["group"] == group_high
-        assert rendered["key_errors"][1]["group"] == group_low
+        assert rendered["recommended_issues"][0]["group"] == group_high
+        assert rendered["recommended_issues"][1]["group"] == group_low

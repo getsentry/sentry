@@ -16,7 +16,12 @@ from sentry.issues.grouptype import (
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
+from sentry.tasks.summaries.utils import (
+    ONE_DAY,
+    OrganizationReportContext,
+    ProjectContext,
+    RecommendedIssueCandidate,
+)
 from sentry.tasks.summaries.weekly_reports import get_group_display, render_template_context
 from sentry.types.group import GroupSubStatus
 from sentry.utils import loremipsum
@@ -205,6 +210,34 @@ class DebugWeeklyReportView(MailPreviewView):
             ]
 
             ctx.projects_context_map[project.id] = project_context
+
+        projects_list = [ctx.projects_context_map[pid].project for pid in ctx.projects_context_map]
+        substatuses_for_rec = [
+            GroupSubStatus.NEW,
+            GroupSubStatus.ESCALATING,
+            GroupSubStatus.REGRESSED,
+            GroupSubStatus.ONGOING,
+            GroupSubStatus.ONGOING,
+        ]
+        ctx.recommended_issue_candidates = [
+            RecommendedIssueCandidate(
+                group=make_debug_group(
+                    group_id=40000 + i,
+                    project=random.choice(projects_list),
+                    title=make_debug_issue_title(
+                        random,
+                        random.choice(["TypeError", "ValueError", "RuntimeError", "KeyError"]),
+                    ),
+                    message=make_debug_issue_message(random),
+                    group_type=ErrorGroupType,
+                    event_type="error",
+                    substatus=substatuses_for_rec[i],
+                ),
+                base_score=round(random.uniform(0.3, 1.0), 3),
+                event_count=random.randint(50, 5000),
+            )
+            for i in range(5)
+        ]
 
         user_id = request.user.id
         ctx.project_ownership[user_id] = {pid for pid in ctx.projects_context_map}
