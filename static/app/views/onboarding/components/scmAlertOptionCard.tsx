@@ -72,10 +72,10 @@ export function ScmAlertOptionCard({
   );
 }
 
-// The body indents to line up under the label (button padding + the xs radio's
-// 12px width + grid column gap) and carries its own right/bottom padding so
-// input focus rings clear the animated overflow:hidden bounds. The top gap
-// comes from the header button's own bottom padding.
+// The body indents to line up under the label (header button padding + the xs
+// radio's 12px width + grid column gap) and insets its right/bottom to match
+// the header's padding, since the card itself carries none. The top gap comes
+// from the header button's own bottom padding.
 const ExpandedBody = styled('div')`
   padding: 0 ${p => p.theme.space.lg} ${p => p.theme.space.lg};
   padding-left: calc(${p => p.theme.space.lg} + 12px + ${p => p.theme.space.md});

@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 
 interface ScmCollapsibleRevealProps {
@@ -16,6 +17,14 @@ interface ScmCollapsibleRevealProps {
  * initial={false} renders the open state without animating on mount.
  */
 export function ScmCollapsibleReveal({open, id, children}: ScmCollapsibleRevealProps) {
+  // overflow:hidden is needed while the height tween runs so the content clips
+  // cleanly, but kept on it would also clip anything that extends past the
+  // settled bounds, e.g. a focus ring at the edge or an open select menu below.
+  // Switch to visible once open and settled, back to hidden whenever animating.
+  const [overflow, setOverflow] = useState<'hidden' | 'visible'>(
+    open ? 'visible' : 'hidden'
+  );
+
   return (
     <AnimatePresence initial={false}>
       {open && (
@@ -26,7 +35,13 @@ export function ScmCollapsibleReveal({open, id, children}: ScmCollapsibleRevealP
           animate={{height: 'auto', opacity: 1}}
           exit={{height: 0, opacity: 0}}
           transition={{duration: 0.2, ease: 'easeOut'}}
-          style={{overflow: 'hidden', width: '100%'}}
+          onAnimationStart={() => setOverflow('hidden')}
+          onAnimationComplete={() => {
+            if (open) {
+              setOverflow('visible');
+            }
+          }}
+          style={{overflow, width: '100%'}}
         >
           {children}
         </motion.div>
