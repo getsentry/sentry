@@ -53,8 +53,7 @@ export function ReauthMonitoringProviderBlock({
   });
 
   function handleReconnect() {
-    // PAT providers reconnect in-place via a modal, so we can resume the run
-    // immediately on success.
+    // PAT providers reconnect in-place, so we can resume the run immediately on success.
     if (isPat) {
       openModal(modalProps => (
         <DatadogPatConnectModal
@@ -88,9 +87,8 @@ export function ReauthMonitoringProviderBlock({
               {t('Reconnect')}
             </Button>
             {/*
-              OAuth reconnect navigates away from the Explorer; on return the
-              run is still paused, so offer an explicit resume action. PAT
-              resumes automatically once the modal succeeds.
+              TODO(CW-1557): land the user back in the Explorer after OAuth so the
+              run can resume without manual navigation.
             */}
             {!isPat && (
               <Button size="sm" onClick={onComplete}>

@@ -281,9 +281,8 @@ export function usePendingUserInput({
   const canSubmitQuestion = !isOtherSelected || customText.trim().length > 0;
 
   // ===== Reauth Monitoring Provider State =====
-  const isReauthPending =
-    isAwaitingUserInput && pendingInputType === 'reauth_monitoring_provider';
 
+  // Get reauth data
   const reauthData = useMemo(() => {
     if (!pendingInput || pendingInputType !== 'reauth_monitoring_provider') {
       return null;
@@ -293,7 +292,12 @@ export function usePendingUserInput({
 
   // Auto-scroll to reauth block when it appears
   useEffect(() => {
-    if (isReauthPending && scrollContainerRef.current) {
+    if (
+      isAwaitingUserInput &&
+      pendingInput &&
+      pendingInputType === 'reauth_monitoring_provider' &&
+      scrollContainerRef.current
+    ) {
       setTimeout(() => {
         if (scrollContainerRef.current) {
           scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
@@ -301,15 +305,24 @@ export function usePendingUserInput({
         }
       }, 150);
     }
-  }, [isReauthPending, pendingInput?.id, scrollContainerRef, userScrolledUpRef]);
+  }, [
+    isAwaitingUserInput,
+    pendingInput,
+    pendingInputType,
+    scrollContainerRef,
+    userScrolledUpRef,
+  ]);
 
-  // Resume the run after the user has reconnected the provider. The backend
-  // re-pulls the (now valid) connections, so no response payload is needed.
+  // Resume the run after the user has reconnected the provider.
   const handleReauthComplete = useCallback(() => {
     if (pendingInput?.id) {
       respondToUserInput(pendingInput.id);
     }
   }, [pendingInput?.id, respondToUserInput]);
+
+  // Check if we're currently awaiting a provider reconnection.
+  const isReauthPending =
+    isAwaitingUserInput && pendingInputType === 'reauth_monitoring_provider';
 
   return {
     // Generic pending input info
