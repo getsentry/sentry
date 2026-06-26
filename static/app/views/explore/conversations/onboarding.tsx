@@ -375,7 +375,6 @@ $response = (new MyAgent)
   };
 }
 
-
 export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const api = useApi();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
