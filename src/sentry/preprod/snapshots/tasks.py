@@ -4,6 +4,7 @@ import logging
 import threading
 import time
 from collections.abc import Callable
+from datetime import datetime
 from difflib import SequenceMatcher
 from typing import NamedTuple
 
@@ -728,6 +729,7 @@ def compare_snapshots(
     head_artifact_id: int,
     base_artifact_id: int,
 ) -> None:
+    task_start_time = timezone.now()
     logger.info(
         "Snapshot comparison kicked off for artifacts",
         extra={
@@ -998,8 +1000,12 @@ def compare_snapshots(
                 }
             )
 
+        comparison.extras = {
+            **(comparison.extras or {}),
+            "diff_processing_started_at": task_start_time.isoformat(),
+        }
         comparison.chunks_total = len(plan.chunks)
-        comparison.save(update_fields=["chunks_total", "date_updated"])
+        comparison.save(update_fields=["chunks_total", "extras", "date_updated"])
 
         logger.info(
             "compare_snapshots: orchestration dispatched",
@@ -1246,6 +1252,25 @@ def finalize_snapshot_comparison(
             sample_rate=1.0,
             tags=metric_tags,
         )
+
+        started_raw = (comparison.extras or {}).get("diff_processing_started_at")
+        if started_raw:
+            try:
+                diff_duration_s = (
+                    timezone.now() - datetime.fromisoformat(started_raw)
+                ).total_seconds()
+            except (ValueError, TypeError):
+                logger.warning(
+                    "finalize: unparseable diff_processing_started_at, skipping metric",
+                    extra={"comparison_id": comparison.id},
+                )
+            else:
+                metrics.distribution(
+                    "preprod.snapshots.diff.duration_s",
+                    diff_duration_s,
+                    sample_rate=1.0,
+                    tags=metric_tags,
+                )
 
         if (
             counts["changed"] == 0
