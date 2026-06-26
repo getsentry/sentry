@@ -60,12 +60,20 @@ const ProgressDotFrame = styled('span')`
   place-items: center;
   width: 22px;
   height: 22px;
-  border: 3px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   border-radius: 100%;
-  background: ${p => p.theme.tokens.background.overlay};
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: inherit;
+    background: ${p => p.theme.tokens.background.overlay};
+  }
 `;
 
 const ProgressDot = styled('span')`
+  position: relative;
+  z-index: 1;
   width: 10px;
   height: 10px;
   border-radius: 100%;
