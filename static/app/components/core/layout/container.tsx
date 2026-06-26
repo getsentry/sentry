@@ -196,26 +196,36 @@ export type ContainerProps<T extends ContainerElement = 'div'> = ContainerLayout
     'style'
   >;
 
-export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'> =
-  ContainerLayoutProps & {
-    children: (props: {className: string}) => React.ReactNode | undefined;
-    as?: never;
-    htmlFor?: never;
-    ref?: never;
-  } & Partial<
-      Record<
-        // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
-        // Therefore, we need to exclude it from the map, or the children will produce a never type.
-        Exclude<
-          keyof React.DetailedHTMLProps<
-            React.HTMLAttributes<HTMLElementTagNameMap[T]>,
-            HTMLElementTagNameMap[T]
-          >,
-          'children'
+export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'> = Omit<
+  ContainerLayoutProps,
+  'containerType' | 'responsiveTo'
+> & {
+  children: (props: {className: string}) => React.ReactNode | undefined;
+  as?: never;
+  /**
+   * Container queries are not supported with the render-prop form. The styled
+   * component must own the DOM node to act as a query container (`containerType`)
+   * and to observe it for JS resolution — which the render prop hands to the
+   * caller. Use the standard children form for container queries.
+   */
+  containerType?: never;
+  htmlFor?: never;
+  ref?: never;
+  responsiveTo?: never;
+} & Partial<
+    Record<
+      // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
+      // Therefore, we need to exclude it from the map, or the children will produce a never type.
+      Exclude<
+        keyof React.DetailedHTMLProps<
+          React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+          HTMLElementTagNameMap[T]
         >,
-        never
-      >
-    >;
+        'children'
+      >,
+      never
+    >
+  >;
 
 const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'alignSelf',

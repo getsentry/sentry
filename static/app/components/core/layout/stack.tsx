@@ -20,12 +20,6 @@ const StackComponent = styled(
     direction = 'column',
     ...props
   }: StackProps<T>) => {
-    // We deliberately do NOT resolve the breakpoint here. Doing so would make
-    // every Stack subscribe to breakpoint changes (and re-render on every
-    // crossing) even when it has no Separator or a non-responsive direction.
-    // Instead, we pass the raw direction + mode down via context and let
-    // Stack.Separator — the only consumer of the resolved orientation — do the
-    // resolution, so the subscription is scoped to stacks that actually use it.
     const directionContext = useMemo<StackDirectionContextValue>(
       () => ({direction, mode: props.responsiveTo}),
       [direction, props.responsiveTo]
@@ -67,9 +61,6 @@ interface StackDirectionContextValue {
   mode: ResponsiveMode | undefined;
 }
 
-// Default to 'row' so a Separator rendered outside a Stack keeps the
-// historical default of a vertical separator (the opposite of the stack's
-// orientation).
 const StackDirectionContext = createContext<StackDirectionContextValue>({
   direction: 'row',
   mode: undefined,

@@ -147,5 +147,21 @@ describe('Container', () => {
         (props: {className: string}) => React.ReactNode | undefined
       >();
     });
+
+    it('forbids container-query props with a render prop', () => {
+      const withContainerType: ContainerPropsWithRenderFunction<any> = {
+        children: () => null,
+        // @ts-expect-error - containerType is not allowed with a render prop
+        containerType: 'inline-size',
+      };
+      const withResponsiveTo: ContainerPropsWithRenderFunction<any> = {
+        children: () => null,
+        // @ts-expect-error - responsiveTo is not allowed with a render prop
+        responsiveTo: 'container',
+      };
+
+      expectTypeOf(withContainerType).toBeObject();
+      expectTypeOf(withResponsiveTo).toBeObject();
+    });
   });
 });
