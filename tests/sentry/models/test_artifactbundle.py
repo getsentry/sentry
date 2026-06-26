@@ -7,7 +7,9 @@ from sentry.testutils.cases import TestCase
 
 class ArtifactBundleTest(TestCase):
     @mock.patch("sentry.models.artifactbundle.delete_assemble_status")
-    def test_delete_file_for_artifact_bundle_file_already_deleted(self, mock_delete_assemble_status):
+    def test_delete_file_for_artifact_bundle_file_already_deleted(
+        self, mock_delete_assemble_status
+    ):
         bundle = self.create_artifact_bundle(
             org=self.organization,
             bundle_id="12345678-1234-1234-1234-123456789012",
