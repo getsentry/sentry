@@ -13,6 +13,7 @@ import {assert} from 'sentry/types/utils';
 import type {BreakpointSize} from 'sentry/utils/theme';
 
 import {
+  getBorder,
   rc,
   useActiveBreakpoint,
   useContainerBreakpoint,
@@ -171,6 +172,38 @@ describe('rc', () => {
       'container-type: inline-size;'
     );
     expect(rc('container-type', undefined, theme, 'viewport')).toBeUndefined();
+  });
+});
+
+describe('getBorder', () => {
+  it('resolves a border variant to a full declaration', () => {
+    expect(getBorder('primary', undefined, theme)).toBe(
+      `1px solid ${theme.tokens.border.primary}`
+    );
+  });
+
+  it('returns "none" so a border can be turned off responsively', () => {
+    expect(getBorder('none', undefined, theme)).toBe('none');
+  });
+
+  it('returns undefined when omitted', () => {
+    expect(getBorder(undefined, undefined, theme)).toBeUndefined();
+  });
+
+  it('lets a responsive border move sides across breakpoints', () => {
+    const output = rc(
+      'border-bottom',
+      {'2xs': 'primary', lg: 'none'},
+      theme,
+      'container',
+      getBorder
+    );
+    assert(output);
+    // Present below lg…
+    expect(output).toContain(`border-bottom: 1px solid ${theme.tokens.border.primary}`);
+    // …and explicitly removed at lg via `none`.
+    expect(output).toContain(`@container (min-width: ${theme.breakpoints.lg})`);
+    expect(output).toContain('border-bottom: none');
   });
 });
 

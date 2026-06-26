@@ -156,12 +156,19 @@ function borderValue(key: BorderVariant, theme: Theme): string {
 }
 
 export function getBorder(
-  border: BorderVariant | undefined,
+  border: BorderVariant | 'none' | undefined,
   _breakpoint: BreakpointSize | undefined,
   theme: Theme
 ): string | undefined {
   if (border === undefined) {
     return undefined;
+  }
+
+  // Allows a border to be turned off at a breakpoint via responsive props (e.g.
+  // `borderBottom={{'2xs': 'primary', lg: 'none'}}`), so it can move between
+  // sides across breakpoints without hand-written container/media queries.
+  if (border === 'none') {
+    return 'none';
   }
 
   return border

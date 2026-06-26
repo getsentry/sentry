@@ -115,6 +115,7 @@ function AppLayout({organization}: LayoutProps) {
               flex="1"
               minWidth="0"
               background="secondary"
+              containerType="inline-size"
             >
               <DemoHeader />
               {organization && <OrganizationHeader organization={organization} />}

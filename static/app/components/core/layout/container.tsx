@@ -102,11 +102,11 @@ interface ContainerLayoutProps {
   minHeight?: Responsive<React.CSSProperties['minHeight']>;
   maxHeight?: Responsive<React.CSSProperties['maxHeight']>;
 
-  border?: Responsive<BorderVariant>;
-  borderTop?: Responsive<BorderVariant>;
-  borderBottom?: Responsive<BorderVariant>;
-  borderLeft?: Responsive<BorderVariant>;
-  borderRight?: Responsive<BorderVariant>;
+  border?: Responsive<BorderVariant | 'none'>;
+  borderTop?: Responsive<BorderVariant | 'none'>;
+  borderBottom?: Responsive<BorderVariant | 'none'>;
+  borderLeft?: Responsive<BorderVariant | 'none'>;
+  borderRight?: Responsive<BorderVariant | 'none'>;
 
   // Grid Item Properties
   area?: Responsive<React.CSSProperties['gridArea']>;

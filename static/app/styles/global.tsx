@@ -1,7 +1,6 @@
 import type {Theme} from '@emotion/react';
 import {css, Global} from '@emotion/react';
 
-import {ROOT_ELEMENT} from 'sentry/constants';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 const generateThemePrismVariables = (theme: Theme, blockBackground: string) => ({
@@ -172,16 +171,6 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
 
     color: ${theme.tokens.content.primary};
     background: ${theme.tokens.background.primary};
-  }
-
-  /*
-   * Make the app root a query container. This lets any descendant opt into
-   * container-relative responsive props via responsiveTo="container" and, with
-   * no closer container ancestor, resolve against the app root — which spans
-   * the viewport width, so the behavior matches viewport media queries.
-   */
-  #${ROOT_ELEMENT} {
-    container-type: inline-size;
   }
 
   ${theme.type === 'dark' &&
