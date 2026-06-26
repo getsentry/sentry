@@ -502,6 +502,7 @@ def trigger_autofix_agent(
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
+    run: SeerRun | None
     if run_id is None:
         metadata: dict[str, Any] = {
             "group_id": group.id,
@@ -509,20 +510,21 @@ def trigger_autofix_agent(
         }
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
-        run_id = client.start_run(
+        run = client.start_run(
             prompt=prompt,
             prompt_metadata=prompt_metadata,
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             metadata=metadata,
-        ).seer_run_state_id
+        )
+        run_id = run.seer_run_state_id
 
         # Make sure to log billing event for seer autofix whenever a new run is started
         quotas.backend.record_seer_run(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )
     else:
-        client.continue_run(
+        run = client.continue_run(
             run_id=run_id,
             prompt=prompt,
             prompt_metadata=prompt_metadata,
@@ -545,18 +547,9 @@ def trigger_autofix_agent(
             )
         )
 
-    sentry_run_id = (
-        SeerRun.objects.filter(
-            organization_id=group.organization.id,
-            seer_run_state_id=run_id,
-        )
-        .values_list("uuid", flat=True)
-        .first()
-    )
-
     payload: dict[str, Any] = {
         "run_id": run_id,
-        "sentry_run_id": str(sentry_run_id) if sentry_run_id is not None else None,
+        "sentry_run_id": str(run.uuid) if run is not None else None,
         "group_id": group.id,
     }
     if iteration_index is not None:

@@ -383,10 +383,10 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
         seer_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=67890
         )
+        mock_client.continue_run.return_value = seer_run
 
         result = trigger_autofix_agent(
             group=self.group,
@@ -472,7 +472,7 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = 67890
+        mock_client.continue_run.return_value = None
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(
@@ -555,7 +555,7 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
+        mock_client.continue_run.return_value = None
 
         trigger_autofix_agent(
             group=self.group,
@@ -576,7 +576,7 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
+        mock_client.continue_run.return_value = None
 
         run_id = trigger_autofix_agent(
             group=self.group,
@@ -763,7 +763,7 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = 67890
+        mock_client.continue_run.return_value = None
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(
