@@ -28,6 +28,7 @@ export function getActivityColorConfig(theme: Theme, type: GroupActivityType) {
       };
     case GroupActivityType.SET_UNRESOLVED:
     case GroupActivityType.SET_REGRESSION:
+    case GroupActivityType.PULL_REQUEST_CLOSED:
       return {
         ...defaultConfig,
         icon: theme.tokens.graphics.danger.vibrant,

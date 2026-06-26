@@ -34,7 +34,8 @@ function getAuthorName(item: GroupActivity) {
     return item.user.name;
   }
   if (
-    item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
+    (item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST ||
+      item.type === GroupActivityType.PULL_REQUEST_CLOSED) &&
     item.data.pullRequest?.author?.name &&
     !item.data.pullRequest.author.email?.endsWith('@localhost')
   ) {
@@ -488,6 +489,24 @@ export function getGroupActivityItem(
         const {pullRequest} = data;
         return {
           title: t('Pull Request Created'),
+          message: tct(' by [author]: [pullRequest]', {
+            author,
+            pullRequest: pullRequest ? (
+              <PullRequestLink
+                pullRequest={pullRequest}
+                repository={pullRequest.repository}
+              />
+            ) : (
+              t('PR not available')
+            ),
+          }),
+        };
+      }
+      case GroupActivityType.PULL_REQUEST_CLOSED: {
+        const {data} = activity;
+        const {pullRequest} = data;
+        return {
+          title: t('Pull Request Closed'),
           message: tct(' by [author]: [pullRequest]', {
             author,
             pullRequest: pullRequest ? (
