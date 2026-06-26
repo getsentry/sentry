@@ -8,6 +8,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.pullrequest import PullRequest
 
 
 class SeerRunType(models.TextChoices):
@@ -57,7 +58,10 @@ class SeerRun(DefaultFieldsModel):
     last_triggered_at = models.DateTimeField()
     extras = models.JSONField(db_default={}, default=dict)
 
-    pull_requests = models.ManyToManyField("sentry.PullRequest", through="seer.SeerRunPullRequest")
+    @property
+    def pull_requests(self) -> models.QuerySet[PullRequest]:
+        """The pull requests this run opened, via the SeerRunPullRequest links."""
+        return PullRequest.objects.filter(seer_run_links__seer_run=self)
 
     class Meta:
         app_label = "seer"
