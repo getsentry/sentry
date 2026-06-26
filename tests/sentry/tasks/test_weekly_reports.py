@@ -2136,22 +2136,22 @@ class WeeklyReportsTest(
         assert rendered["key_errors"][0]["count"] == 10
 
     @with_feature("organizations:weekly-report-recommended-sort")
-    def test_recommended_sort_regressed_boosts_score(self) -> None:
-        """A regressed issue should rank higher than an otherwise-identical non-regressed one."""
+    def test_recommended_sort_orders_by_base_score(self) -> None:
+        """Issues are ordered by base_score from ClickHouse (v1 scoring, no Postgres boosts)."""
         user = self.create_user()
         self.create_member(teams=[self.team], user=user, organization=self.organization)
 
-        group_normal = self.create_group(
+        group_low = self.create_group(
             project=self.project,
             status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.ONGOING,
-            data={"type": "error", "metadata": {"type": "TypeError", "value": "normal"}},
+            data={"type": "error", "metadata": {"type": "TypeError", "value": "low score"}},
         )
-        group_regressed = self.create_group(
+        group_high = self.create_group(
             project=self.project,
             status=GroupStatus.UNRESOLVED,
-            substatus=GroupSubStatus.REGRESSED,
-            data={"type": "error", "metadata": {"type": "TypeError", "value": "regressed"}},
+            substatus=GroupSubStatus.ONGOING,
+            data={"type": "error", "metadata": {"type": "ValueError", "value": "high score"}},
         )
 
         ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
@@ -2160,22 +2160,20 @@ class WeeklyReportsTest(
         ctx.projects_context_map = {self.project.id: project_context}
         ctx.project_ownership[user.id] = {self.project.id}
 
-        # Same base scores, but one group has REGRESSED substatus
         ctx.recommended_issue_candidates = [
             RecommendedIssueCandidate(
-                group=group_normal,
-                base_score=0.5,
-                event_count=50,
+                group=group_low,
+                base_score=0.3,
+                event_count=20,
             ),
             RecommendedIssueCandidate(
-                group=group_regressed,
-                base_score=0.5,
-                event_count=50,
+                group=group_high,
+                base_score=0.9,
+                event_count=80,
             ),
         ]
 
         rendered = render_template_context(ctx, user.id)
         assert rendered is not None
-        # Regressed issue should come first due to regressed_weight boost
-        assert rendered["key_errors"][0]["group"] == group_regressed
-        assert rendered["key_errors"][1]["group"] == group_normal
+        assert rendered["key_errors"][0]["group"] == group_high
+        assert rendered["key_errors"][1]["group"] == group_low

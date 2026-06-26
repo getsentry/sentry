@@ -800,23 +800,30 @@ def trends_aggregation_impl(
 
 
 def _recommended_aggregation(
-    timestamp_column: str, type_column: str | None = None
+    timestamp_column: str,
+    type_column: str | None = None,
+    weight_overrides: dict[str, float] | None = None,
 ) -> Sequence[str]:
     hour = 3600
 
+    def _weight(key: str, option_suffix: str) -> float:
+        if weight_overrides and key in weight_overrides:
+            return weight_overrides[key]
+        return options.get(f"snuba.search.recommended.{option_suffix}")
+
     # Recency: exponential decay based on time since last event (24hr halflife)
-    recency_weight = options.get("snuba.search.recommended.recency-weight")
+    recency_weight = _weight("recency", "recency-weight")
     age_hours = f"divide(minus(now(), max({timestamp_column})), {hour})"
     recency = f"divide(1, pow(2, divide({age_hours}, 24)))"
 
     # Spike: ratio of recent 6hr events to total 3d events
-    spike_weight = options.get("snuba.search.recommended.spike-weight")
+    spike_weight = _weight("spike", "spike-weight")
     recent_6h = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {6 * hour}))"
     total_3d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {3 * 24 * hour}))"
     spike = f"least(1.0, divide({recent_6h}, plus({total_3d}, 1)))"
 
     # Severity: max log level - maps fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0
-    severity_weight = options.get("snuba.search.recommended.severity-weight")
+    severity_weight = _weight("severity", "severity-weight")
     severity = (
         "max(multiIf("
         "equals(level, 'fatal'), 1.0, "
@@ -827,11 +834,11 @@ def _recommended_aggregation(
     )
 
     # User impact: ln(uniq(tags[sentry:user]) + 1)/ln(1001) - maps 1→~0, 10→0.33, 100→0.67, 1000→1.0
-    user_impact_weight = options.get("snuba.search.recommended.user-impact-weight")
+    user_impact_weight = _weight("user_impact", "user-impact-weight")
     user_impact = "least(1.0, divide(log(plus(uniq(tags[sentry:user]), 1)), log(1001)))"
 
     # Event volume: ln(count() + 1)/ln(10001) - maps 1→~0, 10→0.25, 100→0.50, 1000→0.75, 10000+→1.0
-    event_volume_weight = options.get("snuba.search.recommended.event-volume-weight")
+    event_volume_weight = _weight("event_volume", "event-volume-weight")
     event_volume = "least(1.0, divide(log(plus(count(), 1)), log(10001)))"
 
     # Group type boost: additive signal per issue type

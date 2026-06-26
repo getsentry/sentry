@@ -863,6 +863,29 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Weekly report recommended sort weights. Same factors as the issue stream recommended
+# sort but tuned for a weekly digest: heavier on volume and severity, lighter on recency.
+register(
+    "weekly-report.recommended.recency-weight",
+    default=0.10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "weekly-report.recommended.severity-weight",
+    default=0.30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "weekly-report.recommended.user-impact-weight",
+    default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "weekly-report.recommended.event-volume-weight",
+    default=0.40,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
     "snuba.tagstore.cache-tagkeys-rate",
