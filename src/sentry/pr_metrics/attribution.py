@@ -10,43 +10,24 @@ than collapsed into a single field.
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import Mapping, Sequence
-from typing import Any, Literal, NamedTuple
+from typing import Any, NamedTuple
 
-from django.db.models import Q
 from pydantic import BaseModel
 
 from sentry import features
 from sentry.constants import ObjectStatus
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    ResolvedPullRequest,
+    parse_pull_request_number,
 )
-from sentry.models.repository import Repository
 
 logger = logging.getLogger(__name__)
-
-RepoResolution = Literal["resolved", "not_found", "ambiguous"]
-
-# SCM providers that can legitimately back a Repository. Seer normalizes its
-# provider to one of these (lowercased, no ``integrations:`` prefix); anything
-# else in the event is a value we don't understand and should be fixed upstream.
-_KNOWN_SCM_PROVIDERS = frozenset(
-    {
-        IntegrationProviderSlug.GITHUB,
-        IntegrationProviderSlug.GITHUB_ENTERPRISE,
-        IntegrationProviderSlug.GITLAB,
-        IntegrationProviderSlug.BITBUCKET,
-        IntegrationProviderSlug.BITBUCKET_SERVER,
-        IntegrationProviderSlug.AZURE_DEVOPS,
-        IntegrationProviderSlug.PERFORCE,
-    }
-)
 
 # Precedence for picking a PR's primary attribution when more than one valid
 # signal is present (highest first): direct agent-authored signals rank above
@@ -93,14 +74,6 @@ def is_seer_attribution(attribution: PullRequestAttribution) -> bool:
         attribution.source == PullRequestAttributionSource.SEER_DATA
         or attribution.signal_type in DELEGATED_SIGNAL_TYPES
     )
-
-
-class ResolvedPullRequest(NamedTuple):
-    """Result of resolving a Seer-reported PR to its canonical ``PullRequest``."""
-
-    pull_request: PullRequest | None
-    repo_resolution: RepoResolution
-    provider_recognized: bool
 
 
 class SeerCreatedPullRequest(NamedTuple):
@@ -170,6 +143,9 @@ def resolve_seer_created_pull_requests(
     Returns a ``SeerCreatedPullRequest`` for every entry that resolves, skipping and
     logging the rest. Resolution is shared by attribution and Seer run→PR linking, so
     a caller resolves once and fans the result out to both rather than re-querying.
+
+    The repo lookup + find-or-create lives on ``PullRequest.objects`` so every
+    PR-reporting path converges on the same row; we own the logging here.
     """
     resolved_prs: list[SeerCreatedPullRequest] = []
     for entry in pull_requests:
@@ -189,11 +165,11 @@ def resolve_seer_created_pull_requests(
             continue
 
         try:
-            resolved = _get_or_create_reported_pull_request(
+            resolved = PullRequest.objects.get_or_create_from_reference(
                 organization_id=organization_id,
                 repo_name=repo_name,
                 provider=provider,
-                pr_number=pr_number,
+                key=pr_number,
             )
         except Exception:
             logger.exception("pr_metrics.attribution.record_failed", extra=entry_context)
@@ -268,49 +244,13 @@ def attribute_seer_created_pull_requests(
     record_seer_created_attributions(resolved_prs=resolved_prs, run_id=run_id, group_id=group_id)
 
 
-def _get_or_create_reported_pull_request(
-    *,
-    organization_id: int,
-    repo_name: str,
-    provider: str | None,
-    pr_number: int | str,
-) -> ResolvedPullRequest:
-    """Resolve a reported ``(repo, provider, PR number)`` to its canonical ``PullRequest``.
-
-    A find-or-create here may run before the SCM ``opened`` webhook arrives, so the row
-    can be a shell (no title/body) the webhook fills in later — callers must not
-    overwrite it. ``pull_request`` is None when the repo can't be uniquely resolved;
-    callers log the reason (``repo_resolution`` / ``provider_recognized``) under their
-    own namespace. Shared by attribution and Seer run→PR linking.
-    """
-    normalized_provider = _normalize_provider(provider)
-    provider_recognized = normalized_provider is None or normalized_provider in _KNOWN_SCM_PROVIDERS
-
-    repository, resolution = _resolve_repository(
-        organization_id=organization_id,
-        repo_name=repo_name,
-        normalized_provider=normalized_provider,
-    )
-    if repository is None:
-        return ResolvedPullRequest(None, resolution, provider_recognized)
-
-    # get_or_create is race-safe via the unique constraints — Django retries the
-    # get on IntegrityError.
-    pull_request, _ = PullRequest.objects.get_or_create(
-        organization_id=organization_id,
-        repository_id=repository.id,
-        key=str(pr_number),
-    )
-    return ResolvedPullRequest(pull_request, "resolved", provider_recognized)
-
-
 def _log_unresolved_reported_pull_request(
     resolved: ResolvedPullRequest, log_context: Mapping[str, Any]
 ) -> None:
-    """Emit the standard warnings for a PR that didn't resolve to a unique repo."""
-    # A present-but-unrecognized provider means the source sent something we don't
-    # map — warn so it can be corrected upstream.
-    if not resolved.provider_recognized:
+    """Emit the attribution warnings for a reported PR that didn't resolve to a unique repo."""
+    # A present-but-unrecognized provider means the source sent something we don't map —
+    # warn so it can be corrected upstream.
+    if resolved.provider_unmappable:
         logger.warning("pr_metrics.attribution.unrecognized_provider", extra=log_context)
 
     if resolved.pull_request is None:
@@ -331,17 +271,20 @@ def _attribute_pull_request(
     signal_details: Mapping[str, Any] | None,
     log_context: Mapping[str, Any],
 ) -> None:
-    """Resolve a single reported PR and idempotently record one attribution signal.
+    """Resolve a single reported PR to its canonical ``PullRequest`` and idempotently
+    record one attribution signal. Used by the delegated-agent path.
 
-    Used by the delegated-agent path. Failures are logged and swallowed rather than
-    raised, so a batch caller's remaining PRs are unaffected.
+    Resolution (repo lookup + find-or-create) lives on ``PullRequest.objects`` so every
+    PR-reporting path converges on the same row; here we add only the attribution write.
+    Failures are logged and swallowed rather than raised, so a batch caller's remaining
+    PRs are unaffected.
     """
     try:
-        resolved = _get_or_create_reported_pull_request(
+        resolved = PullRequest.objects.get_or_create_from_reference(
             organization_id=organization_id,
             repo_name=repo_name,
             provider=provider,
-            pr_number=pr_number,
+            key=pr_number,
         )
     except Exception:
         logger.exception("pr_metrics.attribution.record_failed", extra=log_context)
@@ -369,41 +312,6 @@ def _attribute_pull_request(
         "pr_metrics.attribution.recorded",
         extra={**log_context, "pull_request_id": resolved.pull_request.id},
     )
-
-
-def _resolve_repository(
-    *, organization_id: int, repo_name: str, normalized_provider: str | None
-) -> tuple[Repository | None, RepoResolution]:
-    """Resolve the org-scoped active repository for a Seer-reported PR.
-
-    Sentry stores the ``integrations:``-prefixed provider while Seer sends the
-    bare form, so we match both shapes — the same mapping
-    ``filter_repo_by_provider`` uses.
-
-    Resolves only when exactly one repo matches. A known provider disambiguates
-    same-named repos across providers; an unknown provider (Seer couldn't match
-    the repo) refuses to guess between them rather than risk mis-attribution.
-
-    Returns ``(repository, reason)`` where reason is ``"resolved"``,
-    ``"not_found"`` (zero matches), or ``"ambiguous"`` (more than one).
-    """
-    candidates = Repository.objects.filter(
-        organization_id=organization_id,
-        name=repo_name,
-        status=ObjectStatus.ACTIVE,
-    )
-
-    if normalized_provider is not None:
-        candidates = candidates.filter(
-            Q(provider=normalized_provider) | Q(provider=f"integrations:{normalized_provider}")
-        )
-
-    # Fetch up to 2 to detect ambiguity — the same name can exist under
-    # multiple providers (e.g. github & gitlab) within one org.
-    matches = list(candidates.order_by("id")[:2])
-    if len(matches) == 1:
-        return matches[0], "resolved"
-    return None, "ambiguous" if matches else "not_found"
 
 
 def attribute_delegated_agent_pull_request(
@@ -436,7 +344,7 @@ def attribute_delegated_agent_pull_request(
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    pr_number = _parse_pr_number(pr_url)
+    pr_number = parse_pull_request_number(pr_url)
 
     log_context = {
         "organization_id": organization_id,
@@ -466,31 +374,3 @@ def attribute_delegated_agent_pull_request(
         ).dict(),
         log_context=log_context,
     )
-
-
-def _parse_pr_number(pr_url: str) -> int | None:
-    """Extract the PR/MR number from a pull-request URL, or None if there isn't one.
-
-    Matches the number after a ``/pull/`` (GitHub) or ``/merge_requests/`` (GitLab)
-    segment specifically — a delegated agent can report a branch/``tree`` URL as its
-    result, and we must not mistake a trailing branch-name segment for a PR number.
-    """
-    match = re.search(r"/(?:pull|pulls|merge_requests)/(\d+)", pr_url)
-    return int(match.group(1)) if match else None
-
-
-def _normalize_provider(provider: str | None) -> str | None:
-    """Normalize Seer's provider to Sentry's unprefixed form, or None if unusable.
-
-    Returns None for the ``"unknown"`` sentinel (Seer couldn't resolve the repo)
-    and for empty values — neither can scope a provider filter. Lowercases before
-    the sentinel check so any casing (e.g. ``UNKNOWN``) is treated as unknown.
-    """
-    if not provider:
-        return None
-    provider = provider.lower()
-    if provider.startswith("integrations:"):
-        provider = provider.split(":", 1)[1]
-    if provider == "unknown":
-        return None
-    return provider
