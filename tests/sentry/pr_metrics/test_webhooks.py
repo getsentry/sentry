@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -12,6 +12,7 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.issues.constants import ISSUE_VIEW_CACHE_KEY_TTL, cache_key_for_issue_view
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
+    PullRequest,
     PullRequestActivity,
     PullRequestActivityType,
     PullRequestAttribution,
@@ -231,7 +232,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
     # --- Error handling ---
 
-    def test_missing_pr_logs_warning_and_does_not_raise(self) -> None:
+    def test_missing_pr_logs_unresolved_and_does_not_raise(self) -> None:
         event = {
             "action": "opened",
             "pull_request": {
@@ -249,8 +250,8 @@ class HandleWebhookForPrMetricsTest(TestCase):
                 repo=self.repo,
             )
 
-        mock_logger.warning.assert_called_once_with(
-            "pr_metrics.pr_not_found",
+        mock_logger.info.assert_called_once_with(
+            "pr_metrics.pull_request.unresolved",
             extra={
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
@@ -439,7 +440,7 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
 
     @patch(f"{MODULE}.logger")
     @patch("sentry.analytics.record")
-    def test_missing_pr_logs_warning_and_does_not_emit(
+    def test_missing_pr_logs_unresolved_and_does_not_emit(
         self, mock_record: MagicMock, mock_logger: MagicMock
     ) -> None:
         # A close webhook can arrive before the PR row exists (race).
@@ -449,8 +450,8 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
             organization=self.organization,
             repo=self.repo,
         )
-        mock_logger.warning.assert_called_once_with(
-            "pr_metrics.pr_not_found",
+        mock_logger.info.assert_called_once_with(
+            "pr_metrics.pull_request.unresolved",
             extra={
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
@@ -1019,7 +1020,7 @@ class HandleCommentForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_unknown_pr_number_logs_warning_and_does_not_raise(self) -> None:
+    def test_unknown_pr_number_logs_unresolved_and_does_not_raise(self) -> None:
         event: dict[str, Any] = {
             "action": "created",
             "issue": {
@@ -1038,14 +1039,13 @@ class HandleCommentForPrMetricsTest(TestCase):
                 github_delivery_id="delivery-unknown",
             )
 
-        mock_logger.warning.assert_called_once_with(
-            "pr_metrics.comment.pr_not_found",
+        mock_logger.info.assert_called_once_with(
+            "pr_metrics.pull_request.unresolved",
             extra={
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
                 "pr_number": 9999,
-                "action": "created",
                 "github_delivery_id": "delivery-unknown",
             },
         )
@@ -1073,6 +1073,60 @@ class HandleCommentForPrMetricsTest(TestCase):
             self._call()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_recent_missing_pr_creates_stub_and_writes_activity(self) -> None:
+        # A comment can be delivered before the PR's `opened` webhook writes the
+        # row (race). For a recently-opened PR we stub the row so the activity is
+        # not dropped; the `pull_request` event later enriches it.
+        event: dict[str, Any] = {
+            "action": "created",
+            "issue": {
+                "number": 9999,
+                "title": "Racing PR",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "pull_request": {"url": "https://github.com/org/repo/pull/9999"},
+            },
+            "sender": {"id": 123, "login": "testuser", "type": "User"},
+            "comment": {"id": 1, "author_association": "NONE"},
+        }
+        handle_comment(
+            github_event=GithubWebhookType.ISSUE_COMMENT,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            github_delivery_id="delivery-race",
+        )
+
+        pr = PullRequest.objects.get(repository_id=self.repo.id, key="9999")
+        assert pr.title == "Racing PR"
+        assert pr.opened_at is not None
+        activity = PullRequestActivity.objects.get(pull_request=pr)
+        assert activity.event_type == PullRequestActivityType.COMMENT_CREATED
+        assert activity.webhook_id == "delivery-race"
+
+    def test_old_missing_pr_is_not_stubbed(self) -> None:
+        # A comment on a PR opened before our ingestion window: no `opened` event
+        # will arrive to enrich a stub, so we skip it rather than track a partial.
+        event: dict[str, Any] = {
+            "action": "created",
+            "issue": {
+                "number": 9999,
+                "title": "Old PR",
+                "created_at": (datetime.now(timezone.utc) - timedelta(days=30)).isoformat(),
+                "pull_request": {"url": "https://github.com/org/repo/pull/9999"},
+            },
+            "sender": {"id": 123, "login": "testuser", "type": "User"},
+            "comment": {"id": 1, "author_association": "NONE"},
+        }
+        handle_comment(
+            github_event=GithubWebhookType.ISSUE_COMMENT,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            github_delivery_id="delivery-old",
+        )
+
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="9999").exists()
 
 
 @with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
@@ -1153,7 +1207,7 @@ class HandleReviewForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_unknown_pr_number_logs_warning_and_does_not_raise(self) -> None:
+    def test_unknown_pr_number_logs_unresolved_and_does_not_raise(self) -> None:
         event: dict[str, Any] = {
             "action": "submitted",
             "review": {"id": 100, "state": "approved"},
@@ -1169,8 +1223,8 @@ class HandleReviewForPrMetricsTest(TestCase):
                 github_delivery_id="delivery-x",
             )
 
-        mock_logger.warning.assert_called_once_with(
-            "pr_metrics.pr_not_found",
+        mock_logger.info.assert_called_once_with(
+            "pr_metrics.pull_request.unresolved",
             extra={
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
@@ -1258,7 +1312,7 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
 
         assert PullRequestActivity.objects.filter(pull_request=self.pr).count() == 1
 
-    def test_unknown_pr_number_logs_warning_and_does_not_raise(self) -> None:
+    def test_unknown_pr_number_logs_unresolved_and_does_not_raise(self) -> None:
         event: dict[str, Any] = {
             "action": "created",
             "comment": {"id": 1, "pull_request_review_id": 100, "author_association": "NONE"},
@@ -1274,8 +1328,8 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
                 github_delivery_id="delivery-x",
             )
 
-        mock_logger.warning.assert_called_once_with(
-            "pr_metrics.pr_not_found",
+        mock_logger.info.assert_called_once_with(
+            "pr_metrics.pull_request.unresolved",
             extra={
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
@@ -1356,7 +1410,7 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_unknown_pr_number_logs_warning_and_does_not_raise(self) -> None:
+    def test_unknown_pr_number_logs_unresolved_and_does_not_raise(self) -> None:
         event: dict[str, Any] = {
             "action": "resolved",
             "thread": {"node_id": "MDEx=="},
@@ -1372,8 +1426,8 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
                 github_delivery_id="delivery-x",
             )
 
-        mock_logger.warning.assert_called_once_with(
-            "pr_metrics.pr_not_found",
+        mock_logger.info.assert_called_once_with(
+            "pr_metrics.pull_request.unresolved",
             extra={
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
