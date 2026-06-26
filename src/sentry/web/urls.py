@@ -1277,6 +1277,31 @@ urlpatterns += [
         api.mcp_json,
         name="sentry-mcp-json",
     ),
+    re_path(
+        r"^\.well-known/api-catalog$",
+        api.api_catalog,
+        name="sentry-api-catalog",
+    ),
+    re_path(
+        r"^\.well-known/oauth-authorization-server$",
+        api.oauth_authorization_server,
+        name="sentry-oauth-authorization-server",
+    ),
+    re_path(
+        r"^\.well-known/oauth-protected-resource$",
+        api.oauth_protected_resource,
+        name="sentry-oauth-protected-resource",
+    ),
+    re_path(
+        r"^\.well-known/mcp/server-card\.json$",
+        api.mcp_server_card,
+        name="sentry-mcp-server-card",
+    ),
+    re_path(
+        r"^\.well-known/agent-skills/index\.json$",
+        api.agent_skills_index,
+        name="sentry-agent-skills-index",
+    ),
     # Force a 404 of favicon.ico.
     # This url is commonly requested by browsers, and without
     # blocking this, it was treated as a 200 OK for a react page view.

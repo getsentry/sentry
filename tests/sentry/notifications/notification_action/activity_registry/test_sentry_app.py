@@ -63,12 +63,41 @@ class TestBuildActivityData(BaseWorkflowTest):
             {"repo_name": "org/repo", "url": "https://github.com/org/repo/pull/1"}
         ]
 
+    def test_iteration_completed_extracts_details(self) -> None:
+        activity = self.create_group_activity(
+            group=self.create_group(),
+            type=ActivityType.SEER_ITERATION_COMPLETED.value,
+            data={
+                "pull_requests": [
+                    {
+                        "repo_name": "owner/repo",
+                        "pull_request": {
+                            "pr_number": 42,
+                            "pr_url": "https://github.com/owner/repo/pull/42",
+                        },
+                    }
+                ],
+                "code_changes": {"owner/repo": [{"diff": "...", "path": "foo.py"}]},
+                "iteration_index": 2,
+            },
+        )
+        result = _build_activity_data(activity)
+        assert result["type"] == "seer_pr_iteration_completed"
+        assert result["details"]["pull_requests"] == [
+            {"repo_name": "owner/repo", "url": "https://github.com/owner/repo/pull/42"}
+        ]
+        assert result["details"]["code_changes"] == {
+            "owner/repo": [{"diff": "...", "path": "foo.py"}]
+        }
+        assert result["details"]["iteration_index"] == 2
+
     def test_started_types_have_empty_details(self) -> None:
         for activity_type in [
             ActivityType.SEER_RCA_STARTED,
             ActivityType.SEER_SOLUTION_STARTED,
             ActivityType.SEER_CODING_STARTED,
             ActivityType.SEER_CODING_COMPLETED,
+            ActivityType.SEER_ITERATION_STARTED,
         ]:
             activity = self.create_group_activity(
                 group=self.create_group(),
