@@ -1203,21 +1203,6 @@ def finalize_snapshot_comparison(
         date_updated=timezone.now(),
     )
     if updated:
-        logger.debug(
-            "compare_snapshots: finalized",
-            extra={
-                "comparison_id": comparison.id,
-                "done": len(done_set),
-                "chunks_total": comparison.chunks_total,
-                "images_changed": counts["changed"],
-                "images_added": counts["added"],
-                "images_removed": counts["removed"],
-                "images_unchanged": counts["unchanged"],
-                "images_renamed": counts["renamed"],
-                "images_skipped": counts["skipped"],
-                "images_errored": counts["errored"],
-            },
-        )
         try:
             head_artifact = PreprodArtifact.objects.select_related("project__organization").get(
                 id=head_artifact_id,
@@ -1230,6 +1215,25 @@ def finalize_snapshot_comparison(
                 extra={"comparison_id": comparison.id, "head_artifact_id": head_artifact_id},
             )
             return
+
+        logger.info(
+            "compare_snapshots: finalized",
+            extra={
+                "comparison_id": comparison.id,
+                "organization_id": org_id,
+                "organization_slug": head_artifact.project.organization.slug,
+                "project_id": project_id,
+                "done": len(done_set),
+                "chunks_total": comparison.chunks_total,
+                "images_changed": counts["changed"],
+                "images_added": counts["added"],
+                "images_removed": counts["removed"],
+                "images_unchanged": counts["unchanged"],
+                "images_renamed": counts["renamed"],
+                "images_skipped": counts["skipped"],
+                "images_errored": counts["errored"],
+            },
+        )
 
         metric_tags = {
             "app_id_temp": head_artifact.app_id or "",
