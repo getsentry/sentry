@@ -33,18 +33,16 @@ from sentry.utils.http import absolute_uri
 if TYPE_CHECKING:
     from sentry.identity.pipeline import IdentityPipeline
 
-DATADOG_VALID_SITES = frozenset(
-    {
-        "datadoghq.com",
-        "us3.datadoghq.com",
-        "us5.datadoghq.com",
-        "datadoghq.eu",
-        "ddog-gov.com",
-        "us2.ddog-gov.com",
-        "ap1.datadoghq.com",
-        "ap2.datadoghq.com",
-    }
-)
+DATADOG_VALID_SITES: dict[str, str] = {
+    "datadoghq.com": "US1",
+    "us3.datadoghq.com": "US3",
+    "us5.datadoghq.com": "US5",
+    "datadoghq.eu": "EU",
+    "ap1.datadoghq.com": "AP1",
+    "ap2.datadoghq.com": "AP2",
+    "ddog-gov.com": "US1-FED",
+    "us2.ddog-gov.com": "US2-FED",
+}
 
 MCP_REGISTER_PATH = "/api/unstable/mcp-server/register"
 MCP_AUTHORIZE_PATH = "/api/unstable/mcp-server/authorize"

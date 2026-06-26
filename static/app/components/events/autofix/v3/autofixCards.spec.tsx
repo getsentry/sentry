@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {
@@ -760,10 +760,47 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('Feedback')).toBeInTheDocument();
-      expect(screen.getByText('"Add a test for this"')).toBeInTheDocument();
+      expect(screen.getByText('Add a test for this')).toBeInTheDocument();
     });
 
-    it('shows the iterating loader when feedback is queued', () => {
+    it('renders the latest feedback at the top of the list', () => {
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'newest queued', source: {type: 'user-ui'}}],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [
+              makePrIterationBlock(0, {text: 'first pass'}),
+              makePrIterationBlock(1, {text: 'second pass'}),
+            ]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      const items = screen.getAllByText(/first pass|second pass|newest queued/);
+      expect(items.map(item => item.textContent)).toEqual([
+        'newest queued',
+        'second pass',
+        'first pass',
+      ]);
+    });
+
+    it('shows the iterating loader without replaying the previous step when feedback is queued', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
@@ -779,14 +816,23 @@ describe('ArtifactCard', () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofixWithQueued}
-          section={makeSection('code_changes', 'completed', [
-            [makePatch('org/repo', 'src/app.py')],
-          ])}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [
+              makePrIterationBlock(0, {text: 'first pass'}),
+              makeAssistantBlock('Previous step output that should not replay'),
+            ]
+          )}
         />,
         {organization: prIterationOrganization}
       );
 
       expect(screen.getByText('Iterating on PR…')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Previous step output that should not replay')
+      ).not.toBeInTheDocument();
       expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
     });
 
@@ -814,7 +860,7 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('Feedback')).toBeInTheDocument();
-      expect(screen.getByText('"Make the button blue"')).toBeInTheDocument();
+      expect(screen.getByText('Make the button blue')).toBeInTheDocument();
     });
 
     it('shows generic processing copy for queued feedback without the feature flag', () => {
@@ -858,7 +904,7 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.queryByText('Feedback')).not.toBeInTheDocument();
-      expect(screen.queryByText('"Add a test for this"')).not.toBeInTheDocument();
+      expect(screen.queryByText('Add a test for this')).not.toBeInTheDocument();
       expect(screen.queryByText(/- Latest/)).not.toBeInTheDocument();
     });
 
@@ -907,7 +953,7 @@ describe('ArtifactCard', () => {
             'code_changes',
             'processing',
             [],
-            [makePrIterationBlock(0, {text: 'keep going'})]
+            [makePrIterationBlock(0, {text: 'fix the CI failure'})]
           )}
         />,
         {organization: prIterationOrganization}
@@ -915,6 +961,236 @@ describe('ArtifactCard', () => {
 
       expect(screen.getByText('Iterating on PR…')).toBeInTheDocument();
       expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
+    });
+
+    it('marks block feedback as processed when the section is not processing', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(0, {text: 'first pass'})]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('first pass')).toBeInTheDocument();
+      expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
+    });
+
+    it('marks the current iteration feedback as in progress while processing', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'processing',
+            [],
+            [makePrIterationBlock(0, {text: 'fix the CI failure'})]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      const row =
+        screen.getByText('fix the CI failure').parentElement!.parentElement!
+          .parentElement!;
+      expect(within(row).getByTestId('loading-indicator')).toBeInTheDocument();
+      expect(within(row).queryByTestId('icon-check-mark')).not.toBeInTheDocument();
+    });
+
+    it('marks queued feedback with a queued label and no timestamp', () => {
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'Make the button blue', source: {type: 'user-ui'}}],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('Make the button blue')).toBeInTheDocument();
+      expect(screen.getByText('Queued')).toBeInTheDocument();
+      expect(screen.queryByTestId('icon-check-mark')).not.toBeInTheDocument();
+    });
+
+    it('keeps reset enabled with the feature flag even when PRs exist', () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
+    });
+
+    it('disables reset with the feature flag while processing before any PR exists', () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'processing',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
+    });
+
+    it('keeps reset enabled with the feature flag while processing once a PR exists', () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'processing',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
+    });
+
+    it('disables reset without the feature flag when PRs exist', () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
+    });
+
+    it('disables reset while a coding agent is active', () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          coding_agents: {a: {} as any},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
+    });
+
+    it('shows the PR iteration form mid-run when reset is requested', async () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'processing',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection(
+            'code_changes',
+            'processing',
+            [],
+            [makePrIterationBlock(0, {text: 'fix the CI failure'})]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run step'}));
+      expect(
+        screen.getByText('Anything else you want to see on your PR?')
+      ).toBeInTheDocument();
     });
   });
 
