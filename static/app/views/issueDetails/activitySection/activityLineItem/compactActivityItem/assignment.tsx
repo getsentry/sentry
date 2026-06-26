@@ -4,7 +4,7 @@ import {Text} from '@sentry/scraps/text';
 import {t, tct} from 'sentry/locale';
 import type {GroupActivityAssigned} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
+import type {AvatarUser, User} from 'sentry/types/user';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {AssigneePill} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/assigneeChip';
 import {getAssignmentIntegrationName} from 'sentry/views/issueDetails/activitySection/assignmentIntegration';
@@ -20,6 +20,33 @@ function isTeam(value: Team | User): value is Team {
   return 'slug' in value;
 }
 
+function getAssignedUser(activity: GroupActivityAssigned): AvatarUser | null {
+  const {data} = activity;
+
+  if (data.assigneeType !== 'user') {
+    return null;
+  }
+
+  if (data.user && !isTeam(data.user)) {
+    return data.user;
+  }
+
+  const email = data.assigneeEmail ?? '';
+  const name = data.assigneeName ?? email;
+
+  if (!email && !name) {
+    return null;
+  }
+
+  return {
+    email,
+    id: data.assignee,
+    ip_address: '',
+    name,
+    username: email,
+  };
+}
+
 function getAssignedAssignee(activity: GroupActivityAssigned, teams: Team[]) {
   const {data} = activity;
 
@@ -31,8 +58,9 @@ function getAssignedAssignee(activity: GroupActivityAssigned, teams: Team[]) {
     return t('themselves');
   }
 
-  if (data.user && !isTeam(data.user)) {
-    return data.user;
+  const assignedUser = getAssignedUser(activity);
+  if (assignedUser) {
+    return assignedUser;
   }
 
   if (data.assigneeType === 'user' && data.assigneeEmail) {

@@ -2,12 +2,12 @@ import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 
 export type ProgressMarkerVariant =
-  | 'assigned'
   | 'diagnosed'
   | 'dot'
   | 'fix-applied'
   | 'fix-proposed'
-  | 'identified';
+  | 'identified'
+  | 'routed';
 
 export function getProgressMarkerVariant(item: GroupActivity): ProgressMarkerVariant {
   switch (item.type) {
@@ -31,16 +31,22 @@ export function getProgressMarkerVariant(item: GroupActivity): ProgressMarkerVar
     case GroupActivityType.SEER_CODING_COMPLETED:
     case GroupActivityType.SEER_ITERATION_STARTED:
     case GroupActivityType.SEER_ITERATION_COMPLETED:
+    case GroupActivityType.CREATE_ISSUE:
+    case GroupActivityType.SET_PUBLIC:
+    case GroupActivityType.SET_PRIVATE:
+    case GroupActivityType.SET_PRIORITY:
       return 'dot';
     case GroupActivityType.SET_REGRESSION:
       return 'identified';
+    case GroupActivityType.SET_IGNORED:
+      return 'routed';
     case GroupActivityType.SET_UNRESOLVED:
       return 'forecast' in item.data && item.data.forecast ? 'diagnosed' : 'identified';
     case GroupActivityType.NOTE:
       return 'dot';
     case GroupActivityType.ASSIGNED:
     case GroupActivityType.UNASSIGNED:
-      return 'assigned';
+      return 'routed';
     default:
       return 'identified';
   }

@@ -22,7 +22,7 @@ export function ProgressMarker({variant}: {variant: ProgressMarkerVariant}) {
 
 function getProgressMarkerIcon(variant: ProgressMarkerVariant) {
   switch (variant) {
-    case 'assigned':
+    case 'routed':
       return <IconPieQuarter size="md" variant="muted" />;
     case 'diagnosed':
       return <IconPieHalf size="md" variant="warning" />;

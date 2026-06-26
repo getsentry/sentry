@@ -362,6 +362,18 @@ export function getCompactGroupActivityItem({
           : t('in a pull request'),
       };
     }
+    case GroupActivityType.PULL_REQUEST_CLOSED: {
+      const pullRequest = activity.data.pullRequest;
+      return {
+        title: t('Pull Request closed'),
+        details: pullRequest
+          ? tct('on [provider] [pullRequest]', {
+              provider: getPullRequestProvider(pullRequest),
+              pullRequest: <PullRequestChip pullRequest={pullRequest} />,
+            })
+          : t('PR not available'),
+      };
+    }
     case GroupActivityType.SET_UNRESOLVED: {
       if ('forecast' in activity.data && activity.data.forecast) {
         return {
@@ -613,4 +625,8 @@ export function getCompactGroupActivityItem({
       };
     }
   }
+
+  return {
+    title: t('Activity'),
+  };
 }

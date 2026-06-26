@@ -1,15 +1,15 @@
 import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 
 import type {Team} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
+import type {AvatarUser} from 'sentry/types/user';
 
 import {InlineChip} from './inlineChip';
 
-function isTeam(value: Team | User): value is Team {
+function isTeam(value: AvatarUser | Team): value is Team {
   return 'slug' in value;
 }
 
-export function AssigneePill({assignee}: {assignee: string | Team | User}) {
+export function AssigneePill({assignee}: {assignee: AvatarUser | string | Team}) {
   if (typeof assignee === 'string') {
     return <InlineChip>{assignee}</InlineChip>;
   }

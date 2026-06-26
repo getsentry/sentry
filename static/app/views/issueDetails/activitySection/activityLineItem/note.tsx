@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {TimeSince} from 'sentry/components/timeSince';
 import {GroupActivityType, type Group, type GroupActivity} from 'sentry/types/group';
-import type {GroupActivityNote} from 'sentry/types/group';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 
@@ -16,6 +15,8 @@ import {
   type ActivityLineVariant,
 } from './layout';
 import {ActivityLineMarker} from './progressMarker';
+
+type GroupActivityNote = Extract<GroupActivity, {type: GroupActivityType.NOTE}>;
 
 interface ActivityLineNoteProps {
   activity: GroupActivityNote;
