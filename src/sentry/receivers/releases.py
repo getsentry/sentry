@@ -12,7 +12,9 @@ from sentry.issues.action_log import (
     ActionSource,
     GroupActionActor,
     action_context_scope,
+    publish_action,
 )
+from sentry.issues.action_log.types import PullRequestClosedAction
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -308,6 +310,12 @@ def pull_request_closing(instance: PullRequest, **kwargs: object) -> None:
                     type=ActivityType.PULL_REQUEST_CLOSED.value,
                     ident=str(instance.id),
                     data={"pull_request": instance.id},
+                )
+                publish_action(
+                    PullRequestClosedAction(pull_request=instance.id),
+                    source=ActionSource.SYSTEM,
+                    group_id=group.id,
+                    project=group.project,
                 )
 
         transaction.on_commit(create_activities, router.db_for_write(PullRequest))
