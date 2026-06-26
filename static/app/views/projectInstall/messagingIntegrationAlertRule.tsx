@@ -33,6 +33,8 @@ type ChannelListResponse = {
  * (`MessagingIntegrationAlertRule`) and the SCM stacked layout
  * (`ScmMessagingIntegrationAlertRule`) build identical controls and feed them
  * to the same provider sentence, differing only in presentation.
+ *
+ * @public Consumed by the SCM layout in a downstream PR.
  */
 export function useMessagingIntegrationAlertRule({
   channel,
@@ -147,6 +149,8 @@ type ChannelSelectProps = {
  * The creatable channel picker, shared by both layouts. The Slack API returns
  * at most 1000 channels, so it stays creatable to let users enter one that is
  * not in the results.
+ *
+ * @public Consumed by the SCM layout in a downstream PR.
  */
 export function ChannelSelect({
   className,
@@ -272,6 +276,7 @@ const InlineChannelSelect = styled(ChannelSelect)`
   min-width: 220px;
 `;
 
+/** @public Consumed by the SCM layout in a downstream PR. */
 export const ChannelField = styled(FormField)`
   padding: 0;
 `;
