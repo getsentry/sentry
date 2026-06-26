@@ -476,7 +476,12 @@ function FeedbackStatusIcon({status}: {status: FeedbackStatus}) {
 }
 
 const FeedbackProse = styled(Prose)<{muted?: boolean}>`
-  ${p => (p.muted ? `color: ${p.theme.tokens.content.secondary};` : '')}
+  ${p =>
+    p.muted
+      ? css`
+          color: ${p.theme.tokens.content.secondary};
+        `
+      : ''}
 `;
 
 function FeedbackItem({item}: {item: IterationFeedback}) {

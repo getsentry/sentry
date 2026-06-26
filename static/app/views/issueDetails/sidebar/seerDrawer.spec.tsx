@@ -347,7 +347,7 @@ describe('SeerDrawer', () => {
       const callsAfterLoad = getMock.mock.calls.length;
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      expect(getMock.mock.calls.length).toBe(callsAfterLoad);
+      expect(getMock.mock.calls).toHaveLength(callsAfterLoad);
     });
 
     it('polls the autofix endpoint when autofix-pr-iteration is enabled and a PR exists', async () => {
