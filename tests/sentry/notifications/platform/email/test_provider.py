@@ -76,12 +76,12 @@ class EmailRendererTest(TestCase):
         assert isinstance(self.rendered_template.footer_text, str)
 
         for element in [
-            self.rendered_template.subject,
+            self.rendered_template.subject_text,
             self.rendered_template.actions[0].label,
             self.rendered_template.actions[0].link,
             self.rendered_template.chart.url,
             self.rendered_template.chart.alt_text,
-            self.rendered_template.footer,
+            self.rendered_template.footer_text,
         ]:
             assert element in str(text_content)
             assert element in str(html_content)

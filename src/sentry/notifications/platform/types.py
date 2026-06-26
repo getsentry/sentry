@@ -242,7 +242,7 @@ class NotificationRenderedTemplate:
     def render_text_blocks(blocks: list[NotificationTextBlock]) -> str:
         text = []
         for block in blocks:
-            if block.type == NotificationTextBlockType.LINK:
+            if isinstance(block, LinkTextBlock):
                 text.append(f"{block.text} ({block.url})")
             else:
                 text.append(block.text)
