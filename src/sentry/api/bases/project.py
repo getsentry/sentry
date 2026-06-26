@@ -205,11 +205,11 @@ class ProjectEndpoint(Endpoint):
         sentry_sdk.set_tag("project", project.id)
         sentry_sdk.set_attribute("project", project.id)
 
-        bind_organization_context(organization)
+        bind_organization_context(project.organization)
 
         request._request.organization = (
-            organization  # XXX: we should not be stuffing random attributes into HttpRequest
-        )
+            project.organization
+        )  # XXX: we should not be stuffing random attributes into HttpRequest
 
         kwargs["project"] = project
         return (args, kwargs)
