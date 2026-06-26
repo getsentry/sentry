@@ -33,9 +33,19 @@ import {
 function GroupLayoutBody({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
   return (
-    <StyledLayoutBody data-test-id="group-event-details" sidebarOpen={isSidebarOpen}>
+    <Container
+      data-test-id="group-event-details"
+      background="primary"
+      responsiveTo="container"
+      display={{'2xs': 'flex', lg: 'grid'}}
+      flexGrow={{'2xs': 1, lg: 0}}
+      style={{
+        flexDirection: 'column',
+        gridTemplateColumns: isSidebarOpen ? 'minmax(100px, 100%) 325px' : '100%',
+      }}
+    >
       {children}
-    </StyledLayoutBody>
+    </Container>
   );
 }
 
@@ -127,20 +137,6 @@ export function GroupDetailsLayout({
     </IssueDetailsContextProvider>
   );
 }
-
-const StyledLayoutBody = styled('div')<{
-  sidebarOpen: boolean;
-}>`
-  display: grid;
-  background-color: ${p => p.theme.tokens.background.primary};
-  grid-template-columns: ${p => (p.sidebarOpen ? 'minmax(100px, 100%) 325px' : '100%')};
-
-  @container (max-width: ${p => p.theme.breakpoints.lg}) {
-    display: flex;
-    flex-grow: 1;
-    flex-direction: column;
-  }
-`;
 
 const NavigationSidebarWrapper = styled('div')<{
   hasToggleSidebar: boolean;
