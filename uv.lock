@@ -2427,7 +2427,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=13.1.1" },
-    { name = "taskbroker-client", specifier = ">=0.20.4" },
+    { name = "taskbroker-client", specifier = ">=0.20.6" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2820,7 +2820,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.20.4"
+version = "0.20.6"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2830,14 +2830,13 @@ dependencies = [
     { name = "msgpack", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "redis", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "redis-py-cluster", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-arroyo", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-protos", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-sdk", extra = ["http2"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.4-py3-none-any.whl", hash = "sha256:bdb61d9fff1fe2eb29739800170d170b8af5c13c60bedce9f04d6c476548cdc3" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.6-py3-none-any.whl", hash = "sha256:f2ee0b18678d08d8b6785082f9e256851c541614c7e51fbd54a05b1a07a65ffc" },
 ]
 
 [[package]]

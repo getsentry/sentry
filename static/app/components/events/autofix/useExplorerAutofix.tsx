@@ -17,6 +17,7 @@ import {
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {isArrayOf, isString} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -124,6 +125,16 @@ export function isCodingAgentsArtifact(
  * State returned from the Explorer autofix endpoint.
  * This extends the SeerExplorer types with autofix-specific data.
  */
+export interface QueuedFeedbackItem {
+  text: string;
+  source?: {
+    comment?: {html_url?: string; user?: {login: string}};
+    type?: string;
+    user?: User;
+  };
+  timestamp?: string;
+}
+
 export interface ExplorerAutofixState {
   blocks: Block[];
   run_id: number;
@@ -135,6 +146,7 @@ export interface ExplorerAutofixState {
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
+  queued_feedback?: QueuedFeedbackItem[];
   repo_pr_states?: Record<string, RepoPRState>;
 }
 
@@ -203,11 +215,14 @@ const isActivelyProcessing = (
       codingAgent.status === CodingAgentStatus.RUNNING
   );
 
+  const hasQueuedFeedback = (autofixState.queued_feedback ?? []).length > 0;
+
   return (
     autofixState.status === 'processing' ||
     autofixState.blocks.some(block => block.loading) ||
     anyPRCreating ||
-    anyCodingAgentsRunning
+    anyCodingAgentsRunning ||
+    hasQueuedFeedback
   );
 };
 
@@ -755,7 +770,6 @@ export function useExplorerAutofix(
     ]
   );
 
-  // Clear waiting state when we get a response
   if (waitingForResponse && runState) {
     const hasLoadingBlock = runState.blocks.some(block => block.loading);
     if (!hasLoadingBlock && runState.status !== 'processing') {

@@ -1,6 +1,8 @@
+import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
@@ -95,5 +97,56 @@ describe('ScmPlatformFeaturesCore', () => {
       'onboarding.scm_platform_features_step_viewed',
       expect.anything()
     );
+  });
+
+  it('clears the selected platform from the manual picker', async () => {
+    const onPlatformChange = jest.fn();
+    const onFeaturesChange = jest.fn();
+    const onClearProjectDetailsForm = jest.fn();
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({
+          onPlatformChange,
+          onFeaturesChange,
+          onClearProjectDetailsForm,
+        })}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(await screen.findByTestId('icon-close'));
+
+    expect(onPlatformChange).toHaveBeenCalledWith(undefined);
+    expect(onFeaturesChange).toHaveBeenCalledWith(undefined);
+    expect(onClearProjectDetailsForm).toHaveBeenCalled();
+  });
+
+  it('does not offer a clear button when a platform was auto-detected', async () => {
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+    });
+
+    render(
+      <ScmPlatformFeaturesCore {...defaultProps({selectedRepository: repository})} />,
+      {organization}
+    );
+
+    // Detection resolves to the auto-detected view; switch into the manual picker.
+    await userEvent.click(
+      await screen.findByRole('button', {name: "Doesn't look right? Change platform"})
+    );
+
+    // The manual picker is showing (with a route back to the recommendation),
+    // but the clear control is suppressed: clearing would desync the picker from
+    // the detected fallback.
+    expect(
+      screen.getByRole('button', {name: 'Back to recommended platforms'})
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('icon-close')).not.toBeInTheDocument();
   });
 });
