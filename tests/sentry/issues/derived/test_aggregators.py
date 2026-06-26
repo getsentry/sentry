@@ -528,8 +528,13 @@ def _merged(type: int, **kwargs: Any) -> FakeEntry:
     return FakeEntry(type=type, group_id=1, original_group_id=2, **kwargs)
 
 
+########################## STATUS ##########################
+
+
 def test_merged_resolve_does_not_close() -> None:
-    # track_status ignores transitions inherited from a merged-away group.
+    """
+    Test that track_status ignores a resolution action from a merged in group
+    """
     assert (
         _run_for_feature(
             STATUS,
@@ -542,6 +547,10 @@ def test_merged_resolve_does_not_close() -> None:
 
 
 def test_merged_unresolve_does_not_reopen() -> None:
+    """
+    Test that an unresolve action from a merged in group doesn't result in the destination group's
+    issue status reverting to open
+    """
     assert (
         _run_for_feature(
             STATUS,
@@ -554,8 +563,13 @@ def test_merged_unresolve_does_not_reopen() -> None:
     )
 
 
+########################## PROGRESS ##########################
+
+
 def test_merged_assign_advances_progress() -> None:
-    # ASSIGN advances progress regardless of which group it came from.
+    """
+    Test that an assignment advances progress regardless of which group it came from
+    """
     assert (
         _run_for_feature(
             PROGRESS,
@@ -568,7 +582,10 @@ def test_merged_assign_advances_progress() -> None:
 
 
 def test_merged_set_priority_does_not_advance_progress() -> None:
-    # Merged-in SET_PRIORITY doesn't advance the canonical issue's progress.
+    """
+    Test that a merged group's set priority action doesn't advance the destination group's progress
+    (assuming the destination group does NOT have a priority set)
+    """
     assert (
         _run_for_feature(
             PROGRESS,
@@ -581,8 +598,10 @@ def test_merged_set_priority_does_not_advance_progress() -> None:
 
 
 def test_merged_set_priority_does_not_override_native() -> None:
-    # The non-merged group's contribution stands even if the merged-in
-    # SET_PRIORITY is more recent.
+    """
+    Test that the destination group's RCA action stands even if the merged in
+    group's set priority action is more recent
+    """
     assert (
         _run_for_feature(
             PROGRESS,
@@ -596,7 +615,9 @@ def test_merged_set_priority_does_not_override_native() -> None:
 
 
 def test_merged_root_cause_does_not_advance_progress() -> None:
-    # Only ASSIGN falls through; other merged-in actions stay a no-op.
+    """
+    Test that only an assignment action from a merged in group falls through; other merged in actions stay a no-op
+    """
     assert (
         _run_for_feature(
             PROGRESS,

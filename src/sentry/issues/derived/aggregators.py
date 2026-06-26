@@ -135,13 +135,14 @@ def _track_progress_impl(state: StateView, entry: GroupActionLogEntry) -> Aggreg
 
 
 def _track_progress_merged(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
-    # ASSIGN advances progress the same way regardless of which group it came
+    # ASSIGN advance progress the same way regardless of which group it came
     # from, so merged-in assignments fall through to the default behavior.
-    if entry.type == GroupActionType.ASSIGN:
+    if entry.type in (GroupActionType.ASSIGN):
         return _track_progress_impl(state, entry)
-    # Other merged-in actions (e.g. SET_PRIORITY) don't advance the canonical
-    # issue's progress; the non-merged group's contribution stands even if the
-    # merged-in entry is more recent.
+
+    # XXX: ignore every other type of action from merged in groups so that we prioritize the destination group's actions
+    # e.g. for mark reviewed, if the destination group is not reviewed but the merged in group is, we do not
+    # progress towards assigned issue progress state
     return None
 
 
