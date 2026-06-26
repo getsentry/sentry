@@ -1,7 +1,9 @@
-import {Fragment, memo, useCallback, useState} from 'react';
+import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -10,14 +12,12 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
-  COL_WIDTH_UNDEFINED,
   GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconUser} from 'sentry/icons';
+import {IconEdit, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -28,45 +28,54 @@ import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversatio
 import {
   getConversationDetailUrl,
   getUserDisplayName,
+  InputOutputTooltipCell,
   UserNotInstrumentedTooltip,
 } from 'sentry/views/explore/conversations/components/conversationsTable';
+import {ConversationsTableEditModal} from 'sentry/views/explore/conversations/components/conversationsTableEditModal';
 import {
   useConversations,
   type Conversation,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
+import {useConversationsTableColumns} from 'sentry/views/explore/conversations/hooks/useConversationsTableColumns';
+import {
+  type ConversationColumnKey,
+  CONVERSATION_COLUMNS,
+  RIGHT_ALIGNED_CONVERSATION_COLUMNS,
+} from 'sentry/views/explore/conversations/utils/tableColumns';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
-
-type ColumnKey =
-  | 'conversationId'
-  | 'llmCalls'
-  | 'user'
-  | 'toolCalls'
-  | 'errors'
-  | 'cost'
-  | 'timestamp';
-
-const DEFAULT_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
-  {key: 'conversationId', name: t('Conv. ID'), width: 150},
-  {key: 'user', name: t('User'), width: COL_WIDTH_UNDEFINED},
-  {key: 'llmCalls', name: t('LLM Calls'), width: 100},
-  {key: 'toolCalls', name: t('Tool Calls'), width: 120},
-  {key: 'errors', name: t('Errors'), width: 100},
-  {key: 'cost', name: t('Cost'), width: 110},
-  {key: 'timestamp', name: t('Last Message'), width: 140},
-];
-
-const RIGHT_ALIGN_COLUMNS = new Set<ColumnKey>(['timestamp']);
 
 export function ConversationsTableNew() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const {columns, handleResizeColumn} = useStateBasedColumnResize({
-    columns: DEFAULT_COLUMNS,
-  });
+  const {openModal} = useModal();
+  const {columns: columnKeys, setColumns} = useConversationsTableColumns();
   const {data, isLoading, error, pageLinks, setCursor} = useConversations();
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
+
+  // Session-only resized widths, keyed by column so they stick to the column
+  // through add/remove/reorder (not persisted; reset on refresh).
+  const [columnWidths, setColumnWidths] = useState<
+    Partial<Record<ConversationColumnKey, number>>
+  >({});
+
+  const columnOrder = useMemo<Array<GridColumnOrder<ConversationColumnKey>>>(
+    () =>
+      columnKeys.map(key => ({
+        key,
+        name: CONVERSATION_COLUMNS[key].name,
+        width: columnWidths[key] ?? CONVERSATION_COLUMNS[key].width,
+      })),
+    [columnKeys, columnWidths]
+  );
+
+  const handleResizeColumn = useCallback(
+    (_columnIndex: number, nextColumn: GridColumnOrder<ConversationColumnKey>) => {
+      setColumnWidths(prev => ({...prev, [nextColumn.key]: nextColumn.width}));
+    },
+    []
+  );
 
   const showMissingMessagesAlert =
     !isLoading &&
@@ -82,24 +91,42 @@ export function ConversationsTableNew() {
     setCursor(cursor, path, query, pageDelta);
   };
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<ColumnKey>) => {
-    return (
-      <Flex
-        flex="1"
-        align="center"
-        gap="xs"
-        justify={RIGHT_ALIGN_COLUMNS.has(column.key) ? 'end' : 'start'}
-      >
-        {column.name}
-        {/* Force the flexible column to claim the leftover width so the others
-            stay at their defined widths instead of the last column growing. */}
-        {column.key === 'user' && <Container width="100vw" />}
-      </Flex>
+  const openColumnEditor = () => {
+    openModal(
+      modalProps => (
+        <ConversationsTableEditModal
+          {...modalProps}
+          columns={columnKeys}
+          onColumnsChange={setColumns}
+        />
+      ),
+      {closeEvents: 'escape-key'}
     );
-  }, []);
+  };
+
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<ConversationColumnKey>) => {
+      return (
+        <Flex
+          flex="1"
+          align="center"
+          gap="xs"
+          justify={RIGHT_ALIGNED_CONVERSATION_COLUMNS.has(column.key) ? 'end' : 'start'}
+        >
+          {column.name}
+          {/* Raise the user column's growth-limit so it absorbs the leftover
+              width instead of the last column stretching. The panel's
+              horizontal scroll (and the `minWidth: 0` wrapper) keeps this from
+              overflowing when there are too many columns to fit. */}
+          {column.key === 'user' && <Container width="100vw" />}
+        </Flex>
+      );
+    },
+    []
+  );
 
   const renderBodyCell = useCallback(
-    (column: GridColumnOrder<ColumnKey>, dataRow: Conversation) => (
+    (column: GridColumnOrder<ConversationColumnKey>, dataRow: Conversation) => (
       <BodyCell
         column={column}
         dataRow={dataRow}
@@ -124,11 +151,16 @@ export function ConversationsTableNew() {
   return (
     <Fragment>
       {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
+      <Flex justify="end">
+        <Button size="sm" icon={<IconEdit />} onClick={openColumnEditor}>
+          {t('Edit Table')}
+        </Button>
+      </Flex>
       <GridEditable
         isLoading={isLoading}
         error={error}
         data={data}
-        columnOrder={columns}
+        columnOrder={columnOrder}
         columnSortBy={[]}
         stickyHeader
         grid={{
@@ -153,7 +185,7 @@ const BodyCell = memo(function BodyCell({
   organization,
   projects,
 }: {
-  column: GridColumnOrder<ColumnKey>;
+  column: GridColumnOrder<ConversationColumnKey>;
   dataRow: Conversation;
   organization: Organization;
   projects: number[];
@@ -257,6 +289,30 @@ const BodyCell = memo(function BodyCell({
       return (
         <Text as="div" align="right">
           <TimeSince unitStyle="extraShort" date={new Date(dataRow.endTimestamp)} />
+        </Text>
+      );
+    case 'input':
+      return dataRow.firstInput ? (
+        <InputOutputTooltipCell text={dataRow.firstInput} />
+      ) : (
+        <Text>&mdash;</Text>
+      );
+    case 'output':
+      return dataRow.lastOutput ? (
+        <InputOutputTooltipCell text={dataRow.lastOutput} />
+      ) : (
+        <Text>&mdash;</Text>
+      );
+    case 'inputTokens':
+      return (
+        <Text as="div">
+          <Count value={dataRow.inputTokens} />
+        </Text>
+      );
+    case 'outputTokens':
+      return (
+        <Text as="div">
+          <Count value={dataRow.outputTokens} />
         </Text>
       );
     default:
