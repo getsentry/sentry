@@ -75,6 +75,15 @@ export function IntegrationRow(props: Props) {
       ? `/settings/${organization.slug}/developer-settings/${slug}/`
       : `/settings/${organization.slug}/${urlMap[type]}/${slug}/`;
 
+  // When there's exactly one installed workspace there's nothing to
+  // disambiguate, so auto-open the install/upgrade modal (via
+  // `useAutoOpenInstallModal`) instead of making the user pick on the config
+  // page. With multiple workspaces we still send them to the config tab to
+  // choose which one to update.
+  const resolveNowHref =
+    `${baseUrl}?tab=configurations&referrer=directory_resolve_now` +
+    (configurations === 1 ? '&showInstallModal=1' : '');
+
   const renderDetails = () => {
     if (type === 'sentryApp') {
       return publishStatus !== 'published' && <PublishStatus status={publishStatus} />;
@@ -129,8 +138,9 @@ export function IntegrationRow(props: Props) {
             <Alert
               variant="warning"
               trailingItems={
-                <ResolveNowButton
-                  href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
+                <LinkButton
+                  href={resolveNowHref}
+                  variant="primary"
                   size="xs"
                   onClick={() =>
                     trackIntegrationAnalytics('integrations.resolve_now_clicked', {
@@ -141,7 +151,7 @@ export function IntegrationRow(props: Props) {
                   }
                 >
                   {resolveText || t('Resolve Now')}
-                </ResolveNowButton>
+                </LinkButton>
               }
             >
               {alertText}
@@ -205,9 +215,4 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
     margin-right: ${p => p.theme.space.sm};
     font-weight: ${p => p.theme.font.weight.sans.regular};
   }
-`;
-
-const ResolveNowButton = styled(LinkButton)`
-  color: ${p => p.theme.tokens.content.secondary};
-  float: right;
 `;

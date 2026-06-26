@@ -12,7 +12,12 @@ import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon'
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GroupActivityType, type Group} from 'sentry/types/group';
+import {
+  GroupActivityType,
+  type Group,
+  type GroupActivityPullRequestClosed,
+  type GroupActivitySetByResolvedInPullRequest,
+} from 'sentry/types/group';
 import type {
   LinkedPullRequest,
   LinkedPullRequestsResponse,
@@ -32,13 +37,25 @@ import {
 
 const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
 
+const PULL_REQUEST_ACTIVITY_TYPES = new Set([
+  GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+  GroupActivityType.PULL_REQUEST_CLOSED,
+]);
+
 export function getLinkedPullRequestActivityIds(group: Group) {
   return new Set(
     group.activity
       .filter(
-        activity => activity.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST
+        (
+          activity
+        ): activity is
+          | GroupActivityPullRequestClosed
+          | GroupActivitySetByResolvedInPullRequest =>
+          PULL_REQUEST_ACTIVITY_TYPES.has(activity.type)
       )
-      .map(activity => activity.data.pullRequest?.id)
+      .map(activity => {
+        return activity.data.pullRequest?.id;
+      })
       .filter(id => id !== undefined)
   );
 }

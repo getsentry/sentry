@@ -609,6 +609,7 @@ export enum GroupActivityType {
   SEER_PR_CREATED = 'seer_pr_created',
   SEER_ITERATION_STARTED = 'seer_iteration_started',
   SEER_ITERATION_COMPLETED = 'seer_iteration_completed',
+  PULL_REQUEST_CLOSED = 'pull_request_closed',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -778,11 +779,18 @@ interface GroupActivityReferencedInCommit extends GroupActivityBase {
   type: GroupActivityType.REFERENCED_IN_COMMIT;
 }
 
-interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
+export interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   data: {
     pullRequest?: PullRequest;
   };
   type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
+}
+
+export interface GroupActivityPullRequestClosed extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest;
+  };
+  type: GroupActivityType.PULL_REQUEST_CLOSED;
 }
 
 export interface GroupActivitySetIgnored extends GroupActivityBase {
@@ -1024,7 +1032,8 @@ export type GroupActivity =
   | GroupActivitySeerCodingCompleted
   | GroupActivitySeerPrCreated
   | GroupActivitySeerIterationStarted
-  | GroupActivitySeerIterationCompleted;
+  | GroupActivitySeerIterationCompleted
+  | GroupActivityPullRequestClosed;
 
 export type Activity = GroupActivity;
 
