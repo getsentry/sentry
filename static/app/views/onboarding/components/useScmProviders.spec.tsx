@@ -235,6 +235,53 @@ describe('useScmProviders', () => {
     expect(result.current.activeIntegrationExisting!.id).toBe('2');
   });
 
+  it('keeps two integrations of the same provider in their original order', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [
+        OrganizationIntegrationsFixture({
+          id: '2',
+          name: 'acme',
+          provider: {
+            key: 'github',
+            slug: 'github',
+            name: 'GitHub',
+            canAdd: true,
+            canDisable: false,
+            features: ['commits'],
+            aspects: {},
+          },
+        }),
+        OrganizationIntegrationsFixture({
+          id: '1',
+          name: 'getsentry',
+          provider: {
+            key: 'github',
+            slug: 'github',
+            name: 'GitHub',
+            canAdd: true,
+            canDisable: false,
+            features: ['commits'],
+            aspects: {},
+          },
+        }),
+      ],
+    });
+
+    const {result} = renderHookWithProviders(() => useScmProviders(), {organization});
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    // Both are GitHub, so the stable sort leaves them in input order and
+    // activeIntegrationExisting stays the first one.
+    expect(result.current.activeIntegrations.map(i => i.id)).toEqual(['2', '1']);
+    expect(result.current.activeIntegrationExisting!.id).toBe('2');
+  });
+
   it('excludes non-active integrations from activeIntegrationExisting', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/config/integrations/`,
