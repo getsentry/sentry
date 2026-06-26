@@ -27,7 +27,7 @@ class OrganizationMonitoringProviderIndexEndpointTest(APITestCase):
         assert "datadog_pat" in providers
         assert providers["gcp"]["name"] == "Google Cloud Platform"
         assert providers["datadog"]["name"] == "Datadog"
-        assert providers["datadog_pat"]["name"] == "Datadog"
+        assert providers["datadog_pat"]["name"] == "Datadog (Personal Access Token)"
         assert providers["gcp"]["connected"] is False
         assert providers["datadog"]["connected"] is False
         assert providers["datadog_pat"]["connected"] is False
