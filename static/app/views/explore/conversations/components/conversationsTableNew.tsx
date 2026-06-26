@@ -71,8 +71,10 @@ export function ConversationsTableNew() {
       // A double-click reset sends COL_WIDTH_UNDEFINED (-1); drop the persisted
       // width so the column falls back to its default instead of keeping the old
       // value. Any other non-positive width is ignored.
-      setColumns(
-        columns.map((c, i) => {
+      // Use the functional updater so back-to-back resizes compose off the
+      // latest columns rather than a stale closure value.
+      setColumns(prev =>
+        prev.map((c, i) => {
           if (i !== columnIndex) {
             return c;
           }
@@ -86,7 +88,7 @@ export function ConversationsTableNew() {
         })
       );
     },
-    [columns, setColumns]
+    [setColumns]
   );
 
   const showMissingMessagesAlert =
