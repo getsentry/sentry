@@ -284,11 +284,22 @@ def test_min_sample_rate_clamped_to_overall_rate(transactions_rebalancing_model)
 def test_min_sample_rate_inert_when_rates_healthy(transactions_rebalancing_model) -> None:
     """When the natural rates already sit above the floor, enabling it changes nothing."""
     classes = [RebalancedItem(id=f"big{i}", count=1000) for i in range(3)]
-    kwargs = dict(classes=classes, sample_rate=0.5, total_num_classes=20, total=10_000)
 
-    base_rates, base_implicit = _run(transactions_rebalancing_model, **kwargs, min_sample_rate=0.0)
+    base_rates, base_implicit = _run(
+        transactions_rebalancing_model,
+        classes=classes,
+        sample_rate=0.5,
+        total_num_classes=20,
+        total=10_000,
+        min_sample_rate=0.0,
+    )
     floored_rates, floored_implicit = _run(
-        transactions_rebalancing_model, **kwargs, min_sample_rate=1e-6
+        transactions_rebalancing_model,
+        classes=classes,
+        sample_rate=0.5,
+        total_num_classes=20,
+        total=10_000,
+        min_sample_rate=1e-6,
     )
 
     assert {item.id: item.new_sample_rate for item in floored_rates} == {
