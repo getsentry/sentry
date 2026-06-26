@@ -55,6 +55,19 @@ class OrganizationAgentApproveTest(APITestCase):
         assert grant.get_scopes() == ["org:write"]
         assert grant.agent_session_id == "s1"
 
+    def test_reapproving_same_challenge_refreshes_not_duplicates(self) -> None:
+        self.login_as(self.owner)
+        challenge = self._challenge(scopes=["org:write"])
+        assert self._post(challenge).status_code == 200
+        assert self._post(challenge).status_code == 200
+        # Idempotent: one grant row for the (user, org, session, scopes), TTL refreshed.
+        assert (
+            SeerAgentWriteGrant.objects.filter(
+                organization_id=self.org.id, user_id=self.owner.id
+            ).count()
+            == 1
+        )
+
     def test_decline_persists_nothing(self) -> None:
         self.login_as(self.owner)
         resp = self._post(self._challenge(), decision="decline")

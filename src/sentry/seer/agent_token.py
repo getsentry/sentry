@@ -272,8 +272,8 @@ def maybe_challenge(request: Request, required_scopes: Iterable[str]) -> None:
         scopes=grantable,
         session_id=session_id,
     )
-    # Record the ask in logs (not the DB) so the denial path stays free of write side
-    # effects an unauthenticated-ish caller could amplify.
+    # Record the ask in logs, not the DB: the denial path must stay free of write side
+    # effects a caller could amplify by varying the (caller-supplied) session id or endpoint.
     logger.info(
         "seer.agent_token.challenged",
         extra={
@@ -296,12 +296,17 @@ def maybe_challenge(request: Request, required_scopes: Iterable[str]) -> None:
 
 
 def grant_from_challenge_claims(claims: dict[str, Any]) -> SeerAgentWriteGrant:
-    """Persist the approved grant described by a verified challenge token. The scopes come
-    from the signed token, never from caller input, so approval cannot escalate."""
-    return SeerAgentWriteGrant.objects.create(
+    """Persist (or refresh) the approved grant described by a verified challenge token.
+
+    Scopes come from the signed token, never from caller input, so approval cannot escalate.
+    Re-approving the same challenge refreshes the existing grant rather than piling up
+    duplicate rows. The TTL runs from approval time, so the grant lives a full window from
+    when the user consented."""
+    grant, _ = SeerAgentWriteGrant.objects.update_or_create(
         organization_id=int(claims["org"]),
         user_id=int(claims["sub"]),
         agent_session_id=claims["sid"],
         scope_list=sorted(claims.get("scopes", [])),
-        expires_at=timezone.now() + DEFAULT_EXPIRATION,
+        defaults={"expires_at": timezone.now() + DEFAULT_EXPIRATION},
     )
+    return grant
