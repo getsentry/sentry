@@ -635,8 +635,9 @@ def handle_check_suite(
     """Record the aggregate CI outcome from a completed check_suite event.
 
     Only ``completed`` carries a conclusion; ``requested``/``rerequested`` are
-    ignored. The suite's ``pull_requests`` array lists the same-repo PRs the run
-    pertains to (empty for fork PRs) — one activity row is written per PR.
+    ignored. One activity row is written per referenced PR that belongs to this
+    repo (``pull_requests`` can also carry other repos' PRs — see
+    ``_prs_from_check_payload``).
     """
     if event.get("action") != "completed":
         return
@@ -678,7 +679,8 @@ def handle_check_run(
     """Record an individual CI check outcome from a completed check_run event.
 
     Per-check granularity beneath ``check_suite``; only ``completed`` carries a
-    conclusion. ``check_run.pull_requests`` resolves the affected same-repo PRs.
+    conclusion. ``check_run.pull_requests`` is resolved like ``check_suite`` —
+    entries from other repos are filtered in ``_prs_from_check_payload``.
     """
     if event.get("action") != "completed":
         return
@@ -716,15 +718,32 @@ def _prs_from_check_payload(
 ) -> list[PullRequest]:
     """Resolve the tracked PRs a check_suite/check_run payload references.
 
-    Both events carry a ``pull_requests`` array of same-repo PR refs (empty for
-    fork PRs, and a suite can span more than one PR). Numbers are deduped before
-    resolving each to its stored row; unknown PRs are dropped by ``_get_pull_request``.
+    GitHub lists a PR on a check when they share ``head_sha`` + ``head_branch``,
+    so ``pull_requests`` can include PRs that live in *other* repositories. The
+    common case: a PR opened to merge this repo's default branch into another
+    repo (e.g. a fork syncing from upstream) has its head in this repo, so it
+    matches every default-branch check here — but the PR belongs to that other
+    repo and its ``number`` is scoped to it. Each entry carries its own
+    ``base.repo``, so an entry is only ours to resolve when its base repo is the
+    one this webhook is for. Resolving a foreign entry's number against ``repo``
+    would miss, or — on a number collision — attribute another repo's PR activity
+    to ours, so it is skipped.
+
+    Numbers are deduped before resolving each to its stored row; unknown PRs are
+    dropped by ``_get_pull_request``.
     """
     seen: set[str] = set()
     prs: list[PullRequest] = []
     for ref in container.get("pull_requests") or ():
         number = ref.get("number")
         if number is None or str(number) in seen:
+            continue
+        # A PR's number is scoped to its own base repo; resolve it against
+        # ``repo`` only when the PR lives here. Entries whose base is another repo
+        # (a PR merging this repo's branch elsewhere) are not ours to record.
+        base_repo_id = ((ref.get("base") or {}).get("repo") or {}).get("id")
+        if base_repo_id is None or str(base_repo_id) != repo.external_id:
+            metrics.incr("pr_metrics.check.foreign_pull_request")
             continue
         seen.add(str(number))
         pr = _get_pull_request(organization, repo, {"number": number}, webhook_id)
