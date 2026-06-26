@@ -96,9 +96,9 @@ function parseQueuedFeedback(
   }
 }
 
-function parseFeedback(
-  raw: string
-): DistributiveOmit<IterationFeedback, 'iterationIndex'> | null {
+type FeedbackVariant = DistributiveOmit<IterationFeedback, 'iterationIndex'>;
+
+function parseFeedback(raw: string): FeedbackVariant[] {
   type ParsedFeedback = {
     text: string;
     source?: {
@@ -109,24 +109,28 @@ function parseFeedback(
     timestamp?: string;
   };
   const rawParsed: ParsedFeedback | ParsedFeedback[] = JSON.parse(raw);
-  const parsed: ParsedFeedback = Array.isArray(rawParsed) ? rawParsed[0] : rawParsed;
-  if (!parsed) {
-    return null;
-  }
-  const base = {text: parsed.text, timestamp: parsed.timestamp};
-  switch (parsed.source?.type) {
-    case 'user-ui':
-      return {...base, sourceType: 'user-ui', user: parsed.source?.user};
-    case 'github-pr-comment':
-      return {
-        ...base,
-        sourceType: 'github-pr-comment',
-        githubUsername: parsed.source?.comment?.user?.login,
-        commentUrl: parsed.source?.comment?.html_url,
-      };
-    default:
-      return null;
-  }
+  const items = Array.isArray(rawParsed) ? rawParsed : [rawParsed];
+  return items.flatMap((parsed): FeedbackVariant[] => {
+    if (!parsed) {
+      return [];
+    }
+    const base = {text: parsed.text, timestamp: parsed.timestamp};
+    switch (parsed.source?.type) {
+      case 'user-ui':
+        return [{...base, sourceType: 'user-ui', user: parsed.source?.user}];
+      case 'github-pr-comment':
+        return [
+          {
+            ...base,
+            sourceType: 'github-pr-comment',
+            githubUsername: parsed.source?.comment?.user?.login,
+            commentUrl: parsed.source?.comment?.html_url,
+          },
+        ];
+      default:
+        return [];
+    }
+  });
 }
 
 /**
@@ -170,11 +174,10 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       if (!value || iterationIndex === undefined) {
         return [];
       }
-      const parsed = parseFeedback(value);
-      if (!parsed) {
-        return [];
-      }
-      return [{...parsed, iterationIndex: Number(iterationIndex)}];
+      return parseFeedback(value).map(parsed => ({
+        ...parsed,
+        iterationIndex: Number(iterationIndex),
+      }));
     });
     const maxIndex = processed.reduce((m, f) => Math.max(m, f.iterationIndex), -1);
     const queued = (autofix.runState?.queued_feedback ?? []).flatMap((item, i) => {
@@ -289,8 +292,8 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       {feedback.length > 0 && (
         <ArtifactDetails>
           <Text bold>{t('Feedback')}</Text>
-          {feedback.map(item => (
-            <FeedbackItem key={item.iterationIndex} item={item} />
+          {feedback.map((item, index) => (
+            <FeedbackItem key={index} item={item} />
           ))}
         </ArtifactDetails>
       )}
