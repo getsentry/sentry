@@ -99,8 +99,7 @@ function parseQueuedFeedback(
 function parseFeedback(
   raw: string
 ): DistributiveOmit<IterationFeedback, 'iterationIndex'> | null {
-  const rawParsed = JSON.parse(raw);
-  const parsed: {
+  type ParsedFeedback = {
     text: string;
     source?: {
       type: string;
@@ -108,7 +107,9 @@ function parseFeedback(
       user?: User;
     };
     timestamp?: string;
-  } = Array.isArray(rawParsed) ? rawParsed[0] : rawParsed;
+  };
+  const rawParsed: ParsedFeedback | ParsedFeedback[] = JSON.parse(raw);
+  const parsed: ParsedFeedback = Array.isArray(rawParsed) ? rawParsed[0] : rawParsed;
   if (!parsed) {
     return null;
   }
