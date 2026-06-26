@@ -51,7 +51,7 @@ export function ScmAlertFrequencySection({
   const footer = (
     <Flex gap="sm" align="center">
       <IconInfo size="md" variant="secondary" />
-      <Text variant="secondary" size="md" density="comfortable">
+      <Text variant="secondary" size="md" density="comfortable" ellipsis>
         {t('You can always change alerts after project creation')}
       </Text>
     </Flex>
