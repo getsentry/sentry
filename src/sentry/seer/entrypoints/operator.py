@@ -514,9 +514,8 @@ class SeerAgentOperator[CachePayloadT]:
                 )
 
                 if existing_runs:
-                    run_id = existing_runs[0].run_id
-                    client.continue_run(
-                        run_id=run_id,
+                    run_id = client.continue_run(
+                        run_id=existing_runs[0].run_id,
                         prompt=prompt,
                         on_page_context=on_page_context,
                     )

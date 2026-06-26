@@ -621,7 +621,7 @@ class SeerAgentClient:
         artifact_schema: type[BaseModel] | None = None,
         ui_tools: str | None = None,
         request: Request | None = None,
-    ) -> SeerRun | None:
+    ) -> int:
         """
         Continue an existing Seer Agent session. This allows you to add follow-up queries to an ongoing conversation.
 
@@ -634,8 +634,7 @@ class SeerAgentClient:
             artifact_schema: Optional Pydantic model for the new artifact (required if artifact_key is provided)
 
         Returns:
-            SeerRun | None: The run's mirror row (keyed by the input run_id), or
-            None when no mirror row exists for it.
+            int: The run ID (same as input)
 
         Raises:
             SeerApiError: If the Seer API request fails
@@ -725,12 +724,11 @@ class SeerAgentClient:
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
+        result = response.json()
 
-        seer_run = SeerRun.objects.filter(seer_run_state_id=run_id).first()
-        if seer_run is not None:
-            seer_run.update(last_triggered_at=now())
+        SeerRun.objects.filter(seer_run_state_id=run_id).update(last_triggered_at=now())
 
-        return seer_run
+        return result["run_id"]
 
     def get_run(
         self,

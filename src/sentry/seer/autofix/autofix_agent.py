@@ -502,7 +502,10 @@ def trigger_autofix_agent(
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
-    run: SeerRun | None
+    # start_run returns the mirror row directly, so we can read its uuid without
+    # a requery. continue_run only returns the run id, so the else branch leaves
+    # `run` None and we look the mirror up below (it may not exist).
+    run: SeerRun | None = None
     if run_id is None:
         metadata: dict[str, Any] = {
             "group_id": group.id,
@@ -524,7 +527,7 @@ def trigger_autofix_agent(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )
     else:
-        run = client.continue_run(
+        client.continue_run(
             run_id=run_id,
             prompt=prompt,
             prompt_metadata=prompt_metadata,
@@ -532,6 +535,12 @@ def trigger_autofix_agent(
             artifact_schema=artifact_schema,
             insert_index=insert_index,
         )
+
+    if run is None:
+        run = SeerRun.objects.filter(
+            organization_id=group.organization.id,
+            seer_run_state_id=run_id,
+        ).first()
 
     # Emit the started event after run_id is resolved so it can be joined to
     # downstream completed/PR events.

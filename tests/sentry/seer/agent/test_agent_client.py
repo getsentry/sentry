@@ -365,12 +365,11 @@ class TestSeerAgentClient(TestCase):
         """Test continuing an existing run"""
         mock_access.return_value = (True, None)
         mock_post.return_value = self._mock_run_response(run_id=456)
-        run = self.create_seer_run(seer_run_state_id=456)
 
         client = SeerAgentClient(self.organization, self.user)
-        result = client.continue_run(456, "Follow up query")
+        run_id = client.continue_run(456, "Follow up query")
 
-        assert result == run
+        assert run_id == 456
         assert mock_post.called
         body = mock_post.call_args[0][0]
         assert "enable_frontend_code_search" not in body["agent_run_options"]
@@ -381,15 +380,14 @@ class TestSeerAgentClient(TestCase):
         """Test continuing a run with all optional parameters"""
         mock_access.return_value = (True, None)
         mock_post.return_value = self._mock_run_response(run_id=789)
-        run = self.create_seer_run(seer_run_state_id=789)
 
         client = SeerAgentClient(self.organization, self.user)
         with self.feature("organizations:seer-agent-source-code-search"):
-            result = client.continue_run(
+            run_id = client.continue_run(
                 789, "Follow up", insert_index=2, on_page_context="context"
             )
 
-        assert result == run
+        assert run_id == 789
         body = mock_post.call_args[0][0]
         assert body["agent_run_options"]["enable_frontend_code_search"] is True
 
@@ -588,13 +586,12 @@ class TestSeerAgentClientArtifacts(TestCase):
             description: str
             steps: list[str]
 
-        run = self.create_seer_run(seer_run_state_id=123)
         client = SeerAgentClient(self.organization, self.user)
-        result = client.continue_run(
+        run_id = client.continue_run(
             123, "Propose a fix", artifact_key="solution", artifact_schema=Solution
         )
 
-        assert result == run
+        assert run_id == 123
 
         body = mock_post.call_args[0][0]
         assert body["artifact_key"] == "solution"
