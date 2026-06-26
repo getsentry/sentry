@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
@@ -175,27 +174,28 @@ function Graph({
   const plottables = useChartVisualizationPlottables(chartInfo);
 
   const Title = (
-    <Flex align="center" gap="xs">
-      <Widget.WidgetTitle
-        summary={
-          !visualize.visible && plottablesCanBeVisualized(plottables) ? (
-            <TimeSeriesWidgetVisualization
-              plottables={plottables}
-              notMerge={false}
-              showLegend="never"
-              showXAxis="never"
-              showYAxis="never"
-            />
-          ) : null
-        }
-        title={prettifyAggregation(aggregate) ?? aggregate}
-      />
-      <SamplingWarning
-        yAxis={aggregate}
-        series={chartInfo.series}
-        dataScanned={chartInfo.dataScanned}
-      />
-    </Flex>
+    <Widget.WidgetTitle
+      summary={
+        !visualize.visible && plottablesCanBeVisualized(plottables) ? (
+          <TimeSeriesWidgetVisualization
+            plottables={plottables}
+            notMerge={false}
+            showLegend="never"
+            showXAxis="never"
+            showYAxis="never"
+          />
+        ) : null
+      }
+      title={prettifyAggregation(aggregate) ?? aggregate}
+    />
+  );
+
+  const TitleBadges = (
+    <SamplingWarning
+      yAxis={aggregate}
+      series={chartInfo.series}
+      dataScanned={chartInfo.dataScanned}
+    />
   );
 
   const chartIcon =
@@ -263,6 +263,7 @@ function Graph({
   return (
     <Widget
       Title={Title}
+      TitleBadges={TitleBadges}
       Actions={Actions}
       Visualization={
         visualize.visible && (

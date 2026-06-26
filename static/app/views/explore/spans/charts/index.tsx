@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -214,27 +213,28 @@ function Chart({
   const plottables = useChartVisualizationPlottables(chartInfo);
 
   const Title = (
-    <Flex align="center" gap="xs">
-      <Widget.WidgetTitle
-        summary={
-          !visualize.visible && plottablesCanBeVisualized(plottables) ? (
-            <TimeSeriesWidgetVisualization
-              plottables={plottables}
-              notMerge={false}
-              showLegend="never"
-              showXAxis="never"
-              showYAxis="never"
-            />
-          ) : null
-        }
-        title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
-      />
-      <SamplingWarning
-        yAxis={visualize.yAxis}
-        series={chartInfo.series}
-        dataScanned={chartInfo.dataScanned}
-      />
-    </Flex>
+    <Widget.WidgetTitle
+      summary={
+        !visualize.visible && plottablesCanBeVisualized(plottables) ? (
+          <TimeSeriesWidgetVisualization
+            plottables={plottables}
+            notMerge={false}
+            showLegend="never"
+            showXAxis="never"
+            showYAxis="never"
+          />
+        ) : null
+      }
+      title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
+    />
+  );
+
+  const TitleBadges = (
+    <SamplingWarning
+      yAxis={visualize.yAxis}
+      series={chartInfo.series}
+      dataScanned={chartInfo.dataScanned}
+    />
   );
 
   const Actions = visualize.visible ? (
@@ -303,6 +303,7 @@ function Chart({
     <ChartWrapper ref={chartWrapperRef}>
       <Widget
         Title={Title}
+        TitleBadges={TitleBadges}
         Actions={Actions}
         Visualization={
           visualize.visible && (
