@@ -18,6 +18,7 @@ from arroyo.backends.kafka import KafkaProducer
 from django.conf import settings
 from django.core.cache.backends.base import BaseCache
 from sentry_sdk import capture_exception
+from taskbroker_client.metrics import DatadogMetrics, MetricsBackend, NoOpMetricsBackend
 from taskbroker_client.router import TaskRouter as LibraryRouter
 from taskbroker_client.types import AtMostOnceStore
 
@@ -159,3 +160,41 @@ def make_producer(topic: str) -> SingletonProducer:
             factory, max_futures=options.get("taskworker.producer.max_futures")
         )
     return _producer_local.producers[topic]
+
+
+def _extract_metrics_config() -> tuple[str | None, int | None]:
+    host, port = None, None
+    metric_options = settings.SENTRY_METRICS_OPTIONS
+    try:
+        if settings.SENTRY_METRICS_BACKEND == "sentry.metrics.dummy.DummyMetricsBackend":
+            return host, port
+
+        # For non-dummy implementations
+        # Use the metrics settings options to infer the host/port.
+        # The metrics options have different structures depending on which backend is used.
+        if settings.SENTRY_METRICS_BACKEND == "sentry.metrics.dualwrite.DualWriteMetricsBackend":
+            metric_options = settings.SENTRY_METRICS_OPTIONS["primary_backend_args"]
+
+        # statsd backend uses `host` while datadog use `statsd_host`
+        host = metric_options.get("statsd_host", None) or metric_options.get("host", None)
+        raw_port = metric_options.get("statsd_port", None) or metric_options.get("port", None)
+        if isinstance(raw_port, (str, int)):
+            port = int(raw_port)
+    except Exception as e:
+        logger.warning("Could not extract metrics settings", extra={"error": str(e)})
+    return host, port
+
+
+def make_metrics() -> MetricsBackend:
+    host, port = _extract_metrics_config()
+    if host and port:
+        # Metrics created by this interface will not
+        # have `sentry.` prefix, and will not have
+        # K8S_LABEL applied.
+        return DatadogMetrics(
+            application="sentry",
+            statsd_host=host,
+            statsd_port=port,
+            sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE,
+        )
+    return NoOpMetricsBackend()
