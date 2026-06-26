@@ -417,15 +417,17 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         )
 
         if "environment" in data:
+            env_name = data["environment"]
+        else:
+            env_name = instance.config.get("environment")
+
+        if env_name is not None:
             environment = Environment.get_or_create(
                 project=self.context["project"],
-                name=data["environment"],
+                name=env_name,
             )
         else:
-            environment = Environment.objects.get(
-                projects=self.context["project"],
-                name=instance.config["environment"],
-            )
+            environment = None
 
         if "mode" in data:
             raise serializers.ValidationError("Mode can only be specified on creation (for now)")
