@@ -206,7 +206,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   );
 
   const feedback = useMemo(
-    () => [...blockFeedback, ...queuedFeedback],
+    () => [...blockFeedback, ...queuedFeedback].reverse(),
     [blockFeedback, queuedFeedback]
   );
 

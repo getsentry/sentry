@@ -763,6 +763,43 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('Add a test for this')).toBeInTheDocument();
     });
 
+    it('renders the latest feedback at the top of the list', () => {
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'newest queued', source: {type: 'user-ui'}}],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [
+              makePrIterationBlock(0, {text: 'first pass'}),
+              makePrIterationBlock(1, {text: 'second pass'}),
+            ]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      const items = screen.getAllByText(/first pass|second pass|newest queued/);
+      expect(items.map(item => item.textContent)).toEqual([
+        'newest queued',
+        'second pass',
+        'first pass',
+      ]);
+    });
+
     it('shows the iterating loader without replaying the previous step when feedback is queued', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
