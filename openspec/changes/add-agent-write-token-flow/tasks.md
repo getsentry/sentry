@@ -61,11 +61,11 @@ Supersedes the create-`pending`-grant-on-deny behavior in §5/§6 (which writes 
 from the denial path — a client-driven write-amplification surface and an impure
 permission check). The grant model and mint-time folding (§5.1 fields, §5.3 lookup) stay.
 
-- [ ] 9.1 Add a signed **challenge token**: encode/verify a JWT with audience `sentry-agent-approval` carrying `sub`/`org`/`scopes`/`sid`/`exp` (reuse `agent_token` JWT helpers).
-- [ ] 9.2 Change `maybe_challenge` to mint + return the challenge token in the structured `403` and **stop writing a grant row**; log the denied ask instead. Drop `_find_or_create_pending_grant`, `nonce`, and the `pending`/`declined` statuses from the model + migration.
-- [ ] 9.3 Rework the approval endpoint to `POST /api/0/organizations/{org}/agent/approve/` taking `{challenge, decision}`: verify signature/aud/exp; require first-party session; enforce `session_user == sub` and URL org == token `org`; on approve create the grant in `approved` state with the token's scopes; decline persists nothing. Remove the `nonce` route + GET-details handler.
-- [ ] 9.4 Update tests: deny writes nothing (assert no row); forged/expired/cross-user/cross-org challenge rejected; approve creates the approved grant; re-mint folds it in; end-to-end read→challenge→approve→write.
-- [ ] 9.5 Seer-side delta: send the `challenge` token back to the approval endpoint (instead of a `nonce`); surface the challenge details from the `403` body. Update `tests/experimental/mcp/test_agent_token.py` accordingly.
+- [x] 9.1 Add a signed **challenge token**: encode/verify a JWT with audience `sentry-agent-approval` carrying `sub`/`org`/`scopes`/`sid`/`exp` (reuse `agent_token` JWT helpers).
+- [x] 9.2 Change `maybe_challenge` to mint + return the challenge token in the structured `403` and **stop writing a grant row**; log the denied ask instead. Drop `_find_or_create_pending_grant`, `nonce`, and the `pending`/`declined` statuses from the model + migration.
+- [x] 9.3 Rework the approval endpoint to `POST /api/0/organizations/{org}/agent/approve/` taking `{challenge, decision}`: verify signature/aud/exp; require first-party session; enforce `session_user == sub` and URL org == token `org`; on approve create the grant in `approved` state with the token's scopes; decline persists nothing. Remove the `nonce` route + GET-details handler.
+- [x] 9.4 Update tests: deny writes nothing (assert no row); forged/expired/cross-user/cross-org challenge rejected; approve creates the approved grant; re-mint folds it in; end-to-end read→challenge→approve→write.
+- [x] 9.5 Seer-side delta: send the `challenge` token back to the approval endpoint (instead of a `nonce`); surface the challenge details from the `403` body. Update `tests/experimental/mcp/test_agent_token.py` accordingly.
 
 ## 10. Deferred (post-prototype)
 
