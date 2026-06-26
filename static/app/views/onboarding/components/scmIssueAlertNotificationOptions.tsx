@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {t} from 'sentry/locale';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {
@@ -45,31 +45,36 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
       <Text size="sm" bold variant="secondary" uppercase>
         {t('Notify via')}
       </Text>
-      <MultipleCheckbox
-        name="notification"
-        value={actions}
-        onChange={values => setActions(values)}
-      >
-        <Stack gap="md" width="100%">
-          <CheckboxStack>
-            <MultipleCheckbox.Item value={MultipleCheckboxOptions.EMAIL} disabled>
-              {t('Email')}
-            </MultipleCheckbox.Item>
-            {shouldRenderSetupButton ? null : (
-              <MultipleCheckbox.Item value={MultipleCheckboxOptions.INTEGRATION}>
-                {t('Integration (Slack, Discord, MS Teams, etc.)')}
-              </MultipleCheckbox.Item>
-            )}
-          </CheckboxStack>
-          <ScmCollapsibleReveal
-            open={!shouldRenderSetupButton && shouldRenderNotificationConfigs}
-          >
-            <IndentedRule>
-              <ScmMessagingIntegrationAlertRule {...props} />
-            </IndentedRule>
-          </ScmCollapsibleReveal>
+      <Stack gap="md" width="100%">
+        <Stack gap="md">
+          <Flex as="label" align="start" gap="md">
+            <Checkbox checked disabled readOnly />
+            <Text>{t('Email')}</Text>
+          </Flex>
+          {shouldRenderSetupButton ? null : (
+            <Flex as="label" align="start" gap="md">
+              <Checkbox
+                checked={actions.includes(MultipleCheckboxOptions.INTEGRATION)}
+                onChange={e =>
+                  setActions(
+                    e.target.checked
+                      ? [...actions, MultipleCheckboxOptions.INTEGRATION]
+                      : actions.filter(a => a !== MultipleCheckboxOptions.INTEGRATION)
+                  )
+                }
+              />
+              <Text>{t('Integration (Slack, Discord, MS Teams, etc.)')}</Text>
+            </Flex>
+          )}
         </Stack>
-      </MultipleCheckbox>
+        <ScmCollapsibleReveal
+          open={!shouldRenderSetupButton && shouldRenderNotificationConfigs}
+        >
+          <IndentedRule>
+            <ScmMessagingIntegrationAlertRule {...props} />
+          </IndentedRule>
+        </ScmCollapsibleReveal>
+      </Stack>
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
           analyticsView={MessagingIntegrationAnalyticsView.PROJECT_CREATION}
@@ -79,33 +84,9 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
   );
 }
 
-// MultipleCheckbox.Item wraps each label in a container that is only a fraction
-// of the row (down to 25% on wide screens), and the label itself is 20% with
-// nowrap text. Both are tuned for the classic side-by-side row layout, but here
-// they truncate the long integration label even when there is room. Widen the
-// container and label to fill the row so the text only ellipsis-truncates when
-// it genuinely overflows (narrow screens).
-const CheckboxStack = styled(Stack)`
-  > div {
-    width: 100%;
-  }
-  label {
-    width: 100%;
-    min-width: 0;
-    /* The label's default right margin is for the side-by-side row layout; with
-       a full-width label it would push 10px past the container. */
-    margin-right: 0;
-  }
-  label > span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-`;
-
 // Indents the rule so its left edge lines up with the checkbox label text
-// rather than the checkbox itself: the sm Checkbox box (16px) plus the label's
-// left margin (space.md).
+// rather than the checkbox itself: the sm Checkbox box (16px) plus the label
+// row's gap (space.md).
 const IndentedRule = styled('div')`
   padding-left: calc(16px + ${p => p.theme.space.md});
 `;
