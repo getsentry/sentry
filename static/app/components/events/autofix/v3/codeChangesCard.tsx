@@ -236,7 +236,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
 
   const isResetEligible = prIterationEnabled
-    ? noCodingAgents
+    ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
     : noCodingAgents && !hasPRs && autofix.runState?.status !== 'processing';
 
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =

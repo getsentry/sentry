@@ -1056,6 +1056,58 @@ describe('ArtifactCard', () => {
       expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
     });
 
+    it('disables reset with the feature flag while processing before any PR exists', () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'processing',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
+    });
+
+    it('keeps reset enabled with the feature flag while processing once a PR exists', () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'processing',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
+    });
+
     it('disables reset without the feature flag when PRs exist', () => {
       const autofix: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
