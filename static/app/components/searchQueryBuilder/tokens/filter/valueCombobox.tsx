@@ -49,10 +49,8 @@ import {
 import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
 import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
 import {shouldUseDefaultNumericSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/numeric';
-import {
-  isSeverityFilterKey,
-  SeverityValueIndicator,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity';
+import {SeverityValueIndicator} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/severityValueIndicator';
+import {isSeverityFilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/utils';
 import type {
   SuggestionItem,
   SuggestionSection,
