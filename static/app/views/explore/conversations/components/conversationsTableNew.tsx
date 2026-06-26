@@ -50,31 +50,32 @@ export function ConversationsTableNew() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const {openModal} = useModal();
-  const {columns: columnKeys, setColumns} = useConversationsTableColumns();
+  const {columns, setColumns} = useConversationsTableColumns();
   const {data, isLoading, error, pageLinks, setCursor} = useConversations();
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
 
-  // Session-only resized widths, keyed by column so they stick to the column
-  // through add/remove/reorder (not persisted; reset on refresh).
-  const [columnWidths, setColumnWidths] = useState<
-    Partial<Record<ConversationColumnKey, number>>
-  >({});
-
   const columnOrder = useMemo<Array<GridColumnOrder<ConversationColumnKey>>>(
     () =>
-      columnKeys.map(key => ({
+      columns.map(({key, width}) => ({
         key,
         name: CONVERSATION_COLUMNS[key].name,
-        width: columnWidths[key] ?? CONVERSATION_COLUMNS[key].width,
+        width: width ?? CONVERSATION_COLUMNS[key].width,
       })),
-    [columnKeys, columnWidths]
+    [columns]
   );
 
   const handleResizeColumn = useCallback(
-    (_columnIndex: number, nextColumn: GridColumnOrder<ConversationColumnKey>) => {
-      setColumnWidths(prev => ({...prev, [nextColumn.key]: nextColumn.width}));
+    (columnIndex: number, nextColumn: GridColumnOrder<ConversationColumnKey>) => {
+      const {width} = nextColumn;
+      if (typeof width === 'number' && width > 0) {
+        setColumns(
+          columns.map((c, i) =>
+            i === columnIndex ? {...c, width: Math.round(width)} : c
+          )
+        );
+      }
     },
-    []
+    [columns, setColumns]
   );
 
   const showMissingMessagesAlert =
@@ -96,7 +97,7 @@ export function ConversationsTableNew() {
       modalProps => (
         <ConversationsTableEditModal
           {...modalProps}
-          columns={columnKeys}
+          columns={columns}
           onColumnsChange={setColumns}
         />
       ),
