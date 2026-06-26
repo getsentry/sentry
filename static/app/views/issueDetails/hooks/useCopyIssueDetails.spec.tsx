@@ -427,7 +427,9 @@ describe('useCopyIssueDetails', () => {
           evidenceData: {
             transactionName: 'app.start',
           },
-          evidenceDisplay: [{name: 'File Path', value: '/data/cache.db', important: false}],
+          evidenceDisplay: [
+            {name: 'File Path', value: '/data/cache.db', important: false},
+          ],
         },
       });
 

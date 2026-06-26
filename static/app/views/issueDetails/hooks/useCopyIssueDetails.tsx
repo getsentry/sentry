@@ -194,7 +194,10 @@ function formatSpanEvidenceToMarkdown(event: Event): string {
     item => item?.name === 'Transaction Name'
   );
 
-  if ((eventTransaction.perfProblem || isTransactionBased(occurrenceType)) && event.title) {
+  if (
+    (eventTransaction.perfProblem || isTransactionBased(occurrenceType)) &&
+    event.title
+  ) {
     lines.push(`**Transaction:** ${event.title}`);
   } else if (
     typeof evidenceData.transactionName === 'string' &&
