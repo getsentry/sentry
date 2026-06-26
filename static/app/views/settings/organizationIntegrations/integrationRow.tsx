@@ -9,7 +9,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {
   IntegrationInstallationStatus,
   SentryApp,
@@ -38,6 +38,7 @@ type Props = {
   alertText?: string;
   customAlert?: React.ReactNode;
   customIcon?: React.ReactNode;
+  disabledConfigurations?: number;
   /**
    * If `alertText` was provided, this text overrides the "Resolve now" message
    * in the alert.
@@ -66,6 +67,7 @@ export function IntegrationRow(props: Props) {
     resolveText,
     customAlert,
     customIcon,
+    disabledConfigurations,
   } = props;
 
   const baseUrl =
@@ -77,12 +79,21 @@ export function IntegrationRow(props: Props) {
     if (type === 'sentryApp') {
       return publishStatus !== 'published' && <PublishStatus status={publishStatus} />;
     }
-    // TODO: Use proper translations
-    return configurations > 0 ? (
-      <StyledLink to={`${baseUrl}?tab=configurations`}>{`${configurations} Configuration${
-        configurations > 1 ? 's' : ''
-      }`}</StyledLink>
-    ) : null;
+    if (configurations <= 0) {
+      return null;
+    }
+    return (
+      <Flex align="center" gap="xs">
+        <StyledLink to={`${baseUrl}?tab=configurations`}>
+          {tn('%s Configuration', '%s Configurations', configurations)}
+        </StyledLink>
+        {disabledConfigurations ? (
+          <Tag variant="warning">
+            {tn('%s disabled', '%s disabled', disabledConfigurations)}
+          </Tag>
+        ) : null}
+      </Flex>
+    );
   };
 
   const renderStatus = () => {
