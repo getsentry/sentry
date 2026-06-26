@@ -2258,7 +2258,7 @@ class CollisionTests(ImportTestCase):
                 with assume_test_silo_mode(SiloMode.CONTROL):
                     colliding_owner.save()
 
-                org = self.create_organization("other-org", owner=owner)
+                org = self.create_organization("other-org", owner=colliding_owner)
 
                 import_in_organization_scope(
                     tmp_file,
