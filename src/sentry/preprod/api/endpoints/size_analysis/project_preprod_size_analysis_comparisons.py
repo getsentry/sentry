@@ -108,7 +108,12 @@ class ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint(PreprodArtifactEndpo
         # project_id is also enforced via filtered_builds_queryset above; this keeps the
         # project boundary on the returned bases explicit at the data layer.
         queryset = (
-            PreprodArtifact.objects.filter(
+            # annotate_download_count lives on the custom PreprodArtifactQuerySet, so call it
+            # on get_queryset() before filtering. Mirrors the builds list: the transform reads
+            # this annotation, else it runs a per-row aggregate query for installable builds.
+            PreprodArtifact.objects.get_queryset()
+            .annotate_download_count()
+            .filter(
                 id__in=matching_base_ids,
                 project_id=project.id,
             )

@@ -288,6 +288,23 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
         # boundary and reappeared here; this assertion is what proves the fix.
         assert ids2 == [str(base_old.id)]
 
+    def test_download_count_for_installable_base(self) -> None:
+        # download_count for an installable base is read from the annotate_download_count
+        # annotation (parity with the builds list), not a per-row aggregate query.
+        base, base_metric = self._make_base("2.0.0", 2)
+        base.installable_app_file_id = 12345
+        base.save()
+        self.create_preprod_artifact_mobile_app_info(preprod_artifact=base, build_number=2)
+        self.create_installable_preprod_artifact(base, download_count=5)
+        self.create_installable_preprod_artifact(base, download_count=10)
+        self._compare(self.head_metric, base_metric, file_id=1)
+
+        response = self.get_success_response(self.organization.slug, self.head_artifact.id)
+        assert len(response.data) == 1
+        distribution_info = response.data[0]["base_build_details"]["distribution_info"]
+        assert distribution_info["download_count"] == 15
+        assert distribution_info["is_installable"] is True
+
     def test_filters_by_search_query(self) -> None:
         base_match, metric_match = self._make_base("9.9.9", 99)
         base_other, metric_other = self._make_base("1.0.0", 1)
