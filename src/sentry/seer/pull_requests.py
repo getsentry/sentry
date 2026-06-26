@@ -35,7 +35,7 @@ def link_seer_run_pull_requests(
     seer_run = get_seer_run(seer_run_state_id, organization)
     if seer_run is None:
         logger.info(
-            "seer.pull_request_link.run_not_found",
+            "seer.pr_link.run_not_found",
             extra={"organization_id": organization.id, "seer_run_state_id": seer_run_state_id},
         )
         return
@@ -55,7 +55,7 @@ def link_seer_run_pull_requests(
         }
 
         if not repo_name or pr_number is None:
-            logger.warning("seer.pull_request_link.missing_fields", extra=log_context)
+            logger.warning("seer.pr_link.missing_fields", extra=log_context)
             continue
 
         try:
@@ -66,11 +66,11 @@ def link_seer_run_pull_requests(
                 key=pr_number,
             )
         except Exception:
-            logger.exception("seer.pull_request_link.resolve_failed", extra=log_context)
+            logger.exception("seer.pr_link.resolve_failed", extra=log_context)
             continue
 
         if resolved.pull_request is None:
-            logger.warning("seer.pull_request_link.repo_unresolved", extra=log_context)
+            logger.warning("seer.pr_link.repo_unresolved", extra=log_context)
             continue
 
         try:
@@ -80,13 +80,13 @@ def link_seer_run_pull_requests(
             )
         except Exception:
             logger.exception(
-                "seer.pull_request_link.write_failed",
+                "seer.pr_link.write_failed",
                 extra={**log_context, "pull_request_id": resolved.pull_request.id},
             )
             continue
 
         if created:
             logger.info(
-                "seer.pull_request_link.created",
+                "seer.pr_link.created",
                 extra={**log_context, "pull_request_id": resolved.pull_request.id},
             )

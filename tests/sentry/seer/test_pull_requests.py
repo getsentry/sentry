@@ -86,7 +86,7 @@ class LinkSeerRunPullRequestsTest(TestCase):
         self._link([{"provider": "github", "pull_request": {"pr_number": None}}])
 
         assert not SeerRunPullRequest.objects.exists()
-        assert "seer.pull_request_link.missing_fields" in _warning_events(mock_logger)
+        assert "seer.pr_link.missing_fields" in _warning_events(mock_logger)
 
     @patch("sentry.seer.pull_requests.logger")
     def test_unresolvable_repo_skipped(self, mock_logger: Mock) -> None:
@@ -101,7 +101,7 @@ class LinkSeerRunPullRequestsTest(TestCase):
         )
 
         assert not SeerRunPullRequest.objects.exists()
-        assert "seer.pull_request_link.repo_unresolved" in _warning_events(mock_logger)
+        assert "seer.pr_link.repo_unresolved" in _warning_events(mock_logger)
 
     @patch("sentry.seer.pull_requests.options.get", return_value=True)
     def test_killswitch_disables_writes(self, mock_option: Mock) -> None:
