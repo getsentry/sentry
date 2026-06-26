@@ -30,7 +30,7 @@ import {
   AssigneePill,
   PullRequestChip,
   SeerPullRequestChip,
-} from './badges';
+} from './chips';
 
 export interface CompactGroupActivityItem {
   title: React.ReactNode;

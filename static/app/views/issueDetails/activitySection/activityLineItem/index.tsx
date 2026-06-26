@@ -1,3 +1,4 @@
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -46,8 +47,10 @@ export function ActivityLineItem({
     teams
   );
 
+  const Row = inputVariant === 'compact' ? CompactActivityLineRow : ActivityLineRow;
+
   return (
-    <ActivityLineRow $isCompactLayout={inputVariant === 'compact'}>
+    <Row>
       <ActivityLineMarker item={item} />
       <ActivityLineActor item={item} />
       <Flex
@@ -101,17 +104,16 @@ export function ActivityLineItem({
           <ActivityLineSubtext>{compactItem.subtext}</ActivityLineSubtext>
         ) : null}
       </ActivityLineContent>
-    </ActivityLineRow>
+    </Row>
   );
 }
 
-const ActivityLineRow = styled('div')<{$isCompactLayout: boolean}>`
+const activityLineRowStyles = (p: {theme: Theme}) => css`
   position: relative;
   display: grid;
   grid-template-columns: 22px 22px minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: start;
-  column-gap: ${p => (p.$isCompactLayout ? p.theme.space.sm : p.theme.space.md)};
   margin: 12px 0;
 
   &:first-child {
@@ -129,9 +131,19 @@ const ActivityLineRow = styled('div')<{$isCompactLayout: boolean}>`
       top: 22px;
       bottom: 0;
       width: 1px;
-      background: ${p => p.theme.tokens.background.overlay};
+      background: ${p.theme.tokens.background.overlay};
     }
   }
+`;
+
+const ActivityLineRow = styled('div')`
+  ${activityLineRowStyles};
+  column-gap: ${p => p.theme.space.md};
+`;
+
+const CompactActivityLineRow = styled('div')`
+  ${activityLineRowStyles};
+  column-gap: ${p => p.theme.space.sm};
 `;
 
 const ActivityLineDetails = styled('span')`
