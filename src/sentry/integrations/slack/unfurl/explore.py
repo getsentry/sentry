@@ -95,11 +95,11 @@ def _interval_for_query(params: QueryDict) -> str:
 
 
 def _heatmap_interval(time_range: timedelta) -> str:
-    """Pick the finest backend-supported granularity that keeps the heat map
+    """Pick the finest backend-supported granularity that keeps the Heat Map
     within ``HEATMAP_TARGET_X_BUCKETS`` columns, so it renders a fixed-density
     grid sized to the Chartcuterie canvas regardless of the selected time range.
-    Iterates the EAP-accepted ``VALID_GRANULARITIES`` (the events-heatmap dataset
-    is tracemetrics) so we can only ever pick an interval the backend honors."""
+    Iterates the EAP-accepted ``VALID_GRANULARITIES`` (the only dataset we
+    support for Heat Map widgets is trace metrics)."""
     seconds = time_range.total_seconds()
     for granularity in sorted(VALID_GRANULARITIES):
         if seconds / granularity <= HEATMAP_TARGET_X_BUCKETS:
@@ -199,10 +199,6 @@ def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
     if not out.get("statsPeriod") and not out.get("start"):
         out["statsPeriod"] = DEFAULT_PERIOD
 
-    # Target a fixed-density grid sized to the Chartcuterie canvas: pick an
-    # interval that keeps the column count within HEATMAP_TARGET_X_BUCKETS and
-    # request HEATMAP_TARGET_Y_BUCKETS rows. (The endpoint honors `interval` and
-    # recomputes the column count from it.)
     out["interval"] = _heatmap_interval(_query_time_range(out))
     out["yBuckets"] = str(HEATMAP_TARGET_Y_BUCKETS)
 
