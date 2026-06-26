@@ -74,14 +74,6 @@ class SingleProjectIdOrSlug(NamedTuple):
         return {self.project_slug}
 
 
-def _extract_organization_id(
-    organization: Organization | RpcOrganization | RpcUserOrganizationContext,
-) -> int:
-    if isinstance(organization, RpcUserOrganizationContext):
-        return organization.organization.id
-    return organization.id
-
-
 class OrganizationPermission(DemoSafePermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
@@ -127,12 +119,6 @@ class OrganizationPermission(DemoSafePermission):
         view: APIView,
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
-        claims = agent_token.get_agent_claims(request)
-        if claims is not None and int(claims["org"]) != _extract_organization_id(organization):
-            # An agent token is bound to the org it was minted for. Its scopes (including
-            # any user-granted write) were de-escalated for *that* org, so it must never be
-            # honored against a different org — mirrors the org-scoped token check below.
-            raise PermissionDenied
         self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
         return any(request.access.has_scope(s) for s in allowed_scopes)

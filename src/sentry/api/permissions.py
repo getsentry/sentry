@@ -4,6 +4,7 @@ import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated  # noqa: S012
 from rest_framework.request import Request
 
@@ -26,6 +27,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.seer import agent_token
 from sentry.utils import auth
 
 logger = logging.getLogger(__name__)
@@ -178,6 +180,14 @@ class SentryPermission(ScopedPermission):
 
         organization = org_context.organization
         extra = {"organization_id": organization.id, "user_id": user_id}
+
+        agent_claims = agent_token.get_agent_claims(request)
+        if agent_claims is not None and int(agent_claims["org"]) != organization.id:
+            # An agent token is bound to the org it was minted for: its scopes (including
+            # any user-granted write) were de-escalated for *that* org only. Never honor it
+            # against a different org. This is the single access-assembly chokepoint, so the
+            # binding holds for every permission class that derives access here.
+            raise PermissionDenied
 
         if request.auth:
             if request.user and request.user.is_authenticated:
