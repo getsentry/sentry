@@ -1,6 +1,7 @@
 import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
@@ -32,11 +33,13 @@ import {
   UserNotInstrumentedTooltip,
 } from 'sentry/views/explore/conversations/components/conversationsTable';
 import {ConversationsTableEditModal} from 'sentry/views/explore/conversations/components/conversationsTableEditModal';
+import {ConversationToolCallsBreakdown} from 'sentry/views/explore/conversations/components/conversationToolCallsBreakdown';
 import {
   useConversations,
   type Conversation,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useConversationsTableColumns} from 'sentry/views/explore/conversations/hooks/useConversationsTableColumns';
+import {useConversationToolBreakdown} from 'sentry/views/explore/conversations/hooks/useConversationToolBreakdown';
 import {
   type ConversationColumnKey,
   CONVERSATION_COLUMNS,
@@ -126,15 +129,20 @@ export function ConversationsTableNew() {
   );
 
   const renderBodyCell = useCallback(
-    (column: GridColumnOrder<ConversationColumnKey>, dataRow: Conversation) => (
+    (
+      column: GridColumnOrder<ConversationColumnKey>,
+      dataRow: Conversation,
+      rowIndex: number
+    ) => (
       <BodyCell
         column={column}
         dataRow={dataRow}
         organization={organization}
         projects={selection.projects}
+        isRowHovered={rowIndex === highlightedRowKey}
       />
     ),
-    [organization, selection.projects]
+    [organization, selection.projects, highlightedRowKey]
   );
 
   const handleRowClick = useCallback(
@@ -184,9 +192,11 @@ const BodyCell = memo(function BodyCell({
   dataRow,
   organization,
   projects,
+  isRowHovered,
 }: {
   column: GridColumnOrder<ConversationColumnKey>;
   dataRow: Conversation;
+  isRowHovered: boolean;
   organization: Organization;
   projects: number[];
 }) {
@@ -264,11 +274,7 @@ const BodyCell = memo(function BodyCell({
       );
     }
     case 'toolCalls':
-      return (
-        <Text as="div">
-          <Count value={dataRow.toolCalls} />
-        </Text>
-      );
+      return <ToolCallsCell dataRow={dataRow} isRowHovered={isRowHovered} />;
     case 'errors':
       return (
         <Text as="div" variant={dataRow.errors > 0 ? 'danger' : undefined}>
@@ -319,3 +325,43 @@ const BodyCell = memo(function BodyCell({
       return null;
   }
 });
+
+function ToolCallsCell({
+  dataRow,
+  isRowHovered,
+}: {
+  dataRow: Conversation;
+  isRowHovered: boolean;
+}) {
+  // Prefetch the per-tool breakdown as soon as the row is hovered, so the card
+  // is already populated by the time the cursor reaches the count.
+  const {data, isLoading, error} = useConversationToolBreakdown({
+    conversationId: dataRow.conversationId,
+    enabled: isRowHovered && dataRow.toolCalls > 0,
+  });
+
+  if (dataRow.toolCalls === 0) {
+    return (
+      <Text as="div">
+        <Count value={dataRow.toolCalls} />
+      </Text>
+    );
+  }
+
+  return (
+    <Text as="div">
+      <InfoText
+        maxWidth={400}
+        title={
+          <ConversationToolCallsBreakdown
+            data={data}
+            isLoading={isLoading}
+            error={error}
+          />
+        }
+      >
+        <Count value={dataRow.toolCalls} />
+      </InfoText>
+    </Text>
+  );
+}
