@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping, Sequence
+from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 
 from django.utils import timezone
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ValidationError, parse_raw_as
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
 
@@ -81,14 +83,41 @@ class UserUIFeedbackSource(TypedDict):
     user: NotRequired[Any]
 
 
+class GithubPrCommentFeedbackSource(TypedDict):
+    """Feedback submitted as a GitHub PR comment (``@sentry <feedback>``)."""
+
+    type: Literal["github-pr-comment"]
+    # The raw GitHub ``issue_comment`` ``comment`` payload. We store it verbatim
+    # rather than cherry-picking fields so the UI can render whatever it needs
+    # (e.g. ``comment.user.login`` for attribution, ``comment.html_url`` to link
+    # back to the comment) without the backend threading each field through.
+    comment: Mapping[str, Any]
+
+
 # Discriminated on ``type``. Add new TypedDict variants to this union as more
 # feedback sources are introduced.
-FeedbackSource = UserUIFeedbackSource
+FeedbackSource = UserUIFeedbackSource | GithubPrCommentFeedbackSource
 
 
 class Feedback(BaseModel):
-    message: str
+    text: str
     source: FeedbackSource
+    timestamp: datetime = Field(default_factory=timezone.now)
+
+
+def parse_feedback(raw: str) -> list[Feedback]:
+    try:
+        return parse_raw_as(list[Feedback], raw)
+    except (ValidationError, ValueError):
+        pass
+    try:
+        return [parse_raw_as(Feedback, raw)]
+    except (ValidationError, ValueError):
+        return []
+
+
+def serialize_feedback(items: Sequence[Feedback]) -> str:
+    return json.dumps([item.dict() for item in items])
 
 
 class NoSeerQuotaException(Exception):
@@ -385,7 +414,7 @@ def trigger_autofix_agent(
     reasoning_effort: Literal["low", "medium", "high"] | None = _UNSET,
     user_context: str | None = None,
     insert_index: int | None = None,
-    feedback: Feedback | None = None,
+    feedback: Sequence[Feedback] | None = None,
 ) -> int:
     """
     Start or continue an agent-based autofix run.
@@ -457,16 +486,10 @@ def trigger_autofix_agent(
         "has_user_context": "no" if user_context is None else "yes",
         "is_retry": "no" if insert_index is None else "yes",
     }
-    if step == AutofixStep.PR_ITERATION and feedback is not None:
-        # Stored as a JSON object so the UI can attribute the feedback to its
-        # source and show when it was submitted.
-        prompt_metadata["feedback"] = json.dumps(
-            {
-                "text": feedback.message,
-                "source": feedback.source,
-                "timestamp": timezone.now().isoformat(),
-            }
-        )
+    feedback_items = list(feedback or [])
+    if step == AutofixStep.PR_ITERATION and feedback_items:
+        prompt_metadata["feedback"] = serialize_feedback(feedback_items)
+
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
 

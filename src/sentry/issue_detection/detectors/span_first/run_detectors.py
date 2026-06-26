@@ -15,6 +15,7 @@ from sentry.issue_detection.performance_detection import get_detection_settings
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import StandaloneSpan
 from sentry.models.project import Project
+from sentry.utils import metrics
 from sentry.utils.rollout import SourceOfTruth
 
 logger = logging.getLogger(__name__)
@@ -136,10 +137,23 @@ def compare_span_first_problems_to_control_data(
         control_fingerprints = {problem.fingerprint for problem in control_problems}
         span_first_fingerprints = {problem.fingerprint for problem in span_first_problems}
 
+        # The vast majority of the time, a given detector isn't going to detect anything, and while
+        # it's good to know that the new and legacy detectors agree on not having found anything,
+        # those trivial cases can end up overwhelming the more interesting cases. Splitting them off
+        # into their own metric lets us continue to track them (at the standard 10% sample rate)
+        # while at the same time reducing the hits to the main comparison metric sufficiently that
+        # we can afford to ramp its sample rate up to 100%.
+        if not control_fingerprints and not span_first_fingerprints:
+            metrics.incr(
+                "span_first_detectors.empty_result_comparison_skipped", tags={"callsite": grouptype}
+            )
+            continue  # Skip running the comparison for this grouptype
+
         SpanFirstDetectorsRolloutController.compare(
             callsite=grouptype,
             control_data=control_fingerprints,
             experimental_data=span_first_fingerprints,
             is_experimental_data_nullish=not bool(span_first_fingerprints),
             source_of_truth=get_source_of_truth(grouptype),
+            metric_sample_rate=1.0,
         )

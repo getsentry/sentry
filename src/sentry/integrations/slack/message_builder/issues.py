@@ -423,6 +423,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         is_unfurl: bool = False,
         skip_fallback: bool = False,
         notes: str | None = None,
+        send_nudge: bool = False,
+        has_mentions_read_scope: bool = False,
     ) -> None:
         super().__init__()
         self.group = group
@@ -438,6 +440,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
         self.notes = notes
+        self.send_nudge = send_nudge
+        self.has_mentions_read_scope = has_mentions_read_scope
         self._has_autofix = SeerAutofixOperator.has_access(
             organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
         ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
@@ -529,6 +533,23 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             return self.get_context_block(text=footer_text)
         else:
             return self.get_context_block(text=footer, timestamp=timestamp)
+
+    def get_slack_app_update_nudge_block(self) -> SlackBlock:
+        org = self.group.organization
+
+        # app_mentions:read is mandatory for every new Slack app installation, so its
+        # presence tells us the app is up to date.
+        # groups/channels:history scopes are optional, so they may not be present in
+        # new Slack app installations.
+        if self.has_mentions_read_scope:
+            nudge_text = "Mention or tag Sentry to investigate issues more deeply."
+        else:
+            reinstall_url = org.absolute_url(
+                f"/settings/{org.slug}/integrations/slack/",
+                query="showInstallModal=1",
+            )
+            nudge_text = f"Ask Sentry questions and debug faster, <{reinstall_url}|reinstall Sentry Slack app>."
+        return self.get_context_block(text=nudge_text)
 
     def build_description_block(self, description_text: str) -> SlackBlock | None:
         text = description_text.lstrip(" ")
@@ -702,6 +723,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         chart_block = ImageBlockBuilder(group=self.group).build_image_block()
         if chart_block:
             blocks.append(chart_block)
+
+        if self.send_nudge:
+            blocks.append(self.get_slack_app_update_nudge_block())
 
         return self._build_blocks(
             *blocks,

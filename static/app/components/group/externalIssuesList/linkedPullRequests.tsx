@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
-import {Avatar} from '@sentry/scraps/avatar';
+import {Avatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -16,8 +16,10 @@ import {GroupActivityType, type Group} from 'sentry/types/group';
 import type {
   LinkedPullRequest,
   LinkedPullRequestsResponse,
+  PullRequestAuthor,
   PullRequestAttribution,
 } from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -57,7 +59,7 @@ function LinkedPullRequestRow({
   const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
   const statusLabel = getPullRequestStatusLabel(pullRequest.status);
   const pullRequestLabel = t('#%s', pullRequest.id);
-  const authorAvatar = getPullRequestAuthorAvatar(pullRequest);
+  const author = getPullRequestAuthor(pullRequest);
 
   return (
     <Tooltip
@@ -81,6 +83,7 @@ function LinkedPullRequestRow({
         onClick={() =>
           trackAnalytics('issue_details.external_issue_pull_request_clicked', {
             organization,
+            attribution_type: pullRequest.attribution?.type,
             pull_request_id: pullRequest.id,
             pull_request_status: pullRequest.status,
             repository_id: pullRequest.repository.id,
@@ -110,8 +113,8 @@ function LinkedPullRequestRow({
               <PullRequestStatusBadge status={pullRequest.status} />
               {pullRequest.attribution ? (
                 <PullRequestAttributionAvatar attribution={pullRequest.attribution} />
-              ) : authorAvatar ? (
-                <PullRequestAuthorAvatar author={authorAvatar} />
+              ) : author ? (
+                <PullRequestAuthorAvatar author={author} />
               ) : null}
               <Text as="span" size="sm" variant="muted">
                 <TimeSince
@@ -140,35 +143,41 @@ function PullRequestAttributionAvatar({
   }
 }
 
-function getPullRequestAuthorAvatar(pullRequest: LinkedPullRequest) {
+function getPullRequestAuthor(pullRequest: LinkedPullRequest): PullRequestAuthor | null {
   if (!pullRequest.author || pullRequest.author.email?.endsWith('@localhost')) {
     return null;
   }
 
-  const name = pullRequest.author.name || pullRequest.author.email;
-  const identifier = pullRequest.author.email || pullRequest.author.name;
-
-  return name && identifier ? {identifier, name} : null;
+  return pullRequest.author;
 }
 
-function PullRequestAuthorAvatar({
-  author,
-}: {
-  author: NonNullable<ReturnType<typeof getPullRequestAuthorAvatar>>;
-}) {
-  const label = t('Pull request author: %s', author.name);
+function isSentryUserAuthor(author: PullRequestAuthor): author is User {
+  return 'id' in author;
+}
+
+function PullRequestAuthorAvatar({author}: {author: PullRequestAuthor}) {
+  const name = author.name || author.email;
+  if (!name) {
+    return null;
+  }
+
+  const label = t('Pull request author: %s', name);
 
   return (
     <Flex as="span" aria-label={label} display="inline-flex" role="img" title={label}>
-      <Avatar
-        hasTooltip
-        identifier={author.identifier}
-        name={author.name}
-        round
-        size={18}
-        tooltip={label}
-        type="letter_avatar"
-      />
+      {isSentryUserAuthor(author) ? (
+        <UserAvatar hasTooltip size={18} tooltip={label} user={author} />
+      ) : (
+        <Avatar
+          hasTooltip
+          identifier={author.email || author.name || name}
+          name={name}
+          round
+          size={18}
+          tooltip={label}
+          type="letter_avatar"
+        />
+      )}
     </Flex>
   );
 }

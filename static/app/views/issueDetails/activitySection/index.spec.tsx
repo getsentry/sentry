@@ -166,6 +166,8 @@ describe('ActivitySection', () => {
   });
 
   it('renders note and allows for delete', async () => {
+    jest.spyOn(indicators, 'addSuccessMessage');
+
     const deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/note-1/',
       method: 'DELETE',
@@ -190,8 +192,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Remove comment'}));
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalledTimes(1));
-
-    await waitFor(() => expect(screen.queryByText('Test Note')).not.toBeInTheDocument());
+    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment removed');
   });
 
   it('keeps the comment and modal open when deletion fails', async () => {
@@ -936,6 +937,90 @@ describe('ActivitySection', () => {
       {organization: org}
     );
     expect(screen.queryByText('Pull Request Created')).not.toBeInTheDocument();
+  });
+
+  it('renders Seer PR iteration activity when feature flag is enabled', async () => {
+    const seerIterationGroup = GroupFixture({
+      id: '1346',
+      activity: [
+        {
+          type: GroupActivityType.SEER_ITERATION_COMPLETED,
+          id: 'seer-iteration-2',
+          dateCreated: '2020-01-01T00:00:01',
+          data: {
+            run_id: 456,
+            iteration_index: 1,
+            pull_requests: [
+              {
+                provider: 'github',
+                pull_request: {
+                  pr_number: 42,
+                  pr_url: 'https://github.com/org/repo/pull/42',
+                },
+                repo_name: 'org/repo',
+              },
+            ],
+          },
+          user: null,
+        },
+        {
+          type: GroupActivityType.SEER_ITERATION_STARTED,
+          id: 'seer-iteration-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 456, iteration_index: 1},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    const org = OrganizationFixture({
+      features: ['display-seer-actions-as-issue-activities'],
+    });
+
+    render(
+      <GroupDataContextProvider
+        group={seerIterationGroup}
+        project={seerIterationGroup.project}
+      >
+        <ActivitySection group={seerIterationGroup} />
+      </GroupDataContextProvider>,
+      {organization: org}
+    );
+    expect(await screen.findAllByText('PR Iteration')).toHaveLength(2);
+    expect(
+      screen.getByText('Seer started iterating on the pull request')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'pull request'})).toHaveAttribute(
+      'href',
+      'https://github.com/org/repo/pull/42'
+    );
+  });
+
+  it('hides Seer PR iteration activity when feature flag is disabled', () => {
+    const seerIterationGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.SEER_ITERATION_STARTED,
+          id: 'seer-iteration-3',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 456, iteration_index: 1},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider
+        group={seerIterationGroup}
+        project={seerIterationGroup.project}
+      >
+        <ActivitySection group={seerIterationGroup} />
+      </GroupDataContextProvider>
+    );
+    expect(screen.queryByText('PR Iteration')).not.toBeInTheDocument();
   });
 
   it('renders PR author name when activity user is null', async () => {

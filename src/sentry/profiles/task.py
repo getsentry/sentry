@@ -170,7 +170,16 @@ def process_profile_from_kafka(
     message_bytes: bytes,
     headers: dict[str, str],
 ) -> None:
-    """Process a profile from raw Kafka message bytes (taskbroker passthrough mode)."""
+    """Process a profile from raw Kafka message bytes.
+
+    This task is directly spawned from taskbroker in "raw mode". You won't find
+    any application code that calls apply_async or delay directly on it,
+    instead taskbroker itself is configured to consume a topic (in infra
+    templates) and spawns tasks for each message.
+
+    As such, the task signature, name and namespace cannot be changed without
+    coordination.
+    """
     if _should_drop(headers):
         return
 

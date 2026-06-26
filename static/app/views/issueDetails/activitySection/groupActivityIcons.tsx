@@ -174,6 +174,16 @@ export const groupActivityTypeIconMapping: Record<
     defaultProps: {},
     propsFunction: () => ({variant: 'success'}),
   },
+  [GroupActivityType.SEER_ITERATION_STARTED]: {
+    Component: IconSeer,
+    defaultProps: {},
+    propsFunction: () => ({animation: 'waiting'}),
+  },
+  [GroupActivityType.SEER_ITERATION_COMPLETED]: {
+    Component: IconSeer,
+    defaultProps: {},
+    propsFunction: () => ({variant: 'success'}),
+  },
 };
 
 const StyledUserAvatar = styled(UserAvatar)`

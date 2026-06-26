@@ -207,6 +207,50 @@ def test_convert_span_to_item() -> None:
     }
 
 
+SESSION_UUID = "87654321-4321-8765-4321-876543218765"
+
+
+def test_convert_conversation_and_session_id() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"] = {
+        **(message["attributes"] or {}),
+        # conversation_id is a free-form string; session_id must be a UUID.
+        "gen_ai.conversation.id": {"value": "my-conversation", "type": "string"},
+        "session.id": {"value": SESSION_UUID, "type": "string"},
+    }
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.conversation_id == "my-conversation"
+    assert item.session_id == SESSION_UUID
+
+    # The values are also retained as regular attributes.
+    assert item.attributes.get("gen_ai.conversation.id") == AnyValue(string_value="my-conversation")
+    assert item.attributes.get("session.id") == AnyValue(string_value=SESSION_UUID)
+
+
+def test_convert_conversation_and_session_id_missing() -> None:
+    item = convert_span_to_item(cast(CompatibleSpan, SPAN_KAFKA_MESSAGE))
+
+    assert item.conversation_id == ""
+    assert item.session_id == ""
+
+
+def test_convert_non_uuid_session_id() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"] = {
+        **(message["attributes"] or {}),
+        "session.id": {"value": "12345", "type": "string"},
+    }
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    # A non-UUID session.id is not hoisted onto the dedicated field...
+    assert item.session_id == ""
+    # ...but is still retained as a regular attribute.
+    assert item.attributes.get("session.id") == AnyValue(string_value="12345")
+
+
 def test_convert_falsy_fields() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
     message["is_segment"] = False
