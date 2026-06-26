@@ -1122,6 +1122,14 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Killswitch for writing SeerRunPullRequest links (records the PRs Seer directly
+# creates). Default off -> writes happen; flip on to stop writes without a deploy.
+register(
+    "seer.pull-request-linking.killswitch.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "seer.explorer.context-engine-rollout",
     type=Float,
