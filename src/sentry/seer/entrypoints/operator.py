@@ -812,7 +812,10 @@ def process_autofix_updates(
                 if attribution_enabled:
                     try:
                         record_seer_created_attributions(
-                            resolved_prs=resolved_prs, run_id=run_id, group_id=group_id
+                            organization=organization,
+                            resolved_prs=resolved_prs,
+                            run_id=run_id,
+                            group_id=group_id,
                         )
                     except Exception:
                         logger.exception(

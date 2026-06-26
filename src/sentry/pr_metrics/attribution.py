@@ -204,6 +204,7 @@ class SeerCreatedPullRequest(NamedTuple):
 
 def record_seer_created_attributions(
     *,
+    organization: Organization,
     resolved_prs: Sequence[SeerCreatedPullRequest],
     run_id: int | str | None,
     group_id: int | str | None,
@@ -221,7 +222,7 @@ def record_seer_created_attributions(
     """
     for pull_request, pr_url in resolved_prs:
         log_context = {
-            "organization_id": pull_request.organization_id,
+            "organization_id": organization.id,
             "run_id": run_id,
             "group_id": group_id,
             "repository_id": pull_request.repository_id,

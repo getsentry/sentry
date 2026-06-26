@@ -36,7 +36,10 @@ class RecordSeerCreatedAttributionsTest(TestCase):
 
     def _record(self, resolved_prs: list[SeerCreatedPullRequest]) -> None:
         record_seer_created_attributions(
-            resolved_prs=resolved_prs, run_id=123, group_id=self.group.id
+            organization=self.organization,
+            resolved_prs=resolved_prs,
+            run_id=123,
+            group_id=self.group.id,
         )
 
     def test_records_sentry_app_attribution(self) -> None:
