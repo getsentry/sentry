@@ -55,11 +55,12 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
             return Response({"detail": "Unknown monitoring provider."}, status=400)
 
         provider_type = identity_manager.get(provider_key)
-        data = {**request.data}
 
         if isinstance(provider_type, OAuth2Provider):
-            return self._link_by_oauth(provider_type, organization, provider_key, request, data)
-        return self._link_by_token(provider_type, organization, request.user, data)
+            return self._link_by_oauth(
+                provider_type, organization, provider_key, request, request.data
+            )
+        return self._link_by_token(provider_type, organization, request.user, request.data)
 
     def put(
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
