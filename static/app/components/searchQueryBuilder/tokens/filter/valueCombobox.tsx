@@ -49,6 +49,10 @@ import {
 import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
 import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
 import {shouldUseDefaultNumericSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/numeric';
+import {
+  isSeverityFilterKey,
+  SeverityValueIndicator,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity';
 import type {
   SuggestionItem,
   SuggestionSection,
@@ -472,6 +476,9 @@ function useFilterSuggestions({
         details: suggestion.description,
         textValue: typeof label === 'string' ? label : suggestion.value,
         hideCheck: true,
+        leadingItems: isSeverityFilterKey(keyName) ? (
+          <SeverityValueIndicator value={suggestion.value} />
+        ) : undefined,
         selectionMode: canSelectMultipleValues ? 'multiple' : 'single',
         trailingItems: ({isFocused, disabled}: any) => {
           const count =
@@ -496,7 +503,7 @@ function useFilterSuggestions({
         },
       };
     },
-    [canSelectMultipleValues, filterValue, valueType]
+    [canSelectMultipleValues, filterValue, keyName, valueType]
   );
 
   const suggestionGroups = useMemo(() => {
