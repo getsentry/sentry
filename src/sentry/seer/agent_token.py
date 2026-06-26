@@ -42,6 +42,7 @@ from sentry.api.exceptions import SentryAPIException
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.organizations.services.organization import organization_service
 from sentry.seer.models.agent_write_grant import DEFAULT_EXPIRATION, SeerAgentWriteGrant
+from sentry.types.token import SENTRY_AGENT_TOKEN_PREFIX
 from sentry.utils import jwt
 
 logger = logging.getLogger(__name__)
@@ -142,26 +143,17 @@ def encode_agent_token(
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),
     }
-    token = jwt.encode(payload, _signing_key(), algorithm="HS256")
+    token = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(payload, _signing_key(), algorithm="HS256")
     return token, expires_at
 
 
-def looks_like_agent_token(token_str: str) -> bool:
-    """Cheap, signature-free check that a bearer credential is one of our agent tokens,
-    so the authenticator can defer (return None) on anything else without raising. A real
-    decision is always made by :func:`decode_agent_token` afterwards."""
-    try:
-        claims = jwt.peek_claims(token_str)
-    except jwt.DecodeError:
-        return False
-    return claims.get("aud") == AGENT_TOKEN_AUDIENCE
-
-
 def decode_agent_token(token_str: str) -> dict[str, Any]:
-    """Verify signature, ``exp`` and ``aud`` and return the claims. Raises
-    ``jwt.DecodeError`` (or a pyjwt subclass) on any invalid token."""
+    """Strip the agent-token prefix and verify signature, ``exp`` and ``aud``; return the
+    claims. Raises ``jwt.DecodeError`` (or a pyjwt subclass) on any invalid token."""
+    if not token_str.startswith(SENTRY_AGENT_TOKEN_PREFIX):
+        raise jwt.DecodeError("not an agent token")
     return jwt.decode(
-        token_str,
+        token_str.removeprefix(SENTRY_AGENT_TOKEN_PREFIX),
         _signing_key(),
         audience=AGENT_TOKEN_AUDIENCE,
         algorithms=["HS256"],

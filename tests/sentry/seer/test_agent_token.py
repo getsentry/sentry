@@ -16,6 +16,7 @@ from sentry.seer.agent_token import AgentWritePermissionRequired
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
+from sentry.types.token import SENTRY_AGENT_TOKEN_PREFIX
 from sentry.utils import jwt
 
 SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
@@ -74,26 +75,31 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert request.auth.get_scopes() == ["org:read"]
         assert agent_token.get_agent_claims(request) is not None
 
-    def test_non_agent_bearer_is_deferred(self) -> None:
+    def _auth(self, bearer: str):
         request = RequestFactory().get("/")
-        request.META["HTTP_AUTHORIZATION"] = "Bearer sntrya_deadbeef"
-        assert AgentTokenAuthentication().authenticate(drf_request_from_request(request)) is None
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {bearer}"
+        return AgentTokenAuthentication().authenticate(drf_request_from_request(request))
 
-    def test_wrong_audience_is_deferred(self) -> None:
-        token = jwt.encode({"aud": "something-else", "sub": "1", "org": 1, "scopes": []}, SECRET)
-        request = RequestFactory().get("/")
-        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
-        assert AgentTokenAuthentication().authenticate(drf_request_from_request(request)) is None
+    def test_non_agent_bearer_is_deferred(self) -> None:
+        # No agent prefix -> accepts_auth is False -> defer to the rest of the chain.
+        assert self._auth("sntryu_deadbeef") is None
+
+    def test_wrong_audience_is_rejected(self) -> None:
+        # Prefixed (so we claim it), but the signed audience is wrong -> hard reject.
+        token = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
+            {"aud": "something-else", "sub": "1", "org": 1, "scopes": []}, SECRET
+        )
+        with pytest.raises(AuthenticationFailed):
+            self._auth(token)
 
     def test_forged_token_is_rejected(self) -> None:
-        token = jwt.encode(
+        # Prefixed, right audience, wrong signing key -> hard reject.
+        token = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
             {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": "1", "org": 1, "scopes": []},
             "wrong-secret",
         )
-        request = RequestFactory().get("/")
-        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         with pytest.raises(AuthenticationFailed):
-            AgentTokenAuthentication().authenticate(drf_request_from_request(request))
+            self._auth(token)
 
     def test_expired_token_is_rejected(self) -> None:
         with pytest.raises(AuthenticationFailed):

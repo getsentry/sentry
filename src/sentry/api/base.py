@@ -104,13 +104,9 @@ CURSOR_LINK_HEADER = (
 )
 
 DEFAULT_AUTHENTICATION = (
-    # Must precede UserAuthTokenAuthentication: both accept the `Bearer` scheme, but the
-    # agent class defers (accepts_auth -> False) on anything that is not a signed agent
-    # token, while UserAuthTokenAuthentication would try to look an agent JWT up as a
-    # stored ApiToken and reject it.
-    AgentTokenAuthentication,
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
+    AgentTokenAuthentication,
     ApiKeyAuthentication,
     ViewerContextAuthentication,
     SessionAuthentication,

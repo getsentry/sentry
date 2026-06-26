@@ -1,5 +1,9 @@
 import enum
 
+# Seer agent capability token (a signed JWT, not a stored ApiToken). Standalone constant so
+# the auth chain routes it by prefix like the other token types.
+SENTRY_AGENT_TOKEN_PREFIX = "sntryag_"
+
 
 class AuthTokenType(enum.StrEnum):
     """
