@@ -39,7 +39,7 @@ class LinkSeerRunPullRequestsTest(TestCase):
         self,
         pull_requests: list[dict[str, Any]],
         *,
-        seer_run_state_id: int | str | None = RUN_STATE_ID,
+        seer_run_state_id: int | None = RUN_STATE_ID,
     ) -> None:
         link_seer_run_pull_requests(
             organization=self.organization,
@@ -106,13 +106,6 @@ class LinkSeerRunPullRequestsTest(TestCase):
     def test_noop_when_run_id_missing(self) -> None:
         self._link(self._payload(), seer_run_state_id=None)
         assert not SeerRunPullRequest.objects.exists()
-
-    @patch("sentry.seer.pull_requests.logger")
-    def test_invalid_run_id_logged(self, mock_logger: Mock) -> None:
-        self._link(self._payload(), seer_run_state_id="not-an-int")
-
-        assert not SeerRunPullRequest.objects.exists()
-        assert "seer.pull_request_link.invalid_run_id" in _warning_events(mock_logger)
 
     @patch("sentry.seer.pull_requests.logger")
     def test_missing_fields_skipped(self, mock_logger: Mock) -> None:

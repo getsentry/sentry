@@ -20,7 +20,7 @@ PULL_REQUEST_LINKING_KILLSWITCH = "seer.pull-request-linking.killswitch.enabled"
 def link_seer_run_pull_requests(
     *,
     organization: Organization,
-    seer_run_state_id: int | str | None,
+    seer_run_state_id: int | None,
     pull_requests: Sequence[Mapping[str, Any]],
 ) -> None:
     """Link each PR in a ``seer.pr_created`` event to its run's :class:`SeerRun`.
@@ -32,15 +32,6 @@ def link_seer_run_pull_requests(
         return
 
     if seer_run_state_id is None:
-        return
-
-    try:
-        seer_run_state_id = int(seer_run_state_id)
-    except (TypeError, ValueError):
-        logger.warning(
-            "seer.pull_request_link.invalid_run_id",
-            extra={"organization_id": organization.id, "seer_run_state_id": seer_run_state_id},
-        )
         return
 
     seer_run = get_seer_run(seer_run_state_id, organization)
