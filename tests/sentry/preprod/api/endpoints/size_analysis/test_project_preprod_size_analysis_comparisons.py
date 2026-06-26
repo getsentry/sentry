@@ -1,4 +1,3 @@
-import re
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -73,24 +72,16 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
             max_download_size=150,
         )
 
-    def _compare(self, head_metric, base_metric, file_id, state=None):
+    def _compare(
+        self, head_metric, base_metric, file_id, state=PreprodArtifactSizeComparison.State.SUCCESS
+    ):
         return self.create_preprod_artifact_size_comparison(
             head_size_analysis=head_metric,
             base_size_analysis=base_metric,
             organization=self.organization,
-            state=state or PreprodArtifactSizeComparison.State.SUCCESS,
+            state=state,
             file_id=file_id,
         )
-
-    @staticmethod
-    def _next_cursor(response):
-        link_header = response.headers.get("Link") or ""
-        for link in link_header.split(","):
-            if 'rel="next"' in link and 'results="true"' in link:
-                match = re.search(r'cursor="([^"]+)"', link)
-                if match:
-                    return match.group(1)
-        return None
 
     def _token_request(self, token, artifact_id=None):
         url = reverse(
@@ -285,8 +276,7 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
         # The multi-row base (base_mid) appears exactly once despite its two rows.
         assert ids1 == [str(base_new.id), str(base_mid.id)]
 
-        cursor = self._next_cursor(page1)
-        assert cursor is not None
+        cursor = self.get_cursor_headers(page1)[1]
 
         page2 = self.get_success_response(
             self.organization.slug,

@@ -24,11 +24,7 @@ from sentry.preprod.api.models.size_analysis.project_preprod_size_analysis_compa
     SizeAnalysisComparisonListItem,
 )
 from sentry.preprod.builds_query import filtered_builds_queryset
-from sentry.preprod.models import (
-    PreprodArtifact,
-    PreprodArtifactSizeComparison,
-    PreprodArtifactSizeMetrics,
-)
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeComparison
 from sentry.preprod.quotas import get_size_retention_cutoff
 
 logger = logging.getLogger(__name__)
@@ -61,27 +57,19 @@ class ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint(PreprodArtifactEndpo
         if head_artifact.date_added < cutoff:
             return Response({"detail": "This build's size data has expired."}, status=404)
 
-        head_metric_ids = list(
-            PreprodArtifactSizeMetrics.objects.filter(
-                preprod_artifact_id=head_artifact.id,
-            ).values_list("id", flat=True)
-        )
-
         # All successful comparisons where this build is the head. Reused for both the
         # candidate base set and the per-base "latest comparison" annotation below, so
         # the two always apply the same filters.
         head_success_comparisons = PreprodArtifactSizeComparison.objects.filter(
             organization_id=project.organization_id,
-            head_size_analysis_id__in=head_metric_ids,
+            head_size_analysis__preprod_artifact_id=head_artifact.id,
             state=PreprodArtifactSizeComparison.State.SUCCESS,
         )
 
-        # The base builds this head has a successful comparison against (a small
-        # candidate set), used to constrain the search query below.
-        candidate_base_ids = set(
-            head_success_comparisons.values_list(
-                "base_size_analysis__preprod_artifact_id", flat=True
-            )
+        # The base builds this head has a successful comparison against (a small candidate
+        # set), kept lazy so it constrains the search query below as a subquery.
+        candidate_base_ids = head_success_comparisons.values_list(
+            "base_size_analysis__preprod_artifact_id", flat=True
         )
 
         # Apply the same search query the builds list uses, but only over the base
