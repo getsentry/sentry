@@ -91,7 +91,9 @@ function AccordionWidget({
         <Flex flex="1 1 auto" direction="column" justify="start">
           <Accordion
             collapsible
+            collapsedChevronDirection="right"
             expandedIndex={selectedListIndex}
+            expandedChevronDirection="down"
             setExpandedIndex={setSelectListIndex}
             items={filteredData.map(d => {
               const selectorQuery = `${deadOrRage}.selector:"${transformSelectorQuery(
