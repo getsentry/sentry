@@ -26,6 +26,7 @@ from sentry.models.pullrequest import (
     ResolvedPullRequest,
     parse_pull_request_number,
 )
+from sentry.seer.pull_requests import SeerCreatedPullRequest
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +198,7 @@ def _attribute_pull_request(
 
 def record_seer_created_attributions(
     *,
-    resolved_prs: Sequence[tuple[PullRequest, str | None]],
+    resolved_prs: Sequence[SeerCreatedPullRequest],
     run_id: int | str | None,
     group_id: int | str | None,
 ) -> None:
