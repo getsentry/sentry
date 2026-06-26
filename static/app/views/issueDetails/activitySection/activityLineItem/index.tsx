@@ -13,7 +13,7 @@ import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/
 
 import {ActivityLineActor} from './actor';
 import {getCompactGroupActivityItem} from './compactActivityItem';
-import {ActivityLineMarker} from './marker';
+import {ActivityLineMarker} from './progressMarker';
 
 interface ActivityLineItemProps {
   editing: boolean;
