@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -275,20 +274,145 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const isProcessing = section.status === 'processing' || hasQueuedFeedback;
 
+  const showPrIterationForm = hasPRs && prIterationEnabled;
+  const prIterationForm = (
+    <PrIterationFeedbackForm
+      autofix={autofix}
+      groupId={groupId}
+      runId={autofix.runState?.run_id}
+      referrer="code_changes_card_reset"
+      onClose={() => setShouldShowReset(false)}
+    />
+  );
+
+  let title: React.ReactNode = t('Code Changes');
+  if (latestIterationIndex !== null) {
+    title = (
+      <Flex gap="md" align="center">
+        {t('Code Changes')}
+        {/* `iteration_index` is zero-based; display a one-based version number. */}
+        <Tag variant="muted">{t('v%s - Latest', latestIterationIndex + 1)}</Tag>
+      </Flex>
+    );
+  }
+
+  let content: React.ReactNode;
+  if (isProcessing) {
+    content = (
+      <Fragment>
+        {/* PR iteration feedback is queued while a run is in progress, so keep
+            the form available even mid-run. */}
+        {shouldShowReset && showPrIterationForm && prIterationForm}
+        <ArtifactLoadingDetails
+          blocks={loadingBlocks}
+          loadingMessage={
+            isIterating ? t('Iterating on PR…') : t('Implementing changes…')
+          }
+        />
+      </Fragment>
+    );
+  } else if (artifact && patchesByRepo.size) {
+    let resetSection: React.ReactNode = null;
+    if (shouldShowReset) {
+      if (showPrIterationForm) {
+        resetSection = prIterationForm;
+      } else {
+        resetSection = (
+          <AutofixResetPrompt
+            onClosePrompt={() => setShouldShowReset(false)}
+            onReset={handleReset}
+            placeholder={t('Give seer additional context to improve this code change.')}
+            prompt={t('How can this code change be improved?')}
+          />
+        );
+      }
+    }
+
+    content = (
+      <Fragment>
+        {resetSection}
+        <ArtifactDetails>
+          <Text>{summary}</Text>
+        </ArtifactDetails>
+        {[...patchesByRepo.entries()].map(([repo, patches]) => (
+          <ArtifactDetails key={repo}>
+            <Flex gap="lg">
+              <Text bold>{t('Repository:')}</Text>
+              <Text>{repo}</Text>
+            </Flex>
+            {patches.map((patch, index) => (
+              <FileDiffViewer
+                key={index}
+                patch={patch.patch}
+                showBorder
+                collapsible
+                defaultExpanded={artifact !== null && artifact.length <= 1}
+              />
+            ))}
+          </ArtifactDetails>
+        ))}
+      </Fragment>
+    );
+  } else if (explanation) {
+    let resetSection: React.ReactNode;
+    if (!shouldShowReset) {
+      resetSection = (
+        <Flex>
+          <Button
+            variant="primary"
+            icon={<IconRefresh />}
+            disabled={!canReset}
+            onClick={() => setShouldShowReset(true)}
+          >
+            {t('Add context & retry')}
+          </Button>
+        </Flex>
+      );
+    } else if (showPrIterationForm) {
+      resetSection = prIterationForm;
+    } else {
+      resetSection = (
+        <AutofixResetPrompt
+          onClosePrompt={() => setShouldShowReset(false)}
+          onReset={handleReset}
+          placeholder={t(
+            'Add context that could unblock the change, e.g. the repo or files to edit.'
+          )}
+          prompt={t('What additional context should Seer use?')}
+        />
+      );
+    }
+
+    content = (
+      <ArtifactDetails gap="lg">
+        <Flex direction="column" gap="md">
+          <Text bold>{t("Seer proposed a fix but couldn't apply it automatically")}</Text>
+          <Markdown raw={explanation} />
+        </Flex>
+        {resetSection}
+      </ArtifactDetails>
+    );
+  } else {
+    content = (
+      <ArtifactDetails>
+        <Text>
+          {t(
+            'Seer failed to generate a code change. This one is on us. Try running it again.'
+          )}
+        </Text>
+        <Flex>
+          <Button variant="primary" icon={<IconRefresh />} onClick={() => handleReset()}>
+            {t('Re-run')}
+          </Button>
+        </Flex>
+      </ArtifactDetails>
+    );
+  }
+
   return (
     <ArtifactCard
       icon={<IconCode />}
-      title={
-        latestIterationIndex === null ? (
-          t('Code Changes')
-        ) : (
-          <Flex gap="md" align="center">
-            {t('Code Changes')}
-            {/* `iteration_index` is zero-based; display a one-based version number. */}
-            <Tag variant="muted">{t('v%s - Latest', latestIterationIndex + 1)}</Tag>
-          </Flex>
-        )
-      }
+      title={title}
       onCopy={
         markdown
           ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
@@ -305,127 +429,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
           ))}
         </ArtifactDetails>
       )}
-      {isProcessing ? (
-        <Fragment>
-          {/* PR iteration feedback is queued while a run is in progress, so keep
-              the form available even mid-run. */}
-          {shouldShowReset && hasPRs && prIterationEnabled && (
-            <PrIterationFeedbackForm
-              autofix={autofix}
-              groupId={groupId}
-              runId={autofix.runState?.run_id}
-              referrer="code_changes_card_reset"
-              onClose={() => setShouldShowReset(false)}
-            />
-          )}
-          <ArtifactLoadingDetails
-            blocks={loadingBlocks}
-            loadingMessage={
-              isIterating ? t('Iterating on PR…') : t('Implementing changes…')
-            }
-          />
-        </Fragment>
-      ) : artifact && patchesByRepo.size ? (
-        <Fragment>
-          {shouldShowReset &&
-            (hasPRs && prIterationEnabled ? (
-              <PrIterationFeedbackForm
-                autofix={autofix}
-                groupId={groupId}
-                runId={autofix.runState?.run_id}
-                referrer="code_changes_card_reset"
-                onClose={() => setShouldShowReset(false)}
-              />
-            ) : (
-              <AutofixResetPrompt
-                onClosePrompt={() => setShouldShowReset(false)}
-                onReset={handleReset}
-                placeholder={t(
-                  'Give seer additional context to improve this code change.'
-                )}
-                prompt={t('How can this code change be improved?')}
-              />
-            ))}
-          <ArtifactDetails>
-            <Text>{summary}</Text>
-          </ArtifactDetails>
-          {[...patchesByRepo.entries()].map(([repo, patches]) => (
-            <ArtifactDetails key={repo}>
-              <Flex gap="lg">
-                <Text bold>{t('Repository:')}</Text>
-                <Text>{repo}</Text>
-              </Flex>
-              {patches.map((patch, index) => (
-                <FileDiffViewer
-                  key={index}
-                  patch={patch.patch}
-                  showBorder
-                  collapsible
-                  defaultExpanded={artifact !== null && artifact.length <= 1}
-                />
-              ))}
-            </ArtifactDetails>
-          ))}
-        </Fragment>
-      ) : explanation ? (
-        <ArtifactDetails gap="lg">
-          <Flex direction="column" gap="md">
-            <Text bold>
-              {t("Seer proposed a fix but couldn't apply it automatically")}
-            </Text>
-            <Markdown raw={explanation} />
-          </Flex>
-
-          {shouldShowReset ? (
-            hasPRs && prIterationEnabled ? (
-              <PrIterationFeedbackForm
-                autofix={autofix}
-                groupId={groupId}
-                runId={autofix.runState?.run_id}
-                referrer="code_changes_card_reset"
-                onClose={() => setShouldShowReset(false)}
-              />
-            ) : (
-              <AutofixResetPrompt
-                onClosePrompt={() => setShouldShowReset(false)}
-                onReset={handleReset}
-                placeholder={t(
-                  'Add context that could unblock the change, e.g. the repo or files to edit.'
-                )}
-                prompt={t('What additional context should Seer use?')}
-              />
-            )
-          ) : (
-            <Flex>
-              <Button
-                variant="primary"
-                icon={<IconRefresh />}
-                disabled={!canReset}
-                onClick={() => setShouldShowReset(true)}
-              >
-                {t('Add context & retry')}
-              </Button>
-            </Flex>
-          )}
-        </ArtifactDetails>
-      ) : (
-        <ArtifactDetails>
-          <Text>
-            {t(
-              'Seer failed to generate a code change. This one is on us. Try running it again.'
-            )}
-          </Text>
-          <div>
-            <Button
-              variant="primary"
-              icon={<IconRefresh />}
-              onClick={() => handleReset()}
-            >
-              {t('Re-run')}
-            </Button>
-          </div>
-        </ArtifactDetails>
-      )}
+      {content}
     </ArtifactCard>
   );
 }
@@ -435,9 +439,11 @@ function FeedbackAttribution({item}: {item: IterationFeedback}) {
     case 'github-pr-comment':
       return (
         <Tooltip title={item.githubUsername ?? t('GitHub PR comment')} skipWrapper>
-          <GithubIconLink href={item.commentUrl}>
-            <IconGithub size="md" />
-          </GithubIconLink>
+          <ExternalLink href={item.commentUrl}>
+            <Flex align="center">
+              <IconGithub size="md" />
+            </Flex>
+          </ExternalLink>
         </Tooltip>
       );
     case 'user-ui':
@@ -458,7 +464,7 @@ function FeedbackStatusIcon({status}: {status: FeedbackStatus}) {
     case 'in_progress':
       return (
         <Tooltip title={t('This feedback is being processed')}>
-          <StyledLoadingIndicator size={14} />
+          <LoadingIndicator size={14} />
         </Tooltip>
       );
     case 'queued':
@@ -471,29 +477,33 @@ function FeedbackStatusIcon({status}: {status: FeedbackStatus}) {
 function FeedbackItem({item}: {item: IterationFeedback}) {
   const isQueued = item.status === 'queued';
   return (
-    <Flex gap="md" align="center" justify="between">
-      <Flex gap="md" align="center" flex="1" minWidth={0}>
-        <Flex align="center" justify="center" flex="0 0 28px">
-          <FeedbackStatusIcon status={item.status} />
+    <Flex gap="md" align="start" justify="between">
+      <Flex gap="md" align="start" flex="1" minWidth={0}>
+        <Flex align="center" gap="md" height="1lh">
+          <Flex align="center" justify="center" flex="0 0 28px">
+            <FeedbackStatusIcon status={item.status} />
+          </Flex>
+          <FeedbackAttribution item={item} />
         </Flex>
-        <FeedbackAttribution item={item} />
-        {item.sourceType === 'github-pr-comment' ? (
-          <ExternalLink href={item.commentUrl}>{item.text}</ExternalLink>
-        ) : (
-          <Text wordBreak="break-word" variant={isQueued ? 'muted' : undefined}>
-            {item.text}
-          </Text>
-        )}
+        <Flex align="center" minWidth={0} minHeight="1lh">
+          {item.sourceType === 'github-pr-comment' ? (
+            <ExternalLink href={item.commentUrl}>{item.text}</ExternalLink>
+          ) : (
+            <Text wordBreak="break-word" variant={isQueued ? 'muted' : undefined}>
+              {item.text}
+            </Text>
+          )}
+        </Flex>
       </Flex>
       {isQueued ? (
-        <Flex flex="0 0 auto" align="center">
+        <Flex flex="0 0 auto" align="center" height="1lh">
           <Text variant="muted" size="sm" wrap="nowrap">
             {t('Queued')}
           </Text>
         </Flex>
       ) : (
         item.timestamp && (
-          <Flex flex="0 0 auto" align="center">
+          <Flex flex="0 0 auto" align="center" height="1lh">
             <Text variant="muted" size="sm" wrap="nowrap">
               <TimeSince date={item.timestamp} />
             </Text>
@@ -503,13 +513,3 @@ function FeedbackItem({item}: {item: IterationFeedback}) {
     </Flex>
   );
 }
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: 0;
-`;
-
-const GithubIconLink = styled(ExternalLink)`
-  display: inline-flex;
-  align-items: center;
-  line-height: 0;
-`;

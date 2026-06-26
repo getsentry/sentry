@@ -32,9 +32,7 @@ describe('PrIterationFeedbackForm', () => {
 
   it('keeps the submit button enabled while a run is polling', async () => {
     const autofix = makeAutofix({isPolling: true});
-    render(
-      <PrIterationFeedbackForm autofix={autofix} groupId="1" runId={1} />
-    );
+    render(<PrIterationFeedbackForm autofix={autofix} groupId="1" runId={1} />);
 
     await userEvent.type(screen.getByRole('textbox'), 'make it blue');
     expect(screen.getByRole('button', {name: 'Submit'})).toBeEnabled();
