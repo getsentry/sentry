@@ -743,6 +743,7 @@ def _prs_from_check_payload(
         # (a PR merging this repo's branch elsewhere) are not ours to record.
         base_repo_id = ((ref.get("base") or {}).get("repo") or {}).get("id")
         if base_repo_id is None or str(base_repo_id) != repo.external_id:
+            metrics.incr("pr_metrics.check.foreign_pull_request")
             continue
         seen.add(str(number))
         pr = _get_pull_request(organization, repo, {"number": number}, webhook_id)
