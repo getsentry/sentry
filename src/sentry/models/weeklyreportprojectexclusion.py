@@ -11,7 +11,7 @@ from sentry.models.project import Project
 class WeeklyReportProjectExclusion(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
-    project = FlexibleForeignKey(Project, db_constraint=False)
+    project = FlexibleForeignKey(Project)
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
 
     class Meta:
