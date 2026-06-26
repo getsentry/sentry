@@ -72,7 +72,6 @@ export function PlaceHolder({
             <TraceHeaderComponents.StyledPlaceholder _width={300} _height={24} />
           </Stack>
         </TraceHeaderComponents.HeaderRow>
-        <TraceHeaderComponents.StyledBreak />
         <TraceHeaderComponents.HeaderRow>
           <Flex align="center" gap="md">
             <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />

@@ -132,6 +132,8 @@ export type CommitAuthor = {
   name?: string;
 };
 
+export type PullRequestAuthor = User | CommitAuthor;
+
 export type CommitFile = {
   author: CommitAuthor;
   commitMessage: string;
@@ -154,9 +156,18 @@ export interface PullRequest {
 
 export type PullRequestStatus = 'merged' | 'open' | 'closed' | 'draft' | 'unknown';
 
-export interface LinkedPullRequest extends PullRequest {
+type SeerAttribution = {
+  id: 'seer';
+  type: 'seer';
+};
+
+export type PullRequestAttribution = SeerAttribution;
+
+export interface LinkedPullRequest extends Omit<PullRequest, 'author'> {
+  attribution: PullRequestAttribution | null;
   dateLinked: string;
   status: PullRequestStatus;
+  author?: PullRequestAuthor;
 }
 
 export interface LinkedPullRequestsResponse {
@@ -495,45 +506,6 @@ export type IntegrationIssueConfig = {
   status: ObjectStatus;
   createIssueConfig?: IssueConfigField[];
   linkIssueConfig?: IssueConfigField[];
-};
-
-/**
- * Project Plugins
- * Deprecated: legacy plugin system is being removed.
- */
-type PluginNoProject = {
-  canDisable: boolean;
-  contexts: any[];
-  doc: string;
-  featureDescriptions: IntegrationFeature[];
-  features: string[];
-  hasConfiguration: boolean;
-  id: string;
-  isDeprecated: boolean;
-  isHidden: boolean;
-  isTestable: boolean;
-  metadata: any;
-  name: string;
-  shortName: string;
-  slug: string;
-  status: string;
-  type: string;
-  altIsSentryApp?: boolean;
-  author?: {name: string; url: string};
-  deprecationDate?: string;
-  description?: string;
-  firstPartyAlternative?: string;
-  issue?: {
-    issue_id: string;
-    label: string | any;
-    url: string;
-  };
-  resourceLinks?: Array<{title: string; url: string}>;
-  version?: string;
-};
-
-export type Plugin = PluginNoProject & {
-  enabled: boolean;
 };
 
 export type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | DocIntegration;

@@ -35,6 +35,7 @@ from sentry.seer.agent.tools import (
     get_dsn,
     get_event_details,
     get_issue_and_event_details_v2,
+    get_issue_committers,
     get_issue_details,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
@@ -73,6 +74,7 @@ from sentry.seer.endpoints.seer_rpc import (
 )
 from sentry.seer.endpoints.utils import accept_organization_id_param, map_org_id_param
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
+from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
 from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
 
@@ -136,6 +138,7 @@ public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     "execute_issues_query": seer_rpc(map_org_id_param(execute_issues_query)),
     "get_issue_and_event_details_v2": seer_rpc(get_issue_and_event_details_v2),
     "get_issue_details": seer_rpc(get_issue_details),
+    "get_issue_committers": seer_rpc(get_issue_committers),
     "get_event_details": seer_rpc(get_event_details),
     "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),
     "get_replay_metadata": seer_rpc(get_replay_metadata),
@@ -177,6 +180,25 @@ public_project_seer_method_registry: dict[str, SeerRpcMethod] = {
     # Replays - project-scoped methods
     "get_replay_summary_logs": seer_rpc(accept_organization_id_param(rpc_get_replay_summary_logs)),
 }
+
+
+# Org-level methods keyed by ``issue_id``/``event_id`` whose responses are
+# project-scoped (commit messages, PR titles/bodies/URLs, author emails, full event
+# payloads, issue details). The org registry only checks org membership and resolves
+# the issue scoped to the org (see ``_resolve_seer_group``), so these are additionally
+# gated on access to the *resolved* issue's project. A caller without that access gets
+# the same response as a missing issue (``None``) so we don't leak whether an issue
+# exists in a project they cannot see; this matches these methods' existing not-found
+# contract. Every one of these responses carries ``project_id``, which is what the gate
+# checks against.
+_issue_scoped_org_methods: frozenset[str] = frozenset(
+    {
+        "get_issue_committers",
+        "get_issue_details",
+        "get_event_details",
+        "get_issue_and_event_details_v2",
+    }
+)
 
 
 class SeerRpcPermission(OrganizationPermission):
@@ -238,6 +260,31 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         return project
 
+    def _filter_issue_scoped_result(self, request: Request, method_name: str, result: Any) -> Any:
+        """Gate an issue/event-scoped result on access to its project.
+
+        The org registry only checks org membership, so collapse a result whose project
+        the caller can't access into ``None`` — the same signal these methods use for a
+        missing issue, so "no access" is indistinguishable from "not found". The metric
+        is the only place that can still tell those two cases apart afterwards.
+        """
+        if result is None:
+            metrics.incr(
+                "seer.org_rpc.issue_scoped_authz",
+                tags={"method": method_name, "outcome": "not_found"},
+            )
+            return None
+
+        project = Project.objects.get_from_cache(id=result.project_id)
+        if not request.access.has_project_access(project):
+            metrics.incr(
+                "seer.org_rpc.issue_scoped_authz",
+                tags={"method": method_name, "outcome": "access_denied"},
+            )
+            return None
+
+        return result
+
     @sentry_sdk.trace
     def _dispatch_to_local_method(
         self,
@@ -252,7 +299,10 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
         if method_name in public_org_seer_method_registry:
             method = public_org_seer_method_registry[method_name]
             arguments["organization_id"] = organization.id
-            return _serialize_result(method(**arguments))
+            result = method(**arguments)
+            if method_name in _issue_scoped_org_methods:
+                result = self._filter_issue_scoped_result(request, method_name, result)
+            return _serialize_result(result)
 
         # Check if this is a project-level method
         if method_name in public_project_seer_method_registry:

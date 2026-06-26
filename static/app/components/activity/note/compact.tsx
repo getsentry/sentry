@@ -27,8 +27,8 @@ type Props = {
   noteId?: string;
   onCancel?: () => void;
   onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
-  onCreate?: (data: NoteType) => void;
-  onUpdate?: (data: NoteType) => void;
+  onCreate?: (data: NoteType) => Promise<void>;
+  onUpdate?: (data: NoteType) => Promise<void>;
   placeholder?: string;
   /**
    * The note text itself
@@ -61,6 +61,7 @@ export function CompactNoteInput({
   const [memberMentions, setMemberMentions] = useState<Mentioned[]>([]);
   const [teamMentions, setTeamMentions] = useState<Mentioned[]>([]);
   const [isSubmitVisible, setIsSubmitVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canSubmit = value.trim() !== '';
 
@@ -75,13 +76,19 @@ export function CompactNoteInput({
     .filter(mention => value.includes(mention[1]))
     .map(mention => mention[0]);
 
-  const submitForm = useCallback(
-    () =>
-      existingItem
+  const submitForm = useCallback(async () => {
+    setIsSubmitting(true);
+    try {
+      await (existingItem
         ? onUpdate?.({text: cleanMarkdown, mentions: finalizedMentions})
-        : onCreate?.({text: cleanMarkdown, mentions: finalizedMentions}),
-    [existingItem, onUpdate, cleanMarkdown, finalizedMentions, onCreate]
-  );
+        : onCreate?.({text: cleanMarkdown, mentions: finalizedMentions}));
+    } catch {
+      // An error indicator is surfaced by the parent component. Keep this
+      // open so the user can retry without losing their draft.
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [existingItem, onUpdate, cleanMarkdown, finalizedMentions, onCreate]);
 
   const displaySubmitButton = useCallback(() => {
     setIsSubmitVisible(true);
@@ -179,14 +186,15 @@ export function CompactNoteInput({
       {(isSubmitVisible || existingItem) && (
         <Grid flow="column" align="center" gap="xs">
           {existingItem && (
-            <Button size="xs" onClick={onCancel}>
+            <Button size="xs" onClick={onCancel} disabled={isSubmitting}>
               {t('Cancel')}
             </Button>
           )}
           <Button
             variant="primary"
             size="xs"
-            disabled={!canSubmit}
+            busy={isSubmitting}
+            disabled={!canSubmit || isSubmitting}
             aria-label={existingItem ? t('Save comment') : t('Submit comment')}
             type="submit"
           >
