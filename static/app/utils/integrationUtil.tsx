@@ -340,7 +340,7 @@ export function getProviderIntegrationStatus(integrations: Integration[]) {
 }
 
 /**
- * Returns 0 if uninstalled, 1 if pending, 2 if installed
+ * Returns 0 if uninstalled, 1 if pending, 2 if installed, 3 if disabled
  */
 function getInstallValue({
   integration,
@@ -363,7 +363,15 @@ function getInstallValue({
     return 0;
   }
 
-  return integrationInstalls.some(i => i.provider.key === integration.key) ? 2 : 0;
+  const providerInstalls = integrationInstalls.filter(
+    i => i.provider.key === integration.key
+  );
+  // Providers with any disabled config sort above all installed integrations (3 > 2)
+  // so they stay at the top when the reinstall banner is shown.
+  if (providerInstalls.some(i => getIntegrationStatus(i) === 'disabled')) {
+    return 3;
+  }
+  return providerInstalls.length > 0 ? 2 : 0;
 }
 
 function getPopularityWeight(integration: AppOrProviderOrPlugin) {
