@@ -78,7 +78,11 @@ class SeerRun(DefaultFieldsModel):
 
 @cell_silo_model
 class SeerRunPullRequest(DefaultFieldsModel):
-    """Links a Seer run to a pull request it opened."""
+    """Links a Seer run to a pull request it opened.
+
+    A run opens many PRs, but a PR is opened by exactly one run, so
+    ``pull_request`` is unique (one row per PR).
+    """
 
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -94,8 +98,8 @@ class SeerRunPullRequest(DefaultFieldsModel):
         db_table = "seer_seerrunpullrequest"
         constraints = [
             models.UniqueConstraint(
-                fields=["seer_run", "pull_request"],
-                name="seer_runpr_unique_run_pr",
+                fields=["pull_request"],
+                name="seer_runpr_unique_pr",
             ),
         ]
 

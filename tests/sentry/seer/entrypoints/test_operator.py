@@ -1262,6 +1262,20 @@ class LinkRunToPullRequestsTest(TestCase):
 
         assert SeerRunPullRequest.objects.filter(pull_request=resolved.pull_request).count() == 1
 
+    def test_pr_is_linked_to_a_single_run(self) -> None:
+        """A PR is opened by one run; a later run can't take over the link."""
+        resolved = self._resolved()
+        self._link([resolved])
+
+        other_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=RUN_STATE_ID + 1
+        )
+        self._link([resolved], run_id=other_run.seer_run_state_id)
+
+        links = SeerRunPullRequest.objects.filter(pull_request=resolved.pull_request)
+        assert links.count() == 1
+        assert links.get().seer_run_id == self.seer_run.id
+
     def test_links_multiple_prs_for_one_run(self) -> None:
         """A multi-repo run links each opened PR to the same run."""
         other_repo = self.create_repo(
@@ -1273,8 +1287,8 @@ class LinkRunToPullRequestsTest(TestCase):
         self._link([r1, r2])
 
         assert SeerRunPullRequest.objects.filter(seer_run=self.seer_run).count() == 2
-        assert SeerRunPullRequest.objects.filter(pull_request=r1.pull_request).exists()
-        assert SeerRunPullRequest.objects.filter(pull_request=r2.pull_request).exists()
+        # The M2M accessor reads back both PRs the run opened.
+        assert set(self.seer_run.pull_requests.all()) == {r1.pull_request, r2.pull_request}
 
     def test_one_failing_write_does_not_drop_the_rest(self) -> None:
         r1 = self._resolved(pr_number=1)
