@@ -9,7 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {ActivityRelease} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/releaseChip';
 
-export function CommitActivityLink({commit}: {commit: Commit}) {
+function CommitActivityLink({commit}: {commit: Commit}) {
   return <CommitLink inline commitId={commit.id} repository={commit.repository} />;
 }
 
