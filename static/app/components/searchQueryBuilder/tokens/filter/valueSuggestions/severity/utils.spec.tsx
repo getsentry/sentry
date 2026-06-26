@@ -23,9 +23,9 @@ describe('getSeverityColorVariant', () => {
     {value: 'info', variant: 'accent'},
     {value: 'trace', variant: 'accent'},
     {value: 'sample', variant: 'accent'},
-    {value: 'debug', variant: 'neutral'},
-    {value: 'default', variant: 'neutral'},
-    {value: 'something-else', variant: 'neutral'},
+    {value: 'debug', variant: 'muted'},
+    {value: 'default', variant: 'muted'},
+    {value: 'something-else', variant: 'muted'},
     {value: 'ERROR', variant: 'danger'},
     {value: 'Warn', variant: 'warning'},
   ])('returns "$variant" when the value is "$value"', ({value, variant}) => {
