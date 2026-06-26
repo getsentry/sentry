@@ -14,8 +14,6 @@ from sentry.seer.models.run import SeerRunPullRequest
 
 logger = logging.getLogger(__name__)
 
-PULL_REQUEST_LINKING_KILLSWITCH = "seer.pull-request-linking.killswitch.enabled"
-
 
 def link_seer_run_pull_requests(
     *,
@@ -28,7 +26,7 @@ def link_seer_run_pull_requests(
     Idempotent (first run to claim a PR keeps it) and best-effort: every failure
     is logged and swallowed.
     """
-    if options.get(PULL_REQUEST_LINKING_KILLSWITCH):
+    if options.get("seer.pull-request-linking.killswitch.enabled"):
         return
 
     if seer_run_state_id is None:
