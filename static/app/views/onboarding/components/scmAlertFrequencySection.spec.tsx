@@ -75,6 +75,27 @@ describe('ScmAlertFrequencySection', () => {
     ).toBeInTheDocument();
   });
 
+  it('adds the integration action when the Integration checkbox is clicked', async () => {
+    const setActions = jest.fn();
+    renderSection({
+      analyticsFlow: 'onboarding',
+      notificationProps: {...notificationProps, setActions},
+    });
+
+    // Querying the checkbox by the label text also asserts the label wraps the
+    // input, so clicking the text toggles it.
+    await userEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'Integration (Slack, Discord, MS Teams, etc.)',
+      })
+    );
+
+    expect(setActions).toHaveBeenCalledWith([
+      MultipleCheckboxOptions.EMAIL,
+      MultipleCheckboxOptions.INTEGRATION,
+    ]);
+  });
+
   it('hides the notification options when alerts are turned off', () => {
     renderSection({
       analyticsFlow: 'onboarding',
