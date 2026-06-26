@@ -381,19 +381,13 @@ class IssuesEventWebhook(GitlabWebhook):
         return f"{integration.metadata['domain_name']}:{path_with_namespace}#{issue_iid}"
 
 
-def _merge_request_lifecycle_state(state: str | None) -> str | None:
-    """Map a GitLab merge request ``state`` to a ``PullRequestLifecycleState`` value.
-
-    GitLab reports the merge request state directly (e.g. "opened", "closed",
-    "merged", "locked"), unlike GitHub which folds "merged" into a separate flag.
-    Returns ``None`` for unrecognized states so we don't store a bogus value.
-    """
+def _map_gitlab_state_to_pullrequest_lifecycle(gitlab_state: str | None) -> str | None:
     return {
         "opened": PullRequestLifecycleState.OPEN,
         "closed": PullRequestLifecycleState.CLOSED,
         "merged": PullRequestLifecycleState.MERGED,
         "locked": PullRequestLifecycleState.LOCKED,
-    }.get(state or "")
+    }.get(gitlab_state or "")
 
 
 class MergeEventWebhook(GitlabWebhook):
@@ -466,11 +460,12 @@ class MergeEventWebhook(GitlabWebhook):
                 author_name = last_commit["author"]["name"]
                 head_commit_sha = last_commit.get("id")
 
-            # Lifecycle facts kept current for the PR metrics pipeline. GitLab
-            # only reports created_at/updated_at on the merge request, so we
-            # derive closed_at/merged_at from updated_at based on the state.
             updated_at = event["object_attributes"].get("updated_at")
-            state = _merge_request_lifecycle_state(event["object_attributes"].get("state"))
+            merged_at = event["object_attributes"].get("merged_at")
+            state = _map_gitlab_state_to_pullrequest_lifecycle(
+                event["object_attributes"].get("state")
+            )
+            action = event["object_attributes"].get("action")
             draft = event["object_attributes"].get("work_in_progress")
         except KeyError as e:
             logger.warning(
@@ -501,11 +496,30 @@ class MergeEventWebhook(GitlabWebhook):
 
         opened_at = parse_date(created_at).astimezone(timezone.utc)
         state_changed_at = parse_date(updated_at).astimezone(timezone.utc) if updated_at else None
-        # A merged merge request is also closed, so populate closed_at for both
-        # terminal states (matching the GitHub integration's convention).
-        is_terminal = state in (PullRequestLifecycleState.CLOSED, PullRequestLifecycleState.MERGED)
-        closed_at = state_changed_at if is_terminal else None
-        merged_at = state_changed_at if state == PullRequestLifecycleState.MERGED else None
+        merged_at_dt = parse_date(merged_at).astimezone(timezone.utc) if merged_at else None
+
+        defaults = {
+            "title": title,
+            "author": author,
+            "message": body,
+            "merge_commit_sha": merge_commit_sha,
+            "head_commit_sha": head_commit_sha,
+            "date_added": opened_at,
+            "opened_at": opened_at,
+            "merged_at": merged_at_dt,
+            "state": state,
+            "draft": draft,
+        }
+
+        # GitLab has no closed_at, so derive it from the lifecycle action. A
+        # merged merge request is also closed. Actions that don't change
+        # lifecycle state (e.g. "update") leave the stored closed_at untouched.
+        if action == "merge":
+            defaults["closed_at"] = merged_at_dt or state_changed_at
+        elif action == "close":
+            defaults["closed_at"] = state_changed_at
+        elif action in ("reopen", "open"):
+            defaults["closed_at"] = None
 
         author.preload_users()
         try:
@@ -513,19 +527,7 @@ class MergeEventWebhook(GitlabWebhook):
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
-                defaults={
-                    "title": title,
-                    "author": author,
-                    "message": body,
-                    "merge_commit_sha": merge_commit_sha,
-                    "head_commit_sha": head_commit_sha,
-                    "date_added": opened_at,
-                    "opened_at": opened_at,
-                    "closed_at": closed_at,
-                    "merged_at": merged_at,
-                    "state": state,
-                    "draft": draft,
-                },
+                defaults=defaults,
             )
         except IntegrityError:
             pass
