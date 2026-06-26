@@ -26,6 +26,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
+import {defined} from 'sentry/utils/defined';
 
 type QueryBuilderState = {
   /**
@@ -701,6 +702,37 @@ function canonicalizeSearchValue(value: string) {
       : value;
 
   return escapeTagValueForSearch(unescapeAsteriskSearchValue(unquotedValue));
+}
+
+function getCanonicalSelectedValues(token: TokenResult<Token.FILTER>): Set<string> {
+  const tokenValue = token.value;
+
+  switch (tokenValue.type) {
+    case Token.VALUE_TEXT_LIST:
+    case Token.VALUE_NUMBER_LIST:
+      return new Set(
+        tokenValue.items
+          .map(item => item.value?.value)
+          .filter(defined)
+          .map(canonicalizeSearchValue)
+      );
+    default:
+      return tokenValue.value
+        ? new Set([canonicalizeSearchValue(tokenValue.value)])
+        : new Set();
+  }
+}
+
+export function getMultiSelectValueState(
+  token: TokenResult<Token.FILTER>,
+  value: string
+): {selected: boolean; selectedCount: number} {
+  const canonicalSelectedValues = getCanonicalSelectedValues(token);
+
+  return {
+    selected: canonicalSelectedValues.has(canonicalizeSearchValue(value)),
+    selectedCount: canonicalSelectedValues.size,
+  };
 }
 
 export function multiSelectTokenValue(
