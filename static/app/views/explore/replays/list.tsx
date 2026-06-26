@@ -139,6 +139,11 @@ function ReplaysListBody() {
     !rageClicksSdkVersion.needsUpdate &&
     !allMobileProj &&
     !isLoading;
+  const showDeadRageClickCardsPlaceholder =
+    hasSentReplays.hasSentOneReplay &&
+    !rageClicksSdkVersion.needsUpdate &&
+    !allMobileProj &&
+    isLoading;
   const [widgetIsOpen, setWidgetIsOpen] = useLocalStorageState(
     'replay-dead-rage-widget-open',
     true
@@ -173,6 +178,7 @@ function ReplaysListBody() {
               <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
                 <ReplayIndexContainer
                   showDeadRageClickCards={showDeadRageClickCards}
+                  showDeadRageClickCardsPlaceholder={showDeadRageClickCardsPlaceholder}
                   widgetIsOpen={widgetIsOpen}
                 />
               </ReplayAccess>

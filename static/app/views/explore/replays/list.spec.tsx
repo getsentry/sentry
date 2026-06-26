@@ -192,6 +192,36 @@ describe('ReplayList', () => {
     expect(mockFetchReplayListRequest).toHaveBeenCalled();
   });
 
+  it('should render rage click card placeholders while widget prerequisites are loading', async () => {
+    const mockOrg = getMockOrganizationFixture({features: AM2_FEATURES});
+    mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
+      fetching: false,
+      hasSentOneReplay: true,
+    });
+    mockUseProjectSdkNeedsUpdate.mockReturnValue({
+      isError: false,
+      isFetching: true,
+      needsUpdate: false,
+      data: [],
+    });
+
+    render(<ListPage />, {
+      organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
+    });
+
+    await screen.findByTestId('replay-table');
+
+    expect(screen.getByText('Most Dead Clicks')).toBeInTheDocument();
+    expect(screen.getByText('Most Rage Clicks')).toBeInTheDocument();
+
+    const widgets = screen.getAllByTestId('selector-widget');
+    expect(widgets).toHaveLength(2);
+    expect(within(widgets[0]!).getAllByTestId('loading-placeholder')).toHaveLength(3);
+    expect(within(widgets[1]!).getAllByTestId('loading-placeholder')).toHaveLength(3);
+    expect(mockUseDeadRageSelectors).not.toHaveBeenCalled();
+  });
+
   it('should fetch the replay table when the org is on AM2, has sent some replays, and has a newer SDK version', async () => {
     const mockOrg = getMockOrganizationFixture({features: AM2_FEATURES});
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
