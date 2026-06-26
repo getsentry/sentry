@@ -14,13 +14,14 @@ from sentry.seer.models.night_shift import (
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.tasks.seer.night_shift.cron import (
+    ScoredCandidate,
     _get_eligible_projects,
     build_run_options,
+    fixability_score_strategy,
     run_night_shift_for_org,
     schedule_night_shift,
 )
 from sentry.tasks.seer.night_shift.models import TriageAction
-from sentry.tasks.seer.night_shift.simple_triage import ScoredCandidate, fixability_score_strategy
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
