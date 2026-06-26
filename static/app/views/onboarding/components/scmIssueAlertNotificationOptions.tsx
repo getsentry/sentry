@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -62,7 +64,9 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
           <ScmCollapsibleReveal
             open={!shouldRenderSetupButton && shouldRenderNotificationConfigs}
           >
-            <ScmMessagingIntegrationAlertRule {...props} />
+            <IndentedRule>
+              <ScmMessagingIntegrationAlertRule {...props} />
+            </IndentedRule>
           </ScmCollapsibleReveal>
         </Stack>
       </MultipleCheckbox>
@@ -74,3 +78,10 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
     </Stack>
   );
 }
+
+// Indents the rule so its left edge lines up with the checkbox label text
+// rather than the checkbox itself: the sm Checkbox box (16px) plus the label's
+// left margin (space.md).
+const IndentedRule = styled('div')`
+  padding-left: calc(16px + ${p => p.theme.space.md});
+`;
