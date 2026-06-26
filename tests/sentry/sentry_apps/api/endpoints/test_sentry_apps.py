@@ -134,6 +134,7 @@ class SentryAppsTest(APITestCase):
             "uuid": sentry_app.uuid,
             "verifyInstall": sentry_app.verify_install,
             "webhookUrl": sentry_app.webhook_url,
+            "webhookHeaders": [],
             "metadata": {},
         }
 
@@ -784,6 +785,79 @@ class PostSentryAppsTest(SentryAppsTest):
         assert sentry_app.application.get_allowed_origins() == []
 
         self.assert_sentry_app_status_code(sentry_app, status_code=400)
+
+    def test_create_integration_with_webhook_headers(self) -> None:
+        response = self.get_success_response(
+            **self.get_data(webhookHeaders=["X-Example: value", "Authorization: Bearer token"]),
+            status_code=201,
+        )
+        sentry_app = SentryApp.objects.get(slug=response.data["slug"])
+        assert sentry_app.webhook_headers == ["X-Example: value", "Authorization: Bearer token"]
+        assert response.data["webhookHeaders"] == [
+            f"X-Example: {MASKED_VALUE}",
+            f"Authorization: {MASKED_VALUE}",
+        ]
+
+    def test_create_integration_strips_webhook_header_whitespace(self) -> None:
+        # CharField children are whitespace-trimmed during validation, so a
+        # leading/trailing CR/LF passes the newline check. The endpoint must
+        # persist the sanitized (trimmed) value from validated_data, not the raw
+        # request body, otherwise the stored header smuggles the newline back in.
+        response = self.get_success_response(
+            **self.get_data(
+                webhookHeaders=["X-Trailing: value\r\n", "\nAuthorization: Bearer token"]
+            ),
+            status_code=201,
+        )
+        sentry_app = SentryApp.objects.get(slug=response.data["slug"])
+        assert sentry_app.webhook_headers == ["X-Trailing: value", "Authorization: Bearer token"]
+        for header in sentry_app.webhook_headers:
+            assert "\n" not in header
+            assert "\r" not in header
+
+    def test_create_integration_with_invalid_webhook_header(self) -> None:
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=["missing-colon"]), status_code=400
+        )
+        assert "webhookHeaders" in response.data
+
+    def test_create_integration_with_reserved_webhook_header(self) -> None:
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=["Content-Type: text/plain"]), status_code=400
+        )
+        assert "webhookHeaders" in response.data
+
+    def test_create_integration_with_disallowed_webhook_header(self) -> None:
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=["Another-Header: thing"]), status_code=400
+        )
+        assert "webhookHeaders" in response.data
+
+    def test_create_integration_with_duplicate_webhook_header(self) -> None:
+        # Duplicate names (case-insensitive) are rejected so the masked round-trip
+        # can re-pair entries by name unambiguously.
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=["X-Dupe: a", "x-dupe: b"]), status_code=400
+        )
+        assert "webhookHeaders" in response.data
+
+    def test_create_integration_with_too_many_webhook_headers(self) -> None:
+        headers = [f"X-Header-{i}: value" for i in range(21)]
+        response = self.get_error_response(**self.get_data(webhookHeaders=headers), status_code=400)
+        assert "webhookHeaders" in response.data
+
+    def test_create_integration_with_invalid_header_name_chars(self) -> None:
+        # Control characters in header names are not valid RFC 7230 tokens.
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=["X-Evil\x01Header: value"]), status_code=400
+        )
+        assert "webhookHeaders" in response.data
+
+    def test_create_integration_with_space_in_header_name(self) -> None:
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=["X Bad Name: value"]), status_code=400
+        )
+        assert "webhookHeaders" in response.data
 
     def test_members_cant_create(self) -> None:
         # create extra owner because we are demoting one
