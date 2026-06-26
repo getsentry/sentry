@@ -16,13 +16,16 @@ from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.runner.commands.cleanup import (
     _cleanup,
     generate_bulk_query_deletes,
+    models_which_use_deletions_code_path,
     models_which_use_expiry_deletions,
     prepare_deletes_by_project,
     remove_cross_project_bulk_query_models,
     remove_old_notification_messages,
     run_bulk_deletes_by_project,
+    run_bulk_deletes_in_deletes,
     task_execution,
 )
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -280,6 +283,49 @@ class UptimeResponseCaptureCleanupTest(TestCase):
 
         assert not UptimeResponseCapture.objects.filter(id=capture_id).exists()
         assert not File.objects.filter(id=file_id).exists()
+
+
+class SeerRunCleanupTest(TestCase):
+    def _run_seer_run_cleanup(self, days: int) -> None:
+        run_bulk_deletes_in_deletes(
+            SynchronousTaskQueue(),  # type: ignore[arg-type]  # It partially implements the queue protocol
+            models_which_use_deletions_code_path(),
+            lambda model: model is not SeerRun,
+            days,
+            None,
+            None,
+            set(),
+        )
+
+    @assume_test_silo_mode(SiloMode.CELL)
+    def test_deletes_runs_older_than_retention(self) -> None:
+        old = self.create_seer_run(
+            organization=self.organization, last_triggered_at=before_now(days=31)
+        )
+        recent = self.create_seer_run(
+            organization=self.organization, last_triggered_at=before_now(days=29)
+        )
+
+        self._run_seer_run_cleanup(days=30)
+
+        assert not SeerRun.objects.filter(id=old.id).exists()
+        assert SeerRun.objects.filter(id=recent.id).exists()
+
+    @assume_test_silo_mode(SiloMode.CELL)
+    def test_cascades_to_children(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, last_triggered_at=before_now(days=31)
+        )
+        agent = SeerAgentRun.objects.create(run=run, title="t", source="autofix")
+        repo = self.create_repo(project=self.create_project())
+        pr = self.create_pull_request(organization_id=self.organization.id, repository_id=repo.id)
+        link = SeerRunPullRequest.objects.create(seer_run=run, pull_request=pr)
+
+        self._run_seer_run_cleanup(days=30)
+
+        assert not SeerRun.objects.filter(id=run.id).exists()
+        assert not SeerAgentRun.objects.filter(id=agent.id).exists()
+        assert not SeerRunPullRequest.objects.filter(id=link.id).exists()
 
 
 class PartitionValidationTest(TestCase):
