@@ -1,6 +1,5 @@
 from typing import Literal, Never, cast
 
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -204,7 +203,6 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
             "additional_context": data.get("additional_context"),
             "examples": data.get("examples", []),
             "updated_by_id": request.user.id,
-            "last_received": timezone.now(),
         }
         context, created = TraceItemAttributeContext.objects.update_or_create(
             organization=organization,

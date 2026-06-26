@@ -84,7 +84,6 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         assert context.attribute_type == TraceItemAttributeTypes.get_id_for_type_name("string")
         assert context.created_by_id == self.user.id
         assert context.updated_by_id == self.user.id
-        assert context.last_received is not None
 
     def test_updates_existing_context(self) -> None:
         self.store_attribute(my_custom_attr="value")
