@@ -95,8 +95,8 @@ export function ActivityLineNote({
 }
 
 const ActivityNoteBubble = styled('div')`
-  display: inline-block;
-  max-width: 100%;
+  display: block;
+  width: 100%;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};

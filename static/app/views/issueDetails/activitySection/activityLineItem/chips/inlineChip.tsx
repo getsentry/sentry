@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 interface InlineChipProps {
   children: React.ReactNode;
+  tone?: 'accent' | 'default';
   variant?: 'compactLeading' | 'constrained' | 'default';
 }
 
@@ -11,9 +12,14 @@ interface ChipFrameProps {
   maxWidth?: React.CSSProperties['maxWidth'];
   minWidth?: React.CSSProperties['minWidth'];
   paddingLeft?: React.CSSProperties['paddingLeft'];
+  tone?: InlineChipProps['tone'];
 }
 
-export function InlineChip({children, variant = 'default'}: InlineChipProps) {
+export function InlineChip({
+  children,
+  tone = 'default',
+  variant = 'default',
+}: InlineChipProps) {
   const theme = useTheme();
 
   return (
@@ -21,15 +27,16 @@ export function InlineChip({children, variant = 'default'}: InlineChipProps) {
       maxWidth={variant === 'constrained' ? '100%' : undefined}
       minWidth={variant === 'constrained' ? 0 : undefined}
       paddingLeft={variant === 'compactLeading' ? theme.space.xs : undefined}
+      tone={tone}
     >
       {children}
     </ChipFrame>
   );
 }
 
-function ChipFrame({children, maxWidth, minWidth, paddingLeft}: ChipFrameProps) {
+function ChipFrame({children, maxWidth, minWidth, paddingLeft, tone}: ChipFrameProps) {
   return (
-    <ChipFrameElement style={{maxWidth, minWidth, paddingLeft}}>
+    <ChipFrameElement data-tone={tone} style={{maxWidth, minWidth, paddingLeft}}>
       {children}
     </ChipFrameElement>
   );
@@ -59,6 +66,11 @@ const chipFrameStyles = (p: {theme: Theme}) => css`
 
   a:hover {
     color: inherit;
+  }
+
+  &[data-tone='accent'] {
+    background: ${p.theme.tokens.background.transparent.accent.muted};
+    color: ${p.theme.tokens.content.accent};
   }
 `;
 

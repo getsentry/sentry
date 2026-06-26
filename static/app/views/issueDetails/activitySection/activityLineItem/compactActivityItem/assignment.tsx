@@ -149,7 +149,7 @@ function AssignedActivityTitle({activity, author}: GetAssignedActivityItemParams
             : tct('to [assignee] by', {assignee})}
         </AssignmentDetailText>
       </AssignmentPrefix>
-      {assignedToSelf ? null : author}
+      {assignedToSelf ? null : <AssignmentDetailText>{author}</AssignmentDetailText>}
     </AssignmentLead>
   );
 }

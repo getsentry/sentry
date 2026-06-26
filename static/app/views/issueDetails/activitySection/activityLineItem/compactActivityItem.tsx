@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
@@ -27,6 +27,7 @@ import type {CompactGroupActivityItem} from './compactActivityItem/types';
 import {
   ActivityPriorityChip,
   ActivityRelease,
+  ExternalIssueChip,
   PullRequestChip,
   SeerPullRequestChip,
 } from './chips';
@@ -428,9 +429,8 @@ export function getCompactGroupActivityItem({
 
       return {
         title: t('Issue regressed'),
-        details: data.version ? (
-          <Fragment>
-            {tct('in [version]', {
+        details: data.version
+          ? tct('in [version]', {
               version: (
                 <ActivityRelease
                   organization={organization}
@@ -438,12 +438,9 @@ export function getCompactGroupActivityItem({
                   version={data.version}
                 />
               ),
-            })}
-            {comparison && <Fragment> {comparison}</Fragment>}
-          </Fragment>
-        ) : (
-          tct('by [author]', {author})
-        ),
+            })
+          : tct('by [author]', {author}),
+        subtext: comparison,
       };
     }
     case GroupActivityType.CREATE_ISSUE:
@@ -452,9 +449,11 @@ export function getCompactGroupActivityItem({
         details: tct('on [provider] [title]', {
           provider: activity.data.provider,
           title: (
-            <ExternalLink href={activity.data.location}>
-              {activity.data.title}
-            </ExternalLink>
+            <ExternalIssueChip
+              label={activity.data.label ?? activity.data.title}
+              location={activity.data.location}
+              provider={activity.data.provider}
+            />
           ),
         }),
       };

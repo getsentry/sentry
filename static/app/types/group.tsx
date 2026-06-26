@@ -892,6 +892,7 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
     location: string;
     provider: string;
     title: string;
+    label?: string;
     new?: boolean;
   };
   type: GroupActivityType.CREATE_ISSUE;
