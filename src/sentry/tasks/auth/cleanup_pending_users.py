@@ -5,6 +5,7 @@ from django.utils import timezone
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import auth_control_tasks
+from sentry.users.models.pending_user import PendingUser
 
 
 @instrumented_task(
@@ -14,6 +15,4 @@ from sentry.taskworker.namespaces import auth_control_tasks
     processing_deadline_duration=90,
 )
 def cleanup_pending_users(**kwargs) -> None:
-    from sentry.users.models.pending_user import PendingUser
-
     PendingUser.objects.filter(expires_at__lte=timezone.now()).delete()

@@ -18,25 +18,16 @@ class PendingUser(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    email = models.EmailField(max_length=200)
+    email = models.EmailField(max_length=200, unique=True)
     name = models.CharField(max_length=200)
     password = models.CharField(max_length=128)
     organization_name = models.CharField(max_length=64, blank=True, db_default="")
     data_storage_location = models.CharField(max_length=10, blank=True, db_default="")
     subscribe = models.BooleanField(db_default=False)
-    expires_at = models.DateTimeField()
+    expires_at = models.DateTimeField(db_index=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pendinguser"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["email"],
-                name="sentry_pendinguser_email_unique",
-            ),
-        ]
-        indexes = [
-            models.Index(fields=["expires_at"], name="sentry_pendinguser_expires_at"),
-        ]
 
     __repr__ = sane_repr("email")
