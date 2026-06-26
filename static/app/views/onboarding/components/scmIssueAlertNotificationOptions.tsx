@@ -79,11 +79,16 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
   );
 }
 
-// MultipleCheckbox.Item's label is fixed at 20% width with nowrap text, tuned
-// for the classic wrapping row layout. In this stacked layout the long
-// integration label overflows on narrow screens, so let each label fill its
-// row and truncate the text with an ellipsis instead.
+// MultipleCheckbox.Item wraps each label in a container that is only a fraction
+// of the row (down to 25% on wide screens), and the label itself is 20% with
+// nowrap text. Both are tuned for the classic side-by-side row layout, but here
+// they truncate the long integration label even when there is room. Widen the
+// container and label to fill the row so the text only ellipsis-truncates when
+// it genuinely overflows (narrow screens).
 const CheckboxStack = styled(Stack)`
+  > div {
+    width: 100%;
+  }
   label {
     width: 100%;
     min-width: 0;
