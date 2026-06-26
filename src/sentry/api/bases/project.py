@@ -17,7 +17,6 @@ from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.utils.sdk import Scope, bind_organization_context
@@ -168,10 +167,6 @@ class ProjectEndpoint(Endpoint):
                 organization__slug__id_or_slug=organization_id_or_slug,
                 slug__id_or_slug=project_id_or_slug,
             ).get()
-            organization = Organization.objects.get_from_cache(id=project.organization_id)
-            project.set_cached_field_value("organization", organization)
-        except Organization.DoesNotExist:
-            raise ProjectDoesNotExist
         except Project.DoesNotExist:
             try:
                 # Project may have been renamed
