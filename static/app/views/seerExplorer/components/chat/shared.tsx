@@ -58,9 +58,7 @@ export function getBlockStatus(block: Block): BlockStatus {
     return 'success';
   }
 
-  const failures = toolLinks.filter(
-    l => l.params?.is_error === true || l.params?.empty_results === true
-  ).length;
+  const failures = toolLinks.filter(l => l.params?.is_error === true).length;
 
   if (failures === 0) {
     return 'success';
