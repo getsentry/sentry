@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, NamedTuple
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -11,6 +12,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -22,8 +24,12 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.utils.groupreference import find_referenced_groups
+
+if TYPE_CHECKING:
+    from sentry.models.repository import Repository
 
 
 class PullRequestLifecycleState(models.TextChoices):
@@ -62,6 +68,67 @@ class PullRequestVerdict(models.TextChoices):
     JUDGE_IN_PROGRESS = "judge_in_progress"
 
 
+RepoResolution = Literal["resolved", "not_found", "ambiguous"]
+
+# SCM providers that can legitimately back a Repository. A reporting source (Seer, a
+# delegated coding agent, a future integration) normalizes its provider to one of these
+# (lowercased, no ``integrations:`` prefix); anything else is a value we don't understand
+# and should be fixed upstream.
+_KNOWN_SCM_PROVIDERS = frozenset(
+    {
+        IntegrationProviderSlug.GITHUB,
+        IntegrationProviderSlug.GITHUB_ENTERPRISE,
+        IntegrationProviderSlug.GITLAB,
+        IntegrationProviderSlug.BITBUCKET,
+        IntegrationProviderSlug.BITBUCKET_SERVER,
+        IntegrationProviderSlug.AZURE_DEVOPS,
+        IntegrationProviderSlug.PERFORCE,
+    }
+)
+
+
+class ResolvedPullRequest(NamedTuple):
+    """Result of resolving an externally-reported PR to its canonical ``PullRequest``.
+
+    ``pull_request`` is None when the reported ``(repo_name, provider)`` doesn't map to
+    exactly one active ``Repository``; ``repo_resolution`` says why, and
+    ``provider_recognized`` flags a provider string we don't map. Callers decide how (and
+    whether) to log these under their own namespace.
+    """
+
+    pull_request: PullRequest | None
+    repo_resolution: RepoResolution
+    provider_recognized: bool
+
+
+def parse_pull_request_number(url: str) -> int | None:
+    """Extract the PR/MR number from a pull-request URL, or None if there isn't one.
+
+    Matches the number after a ``/pull/`` (GitHub) or ``/merge_requests/`` (GitLab)
+    segment specifically — a source can report a branch/``tree`` URL as its result, and
+    we must not mistake a trailing branch-name segment for a PR number.
+    """
+    match = re.search(r"/(?:pull|pulls|merge_requests)/(\d+)", url)
+    return int(match.group(1)) if match else None
+
+
+def _normalize_scm_provider(provider: str | None) -> str | None:
+    """Normalize a reported SCM provider to Sentry's unprefixed form, or None if unusable.
+
+    Returns None for the ``"unknown"`` sentinel (the source couldn't resolve the repo) and
+    for empty values — neither can scope a provider filter. Lowercases before the sentinel
+    check so any casing (e.g. ``UNKNOWN``) is treated as unknown.
+    """
+    if not provider:
+        return None
+    provider = provider.lower()
+    if provider.startswith("integrations:"):
+        provider = provider.split(":", 1)[1]
+    if provider == "unknown":
+        return None
+    return provider
+
+
 class PullRequestManager(BaseManager["PullRequest"]):
     def update_or_create(
         self,
@@ -93,6 +160,84 @@ class PullRequestManager(BaseManager["PullRequest"]):
             )
             post_save.send(sender=self.__class__, instance=instance, created=created)
         return affected, created
+
+    def get_or_create_from_reference(
+        self,
+        *,
+        organization_id: int,
+        repo_name: str,
+        provider: str | None,
+        key: int | str,
+    ) -> ResolvedPullRequest:
+        """Resolve an externally-reported ``(repo_name, provider, key)`` to its canonical PR.
+
+        Resolves the org-scoped active ``Repository`` (see ``_resolve_repository``), then
+        find-or-creates the ``PullRequest`` keyed on ``key`` (the PR number). The
+        find-or-create may run before the SCM ``opened`` webhook arrives, so the row can be
+        a shell (no title/body) the webhook fills in later — we never overwrite it here.
+
+        Returns a ``ResolvedPullRequest``; ``pull_request`` is None when the repo can't be
+        uniquely resolved. Does not log or swallow errors — callers own observability and
+        error handling. Shared by every path that learns of a PR by repo name + provider
+        rather than through an SCM installation (e.g. Seer-created and delegated-agent
+        attribution).
+        """
+        normalized_provider = _normalize_scm_provider(provider)
+        provider_recognized = (
+            normalized_provider is None or normalized_provider in _KNOWN_SCM_PROVIDERS
+        )
+
+        repository, resolution = self._resolve_repository(
+            organization_id=organization_id,
+            repo_name=repo_name,
+            normalized_provider=normalized_provider,
+        )
+        if repository is None:
+            return ResolvedPullRequest(None, resolution, provider_recognized)
+
+        # get_or_create is race-safe via the unique constraint on (repository, key) —
+        # Django retries the get on IntegrityError.
+        pull_request, _ = self.get_or_create(
+            organization_id=organization_id,
+            repository_id=repository.id,
+            key=str(key),
+        )
+        return ResolvedPullRequest(pull_request, "resolved", provider_recognized)
+
+    def _resolve_repository(
+        self, *, organization_id: int, repo_name: str, normalized_provider: str | None
+    ) -> tuple[Repository | None, RepoResolution]:
+        """Resolve the org-scoped active repository for an externally-reported PR.
+
+        Sentry stores the ``integrations:``-prefixed provider while reporters send the bare
+        form, so we match both shapes — the same mapping ``filter_repo_by_provider`` uses.
+
+        Resolves only when exactly one repo matches. A known provider disambiguates
+        same-named repos across providers; an unknown provider refuses to guess between them
+        rather than risk mis-resolution.
+
+        Returns ``(repository, reason)`` where reason is ``"resolved"``, ``"not_found"``
+        (zero matches), or ``"ambiguous"`` (more than one).
+        """
+        from sentry.models.repository import Repository
+
+        candidates = Repository.objects.filter(
+            organization_id=organization_id,
+            name=repo_name,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        if normalized_provider is not None:
+            candidates = candidates.filter(
+                Q(provider=normalized_provider) | Q(provider=f"integrations:{normalized_provider}")
+            )
+
+        # Fetch up to 2 to detect ambiguity — the same name can exist under multiple
+        # providers (e.g. github & gitlab) within one org.
+        matches = list(candidates.order_by("id")[:2])
+        if len(matches) == 1:
+            return matches[0], "resolved"
+        return None, "ambiguous" if matches else "not_found"
 
 
 @cell_silo_model
