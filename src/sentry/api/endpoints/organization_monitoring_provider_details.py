@@ -149,9 +149,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
 
         try:
             link_provider_identity(
-                user=user,  # type: ignore[arg-type]
-                identity_data=identity_data,
-                organization_id=organization.id,
+                user=user, identity_data=identity_data, organization_id=organization.id
             )
         except IntegrityError:
             return Response({"detail": "This account is already connected."}, status=409)
