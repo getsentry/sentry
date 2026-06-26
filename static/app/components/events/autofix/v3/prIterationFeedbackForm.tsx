@@ -1,5 +1,6 @@
 import {useRef, useState} from 'react';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
@@ -68,7 +69,10 @@ export function PrIterationFeedbackForm({
 
   return (
     <Flex direction="column" gap="lg">
-      <Text>{prompt}</Text>
+      <Flex gap="xs" align="center">
+        <Text>{prompt}</Text>
+        <FeatureBadge type="alpha" />
+      </Flex>
       <InputGroup>
         <InputGroup.TextArea
           autosize
@@ -77,6 +81,7 @@ export function PrIterationFeedbackForm({
             'Give Seer additional context to improve your pull request and make changes to your code. Hit ENTER to submit.'
           )}
           value={feedback}
+          disabled={isSubmitting}
           onChange={event => setFeedback(event.target.value)}
           onKeyDown={event => {
             if (event.nativeEvent.isComposing) {
@@ -100,12 +105,11 @@ export function PrIterationFeedbackForm({
         )}
         <Button
           ref={submitButtonRef}
-          icon={<IconArrow size="md" direction="right" />}
-          busy={isSubmitting}
-          disabled={isPolling || !feedback.trim()}
+          icon={isSubmitting ? undefined : <IconArrow size="md" direction="right" />}
+          disabled={isSubmitting || isPolling || !feedback.trim()}
           onClick={handleSubmit}
         >
-          {t('Submit')}
+          {isSubmitting ? t('Submitting feedback') : t('Submit')}
         </Button>
       </Flex>
     </Flex>

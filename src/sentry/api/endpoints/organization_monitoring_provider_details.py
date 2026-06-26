@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from django.db import IntegrityError, router, transaction
 from django.http import HttpResponseRedirect
@@ -33,6 +34,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
     owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
         "DELETE": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (MonitoringProviderPermission,)
@@ -40,6 +42,24 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
     def post(
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
     ) -> Response:
+        """Connect a monitoring provider."""
+        if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
+            return Response(status=404)
+
+        if provider_key not in MONITORING_PROVIDERS:
+            return Response({"detail": "Unknown monitoring provider."}, status=400)
+
+        provider_type = identity_manager.get(provider_key)
+        data = {**request.data}
+
+        if isinstance(provider_type, OAuth2Provider):
+            return self._link_by_oauth(provider_type, organization, provider_key, request, data)
+        return self._link_by_token(provider_type, organization, request.user, data)
+
+    def put(
+        self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
+    ) -> Response:
+        """Reauthenticate an existing monitoring provider connection."""
         if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
             return Response(status=404)
 
@@ -48,13 +68,38 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
 
         provider_type = identity_manager.get(provider_key)
 
-        # For token-based providers without OAuth flow, verify the submitted token
-        # and link the identity directly instead of redirecting.
-        if not isinstance(provider_type, OAuth2Provider):
-            return self._link_submitted_token(request, provider_type, organization)
+        # Reuse the stored site from the existing connection.
+        org_identity = (
+            OrganizationIdentity.objects.filter(
+                organization_id=organization.id,
+                identity__user_id=request.user.id,  # type: ignore[misc]
+                identity__idp__type=provider_key,
+            )
+            .select_related("identity")
+            .first()
+        )
+        if org_identity is None:
+            return Response({"detail": "Not connected to this provider."}, status=404)
+        data = {**request.data}
+        site = org_identity.identity.data.get("site")
+        if site is not None:
+            data["site"] = site
 
+        if isinstance(provider_type, OAuth2Provider):
+            return self._link_by_oauth(provider_type, organization, provider_key, request, data)
+        return self._link_by_token(provider_type, organization, request.user, data)
+
+    def _link_by_oauth(
+        self,
+        provider_type: OAuth2Provider,
+        organization: RpcOrganization,
+        provider_key: str,
+        request: Request,
+        data: dict[str, Any],
+    ) -> Response:
+        """Initiate the OAuth pipeline for a provider and return its redirect URL."""
         try:
-            config = provider_type.get_pipeline_config(request.data)
+            config = provider_type.get_pipeline_config(data)
         except ValueError as e:
             return Response({"detail": str(e)}, status=400)
 
@@ -82,12 +127,16 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         )
         return Response({"detail": "Failed to start OAuth flow."}, status=500)
 
-    def _link_submitted_token(
-        self, request: Request, provider_type: Provider, organization: RpcOrganization
+    def _link_by_token(
+        self,
+        provider_type: Provider,
+        organization: RpcOrganization,
+        user: Any,
+        data: dict[str, Any],
     ) -> Response:
-        """Verify a user-submitted token and link the identity (no OAuth flow)."""
+        """Verify a user-submitted token and link the identity."""
         try:
-            identity = provider_type.build_identity(request.data)
+            identity = provider_type.build_identity(data)
         except (ValueError, IdentityNotValid) as e:
             return Response({"detail": str(e)}, status=400)
         except RequestException:
@@ -101,7 +150,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
 
         try:
             linked_identity = Identity.objects.link_identity(
-                user=request.user,  # type: ignore[arg-type]
+                user=user,
                 idp=idp,
                 external_id=identity["id"],
                 should_reattach=False,

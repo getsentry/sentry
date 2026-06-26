@@ -14,6 +14,8 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
+from sentry.models.grouprelease import GroupRelease
 from sentry.models.repository import Repository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.testutils import mock_replay, mock_replay_click
@@ -32,6 +34,7 @@ from sentry.seer.agent.tools import (
     get_event_details,
     get_issue_and_event_details_v2,
     get_issue_and_event_response,
+    get_issue_committers,
     get_issue_details,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
@@ -1782,12 +1785,12 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         other_project = self.create_project(organization=self.organization, name="other project")
 
         # Restricting to a different project must not resolve this project's short ID.
-        with pytest.raises(Group.DoesNotExist):
-            get_issue_details(
-                organization_id=self.organization.id,
-                issue_id=group.qualified_short_id,
-                project_slug=other_project.slug,
-            )
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=group.qualified_short_id,
+            project_slug=other_project.slug,
+        )
+        assert result is None
 
     # --- timeseries ---
 
@@ -2004,6 +2007,238 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
             project_slug="nonexistent-project",
         )
 
+        assert result is None
+
+
+class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
+    """Tests for get_issue_committers — likely code authors from ingested commit data.
+
+    Returns three signals: ``stack_commits`` (frame-based blame of the failing files),
+    ``suspect_commits`` (precomputed GroupOwner suspect commit), and ``release_commits``
+    (broader pool shipped around first-seen).
+    """
+
+    def _make_error_event(self):
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        return self.store_event(data=data, project_id=self.project.id)
+
+    def _add_suspect_commit(self, group):
+        repo = self.create_repo(project=self.project, name="getsentry/sentry")
+        author = self.create_commit_author(organization_id=self.organization.id, user=self.user)
+        commit = self.create_commit(repo=repo, author=author, message="fix: the failing function")
+        GroupOwner.objects.create(
+            group_id=group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+            },
+        )
+        return commit
+
+    def _make_blame_event(self, author_email):
+        """Store an event whose stacktrace frames are blamed on a release commit."""
+        repo = self.create_repo(project=self.project, name="getsentry/sentry")
+        release = self.create_release(project=self.project, version="blame-v1")
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["stacktrace"] = {
+            "frames": [
+                {
+                    "function": "set_commits",
+                    "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                    "module": "sentry.models.release",
+                    "in_app": True,
+                    "lineno": 39,
+                    "filename": "sentry/models/release.py",
+                }
+            ]
+        }
+        data["tags"] = {"sentry:release": release.version}
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+        GroupRelease.objects.create(
+            group_id=group.id, project_id=self.project.id, release_id=release.id
+        )
+        release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": repo.name,
+                    "author_email": author_email,
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                }
+            ]
+        )
+        return group
+
+    def _make_event_with_multiple_release_commits(self, author_email):
+        """Store an event linked to a release shipping several commits with differing
+        numbers of file changes, to exercise the per-commit file-change-count mapping.
+        """
+        repo = self.create_repo(project=self.project, name="getsentry/sentry")
+        release = self.create_release(project=self.project, version="multi-v1")
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["tags"] = {"sentry:release": release.version}
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+        GroupRelease.objects.create(
+            group_id=group.id, project_id=self.project.id, release_id=release.id
+        )
+        release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": repo.name,
+                    "author_email": author_email,
+                    "author_name": "Bob",
+                    "message": "one file changed",
+                    "patch_set": [{"path": "src/one.py", "type": "M"}],
+                },
+                {
+                    "id": "b" * 40,
+                    "repository": repo.name,
+                    "author_email": author_email,
+                    "author_name": "Bob",
+                    "message": "three files changed",
+                    "patch_set": [
+                        {"path": "src/x.py", "type": "M"},
+                        {"path": "src/y.py", "type": "A"},
+                        {"path": "src/z.py", "type": "D"},
+                    ],
+                },
+                {
+                    "id": "c" * 40,
+                    "repository": repo.name,
+                    "author_email": author_email,
+                    "author_name": "Bob",
+                    "message": "Merge pull request #1",
+                    "patch_set": [{"path": "src/two.py", "type": "M"}],
+                },
+            ]
+        )
+        return group
+
+    def test_returns_suspect_commits(self):
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+        commit = self._add_suspect_commit(group)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        assert result["project_id"] == group.project_id
+        assert result["project_slug"] == group.project.slug
+        assert "stack_commits" in result
+        suspect = result["suspect_commits"]
+        assert len(suspect) == 1
+        assert suspect[0]["author"]["email"] == self.user.email
+        assert suspect[0]["commits"][0]["id"] == commit.key
+        assert suspect[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
+
+    def test_resolves_by_qualified_short_id(self):
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+        self._add_suspect_commit(group)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=group.qualified_short_id,
+        )
+
+        assert result is not None
+        assert len(result["suspect_commits"]) == 1
+
+    def test_returns_file_committers_from_stacktrace_blame(self):
+        group = self._make_blame_event(self.user.email)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        stack_commits = result["stack_commits"]
+        assert len(stack_commits) >= 1
+        assert stack_commits[0]["author"]["email"] == self.user.email
+        commit = stack_commits[0]["commits"][0]
+        assert commit["id"] == "a" * 40
+        assert commit["score"] is not None
+
+    def test_returns_release_commits_in_window(self):
+        group = self._make_blame_event(self.user.email)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+            start=before_now(days=30).isoformat(),
+            end=(before_now(minutes=0) + timedelta(days=1)).isoformat(),
+        )
+
+        assert result is not None
+        release = result["release_commits"]
+        commit = next(c for c in release if c["id"] == "a" * 40)
+        assert commit["files_changed_count"] == 1
+        assert commit["is_merge_commit"] is False
+
+    def test_release_commits_file_change_counts_are_per_commit(self):
+        """Regression test: with multiple candidate commits, the per-commit
+        ``files_changed_count`` is built from
+        ``values_list("commit_id").annotate(n=Count("id"))`` passed to ``dict()``.
+        A single ``values_list`` field still yields ``(commit_id, n)`` tuples, so
+        ``dict()`` does not raise and each commit gets its own correct count.
+        """
+        group = self._make_event_with_multiple_release_commits(self.user.email)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+            start=before_now(days=30).isoformat(),
+            end=(before_now(minutes=0) + timedelta(days=1)).isoformat(),
+        )
+
+        assert result is not None
+        release = result["release_commits"]
+        counts = {c["id"]: c["files_changed_count"] for c in release}
+        assert counts["a" * 40] == 1
+        assert counts["b" * 40] == 3
+        assert counts["c" * 40] == 1
+
+        merge_commit = next(c for c in release if c["id"] == "c" * 40)
+        assert merge_commit["is_merge_commit"] is True
+
+    def test_no_commit_data_returns_empty_lists(self):
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        assert result["stack_commits"] == []
+        assert result["suspect_commits"] == []
+        assert result["release_commits"] == []
+
+    def test_returns_none_when_issue_does_not_exist(self):
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id="123456789",
+        )
         assert result is None
 
 
