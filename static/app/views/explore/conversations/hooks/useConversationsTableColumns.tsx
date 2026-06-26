@@ -35,18 +35,12 @@ export function useConversationsTableColumns() {
   }, [urlColumns, stored, setUrlColumns]);
 
   // Widths ride along on each column, so removing a column drops its width from
-  // both the URL and storage for free. Accepts a functional updater so rapid
-  // resizes compose off the latest columns instead of a stale closure value.
+  // both the URL and storage for free.
   const setColumns = useCallback(
-    (
-      next: ConversationColumn[] | ((prev: ConversationColumn[]) => ConversationColumn[])
-    ) => {
-      const update = (prev: readonly string[] | null) =>
-        serializeConversationColumns(
-          typeof next === 'function' ? next(parseConversationColumns(prev)) : next
-        );
-      setUrlColumns(update);
-      setStored(update);
+    (next: ConversationColumn[]) => {
+      const entries = serializeConversationColumns(next);
+      setUrlColumns(entries);
+      setStored(entries);
     },
     [setUrlColumns, setStored]
   );
