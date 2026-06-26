@@ -208,6 +208,10 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
             "updated_by_id": request.user.id,
             **optional_fields,
         }
+        # A concurrent POST for the same attribute is race-safe: the lookup kwargs
+        # match the model's unique constraints, so update_or_create (via
+        # get_or_create) catches the losing INSERT's IntegrityError and re-fetches
+        # the winning row rather than surfacing a 500.
         context, created = TraceItemAttributeContext.objects.update_or_create(
             organization=organization,
             project=scope_project,
