@@ -30,13 +30,10 @@ export function ReauthMonitoringProviderBlock({
   const organization = useOrganization();
   const isPat = data.auth_method === 'pat';
 
-  // OAuth providers connect via a full-window redirect to the provider's
-  // authorize page (the backend uses IdentityPipeline, which returns a
-  // redirectUrl rather than a popup-friendly postMessage flow).
   const connectOAuthMutation = useMutation({
     mutationFn: () =>
       fetchMutation<{redirectUrl: string}>({
-        method: 'POST',
+        method: 'PUT',
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/',
           {
@@ -46,9 +43,6 @@ export function ReauthMonitoringProviderBlock({
             },
           }
         ),
-        // TODO(CW-1501): v0 only supports datadoghq.com; add site selection
-        // when per-site connections are supported.
-        data: data.provider_key === 'datadog' ? {site: 'datadoghq.com'} : undefined,
       }),
     onSuccess: responseData => {
       testableWindowLocation.assign(responseData.redirectUrl);
@@ -66,6 +60,7 @@ export function ReauthMonitoringProviderBlock({
         <DatadogPatConnectModal
           {...modalProps}
           orgSlug={organization.slug}
+          isReauth
           onSuccess={() => {
             addSuccessMessage(t('Provider reconnected.'));
             onComplete();

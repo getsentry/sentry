@@ -48,11 +48,10 @@ describe('ReauthMonitoringProviderBlock', () => {
     const onComplete = jest.fn();
     const connectMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitoring-providers/datadog_pat/`,
-      method: 'POST',
+      method: 'PUT',
       statusCode: 204,
-      match: [
-        MockApiClient.matchData({access_token: 'my-pat-token', site: 'datadoghq.com'}),
-      ],
+      // Reauth reuses the stored site server-side, so only the token is sent.
+      match: [MockApiClient.matchData({access_token: 'my-pat-token'})],
     });
 
     render(<ReauthMonitoringProviderBlock data={patData} onComplete={onComplete} />, {
@@ -81,12 +80,11 @@ describe('ReauthMonitoringProviderBlock', () => {
     expect(screen.getByRole('button', {name: 'Resume'})).toBeInTheDocument();
   });
 
-  it('OAuth reconnect posts and redirects to the authorize URL', async () => {
+  it('OAuth reconnect PUTs and redirects to the authorize URL', async () => {
     const connectMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitoring-providers/datadog/`,
-      method: 'POST',
+      method: 'PUT',
       body: {redirectUrl: 'https://mcp.datadoghq.com/authorize'},
-      match: [MockApiClient.matchData({site: 'datadoghq.com'})],
     });
 
     render(<ReauthMonitoringProviderBlock data={oauthData} onComplete={jest.fn()} />, {
