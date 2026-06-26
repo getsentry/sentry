@@ -17,6 +17,7 @@ from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.utils.sdk import Scope, bind_organization_context
@@ -163,15 +164,12 @@ class ProjectEndpoint(Endpoint):
                 "project_slug"
             )
         try:
-            project = (
-                Project.objects.filter(
-                    organization__slug__id_or_slug=organization_id_or_slug,
-                    slug__id_or_slug=project_id_or_slug,
-                )
-                .select_related("organization")
-                .prefetch_related("teams")
-                .get()
-            )
+            project = Project.objects.filter(
+                organization__slug__id_or_slug=organization_id_or_slug,
+                slug__id_or_slug=project_id_or_slug,
+            ).get()
+            organization = Organization.objects.get_from_cache(id=project.organization_id)
+            project.set_cached_field_value("organization", organization)
         except Project.DoesNotExist:
             try:
                 # Project may have been renamed
@@ -207,11 +205,11 @@ class ProjectEndpoint(Endpoint):
         sentry_sdk.set_tag("project", project.id)
         sentry_sdk.set_attribute("project", project.id)
 
-        bind_organization_context(project.organization)
+        bind_organization_context(organization)
 
         request._request.organization = (
-            project.organization
-        )  # XXX: we should not be stuffing random attributes into HttpRequest
+            organization  # XXX: we should not be stuffing random attributes into HttpRequest
+        )
 
         kwargs["project"] = project
         return (args, kwargs)
