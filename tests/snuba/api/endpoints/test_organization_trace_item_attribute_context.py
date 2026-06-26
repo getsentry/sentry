@@ -94,10 +94,14 @@ class OrganizationTraceItemAttributeContextEndpointTest(
                 "dataset": "spans",
                 "attributeType": "string",
                 "brief": "First",
+                "additionalContext": "Longer notes about the attribute.",
+                "examples": ["value", "other"],
             }
         )
         assert first.status_code == 201, first.data
 
+        # A follow-up POST that only changes `brief` must not clear the
+        # previously stored optional fields.
         second = self.do_request(
             {
                 "attributeKey": "my_custom_attr",
@@ -109,6 +113,8 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         assert second.status_code == 200, second.data
         assert second.data["id"] == first.data["id"]
         assert second.data["brief"] == "Second"
+        assert second.data["additionalContext"] == "Longer notes about the attribute."
+        assert second.data["examples"] == ["value", "other"]
 
         assert (
             TraceItemAttributeContext.objects.filter(
@@ -116,6 +122,20 @@ class OrganizationTraceItemAttributeContextEndpointTest(
             ).count()
             == 1
         )
+
+    def test_requires_brief(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+
+        response = self.do_request(
+            {
+                "attributeKey": "my_custom_attr",
+                "dataset": "spans",
+                "attributeType": "string",
+            }
+        )
+
+        assert response.status_code == 400, response.data
+        assert "brief" in response.data
 
     def test_org_wide_context(self) -> None:
         self.store_attribute(my_custom_attr="value")
@@ -125,6 +145,7 @@ class OrganizationTraceItemAttributeContextEndpointTest(
                 "attributeKey": "my_custom_attr",
                 "dataset": "spans",
                 "attributeType": "string",
+                "brief": "My custom attribute",
             },
             query={"project": -1, "statsPeriod": "7d"},
         )
@@ -142,6 +163,7 @@ class OrganizationTraceItemAttributeContextEndpointTest(
                 "attributeKey": "span.op",
                 "dataset": "spans",
                 "attributeType": "string",
+                "brief": "My custom attribute",
             }
         )
 
@@ -157,6 +179,7 @@ class OrganizationTraceItemAttributeContextEndpointTest(
                 "attributeKey": "does.not.exist",
                 "dataset": "spans",
                 "attributeType": "string",
+                "brief": "My custom attribute",
             }
         )
 

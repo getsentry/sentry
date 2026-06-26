@@ -55,11 +55,11 @@ class OrganizationTraceItemAttributeContextPostSerializer(serializers.Serializer
     )
     dataset = serializers.ChoiceField(SUPPORTED_DATASETS)
     attributeType = serializers.ChoiceField(POSSIBLE_ATTRIBUTE_TYPES, source="attribute_type")
-    brief = serializers.CharField(required=False, allow_null=True, allow_blank=True, max_length=280)
+    brief = serializers.CharField(max_length=280)
     additionalContext = serializers.CharField(
         source="additional_context", required=False, allow_null=True, allow_blank=True
     )
-    examples = serializers.ListField(child=serializers.CharField(), required=False, default=list)
+    examples = serializers.ListField(child=serializers.CharField(), required=False)
 
 
 def is_sentry_convention_attribute(
@@ -198,11 +198,15 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
                 status=400,
             )
 
+        # `brief` is required; only persist the optional fields that were actually
+        # provided so a partial update doesn't clear previously stored context.
+        optional_fields = {
+            field: data[field] for field in ("additional_context", "examples") if field in data
+        }
         defaults = {
-            "brief": data.get("brief"),
-            "additional_context": data.get("additional_context"),
-            "examples": data.get("examples", []),
+            "brief": data["brief"],
             "updated_by_id": request.user.id,
+            **optional_fields,
         }
         context, created = TraceItemAttributeContext.objects.update_or_create(
             organization=organization,
@@ -211,7 +215,12 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
             attribute_key=attribute_key,
             attribute_type=TraceItemAttributeTypes.get_id_for_type_name(attribute_type),
             defaults=defaults,
-            create_defaults={**defaults, "created_by_id": request.user.id},
+            create_defaults={
+                "additional_context": None,
+                "examples": [],
+                **defaults,
+                "created_by_id": request.user.id,
+            },
         )
 
         return Response(
