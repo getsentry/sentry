@@ -52,7 +52,5 @@ def should_send_nudge_block(
             # incr; incr raises ValueError on a missing key, so fall back to set.
             cache.set(cache_key, count + 1, timeout=7 * 24 * 60 * 60)
 
-    # The "sent" metric is emitted at render time in
-    # SlackIssuesMessageBuilder.get_slack_app_update_nudge_block, where we know
-    # which nudge variant (reinstall vs. @-mention reminder) is actually shown.
+    # The "sent" metric is emitted at render time
     return True
