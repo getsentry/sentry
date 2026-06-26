@@ -212,11 +212,11 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const loadingBlocks = useMemo(
     () =>
-      section.status !== 'processing'
-        ? []
-        : currentStepStart === -1
+      section.status === 'processing'
+        ? currentStepStart === -1
           ? section.blocks
-          : section.blocks.slice(currentStepStart),
+          : section.blocks.slice(currentStepStart)
+        : [],
     [section.status, section.blocks, currentStepStart]
   );
 
