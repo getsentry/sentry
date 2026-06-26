@@ -289,31 +289,6 @@ def record_seer_created_attributions(
         logger.info("pr_metrics.attribution.recorded", extra=log_context)
 
 
-def attribute_seer_created_pull_requests(
-    *,
-    organization: Organization,
-    pull_requests: Sequence[Mapping[str, Any]],
-    run_id: int | str | None,
-    group_id: int | str | None,
-) -> None:
-    """Resolve PRs from Seer's ``seer.pr_created`` event and attribute them to Seer.
-
-    Convenience over ``resolve_seer_created_pull_requests`` + ``record_seer_created_
-    attributions``; the operator calls those two directly so it can also feed the
-    resolved PRs to run→PR linking without re-resolving.
-    """
-    resolved_prs = resolve_seer_created_pull_requests(
-        organization_id=organization.id,
-        pull_requests=pull_requests,
-        log_context={
-            "organization_id": organization.id,
-            "run_id": run_id,
-            "group_id": group_id,
-        },
-    )
-    record_seer_created_attributions(resolved_prs=resolved_prs, run_id=run_id, group_id=group_id)
-
-
 def attribute_delegated_agent_pull_request(
     *,
     organization_id: int,

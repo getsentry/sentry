@@ -10,9 +10,10 @@ from sentry.models.pullrequest import (
 )
 from sentry.pr_metrics.attribution import (
     attribute_delegated_agent_pull_request,
-    attribute_seer_created_pull_requests,
     recompute_pull_request_attribution,
     record_attribution_signal,
+    record_seer_created_attributions,
+    resolve_seer_created_pull_requests,
 )
 from sentry.testutils.cases import TestCase
 
@@ -44,11 +45,16 @@ class AttributeSeerCreatedPullRequestsTest(TestCase):
     def _attribute(
         self, pull_requests: list[dict[str, Any]], *, organization: Organization | None = None
     ) -> None:
-        attribute_seer_created_pull_requests(
-            organization=organization or self.organization,
+        # Mirror the operator: resolve the reported PRs once, then attribute the
+        # resolved rows. The operator fans the same resolved rows out to run→PR linking.
+        org = organization or self.organization
+        resolved_prs = resolve_seer_created_pull_requests(
+            organization_id=org.id,
             pull_requests=pull_requests,
-            run_id=123,
-            group_id=self.group.id,
+            log_context={"organization_id": org.id, "run_id": 123, "group_id": self.group.id},
+        )
+        record_seer_created_attributions(
+            resolved_prs=resolved_prs, run_id=123, group_id=self.group.id
         )
 
     def test_creates_pull_request_and_sentry_app_attribution(self) -> None:
