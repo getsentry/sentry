@@ -1,13 +1,15 @@
 from unittest import mock
 
-from sentry.models.artifactbundle import ArtifactBundle, delete_file_for_artifact_bundle
+from sentry.models.artifactbundle import delete_file_for_artifact_bundle
 from sentry.models.files import File
 from sentry.testutils.cases import TestCase
 
 
 class ArtifactBundleTest(TestCase):
     @mock.patch("sentry.models.artifactbundle.delete_assemble_status")
-    def test_delete_file_for_artifact_bundle_file_already_deleted(self, mock_delete_assemble_status):
+    def test_delete_file_for_artifact_bundle_file_already_deleted(
+        self, mock_delete_assemble_status
+    ):
         file = self.create_file(name="test.js", type="artifact.bundle")
         bundle = self.create_artifact_bundle(
             org=self.organization,
