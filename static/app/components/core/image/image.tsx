@@ -1,7 +1,7 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import type {Responsive} from '@sentry/scraps/layout';
+import type {Responsive, ResponsiveMode} from '@sentry/scraps/layout';
 import {getRadius, rc} from '@sentry/scraps/layout';
 
 import type {RadiusSize} from 'sentry/utils/theme';
@@ -20,6 +20,7 @@ export interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   objectPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right' | (string & {});
   radius?: Responsive<RadiusSize>;
   ref?: React.Ref<HTMLImageElement>;
+  responsiveTo?: ResponsiveMode;
   width?: string;
 }
 
@@ -33,5 +34,5 @@ const Img = styled('img')<ImageProps>`
   object-fit: ${p => p.objectFit};
   object-position: ${p => p.objectPosition};
   aspect-ratio: ${p => p.aspectRatio};
-  ${p => rc('border-radius', p.radius, p.theme, 'viewport', getRadius)};
+  ${p => rc('border-radius', p.radius, p.theme, p.responsiveTo, getRadius)};
 `;

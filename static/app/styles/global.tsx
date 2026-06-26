@@ -179,10 +179,6 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
    * container-relative responsive props via responsiveTo="container" and, with
    * no closer container ancestor, resolve against the app root — which spans
    * the viewport width, so the behavior matches viewport media queries.
-   *
-   * Note: inline-size containment makes #${ROOT_ELEMENT} the containing block
-   * for position: fixed/absolute descendants rendered inside the React tree.
-   * Overlays portaled to document.body are unaffected.
    */
   #${ROOT_ELEMENT} {
     container-type: inline-size;

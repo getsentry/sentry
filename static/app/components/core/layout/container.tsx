@@ -79,10 +79,10 @@ interface ContainerLayoutProps {
    * Declares this element as a query container for its descendants, enabling
    * them to use `responsiveTo="container"`. Maps to the CSS `container-type`.
    *
-   * Caution: `inline-size`/`size` apply layout, style and size containment,
-   * which makes this element the containing block for `position: fixed` and
-   * `position: absolute` descendants. Prefer `inline-size` unless you also need
-   * height-based (`size`) queries.
+   * Prefer `inline-size`: it only contains the inline (width) axis, so height
+   * still flows from content. `size` additionally contains the block axis, so
+   * the element must get its height from elsewhere or its content collapses —
+   * only reach for it when you genuinely need height-based queries.
    */
   containerType?: 'inline-size' | 'size' | 'normal';
   /**

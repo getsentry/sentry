@@ -1,15 +1,14 @@
----
 title: Container
 description: A foundational layout component that provides responsive CSS properties through props, serving as the building block for other layout components.
 category: layout
 source: '@sentry/scraps/layout'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/container.tsx
-  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=3040-309&p=f&t=fldvMEFX98yRuTH5-0
+js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/container.tsx
+figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=3040-309&p=f&t=fldvMEFX98yRuTH5-0
+
 ---
 
 import {Container, Flex} from '@sentry/scraps/layout';
-
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/layout/container');
@@ -197,39 +196,41 @@ responsive props against the nearest ancestor **query container** instead.
 An element can never query its own size, so declare a parent as a container with
 `containerType="inline-size"`, then opt descendants into `responsiveTo="container"`:
 
-<Storybook.Demo>
+<Storybook.SizingWindow display="block">
   <Container
     containerType="inline-size"
-    width="60%"
+    width="100%"
     padding="md"
     background="secondary"
     radius="md"
     border="primary"
   >
-    <Flex responsiveTo="container" direction={{'2xs': 'column', md: 'row'}} gap="md">
+    <Flex responsiveTo="container" direction={{'2xs': 'column', xs: 'row'}} gap="md">
       <Container padding="sm" background="primary" border="primary" radius="md">
-        Stacks below the container's md breakpoint…
+        Below the container's xs breakpoint (500px) these stack…
       </Container>
       <Container padding="sm" background="primary" border="primary" radius="md">
-        …and sits in a row at or above it — regardless of viewport width.
+        …and sit in a row at or above it. Drag the box narrower (handle at the
+        bottom-right) to flip it — independent of the viewport width.
       </Container>
     </Flex>
   </Container>
-</Storybook.Demo>
-```jsx // The parent declares itself a query container…
+</Storybook.SizingWindow>
+```jsx
+{/*The parent declares itself a query container... */}
 <Container containerType="inline-size">
-  {/* …and the child resolves its responsive props against that container. */}
-  <Flex responsiveTo="container" direction={{'2xs': 'column', md: 'row'}}>
+  {/* ...and the child resolves its responsive props against that container. */}
+  <Flex responsiveTo="container" direction={{'2xs': 'column', xs: 'row'}}>
     <div>Reflows based on the container's width, not the viewport's.</div>
     <div>Resize the container above to see it switch.</div>
   </Flex>
 </Container>
 ```
 
-> **Caution:** `containerType: inline-size` (and `size`) apply layout/size
-> containment, which makes the element the containing block for
-> `position: fixed`/`absolute` descendants. Prefer `inline-size` unless you also
-> need height-based queries.
+> **Tip:** Prefer `containerType="inline-size"` — it only contains the inline
+> (width) axis, so height still flows from content. `size` also contains the
+> block axis, so the element then needs an explicit height or its content
+> collapses; only use it when you need height-based container queries.
 
 When you need the resolved breakpoint in JS (rather than just CSS), use
 `useContainerBreakpoint(ref)` from `@sentry/scraps/layout` styles — it is the
