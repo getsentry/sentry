@@ -89,6 +89,18 @@ CHOICES = tuple(
     ]
 )
 
+SEER_ACTIVITY_TYPES = (
+    ActivityType.SEER_RCA_STARTED,
+    ActivityType.SEER_RCA_COMPLETED,
+    ActivityType.SEER_SOLUTION_STARTED,
+    ActivityType.SEER_SOLUTION_COMPLETED,
+    ActivityType.SEER_CODING_STARTED,
+    ActivityType.SEER_CODING_COMPLETED,
+    ActivityType.SEER_PR_CREATED,
+    ActivityType.SEER_ITERATION_STARTED,
+    ActivityType.SEER_ITERATION_COMPLETED,
+)
+
 
 STATUS_CHANGE_ACTIVITY_TYPES = (
     ActivityType.SET_RESOLVED,

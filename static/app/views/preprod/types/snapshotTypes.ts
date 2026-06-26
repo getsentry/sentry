@@ -36,7 +36,7 @@ export interface SnapshotDetailsApiResponse {
   comparison_type: 'solo' | 'diff' | 'waiting_for_base';
   head_artifact_id: string;
   image_count: number;
-  images: SnapshotImage[];
+  images?: SnapshotImage[];
   project_id: string;
   state: string;
   vcs_info: BuildDetailsVcsInfo;

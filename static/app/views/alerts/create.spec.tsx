@@ -150,6 +150,9 @@ describe('ProjectAlertsCreate', () => {
         body: ProjectAlertRuleFixture(),
       });
 
+      // Wait for the form to finish loading its default conditions
+      await screen.findAllByLabelText('Delete Node');
+
       // Change name of alert rule
       await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
 
@@ -193,7 +196,7 @@ describe('ProjectAlertsCreate', () => {
         body: ProjectAlertRuleFixture(),
       });
       // delete node
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
+      await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]!);
 
       // Change name of alert rule
       await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
@@ -251,6 +254,9 @@ describe('ProjectAlertsCreate', () => {
         method: 'POST',
         body: ProjectAlertRuleFixture(),
       });
+
+      // Wait for the form to finish loading its default conditions
+      await screen.findAllByLabelText('Delete Node');
 
       // Change name of alert rule
       await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
@@ -458,6 +464,9 @@ describe('ProjectAlertsCreate', () => {
       it('new action', async () => {
         const {router} = createWrapper();
 
+        // Wait for the form to finish loading its default conditions
+        await screen.findAllByLabelText('Delete Node');
+
         // Change name of alert rule
         await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
 
@@ -534,7 +543,7 @@ describe('ProjectAlertsCreate', () => {
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
-              endpoint: null,
+              endpoint: 'endpoint',
             },
           })
         );
@@ -560,7 +569,7 @@ describe('ProjectAlertsCreate', () => {
       });
       createWrapper();
       // delete existion conditions
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
+      await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]!);
 
       await waitFor(() => {
         expect(mock).toHaveBeenCalled();
@@ -605,7 +614,7 @@ describe('ProjectAlertsCreate', () => {
 
     it('shows error for incompatible conditions', async () => {
       createWrapper();
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
+      await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]!);
 
       await selectEvent.select(screen.getByText('Add optional trigger...'), [
         'A new issue is created',
@@ -631,7 +640,7 @@ describe('ProjectAlertsCreate', () => {
 
     it('test any filterMatch', async () => {
       createWrapper();
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
+      await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]!);
 
       await selectEvent.select(screen.getByText('Add optional trigger...'), [
         'A new issue is created',

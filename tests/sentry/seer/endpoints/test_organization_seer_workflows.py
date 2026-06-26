@@ -54,6 +54,21 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert legacy["groupId"] == str(group.id)
         assert legacy["action"] == "autofix_triggered"
 
+    def test_surfaces_shard_seer_run_ids(self) -> None:
+        run = SeerNightShiftRun.objects.create(organization=self.organization)
+        seer_run_a = self.create_seer_run(organization=self.organization, seer_run_state_id=111)
+        seer_run_b = self.create_seer_run(organization=self.organization, seer_run_state_id=222)
+        SeerNightShiftRunShard.objects.create(run=run, seer_run=seer_run_a)
+        SeerNightShiftRunShard.objects.create(run=run, seer_run=seer_run_b)
+        # A shard with no mirrored state id serializes with a null seerRunId.
+        SeerNightShiftRunShard.objects.create(run=run)
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        seer_run_ids = [r["seerRunId"] for r in response.data[0]["seerRuns"]]
+        assert seer_run_ids == ["111", "222", None]
+
     def test_surfaces_shard_error_message(self) -> None:
         # Per-shard delivery errors live on the shard; the run API must still
         # surface them so a failed shard doesn't read as a healthy run.

@@ -102,8 +102,9 @@ class GithubCopilotTask(BaseModel):
     url: str | None = None
 
 
-class GithubPRFromGraphQL(BaseModel):
-    """PR info fetched from GitHub GraphQL API"""
+class GithubPullRequest(BaseModel):
+    """Minimal PR info, resolved either from the GitHub GraphQL API (via the
+    task artifact's ``global_id``) or from the REST API (via the head branch)."""
 
     number: int
     title: str

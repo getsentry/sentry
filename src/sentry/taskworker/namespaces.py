@@ -82,11 +82,6 @@ hybridcloud_control_tasks = app.taskregistry.create_namespace(
     app_feature="hybrid_cloud",
 )
 
-ingest_profiling_tasks = app.taskregistry.create_namespace(
-    "ingest.profiling",
-    app_feature="profiles",
-)
-
 ingest_profiling_passthrough_tasks = app.taskregistry.create_namespace(
     "ingest.profiling.passthrough",
     app_feature="profiles",

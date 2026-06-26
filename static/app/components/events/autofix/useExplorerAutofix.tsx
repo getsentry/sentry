@@ -16,6 +16,7 @@ import {
   needsGitHubAuth,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
+import type {Organization} from 'sentry/types/organization';
 import {isArrayOf, isString} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -44,7 +45,11 @@ interface CodingAgentError {
   message: string;
 }
 
-export type AutofixExplorerStep = 'root_cause' | 'solution' | 'code_changes';
+export type AutofixExplorerStep =
+  | 'root_cause'
+  | 'solution'
+  | 'code_changes'
+  | 'pr_iteration';
 
 /**
  * Artifact data types matching the backend Pydantic schemas.
@@ -230,14 +235,72 @@ export interface AutofixSection {
   index?: number;
 }
 
+function sectionStepFor(step: string): string {
+  return step === 'pr_iteration' ? 'code_changes' : step;
+}
+
+function mergeFilePatches(blocks: Block[]): ExplorerFilePatch[] {
+  const mergedByFile = new Map<string, ExplorerFilePatch>();
+  for (const block of blocks) {
+    for (const patch of block.merged_file_patches ?? []) {
+      mergedByFile.set(`${patch.repo_name}:${patch.patch.path}`, patch);
+    }
+  }
+  return Array.from(mergedByFile.values());
+}
+
+/**
+ * Builds a single section from the blocks that belong to it.
+ *
+ * The section's artifacts are the inline artifacts carried by its blocks plus,
+ * for the code_changes section, the cumulative file-patch diff merged from all
+ * of its blocks (code changes and every pr_iteration folded in).
+ */
+function buildSection(
+  step: string,
+  index: number,
+  blocks: Block[],
+  runState: ExplorerAutofixState | null
+): AutofixSection {
+  const artifacts: AutofixArtifact[] = blocks.flatMap(block => block.artifacts ?? []);
+
+  const section: AutofixSection = {
+    index,
+    step,
+    blocks,
+    artifacts,
+    status: 'processing',
+  };
+
+  if (
+    runState?.status !== 'processing' ||
+    isLastBlockOfSection(blocks[blocks.length - 1]) ||
+    artifacts.length > 0
+  ) {
+    section.status = 'completed';
+  }
+
+  if (isCodeChangesSection(section)) {
+    const patches = mergeFilePatches(blocks);
+    if (patches.length) {
+      artifacts.push(patches);
+    }
+  }
+
+  return section;
+}
+
 /**
  * Groups a flat list of autofix blocks into ordered sections.
  *
  * Blocks arrive as a flat stream from the backend. Each block may carry a
- * `metadata.step` field that signals the start of a new logical section
- * (e.g. "root_cause", "code_changes", "pull_request"). This function walks
- * the blocks in order, splitting them into sections at each step boundary,
- * and attaches the relevant artifacts (file patches, PR states) to each section.
+ * `metadata.step` field that signals which logical section it belongs to
+ * (e.g. "root_cause", "code_changes"). The first block always carries a step,
+ * and a step-less block belongs to whichever section is currently open. We
+ * first bucket the blocks by section — folding `pr_iteration` work into the
+ * single `code_changes` section — then build each section from its blocks,
+ * attaching the relevant artifacts (file patches, PR states). At most one
+ * section exists per step.
  */
 export function getOrderedAutofixSections(runState: ExplorerAutofixState | null) {
   const blocks = runState?.blocks ?? [];
@@ -245,85 +308,33 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     return [];
   }
 
-  // Accumulates file patches across all blocks, keyed by "repo:path".
-  // Patches are merged globally (later patches for the same file overwrite
-  // earlier ones) and snapshotted into the code_changes section when it finalizes.
-  const mergedByFile = new Map<string, ExplorerFilePatch>();
+  // Bucket blocks by section step, preserving first-seen order. Each bucket
+  // also records the index of its first block, used as the reset/restart point.
+  const buckets = new Map<string, {blocks: Block[]; index: number}>();
 
-  const sections: AutofixSection[] = [];
-
-  // The "current" section being built. Blocks without a step marker are
-  // appended to whatever section is in progress (initially an 'unknown' one).
-  let section: AutofixSection = {
-    step: 'unknown',
-    artifacts: [],
-    blocks: [],
-    status: 'processing',
-  };
-
-  // Closes the current section and pushes it to `sections` (if non-empty).
-  function finalizeSection({forceCompletion}: {forceCompletion: boolean}) {
-    if (section.blocks.length) {
-      if (
-        forceCompletion ||
-        // Mark the section as completed if the last message is a terminal marker.
-        isLastBlockOfSection(section.blocks[section.blocks.length - 1]) ||
-        // We have an artifact for the section so good enough to mark it as completed
-        section.artifacts.length > 0
-      ) {
-        section.status = 'completed';
-      }
-
-      if (section.status === 'completed' && section.step === 'code_changes') {
-        // Snapshot the accumulated file patches as an artifact for this section.
-        section.artifacts.push(Array.from(mergedByFile.values()));
-      }
-
-      sections.push(section);
-    }
-  }
+  // The section a step-less block belongs to. The first block always carries a
+  // step, so this is set before any block is bucketed.
+  let currentStep = '';
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i]!;
-    // Accumulate file patches globally — they need to be merged across all
-    // blocks regardless of section boundaries so later patches win per file.
-    if (block.merged_file_patches?.length) {
-      for (const patch of block.merged_file_patches) {
-        const key = `${patch.repo_name}:${patch.patch.path}`;
-        mergedByFile.set(key, patch);
-      }
+    const step = block.message.metadata?.step;
+    if (defined(step)) {
+      currentStep = sectionStepFor(step);
     }
 
-    const message = block.message;
-
-    // A step marker means this block starts a new section.
-    // Finalize the previous section and start a fresh one.
-    const metadata = message.metadata;
-    if (defined(metadata) && defined(metadata.step)) {
-      if (metadata.step !== section.step) {
-        // since there's a new section coming up, this section must be compelete
-        finalizeSection({forceCompletion: true});
-      }
-
-      section = {
-        index: i,
-        step: metadata.step,
-        artifacts: [],
-        blocks: [],
-        status: 'processing',
-      };
+    const bucket = buckets.get(currentStep);
+    if (bucket) {
+      bucket.blocks.push(block);
+    } else {
+      buckets.set(currentStep, {blocks: [block], index: i});
     }
-
-    // Append the block's message and any inline artifacts to the current section.
-    section.blocks.push(block);
-    section.artifacts.push(...(block.artifacts ?? []));
   }
 
-  // Finalize the last in-progress section.
-  finalizeSection({
-    // run is complete so last section must be complete as well
-    forceCompletion: runState?.status !== 'processing',
-  });
+  const sections: AutofixSection[] = Array.from(buckets.entries()).map(
+    ([step, {blocks: sectionBlocks, index}]) =>
+      buildSection(step, index, sectionBlocks, runState)
+  );
 
   // If there are any PR states, append a synthetic "pull_request" section.
   const pullRequests = Object.values(runState?.repo_pr_states ?? {});
@@ -371,12 +382,30 @@ export function isCodeChangesSection(section: AutofixSection): boolean {
   return section.step === 'code_changes';
 }
 
+export function isPrIterationBlock(block: Block): boolean {
+  return block.message.metadata?.step === 'pr_iteration';
+}
+
 export function isPullRequestsSection(section: AutofixSection): boolean {
   return section.step === 'pull_request';
 }
 
 export function isCodingAgentsSection(section: AutofixSection): boolean {
   return section.step === 'coding_agents';
+}
+
+export function isRunValidForPrIteration(organization: Organization): boolean {
+  return organization.features.includes('autofix-pr-iteration');
+}
+
+export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {
+  // pr_iteration is always the last work to run, so if the most recent block
+  // with a step came from one, the run is in the pr_iteration phase (whether it
+  // completed or errored).
+  const lastBlock = runState?.blocks.findLast(block =>
+    defined(block.message.metadata?.step)
+  );
+  return defined(lastBlock) && isPrIterationBlock(lastBlock);
 }
 
 export type AutofixArtifact =

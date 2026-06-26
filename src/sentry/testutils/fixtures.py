@@ -20,7 +20,7 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.issues.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.custominboundfilter import CustomInboundFilter
@@ -369,6 +369,11 @@ class Fixtures:
             group = self.group
         return Factories.create_group_activity(group, *args, **kwargs)
 
+    def create_group_owner(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_owner(group, **kwargs)
+
     def create_group_action_log_entry(self, group=None, *args, **kwargs) -> GroupActionLogEntry:
         if group is None:
             group = self.group
@@ -657,6 +662,9 @@ class Fixtures:
 
     def create_identity(self, *args, **kwargs):
         return Factories.create_identity(*args, **kwargs)
+
+    def create_organization_identity(self, *args, **kwargs):
+        return Factories.create_organization_identity(*args, **kwargs)
 
     def create_identity_provider(
         self,

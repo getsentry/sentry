@@ -27,7 +27,6 @@ import {
   useCanEditAutomation,
 } from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function AutomationsList() {
   const location = useLocation();
@@ -111,7 +110,6 @@ function TableHeader() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const canCreateAlert = useCanEditAutomation();
   const initialQuery =
     typeof location.query.query === 'string' ? location.query.query : '';
@@ -138,35 +136,6 @@ function TableHeader() {
         <div style={{flexGrow: 1}}>
           <AutomationSearch initialQuery={initialQuery} onSearch={onSearch} />
         </div>
-        {hasPageFrameFeature ? (
-          <LinkButton
-            to={makeAutomationCreatePathname(organization.slug)}
-            disabled={!canCreateAlert}
-            tooltipProps={{
-              title: canCreateAlert ? undefined : getNoAlertWritePermissionTooltip(),
-              isHoverable: true,
-            }}
-            variant="primary"
-            icon={<IconAdd />}
-            size="sm"
-          >
-            {t('Create Alert')}
-          </LinkButton>
-        ) : null}
-      </Flex>
-    </Flex>
-  );
-}
-
-function Actions() {
-  const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
-  const canCreateAlert = useCanEditAutomation();
-  return (
-    <Flex gap="sm">
-      <AlertsMonitorsShowcaseButton />
-      <AutomationFeedbackButton />
-      {hasPageFrameFeature ? null : (
         <LinkButton
           to={makeAutomationCreatePathname(organization.slug)}
           disabled={!canCreateAlert}
@@ -180,7 +149,16 @@ function Actions() {
         >
           {t('Create Alert')}
         </LinkButton>
-      )}
+      </Flex>
+    </Flex>
+  );
+}
+
+function Actions() {
+  return (
+    <Flex gap="sm">
+      <AlertsMonitorsShowcaseButton />
+      <AutomationFeedbackButton />
     </Flex>
   );
 }

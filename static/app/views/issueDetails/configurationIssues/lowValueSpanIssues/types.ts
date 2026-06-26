@@ -7,7 +7,6 @@ export interface LowValueSpanEvidenceData {
   estimatedCostUsd: number | null;
   extrapolatedCount: number | null;
   op: string | null;
-  spanName: string | null;
   spanOrigin: string | null;
 }
 
@@ -20,7 +19,6 @@ type LowValueSpanEvidencePayload = Partial<{
   estimatedCostUsd: unknown;
   extrapolatedCount: unknown;
   op: unknown;
-  spanName: unknown;
   spanOrigin: unknown;
   valueScore: unknown;
 }>;
@@ -41,7 +39,6 @@ export function getLowValueSpanEvidenceData(
   return {
     op: getStringValue(data?.op),
     description: getStringValue(data?.description),
-    spanName: getStringValue(data?.spanName),
     count: getNumberValue(data?.count),
     extrapolatedCount: getNumberValue(data?.extrapolatedCount),
     avgDurationMs: getNumberValue(data?.avgDurationMs),

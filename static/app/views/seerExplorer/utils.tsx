@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useMatches} from 'react-router-dom';
+import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
@@ -13,7 +14,9 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {
   LOGS_GROUP_BY_KEY,
@@ -35,6 +38,7 @@ import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {
   Block,
+  SeerExplorerSidebarPosition,
   ToolCall,
   ToolLink,
   ToolResult,
@@ -1140,4 +1144,46 @@ export function isSeerExplorerEnabled(organization: Organization | null): boolea
     organization.features.includes('gen-ai-features') &&
     organization.features.includes('seer-explorer')
   );
+}
+
+/**
+ * Whether Seer Explorer should render as a persistent, resizable split-panel
+ * sidebar instead of an overlay drawer.
+ */
+export function useIsSeerExplorerSidebarEnabled(): boolean {
+  const organization = useOrganization({allowNull: true});
+  return (
+    isSeerExplorerEnabled(organization) &&
+    !!organization?.features.includes('seer-explorer-persistent-sidebar')
+  );
+}
+
+/**
+ * localStorage keys for Seer's persisted size in the sidebar split, one per dock
+ * orientation (width when docked right, height when docked bottom). We persist
+ * *Seer's* size — which is viewport-independent — rather than the content pane's,
+ * so Seer keeps a fixed size and the content area flexes as the viewport changes.
+ */
+export const SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY = {
+  right: 'seer-explorer-sidebar-seer-size:right',
+  bottom: 'seer-explorer-sidebar-seer-size:bottom',
+} as const;
+
+type SeerExplorerSidebarOrientation = 'right' | 'bottom';
+
+/**
+ * Resolves the dock preference to a concrete orientation. `auto` docks right on
+ * wide viewports (≥ `xl`) and bottom otherwise. Shared by the layout (to lay
+ * out the split) and the provider (to persist the popped-out window's size to
+ * the right key).
+ */
+export function useSeerExplorerSidebarOrientation(
+  sidebarPosition: SeerExplorerSidebarPosition
+): SeerExplorerSidebarOrientation {
+  const theme = useTheme();
+  const isWideScreen = useMedia(`(min-width: ${theme.breakpoints.xl})`);
+  if (sidebarPosition === 'auto') {
+    return isWideScreen ? 'right' : 'bottom';
+  }
+  return sidebarPosition;
 }

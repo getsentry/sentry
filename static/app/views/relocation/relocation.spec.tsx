@@ -47,9 +47,7 @@ describe('Relocation', () => {
       {name: fakeLocalities.Earth!.name, url: fakeLocalities.Earth!.url},
       {name: fakeLocalities.Moon!.name, url: fakeLocalities.Moon!.url},
     ]);
-    ConfigStore.set('relocationConfig', {
-      selectableRegions: [fakeLocalities.Earth!.name, fakeLocalities.Moon!.name],
-    });
+    ConfigStore.set('signupLocalities', ['earth', 'moon']);
 
     // For tests that don't care about the difference between our "earth" and "moon" regions, we can
     // re-use the same mock responses, with the same generic public key for both.
@@ -173,7 +171,7 @@ describe('Relocation', () => {
         JSON.stringify({
           orgSlugs: fakeOrgSlug,
           promoCode: fakePromoCode,
-          regionUrl: fakeLocalities.Earth!.url,
+          localityName: fakeLocalities.Earth!.name,
         })
       );
 
@@ -271,7 +269,7 @@ describe('Relocation', () => {
         JSON.stringify({
           orgSlugs: fakeOrgSlug,
           promoCode: fakePromoCode,
-          regionUrl: fakeLocalities.Earth!.url,
+          localityName: fakeLocalities.Earth!.name,
         })
       );
     });
@@ -340,7 +338,7 @@ describe('Relocation', () => {
         'relocationOnboarding',
         JSON.stringify({
           orgSlugs: fakeOrgSlug,
-          // regionUrl missing
+          // localityName missing
         })
       );
 
@@ -362,7 +360,7 @@ describe('Relocation', () => {
         'relocationOnboarding',
         JSON.stringify({
           orgSlugs: fakeOrgSlug,
-          regionUrl: fakeLocalities.Earth!.url,
+          localityName: fakeLocalities.Earth!.name,
         })
       );
     });
@@ -383,7 +381,7 @@ describe('Relocation', () => {
         'relocationOnboarding',
         JSON.stringify({
           // orgSlugs missing
-          regionUrl: fakeLocalities.Earth!.url,
+          localityName: fakeLocalities.Earth!.name,
         })
       );
 
@@ -406,7 +404,7 @@ describe('Relocation', () => {
         JSON.stringify({
           orgSlugs: fakeOrgSlug,
           promoCode: fakePromoCode,
-          regionUrl: fakeLocalities.Earth!.url,
+          localityName: fakeLocalities.Earth!.name,
         })
       );
     });
@@ -606,7 +604,7 @@ describe('Relocation', () => {
         'relocationOnboarding',
         JSON.stringify({
           orgSlugs: fakeOrgSlug,
-          regionUrl: fakeLocalities.Earth!.url,
+          localityName: fakeLocalities.Earth!.name,
         })
       );
     });

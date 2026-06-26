@@ -532,7 +532,7 @@ function TotalSummary({
         'These changes will take effect at the end of your current [partnerName] sponsored plan on [newPeriodStart]. If you want these changes to apply immediately, select Migrate Now.',
         {
           partnerName: subscription.partner?.partnership.displayName,
-          newPeriodStart: moment(subscription.contractPeriodEnd)
+          newPeriodStart: moment(subscription.billingPeriodEnd)
             .add(1, 'days')
             .format('ll'),
         }
@@ -822,7 +822,7 @@ export function Cart({
               data;
             const planItem = invoiceItems.find(item => item.type === 'subscription');
             const renewalDate = moment(
-              planItem?.period_end ?? subscription.contractPeriodEnd
+              planItem?.period_end ?? subscription.billingPeriodEnd
             )
               .add(1, 'day')
               .toDate();
@@ -853,7 +853,7 @@ export function Cart({
       api,
       formDataForPreview,
       organization,
-      subscription.contractPeriodEnd,
+      subscription.billingPeriodEnd,
       shouldDisableCheckout,
       billingDetails,
     ]

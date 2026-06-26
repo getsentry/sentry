@@ -106,7 +106,7 @@ class AttributeSeerCreatedPullRequestsTest(TestCase):
 
         assert not PullRequest.objects.filter(repository_id=self.repo.id).exists()
         assert not PullRequestAttribution.objects.exists()
-        assert "seer.pr_attribution.repo_not_found" in _warning_events(mock_logger)
+        assert "pr_metrics.attribution.repo_not_found" in _warning_events(mock_logger)
 
     def test_skips_other_orgs_repository(self) -> None:
         other_org = self.create_organization()
@@ -139,7 +139,7 @@ class AttributeSeerCreatedPullRequestsTest(TestCase):
         # "UNKNOWN" must be treated as the unknown sentinel, not a real provider:
         # the single same-named repo resolves and no unrecognized warning fires.
         assert PullRequest.objects.filter(repository_id=self.repo.id, key="42").exists()
-        assert "seer.pr_attribution.unrecognized_provider" not in _warning_events(mock_logger)
+        assert "pr_metrics.attribution.unrecognized_provider" not in _warning_events(mock_logger)
 
     def test_skips_unknown_provider_when_ambiguous(self) -> None:
         self.create_repo(self.project, name=REPO_NAME, provider="integrations:gitlab")
@@ -150,14 +150,14 @@ class AttributeSeerCreatedPullRequestsTest(TestCase):
         # Two same-named repos under different providers — refuse to guess, warn.
         assert not PullRequest.objects.exists()
         assert not PullRequestAttribution.objects.exists()
-        assert "seer.pr_attribution.repo_ambiguous" in _warning_events(mock_logger)
+        assert "pr_metrics.attribution.repo_ambiguous" in _warning_events(mock_logger)
 
     def test_warns_on_unrecognized_provider(self) -> None:
         with patch("sentry.pr_metrics.attribution.logger") as mock_logger:
             self._attribute(self._payload(provider="subversion"))
 
         # An unmapped provider is flagged so it can be fixed upstream in Seer.
-        assert "seer.pr_attribution.unrecognized_provider" in _warning_events(mock_logger)
+        assert "pr_metrics.attribution.unrecognized_provider" in _warning_events(mock_logger)
 
     def test_one_entry_failure_does_not_drop_the_batch(self) -> None:
         payload = self._payload(pr_number=1) + self._payload(pr_number=2)
@@ -174,7 +174,7 @@ class AttributeSeerCreatedPullRequestsTest(TestCase):
         # The second entry is still attempted after the first one raises.
         assert mock_record.call_count == 2
         exception_events = [call.args[0] for call in mock_logger.exception.call_args_list]
-        assert "seer.pr_attribution.record_failed" in exception_events
+        assert "pr_metrics.attribution.record_failed" in exception_events
 
     def test_skips_entries_missing_fields(self) -> None:
         self._attribute(
@@ -277,7 +277,7 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
             self._attribute(pr_url="https://github.com/getsentry/sentry/pulls")
 
         assert not PullRequestAttribution.objects.exists()
-        assert "seer.pr_attribution.invalid_pr_url" in _warning_events(mock_logger)
+        assert "pr_metrics.attribution.invalid_pr_url" in _warning_events(mock_logger)
 
     def test_skips_branch_url(self) -> None:
         # A delegated agent can report a branch/tree URL; its trailing segment must
@@ -286,14 +286,14 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
             self._attribute(pr_url="https://github.com/getsentry/sentry/tree/123")
 
         assert not PullRequestAttribution.objects.exists()
-        assert "seer.pr_attribution.invalid_pr_url" in _warning_events(mock_logger)
+        assert "pr_metrics.attribution.invalid_pr_url" in _warning_events(mock_logger)
 
     def test_skips_when_repository_not_found(self) -> None:
         with patch("sentry.pr_metrics.attribution.logger") as mock_logger:
             self._attribute(repo_full_name="getsentry/does-not-exist")
 
         assert not PullRequestAttribution.objects.exists()
-        assert "seer.pr_attribution.repo_not_found" in _warning_events(mock_logger)
+        assert "pr_metrics.attribution.repo_not_found" in _warning_events(mock_logger)
 
     def test_attributes_against_the_given_org_only(self) -> None:
         other_org = self.create_organization()

@@ -76,8 +76,8 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.types import ExternalProviders
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
-from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.grouptype import get_group_type_by_type_id
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -103,6 +103,7 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
@@ -181,7 +182,12 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
-from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.users.models.identity import (
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    OrganizationIdentity,
+)
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.user_option import UserOption
@@ -625,10 +631,6 @@ class Factories:
         actions = None
         if not allow_no_action_data:
             action_data = action_data or [
-                {
-                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                    "name": "Send a notification (for all legacy integrations)",
-                },
                 {
                     "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
                     "service": "webhooks",
@@ -1288,6 +1290,25 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_group_activity(group, *args, **kwargs):
         return Activity.objects.create(group=group, project=group.project, *args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_owner(
+        group,
+        type=GroupOwnerType.OWNERSHIP_RULE.value,
+        user_id=None,
+        team=None,
+        **kwargs,
+    ) -> GroupOwner:
+        return GroupOwner.objects.create(
+            group=group,
+            project=group.project,
+            organization=group.project.organization,
+            type=type,
+            user_id=user_id,
+            team=team,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -2080,6 +2101,17 @@ class Factories:
             status=IdentityStatus.VALID,
             scopes=[],
             **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_organization_identity(
+        organization: Organization,
+        identity: Identity,
+    ) -> OrganizationIdentity:
+        return OrganizationIdentity.objects.create(
+            organization_id=organization.id,
+            identity=identity,
         )
 
     @staticmethod

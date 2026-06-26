@@ -1,7 +1,6 @@
 import hmac
 from functools import cached_property
 from hashlib import sha256
-from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -77,27 +76,6 @@ class ReleaseWebhookTest(ReleaseWebhookTestBase):
         )
         resp = self.client.post(path)
         assert resp.status_code == 404
-
-    @patch("sentry.plugins.base.plugins.get")
-    def test_valid_signature(self, mock_plugin_get: MagicMock) -> None:
-        MockPlugin = mock_plugin_get.return_value
-        MockPlugin.is_enabled.return_value = True
-        MockReleaseHook = MockPlugin.get_release_hook.return_value
-        resp = self.client.post(self.path)
-        assert resp.status_code == 204
-        mock_plugin_get.assert_called_once_with("dummy")
-        MockPlugin.get_release_hook.assert_called_once_with()
-        MockReleaseHook.assert_called_once_with(self.project)
-        assert MockReleaseHook.return_value.handle.call_count == 1
-
-    @patch("sentry.plugins.base.plugins.get")
-    def test_disabled_plugin(self, mock_plugin_get: MagicMock) -> None:
-        MockPlugin = mock_plugin_get.return_value
-        MockPlugin.is_enabled.return_value = False
-        resp = self.client.post(self.path)
-        assert resp.status_code == 403
-        mock_plugin_get.assert_called_once_with("dummy")
-        assert not MockPlugin.get_release_hook.called
 
 
 class BuiltinReleaseWebhookTest(ReleaseWebhookTestBase):

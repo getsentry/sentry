@@ -3,7 +3,6 @@ import type {LocationDescriptor} from 'history';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
 import type {ParsedOwnershipRule} from 'sentry/types/ownership';
-import type {TitledPlugin} from 'sentry/types/plugins';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -608,6 +607,8 @@ export enum GroupActivityType {
   SEER_CODING_STARTED = 'seer_coding_started',
   SEER_CODING_COMPLETED = 'seer_coding_completed',
   SEER_PR_CREATED = 'seer_pr_created',
+  SEER_ITERATION_STARTED = 'seer_iteration_started',
+  SEER_ITERATION_COMPLETED = 'seer_iteration_completed',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -618,6 +619,8 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_CODING_STARTED,
   GroupActivityType.SEER_CODING_COMPLETED,
   GroupActivityType.SEER_PR_CREATED,
+  GroupActivityType.SEER_ITERATION_STARTED,
+  GroupActivityType.SEER_ITERATION_COMPLETED,
 ]);
 
 interface GroupActivityBase {
@@ -958,6 +961,31 @@ interface GroupActivitySeerPrCreated extends GroupActivityBase {
   type: GroupActivityType.SEER_PR_CREATED;
 }
 
+interface GroupActivitySeerIterationStarted extends GroupActivityBase {
+  data: {
+    iteration_index?: number;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_ITERATION_STARTED;
+}
+
+interface GroupActivitySeerIterationCompleted extends GroupActivityBase {
+  data: {
+    code_changes?: unknown;
+    iteration_index?: number;
+    pull_requests?: Array<{
+      provider: string;
+      pull_request: {
+        pr_number: number;
+        pr_url: string;
+      };
+      repo_name: string;
+    }>;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_ITERATION_COMPLETED;
+}
+
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
@@ -994,7 +1022,9 @@ export type GroupActivity =
   | GroupActivitySeerSolutionCompleted
   | GroupActivitySeerCodingStarted
   | GroupActivitySeerCodingCompleted
-  | GroupActivitySeerPrCreated;
+  | GroupActivitySeerPrCreated
+  | GroupActivitySeerIterationStarted
+  | GroupActivitySeerIterationCompleted;
 
 export type Activity = GroupActivity;
 
@@ -1125,9 +1155,6 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: Array<[title: string, actionLink: string]>;
-  pluginContexts: any[]; // TODO(ts)
-  pluginIssues: TitledPlugin[];
   priority: PriorityLevel;
   priorityLockedAt: string | null;
   project: Project;

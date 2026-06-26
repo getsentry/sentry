@@ -1,4 +1,5 @@
-from typing import TypedDict
+from datetime import datetime
+from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
@@ -22,6 +23,21 @@ class _ActivitySentryAppEmbed(TypedDict):
     name: str
     slug: str
     avatars: list[SentryAppAvatarSerializerResponse]
+
+
+class ActivitySerializerResponse(TypedDict):
+    # Byte-identical envelope of ActivitySerializer.serialize() — always these six keys.
+    id: str
+    # The serialized acting user (a user serializer response), or null for
+    # system/integration activity. Left loose: the full user shape is out of scope.
+    user: dict[str, Any] | None
+    sentry_app: _ActivitySentryAppEmbed | None
+    type: str
+    # Polymorphic by activity type (note text, commit, pull request, unmerge
+    # fingerprints + source/destination, ...). Loose by design — describing every
+    # variant is out of scope.
+    data: dict[str, Any]
+    dateCreated: datetime
 
 
 COMMIT_ACTIVITY_TYPES = {

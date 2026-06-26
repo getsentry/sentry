@@ -90,7 +90,7 @@ class ExploreProcessor:
 
         if self.scoped_dataset == OurLogs:
             self.config = SearchResolverConfig(
-                use_aggregate_conditions=False,
+                use_aggregate_conditions=use_aggregate_conditions,
             )
         else:
             self.config = SearchResolverConfig(
