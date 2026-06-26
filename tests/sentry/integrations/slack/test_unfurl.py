@@ -1224,9 +1224,9 @@ class UnfurlTest(TestCase):
             "( metric.name:dashboards.widget.onEdit metric.type:distribution"
             " metric.unit:millisecond )"
         )
-        # 30d targets a fixed-density grid: 6h keeps columns (120) within
-        # HEATMAP_TARGET_X_BUCKETS (150).
-        assert api_params["interval"] == "6h"
+        # 30d targets a fixed-density grid: 21600s (6h) keeps columns (120)
+        # within HEATMAP_TARGET_X_BUCKETS (150).
+        assert api_params["interval"] == "21600s"
         assert api_params["yBuckets"] == "50"
 
         chart_data = mock_generate_chart.call_args[0][1]
@@ -1277,12 +1277,14 @@ class UnfurlTest(TestCase):
         # The heat map targets a fixed-density grid sized to the 1200x400
         # Chartcuterie canvas: the interval is the finest candidate keeping
         # columns within 150, and yBuckets is always 50 (URL intervals ignored).
+        # Intervals are the finest VALID_GRANULARITIES value (in seconds) that
+        # keeps columns within 150.
         base = "yAxis=sum(value,my.metric,counter,none)"
         cases = [
-            ("1h", "1m"),  # 60 columns
-            ("24h", "10m"),  # 144 columns (5m -> 288 would exceed 150)
-            ("7d", "2h"),  # 84 columns (1h -> 168 would exceed 150)
-            ("30d", "6h"),  # 120 columns (3h -> 240 would exceed 150)
+            ("1h", "30s"),  # 120 columns (15s -> 240 would exceed 150)
+            ("24h", "600s"),  # 144 columns (300s -> 288 would exceed 150)
+            ("7d", "7200s"),  # 84 columns (3600s -> 168 would exceed 150)
+            ("30d", "21600s"),  # 120 columns (14400s -> 180 would exceed 150)
         ]
         for stats_period, expected_interval in cases:
             # Inject a too-fine URL interval to prove it is ignored.

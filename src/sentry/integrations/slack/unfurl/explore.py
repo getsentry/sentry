@@ -26,6 +26,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.search.eap.constants import VALID_GRANULARITIES
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, PERCENT_UNITS, SIZE_UNITS
 from sentry.search.events.fields import is_function, parse_arguments
@@ -42,34 +43,6 @@ TOP_N = 5
 
 EXPLORE_CHART_SIZE: ChartSize = {"width": 1200, "height": 400}
 
-# Heat map unfurls always render to the fixed Chartcuterie canvas above, so we
-# target a fixed-density grid sized to it rather than bucketing by a time-range
-# ladder. A fine ladder interval emits tens of thousands of cells for long
-# ranges, which (a) trips ECharts' progressive-rendering threshold so the
-# server-side snapshot only captures the first columns and (b) looks nothing
-# like the live UI. 150 x 50 over 1200x400 gives ~8px square cells.
-HEATMAP_TARGET_X_BUCKETS = 150
-HEATMAP_TARGET_Y_BUCKETS = 50
-
-# Candidate x-axis intervals (finest to coarsest), in the same (timedelta, str)
-# format as `_DEFAULT_INTERVAL_LADDER` below. Note the timedelta here is the
-# interval itself, not a range threshold: `_heatmap_interval` picks the finest
-# one whose column count (`time_range / interval`) stays within
-# HEATMAP_TARGET_X_BUCKETS, capping cell density for the fixed canvas.
-_HEATMAP_INTERVAL_LADDER: tuple[tuple[timedelta, str], ...] = (
-    (timedelta(minutes=1), "1m"),
-    (timedelta(minutes=5), "5m"),
-    (timedelta(minutes=10), "10m"),
-    (timedelta(minutes=15), "15m"),
-    (timedelta(minutes=30), "30m"),
-    (timedelta(hours=1), "1h"),
-    (timedelta(hours=2), "2h"),
-    (timedelta(hours=3), "3h"),
-    (timedelta(hours=6), "6h"),
-    (timedelta(hours=12), "12h"),
-    (timedelta(days=1), "1d"),
-)
-
 # Mirrors the frontend's MINIMUM_INTERVAL ladder in
 # static/app/utils/useChartInterval.tsx. All Explore views call
 # `useChartInterval()` with the default `USE_SMALLEST` strategy, so the
@@ -85,6 +58,14 @@ _DEFAULT_INTERVAL_LADDER: tuple[tuple[timedelta, str], ...] = (
     (timedelta(hours=12), "5m"),
     (timedelta(0), "1m"),
 )
+
+
+# Heat Map unfurls always render to a fixed Chartcuterie canvas, so we target a
+# fixed-density grid sized to those dimensions. 150 x 50 over 1200x400 gives
+# ~8px square cells. 150 is an approximation, since we're limited to a known set
+# of intervals.
+HEATMAP_TARGET_X_BUCKETS = 150
+HEATMAP_TARGET_Y_BUCKETS = 50
 
 
 def _query_time_range(params: QueryDict) -> timedelta:
@@ -114,13 +95,16 @@ def _interval_for_query(params: QueryDict) -> str:
 
 
 def _heatmap_interval(time_range: timedelta) -> str:
-    """Pick the finest interval that keeps the heat map within
-    ``HEATMAP_TARGET_X_BUCKETS`` columns, so it renders a fixed-density grid
-    sized to the Chartcuterie canvas regardless of the selected time range."""
-    for interval_td, interval in _HEATMAP_INTERVAL_LADDER:
-        if time_range <= interval_td * HEATMAP_TARGET_X_BUCKETS:
-            return interval
-    return _HEATMAP_INTERVAL_LADDER[-1][1]
+    """Pick the finest backend-supported granularity that keeps the heat map
+    within ``HEATMAP_TARGET_X_BUCKETS`` columns, so it renders a fixed-density
+    grid sized to the Chartcuterie canvas regardless of the selected time range.
+    Iterates the EAP-accepted ``VALID_GRANULARITIES`` (the events-heatmap dataset
+    is tracemetrics) so we can only ever pick an interval the backend honors."""
+    seconds = time_range.total_seconds()
+    for granularity in sorted(VALID_GRANULARITIES):
+        if seconds / granularity <= HEATMAP_TARGET_X_BUCKETS:
+            return f"{granularity}s"
+    return f"{max(VALID_GRANULARITIES)}s"
 
 
 def _clamp_interval(url_interval: str, minimum_interval: str) -> str:
