@@ -3748,6 +3748,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rolls out the new TaskProducer to replays tasks
+register(
+    "tasks.producer.replays.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rolls out the new TaskProducer to track_outcome in tasks
 register(
     "tasks.producer.track_outcome.rollout",

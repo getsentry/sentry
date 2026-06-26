@@ -32,6 +32,15 @@ class ApiAuthorizationsListTest(ApiAuthorizationsTest):
         assert response.data[0]["id"] == str(auth.id)
         assert response.data[0]["organization"] is None
 
+    def test_fresh_app_hides_secret_from_non_owner(self) -> None:
+        other_user = self.create_user("other@example.com")
+        app = ApiApplication.objects.create(name="test", owner=other_user)
+        ApiAuthorization.objects.create(application=app, user=self.user)
+
+        response = self.get_success_response()
+        assert len(response.data) == 1
+        assert response.data[0]["application"]["clientSecret"] is None
+
     def test_org_level_auth(self) -> None:
         org = self.create_organization(owner=self.user, slug="test-org-slug")
         app = ApiApplication.objects.create(
