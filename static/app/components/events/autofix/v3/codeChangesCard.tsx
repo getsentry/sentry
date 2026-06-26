@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -141,36 +142,36 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   // section's code-change artifact by getOrderedAutofixSections. Feedback on a
   // block at/after the current step marker drives the iteration still running
   // (when the section is processing); everything earlier is already pushed.
-  const blockFeedback = useMemo<IterationFeedback[]>(
-    () =>
-      hasPrIterationFeature
-        ? section.blocks.flatMap((block, blockIndex) => {
-            if (!isPrIterationBlock(block)) {
-              return [];
-            }
+  const blockFeedback = useMemo<IterationFeedback[]>(() => {
+    if (!hasPrIterationFeature) {
+      return [];
+    }
 
-            const metadata = block.message.metadata;
-            const value = metadata?.feedback;
-            const iterationIndex = metadata?.iteration_index;
+    return section.blocks.flatMap((block, blockIndex) => {
+      if (!isPrIterationBlock(block)) {
+        return [];
+      }
 
-            if (!value || iterationIndex === undefined) {
-              return [];
-            }
+      const metadata = block.message.metadata;
+      const value = metadata?.feedback;
+      const iterationIndex = metadata?.iteration_index;
 
-            const status: FeedbackStatus =
-              section.status === 'processing' && blockIndex >= currentStepStart
-                ? 'in_progress'
-                : 'processed';
+      if (!value || iterationIndex === undefined) {
+        return [];
+      }
 
-            return parseFeedback(value).map(parsed => ({
-              ...parsed,
-              iterationIndex: Number(iterationIndex),
-              status,
-            }));
-          })
-        : [],
-    [section.blocks, section.status, currentStepStart, hasPrIterationFeature]
-  );
+      const status: FeedbackStatus =
+        section.status === 'processing' && blockIndex >= currentStepStart
+          ? 'in_progress'
+          : 'processed';
+
+      return parseFeedback(value).map(parsed => ({
+        ...parsed,
+        iterationIndex: Number(iterationIndex),
+        status,
+      }));
+    });
+  }, [section.blocks, section.status, currentStepStart, hasPrIterationFeature]);
 
   const latestIterationIndex = useMemo(
     () =>
@@ -184,41 +185,41 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   // Feedback submitted while this run is processing that hasn't been picked up
   // and folded into a block yet. It will become the next iteration.
-  const queuedFeedback = useMemo<IterationFeedback[]>(
-    () =>
-      hasPrIterationFeature
-        ? (autofix.runState?.queued_feedback ?? []).flatMap(raw => {
-            const parsed = parseFeedbackItem(raw);
-            if (!parsed) {
-              return [];
-            }
+  const queuedFeedback = useMemo<IterationFeedback[]>(() => {
+    if (!hasPrIterationFeature) {
+      return [];
+    }
 
-            return [
-              {
-                ...parsed,
-                iterationIndex: (latestIterationIndex ?? -1) + 1,
-                status: 'queued' as const,
-              },
-            ];
-          })
-        : [],
-    [autofix.runState?.queued_feedback, latestIterationIndex, hasPrIterationFeature]
-  );
+    return (autofix.runState?.queued_feedback ?? []).flatMap(raw => {
+      const parsed = parseFeedbackItem(raw);
+      if (!parsed) {
+        return [];
+      }
+
+      return [
+        {
+          ...parsed,
+          iterationIndex: (latestIterationIndex ?? -1) + 1,
+          status: 'queued' as const,
+        },
+      ];
+    });
+  }, [autofix.runState?.queued_feedback, latestIterationIndex, hasPrIterationFeature]);
 
   const feedback = useMemo(
     () => [...blockFeedback, ...queuedFeedback].reverse(),
     [blockFeedback, queuedFeedback]
   );
 
-  const loadingBlocks = useMemo(
-    () =>
-      section.status === 'processing'
-        ? currentStepStart === -1
-          ? section.blocks
-          : section.blocks.slice(currentStepStart)
-        : [],
-    [section.status, section.blocks, currentStepStart]
-  );
+  const loadingBlocks = useMemo(() => {
+    if (section.status !== 'processing') {
+      return [];
+    }
+    if (currentStepStart === -1) {
+      return section.blocks;
+    }
+    return section.blocks.slice(currentStepStart);
+  }, [section.status, section.blocks, currentStepStart]);
 
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
