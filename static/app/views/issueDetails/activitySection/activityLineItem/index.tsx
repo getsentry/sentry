@@ -39,18 +39,16 @@ export function ActivityLineItem({
   setEditing,
 }: ActivityLineItemProps) {
   const organization = useOrganization();
-  const compactItem = getCompactGroupActivityItem(
-    item,
+  const compactItem = getCompactGroupActivityItem({
+    activity: item,
     organization,
-    group.project,
-    group.issueCategory,
-    teams
-  );
-
-  const Row = inputVariant === 'compact' ? CompactActivityLineRow : ActivityLineRow;
+    project: group.project,
+    issueCategory: group.issueCategory,
+    teams,
+  });
 
   return (
-    <Row>
+    <ActivityLineRowFrame variant={inputVariant}>
       <ActivityLineMarker item={item} />
       <ActivityLineActor item={item} />
       <Flex
@@ -104,8 +102,22 @@ export function ActivityLineItem({
           <ActivityLineSubtext>{compactItem.subtext}</ActivityLineSubtext>
         ) : null}
       </ActivityLineContent>
-    </Row>
+    </ActivityLineRowFrame>
   );
+}
+
+function ActivityLineRowFrame({
+  children,
+  variant,
+}: {
+  children: React.ReactNode;
+  variant: ActivityLineItemProps['inputVariant'];
+}) {
+  if (variant === 'compact') {
+    return <CompactActivityLineRow>{children}</CompactActivityLineRow>;
+  }
+
+  return <ActivityLineRow>{children}</ActivityLineRow>;
 }
 
 const activityLineRowStyles = (p: {theme: Theme}) => css`

@@ -285,6 +285,12 @@ export function ActivitySection({
       timestampUnitStyle={timestampUnitStyle}
     />
   );
+  const renderActivityList = (children: React.ReactNode) =>
+    useTwoColumnLayout ? (
+      <ActivityLineList data-test-id="activity-timeline">{children}</ActivityLineList>
+    ) : (
+      <Timeline.Container data-test-id="activity-timeline">{children}</Timeline.Container>
+    );
 
   const noteInput = (
     <ActivityNoteInput
@@ -300,11 +306,36 @@ export function ActivitySection({
     />
   );
 
-  const timeline = (
-    <Timeline.Container data-test-id="activity-timeline">
-      {filteredActivities.map(renderActivityItem)}
-    </Timeline.Container>
-  );
+  const timeline = renderActivityList(filteredActivities.map(renderActivityItem));
+  const sidebarActivityItems =
+    filteredActivities.length < 5 ? (
+      filteredActivities.map(renderActivityItem)
+    ) : (
+      <Fragment>
+        {filteredActivities.slice(0, 3).map(renderActivityItem)}
+        <MoreActivityRow>
+          <MoreActivityIcon>
+            <RotatedEllipsisIcon direction="up" />
+          </MoreActivityIcon>
+          <Container marginTop="xs">
+            <LinkButton
+              aria-label={t('View all activity')}
+              to={activityLink}
+              size="xs"
+              replace
+              preventScrollReset
+              analyticsEventKey="issue_details.activity_expanded"
+              analyticsEventName="Issue Details: Activity Expanded"
+              analyticsParams={{
+                num_activities_hidden: filteredActivities.length - 3,
+              }}
+            >
+              {t('View %s more', filteredActivities.length - 3)}
+            </LinkButton>
+          </Container>
+        </MoreActivityRow>
+      </Fragment>
+    );
 
   if (variant === 'standalone') {
     return (
@@ -326,36 +357,7 @@ export function ActivitySection({
     >
       <Grid gap="lg">
         {noteInput}
-        <Timeline.Container data-test-id="activity-timeline">
-          {filteredActivities.length < 5 ? (
-            filteredActivities.map(renderActivityItem)
-          ) : (
-            <Fragment>
-              {filteredActivities.slice(0, 3).map(renderActivityItem)}
-              <MoreActivityRow>
-                <MoreActivityIcon>
-                  <RotatedEllipsisIcon direction="up" />
-                </MoreActivityIcon>
-                <Container marginTop="xs">
-                  <LinkButton
-                    aria-label={t('View all activity')}
-                    to={activityLink}
-                    size="xs"
-                    replace
-                    preventScrollReset
-                    analyticsEventKey="issue_details.activity_expanded"
-                    analyticsEventName="Issue Details: Activity Expanded"
-                    analyticsParams={{
-                      num_activities_hidden: filteredActivities.length - 3,
-                    }}
-                  >
-                    {t('View %s more', filteredActivities.length - 3)}
-                  </LinkButton>
-                </Container>
-              </MoreActivityRow>
-            </Fragment>
-          )}
-        </Timeline.Container>
+        {renderActivityList(sidebarActivityItems)}
       </Grid>
     </SidebarFoldSection>
   );
@@ -375,6 +377,20 @@ const ActivityTimelineItem = styled(Timeline.Item)`
 const Timestamp = styled(TimeSince)`
   font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
+`;
+
+const ActivityLineList = styled('div')`
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    top: 11px;
+    bottom: 0;
+    width: 0;
+    border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
+  }
 `;
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`

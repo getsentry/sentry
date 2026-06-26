@@ -7,14 +7,15 @@ interface InlineChipProps {
 }
 
 export function InlineChip({children, variant = 'default'}: InlineChipProps) {
-  const Component =
-    variant === 'compactLeading'
-      ? CompactLeadingChipFrame
-      : variant === 'constrained'
-        ? ConstrainedChipFrame
-        : ChipFrame;
+  if (variant === 'compactLeading') {
+    return <CompactLeadingChipFrame>{children}</CompactLeadingChipFrame>;
+  }
 
-  return <Component>{children}</Component>;
+  if (variant === 'constrained') {
+    return <ConstrainedChipFrame>{children}</ConstrainedChipFrame>;
+  }
+
+  return <ChipFrame>{children}</ChipFrame>;
 }
 
 const chipFrameStyles = (p: {theme: Theme}) => css`

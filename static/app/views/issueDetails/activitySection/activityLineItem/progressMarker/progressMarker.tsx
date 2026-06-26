@@ -60,22 +60,13 @@ const ProgressDotFrame = styled('span')`
   place-items: center;
   width: 22px;
   height: 22px;
-  border-radius: 100%;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 3px;
-    border-radius: inherit;
-    background: ${p => p.theme.tokens.background.overlay};
-  }
 `;
 
 const ProgressDot = styled('span')`
-  position: relative;
-  z-index: 1;
   width: 10px;
   height: 10px;
   border-radius: 100%;
-  background: ${p => p.theme.colors.gray300};
+  background: ${p => p.theme.tokens.graphics.neutral.moderate};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 0 0 4px ${p => p.theme.tokens.background.primary};
 `;

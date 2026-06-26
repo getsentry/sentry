@@ -8,18 +8,16 @@ import type {GroupActivity} from 'sentry/types/group';
 import {SEER_ACTIVITY_TYPES} from 'sentry/types/group';
 
 export function ActivityLineActor({item}: {item: GroupActivity}) {
-  return <ActorSlot>{renderActor(item)}</ActorSlot>;
+  return (
+    <ActorSlot>
+      <ActivityLineActorAvatar item={item} />
+    </ActorSlot>
+  );
 }
 
-function renderActor(item: GroupActivity) {
+function ActivityLineActorAvatar({item}: {item: GroupActivity}) {
   if (item.sentry_app) {
-    return (
-      <SentryAppAvatar
-        data-test-id="sentry-app-activity-actor"
-        sentryApp={item.sentry_app}
-        size={22}
-      />
-    );
+    return <SentryAppAvatar sentryApp={item.sentry_app} size={22} />;
   }
 
   if (item.user) {

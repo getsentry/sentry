@@ -297,8 +297,8 @@ describe('ActivitySection', () => {
     );
 
     expect(await screen.findByText('User note')).toBeInTheDocument();
-    expect(screen.getByTestId('user-activity-marker')).toBeInTheDocument();
-    expect(screen.getByTestId('sentry-activity-marker')).toBeInTheDocument();
+    expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+    expect(screen.queryByTestId('sentry-activity-marker')).not.toBeInTheDocument();
   });
 
   it('does not render activity actor markers when the feature is disabled', async () => {
@@ -326,7 +326,7 @@ describe('ActivitySection', () => {
     expect(screen.queryByTestId('user-activity-marker')).not.toBeInTheDocument();
   });
 
-  it('does not render user avatar as icon for notes in two-column layout', async () => {
+  it('renders user actor for notes in two-column layout', async () => {
     const activityGroup = GroupFixture({
       id: '1338',
       activity: [
@@ -351,8 +351,8 @@ describe('ActivitySection', () => {
     );
 
     expect(await screen.findByText('User note')).toBeInTheDocument();
-    expect(screen.getByTestId('user-activity-marker')).toBeInTheDocument();
-    expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+    expect(screen.queryByTestId('user-activity-marker')).not.toBeInTheDocument();
   });
 
   it('renders provider-specific icon for create issue in two-column layout', async () => {
