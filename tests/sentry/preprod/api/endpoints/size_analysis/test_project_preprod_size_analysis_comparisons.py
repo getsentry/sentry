@@ -139,7 +139,7 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
             qs_params={"query": "no_such_key:foo"},
             status_code=400,
         )
-        assert response.data["detail"] == "Invalid key for this search: no_such_key"
+        assert response.data["detail"] == "Invalid search query."
 
     def test_returns_empty_when_no_comparisons(self) -> None:
         response = self.get_success_response(self.organization.slug, self.head_artifact.id)

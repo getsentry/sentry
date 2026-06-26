@@ -84,11 +84,17 @@ class ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint(PreprodArtifactEndpo
                 .filter(id__in=candidate_base_ids)
                 .values_list("id", flat=True)
             )
-        except InvalidSearchQuery as e:
+        except InvalidSearchQuery:
             # TODO: centralize the repeated InvalidSearchQuery response handling
-            # CodeQL complains about str(e) below but ~all handlers
-            # of InvalidSearchQuery do the same as this.
-            return Response({"detail": str(e)}, status=400)
+            logger.exception(
+                "preprod.size_analysis.comparisons.invalid_search_query",
+                extra={
+                    "project_id": project.id,
+                    "head_artifact_id": head_artifact.id,
+                    "query": query,
+                },
+            )
+            return Response({"detail": "Invalid search query."}, status=400)
 
         latest_comparison_date = (
             head_success_comparisons.filter(
