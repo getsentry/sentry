@@ -11,19 +11,19 @@ function isTeam(value: AvatarUser | Team): value is Team {
 
 export function AssigneePill({assignee}: {assignee: AvatarUser | string | Team}) {
   if (typeof assignee === 'string') {
-    return <InlineChip>{assignee}</InlineChip>;
+    return <InlineChip variant="constrained">{assignee}</InlineChip>;
   }
 
   if (isTeam(assignee)) {
     return (
-      <InlineChip variant="compactLeading">
+      <InlineChip variant="constrainedCompactLeading">
         <TeamAvatar team={assignee} size={16} hasTooltip={false} />#{assignee.slug}
       </InlineChip>
     );
   }
 
   return (
-    <InlineChip variant="compactLeading">
+    <InlineChip variant="constrainedCompactLeading">
       <UserAvatar user={assignee} size={16} />
       {assignee.name || assignee.email || assignee.username}
     </InlineChip>

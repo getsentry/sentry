@@ -1,7 +1,7 @@
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {GroupActivityAssigned} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser, User} from 'sentry/types/user';
@@ -86,22 +86,6 @@ function AssignmentLead({children}: {children: React.ReactNode}) {
   );
 }
 
-function AssignmentPrefix({children}: {children: React.ReactNode}) {
-  return (
-    <Flex
-      as="span"
-      display="inline-flex"
-      align="center"
-      gap="xs"
-      maxWidth="100%"
-      minWidth={0}
-      whiteSpace="nowrap"
-    >
-      {children}
-    </Flex>
-  );
-}
-
 function AssignmentTitleText({children}: {children: React.ReactNode}) {
   return (
     <Text as="span" bold density="comfortable">
@@ -147,7 +131,7 @@ function AssignedActivityTitle({activity, author}: GetAssignedActivityItemParams
   const {data} = activity;
   const assignedToSelf = data.assignee === activity.user?.id;
   const assignee = assignedToSelf ? (
-    t('themselves')
+    <AssignmentDetailText>{t('themselves')}</AssignmentDetailText>
   ) : (
     <AssigneePill assignee={getAssignedAssignee(activity, teams)} />
   );
@@ -156,12 +140,10 @@ function AssignedActivityTitle({activity, author}: GetAssignedActivityItemParams
   if (integrationName) {
     return (
       <AssignmentLead>
-        <AssignmentPrefix>
-          <AssignmentTitleText>{t('Assigned')}</AssignmentTitleText>
-          <AssignmentDetailText>
-            {tct('to [assignee] due to', {assignee})}
-          </AssignmentDetailText>
-        </AssignmentPrefix>
+        <AssignmentTitleText>{t('Assigned')}</AssignmentTitleText>
+        <AssignmentDetailText>{t('to')}</AssignmentDetailText>
+        {assignee}
+        <AssignmentDetailText>{t('due to')}</AssignmentDetailText>
         <RuleSource>{integrationName}</RuleSource>
       </AssignmentLead>
     );
@@ -169,14 +151,10 @@ function AssignedActivityTitle({activity, author}: GetAssignedActivityItemParams
 
   return (
     <AssignmentLead>
-      <AssignmentPrefix>
-        <AssignmentTitleText>{t('Assigned')}</AssignmentTitleText>
-        <AssignmentDetailText>
-          {assignedToSelf
-            ? tct('to [assignee]', {assignee})
-            : tct('to [assignee] by', {assignee})}
-        </AssignmentDetailText>
-      </AssignmentPrefix>
+      <AssignmentTitleText>{t('Assigned')}</AssignmentTitleText>
+      <AssignmentDetailText>{t('to')}</AssignmentDetailText>
+      {assignee}
+      {assignedToSelf ? null : <AssignmentDetailText>{t('by')}</AssignmentDetailText>}
       {assignedToSelf ? null : <AssignmentDetailText>{author}</AssignmentDetailText>}
     </AssignmentLead>
   );

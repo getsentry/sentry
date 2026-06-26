@@ -4,11 +4,12 @@ import styled from '@emotion/styled';
 interface InlineChipProps {
   children: React.ReactNode;
   tone?: 'accent' | 'default';
-  variant?: 'compactLeading' | 'constrained' | 'default';
+  variant?: 'compactLeading' | 'constrained' | 'constrainedCompactLeading' | 'default';
 }
 
 interface ChipFrameProps {
   children: React.ReactNode;
+  constrained?: boolean;
   maxWidth?: React.CSSProperties['maxWidth'];
   minWidth?: React.CSSProperties['minWidth'];
   paddingLeft?: React.CSSProperties['paddingLeft'];
@@ -21,12 +22,17 @@ export function InlineChip({
   variant = 'default',
 }: InlineChipProps) {
   const theme = useTheme();
+  const constrained =
+    variant === 'constrained' || variant === 'constrainedCompactLeading';
+  const compactLeading =
+    variant === 'compactLeading' || variant === 'constrainedCompactLeading';
 
   return (
     <ChipFrame
-      maxWidth={variant === 'constrained' ? '100%' : undefined}
-      minWidth={variant === 'constrained' ? 0 : undefined}
-      paddingLeft={variant === 'compactLeading' ? theme.space.xs : undefined}
+      constrained={constrained}
+      maxWidth={constrained ? '100%' : undefined}
+      minWidth={constrained ? 0 : undefined}
+      paddingLeft={compactLeading ? theme.space.xs : undefined}
       tone={tone}
     >
       {children}
@@ -34,9 +40,20 @@ export function InlineChip({
   );
 }
 
-function ChipFrame({children, maxWidth, minWidth, paddingLeft, tone}: ChipFrameProps) {
+function ChipFrame({
+  children,
+  constrained,
+  maxWidth,
+  minWidth,
+  paddingLeft,
+  tone,
+}: ChipFrameProps) {
   return (
-    <ChipFrameElement data-tone={tone} style={{maxWidth, minWidth, paddingLeft}}>
+    <ChipFrameElement
+      data-constrained={constrained ? true : undefined}
+      data-tone={tone}
+      style={{maxWidth, minWidth, paddingLeft}}
+    >
       {children}
     </ChipFrameElement>
   );
@@ -53,6 +70,11 @@ const chipFrameStyles = (p: {theme: Theme}) => css`
   color: ${p.theme.tokens.content.secondary};
   vertical-align: middle;
   white-space: nowrap;
+
+  &[data-constrained='true'] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   svg {
     flex-shrink: 0;
