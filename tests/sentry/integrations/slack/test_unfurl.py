@@ -1224,7 +1224,10 @@ class UnfurlTest(TestCase):
             "( metric.name:dashboards.widget.onEdit metric.type:distribution"
             " metric.unit:millisecond )"
         )
-        assert api_params["interval"] == "3h"
+        # 30d targets a fixed-density grid: 6h keeps columns (120) within
+        # HEATMAP_TARGET_X_BUCKETS (150).
+        assert api_params["interval"] == "6h"
+        assert api_params["yBuckets"] == "50"
 
         chart_data = mock_generate_chart.call_args[0][1]
         y_axis_meta = chart_data["heatmap"]["meta"]["yAxis"]
@@ -1271,15 +1274,22 @@ class UnfurlTest(TestCase):
         )
 
     def test_build_heatmap_query_interval_and_buckets(self) -> None:
-        # Per-range ladder interval (injected URL intervals ignored), with
-        # yBuckets ≈ xBuckets / 3 so cells stay ~square on the 1200x400 canvas.
+        # The heat map targets a fixed-density grid sized to the 1200x400
+        # Chartcuterie canvas: the interval is the finest candidate keeping
+        # columns within 150, and yBuckets is always 50 (URL intervals ignored).
         base = "yAxis=sum(value,my.metric,counter,none)"
-        # 30d / 3h -> 240 columns -> round(240/3) = 80 rows.
-        out = _build_heatmap_query(QueryDict(f"{base}&statsPeriod=30d&interval=12h"))
-        assert (out["interval"], out["yBuckets"]) == ("3h", "80")
-        # 24h / 5m -> 288 columns -> round(288/3) = 96 rows.
-        out = _build_heatmap_query(QueryDict(f"{base}&statsPeriod=24h"))
-        assert (out["interval"], out["yBuckets"]) == ("5m", "96")
+        cases = [
+            ("1h", "1m"),  # 60 columns
+            ("24h", "10m"),  # 144 columns (5m -> 288 would exceed 150)
+            ("7d", "2h"),  # 84 columns (1h -> 168 would exceed 150)
+            ("30d", "6h"),  # 120 columns (3h -> 240 would exceed 150)
+        ]
+        for stats_period, expected_interval in cases:
+            # Inject a too-fine URL interval to prove it is ignored.
+            out = _build_heatmap_query(QueryDict(f"{base}&statsPeriod={stats_period}&interval=1m"))
+            assert (out["interval"], out["yBuckets"]) == (expected_interval, "50"), (
+                f"statsPeriod={stats_period}"
+            )
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",

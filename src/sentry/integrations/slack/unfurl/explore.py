@@ -42,6 +42,34 @@ TOP_N = 5
 
 EXPLORE_CHART_SIZE: ChartSize = {"width": 1200, "height": 400}
 
+# Heat map unfurls always render to the fixed Chartcuterie canvas above, so we
+# target a fixed-density grid sized to it rather than bucketing by a time-range
+# ladder. A fine ladder interval emits tens of thousands of cells for long
+# ranges, which (a) trips ECharts' progressive-rendering threshold so the
+# server-side snapshot only captures the first columns and (b) looks nothing
+# like the live UI. 150 x 50 over 1200x400 gives ~8px square cells.
+HEATMAP_TARGET_X_BUCKETS = 150
+HEATMAP_TARGET_Y_BUCKETS = 50
+
+# Candidate x-axis intervals (finest to coarsest), in the same (timedelta, str)
+# format as `_DEFAULT_INTERVAL_LADDER` below. Note the timedelta here is the
+# interval itself, not a range threshold: `_heatmap_interval` picks the finest
+# one whose column count (`time_range / interval`) stays within
+# HEATMAP_TARGET_X_BUCKETS, capping cell density for the fixed canvas.
+_HEATMAP_INTERVAL_LADDER: tuple[tuple[timedelta, str], ...] = (
+    (timedelta(minutes=1), "1m"),
+    (timedelta(minutes=5), "5m"),
+    (timedelta(minutes=10), "10m"),
+    (timedelta(minutes=15), "15m"),
+    (timedelta(minutes=30), "30m"),
+    (timedelta(hours=1), "1h"),
+    (timedelta(hours=2), "2h"),
+    (timedelta(hours=3), "3h"),
+    (timedelta(hours=6), "6h"),
+    (timedelta(hours=12), "12h"),
+    (timedelta(days=1), "1d"),
+)
+
 # Mirrors the frontend's MINIMUM_INTERVAL ladder in
 # static/app/utils/useChartInterval.tsx. All Explore views call
 # `useChartInterval()` with the default `USE_SMALLEST` strategy, so the
@@ -83,6 +111,16 @@ def _interval_for_query(params: QueryDict) -> str:
         if diff >= threshold:
             return interval
     return "1m"
+
+
+def _heatmap_interval(time_range: timedelta) -> str:
+    """Pick the finest interval that keeps the heat map within
+    ``HEATMAP_TARGET_X_BUCKETS`` columns, so it renders a fixed-density grid
+    sized to the Chartcuterie canvas regardless of the selected time range."""
+    for interval_td, interval in _HEATMAP_INTERVAL_LADDER:
+        if time_range <= interval_td * HEATMAP_TARGET_X_BUCKETS:
+            return interval
+    return _HEATMAP_INTERVAL_LADDER[-1][1]
 
 
 def _clamp_interval(url_interval: str, minimum_interval: str) -> str:
@@ -150,8 +188,9 @@ def _parse_aggregate_field_entries(
 def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
     """Assemble the QueryDict sent to the events-heatmap API. Like
     ``_build_timeseries_query`` but adds the heatmap params (xAxis/yAxis/zAxis/
-    yBuckets). The interval is the per-range ladder value (the URL interval is
-    ignored); yBuckets is derived from it to keep cells ~square."""
+    yBuckets). The URL interval is ignored; instead we target a fixed-density
+    grid (`HEATMAP_TARGET_X_BUCKETS` x `HEATMAP_TARGET_Y_BUCKETS`) sized to the
+    Chartcuterie canvas."""
     out = QueryDict(mutable=True)
 
     for param in ("project", "statsPeriod", "start", "end", "environment"):
@@ -176,16 +215,12 @@ def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
     if not out.get("statsPeriod") and not out.get("start"):
         out["statsPeriod"] = DEFAULT_PERIOD
 
-    # Per-range ladder interval (fine end, for plenty of columns), then size
-    # yBuckets to keep cells roughly square: yBuckets ≈ xBuckets * (height / width).
-    interval = _interval_for_query(out)
-    out["interval"] = interval
-    interval_td = parse_stats_period(interval)
-    x_buckets = round(_query_time_range(out) / interval_td) if interval_td else 0
-    y_buckets = max(
-        1, round(x_buckets * EXPLORE_CHART_SIZE["height"] / EXPLORE_CHART_SIZE["width"])
-    )
-    out["yBuckets"] = str(y_buckets)
+    # Target a fixed-density grid sized to the Chartcuterie canvas: pick an
+    # interval that keeps the column count within HEATMAP_TARGET_X_BUCKETS and
+    # request HEATMAP_TARGET_Y_BUCKETS rows. (The endpoint honors `interval` and
+    # recomputes the column count from it.)
+    out["interval"] = _heatmap_interval(_query_time_range(out))
+    out["yBuckets"] = str(HEATMAP_TARGET_Y_BUCKETS)
 
     # Fixed axes — the endpoint currently only supports these values.
     out["xAxis"] = "time"
