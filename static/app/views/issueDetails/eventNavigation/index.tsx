@@ -125,7 +125,8 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       event,
       groupSummaryData,
       autofixData,
-      activeThreadId
+      activeThreadId,
+      organization
     );
 
     trackAnalytics('issue_details.copy_issue_details_as_markdown', {

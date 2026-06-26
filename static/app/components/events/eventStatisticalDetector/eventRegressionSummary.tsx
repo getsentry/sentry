@@ -48,6 +48,20 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
   );
 }
 
+export function keyValueListDataToMarkdownLines(data: KeyValueListData): string[] {
+  return data
+    .map(item => {
+      const raw = item.value;
+      const value =
+        typeof raw === 'string' ? raw : typeof raw === 'number' ? String(raw) : '';
+      if (!item.subject || value === '') {
+        return null;
+      }
+      return `**${item.subject}:** ${value}`;
+    })
+    .filter((line): line is string => line !== null);
+}
+
 export function getKeyValueListData(
   organization: Organization,
   issueType: IssueType,
