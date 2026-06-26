@@ -4,9 +4,7 @@ export function isSeverityFilterKey(key: string): boolean {
   return SEVERITY_FILTER_KEYS.has(key);
 }
 
-export type SeverityColorVariant = 'danger' | 'warning' | 'accent' | 'neutral';
-
-export function getSeverityColorVariant(value: string): SeverityColorVariant {
+export function getSeverityColorVariant(value: string) {
   switch (value.trim().toUpperCase()) {
     case 'ERROR':
     case 'FATAL':
@@ -18,9 +16,7 @@ export function getSeverityColorVariant(value: string): SeverityColorVariant {
     case 'TRACE':
     case 'SAMPLE':
       return 'accent';
-    case 'DEBUG':
-    case 'DEFAULT':
     default:
-      return 'neutral';
+      return 'muted';
   }
 }

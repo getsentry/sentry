@@ -1,29 +1,23 @@
-import styled from '@emotion/styled';
+import styled from '@emotion/styled/macro';
 
-import {
-  getSeverityColorVariant,
-  type SeverityColorVariant,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/utils';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 
-const SeverityDot = styled('span')<{variant: SeverityColorVariant}>`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  align-self: center;
-  background-color: ${p => p.theme.tokens.graphics[p.variant].vibrant};
-`;
+import {getSeverityColorVariant} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/utils';
 
 interface SeverityValueIndicatorProps {
   value: string;
 }
 
+const SeverityDot = styled(StatusIndicator)`
+  align-self: center;
+`;
+
 export function SeverityValueIndicator({value}: SeverityValueIndicatorProps) {
   return (
     <SeverityDot
-      variant={getSeverityColorVariant(value)}
+      animationIterationCount={0}
       data-test-id="severity-indicator"
-      aria-hidden
+      variant={getSeverityColorVariant(value)}
     />
   );
 }
