@@ -5,6 +5,7 @@ from sentry.notifications.platform.types import (
     BoldTextBlock,
     CodeBlock,
     CodeTextBlock,
+    LinkTextBlock,
     NotificationBodyFormattingBlockType,
     NotificationBodyTextBlockType,
     NotificationCategory,
@@ -49,7 +50,11 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
 
     def render(self, data: ErrorAlertData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject=f"{data.error_count} new {data.error_type} errors in {data.project_name}",
+            subject=[
+                CodeTextBlock(text=f"{data.error_count}"),
+                PlainTextBlock(text=f"new {data.error_type} errors in"),
+                LinkTextBlock(text=data.project_name, url="https://example.com/project"),
+            ],
             body=[
                 ParagraphBlock(
                     type=NotificationBodyFormattingBlockType.PARAGRAPH,
@@ -70,6 +75,7 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
                             type=NotificationBodyTextBlockType.BOLD_TEXT,
                             text=f"{data.error_count} occurrences.",
                         ),
+                        LinkTextBlock(text="View Issue", url="https://example.com/issues"),
                     ],
                 ),
                 ParagraphBlock(
@@ -108,7 +114,12 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
                 url="https://github.com/knobiknows/all-the-bufo/blob/main/all-the-bufo/all-the-bufo.png?raw=true",
                 alt_text="Error occurrence chart",
             ),
-            footer="This alert was triggered by your error monitoring rules.",
+            # footer="This alert was triggered by your error monitoring rules.",
+            footer=[
+                PlainTextBlock(text="This alert was triggered by your error monitoring rules."),
+                CodeTextBlock(text=data.error_type),
+                LinkTextBlock(text="View Issue", url="https://example.com/issues"),
+            ],
         )
 
 

@@ -53,15 +53,7 @@ export function SlackPreview({
           </Flex>
           <Flex direction="column" align="start" padding="sm 0" gap="md">
             <SlackBlackText size="xl" bold>
-              {typeof subject === 'string' ? (
-                subject
-              ) : (
-                <NotificationBodyRenderer
-                  body={subject}
-                  codeBlockBackground="#f8f8f8"
-                  codeBlockBorder="#e0e0e0"
-                />
-              )}
+              {subject.map(block => block.text).join(' ')}
             </SlackBlackText>
             <SlackBodyText>
               <NotificationBodyRenderer
@@ -96,15 +88,7 @@ export function SlackPreview({
             )}
             {footer && (
               <SlackBlackText size="xs" variant="muted">
-                {typeof footer === 'string' ? (
-                  footer
-                ) : (
-                  <NotificationBodyRenderer
-                    body={footer}
-                    codeBlockBackground="#f8f8f8"
-                    codeBlockBorder="#e0e0e0"
-                  />
-                )}
+                {footer.map(block => block.text).join(' ')}
               </SlackBlackText>
             )}
           </Flex>

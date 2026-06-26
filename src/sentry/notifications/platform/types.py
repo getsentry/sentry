@@ -231,14 +231,33 @@ class NotificationRenderedImage:
 
 @dataclass(frozen=True)
 class NotificationRenderedTemplate:
-    subject: str | list[NotificationBodyFormattingBlock]
+    subject: str | list[NotificationBodyTextBlock]
     """
     The subject or title of the notification. It's expected that the receiver understand the
     expected content of the notification based on this alone, and it will be the first thing
-    they see. Accepts a plain string for simple text, or a list of NotificationBodyFormattingBlock
-    for rich formatting (links, bold, code, etc.). For providers that don't support rich subjects
-    (e.g. email subject lines), block content is rendered as plain text.
+    they see.
     """
+
+    @staticmethod
+    def render_text_blocks(blocks: list[NotificationBodyTextBlock]) -> str:
+        text = []
+        for block in blocks:
+            if block.type == NotificationBodyTextBlockType.LINK:
+                text.append(f"{block.text} ({block.url})")
+            else:
+                text.append(block.text)
+        return " ".join(text)
+
+    @property
+    def subject_blocks(self) -> list[NotificationBodyTextBlock]:
+        if isinstance(self.subject, list):
+            return self.subject
+        return [PlainTextBlock(text=self.subject)]
+
+    @property
+    def subject_text(self) -> str:
+        return self.render_text_blocks(self.subject_blocks)
+
     body: list[NotificationBodyFormattingBlock]
     """
     The full contents of the notification. Put the details of the notification here, but consider
@@ -252,13 +271,23 @@ class NotificationRenderedTemplate:
     """
     The image that will be displayed in the notification.
     """
-    footer: str | list[NotificationBodyFormattingBlock] | None = None
+    footer: str | list[NotificationBodyTextBlock] | None = None
     """
     Extra notification content that will appear after any actions, separate from the body. Optional,
     and consider omitting if the extra data is not necessary for your notification to be useful.
-    Accepts a plain string for simple text, or a list of NotificationBodyFormattingBlock for rich
-    formatting (links, bold, code, etc.).
     """
+
+    @property
+    def footer_blocks(self) -> list[NotificationBodyTextBlock]:
+        if self.footer is None:
+            return []
+        if isinstance(self.footer, list):
+            return self.footer
+        return [PlainTextBlock(text=self.footer)]
+
+    @property
+    def footer_text(self) -> str:
+        return self.render_text_blocks(self.footer_blocks)
 
     # The following are optional, as omitting them will use a default email template which expects
     # the required fields above to be present instead.

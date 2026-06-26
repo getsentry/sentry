@@ -68,11 +68,12 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         embeds = []
 
         body_blocks = cls.render_body_blocks(rendered_template.body)
-        subject = (
-            cls.render_body_blocks(rendered_template.subject)
-            if isinstance(rendered_template.subject, list)
-            else rendered_template.subject
-        )
+        subject = cls.render_text_blocks(rendered_template.subject_blocks, include_links=False)
+
+        footer: DiscordMessageEmbedFooter | None = None
+        if rendered_template.footer:
+            # Discord does not support rich footers
+            footer = DiscordMessageEmbedFooter(text=rendered_template.footer_text)
 
         embeds.append(
             DiscordMessageEmbed(
@@ -83,26 +84,13 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
                     if rendered_template.chart
                     else None
                 ),
-                footer=(
-                    DiscordMessageEmbedFooter(
-                        text=(
-                            cls.render_body_blocks(rendered_template.footer)
-                            if isinstance(rendered_template.footer, list)
-                            else rendered_template.footer
-                        )
-                    )
-                    if rendered_template.footer
-                    else None
-                ),
+                footer=footer,
             )
         )
 
         if len(rendered_template.actions) > 0:
             buttons = [
-                DiscordLinkButton(
-                    label=action.label,
-                    url=action.link,
-                )
+                DiscordLinkButton(label=action.label, url=action.link)
                 for action in rendered_template.actions
             ]
             components.append(DiscordActionRow(components=buttons))
@@ -122,7 +110,13 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         return "".join(description)
 
     @classmethod
-    def render_text_blocks(cls, blocks: list[NotificationBodyTextBlock]) -> str:
+    def render_text_blocks(
+        cls, blocks: list[NotificationBodyTextBlock], include_links: bool = True
+    ) -> str:
+        """
+        For Discord, in some cases links will not be supported even though other rich text is.
+        If include_links is False, the text will be rendered as plain text with the URL in parentheses.
+        """
         texts = []
         for block in blocks:
             if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
@@ -134,7 +128,10 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
             elif block.type == NotificationBodyTextBlockType.LINK and isinstance(
                 block, LinkTextBlock
             ):
-                texts.append(f"[{block.text}]({block.url})")
+                if include_links:
+                    texts.append(f"[{block.text}]({block.url})")
+                else:
+                    texts.append(f"{block.text} ({block.url})")
         return " ".join(texts)
 
 

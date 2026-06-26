@@ -1,19 +1,10 @@
 from typing import Protocol
 
 from sentry.notifications.platform.types import (
-    NotificationBodyFormattingBlock,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
 )
-
-
-def blocks_to_plain_text(blocks: list[NotificationBodyFormattingBlock]) -> str:
-    """Extract plain text content from formatting blocks, stripping all formatting."""
-    parts = []
-    for block in blocks:
-        parts.append(" ".join(tb.text for tb in block.blocks))
-    return " ".join(parts)
 
 
 # TODO(ecosystem): Evaluate whether or not this even makes sense as a protocol, or we can just use a typed Callable.

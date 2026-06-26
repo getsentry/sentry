@@ -14,6 +14,8 @@ from sentry.notifications.platform.msteams.provider import MSTeamsRenderable, MS
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.types import (
+    NotificationBodyFormattingBlock,
+    NotificationBodyTextBlock,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -39,35 +41,23 @@ class InternalRegisteredTemplatesEndpoint(Endpoint):
         return Response(response)
 
 
-def _serialize_blocks(blocks: list) -> list[dict[str, Any]]:
+def _serialize_sections(
+    sections: list[NotificationBodyFormattingBlock],
+) -> list[dict[str, Any]]:
     return [
-        {
-            "type": block.type,
-            "blocks": [
-                {"type": text_block.type, "text": text_block.text} for text_block in block.blocks
-            ],
-        }
-        for block in blocks
+        {"type": section.type, "blocks": [_serialize_blocks(block) for block in section.blocks]}
+        for section in sections
     ]
+
+
+def _serialize_blocks(blocks: list[NotificationBodyTextBlock]) -> list[dict[str, Any]]:
+    return [{"type": block.type, "text": block.text} for block in blocks]
 
 
 def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) -> dict[str, Any]:
     response: dict[str, Any] = {
-        "subject": (
-            _serialize_blocks(rendered_template.subject)
-            if isinstance(rendered_template.subject, list)
-            else rendered_template.subject
-        ),
-        "body": [
-            {
-                "type": block.type,
-                "blocks": [
-                    {"type": text_block.type, "text": text_block.text}
-                    for text_block in block.blocks
-                ],
-            }
-            for block in rendered_template.body
-        ],
+        "subject": _serialize_blocks(rendered_template.subject_blocks),
+        "body": _serialize_sections(rendered_template.body),
         "actions": [
             {"label": action.label, "link": action.link} for action in rendered_template.actions
         ],
@@ -78,10 +68,7 @@ def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) 
             "alt_text": rendered_template.chart.alt_text,
         }
     if rendered_template.footer:
-        if isinstance(rendered_template.footer, list):
-            response["footer"] = _serialize_blocks(rendered_template.footer)
-        else:
-            response["footer"] = rendered_template.footer
+        response["footer"] = _serialize_blocks(rendered_template.footer_blocks)
     return response
 
 

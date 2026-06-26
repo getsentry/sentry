@@ -45,16 +45,7 @@ export function DiscordPreview({
             gap="md"
           >
             <DiscordWhiteText size="md" bold>
-              {typeof subject === 'string' ? (
-                subject
-              ) : (
-                <NotificationBodyRenderer
-                  body={subject}
-                  codeBlockBackground="#2f3136"
-                  codeBlockBorder="#202225"
-                  codeBlockTextColor="#dcddde"
-                />
-              )}
+              {subject.map(block => block.text).join(' ')}
             </DiscordWhiteText>
             <DiscordWhiteText size="sm">
               <NotificationBodyRenderer
@@ -75,16 +66,7 @@ export function DiscordPreview({
             )}
             {footer && (
               <DiscordWhiteText size="xs">
-                {typeof footer === 'string' ? (
-                  footer
-                ) : (
-                  <NotificationBodyRenderer
-                    body={footer}
-                    codeBlockBackground="#2f3136"
-                    codeBlockBorder="#202225"
-                    codeBlockTextColor="#dcddde"
-                  />
-                )}
+                {footer.map(block => block.text).join(' ')}
               </DiscordWhiteText>
             )}
           </DiscordEmbedContainer>

@@ -57,13 +57,7 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             create_text_block,
         )
 
-        subject_text = (
-            cls.render_text_blocks(
-                [tb for block in rendered_template.subject for tb in block.blocks]
-            )
-            if isinstance(rendered_template.subject, list)
-            else rendered_template.subject
-        )
+        subject_text = cls.render_text_blocks(rendered_template.subject_blocks)
         title_text = create_text_block(
             text=subject_text, size=TextSize.LARGE, weight=TextWeight.BOLDER
         )
@@ -89,13 +83,8 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             body_blocks.append(chart_image)
 
         if rendered_template.footer is not None:
-            if isinstance(rendered_template.footer, list):
-                body_blocks.extend(
-                    cls.render_body_blocks(rendered_template.footer, size=TextSize.SMALL)
-                )
-            else:
-                footer_text = create_text_block(text=rendered_template.footer, size=TextSize.SMALL)
-                body_blocks.append(footer_text)
+            footer_str = cls.render_text_blocks(rendered_template.footer_blocks)
+            body_blocks.append(create_text_block(text=footer_str, size=TextSize.SMALL))
 
         card: AdaptiveCard = {
             "type": "AdaptiveCard",

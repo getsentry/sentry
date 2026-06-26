@@ -24,7 +24,7 @@ from sentry.notifications.platform.provider import (
     integration_error_result,
 )
 from sentry.notifications.platform.registry import provider_registry
-from sentry.notifications.platform.renderer import NotificationRenderer, blocks_to_plain_text
+from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import (
     IntegrationNotificationTarget,
     PreparedIntegrationNotificationTarget,
@@ -70,13 +70,11 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> SlackRenderable:
-        if isinstance(rendered_template.subject, list):
-            subject_blocks = cls._render_body(rendered_template.subject)
-        else:
-            subject_blocks = [HeaderBlock(text=PlainTextObject(text=rendered_template.subject))]
+        # Slack does not support rich text in the subject
+        subject_block = HeaderBlock(text=PlainTextObject(text=rendered_template.subject_text))
         body_blocks: list[Block] = cls._render_body(rendered_template.body)
 
-        blocks = [*subject_blocks, *body_blocks]
+        blocks: list[Block] = [subject_block, *body_blocks]
 
         if len(rendered_template.actions) > 0:
             actions_block = ActionsBlock(elements=[])
@@ -92,19 +90,10 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
             )
             blocks.append(chart)
         if rendered_template.footer:
-            if isinstance(rendered_template.footer, list):
-                footer_blocks = cls._render_body(rendered_template.footer)
-                blocks.extend(footer_blocks)
-            else:
-                footer = ContextBlock(elements=[MarkdownTextObject(text=rendered_template.footer)])
-                blocks.append(footer)
+            footer_text = cls._render_text_blocks(rendered_template.footer_blocks)
+            blocks.append(ContextBlock(elements=[MarkdownTextObject(text=footer_text)]))
 
-        subject_text = (
-            blocks_to_plain_text(rendered_template.subject)
-            if isinstance(rendered_template.subject, list)
-            else rendered_template.subject
-        )
-        return SlackRenderable(blocks=blocks, text=subject_text)
+        return SlackRenderable(blocks=blocks, text=rendered_template.subject_text)
 
     @classmethod
     def _render_body(cls, body: list[NotificationBodyFormattingBlock]) -> list[Block]:

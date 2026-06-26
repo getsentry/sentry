@@ -72,15 +72,7 @@ export function TeamsPreview({
             </Flex>
             <TeamsCard direction="column" align="start" padding="xl" gap="md">
               <TeamsBlackText size="xl" bold>
-                {typeof subject === 'string' ? (
-                  subject
-                ) : (
-                  <NotificationBodyRenderer
-                    body={subject}
-                    codeBlockBackground="#f3f2f1"
-                    codeBlockBorder="#e1dfdd"
-                  />
-                )}
+                {subject.map(block => block.text).join(' ')}
               </TeamsBlackText>
               <TeamsBlackText>
                 <NotificationBodyRenderer
@@ -109,15 +101,7 @@ export function TeamsPreview({
               )}
               {footer && (
                 <TeamsBlackText size="sm">
-                  {typeof footer === 'string' ? (
-                    footer
-                  ) : (
-                    <NotificationBodyRenderer
-                      body={footer}
-                      codeBlockBackground="#f3f2f1"
-                      codeBlockBorder="#e1dfdd"
-                    />
-                  )}
+                  {footer.map(block => block.text).join(' ')}
                 </TeamsBlackText>
               )}
             </TeamsCard>

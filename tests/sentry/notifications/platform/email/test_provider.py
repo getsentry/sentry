@@ -70,7 +70,10 @@ class EmailRendererTest(TestCase):
         text_content = email.body
 
         assert self.rendered_template.chart is not None
-        assert self.rendered_template.footer is not None
+        assert isinstance(self.rendered_template.subject_blocks, list)
+        assert isinstance(self.rendered_template.subject_text, str)
+        assert isinstance(self.rendered_template.footer_blocks, list)
+        assert isinstance(self.rendered_template.footer_text, str)
 
         for element in [
             self.rendered_template.subject,

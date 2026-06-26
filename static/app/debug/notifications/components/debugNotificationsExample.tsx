@@ -46,11 +46,7 @@ export function DebugNotificationsExample({
           Subject
         </Text>
         {displayFormat === ExampleDataFormat.FORMATTED ? (
-          <Text>
-            {typeof registration.example.subject === 'string'
-              ? registration.example.subject
-              : JSON.stringify(registration.example.subject)}
-          </Text>
+          <Text>{registration.example.subject.map(block => block.text).join(' ')}</Text>
         ) : (
           <CodeBlock language="json">
             {JSON.stringify(registration.example.subject, null, 2)}

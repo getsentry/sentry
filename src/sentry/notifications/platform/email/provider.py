@@ -10,7 +10,7 @@ from sentry.notifications.platform.provider import (
     SendSuccessResult,
 )
 from sentry.notifications.platform.registry import provider_registry
-from sentry.notifications.platform.renderer import NotificationRenderer, blocks_to_plain_text
+from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
@@ -47,21 +47,12 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
         html_body_blocks = cls.render_body_blocks_to_html_string(rendered_template.body)
         txt_body_blocks = cls.render_body_blocks_to_txt_string(rendered_template.body)
 
-        subject = (
-            blocks_to_plain_text(rendered_template.subject)
-            if isinstance(rendered_template.subject, list)
-            else rendered_template.subject
-        )
-        footer_html = (
-            cls.render_body_blocks_to_html_string(rendered_template.footer)
-            if isinstance(rendered_template.footer, list)
-            else rendered_template.footer
-        )
-        footer_txt = (
-            cls.render_body_blocks_to_txt_string(rendered_template.footer)
-            if isinstance(rendered_template.footer, list)
-            else rendered_template.footer
-        )
+        # Email doesn't support rich text in subjects (obviously, lol)
+        subject = rendered_template.subject_text
+        footer_html = cls.render_text_blocks_to_html_string(rendered_template.footer_blocks)
+
+        footer_txt = cls.render_text_blocks_to_txt_string(rendered_template.footer_blocks)
+
         email_context = {
             "subject": subject,
             "actions": [(action.label, action.link) for action in rendered_template.actions],
