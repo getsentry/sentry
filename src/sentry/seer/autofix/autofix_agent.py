@@ -49,6 +49,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models.run import SeerRun
 from sentry.seer.models.seer_api_models import SeerPermissionError
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
@@ -544,8 +545,18 @@ def trigger_autofix_agent(
             )
         )
 
+    sentry_run_id = (
+        SeerRun.objects.filter(
+            organization_id=group.organization.id,
+            seer_run_state_id=run_id,
+        )
+        .values_list("uuid", flat=True)
+        .first()
+    )
+
     payload: dict[str, Any] = {
         "run_id": run_id,
+        "sentry_run_id": str(sentry_run_id) if sentry_run_id is not None else None,
         "group_id": group.id,
     }
     if iteration_index is not None:
