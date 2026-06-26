@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
-import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import {Timeline} from 'sentry/components/timeline';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
@@ -23,8 +22,8 @@ import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
-import {getActivityColorConfig} from 'sentry/views/issueDetails/activitySection/activityColorConfig';
-import {ActivityMarker} from 'sentry/views/issueDetails/activitySection/activityMarker';
+import {ActivityLineItem} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
 import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
@@ -55,10 +54,65 @@ function TimelineItem({
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }) {
   const organization = useOrganization();
-  const theme = useTheme();
   const [editing, setEditing] = useState(false);
   const useTwoColumnLayout = organization.features.includes('issue-activity-feed-v2');
-  const colorConfig = getActivityColorConfig(theme, item.type);
+
+  if (useTwoColumnLayout) {
+    return (
+      <ActivityLineItem
+        item={item}
+        handleDelete={handleDelete}
+        onCommentEdited={onCommentEdited}
+        group={group}
+        teams={teams}
+        inputVariant={inputVariant}
+        timestampUnitStyle={timestampUnitStyle}
+        editing={editing}
+        setEditing={setEditing}
+      />
+    );
+  }
+
+  return (
+    <LegacyTimelineItem
+      item={item}
+      handleDelete={handleDelete}
+      onCommentEdited={onCommentEdited}
+      group={group}
+      teams={teams}
+      size={size}
+      inputVariant={inputVariant}
+      timestampUnitStyle={timestampUnitStyle}
+      editing={editing}
+      setEditing={setEditing}
+    />
+  );
+}
+
+function LegacyTimelineItem({
+  item,
+  handleDelete,
+  onCommentEdited,
+  group,
+  teams,
+  size,
+  inputVariant,
+  timestampUnitStyle,
+  editing,
+  setEditing,
+}: {
+  editing: boolean;
+  group: Group;
+  handleDelete: (item: GroupActivity) => Promise<void>;
+  inputVariant: 'compact' | 'full';
+  item: GroupActivity;
+  setEditing: (editing: boolean) => void;
+  size: 'sm' | 'md';
+  teams: Team[];
+  onCommentEdited?: (activity: GroupActivity[]) => void;
+  timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
+}) {
+  const organization = useOrganization();
   const {title, message} = getGroupActivityItem(
     item,
     organization,
@@ -68,10 +122,7 @@ function TimelineItem({
   );
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
-  const componentFunction =
-    useTwoColumnLayout && item.type === GroupActivityType.NOTE
-      ? undefined
-      : iconMapping?.componentFunction;
+  const componentFunction = iconMapping?.componentFunction;
   const Icon = componentFunction
     ? componentFunction({
         data: item.data,
@@ -97,12 +148,6 @@ function TimelineItem({
         </Flex>
       }
       timestamp={<Timestamp date={item.dateCreated} unitStyle={timestampUnitStyle} />}
-      marker={
-        useTwoColumnLayout ? (
-          <ActivityMarker item={item} color={colorConfig.icon} />
-        ) : undefined
-      }
-      colorConfig={useTwoColumnLayout ? colorConfig : undefined}
       icon={
         Icon && (
           <Icon
@@ -136,14 +181,6 @@ function TimelineItem({
         </Text>
       )}
     </ActivityTimelineItem>
-  );
-}
-
-function ActivityNoteInput(props: React.ComponentProps<typeof NoteInputWithStorage>) {
-  return (
-    <ActivityInputFrame data-test-id="activity-input-frame">
-      <NoteInputWithStorage {...props} />
-    </ActivityInputFrame>
   );
 }
 
@@ -222,8 +259,11 @@ export function ActivitySection({
   const showSeerActivities = organization.features.includes(
     'display-seer-actions-as-issue-activities'
   );
+  const useTwoColumnLayout = organization.features.includes('issue-activity-feed-v2');
   const visibleActivities = showSeerActivities
-    ? group.activity.filter(item => item.type !== GroupActivityType.SEER_PR_CREATED)
+    ? group.activity.filter(
+        item => useTwoColumnLayout || item.type !== GroupActivityType.SEER_PR_CREATED
+      )
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
   const filteredActivities = visibleActivities.filter(
@@ -329,7 +369,7 @@ const TitleTooltip = styled(Tooltip)`
 `;
 
 const ActivityTimelineItem = styled(Timeline.Item)`
-  align-items: center;
+  align-items: start;
 `;
 
 const Timestamp = styled(TimeSince)`
@@ -371,9 +411,4 @@ const MoreActivityIcon = styled('div')`
   min-height: 22px;
   color: ${p => p.theme.tokens.content.secondary};
   background: ${p => p.theme.tokens.background.primary};
-`;
-
-const ActivityInputFrame = styled('div')`
-  color: ${p => p.theme.tokens.content.primary};
-  min-width: 0;
 `;
