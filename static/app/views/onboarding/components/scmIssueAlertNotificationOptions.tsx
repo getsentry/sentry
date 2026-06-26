@@ -51,7 +51,7 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
         onChange={values => setActions(values)}
       >
         <Stack gap="md" width="100%">
-          <Stack>
+          <CheckboxStack>
             <MultipleCheckbox.Item value={MultipleCheckboxOptions.EMAIL} disabled>
               {t('Email')}
             </MultipleCheckbox.Item>
@@ -60,7 +60,7 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
                 {t('Integration (Slack, Discord, MS Teams, etc.)')}
               </MultipleCheckbox.Item>
             )}
-          </Stack>
+          </CheckboxStack>
           <ScmCollapsibleReveal
             open={!shouldRenderSetupButton && shouldRenderNotificationConfigs}
           >
@@ -78,6 +78,25 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
     </Stack>
   );
 }
+
+// MultipleCheckbox.Item's label is fixed at 20% width with nowrap text, tuned
+// for the classic wrapping row layout. In this stacked layout the long
+// integration label overflows on narrow screens, so let each label fill its
+// row and truncate the text with an ellipsis instead.
+const CheckboxStack = styled(Stack)`
+  label {
+    width: 100%;
+    min-width: 0;
+    /* The label's default right margin is for the side-by-side row layout; with
+       a full-width label it would push 10px past the container. */
+    margin-right: 0;
+  }
+  label > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
 
 // Indents the rule so its left edge lines up with the checkbox label text
 // rather than the checkbox itself: the sm Checkbox box (16px) plus the label's
