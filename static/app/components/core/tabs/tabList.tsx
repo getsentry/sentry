@@ -1,4 +1,12 @@
-import {useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
@@ -103,24 +111,83 @@ function useOverflowTabs({
   tabListRef: React.RefObject<HTMLUListElement | null>;
 }) {
   const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
-  // Mirrors `overflowTabs` so the measuring callback can read the latest value
-  // synchronously without having to re-subscribe the ResizeObserver each time.
-  const overflowTabsRef = useRef(overflowTabs);
-  // Cached intrinsic widths per tab key. Hidden tabs measure 0, so we remember
-  // their last measured width to know when they fit again as space grows.
+  // Cached intrinsic widths per tab key. Overflowing tabs render with
+  // `display: none` and measure 0, so we remember their last measured width to
+  // know when they would fit again as space grows.
   const tabWidthsRef = useRef(new Map<string | number, number>());
 
-  // Keys of tabs that participate in the layout, in render order. Tabs with the
-  // `hidden` prop render with `display: none` and take up no space. The string
-  // signature is used as the effect dependency so the observer re-subscribes
-  // (recapturing these keys) whenever the set of tabs changes.
-  const layoutKeys = tabItems.filter(item => !item.hidden).map(item => item.key);
-  const layoutKeysSignature = layoutKeys.join(' ');
+  // Measures the list against the available space and updates the overflow set.
+  const recompute = useEffectEvent(() => {
+    const outerWrap = outerWrapRef.current;
+    const tabList = tabListRef.current;
+    if (!outerWrap || !tabList) {
+      return;
+    }
+
+    const elements = tabItemsRef.current ?? {};
+    const gap = parseFloat(getComputedStyle(tabList).columnGap) || 0;
+
+    // Tabs that participate in the layout, in render (visual) order. Tabs with
+    // the `hidden` prop render with `display: none` and take up no space.
+    const keys = tabItems.filter(item => !item.hidden).map(item => item.key);
+
+    // Refresh the cached width of every measurable (currently visible) tab.
+    // Overflowing tabs measure 0; their last known width is kept.
+    for (const key of keys) {
+      const measured = elements[key]?.getBoundingClientRect().width ?? 0;
+      if (measured > 0) {
+        tabWidthsRef.current.set(key, measured);
+      }
+    }
+
+    const available = outerWrap.clientWidth;
+
+    // Width required to render every tab, without reserving the trigger.
+    const fullWidth = keys.reduce(
+      (sum: number, key, index) =>
+        sum + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap),
+      0
+    );
+
+    let nextOverflow: Array<string | number>;
+    if (fullWidth <= available) {
+      nextOverflow = [];
+    } else {
+      // Overflow is needed, so leave room for the trigger button.
+      const budget = available - RESERVED_OVERFLOW_TRIGGER_WIDTH;
+      nextOverflow = [];
+      let used = 0;
+      let isOverflowing = false;
+      keys.forEach((key, index) => {
+        if (isOverflowing) {
+          nextOverflow.push(key);
+          return;
+        }
+        const nextUsed =
+          used + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap);
+        // Always keep the first tab to avoid an empty tab bar.
+        if (index === 0 || nextUsed <= budget) {
+          used = nextUsed;
+        } else {
+          isOverflowing = true;
+          nextOverflow.push(key);
+        }
+      });
+    }
+
+    // Bail out when the result is unchanged to avoid re-render churn (and any
+    // observer feedback from hiding/showing tabs).
+    setOverflowTabs(prev =>
+      prev.length === nextOverflow.length &&
+      prev.every((key, index) => key === nextOverflow[index])
+        ? prev
+        : nextOverflow
+    );
+  });
 
   useLayoutEffect(() => {
     if (disabled || orientation !== 'horizontal') {
-      overflowTabsRef.current = [];
-      setOverflowTabs([]);
+      setOverflowTabs(prev => (prev.length === 0 ? prev : []));
       return;
     }
 
@@ -130,86 +197,15 @@ function useOverflowTabs({
       return;
     }
 
-    const keys = layoutKeys;
-
-    const recompute = () => {
-      const elements = tabItemsRef.current ?? {};
-      const previousOverflow = overflowTabsRef.current;
-      const previousOverflowSet = new Set(previousOverflow);
-      const gap = parseFloat(getComputedStyle(tabList).columnGap) || 0;
-
-      // Refresh cached widths for every currently visible (measurable) tab.
-      for (const key of keys) {
-        if (previousOverflowSet.has(key)) {
-          continue;
-        }
-        const width = elements[key]?.getBoundingClientRect().width ?? 0;
-        if (width > 0) {
-          tabWidthsRef.current.set(key, width);
-        }
-      }
-
-      const available = outerWrap.clientWidth;
-
-      // Width required to render every tab, without reserving the trigger.
-      const fullWidth = keys.reduce((sum: number, key, index) => {
-        const width = tabWidthsRef.current.get(key) ?? 0;
-        return sum + width + (index === 0 ? 0 : gap);
-      }, 0);
-
-      let nextOverflow: Array<string | number>;
-      if (fullWidth <= available) {
-        nextOverflow = [];
-      } else {
-        // Overflow is needed, so leave room for the trigger button.
-        const budget = available - RESERVED_OVERFLOW_TRIGGER_WIDTH;
-        const overflow: Array<string | number> = [];
-        let used = 0;
-        let isOverflowing = false;
-        keys.forEach((key, index) => {
-          if (isOverflowing) {
-            overflow.push(key);
-            return;
-          }
-          const width = tabWidthsRef.current.get(key) ?? 0;
-          const nextUsed = used + width + (index === 0 ? 0 : gap);
-          // Always keep the first tab to avoid an empty tab bar.
-          if (index === 0 || nextUsed <= budget) {
-            used = nextUsed;
-          } else {
-            isOverflowing = true;
-            overflow.push(key);
-          }
-        });
-        nextOverflow = overflow;
-      }
-
-      const unchanged =
-        nextOverflow.length === previousOverflow.length &&
-        nextOverflow.every((key, index) => key === previousOverflow[index]);
-      if (unchanged) {
-        return;
-      }
-
-      overflowTabsRef.current = nextOverflow;
-      setOverflowTabs(nextOverflow);
-    };
-
-    recompute();
-
-    // Observe the wrapper (available space) and the list (intrinsic size, e.g.
-    // when labels or fonts change). `recompute` is deterministic, so the
-    // self-induced resize from hiding/showing tabs just re-runs and bails out.
+    // Recompute on container resize (available space changes) and on list
+    // resize (tabs added/removed/relabeled change its intrinsic width).
     const resizeObserver = new ResizeObserver(() => recompute());
     resizeObserver.observe(outerWrap);
     resizeObserver.observe(tabList);
+    recompute();
 
-    return () => {
-      resizeObserver.disconnect();
-    };
-    // `layoutKeys` is intentionally tracked via its primitive `layoutKeysSignature`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outerWrapRef, tabListRef, tabItemsRef, disabled, orientation, layoutKeysSignature]);
+    return () => resizeObserver.disconnect();
+  }, [disabled, orientation, outerWrapRef, tabListRef]);
 
   // Tabs with the `hidden` prop render with display: none; never surface them
   // in the overflow menu.
