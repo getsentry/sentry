@@ -188,6 +188,13 @@ export function initializeSdk(config: Config) {
 
       // Ignore the console banner
       if (crumb.category === 'console' && isConsoleBannerMessage(crumb.message)) {
+      /**
+       * Browser extensions inject obfuscated scripts (javascript-obfuscator
+       * style `_0x...` identifiers) into the page and its blob workers (e.g. the
+       * Replay compression worker). When those globals are missing in the worker
+       * scope they throw uncaught ReferenceErrors that are not our code.
+       */
+      /ReferenceError: _0x[0-9a-fA-F]+ is not defined/,
         return null;
       }
 
