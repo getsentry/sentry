@@ -13,7 +13,6 @@ from sentry.models.pullrequest import (
     ResolvedPullRequest,
 )
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pr_metrics.attribution import SeerCreatedPullRequest
 from sentry.seer.agent.client_models import (
     CodingAgentState,
     MemoryBlock,
@@ -30,6 +29,7 @@ from sentry.seer.entrypoints.operator import (
     SEER_EVENT_TO_ACTIVITY_TYPE,
     SeerAgentOperator,
     SeerAutofixOperator,
+    SeerCreatedPullRequest,
     SeerOperatorCompletionHook,
     _link_run_to_pull_requests,
     _resolve_seer_created_pull_requests,

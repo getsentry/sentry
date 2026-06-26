@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, NamedTuple
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -9,7 +9,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest, ResolvedPullRequest
 from sentry.organizations.services.organization import RpcOrganization
-from sentry.pr_metrics.attribution import SeerCreatedPullRequest, record_seer_created_attributions
+from sentry.pr_metrics.attribution import attribute_seer_created_pull_requests
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
@@ -609,6 +609,13 @@ def _create_seer_activity(
     )
 
 
+class SeerCreatedPullRequest(NamedTuple):
+    """A pull request reported by ``seer.pr_created``, resolved to its canonical row."""
+
+    pull_request: PullRequest
+    pr_url: str | None
+
+
 def _resolve_seer_created_pull_requests(
     *,
     organization_id: int,
@@ -811,7 +818,7 @@ def process_autofix_updates(
 
                 if attribution_enabled:
                     try:
-                        record_seer_created_attributions(
+                        attribute_seer_created_pull_requests(
                             organization=organization,
                             resolved_prs=resolved_prs,
                             run_id=run_id,

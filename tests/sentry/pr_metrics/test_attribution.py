@@ -8,12 +8,12 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSource,
 )
 from sentry.pr_metrics.attribution import (
-    SeerCreatedPullRequest,
     attribute_delegated_agent_pull_request,
+    attribute_seer_created_pull_requests,
     recompute_pull_request_attribution,
     record_attribution_signal,
-    record_seer_created_attributions,
 )
+from sentry.seer.entrypoints.operator import SeerCreatedPullRequest
 from sentry.testutils.cases import TestCase
 
 REPO_NAME = "getsentry/sentry"
@@ -23,7 +23,7 @@ def _warning_events(mock_logger: Mock) -> list[str]:
     return [call.args[0] for call in mock_logger.warning.call_args_list]
 
 
-class RecordSeerCreatedAttributionsTest(TestCase):
+class AttributeSeerCreatedPullRequestsTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(self.project, name=REPO_NAME, provider="integrations:github")
 
@@ -35,7 +35,7 @@ class RecordSeerCreatedAttributionsTest(TestCase):
         )
 
     def _record(self, resolved_prs: list[SeerCreatedPullRequest]) -> None:
-        record_seer_created_attributions(
+        attribute_seer_created_pull_requests(
             organization=self.organization,
             resolved_prs=resolved_prs,
             run_id=123,

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
@@ -26,6 +26,9 @@ from sentry.models.pullrequest import (
     ResolvedPullRequest,
     parse_pull_request_number,
 )
+
+if TYPE_CHECKING:
+    from sentry.seer.entrypoints.operator import SeerCreatedPullRequest
 
 logger = logging.getLogger(__name__)
 
@@ -195,14 +198,7 @@ def _attribute_pull_request(
     )
 
 
-class SeerCreatedPullRequest(NamedTuple):
-    """A pull request reported by ``seer.pr_created``, resolved to its canonical row."""
-
-    pull_request: PullRequest
-    pr_url: str | None
-
-
-def record_seer_created_attributions(
+def attribute_seer_created_pull_requests(
     *,
     organization: Organization,
     resolved_prs: Sequence[SeerCreatedPullRequest],
