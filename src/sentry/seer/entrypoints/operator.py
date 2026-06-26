@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry import features, options
@@ -7,8 +7,9 @@ from sentry.constants import DataCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest, ResolvedPullRequest
 from sentry.organizations.services.organization import RpcOrganization
-from sentry.pr_metrics.attribution import record_seer_created_attributions
+from sentry.pr_metrics.attribution import SeerCreatedPullRequest, record_seer_created_attributions
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
@@ -31,7 +32,6 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.run import SeerRun, SeerRunPullRequest
-from sentry.seer.pull_requests import SeerCreatedPullRequest, resolve_seer_created_pull_requests
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
@@ -609,6 +609,72 @@ def _create_seer_activity(
     )
 
 
+def _resolve_seer_created_pull_requests(
+    *,
+    organization_id: int,
+    pull_requests: Sequence[Mapping[str, Any]],
+    log_context: Mapping[str, Any],
+) -> list[SeerCreatedPullRequest]:
+    """Resolve each ``seer.pr_created`` entry to its canonical ``PullRequest``, once.
+
+    Returns a ``SeerCreatedPullRequest`` for every entry that resolves, skipping and
+    logging the rest. The repo lookup + find-or-create lives on ``PullRequest.objects``
+    (shared with PR-metrics attribution), so a single resolution feeds both run→PR
+    linking and attribution rather than each re-querying.
+    """
+    resolved_prs: list[SeerCreatedPullRequest] = []
+    for entry in pull_requests:
+        repo_name = entry.get("repo_name")
+        provider = entry.get("provider")
+        pr_payload = entry.get("pull_request") or {}
+        pr_number = pr_payload.get("pr_number")
+        entry_context = {
+            **log_context,
+            "repo_name": repo_name,
+            "provider": provider,
+            "pr_number": pr_number,
+        }
+
+        if not repo_name or pr_number is None:
+            logger.warning("seer.pr_resolution.missing_fields", extra=entry_context)
+            continue
+
+        try:
+            resolved = PullRequest.objects.get_or_create_from_reference(
+                organization_id=organization_id,
+                repo_name=repo_name,
+                provider=provider,
+                key=pr_number,
+            )
+        except Exception:
+            logger.exception("seer.pr_resolution.failed", extra=entry_context)
+            continue
+
+        _log_unresolved_pull_request(resolved, entry_context)
+        if resolved.pull_request is not None:
+            resolved_prs.append(
+                SeerCreatedPullRequest(resolved.pull_request, pr_payload.get("pr_url"))
+            )
+
+    return resolved_prs
+
+
+def _log_unresolved_pull_request(
+    resolved: ResolvedPullRequest, log_context: Mapping[str, Any]
+) -> None:
+    """Warn when a reported PR didn't resolve to a unique repository."""
+    # A present-but-unrecognized provider means Seer sent something we don't map —
+    # warn so it can be corrected upstream.
+    if resolved.provider_unmappable:
+        logger.warning("seer.pr_resolution.unrecognized_provider", extra=log_context)
+
+    if resolved.pull_request is None:
+        if resolved.repo_resolution == "ambiguous":
+            logger.warning("seer.pr_resolution.repo_ambiguous", extra=log_context)
+        else:
+            logger.warning("seer.pr_resolution.repo_not_found", extra=log_context)
+
+
 def _link_run_to_pull_requests(
     *,
     organization: Organization,
@@ -618,7 +684,7 @@ def _link_run_to_pull_requests(
     """Record a ``SeerRunPullRequest`` for each resolved PR a Seer run opened.
 
     ``resolved_prs`` is the already-resolved output of
-    ``resolve_seer_created_pull_requests``; ``run_id`` is the run's ``seer_run_state_id``.
+    ``_resolve_seer_created_pull_requests``; ``run_id`` is the run's ``seer_run_state_id``.
     """
     if not resolved_prs:
         return
@@ -714,7 +780,7 @@ def process_autofix_updates(
 
             if link_enabled or attribution_enabled:
                 try:
-                    resolved_prs = resolve_seer_created_pull_requests(
+                    resolved_prs = _resolve_seer_created_pull_requests(
                         organization_id=organization.id,
                         # `pull_requests` may be present but null; coerce to a list
                         # so resolution doesn't choke on a non-iterable.

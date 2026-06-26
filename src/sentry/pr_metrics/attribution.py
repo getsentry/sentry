@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, NamedTuple
 
 from pydantic import BaseModel
 
@@ -26,7 +26,6 @@ from sentry.models.pullrequest import (
     ResolvedPullRequest,
     parse_pull_request_number,
 )
-from sentry.seer.pull_requests import SeerCreatedPullRequest
 
 logger = logging.getLogger(__name__)
 
@@ -196,6 +195,13 @@ def _attribute_pull_request(
     )
 
 
+class SeerCreatedPullRequest(NamedTuple):
+    """A pull request reported by ``seer.pr_created``, resolved to its canonical row."""
+
+    pull_request: PullRequest
+    pr_url: str | None
+
+
 def record_seer_created_attributions(
     *,
     resolved_prs: Sequence[SeerCreatedPullRequest],
@@ -204,9 +210,9 @@ def record_seer_created_attributions(
 ) -> None:
     """Record a ``sentry_app`` attribution signal for each resolved Seer-created PR.
 
-    ``resolved_prs`` is a sequence of ``(pull_request, pr_url)`` pairs already resolved by
-    the caller (see ``sentry.seer.pull_requests.resolve_seer_created_pull_requests``), so
-    attribution and run→PR linking share a single resolution.
+    ``resolved_prs`` is already resolved by the caller (the Seer operator resolves the
+    ``seer.pr_created`` payload once and feeds the result to both attribution and run→PR
+    linking), so the two share a single resolution.
 
     SENTRY_APP covers both of our GitHub apps: Seer chooses between the Sentry and
     Seer apps at push time (its write client falls back to the Seer app only when the

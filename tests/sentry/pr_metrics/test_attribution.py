@@ -8,6 +8,7 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSource,
 )
 from sentry.pr_metrics.attribution import (
+    SeerCreatedPullRequest,
     attribute_delegated_agent_pull_request,
     recompute_pull_request_attribution,
     record_attribution_signal,
@@ -33,7 +34,7 @@ class RecordSeerCreatedAttributionsTest(TestCase):
             key=key,
         )
 
-    def _record(self, resolved_prs: list[tuple[PullRequest, str | None]]) -> None:
+    def _record(self, resolved_prs: list[SeerCreatedPullRequest]) -> None:
         record_seer_created_attributions(
             resolved_prs=resolved_prs, run_id=123, group_id=self.group.id
         )
@@ -41,7 +42,9 @@ class RecordSeerCreatedAttributionsTest(TestCase):
     def test_records_sentry_app_attribution(self) -> None:
         pull_request = self._pull_request()
 
-        self._record([(pull_request, "https://github.com/getsentry/sentry/pull/42")])
+        self._record(
+            [SeerCreatedPullRequest(pull_request, "https://github.com/getsentry/sentry/pull/42")]
+        )
 
         attribution = PullRequestAttribution.objects.get(pull_request=pull_request)
         assert attribution.signal_type == PullRequestAttributionSignalType.SENTRY_APP
@@ -56,8 +59,8 @@ class RecordSeerCreatedAttributionsTest(TestCase):
     def test_is_idempotent_on_redelivery(self) -> None:
         pull_request = self._pull_request()
 
-        self._record([(pull_request, "https://x/42")])
-        self._record([(pull_request, "https://x/42")])
+        self._record([SeerCreatedPullRequest(pull_request, "https://x/42")])
+        self._record([SeerCreatedPullRequest(pull_request, "https://x/42")])
 
         assert PullRequestAttribution.objects.filter(pull_request=pull_request).count() == 1
 
@@ -71,7 +74,12 @@ class RecordSeerCreatedAttributionsTest(TestCase):
             ) as mock_record,
             patch("sentry.pr_metrics.attribution.logger") as mock_logger,
         ):
-            self._record([(first, "https://x/1"), (second, "https://x/2")])
+            self._record(
+                [
+                    SeerCreatedPullRequest(first, "https://x/1"),
+                    SeerCreatedPullRequest(second, "https://x/2"),
+                ]
+            )
 
         # The second PR is still attempted after the first one raises.
         assert mock_record.call_count == 2

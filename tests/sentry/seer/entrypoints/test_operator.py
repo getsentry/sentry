@@ -10,8 +10,10 @@ from sentry.models.pullrequest import (
     PullRequest,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
+    ResolvedPullRequest,
 )
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pr_metrics.attribution import SeerCreatedPullRequest
 from sentry.seer.agent.client_models import (
     CodingAgentState,
     MemoryBlock,
@@ -30,6 +32,7 @@ from sentry.seer.entrypoints.operator import (
     SeerAutofixOperator,
     SeerOperatorCompletionHook,
     _link_run_to_pull_requests,
+    _resolve_seer_created_pull_requests,
     get_autofix_explorer_status,
     process_autofix_updates,
 )
@@ -41,7 +44,6 @@ from sentry.seer.entrypoints.types import (
     SeerOperatorCacheResult,
 )
 from sentry.seer.models.run import SeerRunPullRequest
-from sentry.seer.pull_requests import SeerCreatedPullRequest
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
@@ -1213,11 +1215,130 @@ REPO_NAME = "getsentry/sentry"
 RUN_STATE_ID = 4242
 
 
+def _warning_events(mock_logger: Mock) -> list[str]:
+    return [call.args[0] for call in mock_logger.warning.call_args_list]
+
+
+class ResolveSeerCreatedPullRequestsTest(TestCase):
+    """Unit tests for the shared resolution step (one pass, fed to linking + attribution)."""
+
+    def setUp(self) -> None:
+        self.repo = self.create_repo(self.project, name=REPO_NAME, provider="integrations:github")
+
+    def _payload(
+        self,
+        pr_number: int = 42,
+        pr_url: str = "https://github.com/getsentry/sentry/pull/42",
+        provider: str = "github",
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "provider": provider,
+                "repo_name": REPO_NAME,
+                "pull_request": {"pr_id": 999, "pr_number": pr_number, "pr_url": pr_url},
+            }
+        ]
+
+    def _resolve(self, pull_requests: list[dict[str, Any]]) -> list[tuple[int, str | None]]:
+        resolved = _resolve_seer_created_pull_requests(
+            organization_id=self.organization.id,
+            pull_requests=pull_requests,
+            log_context={"organization_id": self.organization.id},
+        )
+        return [(pr.pull_request.id, pr.pr_url) for pr in resolved]
+
+    def test_resolves_reported_pull_request(self) -> None:
+        resolved = self._resolve(self._payload())
+
+        pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="42")
+        assert resolved == [(pull_request.id, "https://github.com/getsentry/sentry/pull/42")]
+
+    def test_find_or_create_is_idempotent(self) -> None:
+        self._resolve(self._payload())
+        self._resolve(self._payload())
+
+        assert PullRequest.objects.filter(repository_id=self.repo.id, key="42").count() == 1
+
+    def test_skips_and_warns_when_repository_not_found(self) -> None:
+        with patch("sentry.seer.entrypoints.operator.logger") as mock_logger:
+            resolved = self._resolve(
+                [
+                    {
+                        "provider": "github",
+                        "repo_name": "getsentry/does-not-exist",
+                        "pull_request": {"pr_id": 1, "pr_number": 7, "pr_url": "https://x/7"},
+                    }
+                ]
+            )
+
+        assert resolved == []
+        assert not PullRequest.objects.filter(repository_id=self.repo.id).exists()
+        assert "seer.pr_resolution.repo_not_found" in _warning_events(mock_logger)
+
+    def test_resolves_by_provider_when_name_collides(self) -> None:
+        gitlab_repo = self.create_repo(self.project, name=REPO_NAME, provider="integrations:gitlab")
+
+        self._resolve(self._payload(provider="github"))
+
+        assert PullRequest.objects.filter(repository_id=self.repo.id, key="42").exists()
+        assert not PullRequest.objects.filter(repository_id=gitlab_repo.id).exists()
+
+    def test_skips_unknown_provider_when_ambiguous(self) -> None:
+        self.create_repo(self.project, name=REPO_NAME, provider="integrations:gitlab")
+
+        with patch("sentry.seer.entrypoints.operator.logger") as mock_logger:
+            resolved = self._resolve(self._payload(provider="unknown"))
+
+        assert resolved == []
+        assert "seer.pr_resolution.repo_ambiguous" in _warning_events(mock_logger)
+
+    def test_warns_on_unrecognized_provider(self) -> None:
+        with patch("sentry.seer.entrypoints.operator.logger") as mock_logger:
+            self._resolve(self._payload(provider="subversion"))
+
+        assert "seer.pr_resolution.unrecognized_provider" in _warning_events(mock_logger)
+
+    def test_one_entry_failure_does_not_drop_the_batch(self) -> None:
+        good_pr = PullRequest.objects.create(
+            organization_id=self.organization.id, repository_id=self.repo.id, key="2"
+        )
+        payload = self._payload(pr_number=1) + self._payload(pr_number=2)
+
+        with (
+            patch(
+                "sentry.seer.entrypoints.operator.PullRequest.objects.get_or_create_from_reference",
+                side_effect=[RuntimeError("boom"), ResolvedPullRequest(good_pr, "resolved", False)],
+            ),
+            patch("sentry.seer.entrypoints.operator.logger") as mock_logger,
+        ):
+            resolved = self._resolve(payload)
+
+        assert resolved == [(good_pr.id, "https://github.com/getsentry/sentry/pull/42")]
+        exception_events = [call.args[0] for call in mock_logger.exception.call_args_list]
+        assert "seer.pr_resolution.failed" in exception_events
+
+    def test_skips_entries_missing_fields(self) -> None:
+        with patch("sentry.seer.entrypoints.operator.logger") as mock_logger:
+            resolved = self._resolve(
+                [
+                    {"provider": "unknown", "pull_request": {"pr_number": 1}},  # no repo_name
+                    {
+                        "provider": "unknown",
+                        "repo_name": REPO_NAME,
+                        "pull_request": {},
+                    },  # no pr_number
+                ]
+            )
+
+        assert resolved == []
+        assert "seer.pr_resolution.missing_fields" in _warning_events(mock_logger)
+
+
 class LinkRunToPullRequestsTest(TestCase):
     """Unit tests for the linking step, which takes already-resolved PRs.
 
     Resolution itself (repo lookup, provider disambiguation, missing fields) is
-    covered by ``resolve_seer_created_pull_requests`` in the pr_metrics tests.
+    covered by ``ResolveSeerCreatedPullRequestsTest`` above.
     """
 
     def setUp(self) -> None:
