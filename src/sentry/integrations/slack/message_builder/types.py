@@ -31,6 +31,10 @@ class SlackAction(StrEnum):
     SEER_AUTOFIX_VIEW_IN_SENTRY = "seer_autofix_view_in_sentry"
     SEER_AUTOFIX_VIEW_PR = "seer_autofix_view_pr"
 
+    CONNECT_MONITORING_PROVIDER = "connect_monitoring_provider"
+    SKIP_MONITORING_PROVIDER = "skip_monitoring_provider"
+    DECLINE_MONITORING_PROVIDER = "decline_monitoring_provider"
+
 
 INCIDENT_COLOR_MAPPING = {
     "Resolved": "_incident_resolved",

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,12 +13,17 @@ from sentry.api.bases.organization import (
     ControlSiloOrganizationEndpoint,
     OrganizationPermission,
 )
+from sentry.identity.datadog.provider import DATADOG_VALID_SITES
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.models.identity import OrganizationIdentity
 
-MONITORING_PROVIDERS: dict[str, dict[str, str]] = {
+MONITORING_PROVIDERS: dict[str, dict[str, Any]] = {
     "datadog": {"name": "Datadog"},
-    "datadog_pat": {"name": "Datadog (Personal Access Token)"},
+    "datadog_pat": {
+        "name": "Datadog (Personal Access Token)",
+        "pat_hint": "Create one at Organization Settings → Access → API Keys in Datadog.",
+        "sites": DATADOG_VALID_SITES,
+    },
     "gcp": {"name": "Google Cloud Platform"},
 }
 

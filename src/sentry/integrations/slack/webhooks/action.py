@@ -25,6 +25,7 @@ from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.identity.services.identity import identity_service
 from sentry.integrations.messaging.metrics import (
     MessageInteractionFailureReason,
     MessagingInteractionEvent,
@@ -46,6 +47,11 @@ from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
+from sentry.integrations.slack.webhooks.monitoring_provider import (
+    MONITORING_PROVIDER_CALLBACK_ID,
+    handle_monitoring_provider_submission,
+    open_monitoring_provider_modal,
+)
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
@@ -756,6 +762,24 @@ class SlackActionEndpoint(Endpoint):
         if action_option in NOTIFICATION_SETTINGS_ACTION_OPTIONS:
             return self.handle_enable_notifications(slack_request)
 
+        # Monitoring provider modals have no group context, so intercept before _handle_group_actions.
+        if slack_request.type == "view_submission":
+            view = slack_request.data.get("view", {})
+            if view.get("callback_id") == MONITORING_PROVIDER_CALLBACK_ID:
+                result = handle_monitoring_provider_submission(slack_request)
+                if result:
+                    return self.respond(result)
+                return self.respond()
+
+        if action_id == SlackAction.CONNECT_MONITORING_PROVIDER.value:
+            return self._handle_connect_monitoring_provider(slack_request)
+
+        if action_id in {
+            SlackAction.SKIP_MONITORING_PROVIDER.value,
+            SlackAction.DECLINE_MONITORING_PROVIDER.value,
+        }:
+            return self._handle_skip_monitoring_provider(slack_request, action_id)
+
         action_list = self.get_action_list(slack_request=slack_request)
         return self._handle_group_actions(slack_request, request, action_list)
 
@@ -897,6 +921,37 @@ class SlackActionEndpoint(Endpoint):
                 slack_user_id=slack_request.user_id,
                 response_url=slack_request.response_url,
             )
+        return self.respond()
+
+    def _handle_connect_monitoring_provider(self, slack_request: SlackActionRequest) -> Response:
+        action_option, _ = self.get_action_option(slack_request=slack_request)
+        provider_key = action_option or ""
+        error = open_monitoring_provider_modal(
+            slack_request,
+            provider_key,
+            channel_id=slack_request.channel_id,
+        )
+        if error:
+            return self.respond_ephemeral(error)
+        return self.respond()
+
+    def _handle_skip_monitoring_provider(
+        self, slack_request: SlackActionRequest, action_id: str | None
+    ) -> Response:
+        # SKIP_MONITORING_PROVIDER: per-run suppression is handled by the caller that sends
+        # the prompt (the Seer operator won't re-prompt for the same run), so an ack is enough.
+        # DECLINE_MONITORING_PROVIDER: persists the provider on the Slack Identity so future
+        # unsolicited prompts are suppressed across runs.
+        if action_id == SlackAction.DECLINE_MONITORING_PROVIDER.value:
+            action_option, _ = self.get_action_option(slack_request=slack_request)
+            provider_key = action_option or ""
+            slack_identity_rpc = slack_request.get_identity()
+            if slack_identity_rpc and provider_key:
+                data = dict(slack_identity_rpc.data) if slack_identity_rpc.data else {}
+                declined = set(data.get("declined_monitoring_providers", []))
+                declined.add(provider_key)
+                data["declined_monitoring_providers"] = sorted(declined)
+                identity_service.update_data(identity_id=slack_identity_rpc.id, data=data)
         return self.respond()
 
 
