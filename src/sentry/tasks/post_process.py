@@ -15,13 +15,12 @@ from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, options, projectoptions
-from sentry.exceptions import PluginError
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
-from sentry.replays.lib.kafka import initialize_replays_publisher
+from sentry.replays.lib.kafka import publish_replay_event
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -946,14 +945,12 @@ def process_replay_link(job: PostProcessJob) -> None:
 
     metrics.incr("post_process.process_replay_link.id_exists")
 
-    publisher = initialize_replays_publisher(is_async=True)
     try:
         kafka_payload = transform_event_for_linking_payload(replay_id, group_event)
     except ValueError:
         metrics.incr("post_process.process_replay_link.id_invalid")
     else:
-        publisher.publish(
-            "ingest-replay-events",
+        publish_replay_event(
             json.dumps(kafka_payload),
         )
 
@@ -1221,24 +1218,6 @@ def process_data_forwarding(job: PostProcessJob) -> None:
             )
 
 
-def process_plugins(job: PostProcessJob) -> None:
-    if job["is_reprocessed"]:
-        return
-
-    from sentry.plugins.base import plugins
-
-    event, is_new, is_regression = (
-        job["event"],
-        job["group_state"]["is_new"],
-        job["group_state"]["is_regression"],
-    )
-
-    for plugin in plugins.for_project(event.project):
-        plugin_post_process_group(
-            plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
-        )
-
-
 def process_similarity(job: PostProcessJob) -> None:
     if not options.get("sentry.similarity.indexing.enabled"):
         return
@@ -1273,7 +1252,7 @@ def process_processing_errors_eap(job: PostProcessJob) -> None:
 
     event = job["event"]
 
-    processing_errors = event.data.get("errors", [])
+    processing_errors = get_path(event.data, "errors", filter=True, default=[])
     if not processing_errors:
         return
 
@@ -1308,28 +1287,6 @@ def sdk_crash_monitoring(job: PostProcessJob) -> None:
 
     with sentry_sdk.start_span(op="post_process.detect_sdk_crash"):
         sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
-
-
-def plugin_post_process_group(plugin_slug: str, event: GroupEvent, **kwargs: Any) -> None:
-    """
-    Fires post processing hooks for a group.
-    """
-    set_current_event_project(event.project_id)
-
-    from sentry.plugins.base import plugins
-
-    plugin = plugins.get(plugin_slug)
-    try:
-        plugin.post_process(
-            event=event,
-            group=event.group,
-            **kwargs,
-        )
-    except PluginError as e:
-        logger.info("post_process.process_error_ignored", extra={"exception": e})
-    # Since plugins are deprecated, instead of creating issues, lets just create a warning log
-    except Exception as e:
-        logger.warning("post_process.process_error", extra={"exception": e})
 
 
 def feedback_filter_decorator(
@@ -1640,7 +1597,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         process_workflow_engine,
         process_resource_change_bounds,
         process_data_forwarding,
-        process_plugins,
         process_code_mappings,
         process_similarity,
         update_existing_attachments,

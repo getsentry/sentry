@@ -7,14 +7,13 @@ from sentry.integrations.source_code_management.status_check import StatusCheckS
 from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
-from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
+from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.pr_comments.snapshot_templates import (
     COMPARISON_TABLE_HEADER,
     PROCESSING_STATUS,
     _app_display_info,
     _format_name_cell,
     _name_cell,
-    _section_cell,
     format_errored_note,
 )
 
@@ -284,14 +283,23 @@ def _format_snapshot_summary(
     table_rows = []
 
     for artifact in artifacts:
-        name = _name_cell(artifact, snapshot_metrics_map, base_artifact_map)
-
         metrics = snapshot_metrics_map.get(artifact.id)
+        comparison = comparisons_map.get(metrics.id) if metrics else None
+        include_selected_types = comparison is not None and comparison.state not in (
+            PreprodSnapshotComparison.State.PENDING,
+            PreprodSnapshotComparison.State.PROCESSING,
+        )
+        name = _name_cell(
+            artifact,
+            snapshot_metrics_map,
+            base_artifact_map,
+            comparison=comparison if include_selected_types else None,
+        )
+
         if not metrics:
             table_rows.append(f"| {name} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
             continue
 
-        comparison = comparisons_map.get(metrics.id)
         if not comparison:
             table_rows.append(f"| {name} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
             continue
@@ -302,15 +310,6 @@ def _format_snapshot_summary(
         ):
             table_rows.append(f"| {name} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
         else:
-            base_artifact = base_artifact_map.get(artifact.id)
-            artifact_url = (
-                get_preprod_artifact_comparison_url(
-                    artifact, base_artifact, comparison_type="snapshots"
-                )
-                if base_artifact
-                else get_preprod_artifact_url(artifact, view_type="snapshots")
-            )
-
             has_changes = changes_map.get(artifact.id, False)
             is_approved = approvals_map is not None and artifact.id in approvals_map
             if has_changes and is_approved:
@@ -322,12 +321,12 @@ def _format_snapshot_summary(
 
             table_rows.append(
                 f"| {name}"
-                f" | {_section_cell(comparison.images_added, 'added', artifact_url)}"
-                f" | {_section_cell(comparison.images_removed, 'removed', artifact_url)}"
-                f" | {_section_cell(comparison.images_changed, 'changed', artifact_url)}"
-                f" | {_section_cell(comparison.images_renamed, 'renamed', artifact_url)}"
-                f" | {_section_cell(comparison.images_unchanged, 'unchanged', artifact_url)}"
-                f" | {_section_cell(comparison.images_skipped, 'skipped', artifact_url)}"
+                f" | {comparison.images_added}"
+                f" | {comparison.images_removed}"
+                f" | {comparison.images_changed}"
+                f" | {comparison.images_renamed}"
+                f" | {comparison.images_unchanged}"
+                f" | {comparison.images_skipped}"
                 f" | {status} |"
             )
 

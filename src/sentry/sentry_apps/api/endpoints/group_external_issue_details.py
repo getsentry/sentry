@@ -42,8 +42,7 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
             ),
             source=resolve_action_source(request),
             group_id=group.id,
-            organization_id=group.project.organization_id,
-            project_id=external_issue.project_id or group.project_id,
+            project=group.project,
             actor=(
                 GroupActionActor.user(request.user.id)
                 if request.user.is_authenticated

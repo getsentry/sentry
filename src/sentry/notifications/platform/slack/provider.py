@@ -31,6 +31,7 @@ from sentry.notifications.platform.target import (
 )
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
+    LinkTextBlock,
     NotificationBodyFormattingBlock,
     NotificationBodyFormattingBlockType,
     NotificationBodyTextBlock,
@@ -77,7 +78,9 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
         if len(rendered_template.actions) > 0:
             actions_block = ActionsBlock(elements=[])
             for action in rendered_template.actions:
-                actions_block.elements.append(ButtonElement(text=action.label, url=action.link))
+                actions_block.elements.append(
+                    ButtonElement(text=action.label, url=action.link, value="link_clicked")
+                )
             blocks.append(actions_block)
 
         if rendered_template.chart:
@@ -113,6 +116,10 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
                 texts.append(f"*{block.text}*")
             elif block.type == NotificationBodyTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
+            elif block.type == NotificationBodyTextBlockType.LINK and isinstance(
+                block, LinkTextBlock
+            ):
+                texts.append(f"<{block.url}|{block.text}>")
         return " ".join(texts)
 
 

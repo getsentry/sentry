@@ -189,8 +189,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             publish_action_from_context(
                 AssignAction(),
                 group_id=group.id,
-                organization_id=group.project.organization_id,
-                project_id=group.project_id,
+                project=group.project,
             )
             GroupOwner.invalidate_assignee_exists_cache(group.id)
 
@@ -237,8 +236,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             publish_action_from_context(
                 UnassignAction(),
                 group_id=group.id,
-                organization_id=group.project.organization_id,
-                project_id=group.project_id,
+                project=group.project,
             )
 
             # Clear ownership cache for the deassigned group

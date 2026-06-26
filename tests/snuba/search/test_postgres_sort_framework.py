@@ -11,6 +11,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.search.snuba.executors import (
     DEFAULT_TRENDS_WEIGHTS,
@@ -193,6 +194,33 @@ class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
         with _patch_pg_strategies({"test_sort": strategy}):
             results = list(self.make_query("test_sort"))
         assert results == [self.groups[1], self.groups[2], self.groups[0]]
+
+    def test_score_fn_error_falls_back_not_drops(self):
+        # A score_fn that raises on one row must not 500 the whole sort, and the issue must
+        # not vanish from the stream: it falls back to fallback_score_fn and stays in the
+        # results. Regression for an OverflowError in the recommended_v2 newness boost that
+        # took down the entire issue stream.
+        for group in self.groups:
+            group.update(seer_fixability_score=float(group.id))
+        bad_id = self.groups[0].id
+
+        def score_fn(data):
+            if data["fix"] == bad_id:
+                raise OverflowError("boom")
+            return data["fix"]
+
+        strategy = PostgresSortStrategy(
+            postgres_fields={"fix": "seer_fixability_score"},
+            score_fn=score_fn,
+            # groups[0] fails score_fn but falls back to a high base score, so it survives
+            # and sorts to the top rather than being dropped.
+            fallback_score_fn=lambda data: 10**9,
+            exclude_null_postgres=False,
+        )
+        with _patch_pg_strategies({"test_sort": strategy}):
+            results = list(self.make_query("test_sort"))
+        assert set(results) == set(self.groups)
+        assert results[0] == self.groups[0]
 
 
 class TestExecutePostgresSort(PostgresSortTestBase):
@@ -380,7 +408,8 @@ class TestFallbackBehavior(PostgresSortTestBase):
 
 class TestRecommendedV2Sort(PostgresSortTestBase):
     """recommended_v2: Snuba recommended base score plus additive boosts for viewer
-    assignment, Seer fixability, and Seer agent progress.
+    relevance (assignment or suspect commit), Seer fixability, Seer agent progress,
+    regressed issues, and newly-seen issues.
 
     The base fixture's groups have events ~8d, ~5d, and ~3d old, so the recency-driven
     base score orders them [2, 1, 0] with small (<0.03) differences -- each boost below
@@ -454,12 +483,108 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
 
         assert self._query(actor=self.user) == [self.groups[1], self.groups[2], self.groups[0]]
 
+    def test_regressed_boost(self):
+        # groups[0] has the lowest base score (oldest events); marking it regressed lifts
+        # it above the others, which stay ONGOING.
+        self.groups[0].update(substatus=GroupSubStatus.REGRESSED)
+
+        assert self._query(actor=self.user)[0] == self.groups[0]
+
+    def test_newness_boost(self):
+        # groups[0] is last by activity-based recency, but just appeared for the first time.
+        # The first_seen-based newness boost (distinct from last_seen recency) lifts it up.
+        self.groups[0].update(first_seen=before_now(hours=1))
+
+        assert self._query(actor=self.user)[0] == self.groups[0]
+
+    def test_very_old_first_seen_does_not_overflow(self):
+        # first_seen far enough back that hours/halflife exceeds ~1024 used to overflow
+        # the float in 1.0 / 2.0**x. The query must still succeed (newness underflows to 0).
+        self.groups[0].update(first_seen=before_now(days=3000))
+
+        assert set(self._query(actor=self.user)) == set(self.groups)
+
+    def _add_suspect_commit(self, group, user):
+        GroupOwner.objects.create(
+            group=group,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=user.id,
+        )
+
+    def test_suspect_commit_boost(self):
+        # groups[0] has the lowest base score; the viewer authored its suspect commit,
+        # which lifts it to the top even though it isn't assigned to them.
+        self._add_suspect_commit(self.groups[0], self.user)
+
+        assert self._query(actor=self.user)[0] == self.groups[0]
+
+    def test_relevance_is_max_not_sum(self):
+        # groups[0] is both assigned to the viewer and authored by them; groups[1] is only
+        # assigned to them. If the two relevance signals summed, groups[0] would win; because
+        # they're combined with max(), both get the same boost and the higher base (groups[1])
+        # stays ahead.
+        GroupAssignee.objects.assign(self.groups[0], self.user)
+        self._add_suspect_commit(self.groups[0], self.user)
+        GroupAssignee.objects.assign(self.groups[1], self.user)
+
+        assert self._query(actor=self.user) == [self.groups[1], self.groups[0], self.groups[2]]
+
+
+class TestProgressSort(PostgresSortTestBase):
+    """progress: primary sort by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
+    assigned > identified), secondary by last_seen.
+
+    The base fixture's groups have events ~8d, ~5d, and ~3d old, so on last_seen alone they
+    order [2, 1, 0] (newest first).
+    """
+
+    def _query(self):
+        return list(
+            self.backend.query(
+                [self.project],
+                search_filters=[],
+                environments=None,
+                count_hits=False,
+                sort_by="progress",
+                date_from=None,
+                date_to=None,
+                cursor=None,
+                referrer=Referrer.TESTING_TEST,
+            )
+        )
+
+    def test_rank_outranks_last_seen(self):
+        # Give the oldest group the furthest progress and the newest group none: rank must
+        # invert the last_seen ordering.
+        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_activity(group=self.groups[1], type=ActivityType.SEER_RCA_COMPLETED.value)
+        # groups[2] has no progress activity -> identified (lowest rank).
+        assert self._query() == [self.groups[0], self.groups[1], self.groups[2]]
+
+    def test_last_seen_breaks_ties_within_rank(self):
+        # groups[0] and groups[1] are both diagnosed; the more recently seen (groups[1])
+        # sorts first. groups[2] stays identified and sorts last.
+        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_RCA_COMPLETED.value)
+        self.create_group_activity(group=self.groups[1], type=ActivityType.SEER_RCA_COMPLETED.value)
+        assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
+
 
 class TestDefaultPostgresSortStrategies(TestCase):
     def test_recommended_v2_registered(self):
         strategies = PostgresSnubaQueryExecutor().postgres_sort_strategies
-        assert set(strategies) == {"recommended_v2"}
+        assert set(strategies) == {"recommended_v2", "progress"}
         strategy = strategies["recommended_v2"]
         assert strategy.snuba_aggregations == ["recommended"]
         assert strategy.exclude_null_postgres is False
-        assert set(strategy.signal_resolvers) == {"assignment", "agent"}
+        assert set(strategy.signal_resolvers) == {"assignment", "suspect_commit", "agent"}
+
+    def test_progress_registered(self):
+        strategies = PostgresSnubaQueryExecutor().postgres_sort_strategies
+        strategy = strategies["progress"]
+        assert strategy.snuba_aggregations == ["last_seen"]
+        assert set(strategy.signal_resolvers) == {"progress_rank"}
+        # progress maps to last_seen in sort_strategies so the chunked Snuba path has a
+        # real aggregation to fall back to on candidate overflow.
+        assert PostgresSnubaQueryExecutor.sort_strategies["progress"] == "last_seen"

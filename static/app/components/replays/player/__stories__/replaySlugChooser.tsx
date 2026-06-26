@@ -1,6 +1,7 @@
-import {Fragment, useState, type ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import {ClassNames} from '@emotion/react';
 import {useInfiniteQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
@@ -9,9 +10,9 @@ import {Text} from '@sentry/scraps/text';
 import {Hovercard} from 'sentry/components/hovercard';
 import {ReplayList} from 'sentry/components/replays/list/__stories__/replayList';
 import {EnvironmentPicker} from 'sentry/components/replays/player/__stories__/environmentPicker';
-import {ProjectPicker} from 'sentry/components/replays/player/__stories__/projectPicker';
 import {Providers} from 'sentry/components/replays/player/__stories__/providers';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
+import * as Storybook from 'sentry/stories';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {replayListInfiniteApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -23,8 +24,8 @@ interface Props {
 
 export function ReplaySlugChooser({children}: Props) {
   const organization = useOrganization();
-  const [project, setProject] = useState<string | undefined>();
-  const [environment, setEnvironment] = useState<string | undefined>();
+  const [project, setProject] = useQueryState('project', parseAsString);
+  const [environment, setEnvironment] = useQueryState('environment', parseAsString);
   const [replaySlug, setReplaySlug] = useSessionStorage('stories:replaySlug', '');
 
   const query = {
@@ -44,7 +45,7 @@ export function ReplaySlugChooser({children}: Props) {
 
   const input = (
     <Flex direction="row" gap="sm">
-      <ProjectPicker project={project} onChange={setProject} />
+      <Storybook.SelectProject projectSlug={project} setProjectSlug={setProject} />
       <EnvironmentPicker
         project={project}
         environment={environment}

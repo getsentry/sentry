@@ -66,9 +66,12 @@ import { HydratedRouter } from "react-router/dom";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-  // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
-  // https://docs.sentry.io/platforms/javascript/guides/react-router/configuration/options/#dataCollection
-  // dataCollection: { userInfo: false, httpBodies: [] },${integrationsCode}${logsSnippet}${performanceSnippet}${replaySnippet}
+  dataCollection: {
+    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/guides/react-router/configuration/options/#dataCollection
+    // userInfo: false,
+    // httpBodies: [],
+  },${integrationsCode}${logsSnippet}${performanceSnippet}${replaySnippet}
 });
 
 startTransition(() => {

@@ -10,10 +10,15 @@ from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ExistsFilter,
+    OrFilter,
+    TraceItemFilter,
+)
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase, UnknownEnvironments
 from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
@@ -35,19 +40,30 @@ class Validation:
 
 
 @dataclass(kw_only=True)
-class AttributeValidation(Validation):
+class NamedValidation(Validation):
     name: str
+
+
+@dataclass(kw_only=True)
+class AttributeValidation(NamedValidation):
     # None when its an error
     attrType: str | None
 
 
 @dataclass(kw_only=True)
+class QueryValidation(Validation):
+    fields: list[AttributeValidation] = dataclass_field(default_factory=list)
+
+
+@dataclass(kw_only=True)
 class ValidationResponse:
     valid: bool
-    projects: list[Validation] = dataclass_field(default_factory=list)
-    dataset: list[Validation] = dataclass_field(default_factory=list)
+    dataset: list[NamedValidation] = dataclass_field(default_factory=list)
+    environment: list[Validation] = dataclass_field(default_factory=list)
     field: list[AttributeValidation] = dataclass_field(default_factory=list)
     orderby: list[AttributeValidation] = dataclass_field(default_factory=list)
+    projects: list[Validation] = dataclass_field(default_factory=list)
+    query: QueryValidation
 
 
 def serialize_type(search_type: constants.SearchType) -> str:
@@ -79,6 +95,18 @@ def _check_attributes_by_type(
         meta=meta,
         limit=10_000,
         type=attr_type,
+        match_mode=TraceItemAttributeNamesRequest.MatchMode.MATCH_MODE_ANY,
+        # This filter doesn't actually matter snuba just recollects all the columns
+        intersecting_attributes_filter=TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=name))
+                    )
+                    for name in requested_names
+                ]
+            )
+        ),
     )
     attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
     return {
@@ -130,11 +158,58 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             data=asdict(validity),
         )
 
+    def validate_columns(
+        self, columns: list[str], resolver: Any
+    ) -> tuple[
+        list[AttributeValidation], dict[AttributeKey.Type.ValueType, list[ResolvedAttribute]], bool
+    ]:
+        definitions = resolver.definitions
+        validities: list[AttributeValidation] = []
+        attributes_to_lookup = defaultdict(list)
+        valid = True
+        for column in columns:
+            try:
+                match = fields.is_function(column)
+                if match:
+                    resolved, _ = resolver.resolve_function(column, match)
+                    validities.append(
+                        AttributeValidation(
+                            attrType=serialize_type(resolved.search_type),
+                            error=None,
+                            name=column,
+                            valid=True,
+                        )
+                    )
+                else:
+                    resolved, _ = resolver.resolve_attribute(column)
+                    if column in definitions.contexts or column in definitions.columns:
+                        validities.append(
+                            AttributeValidation(
+                                attrType=serialize_type(resolved.search_type),
+                                error=None,
+                                name=column,
+                                valid=True,
+                            )
+                        )
+                    else:
+                        attributes_to_lookup[resolved.proto_type].append(resolved)
+            except InvalidSearchQuery as error:
+                valid = False
+                validities.append(
+                    AttributeValidation(
+                        attrType=None,
+                        error=str(error),
+                        name=column,
+                        valid=False,
+                    )
+                )
+        return validities, attributes_to_lookup, valid
+
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=400)
 
-        response = ValidationResponse(valid=True)
+        response = ValidationResponse(valid=True, query=QueryValidation(valid=True, error=None))
 
         try:
             snuba_params = self.get_snuba_params(
@@ -147,17 +222,26 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
                 Validation(valid=False, error="At least one valid project is required to query")
             )
             return self.serialize_response(response)
+        except UnknownEnvironments as error:
+            response.valid = False
+            response.environment.append(Validation(valid=False, error=str(error)))
+            return self.serialize_response(response)
 
         try:
             dataset = self.get_dataset(request, organization)
         except ParseError as error:
             response.valid = False
-            response.dataset.append(Validation(valid=False, error=str(error)))
+            response.dataset.append(
+                NamedValidation(
+                    name=request.GET.get("dataset", "discover"), valid=False, error=str(error)
+                )
+            )
             return self.serialize_response(response)
 
         if dataset not in RPC_DATASETS:
             response.dataset.append(
-                Validation(
+                NamedValidation(
+                    name=request.GET.get("dataset", "discover"),
                     valid=True,
                     error="This dataset is not compatible with the validate endpoint, your request may still be valid",
                 )
@@ -166,48 +250,57 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             return self.serialize_response(response)
 
         resolver = dataset.get_resolver(snuba_params, SearchResolverConfig())
-        definitions = resolver.definitions
 
         # Validate selected_columns
         selected_columns = self.get_field_list(organization, request)
-        attributes_to_lookup = defaultdict(list)
-        column_validity: list[AttributeValidation] = []
-        for column in selected_columns:
+        column_validity, field_attributes_to_lookup, valid = self.validate_columns(
+            selected_columns, resolver
+        )
+        if not valid:
+            response.valid = valid
+
+        # Validate query
+        query_string = request.GET.get("query", "")
+        query_attributes_to_lookup: dict[AttributeKey.Type.ValueType, list[ResolvedAttribute]] = {}
+        query_columns = []
+        try:
             try:
-                match = fields.is_function(column)
-                if match:
-                    resolved, _ = resolver.resolve_function(column, match)
-                    column_validity.append(
-                        AttributeValidation(
-                            attrType=serialize_type(resolved.search_type),
-                            error=None,
-                            name=column,
-                            valid=True,
+                parsed_terms = resolver.parse_search_query(query_string)
+            except InvalidSearchQuery as err:
+                # If we fail to parse, try again but truncate the query to hopefully get some terms
+                if err.extra is not None:
+                    try:
+                        parsed_terms = resolver.parse_search_query(
+                            query_string[: err.extra.get("idx", 0) - 1]
                         )
-                    )
+                    except InvalidSearchQuery:
+                        # If we fail again don't bubble the error up
+                        parsed_terms = []
                 else:
-                    resolved, _ = resolver.resolve_attribute(column)
-                    if column in definitions.contexts or column in definitions.columns:
-                        column_validity.append(
-                            AttributeValidation(
-                                attrType=serialize_type(resolved.search_type),
-                                error="",
-                                name=column,
-                                valid=True,
-                            )
-                        )
-                    else:
-                        attributes_to_lookup[resolved.proto_type].append(resolved)
-            except InvalidSearchQuery as error:
-                response.valid = False
-                column_validity.append(
-                    AttributeValidation(
-                        attrType=None,
-                        error=str(error),
-                        name=column,
-                        valid=False,
-                    )
-                )
+                    parsed_terms = []
+            query_columns = resolver.collect_terms(parsed_terms)
+            response.query.fields, query_attributes_to_lookup, valid = self.validate_columns(
+                query_columns, resolver
+            )
+            if not valid:
+                response.valid = valid
+            # While resolve_query also runs parse_search_query, we don't need the resolved_query just want to dry-run it
+            # to get any errors
+            resolver.resolve_query(query_string)
+        except InvalidSearchQuery as error:
+            response.valid = False
+            response.query.error = str(error)
+            response.query.valid = False
+
+        # Lookup unknown fields and add to validities
+        # Combine the lookup dictionaries
+        attributes_to_lookup: dict[AttributeKey.Type.ValueType, list[ResolvedAttribute]] = (
+            query_attributes_to_lookup.copy()
+        )
+        for attribute_type, attributes in field_attributes_to_lookup.items():
+            if attribute_type not in attributes_to_lookup:
+                attributes_to_lookup[attribute_type] = []
+            attributes_to_lookup[attribute_type].extend(attributes)
 
         if any(len(attributes) > 0 for attributes in attributes_to_lookup.values()):
             # Group by proto type because the storage check is keyed on
@@ -218,25 +311,39 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
                 for attribute_type, attributes in attributes_to_lookup.items():
                     for resolved in attributes:
                         if (resolved.proto_type, resolved.internal_name) in existing:
-                            column_validity.append(
-                                AttributeValidation(
-                                    attrType=serialize_type(resolved.search_type),
-                                    error="",
-                                    name=resolved.public_alias,
-                                    valid=True,
-                                )
+                            validity = AttributeValidation(
+                                attrType=serialize_type(resolved.search_type),
+                                error=None,
+                                name=resolved.public_alias,
+                                valid=True,
                             )
                         else:
                             response.valid = False
-                            column_validity.append(
-                                AttributeValidation(
-                                    attrType=None,
-                                    error="Unknown attribute",
-                                    name=resolved.public_alias,
-                                    valid=False,
-                                )
+                            validity = AttributeValidation(
+                                attrType=None,
+                                error="Unknown attribute",
+                                name=resolved.public_alias,
+                                valid=False,
                             )
-        response.field = column_validity
+                        if (
+                            resolved.public_alias in selected_columns
+                            and validity not in column_validity
+                        ):
+                            column_validity.append(validity)
+                        if (
+                            resolved.public_alias in query_columns
+                            and validity not in response.query.fields
+                        ):
+                            response.query.fields.append(validity)
+
+        response.field.extend(column_validity)
+        # If the response is still valid check if there's a field validity we wanna use
+        if response.query.valid:
+            for field in response.query.fields:
+                if not field.valid:
+                    response.query.valid = False
+                    response.query.error = field.error
+                    break
 
         # Validate orderby
         orderby_validity = []
@@ -267,8 +374,6 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
                             valid=False,
                         )
                     )
-        response.orderby = orderby_validity
-
-        # TODO(wmak): Validate query
+        response.orderby.extend(orderby_validity)
 
         return self.serialize_response(response)

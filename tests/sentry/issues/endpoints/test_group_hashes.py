@@ -3,7 +3,6 @@ from urllib.parse import urlencode
 
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -120,32 +119,20 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         eventstream.end_merge(state)
 
-        # Get the grouphashes for both events (refresh after merge)
+        # Get the grouphashes for both events
         hash1 = event1.get_primary_hash()
         hash2 = event2.get_primary_hash()
-
-        # Refresh the grouphashes after merge to get updated group assignments
         grouphash1 = GroupHash.objects.get(project=self.project, hash=hash1)
         grouphash2 = GroupHash.objects.get(project=self.project, hash=hash2)
+        assert grouphash2.metadata
 
-        # Manually update grouphash2 to point to the merged group (event1.group_id)
+        # Manually update grouphash2 to point to the merged group (event1.group_id) and its metadata
+        # to reflect the Seer match
         grouphash2.group = event1.group
+        grouphash2.metadata.seer_matched_grouphash = grouphash1
+        grouphash2.metadata.seer_match_distance = 0.01
         grouphash2.save()
-
-        # Get or create metadata for both grouphashes
-        metadata1, _ = GroupHashMetadata.objects.get_or_create(
-            grouphash=grouphash1, defaults={"schema_version": "8"}
-        )
-        metadata2, _ = GroupHashMetadata.objects.get_or_create(
-            grouphash=grouphash2,
-            defaults={
-                "schema_version": "8",
-                "seer_matched_grouphash": grouphash1,  # hash2 points to hash1 as its seer match
-            },
-        )
-        # Update the seer match if metadata already existed
-        metadata2.seer_matched_grouphash = grouphash1
-        metadata2.save()
+        grouphash2.metadata.save()
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group_id}/hashes/"
         response = self.client.get(url, format="json")
@@ -159,9 +146,11 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         # hash1 should not be matched by seer (it's the parent)
         assert hash1_data["mergedBySeer"] is False
+        assert hash1_data["seerMatchDistance"] is None
 
         # hash2 should be matched by seer (it points to hash1)
         assert hash2_data["mergedBySeer"] is True
+        assert hash2_data["seerMatchDistance"] == 0.01
 
     def test_full_param(self) -> None:
         self.login_as(user=self.user)

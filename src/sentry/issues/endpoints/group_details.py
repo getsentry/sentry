@@ -27,8 +27,6 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.validators import GroupValidator
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupDetailsResponse
-from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
-from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
@@ -48,7 +46,6 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.base import MCP_USER_AGENT_PREFIX
 from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
@@ -66,7 +63,6 @@ from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
 from sentry.models.userreport import UserReport
-from sentry.plugins.base import plugins
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
@@ -76,6 +72,7 @@ from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
 
@@ -118,20 +115,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
     def _get_seen_by(self, request: Request, group: Group) -> list[dict[str, Any]]:
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
-
-    def _get_context_plugins(self, request: Request, group: Group) -> list[dict[str, Any]]:
-        project = group.project
-        return serialize(
-            [
-                plugin
-                for plugin in plugins.for_project(project, version=None)
-                if plugin.has_project_conf()
-                and hasattr(plugin, "get_custom_contexts")
-                and plugin.get_custom_contexts()
-            ],
-            request.user,
-            PluginSerializer(project),
-        )
 
     @staticmethod
     def __group_hourly_daily_stats(
@@ -179,7 +162,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
         return response
 
     @extend_schema(
-        operation_id="Retrieve an Issue",
+        operation_id="getOrganizationIssue",
+        summary="Retrieve an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -325,9 +309,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 {
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
-                    "pluginActions": get_actions(group),
-                    "pluginIssues": get_available_issue_plugins(group),
-                    "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "count": get_group_global_count(group),
                 }
@@ -351,8 +332,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 ViewAction(),
                 source=resolve_action_source(request),
                 group_id=group.id,
-                organization_id=group.organization.id,
-                project_id=group.project_id,
+                project=group.project,
                 actor=resolve_action_actor(request),
             )
 
@@ -378,7 +358,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
             raise
 
     @extend_schema(
-        operation_id="Update an Issue",
+        operation_id="updateOrganizationIssue",
+        summary="Update an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -452,7 +433,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
             return Response(body, status=e.status_code)
 
     @extend_schema(
-        operation_id="Remove an Issue",
+        operation_id="deleteOrganizationIssue",
+        summary="Remove an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -507,8 +489,7 @@ def send_issue_view_attribution(request: Request, response: Response, group: Any
     if not isinstance(group, Group):
         return
 
-    user_agent = request.META.get("HTTP_USER_AGENT", "")
-    if isinstance(user_agent, str) and user_agent.startswith(MCP_USER_AGENT_PREFIX):
+    if is_mcp_request(request):
         client_family = request.headers.get("x-sentry-mcp-client-family") or "unknown"
         analytics.record(
             IssueViewedEvent(

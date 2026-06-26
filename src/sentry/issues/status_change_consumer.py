@@ -265,6 +265,7 @@ def process_status_change_message(
         txn.set_tag("group_id", group.id)
 
     sentry_sdk.set_tag("group_type", group.issue_type.slug)
+    sentry_sdk.set_attribute("group_type", group.issue_type.slug)
 
     with (
         metrics.timer(

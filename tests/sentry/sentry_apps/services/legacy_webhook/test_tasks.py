@@ -4,7 +4,6 @@ import responses
 
 from sentry.sentry_apps.services.legacy_webhook.service import build_legacy_webhook_payload
 from sentry.sentry_apps.services.legacy_webhook.tasks import send_legacy_webhook_task
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
@@ -43,13 +42,3 @@ class TestSendLegacyWebhookTask(BaseWorkflowTest):
         body = json.loads(responses.calls[0].request.body)
         assert body["id"] == str(self.group.id)
         assert body["message"] == self.group_event.message
-
-    @responses.activate
-    @with_feature("organizations:legacy-webhook-dry-run")
-    def test_task_dry_run_does_not_send(self) -> None:
-        responses.add(responses.POST, "http://example.com/hook")
-
-        payload = build_legacy_webhook_payload(self.invocation)
-        send_legacy_webhook_task(url="http://example.com/hook", payload=payload)
-
-        assert len(responses.calls) == 0

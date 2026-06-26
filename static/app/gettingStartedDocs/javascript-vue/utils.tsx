@@ -149,9 +149,12 @@ function getSentryInitLayout(params: Params, siblingOption: string): string {
     staticParts: [
       siblingOption === VueVersion.VUE2 ? 'Vue' : 'app',
       `dsn: "${params.dsn.public}"`,
-      `// To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
-      // https://docs.sentry.io/platforms/javascript/guides/vue/configuration/options/#dataCollection
-      // dataCollection: { userInfo: false, httpBodies: [] }`,
+      `dataCollection: {
+    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/guides/vue/configuration/options/#dataCollection
+    // userInfo: false,
+    // httpBodies: []
+  }`,
     ],
     getIntegrations,
     getDynamicParts,

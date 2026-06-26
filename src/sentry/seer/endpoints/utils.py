@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid as uuid_module
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -76,26 +76,34 @@ def resolve_seer_run(
     return ResolvedSeerRun(run.seer_run_state_id, str(run.uuid))
 
 
-def map_org_id_param(func: Callable) -> Callable:
+_RpcReturn = TypeVar("_RpcReturn")
+
+
+def map_org_id_param(func: Callable[..., _RpcReturn]) -> Callable[..., _RpcReturn]:
     """
     Helper to map organization_id parameter to org_id for backwards compatibility.
 
     Allows RPC methods to use 'organization_id' while underlying functions use 'org_id'.
+    The return type is preserved so the seer RPC registries can keep their
+    `Callable[..., BaseModel | None]` mypy guard through this wrapper.
     """
 
-    def wrapper(*, organization_id: int, **kwargs: Any) -> Any:
+    def wrapper(*, organization_id: int, **kwargs: Any) -> _RpcReturn:
         kwargs["org_id"] = organization_id
         return func(**kwargs)
 
     return wrapper
 
 
-def accept_organization_id_param(func: Callable) -> Callable:
+def accept_organization_id_param(func: Callable[..., _RpcReturn]) -> Callable[..., _RpcReturn]:
     """
     Helper to accept organization_id parameter.
+
+    The return type is preserved so the seer RPC registries can keep their
+    `Callable[..., BaseModel | None]` mypy guard through this wrapper.
     """
 
-    def wrapper(*, organization_id: int, **kwargs: Any) -> Any:
+    def wrapper(*, organization_id: int, **kwargs: Any) -> _RpcReturn:
         return func(**kwargs)
 
     return wrapper

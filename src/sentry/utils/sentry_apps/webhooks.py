@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 from collections.abc import Callable, Mapping
 from types import FrameType
@@ -195,11 +196,19 @@ def _send_webhook_request(
     url: str,
     app_platform_event: AppPlatformEvent[T],
 ) -> Response:
+    # We don't want to use the alarm in CONTROL silo as it's only used for installation webhooks which are v. low volume
+    # Also that we aren't guaranteed to be in main thread
+    context_wrapper: contextlib.AbstractContextManager[None]
+    if SiloMode.get_current_mode() is SiloMode.CONTROL:
+        context_wrapper = contextlib.nullcontext()
+    else:
+        timeout_seconds = options.get("sentry-apps.webhook.hard-timeout.sec")
+        context_wrapper = timeout_alarm(timeout_seconds, _handle_webhook_timeout)
+
     # We're using a signal based timeout here because we need to interrupt the blocking
     # socket.connect() operation. See SENTRY-5HA6 for more context. Here we're hanging at
     # the socket.connect() call and the timeout we set in safe_urlopen is not being respected.
-    timeout_seconds = options.get("sentry-apps.webhook.hard-timeout.sec")
-    with timeout_alarm(timeout_seconds, _handle_webhook_timeout):
+    with context_wrapper:
         return safe_urlopen(
             url=url,
             data=app_platform_event.body,

@@ -232,9 +232,23 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
     # Fetch schema component references
     schema_components = result["components"]["schemas"]
 
+    # The API docs derive each page's URL slug from its summary, so two public
+    # operations sharing a summary would collide on the same docs URL.
+    summaries_seen: dict[str, str] = {}
+
     for path, endpoints in result["paths"].items():
         for method_info in endpoints.values():
             endpoint_name = f"'{method_info['operationId']}'"
+
+            summary = method_info.get("summary")
+            if summary is not None:
+                if summary in summaries_seen:
+                    raise SentryApiBuildError(
+                        f"Duplicate summary {summary!r} on endpoints {summaries_seen[summary]} "
+                        f"and {endpoint_name}. Summaries must be unique because the API docs "
+                        "derive each page's URL from them."
+                    )
+                summaries_seen[summary] = endpoint_name
 
             _check_tag(method_info, endpoint_name)
             _check_description(

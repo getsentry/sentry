@@ -26,6 +26,7 @@ class SearchAgentStateEndpointTest(APITestCase):
         with self.feature(self.features):
             response = self.get_success_response(self.organization.slug, "42")
         assert response.data["session"]["status"] == "completed"
+        assert response.data["sentry_run_id"] is None
         assert mock_request.call_args[0][0]["run_id"] == 42
 
     def test_uuid_returns_processing_when_outbox_not_drained(self) -> None:
@@ -43,6 +44,7 @@ class SearchAgentStateEndpointTest(APITestCase):
         with self.feature(self.features):
             response = self.get_success_response(self.organization.slug, str(run.uuid))
         assert response.data["session"]["status"] == "completed"
+        assert response.data["sentry_run_id"] == str(run.uuid)
         sent_body = mock_request.call_args[0][0]
         assert sent_body["run_id"] == 99
 

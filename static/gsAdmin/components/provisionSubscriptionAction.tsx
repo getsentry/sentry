@@ -22,7 +22,11 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {withApi} from 'sentry/utils/withApi';
 
 import {prettyDate} from 'admin/utils';
-import {CPE_MULTIPLIER_TO_CENTS, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
+import {
+  CPE_MULTIPLIER_TO_CENTS,
+  MONTHLY,
+  RESERVED_BUDGET_QUOTA,
+} from 'getsentry/constants';
 import {
   ReservedBudgetCategoryType,
   type BillingConfig,
@@ -30,12 +34,7 @@ import {
   type ReservedBudgetMetricHistory,
   type Subscription,
 } from 'getsentry/types';
-import {
-  displayBudgetName,
-  hasPerformance,
-  isAm3Plan,
-  isTrialPlan,
-} from 'getsentry/utils/billing';
+import {displayBudgetName, hasPerformance} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
@@ -198,9 +197,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
             // Legacy errors-only enterprise plans (e1, mm2) can no longer be
             // provisioned.
             hasPerformance(plan) &&
-            !plan.id.endsWith('_ac') &&
-            !plan.id.endsWith('_auf') &&
-            !isTrialPlan(plan.id) &&
+            plan.billingInterval === MONTHLY &&
             !plan.isTestPlan
           ) {
             acc[plan.id] = plan;
@@ -615,7 +612,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 />
                 <BooleanField
                   label={`Apply Changes at the End of the Current Billing Period (${prettyDate(
-                    this.props.subscription.contractPeriodEnd
+                    this.props.subscription.billingPeriodEnd
                   )})`}
                   name="atPeriodEnd"
                   disabled={this.state.data.coterm}
@@ -705,7 +702,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     label={`${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Max Spend Setting`}
                     name="onDemandInvoicedManual"
                     choices={
-                      isAm3Plan(this.state.data.plan)
+                      // per-category max spend is only available on plans
+                      // with on-demand budget modes
+                      selectedPlan && !selectedPlan.hasOnDemandModes
                         ? [
                             ['SHARED', 'Shared'],
                             ['DISABLE', 'Disable'],

@@ -32,7 +32,6 @@ describe('SpendAllocations feature enable flow', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am1_f',
-      planTier: 'am1',
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
@@ -75,7 +74,6 @@ describe('SpendAllocations feature enable flow', () => {
   it('does not render for YY partnership', async () => {
     subscription = SubscriptionFixture({
       plan: 'am2_business',
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'YY Org',
@@ -161,7 +159,6 @@ describe('enabled Spend Allocations page', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am1_f',
-      planTier: 'am1',
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
@@ -231,7 +228,6 @@ describe('enabled Spend Allocations page', () => {
     const am3Sub = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      planTier: 'am3',
     });
     render(<SpendAllocationsRoot subscription={am3Sub} />, {organization});
 
@@ -331,7 +327,6 @@ describe('enabled Spend Allocations page without root', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am1_f',
-      planTier: 'am1',
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
@@ -411,7 +406,6 @@ describe('POST Create spend allocation', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am1_f',
-      planTier: 'am1',
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
@@ -499,7 +493,6 @@ describe('Disable Submit button in Spend Allocation', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am1_f',
-      planTier: 'am1',
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
@@ -544,7 +537,6 @@ describe('DELETE spend allocation', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am1_f',
-      planTier: 'am1',
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
@@ -620,7 +612,6 @@ describe('PUT edit spend allocation', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am1_f',
-      planTier: 'am1',
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(

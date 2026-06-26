@@ -30,7 +30,7 @@ from sentry.integrations.github.webhook import (
 )
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
-from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.integrations.utils.scope import clear_organization_info
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.utils import metrics
 
@@ -183,7 +183,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             return None
 
     def _handle(self, request: HttpRequest) -> HttpResponse:
-        clear_tags_and_context()
+        clear_organization_info()
         scope = sentry_sdk.get_isolation_scope()
 
         try:
@@ -198,6 +198,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         extra: dict[str, str | None] = {"host": host}
         # If we do tag the host early we can't even investigate
         scope.set_tag("host", host)
+        scope.set_attribute("host", host)
 
         try:
             body = bytes(request.body)

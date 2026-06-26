@@ -1,7 +1,11 @@
 from unittest.mock import patch
 
 from sentry import options
-from sentry.tasks.seer.night_shift.tweaks import NightShiftTweaks, get_night_shift_tweaks
+from sentry.tasks.seer.night_shift.tweaks import (
+    NightShiftTweaks,
+    get_night_shift_org_tweaks,
+    get_night_shift_tweaks,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -82,3 +86,66 @@ class GetNightShiftTweaksTest(TestCase):
         mock_capture.assert_called_once()
         assert tweaks.enabled is True
         assert tweaks.max_candidates == options.get("seer.night_shift.issues_per_org")
+
+
+class GetNightShiftOrgTweaksTest(TestCase):
+    def test_unset_returns_none(self) -> None:
+        assert get_night_shift_org_tweaks(self.organization.id) is None
+
+    def test_returns_overrides_for_matching_org(self) -> None:
+        with self.options(
+            {"seer.night_shift.org_tweaks": {str(self.organization.id): {"max_candidates": 20}}}
+        ):
+            tweaks = get_night_shift_org_tweaks(self.organization.id)
+
+        assert tweaks is not None
+        assert tweaks.max_candidates == 20
+
+    def test_unset_fields_fall_back_to_global_defaults(self) -> None:
+        with self.options(
+            {
+                "seer.night_shift.org_tweaks": {str(self.organization.id): {"max_candidates": 20}},
+                "seer.night_shift.issues_per_org": 42,
+            }
+        ):
+            tweaks = get_night_shift_org_tweaks(self.organization.id)
+
+        assert tweaks is not None
+        assert tweaks.max_candidates == 20
+        assert tweaks.intelligence_level == "high"
+
+    def test_other_org_returns_none(self) -> None:
+        with self.options(
+            {"seer.night_shift.org_tweaks": {str(self.organization.id + 1): {"max_candidates": 20}}}
+        ):
+            assert get_night_shift_org_tweaks(self.organization.id) is None
+
+    def test_non_dict_override_reports_and_returns_none(self) -> None:
+        with (
+            self.options(
+                {"seer.night_shift.org_tweaks": {str(self.organization.id): "not-a-dict"}}
+            ),
+            patch(
+                "sentry.tasks.seer.night_shift.tweaks.sentry_sdk.capture_exception"
+            ) as mock_capture,
+        ):
+            assert get_night_shift_org_tweaks(self.organization.id) is None
+
+        mock_capture.assert_called_once()
+
+    def test_invalid_payload_reports_and_returns_none(self) -> None:
+        with (
+            self.options(
+                {
+                    "seer.night_shift.org_tweaks": {
+                        str(self.organization.id): {"max_candidates": "not-an-int"}
+                    }
+                }
+            ),
+            patch(
+                "sentry.tasks.seer.night_shift.tweaks.sentry_sdk.capture_exception"
+            ) as mock_capture,
+        ):
+            assert get_night_shift_org_tweaks(self.organization.id) is None
+
+        mock_capture.assert_called_once()

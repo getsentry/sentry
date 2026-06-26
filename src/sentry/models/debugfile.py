@@ -119,7 +119,8 @@ class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
 class ProjectDebugFile(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    file = FlexibleForeignKey("sentry.File", on_delete=models.PROTECT)
+    # When the migration to Objectstore is complete, this can be removed.
+    file = FlexibleForeignKey("sentry.File", null=True, on_delete=models.PROTECT)
     checksum = models.CharField(max_length=40, null=True, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
@@ -128,6 +129,16 @@ class ProjectDebugFile(Model):
     code_id = models.CharField(max_length=64, null=True)
     data = LegacyTextJSONField(default=dict, null=True)
     date_accessed = models.DateTimeField(default=timezone.now, db_default=Now())
+
+    # The following fields are present if and only if the file is stored in Objectstore.
+    # Key of the file in Objectstore.
+    storage_path = models.TextField(null=True)
+    # Mirrors `file.headers["Content-Type"]` for files stored in Objectstore.
+    content_type = models.TextField(null=True)
+    # Mirrors `file.size` for files stored in Objectstore.
+    file_size = BoundedBigIntegerField(null=True)
+    # Mirrors `file.timestamp` for files stored in Objectstore.
+    date_created = models.DateTimeField(null=True)
 
     objects: ClassVar[ProjectDebugFileManager] = ProjectDebugFileManager()
 
@@ -145,6 +156,7 @@ class ProjectDebugFile(Model):
 
     @property
     def file_format(self) -> str:
+        assert self.file is not None
         ct = self.file.headers.get("Content-Type", "unknown").lower()
         return KNOWN_DIF_FORMATS.get(ct, "unknown")
 
@@ -201,7 +213,8 @@ class ProjectDebugFile(Model):
         # row behind, but no surviving ProjectDebugFile should point to a deleted
         # File.
         try:
-            self.file.delete()
+            if self.file is not None:
+                self.file.delete()
         except ProtectedError:
             pass
 
@@ -224,6 +237,7 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
     uuidmap_seen = False
     il2cpp_seen = False
     for i, dif in enumerate(difs):
+        assert dif.file is not None
         mime_type = dif.file.headers.get("Content-Type")
         if mime_type == DIF_MIMETYPES["bcsymbolmap"]:
             if not bcsymbolmap_seen:
@@ -733,6 +747,7 @@ class DIFCache:
             except OSError as e:
                 if e.errno != errno.ENOENT:
                     raise
+                assert dif.file is not None
                 dif.file.save_to(dif_path)
             rv[debug_id] = dif_path
 

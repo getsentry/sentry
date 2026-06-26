@@ -159,7 +159,8 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
     permission_classes = (OrganizationAndStaffPermission,)
 
     @extend_schema(
-        operation_id="Retrieve Event Counts for an Organization (v2)",
+        operation_id="listOrganizationStatsV2",
+        summary="Retrieve Event Counts for an Organization (v2)",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrgStatsQueryParamsSerializer],
         request=None,
         responses={

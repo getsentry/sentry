@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from django.db import router, transaction
-from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -34,8 +34,12 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 
 
-@extend_schema_serializer(exclude_fields=["name"])
 class TeamDetailsSerializer(CamelSnakeModelSerializer):
+    name = serializers.CharField(
+        max_length=64,
+        required=False,
+        help_text="The name of the team.",
+    )
     slug = SentrySerializerSlugField(
         max_length=DEFAULT_SLUG_MAX_LENGTH,
         help_text="Uniquely identifies a team. This is must be available.",
@@ -72,7 +76,8 @@ class TeamDetailsEndpoint(TeamEndpoint):
         return self._allow_idp_changes
 
     @extend_schema(
-        operation_id="Retrieve a Team",
+        operation_id="getTeam",
+        summary="Retrieve a Team",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
@@ -106,7 +111,8 @@ class TeamDetailsEndpoint(TeamEndpoint):
         return Response(body)
 
     @extend_schema(
-        operation_id="Update a Team",
+        operation_id="updateTeam",
+        summary="Update a Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         request=TeamDetailsSerializer,
         responses={
@@ -154,7 +160,8 @@ class TeamDetailsEndpoint(TeamEndpoint):
         return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        operation_id="Delete a Team",
+        operation_id="deleteTeam",
+        summary="Delete a Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         responses={
             204: RESPONSE_NO_CONTENT,

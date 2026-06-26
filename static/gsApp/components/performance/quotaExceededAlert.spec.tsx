@@ -30,7 +30,6 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
       onDemandBudgets: {
         enabled: true,
       } as any,
-      planTier: 'am1' as any,
       categories: {
         spans: {
           usageExceeded: spansUsageExceeded,

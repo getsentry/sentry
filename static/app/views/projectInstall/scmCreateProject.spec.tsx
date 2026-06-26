@@ -53,13 +53,11 @@ describe('ScmCreateProject', () => {
   const organization = OrganizationFixture();
   const adminTeam = TeamFixture({slug: 'admin-team', access: ['team:admin']});
 
-  // Seed a persisted wizard advanced to the revealed/project-selected state, as
-  // if the user had created a project in this session.
-  function persistRevealedWizard(overrides: Partial<Record<string, unknown>> = {}) {
+  // Seed a persisted wizard for a project created in this session.
+  function persistWizardSession(overrides: Partial<Record<string, unknown>> = {}) {
     window.sessionStorage.setItem(
       WIZARD_KEY,
       JSON.stringify({
-        repoStepCompleted: true,
         selectedPlatform: pythonPlatform,
         createdProjectId: CREATED_PROJECT_ID,
         ...overrides,
@@ -100,26 +98,28 @@ describe('ScmCreateProject', () => {
     jest.clearAllMocks();
   });
 
-  it('keeps the Create CTA available (disabled) before any steps are revealed', async () => {
+  it('shows all steps with the Create CTA disabled on a fresh visit', async () => {
     render(<ScmCreateProject />, {organization});
 
-    expect(
-      screen.queryByRole('heading', {name: 'Project details'})
-    ).not.toBeInTheDocument();
-    const createButton = await screen.findByRole('button', {name: 'Create project'});
-    expect(createButton).toBeDisabled();
+    // All sections render up front (no progressive disclosure): the repository,
+    // platform, and project-details sections are all present at once.
+    expect(await screen.findByRole('heading', {name: 'Repository'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Platform'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Project name'})).toBeInTheDocument();
+
+    // Nothing is filled in yet, so the primary action stays disabled.
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
   });
 
-  it('resets a persisted wizard on a fresh visit (no return from getting-started)', async () => {
-    persistRevealedWizard();
+  it('drops a persisted wizard on a fresh visit (no return from getting-started)', async () => {
+    persistWizardSession({projectDetailsForm: {projectName: 'my-restored-name'}});
 
     // No referrer/project query: not a return, so the persisted state is dropped.
     render(<ScmCreateProject />, {organization});
 
     await screen.findByRole('button', {name: 'Create project'});
-    expect(
-      screen.queryByRole('heading', {name: 'Project details'})
-    ).not.toBeInTheDocument();
+    // The restored name is not applied; the field falls back to its default.
+    expect(screen.queryByDisplayValue('my-restored-name')).not.toBeInTheDocument();
   });
 
   it('restores the wizard on a valid return from getting-started', async () => {
@@ -127,7 +127,7 @@ describe('ScmCreateProject', () => {
       projectName: 'my-restored-name',
       teamSlug: adminTeam.slug,
     };
-    persistRevealedWizard({projectDetailsForm});
+    persistWizardSession({projectDetailsForm});
 
     render(<ScmCreateProject />, {
       organization,
@@ -135,9 +135,43 @@ describe('ScmCreateProject', () => {
     });
 
     expect(
-      await screen.findByRole('heading', {name: 'Project details'})
+      await screen.findByRole('heading', {name: 'Project name'})
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
+  });
+
+  it('explains what is missing on the disabled Create CTA', async () => {
+    render(<ScmCreateProject />, {organization});
+
+    const createButton = await screen.findByRole('button', {name: 'Create project'});
+    expect(createButton).toBeDisabled();
+
+    // Fresh wizard: platform and project name are both missing.
+    await userEvent.hover(createButton);
+    expect(
+      await screen.findByText('Please fill out all the required fields')
+    ).toBeInTheDocument();
+  });
+
+  it('names the single missing field on the disabled Create CTA', async () => {
+    // All steps render at once now, so a plain restored session (platform set)
+    // is enough; no separate "revealed" state to seed.
+    persistWizardSession();
+
+    render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    // Platform is restored, so the name defaults; clearing it leaves the name
+    // as the only missing field.
+    const nameInput = await screen.findByPlaceholderText('project-name');
+    await userEvent.clear(nameInput);
+
+    const createButton = screen.getByRole('button', {name: 'Create project'});
+    expect(createButton).toBeDisabled();
+    await userEvent.hover(createButton);
+    expect(await screen.findByText('Please provide a project name')).toBeInTheDocument();
   });
 
   it('restores the wizard when the return params arrive after mount', async () => {
@@ -145,7 +179,7 @@ describe('ScmCreateProject', () => {
       projectName: 'my-restored-name',
       teamSlug: adminTeam.slug,
     };
-    persistRevealedWizard({projectDetailsForm});
+    persistWizardSession({projectDetailsForm});
 
     // The back nav from getting-started can land here bare before its replace
     // navigation appends the referrer/project params (see ScmCreateProject).
@@ -157,23 +191,20 @@ describe('ScmCreateProject', () => {
     });
 
     await screen.findByRole('button', {name: 'Create project'});
-    expect(
-      screen.queryByRole('heading', {name: 'Project details'})
-    ).not.toBeInTheDocument();
+    // Not a return yet, so the persisted form is not restored.
+    expect(screen.queryByDisplayValue('my-restored-name')).not.toBeInTheDocument();
 
     router.navigate(
       `/organizations/org-slug/projects/new/?referrer=getting-started&project=${CREATED_PROJECT_ID}`,
       {replace: true}
     );
 
-    expect(
-      await screen.findByRole('heading', {name: 'Project details'})
-    ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
+    // The late-arriving params remount the wizard and restore the form.
+    expect(await screen.findByDisplayValue('my-restored-name')).toBeInTheDocument();
   });
 
   it('navigates to the new project getting-started on creation', async () => {
-    persistRevealedWizard();
+    persistWizardSession();
 
     const createRequest = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
@@ -208,11 +239,51 @@ describe('ScmCreateProject', () => {
     });
   });
 
+  it('forwards the selected products to getting-started as the product query', async () => {
+    persistWizardSession({
+      selectedFeatures: ['performance-monitoring', 'session-replay'],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+      method: 'POST',
+      body: ProjectFixture({slug: 'python', name: 'python'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [adminTeam],
+    });
+
+    const {router} = render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(router.location.pathname).toContain('/python/getting-started/');
+    });
+    // The upfront product selection seeds the setup docs via the product query.
+    expect(router.location.query.product).toEqual([
+      'performance-monitoring',
+      'session-replay',
+    ]);
+  });
+
   it('reuses the existing project on an unchanged return instead of duplicating', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({slug: 'python', name: 'python', platform: 'python'}),
     ]);
-    persistRevealedWizard({
+    persistWizardSession({
       createdProjectSlug: 'python',
       projectDetailsForm: {
         projectName: 'python',

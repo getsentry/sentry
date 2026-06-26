@@ -93,7 +93,8 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         return response
 
     @extend_schema(
-        operation_id="Retrieve an Event Attachment",
+        operation_id="getProjectEventAttachment",
+        summary="Retrieve an Event Attachment",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

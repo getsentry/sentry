@@ -77,6 +77,8 @@ def process_event(
     message: IngestMessage,
     project: Project,
     reprocess_only_stuck_events: bool = False,
+    inline_save_event: bool = False,
+    inline_save_event_transaction: bool = False,
 ) -> None:
     """
     Perform some initial filtering and deserialize the message payload.
@@ -89,7 +91,9 @@ def process_event(
     attachments = message.get("attachments") or ()
 
     sentry_sdk.set_extra("event_id", event_id)
+    sentry_sdk.set_attribute("event_id", event_id)
     sentry_sdk.set_extra("len_attachments", len(attachments))
+    sentry_sdk.set_attribute("len_attachments", len(attachments))
 
     # check that we haven't already processed this event (a previous instance of the forwarder
     # died before it could commit the event queue offset)
@@ -150,6 +154,7 @@ def process_event(
         processing_store = event_processing_store
 
     sentry_sdk.set_extra("event_type", data.get("type"))
+    sentry_sdk.set_attribute("event_type", data.get("type"))
 
     with sentry_sdk.start_span(
         op="killswitch_matches_context", name="store.load-shed-parsed-pipeline-projects"
@@ -224,13 +229,17 @@ def process_event(
             assert cache_key is not None
             # No need for preprocess/process for transactions thus submit
             # directly transaction specific save_event task.
-            save_event_transaction.delay(
-                cache_key=cache_key,
-                data=None,
-                start_time=start_time,
-                event_id=event_id,
-                project_id=project_id,
-            )
+            save_transaction_kwargs: dict[str, Any] = {
+                "cache_key": cache_key,
+                "data": None,
+                "start_time": start_time,
+                "event_id": event_id,
+                "project_id": project_id,
+            }
+            if inline_save_event_transaction:
+                save_event_transaction(**save_transaction_kwargs)
+            else:
+                save_event_transaction.delay(**save_transaction_kwargs)
 
             try:
                 collect_span_metrics(project, data)
@@ -252,14 +261,17 @@ def process_event(
             # save_event. Pass data explicitly to avoid fetching it again from the
             # cache.
             with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
-                preprocess_event(
-                    cache_key=cache_key or "",
-                    data=data,
-                    start_time=start_time,
-                    event_id=event_id,
-                    project=project,
-                    has_attachments=bool(attachments),
-                )
+                preprocess_kwargs: dict[str, Any] = {
+                    "cache_key": cache_key or "",
+                    "data": data,
+                    "start_time": start_time,
+                    "event_id": event_id,
+                    "project": project,
+                    "has_attachments": bool(attachments),
+                }
+                if inline_save_event:
+                    preprocess_kwargs["inline_save_event"] = True
+                preprocess_event(**preprocess_kwargs)
 
         # remember for an 1 hour that we saved this event (deduplication protection)
         with sentry_sdk.start_span(op="cache.set"):

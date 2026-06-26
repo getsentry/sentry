@@ -13,7 +13,7 @@ interface RowProps {
   onDelete: () => void;
   errorMessage?: string;
   hasError?: boolean;
-  warningMessage?: React.ReactNode;
+  warningMessages?: string[];
 }
 
 export function AutomationBuilderRow({
@@ -21,7 +21,7 @@ export function AutomationBuilderRow({
   children,
   hasError,
   errorMessage,
-  warningMessage,
+  warningMessages = [],
 }: RowProps) {
   return (
     <Flex direction="column" gap="xs">
@@ -37,7 +37,20 @@ export function AutomationBuilderRow({
         />
       </RowContainer>
       {hasError && errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
-      {warningMessage && <Alert variant="warning">{warningMessage}</Alert>}
+      {warningMessages.length > 0 && (
+        <Alert
+          variant="warning"
+          expand={
+            <ul style={{margin: 0}}>
+              {warningMessages?.map(message => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          }
+        >
+          {t('This action is incompatible with the current configuration.')}
+        </Alert>
+      )}
     </Flex>
   );
 }

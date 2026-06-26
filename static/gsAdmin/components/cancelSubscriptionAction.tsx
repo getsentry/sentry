@@ -40,7 +40,7 @@ export class CancelSubscriptionAction extends Component<Props, State> {
       [false, 'Immediately', 'End the subscription immediately.'],
       [
         true,
-        `At period end (${moment(subscription.contractPeriodEnd).format('ll')})`,
+        `At period end (${moment(subscription.billingPeriodEnd).format('ll')})`,
         'End the subscription at the end of the current contract period.',
       ],
     ];

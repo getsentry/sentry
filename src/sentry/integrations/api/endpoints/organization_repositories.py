@@ -40,7 +40,8 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     )
 
     @extend_schema(
-        operation_id="List an Organization's Repositories",
+        operation_id="listOrganizationRepos",
+        summary="List an Organization's Repositories",
         description="Return a list of version control repositories for a given organization.",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,

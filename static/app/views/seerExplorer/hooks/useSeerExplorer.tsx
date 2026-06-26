@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -237,17 +237,13 @@ export const useSeerExplorer = () => {
     },
   });
 
-  const {mutate: userInputMutate} = useMutation<
-    SeerExplorerUpdateResponse,
-    RequestError,
-    {
+  const {mutate: userInputMutate} = useMutation({
+    mutationFn: async (params: {
       inputId: string;
       orgSlug: string;
       runId: number | null;
-      responseData?: Record<string, any>;
-    }
-  >({
-    mutationFn: async params => {
+      responseData?: Record<string, unknown>;
+    }) => {
       setHasSentInterrupt(false);
 
       // Set optimistic status and updated_at to prevent isPolling flicker on new message.
@@ -268,7 +264,7 @@ export const useSeerExplorer = () => {
               : prev
         );
       }
-      return fetchMutation({
+      return fetchMutation<SeerExplorerUpdateResponse>({
         url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
         method: 'POST',
         data: {
@@ -299,7 +295,7 @@ export const useSeerExplorer = () => {
         );
       }
       addErrorMessage(
-        typeof e.responseJSON?.detail === 'string'
+        e instanceof RequestError && typeof e.responseJSON?.detail === 'string'
           ? e.responseJSON.detail
           : 'Failed to send user input'
       );
@@ -531,7 +527,7 @@ export const useSeerExplorer = () => {
   }, [orgSlug, runId, interruptRunMutate]);
 
   const respondToUserInput = useCallback(
-    (inputId: string, responseData?: Record<string, any>) => {
+    (inputId: string, responseData?: Record<string, unknown>) => {
       if (!orgSlug || !runId) {
         return;
       }

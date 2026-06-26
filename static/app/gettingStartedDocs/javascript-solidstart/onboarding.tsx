@@ -33,9 +33,12 @@ Sentry.init({
         profileSessionSampleRate: 1.0,`
       : ''
   }
-  // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
-  // https://docs.sentry.io/platforms/javascript/guides/solidstart/configuration/options/#dataCollection
-  // dataCollection: { userInfo: false, httpBodies: [] },
+  dataCollection: {
+    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/guides/solidstart/configuration/options/#dataCollection
+    // userInfo: false,
+    // httpBodies: [],
+  },
 });
 `;
 }

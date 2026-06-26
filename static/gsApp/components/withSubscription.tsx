@@ -83,12 +83,11 @@ export function withSubscription<P extends InjectedSubscriptionProps>(
     private mounted = false;
 
     configureScopeWithSubscriptionData(subscription: Subscription) {
-      const {plan, planTier, totalMembers, planDetails} = subscription;
+      const {plan, totalMembers, planDetails} = subscription;
       Sentry.setTag('plan', plan);
       Sentry.setTag('plan.name', planDetails?.name);
       Sentry.setTag('plan.max_members', `${planDetails?.maxMembers}`);
       Sentry.setTag('plan.total_members', `${totalMembers}`);
-      Sentry.setTag('plan.tier', planTier);
     }
 
     onSubscriptionChange(subscription: Subscription) {

@@ -9,15 +9,14 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import type {RequestOptions} from 'sentry/api';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -247,7 +246,7 @@ export default function IntegrationDetailedView() {
   );
 
   const onRemove = useCallback(
-    (integration: Integration) => {
+    async (integration: Integration) => {
       const originalConfigurations = [...configurations];
 
       const updatedConfigurations = configurations.map(config =>
@@ -264,25 +263,24 @@ export default function IntegrationDetailedView() {
         updatedConfigurations
       );
 
-      const options: RequestOptions = {
-        method: 'DELETE',
-        error: () => {
-          // Will be fixed soon when we get rid of setApiQueryData.
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-          setApiQueryData<Integration[]>(
-            queryClient,
-            makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
-            originalConfigurations
-          );
-          addErrorMessage(t('Failed to remove Integration'));
-        },
-      };
-
-      // XXX: We can probably convert this to a mutation, but trying to avoid it for the FC conversion.
-      api.request(
-        `/organizations/${organization.slug}/integrations/${integration.id}/`,
-        options
-      );
+      try {
+        // XXX: We can probably convert this to a mutation, but trying to avoid it for the FC conversion.
+        await api.requestPromise(
+          `/organizations/${organization.slug}/integrations/${integration.id}/`,
+          {
+            method: 'DELETE',
+          }
+        );
+      } catch (err) {
+        // Will be fixed soon when we get rid of setApiQueryData.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
+        setApiQueryData<Integration[]>(
+          queryClient,
+          makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
+          originalConfigurations
+        );
+        addErrorMessage(t('Failed to remove Integration'));
+      }
     },
     [api, configurations, integrationSlug, organization.slug, queryClient]
   );

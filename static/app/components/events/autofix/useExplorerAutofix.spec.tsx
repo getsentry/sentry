@@ -1,19 +1,26 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import {
   collectPatches,
+  getOrderedAutofixSections,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
+  isLastStepPrIteration,
+  isPrIterationBlock,
   isPullRequestsArtifact,
   isRootCauseArtifact,
+  isRunValidForPrIteration,
   isSolutionArtifact,
   useExplorerAutofix,
+  type ExplorerAutofixState,
   type RootCauseArtifact,
   type SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import type {Artifact, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+import type {Artifact, Block, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -388,6 +395,260 @@ describe('collectPatches', () => {
     expect(result.size).toBe(1);
     expect(result.has('owner/empty-repo')).toBe(false);
     expect(result.get('owner/real-repo')).toEqual([real]);
+  });
+});
+
+describe('getOrderedAutofixSections', () => {
+  let blockId = 0;
+
+  function makeBlock(
+    overrides: Omit<Partial<Block>, 'message'> & {message?: Partial<Block['message']>}
+  ) {
+    const {message, ...rest} = overrides;
+    return {
+      id: `block-${blockId++}`,
+      timestamp: '2026-01-01T00:00:00Z',
+      message: {
+        content: 'hello',
+        role: 'assistant',
+        ...message,
+      },
+      ...rest,
+    } as Block;
+  }
+
+  function makePatch(repoName: string, path: string, diff = 'diff'): ExplorerFilePatch {
+    return {
+      repo_name: repoName,
+      diff,
+      patch: {
+        added: 1,
+        removed: 0,
+        path,
+        source_file: path,
+        target_file: path,
+        type: DiffFileType.MODIFIED,
+        hunks: [],
+      },
+    };
+  }
+
+  function makeState(blocks: Block[]): ExplorerAutofixState {
+    return {
+      run_id: 1,
+      status: 'completed',
+      updated_at: '2026-01-01T00:00:00Z',
+      blocks,
+    };
+  }
+
+  it('returns an empty array for null state or no blocks', () => {
+    expect(getOrderedAutofixSections(null)).toEqual([]);
+    expect(getOrderedAutofixSections(makeState([]))).toEqual([]);
+  });
+
+  it('groups blocks into sections at each step marker', () => {
+    const sections = getOrderedAutofixSections(
+      makeState([
+        makeBlock({message: {metadata: {step: 'root_cause'}}}),
+        makeBlock({}),
+        makeBlock({message: {metadata: {step: 'solution'}}}),
+      ])
+    );
+
+    expect(sections.map(s => s.step)).toEqual(['root_cause', 'solution']);
+    expect(sections[0]!.blocks).toHaveLength(2);
+    expect(sections[1]!.blocks).toHaveLength(1);
+  });
+
+  it('merges all code_changes blocks into a single section with the cumulative diff', () => {
+    const sections = getOrderedAutofixSections(
+      makeState([
+        makeBlock({
+          message: {metadata: {step: 'code_changes'}},
+          merged_file_patches: [makePatch('org/repo', 'a.py', 'first diff')],
+        }),
+        makeBlock({
+          message: {metadata: {step: 'code_changes'}},
+          merged_file_patches: [makePatch('org/repo', 'b.py', 'second diff')],
+        }),
+      ])
+    );
+
+    // Consecutive code_changes blocks collapse into one section that carries the
+    // cumulative patch set merged across all of its blocks.
+    expect(sections).toHaveLength(1);
+    expect(sections[0]!.step).toBe('code_changes');
+    expect(sections[0]!.artifacts).toEqual([
+      [
+        makePatch('org/repo', 'a.py', 'first diff'),
+        makePatch('org/repo', 'b.py', 'second diff'),
+      ],
+    ]);
+  });
+
+  it('folds consecutive pr_iteration blocks into the single code_changes section', () => {
+    const sections = getOrderedAutofixSections(
+      makeState([
+        makeBlock({
+          message: {metadata: {step: 'pr_iteration', iteration_index: '1'}},
+          merged_file_patches: [makePatch('org/repo', 'a.py')],
+        }),
+        makeBlock({
+          message: {metadata: {step: 'pr_iteration', iteration_index: '2'}},
+          merged_file_patches: [makePatch('org/repo', 'b.py')],
+        }),
+      ])
+    );
+
+    // pr_iteration work is folded into the one code_changes section; both
+    // iteration blocks and their merged patches live there.
+    expect(sections).toHaveLength(1);
+    expect(sections[0]!.step).toBe('code_changes');
+    expect(sections[0]!.blocks.map(b => b.message.metadata?.iteration_index)).toEqual([
+      '1',
+      '2',
+    ]);
+    expect(sections[0]!.artifacts).toEqual([
+      [makePatch('org/repo', 'a.py'), makePatch('org/repo', 'b.py')],
+    ]);
+  });
+
+  it('merges patches for the same file within a section, last write wins', () => {
+    const sections = getOrderedAutofixSections(
+      makeState([
+        makeBlock({
+          message: {metadata: {step: 'code_changes'}},
+          merged_file_patches: [makePatch('org/repo', 'a.py', 'old')],
+        }),
+        makeBlock({
+          merged_file_patches: [makePatch('org/repo', 'a.py', 'new')],
+        }),
+      ])
+    );
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0]!.artifacts).toEqual([[makePatch('org/repo', 'a.py', 'new')]]);
+  });
+
+  it('does not push an empty patch artifact for a code-change section with no patches', () => {
+    const sections = getOrderedAutofixSections(
+      makeState([makeBlock({message: {metadata: {step: 'pr_iteration'}}})])
+    );
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0]!.artifacts).toEqual([]);
+  });
+
+  it('appends a synthetic pull_request section from repo_pr_states', () => {
+    const prState = {
+      repo_name: 'org/repo',
+      pr_number: 42,
+      pr_url: 'https://github.com/org/repo/pull/42',
+      branch_name: 'fix/issue',
+      commit_sha: 'abc123',
+      pr_creation_error: null,
+      pr_creation_status: 'completed',
+      pr_id: 1,
+      title: 'Fix issue',
+    } as const;
+
+    const sections = getOrderedAutofixSections({
+      ...makeState([makeBlock({message: {metadata: {step: 'code_changes'}}})]),
+      repo_pr_states: {'org/repo': prState},
+    });
+
+    expect(sections.map(s => s.step)).toEqual(['code_changes', 'pull_request']);
+    const prSection = sections[sections.length - 1]!;
+    expect(prSection.status).toBe('completed');
+    expect(prSection.artifacts).toEqual([[prState]]);
+  });
+
+  it('marks the synthetic pull_request section as processing while a PR is creating', () => {
+    const sections = getOrderedAutofixSections({
+      ...makeState([makeBlock({message: {metadata: {step: 'code_changes'}}})]),
+      repo_pr_states: {
+        'org/repo': {
+          repo_name: 'org/repo',
+          pr_creation_status: 'creating',
+        } as any,
+      },
+    });
+
+    expect(sections[sections.length - 1]!.status).toBe('processing');
+  });
+});
+
+describe('isPrIterationBlock', () => {
+  function block(metadata?: Record<string, string>): Block {
+    return {
+      id: 'block-1',
+      timestamp: '2026-01-01T00:00:00Z',
+      message: {content: 'hello', role: 'assistant', metadata},
+    } as Block;
+  }
+
+  it('is true only for blocks whose step is pr_iteration', () => {
+    expect(isPrIterationBlock(block({step: 'pr_iteration'}))).toBe(true);
+    expect(isPrIterationBlock(block({step: 'code_changes'}))).toBe(false);
+    expect(isPrIterationBlock(block())).toBe(false);
+  });
+});
+
+describe('isRunValidForPrIteration', () => {
+  it('is true only when the autofix-pr-iteration feature is enabled', () => {
+    expect(
+      isRunValidForPrIteration(OrganizationFixture({features: ['autofix-pr-iteration']}))
+    ).toBe(true);
+    expect(isRunValidForPrIteration(OrganizationFixture({features: []}))).toBe(false);
+  });
+});
+
+describe('isLastStepPrIteration', () => {
+  let blockId = 0;
+  function block(step?: string): Block {
+    return {
+      id: `block-${blockId++}`,
+      timestamp: '2026-01-01T00:00:00Z',
+      message: {
+        content: 'hello',
+        role: 'assistant',
+        metadata: step ? {step} : undefined,
+      },
+    } as Block;
+  }
+  function state(blocks: Block[]): ExplorerAutofixState {
+    return {
+      run_id: 1,
+      status: 'completed',
+      updated_at: '2026-01-01T00:00:00Z',
+      blocks,
+    };
+  }
+
+  it('is true when the last block carrying a step is pr_iteration', () => {
+    expect(
+      isLastStepPrIteration(state([block('code_changes'), block('pr_iteration')]))
+    ).toBe(true);
+  });
+
+  it('ignores trailing step-less blocks when finding the last step', () => {
+    expect(
+      isLastStepPrIteration(
+        state([block('pr_iteration'), block(undefined), block(undefined)])
+      )
+    ).toBe(true);
+  });
+
+  it('is false when the last step is not pr_iteration', () => {
+    expect(
+      isLastStepPrIteration(state([block('pr_iteration'), block('code_changes')]))
+    ).toBe(false);
+  });
+
+  it('is false when there are no blocks with a step or no run state', () => {
+    expect(isLastStepPrIteration(state([block(undefined)]))).toBe(false);
+    expect(isLastStepPrIteration(null)).toBe(false);
   });
 });
 

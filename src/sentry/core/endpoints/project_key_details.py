@@ -41,7 +41,8 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a Client Key",
+        operation_id="getProjectKey",
+        summary="Retrieve a Client Key",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -65,7 +66,8 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         return Response(body, status=200)
 
     @extend_schema(
-        operation_id="Update a Client Key",
+        operation_id="updateProjectKey",
+        summary="Update a Client Key",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -174,7 +176,8 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         return Response(body, status=200)
 
     @extend_schema(
-        operation_id="Delete a Client Key",
+        operation_id="deleteProjectKey",
+        summary="Delete a Client Key",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

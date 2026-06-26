@@ -306,4 +306,6 @@ def _find_matching_project(project_id: int, organization_id: int) -> Project | N
                 "organization_id": organization_id,
             },
         )
+        sentry_sdk.set_attribute("args.project_id", project_id)
+        sentry_sdk.set_attribute("args.organization_id", organization_id)
         return None

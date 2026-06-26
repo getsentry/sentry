@@ -7,7 +7,7 @@ import moment from 'moment-timezone';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -32,10 +32,8 @@ import {
   getSlot,
   hasPartnerMigrationFeature,
   hasSomeBillingDetails,
-  isAm3Plan,
   isBizPlanFamily,
   isTeamPlanFamily,
-  isTrialPlan,
 } from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
@@ -390,7 +388,7 @@ function recordAnalytics(
       productSelectAnalyticsData[targetKey] = {
         enabled: data[key as keyof CheckoutAPIData] as boolean,
         // don't count trial addons
-        previously_enabled: !isTrialPlan(previousData.previous_plan) && previouslyEnabled,
+        previously_enabled: !subscription.onTrialPlan && previouslyEnabled,
       };
     }
   });
@@ -450,7 +448,7 @@ function recordAnalytics(
       subscription,
       organization,
       applyNow: data.applyNow ?? false,
-      daysLeft: moment(subscription.contractPeriodEnd).diff(moment(), 'days'),
+      daysLeft: moment(subscription.billingPeriodEnd).diff(moment(), 'days'),
       partner: subscription.partner?.partnership.id,
     });
   }
@@ -647,7 +645,7 @@ export function useSubmitCheckout({
 
       // seer automation alert
       const alreadyHasSeer =
-        !isTrialPlan(subscription.plan) &&
+        !subscription.onTrialPlan &&
         (subscription.addOns?.seer?.enabled || subscription.addOns?.legacySeer?.enabled);
       const justBoughtSeer =
         (_variables.data.addOnLegacySeer || _variables.data.addOnSeer) && !alreadyHasSeer;
@@ -721,7 +719,7 @@ export function getContentForPlan(plan: Plan): PlanContent {
         discover: t('Advanced analytics with Discover'),
         enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
         dashboard: t('Unlimited custom dashboards'),
-        ...(isAm3Plan(plan.id) && {
+        ...(plan.categories.includes(DataCategory.SPANS) && {
           application_insights: t('Application Insights'),
         }),
         advanced_filtering: t('Advanced server-side filtering'),

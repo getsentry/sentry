@@ -272,6 +272,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             raise Http404
 
         try:
+            assert debug_file.file is not None
             fp = debug_file.file.getfile()
             response = StreamingHttpResponse(
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
@@ -285,7 +286,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
             raise Http404
 
     @extend_schema(
-        operation_id="List a Project's Debug Information Files",
+        operation_id="listProjectDebugFiles",
+        summary="List a Project's Debug Information Files",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

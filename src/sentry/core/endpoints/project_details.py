@@ -551,7 +551,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         return queryset.count()
 
     @extend_schema(
-        operation_id="Retrieve a Project",
+        operation_id="getProject",
+        summary="Retrieve a Project",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
@@ -594,13 +595,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         else:
             data["dynamicSamplingBiases"] = None
 
-        # filter for enabled plugins o/w the response body is gigantic and difficult to read
-        data["plugins"] = [plugin for plugin in data["plugins"] if plugin.get("enabled")]
-
         return Response(data)
 
     @extend_schema(
-        operation_id="Update a Project",
+        operation_id="updateProject",
+        summary="Update a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -1199,7 +1198,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         return Response(body)
 
     @extend_schema(
-        operation_id="Delete a Project",
+        operation_id="deleteProject",
+        summary="Delete a Project",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         responses={
             204: RESPONSE_NO_CONTENT,

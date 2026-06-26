@@ -2571,6 +2571,37 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["units"]["equation|tpm()"] == "1/minute"
         assert meta["fields"]["equation|tpm()"] == "rate"
 
+    def test_equation_mixed_types(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success", "user.email": "test@test.com"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count_unique(user.email)",
+                    "equation|p95(span.duration) / count_unique(user.email)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["equation|p95(span.duration) / count_unique(user.email)"] == 1000
+
     def test_p75_if(self) -> None:
         self.store_spans(
             [
@@ -6134,6 +6165,80 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["dataset"] == "spans"
         assert meta["fields"]["failure_count()"] == "integer"
         assert meta["units"]["failure_count()"] is None
+
+    def test_failure_count_if(self) -> None:
+        trace_statuses = ["ok", "cancelled", "unknown", "failure"]
+
+        spans = [
+            self.create_span(
+                {
+                    "sentry_tags": {"status": status},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+            )
+            for status in trace_statuses
+        ]
+        # non-transaction span with failure status — should NOT be counted
+        spans.append(
+            self.create_span(
+                {
+                    "sentry_tags": {"status": "failure"},
+                    "is_segment": False,
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+
+        self.store_spans(spans)
+
+        response = self.do_request(
+            {
+                "field": ["failure_count_if(is_transaction, equals, true)"],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["failure_count_if(is_transaction, equals, true)"] == 1
+        assert meta["dataset"] == "spans"
+        assert meta["fields"] == {
+            "failure_count_if(is_transaction, equals, true)": "integer",
+        }
+        assert meta["units"] == {
+            "failure_count_if(is_transaction, equals, true)": None,
+        }
+
+    def test_failure_count_if_no_matches(self) -> None:
+        # Only non-transaction spans — failure_count_if(is_transaction, equals, true) should return 0
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {"status": "failure"},
+                        "is_segment": False,
+                    },
+                    start_ts=self.ten_mins_ago,
+                )
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "field": ["failure_count_if(is_transaction, equals, true)"],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["failure_count_if(is_transaction, equals, true)"] == 0
 
     def test_trace_id_glob(self) -> None:
         response = self.do_request(

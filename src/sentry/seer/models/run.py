@@ -14,6 +14,7 @@ class SeerRunType(models.TextChoices):
     EXPLORER = "explorer"
     PR_REVIEW = "pr_review"
     ASSISTED_QUERY = "assisted_query"
+    FEATURE_RUN = "feature_run"
 
 
 class SeerRunMirrorStatus(models.TextChoices):

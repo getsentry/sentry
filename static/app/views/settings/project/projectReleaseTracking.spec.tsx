@@ -1,5 +1,3 @@
-import {PluginsFixture} from 'sentry-fixture/plugins';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -23,11 +21,6 @@ describe('ProjectReleaseTracking', () => {
   };
 
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/plugins/`,
-      method: 'GET',
-      body: PluginsFixture(),
-    });
     MockApiClient.addMockResponse({
       url,
       method: 'GET',

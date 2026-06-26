@@ -1,6 +1,7 @@
 import copy
 import datetime
 import pickle
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -239,8 +240,18 @@ class TestRedisBuffer:
 
 
 @pytest.mark.parametrize(
-    "value",
-    [timezone.now(), datetime.date.today(), "a", 1, 3.14, {"a": {"i": 0}, "b": {"s": ""}}],
+    "input",
+    [
+        (timezone.now(), "datetime"),
+        (datetime.date.today(), "date"),
+        ("a", "string"),
+        (1, "int"),
+        (3.14, "float"),
+        ({"a": {"i": 0}, "b": {"s": ""}}, "dict"),
+        (False, "bool"),
+    ],
+    ids=lambda input: input[1],
 )
-def test_dump_value(value: datetime.datetime) -> None:
+def test_dump_and_load_value(input: tuple[Any, str]) -> None:
+    value = input[0]
     assert RedisBuffer._load_value(json.loads(json.dumps(RedisBuffer._dump_value(value)))) == value

@@ -24,6 +24,7 @@ from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.progress import IssueProgressState, get_group_progress_states
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     IntermediateSearchQueryPartial,
@@ -38,6 +39,7 @@ from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
@@ -46,6 +48,7 @@ from sentry.search.eap.occurrences.search_executor import EAP_SORT_STRATEGIES, r
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import (
@@ -99,6 +102,10 @@ class PostgresSortStrategy:
         dataclass_field(default_factory=dict)
     )
     score_fn: Callable[[dict[str, Any]], float] = lambda data: 0.0
+    # Score to use when score_fn raises on a row. Dropping the row would make the issue
+    # vanish from the stream entirely; instead we keep it with a base score (e.g. the
+    # Snuba recommended value) so it still appears, just without the boosts score_fn adds.
+    fallback_score_fn: Callable[[dict[str, Any]], float] = lambda data: 0.0
     exclude_null_postgres: bool = True
 
 
@@ -928,6 +935,22 @@ def resolve_assignment_signal(
     return signal
 
 
+def resolve_suspect_commit_signal(
+    actor: Any | None, organization: Organization, group_ids: list[int]
+) -> dict[int, float]:
+    """1.0 for groups where the viewer authored the suspect commit. Unlike assignment,
+    suspect-commit ownership isn't auto-assigned by default, so this surfaces issues the
+    viewer likely introduced even when they're unassigned or assigned elsewhere."""
+    if actor is None or not getattr(actor, "is_authenticated", False):
+        return {}
+    owned = GroupOwner.objects.filter(
+        group_id__in=group_ids,
+        type=GroupOwnerType.SUSPECT_COMMIT.value,
+        user_id=actor.id,
+    ).values_list("group_id", flat=True)
+    return {group_id: 1.0 for group_id in owned}
+
+
 def resolve_issue_agent_signal(
     actor: Any | None, organization: Organization, group_ids: list[int]
 ) -> dict[int, float]:
@@ -958,31 +981,111 @@ def resolve_issue_agent_signal(
 
 def recommended_v2_strategy() -> PostgresSortStrategy:
     """Recommended sort v2: the Snuba recommended score (recency/spike/severity/user
-    impact/event volume) plus additive boosts for viewer assignment, Seer fixability,
-    and Seer agent progress."""
+    impact/event volume) plus additive boosts for viewer relevance (assignment or suspect
+    commit), Seer fixability, Seer agent progress, regressed issues, and newly-seen issues."""
     assignment_weight = options.get("snuba.search.recommended.assignment-weight")
     fixability_weight = options.get("snuba.search.recommended.fixability-weight")
     agent_weight = options.get("snuba.search.recommended.agent-weight")
+    regressed_weight = options.get("snuba.search.recommended.regressed-weight")
+    newness_weight = options.get("snuba.search.recommended.newness-weight")
+    newness_halflife_hours = options.get("snuba.search.recommended.newness-halflife-hours")
+    # Captured once per query so every group decays against the same clock.
+    now = timezone.now()
 
     def score_fn(data: dict[str, Any]) -> float:
+        # Personal relevance is a max, not a sum: a viewer who is both assignee and suspect
+        # committer shouldn't be double-counted. Suspect-commit (0.8) sits just below direct
+        # assignment (1.0) but above team assignment (0.5).
+        relevance = max(
+            data.get("assignment", 0.0),
+            0.8 * data.get("suspect_commit", 0.0),
+        )
+        # Newness decays on first_seen (true first appearance), unlike the base recency
+        # factor which decays on last_seen and can't tell a new issue from an old noisy one.
+        first_seen = data.get("first_seen")
+        newness = 0.0
+        if first_seen is not None and newness_halflife_hours > 0:
+            hours = max(0.0, (now - first_seen).total_seconds() / 3600)
+            # Negative exponent so very old issues underflow to 0.0 rather than
+            # overflowing the float (1.0 / 2.0**x blows up once x exceeds ~1024).
+            newness = 2.0 ** -(hours / newness_halflife_hours)
+        regressed = 1.0 if data.get("substatus") == GroupSubStatus.REGRESSED else 0.0
         return (
             (data.get("recommended") or 0.0)
-            + assignment_weight * data.get("assignment", 0.0)
+            + assignment_weight * relevance
             + fixability_weight * (data.get("fixability") or 0.0)
             + agent_weight * data.get("agent", 0.0)
+            + regressed_weight * regressed
+            + newness_weight * newness
         )
 
     return PostgresSortStrategy(
-        postgres_fields={"fixability": "seer_fixability_score"},
+        postgres_fields={
+            "fixability": "seer_fixability_score",
+            "substatus": "substatus",
+            "first_seen": "first_seen",
+        },
         snuba_aggregations=["recommended"],
         signal_resolvers={
             "assignment": resolve_assignment_signal,
+            "suspect_commit": resolve_suspect_commit_signal,
             "agent": resolve_issue_agent_signal,
         },
         score_fn=score_fn,
+        # If a boost calculation ever fails, keep the issue in the stream ranked by its
+        # base Snuba recommended score rather than dropping it.
+        fallback_score_fn=lambda data: data.get("recommended") or 0.0,
         # seer_fixability_score is null for most groups; score those as 0 rather
         # than excluding them.
         exclude_null_postgres=False,
+    )
+
+
+# Numeric rank for the "progress" sort: higher means further along the fix cycle, so it
+# sorts towards the top. Every state has a rank so issues without seer activity (the
+# identified/assigned base states) still order correctly relative to progressed issues.
+PROGRESS_STATE_SORT_RANK: dict[IssueProgressState, int] = {
+    IssueProgressState.IDENTIFIED: 1,
+    IssueProgressState.ASSIGNED: 2,
+    IssueProgressState.DIAGNOSED: 3,
+    IssueProgressState.FIX_PROPOSED: 4,
+    IssueProgressState.FIX_APPLIED: 5,
+}
+
+# last_seen comes back from Snuba as epoch milliseconds (< 1e13 until the year 2286), so
+# dividing by this collapses it into a [0, 1) recency fraction. The score is then
+# `rank + fraction`: rank stays the primary (integer) key and last_seen only breaks ties.
+LAST_SEEN_TIEBREAK_DIVISOR = 10**13
+
+
+def resolve_progress_signal(
+    actor: Any | None, organization: Organization, group_ids: list[int]
+) -> dict[int, int]:
+    """Progress-cycle rank per group (identified=1 .. fix_applied=5), derived from the same
+    Activity records as the ``issue.progress`` filter. Every group gets a rank."""
+    states = get_group_progress_states(group_ids)
+    return {
+        group_id: PROGRESS_STATE_SORT_RANK[IssueProgressState(state)]
+        for group_id, state in states.items()
+    }
+
+
+def progress_strategy() -> PostgresSortStrategy:
+    """Progress sort: primary by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
+    assigned > identified), secondary by last_seen. The secondary key stands in for
+    ``issue.last_progressed_at`` until that field exists; for now most-recently-active issues
+    rank highest within a tier."""
+
+    def score_fn(data: dict[str, Any]) -> float:
+        rank = data.get("progress_rank") or 0
+        last_seen = data.get("last_seen") or 0
+        return rank + last_seen / LAST_SEEN_TIEBREAK_DIVISOR
+
+    return PostgresSortStrategy(
+        postgres_fields={},
+        snuba_aggregations=["last_seen"],
+        signal_resolvers={"progress_rank": resolve_progress_signal},
+        score_fn=score_fn,
     )
 
 
@@ -1006,6 +1109,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # Snuba path can take over when there are too many candidates to score in memory.
         "recommended_v2": "recommended",
         "user": "user_count",
+        # Postgres-data sort; mapped to last_seen so the chunked Snuba path can take over
+        # (degrading to a plain last_seen sort) when there are too many candidates to score
+        # the progress rank in memory.
+        "progress": "last_seen",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
         "inbox": "",
@@ -1030,7 +1137,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     @property
     def postgres_sort_strategies(self) -> dict[str, PostgresSortStrategy]:
-        return {"recommended_v2": recommended_v2_strategy()}
+        return {
+            "recommended_v2": recommended_v2_strategy(),
+            "progress": progress_strategy(),
+        }
 
     def _apply_type_visibility_filter(
         self,
@@ -1082,9 +1192,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         )
 
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
-        candidate_ids = list(
-            group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
-        )
+        with sentry_sdk.start_span(op="search.postgres_sort.candidates") as span:
+            candidate_ids = list(
+                group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
+            )
+            span.set_data("candidate_count", len(candidate_ids))
 
         if not candidate_ids:
             return self.empty_result
@@ -1111,22 +1223,23 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 raise InvalidQueryForExecutor(
                     f"Unknown snuba aggregation {sort_field!r} in Postgres sort strategy"
                 )
-            snuba_groups, _ = self.snuba_search(
-                start=start,
-                end=end,
-                project_ids=[p.id for p in projects],
-                environment_ids=[env.id for env in environments] if environments else None,
-                organization=organization,
-                sort_field=sort_field,
-                cursor=None,
-                group_ids=candidate_ids,
-                limit=len(candidate_ids),
-                offset=0,
-                search_filters=search_filters,
-                referrer=referrer,
-                actor=actor,
-                aggregate_kwargs=aggregate_kwargs,
-            )
+            with sentry_sdk.start_span(op="search.postgres_sort.snuba_aggregation"):
+                snuba_groups, _ = self.snuba_search(
+                    start=start,
+                    end=end,
+                    project_ids=[p.id for p in projects],
+                    environment_ids=[env.id for env in environments] if environments else None,
+                    organization=organization,
+                    sort_field=sort_field,
+                    cursor=None,
+                    group_ids=candidate_ids,
+                    limit=len(candidate_ids),
+                    offset=0,
+                    search_filters=search_filters,
+                    referrer=referrer,
+                    actor=actor,
+                    aggregate_kwargs=aggregate_kwargs,
+                )
             snuba_data = {gid: {sort_field: score} for gid, score in snuba_groups}
             candidate_ids = list(snuba_data.keys())
 
@@ -1134,34 +1247,55 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             return self.empty_result
 
         logical_names = list(postgres_fields.keys())
-        pg_rows = (
-            group_queryset.filter(id__in=candidate_ids)
-            .using_replica()
-            .values_list("id", *postgres_fields.values())
-        )
-        pg_data = {row[0]: dict(zip(logical_names, row[1:])) for row in pg_rows}
+        with sentry_sdk.start_span(op="search.postgres_sort.postgres_fields"):
+            pg_rows = (
+                group_queryset.filter(id__in=candidate_ids)
+                .using_replica()
+                .values_list("id", *postgres_fields.values())
+            )
+            pg_data = {row[0]: dict(zip(logical_names, row[1:])) for row in pg_rows}
 
         # Each signal resolver runs once over all candidates, returning {group_id: value}.
-        signal_data: dict[str, dict[int, Any]] = {
-            name: resolver(actor, organization, candidate_ids)
-            for name, resolver in strategy.signal_resolvers.items()
-        }
+        # Span each separately so an expensive resolver (e.g. the agent-progress Activity
+        # scan) is visible on its own rather than buried in an aggregate.
+        signal_data: dict[str, dict[int, Any]] = {}
+        for name, resolver in strategy.signal_resolvers.items():
+            with sentry_sdk.start_span(op=f"search.postgres_sort.signal.{name}"):
+                signal_data[name] = resolver(actor, organization, candidate_ids)
 
-        scored_groups: list[tuple[Any, int]] = []
-        for gid in candidate_ids:
-            pg_values = pg_data.get(gid)
-            if pg_values is None:
-                continue
-            merged = {
-                **pg_values,
-                **snuba_data.get(gid, {}),
-                **{name: values[gid] for name, values in signal_data.items() if gid in values},
-            }
-            try:
-                score = strategy.score_fn(merged)
-            except (TypeError, KeyError):
-                continue
-            scored_groups.append((score, gid))
+        with sentry_sdk.start_span(op="search.postgres_sort.scoring"):
+            scored_groups: list[tuple[Any, int]] = []
+            for gid in candidate_ids:
+                pg_values = pg_data.get(gid)
+                if pg_values is None:
+                    continue
+                merged = {
+                    **pg_values,
+                    **snuba_data.get(gid, {}),
+                    **{name: values[gid] for name, values in signal_data.items() if gid in values},
+                }
+                try:
+                    score = strategy.score_fn(merged)
+                except (TypeError, KeyError, ArithmeticError) as e:
+                    # A single malformed/extreme row must never 500 the whole issue stream
+                    # (ArithmeticError covers overflow/underflow/zero-division in score
+                    # math). Rather than drop the issue -- which removes it from the view
+                    # entirely -- fall back to the strategy's base score so it still shows,
+                    # just without the boosts. Logged so a recurring bug stays discoverable.
+                    self.logger.warning(
+                        "postgres_sort.score_fn_failed",
+                        extra={
+                            "sort_by": sort_by,
+                            "group_id": gid,
+                            "error": str(e),
+                            "error_type": type(e).__name__,
+                        },
+                    )
+                    try:
+                        score = strategy.fallback_score_fn(merged)
+                    except (TypeError, KeyError, ArithmeticError):
+                        continue
+                scored_groups.append((score, gid))
 
         if not scored_groups:
             return self.empty_result
@@ -1275,6 +1409,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # `date` shortcut below. If this sort has no Snuba-only equivalent, fall back
             # to `date`.
             pg_overflow_fallback = True
+            # Surface the silent ranking degradation on the trace, next to `search.sort`.
+            sentry_sdk.set_tag("search.sort_fallback", sort_by)
             # Keep the original sort only if it maps to a real Snuba aggregation for the
             # chunked path. Keys absent from sort_strategies, or mapped to "" (Postgres-only
             # sorts like "inbox"), have no aggregation and must fall back to `date` instead

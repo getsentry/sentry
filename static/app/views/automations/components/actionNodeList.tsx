@@ -21,11 +21,12 @@ import {
   actionNodesMap,
   useActionNodeContext,
 } from 'sentry/views/automations/components/actionNodes';
+import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
-import {getIncompatibleActionWarning} from 'sentry/views/automations/utils/getIncompatibleActionWarning';
+import {getIncompatibleActionWarnings} from 'sentry/views/automations/utils/getIncompatibleActionWarning';
 
 interface ActionNodeListProps {
   actions: Action[];
@@ -72,6 +73,8 @@ export function ActionNodeList({
     useAvailableActionsQuery();
   const {errors, removeError} = useAutomationBuilderErrorContext();
   const {connectedDetectors} = useConnectedDetectors();
+  const {state} = useAutomationBuilderContext();
+  const triggerConditions = state.triggers.conditions ?? [];
 
   const options = useMemo(() => {
     const notificationActions: Option[] = [];
@@ -149,8 +152,9 @@ export function ActionNodeList({
           );
         }
         const error = errors?.[action.id];
-        const warningMessage = getIncompatibleActionWarning(action, {
+        const warningMessages = getIncompatibleActionWarnings(action, {
           connectedDetectors,
+          triggerConditions,
         });
         return (
           <AutomationBuilderRow
@@ -160,7 +164,7 @@ export function ActionNodeList({
             }}
             hasError={!!error}
             errorMessage={error}
-            warningMessage={warningMessage}
+            warningMessages={warningMessages}
           >
             <ActionNodeContext.Provider
               value={{

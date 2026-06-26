@@ -86,7 +86,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         return TeamSerializer()
 
     @extend_schema(
-        operation_id="List an Organization's Teams",
+        operation_id="listOrganizationTeams",
+        summary="List an Organization's Teams",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             TeamParams.DETAILED,
@@ -173,7 +174,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         return request.user.is_authenticated
 
     @extend_schema(
-        operation_id="Create a New Team",
+        operation_id="createOrganizationTeam",
+        summary="Create a New Team",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],

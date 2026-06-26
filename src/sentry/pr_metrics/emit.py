@@ -8,10 +8,10 @@ production). A PR is "tracked" once it has at least one valid
 from __future__ import annotations
 
 import logging
-from datetime import datetime
-from typing import Any, Final, Literal
+from collections.abc import Sequence
+from typing import Any
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.commit import Commit
 from sentry.models.organization import Organization
@@ -24,22 +24,16 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
-from sentry.pr_metrics.utils import resolved_group_ids
+from sentry.pr_metrics.contracts import (
+    CLOSE_ACTION_CLOSED,
+    CLOSE_ACTION_MERGED,
+    CloseAction,
+    PrConversationAnalysis,
+)
+from sentry.pr_metrics.utils import is_activity_tracking_enabled, iso_or_none, resolved_group_ids
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
-
-# GitHub fires a single ``closed`` action for both outcomes; a set ``merged_at``
-# on the PR row disambiguates a merge from a plain close.
-CLOSE_ACTION_CLOSED: Final = "closed"
-CLOSE_ACTION_MERGED: Final = "merged"
-
-CloseAction = Literal["closed", "merged"]
-
-
-def _iso(value: datetime | None) -> str | None:
-    """Serialize a persisted datetime to an ISO-8601 string for the row, or None."""
-    return value.isoformat() if value is not None else None
 
 
 def select_verdict(
@@ -57,7 +51,7 @@ def select_verdict(
       diff-similarity judge.
     - Closed with no engagement — no later commits, comments, or review comments →
       ``closed_unmerged``: an abandoned PR with nothing to analyze. A close with any
-      engagement needs the comment judge to decide why it was closed.
+      engagement needs the conversation judge to decide why it was closed.
 
     The commits-after-open signal is a ``SYNCHRONIZED`` activity row, one per push
     to the PR branch after it opened. Those rows are only written under
@@ -69,7 +63,7 @@ def select_verdict(
     failed — and we defer to a judge for both outcomes rather than emit zeroed
     counters (merge) or guess abandoned (close).
     """
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not is_activity_tracking_enabled(organization):
         metrics.incr("pr_metrics.select_verdict.activity_disabled")
         return None
 
@@ -79,6 +73,7 @@ def select_verdict(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
                 "organization_id": pull_request.organization_id,
+                "repository_id": pull_request.repository_id,
                 "pull_request_id": pull_request.id,
             },
         )
@@ -108,13 +103,14 @@ def is_pr_tracked(pull_request: PullRequest) -> bool:
     return PullRequestAttribution.objects.filter(pull_request=pull_request, is_valid=True).exists()
 
 
-def _active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
+def active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
     """The PR's valid attribution signals, highest-confidence first.
 
     Each entry carries the ``signal_type``, ``source``, and ``signal_details`` so
     the consumer sees the full picture, ordered by attribution priority so the
     primary attribution leads. Ties break on ``signal_type`` then ``source`` for
-    a deterministic order.
+    a deterministic order. Shared by emission and the Seer judge forward so both
+    hand the consumer the same ordered snapshot.
     """
     attributions = PullRequestAttribution.objects.filter(pull_request=pull_request, is_valid=True)
     ordered = sorted(
@@ -146,12 +142,38 @@ def _merge_commit_id(pull_request: PullRequest) -> int | None:
     )
 
 
+def _conversation_analysis_fields(
+    conversation_analysis: PrConversationAnalysis | None,
+) -> dict[str, Any]:
+    """The ``PrCloseMetricsEvent`` columns from the conversation judge, or ``{}``
+    (every column keeps its ``None`` default) when no analysis was supplied. Only
+    ``metadata`` is JSON-encoded; the semantic outputs get their own columns.
+    """
+    if conversation_analysis is None:
+        return {}
+    return {
+        "conversation_sentiment": conversation_analysis.sentiment,
+        "conversation_comments_bot": conversation_analysis.comments_bot,
+        "conversation_comments_human": conversation_analysis.comments_human,
+        "conversation_comments_total": conversation_analysis.comments_total,
+        "conversation_comments_judged": conversation_analysis.comments_judged,
+        "conversation_comments_truncated": conversation_analysis.comments_truncated,
+        "conversation_metadata": (
+            json.dumps(conversation_analysis.metadata)
+            if conversation_analysis.metadata is not None
+            else None
+        ),
+    }
+
+
 def build_pr_metrics_row(
     *,
     pull_request: PullRequest,
     close_action: CloseAction,
     attributions: list[dict[str, Any]],
     group_ids: list[int],
+    conversation_analysis: PrConversationAnalysis | None = None,
+    diagnosis_labels: Sequence[str] | None = None,
 ) -> PrCloseMetricsEvent:
     """Assemble the close/merge analytics row.
 
@@ -160,6 +182,11 @@ def build_pr_metrics_row(
     reuse this. ``attributions`` is passed in so the tracking gate and the
     emitted row read the same query. A missing metrics row (a PR Sentry never saw
     active) coalesces every counter to its default.
+
+    The judge enrichment is set on the judge path only: ``conversation_analysis``
+    is the conversation judge's result (semantic outputs become columns, its
+    ``metadata`` is JSON-encoded), and ``diagnosis_labels`` is the cross-judge
+    close-reason "why".
     """
     head_commit_sha = pull_request.head_commit_sha
     closed_at = pull_request.closed_at
@@ -185,8 +212,8 @@ def build_pr_metrics_row(
         closed_at=closed_at.isoformat(),
         merge_commit_sha=pull_request.merge_commit_sha,
         merge_commit_id=_merge_commit_id(pull_request),
-        merged_at=_iso(pull_request.merged_at),
-        opened_at=_iso(pull_request.opened_at),
+        merged_at=iso_or_none(pull_request.merged_at),
+        opened_at=iso_or_none(pull_request.opened_at),
         draft=bool(pull_request.draft),
         additions=metrics.additions,
         deletions=metrics.deletions,
@@ -197,12 +224,16 @@ def build_pr_metrics_row(
         is_assigned=metrics.is_assigned,
         attributions=json.dumps(attributions),
         verdict=metrics.verdict,
+        diagnosis_labels=list(diagnosis_labels) if diagnosis_labels is not None else None,
+        **_conversation_analysis_fields(conversation_analysis),
     )
 
 
 def emit_pr_metrics_row(
     *,
     pull_request: PullRequest,
+    conversation_analysis: PrConversationAnalysis | None = None,
+    diagnosis_labels: Sequence[str] | None = None,
 ) -> bool:
     """Emit one BigQuery row for a tracked PR's terminal event.
 
@@ -211,11 +242,12 @@ def emit_pr_metrics_row(
     attributed to. Returns whether a row was emitted, for callers/tests.
 
     Takes only the canonical ``PullRequest`` — no webhook payload — so Seer's
-    judge can call it directly via RPC callback.
+    judge can call it directly via RPC callback. ``conversation_analysis`` and
+    ``diagnosis_labels`` are set only on that judge path.
     """
     # Fetch the attribution snapshot once: it both gates emission (≥1 valid row)
     # and rides along on the emitted row, so the two can't diverge.
-    attributions = _active_attributions(pull_request)
+    attributions = active_attributions(pull_request)
     if not attributions:
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return False
@@ -228,6 +260,8 @@ def emit_pr_metrics_row(
         close_action=close_action,
         attributions=attributions,
         group_ids=resolved_group_ids(pull_request),
+        conversation_analysis=conversation_analysis,
+        diagnosis_labels=diagnosis_labels,
     )
     analytics.record(row)
     metrics.incr("pr_metrics.emit.recorded", tags={"close_action": close_action})

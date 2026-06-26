@@ -108,8 +108,7 @@ def remove_group_from_inbox(
             publish_action_from_context(
                 MarkReviewedAction(),
                 group_id=group_inbox.group_id,
-                organization_id=group_inbox.group.project.organization_id,
-                project_id=group_inbox.group.project_id,
+                project=group_inbox.group.project,
             )
     except GroupInbox.DoesNotExist:
         pass

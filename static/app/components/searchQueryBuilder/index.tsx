@@ -45,7 +45,14 @@ export interface GetTagValuesParams {
   tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined};
 }
 
-export type GetTagValues = (params: GetTagValuesParams) => Promise<string[]>;
+export interface TagValueWithCount {
+  value: string;
+  count?: number;
+}
+
+export type GetTagValues = (
+  params: GetTagValuesParams
+) => Promise<Array<string | TagValueWithCount>>;
 
 export type GetTagKeys = (searchQuery: string) => Promise<Tag[]>;
 

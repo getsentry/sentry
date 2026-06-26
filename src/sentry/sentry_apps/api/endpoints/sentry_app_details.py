@@ -78,7 +78,8 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     allow_disabled_sentry_app_for_methods = {"DELETE", "PUT", "GET"}
 
     @extend_schema(
-        operation_id="Retrieve a custom integration by ID or slug.",
+        operation_id="getSentryApp",
+        summary="Retrieve a custom integration by ID or slug.",
         parameters=[
             SentryAppParams.SENTRY_APP_ID_OR_SLUG,
         ],
@@ -103,7 +104,8 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         )
 
     @extend_schema(
-        operation_id="Update an existing custom integration.",
+        operation_id="updateSentryApp",
+        summary="Update an existing custom integration.",
         parameters=[
             SentryAppParams.SENTRY_APP_ID_OR_SLUG,
         ],
@@ -226,7 +228,8 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         return Response(as_validation_errors(serializer), status=400)
 
     @extend_schema(
-        operation_id="Delete a custom integration.",
+        operation_id="deleteSentryApp",
+        summary="Delete a custom integration.",
         parameters=[
             SentryAppParams.SENTRY_APP_ID_OR_SLUG,
         ],

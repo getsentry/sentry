@@ -10,7 +10,7 @@ import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -55,7 +55,7 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export interface GetExploreUrlArgs {
@@ -459,7 +459,7 @@ export function getDefaultExploreRoute(organization: Organization) {
 
 export function computeVisualizeSampleTotals(
   yAxes: string[],
-  data: ReturnType<typeof useSortedTimeSeries>['data'],
+  data: SortedTimeSeries['data'],
   isTopN: boolean
 ) {
   return yAxes.map(yAxis => {
@@ -656,16 +656,6 @@ export const removeHiddenKeys = (
     }
     result[key] = tag;
   }
-  return result;
-};
-
-export const onlyShowKeys = (tagCollection: Tag[], keys: string[]): Tag[] => {
-  const result: Tag[] = [];
-  tagCollection.forEach(tag => {
-    if (keys.includes(tag.key) && tag.name) {
-      result.push(tag);
-    }
-  });
   return result;
 };
 

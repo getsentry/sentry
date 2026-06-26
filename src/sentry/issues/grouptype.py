@@ -12,7 +12,7 @@ import sentry_sdk
 from django.apps import apps
 from django.db.models import Q
 from redis.client import StrictRedis
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import features
 from sentry.features.base import OrganizationFeature
@@ -715,7 +715,7 @@ class AIDetectedCodeHealthGroupType(GroupType):
     type_id = 3507
     slug = "ai_detected_code_health"
     description = "AI Detected Code Health Issue"
-    category = GroupCategory.CONFIGURATION.value
+    category = GroupCategory.AI_DETECTED.value
     default_priority = PriorityLevel.MEDIUM
     released = False
     enable_auto_resolve = False

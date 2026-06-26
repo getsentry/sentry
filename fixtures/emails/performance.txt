@@ -22,6 +22,7 @@ Tags
 * device.family = Mac
 * environment = production
 * http.status_code = 200
+* interface_type = spans
 * level = info
 * runtime = CPython 3.8.9
 * runtime.name = CPython

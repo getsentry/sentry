@@ -14,20 +14,21 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface ExternalIssueListProps {
   event: Event;
   group: Group;
-  project: Project;
 }
 
-export function ExternalIssueList({group, event, project}: ExternalIssueListProps) {
+interface ExternalIssueListContentProps extends GroupIntegrationIssueResult {
+  showInlineIssueTrackerActions?: boolean;
+}
+
+export function ExternalIssueList({group, event}: ExternalIssueListProps) {
   const externalIssueData = useGroupExternalIssues({
     group,
     event,
-    project,
   });
 
   return (
@@ -35,6 +36,7 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
       integrations={externalIssueData.integrations}
       isLoading={externalIssueData.isLoading}
       linkedIssues={externalIssueData.linkedIssues}
+      showInlineIssueTrackerActions
     />
   );
 }
@@ -43,7 +45,8 @@ export function ExternalIssueListContent({
   integrations,
   isLoading,
   linkedIssues,
-}: GroupIntegrationIssueResult) {
+  showInlineIssueTrackerActions,
+}: ExternalIssueListContentProps) {
   const organization = useOrganization();
   const hasLinkedPullRequestsFeature = organization.features.includes(
     'issue-details-linked-pull-requests'
@@ -67,7 +70,8 @@ export function ExternalIssueListContent({
   }
 
   const showIssueTrackerActions =
-    !hasLinkedPullRequestsFeature && integrations.length > 0;
+    (showInlineIssueTrackerActions ?? !hasLinkedPullRequestsFeature) &&
+    integrations.length > 0;
 
   return (
     <Fragment>

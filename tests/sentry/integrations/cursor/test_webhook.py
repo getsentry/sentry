@@ -59,6 +59,7 @@ class TestCursorWebhook(APITestCase):
         repo: str = "github.com/testorg/testrepo",
         ref: str | None = "main",
         pr_url: str | None = "https://github.com/testorg/testrepo/pull/1",
+        branch_name: str | None = "cursor/fix-bug-1234",
         agent_url: str | None = "https://cursor.sh/agents/1",
         summary: str | None = "All done",
     ) -> dict[str, Any]:
@@ -67,7 +68,7 @@ class TestCursorWebhook(APITestCase):
             "id": id,
             "status": status,
             "source": {"repository": repo, "ref": ref},
-            "target": {"prUrl": pr_url, "url": agent_url},
+            "target": {"prUrl": pr_url, "branchName": branch_name, "url": agent_url},
             "summary": summary,
         }
 
@@ -91,6 +92,18 @@ class TestCursorWebhook(APITestCase):
         assert result.repo_full_name == "testorg/testrepo"
         assert result.repo_provider == "github"
         assert result.pr_url == "https://github.com/testorg/testrepo/pull/1"
+        assert result.branch_name == "cursor/fix-bug-1234"
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_branch_name_absent_is_none(self, mock_update_state):
+        payload = self._build_status_payload(status="FINISHED", branch_name=None)
+        body = orjson.dumps(payload)
+        headers = self._signed_headers(body)
+
+        response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        assert mock_update_state.call_args[1]["result"].branch_name is None
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
     def test_finished_records_pr_attribution(self, mock_update_state):
@@ -281,6 +294,31 @@ class TestCursorWebhook(APITestCase):
         resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
         assert mock_update_state.call_count == 1
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_invalid_pr_url_is_dropped(self, mock_update_state):
+        # Non-https scheme must be rejected — the pr_url is nulled out so no attribution fires.
+        mock_update_state.return_value = True
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+
+        for bad_url in [
+            "not-a-url-at-all",
+            "http://github.com/testorg/testrepo/pull/1",
+            "https://github.com/otherorg/otherrepo/pull/1",
+            "https://github.com/testorg/testrepo/tree/main",
+        ]:
+            mock_update_state.reset_mock()
+            body = orjson.dumps(self._build_status_payload(status="FINISHED", pr_url=bad_url))
+            headers = self._signed_headers(body)
+
+            with self.feature("organizations:pr-metrics-attribution"):
+                response = self._post_with_headers(body, headers)
+
+            assert response.status_code == 204, bad_url
+            # The Seer state update still happens, but with no pr_url.
+            assert mock_update_state.call_count == 1, bad_url
+            assert mock_update_state.call_args[1]["result"].pr_url is None, bad_url
+            assert not PullRequestAttribution.objects.exists(), bad_url
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
     def test_signature_without_prefix(self, mock_update_state):

@@ -41,7 +41,6 @@ class PullRequestAttributionSignalType(models.TextChoices):
     SEER_DELEGATED_CLAUDE_CODE = "seer_delegated:claude_code"
     SEER_DELEGATED_UNKNOWN = "seer_delegated:unknown"
     MCP = "mcp"
-    REFERENCED_ISSUE = "referenced_issue"
     UNKNOWN = "unknown"
 
 
@@ -55,6 +54,12 @@ class PullRequestVerdict(models.TextChoices):
     MERGED_UNCHANGED = "merged_unchanged"
     MERGED_WITH_ITERATION = "merged_with_iteration"
     CLOSED_UNMERGED = "closed_unmerged"
+    # Transient, internal: a terminal event whose outcome a judge must decide has
+    # been claimed and forwarded to Seer, but the judged verdict hasn't returned.
+    # Reuses the verdict column as the redelivery guard so a redelivered terminal
+    # event won't forward twice; Seer's callback overwrites it with a real verdict.
+    # Never a judge *result* — the callback rejects it coming back from Seer.
+    JUDGE_IN_PROGRESS = "judge_in_progress"
 
 
 class PullRequestManager(BaseManager["PullRequest"]):
@@ -268,18 +273,25 @@ class PullRequestComment(Model):
 
 class PullRequestActivityType(models.TextChoices):
     ASSIGNED = "assigned"
+    AUTO_MERGE_DISABLED = "auto_merge_disabled"
+    AUTO_MERGE_ENABLED = "auto_merge_enabled"
+    CHECK_RUN_COMPLETED = "check_run_completed"
+    CHECK_SUITE_COMPLETED = "check_suite_completed"
     CLOSED = "closed"
     COMMENT_CREATED = "comment_created"
     COMMENT_DELETED = "comment_deleted"
     COMMENT_EDITED = "comment_edited"
     CONVERTED_TO_DRAFT = "converted_to_draft"
+    DEQUEUED = "dequeued"
     EDITED = "edited"
+    ENQUEUED = "enqueued"
     LABELED = "labeled"
     LOCKED = "locked"
     MERGED = "merged"
     OPENED = "opened"
     READY_FOR_REVIEW = "ready_for_review"
     REOPENED = "reopened"
+    REVIEW_DISMISSED = "review_dismissed"
     REVIEW_REQUESTED = "review_requested"
     REVIEW_REQUEST_REMOVED = "review_request_removed"
     REVIEW_SUBMITTED = "review_submitted"

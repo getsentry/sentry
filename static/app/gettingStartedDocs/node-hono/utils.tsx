@@ -8,6 +8,7 @@ export enum Runtime {
   NODE = 'node',
   CLOUDFLARE = 'cloudflare',
   BUN = 'bun',
+  DENO = 'deno',
 }
 
 export const platformOptions = {
@@ -25,6 +26,10 @@ export const platformOptions = {
       {
         label: t('Bun'),
         value: Runtime.BUN,
+      },
+      {
+        label: t('Deno'),
+        value: Runtime.DENO,
       },
     ],
     defaultValue: Runtime.CLOUDFLARE,

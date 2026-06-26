@@ -2,6 +2,15 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
 
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{"type": "host", "value": "sentry.dev"}],
+      "destination": "https://sentry.io/$1",
+      "permanent": false
+    }
+  ],
+
   "rewrites": [
     {
       "source": "/(api|organization-avatar|team-avatar|avatar)/(.*)",

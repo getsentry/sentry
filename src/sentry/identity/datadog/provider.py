@@ -6,6 +6,7 @@ import secrets
 from typing import Any
 
 import orjson
+import sentry_sdk
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from requests import ConnectionError, HTTPError, Response
@@ -13,6 +14,8 @@ from requests.exceptions import SSLError
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
+from sentry.identity.base import Provider
+from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import (
     OAuth2CallbackView,
     OAuth2LoginView,
@@ -28,19 +31,39 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
+DATADOG_VALID_SITES = frozenset(
+    {
+        "datadoghq.com",
+        "us3.datadoghq.com",
+        "us5.datadoghq.com",
+        "datadoghq.eu",
+        "ddog-gov.com",
+        "us2.ddog-gov.com",
+        "ap1.datadoghq.com",
+        "ap2.datadoghq.com",
+    }
+)
+
 MCP_REGISTER_PATH = "/api/unstable/mcp-server/register"
 MCP_AUTHORIZE_PATH = "/api/unstable/mcp-server/authorize"
 MCP_TOKEN_PATH = "/api/unstable/mcp-server/token"
 MCP_ENDPOINT_PATH = "/api/unstable/mcp-server/mcp"
 
 
+def _mcp_base_url_for_site(site: str | None) -> str | None:
+    """Validated Datadog MCP base URL for a site, or None if it's missing/invalid."""
+    if not site or site not in DATADOG_VALID_SITES:
+        return None
+    return f"https://mcp.{site}"
+
+
 def _basic_auth_header(client_id: str, client_secret: str) -> str:
     return "Basic " + base64.b64encode(f"{client_id}:{client_secret}".encode()).decode("ascii")
 
 
-def get_user_info(access_token: str, site: str) -> dict[str, Any]:
+def get_user_info(access_token: str, mcp_base_url: str) -> dict[str, Any]:
     """Fetch the current Datadog user via the MCP ``datadog://mcp/whoami`` resource."""
-    url = f"https://mcp.{site}{MCP_ENDPOINT_PATH}"
+    url = f"{mcp_base_url}{MCP_ENDPOINT_PATH}"
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
 
     init_resp = safe_urlopen(
@@ -50,7 +73,11 @@ def get_user_info(access_token: str, site: str) -> dict[str, Any]:
         json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
     )
     init_resp.raise_for_status()
-    headers["Mcp-Session-Id"] = init_resp.headers["mcp-session-id"]
+    try:
+        headers["Mcp-Session-Id"] = init_resp.headers["mcp-session-id"]
+    except KeyError as e:
+        sentry_sdk.capture_message("Datadog MCP initialize response missing session id")
+        raise IdentityNotValid("MCP initialize response missing session id") from e
 
     resp = safe_urlopen(
         url,
@@ -243,9 +270,11 @@ class DatadogOAuth2CallbackView(OAuth2CallbackView):
         )
 
 
-class DatadogIdentityProvider(OAuth2Provider):
+class DatadogIdentityProvider(McpIdentityProvider, OAuth2Provider):
     key = IntegrationProviderSlug.DATADOG
     name = "Datadog"
+    auto_create_provider_model = True
+    create_organization_identity = True
 
     oauth_scopes: tuple[str, ...] = (
         "mcp_read",
@@ -259,24 +288,43 @@ class DatadogIdentityProvider(OAuth2Provider):
         "monitors_read",
     )
 
-    def _get_mcp_base_url(self) -> str:
-        return f"https://mcp.{self._get_oauth_parameter('site')}"
+    def get_pipeline_config(self, data: dict[str, Any]) -> dict[str, str]:
+        site = data.get("site")
+        if not site:
+            raise ValueError("Datadog requires a 'site' parameter (e.g. 'datadoghq.com').")
+        elif site not in DATADOG_VALID_SITES:
+            raise ValueError(f"Invalid Datadog site: {site}")
+        return {"site": site}
+
+    def _build_mcp_base_url(self) -> str:
+        """MCP base URL for this provider's configured site. Raises if invalid."""
+        site = self._get_oauth_parameter("site")
+        base = _mcp_base_url_for_site(site)
+        if base is None:
+            raise ValueError(f"Invalid Datadog site: {site}")
+        return base
+
+    def build_mcp_url(self, identity_data: dict[str, Any]) -> str | None:
+        """Full MCP endpoint URL for a stored Datadog identity.
+        Returns None when the site is missing or invalid."""
+        base = _mcp_base_url_for_site(identity_data.get("site"))
+        return f"{base}{MCP_ENDPOINT_PATH}" if base else None
 
     def get_oauth_authorize_url(self) -> str:
-        return self._get_mcp_base_url() + MCP_AUTHORIZE_PATH
+        return self._build_mcp_base_url() + MCP_AUTHORIZE_PATH
 
     def get_oauth_access_token_url(self) -> str:
-        return self._get_mcp_base_url() + MCP_TOKEN_PATH
+        return self._build_mcp_base_url() + MCP_TOKEN_PATH
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [
             DatadogOAuth2DCRView(
-                register_url=self._get_mcp_base_url() + MCP_REGISTER_PATH,
+                register_url=self._build_mcp_base_url() + MCP_REGISTER_PATH,
             ),
             DatadogOAuth2LoginView(
                 authorize_url=self.get_oauth_authorize_url(),
                 scope=" ".join(self.get_oauth_scopes()),
-                resource=self._get_mcp_base_url(),
+                resource=self._build_mcp_base_url(),
             ),
             DatadogOAuth2CallbackView(
                 access_token_url=self.get_oauth_access_token_url(),
@@ -295,8 +343,13 @@ class DatadogIdentityProvider(OAuth2Provider):
         if not access_token:
             raise ValueError("Datadog token exchange did not return an access_token")
 
-        user = get_user_info(access_token, self._get_oauth_parameter("site"))
+        user = get_user_info(access_token, self._build_mcp_base_url())
+        if "user_uuid" not in user or "org_uuid" not in user:
+            raise IdentityNotValid(
+                "User info response missing required fields (user_uuid, org_uuid)"
+            )
 
+        site = self._get_oauth_parameter("site")
         oauth_data = self.get_oauth_data(token_data)
 
         # Persist DCR credentials and site so refresh_identity can access them outside a pipeline context.
@@ -306,11 +359,13 @@ class DatadogIdentityProvider(OAuth2Provider):
             raise IdentityNotValid("Missing DCR credentials")
         oauth_data["client_id"] = client_id
         oauth_data["client_secret"] = client_secret
-        oauth_data["site"] = self._get_oauth_parameter("site")
+        oauth_data["site"] = site
 
         return {
             "type": IntegrationProviderSlug.DATADOG,
             "id": user["user_uuid"],
+            "idp_external_id": user["org_uuid"],
+            "idp_config": {"site": site},
             "email": user.get("user_email"),
             "name": user.get("user_name"),
             "scopes": [],
@@ -341,6 +396,8 @@ class DatadogIdentityProvider(OAuth2Provider):
         site = identity.data.get("site")
         if not site:
             raise IdentityNotValid("Missing Datadog site")
+        elif site not in DATADOG_VALID_SITES:
+            raise IdentityNotValid(f"Invalid Datadog site: {site}")
         self.config["site"] = site
 
         client_id = identity.data.get("client_id")
@@ -351,3 +408,54 @@ class DatadogIdentityProvider(OAuth2Provider):
         self.config["client_secret"] = client_secret
 
         super().refresh_identity(identity, **kwargs)
+
+
+class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
+    """Datadog identity backed by a user-supplied read-only personal access token.
+
+    An alternative to the OAuth flow for environments where Datadog's MCP OAuth
+    (loopback-only redirect URIs) cannot be used. The submitted token is used as
+    a Bearer token against the MCP server, identical to an OAuth access token.
+    """
+
+    key = IntegrationProviderSlug.DATADOG_PAT
+    name = "Datadog (Personal Access Token)"
+    create_organization_identity = True
+
+    def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
+        return []
+
+    def build_mcp_url(self, identity_data: dict[str, Any]) -> str | None:
+        """Full MCP endpoint URL for a stored Datadog identity.
+        Returns None when the site is missing or invalid."""
+        base = _mcp_base_url_for_site(identity_data.get("site"))
+        return f"{base}{MCP_ENDPOINT_PATH}" if base else None
+
+    def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
+        access_token = (data.get("access_token") or "").strip()
+        if not access_token:
+            raise ValueError("Datadog requires an 'access_token' parameter.")
+
+        site = data.get("site")
+        base = _mcp_base_url_for_site(site)
+        if not site:
+            raise ValueError("Datadog requires a 'site' parameter (e.g. 'datadoghq.com').")
+        elif base is None:
+            raise ValueError(f"Invalid Datadog site: {site}")
+
+        user = get_user_info(access_token, base)
+        if "user_uuid" not in user or "org_uuid" not in user:
+            raise IdentityNotValid(
+                "User info response missing required fields (user_uuid, org_uuid)"
+            )
+
+        return {
+            "type": IntegrationProviderSlug.DATADOG_PAT,
+            "id": user["user_uuid"],
+            "idp_external_id": user["org_uuid"],
+            "idp_config": {"site": site},
+            "email": user.get("user_email"),
+            "name": user.get("user_name"),
+            "scopes": [],
+            "data": {"access_token": access_token, "site": site},
+        }

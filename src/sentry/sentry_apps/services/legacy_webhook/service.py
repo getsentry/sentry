@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Any, TypedDict
 
-from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -110,13 +109,6 @@ def send_sentry_app_webhook(
     if sentry_app is None:
         logger.warning(
             "webhook_action_handler.sentry_app_not_found",
-            extra=logging_context,
-        )
-        return
-
-    if features.has("organizations:legacy-webhook-dry-run", organization):
-        logger.info(
-            "webhook_action_handler.sentry_app_dry_run",
             extra=logging_context,
         )
         return

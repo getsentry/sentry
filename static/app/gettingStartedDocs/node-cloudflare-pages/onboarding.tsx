@@ -46,9 +46,12 @@ export const onRequest = [
         : ''
     }
 
-    // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/cloudflare-pages/configuration/options/#dataCollection
-    // dataCollection: { userInfo: false, httpBodies: [] },
+    dataCollection: {
+      // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+      // https://docs.sentry.io/platforms/javascript/guides/cloudflare-pages/configuration/options/#dataCollection
+      // userInfo: false,
+      // httpBodies: [],
+    },
   })),
   // Add more middlewares here
 ];`;

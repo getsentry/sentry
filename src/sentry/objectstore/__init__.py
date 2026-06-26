@@ -63,13 +63,12 @@ class SentryMetricsBackend(MetricsBackend):
 
 _OBJECTSTORE_CLIENT: Client | None = None
 _ATTACHMENTS_USECASE: Usecase | None = None
+_PROFILE_ATTACHMENTS_USECASE: Usecase | None = None
 _PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToIdle(timedelta(days=30)))
 
 
 def create_client() -> Client:
-    from sentry import options as options_store
-
-    options = options_store.get("objectstore.config")
+    options = settings.SENTRY_OBJECTSTORE_CONFIG
 
     # Initialize the `TokenGenerator` if key parameters are found.
     token_generator = None
@@ -114,6 +113,22 @@ def get_attachments_usecase() -> Usecase:
 
 def get_attachments_session(org: int, project: int) -> Session:
     return get_client().session(get_attachments_usecase(), org=org, project=project)
+
+
+def get_profile_attachments_usecase() -> Usecase:
+    # Relay stores raw profiles and their attachments (e.g. Perfetto traces) under
+    # the "profile_attachments" usecase, so we must read them back with the same usecase.
+    global _PROFILE_ATTACHMENTS_USECASE
+    if not _PROFILE_ATTACHMENTS_USECASE:
+        retention = default_attachment_retention()
+        _PROFILE_ATTACHMENTS_USECASE = Usecase(
+            "profile_attachments", expiration_policy=TimeToLive(timedelta(days=retention))
+        )
+    return _PROFILE_ATTACHMENTS_USECASE
+
+
+def get_profile_attachments_session(org: int, project: int) -> Session:
+    return get_client().session(get_profile_attachments_usecase(), org=org, project=project)
 
 
 def get_preprod_session(org: int, project: int) -> Session:

@@ -69,9 +69,12 @@ export function getSdkSetupSnippet(params: DocsParams) {
     params,
     staticParts: [
       `dsn: "${params.dsn.public}"`,
-      `// To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
-      // https://docs.sentry.io/platforms/javascript/guides/ember/configuration/options/#dataCollection
-      // dataCollection: { userInfo: false, httpBodies: [] }`,
+      `dataCollection: {
+    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/guides/ember/configuration/options/#dataCollection
+    // userInfo: false,
+    // httpBodies: []
+  }`,
     ],
     getIntegrations,
     getDynamicParts,
