@@ -77,20 +77,33 @@ export function Setup({
 
   const url = item.description || 'http://example.com';
 
-  return isVideoReplay ? (
-    visibleTab === 'request' || visibleTab === 'response' ? (
-      <StyledAlert variant="info">
-        {tct(
-          'Request and response headers or bodies are currently not available for mobile platforms. Track this [link:GitHub issue] to get progress on support for this feature.',
-          {
-            link: (
-              <ExternalLink href="https://github.com/getsentry/sentry/issues/84596" />
-            ),
-          }
-        )}
-      </StyledAlert>
-    ) : null
-  ) : (
+  if (isVideoReplay) {
+    const docsUrl = getNetworkDetailsDocsUrl(replay?.getReplay()?.sdk?.name);
+    if (!docsUrl) {
+      return visibleTab === 'request' || visibleTab === 'response' ? (
+        <StyledAlert variant="info">
+          {tct(
+            'Request and response headers or bodies are currently not available for this platform. Track this [link:GitHub issue] to get progress on support for this feature.',
+            {
+              link: (
+                <ExternalLink href="https://github.com/getsentry/sentry/issues/84596" />
+              ),
+            }
+          )}
+        </StyledAlert>
+      ) : null;
+    }
+    return (
+      <MobileSetupInstructions
+        docsUrl={docsUrl}
+        showSnippet={showSnippet}
+        url={url}
+        visibleTab={visibleTab}
+      />
+    );
+  }
+
+  return (
     <SetupInstructions
       minVersion={MIN_REPLAY_NETWORK_BODIES_SDK.minVersion}
       sdkNeedsUpdate={sdkNeedsUpdate}
@@ -99,6 +112,94 @@ export function Setup({
       visibleTab={visibleTab}
     />
   );
+}
+
+function getNetworkDetailsDocsUrl(sdkName: string | null | undefined): string | null {
+  switch (sdkName) {
+    case 'sentry.java.android':
+      return 'https://docs.sentry.io/platforms/android/session-replay/configuration/#network-details';
+    case 'sentry.cocoa':
+      return 'https://docs.sentry.io/platforms/apple/guides/ios/session-replay/configuration/#network-details';
+    case 'sentry.javascript.react-native':
+      return 'https://docs.sentry.io/platforms/react-native/session-replay/#network-details';
+    default:
+      return null;
+  }
+}
+
+function MobileSetupInstructions({
+  docsUrl,
+  showSnippet,
+  url,
+  visibleTab,
+}: {
+  docsUrl: string;
+  showSnippet: Output;
+  url: string;
+  visibleTab: TabKey;
+}) {
+  if (showSnippet === Output.DATA && visibleTab === 'details') {
+    return (
+      <NoMarginAlert variant="muted" system data-test-id="network-setup-steps">
+        {tct(
+          'You can capture additional headers by adding them to the [requestConfig] and [responseConfig] lists in your SDK config. [link].',
+          {
+            requestConfig: <code>networkRequestHeaders</code>,
+            responseConfig: <code>networkResponseHeaders</code>,
+            link: <ExternalLink href={docsUrl}>{t('Learn More')}</ExternalLink>,
+          }
+        )}
+      </NoMarginAlert>
+    );
+  }
+
+  const trimmedUrl = trimUrl(url);
+
+  const title =
+    showSnippet === Output.SETUP
+      ? t('Capture Request and Response Headers and Bodies')
+      : visibleTab === 'details'
+        ? t('Capture Request and Response Headers')
+        : t('Capture Request and Response Bodies');
+
+  return (
+    <StyledInstructions data-test-id="network-setup-steps">
+      <h1>{title}</h1>
+      <p>
+        {tct(
+          'To protect user privacy, Session Replay defaults to not capturing the request or response headers. However, we provide the option to do so, if it’s critical to your debugging process. [link].',
+          {
+            link: <ExternalLink href={docsUrl}>{t('Learn More')}</ExternalLink>,
+          }
+        )}
+      </p>
+      {showSnippet === Output.URL_SKIPPED && url !== '[Filtered]' && (
+        <Container margin="md 0 lg 0">
+          {tct(
+            'Add the following to your [field] list to start capturing data: [alert] ',
+            {
+              field: <code>networkDetailAllowUrls</code>,
+              alert: <StyledTextCopyInput>{trimmedUrl}</StyledTextCopyInput>,
+            }
+          )}
+        </Container>
+      )}
+      {showSnippet === Output.BODY_SKIPPED && (
+        <Alert.Container>
+          <Alert variant="warning" showIcon={false}>
+            {tct('Enable [field] to capture both Request and Response bodies.', {
+              field: <code>networkCaptureBodies: true</code>,
+            })}
+          </Alert>
+        </Alert.Container>
+      )}
+    </StyledInstructions>
+  );
+}
+
+function trimUrl(oldUrl: string): string {
+  const end = oldUrl.indexOf('?') > 0 ? oldUrl.indexOf('?') : oldUrl.length;
+  return oldUrl.substring(0, end);
 }
 
 function SetupInstructions({
@@ -126,11 +227,6 @@ function SetupInstructions({
         )}
       </NoMarginAlert>
     );
-  }
-
-  function trimUrl(oldUrl: string): string {
-    const end = oldUrl.indexOf('?') > 0 ? oldUrl.indexOf('?') : oldUrl.length;
-    return oldUrl.substring(0, end);
   }
 
   const urlSnippet = `
