@@ -170,7 +170,9 @@ class ProjectEndpoint(Endpoint):
             ).get()
             organization = Organization.objects.get_from_cache(id=project.organization_id)
             project.set_cached_field_value("organization", organization)
-        except (Organization.DoesNotExist, Project.DoesNotExist):
+        except Organization.DoesNotExist:
+            raise ProjectDoesNotExist
+        except Project.DoesNotExist:
             try:
                 # Project may have been renamed
                 # This will only happen if the passed in project_id_or_slug is a slug and not an id
