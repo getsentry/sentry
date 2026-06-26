@@ -13,6 +13,7 @@ import {
   MultipleCheckboxOptions,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
+import {ScmCollapsibleReveal} from './scmCollapsibleReveal';
 import {ScmMessagingIntegrationAlertRule} from './scmMessagingIntegrationAlertRule';
 
 /**
@@ -58,9 +59,11 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
               </MultipleCheckbox.Item>
             )}
           </Stack>
-          {!shouldRenderSetupButton && shouldRenderNotificationConfigs ? (
+          <ScmCollapsibleReveal
+            open={!shouldRenderSetupButton && shouldRenderNotificationConfigs}
+          >
             <ScmMessagingIntegrationAlertRule {...props} />
-          ) : null}
+          </ScmCollapsibleReveal>
         </Stack>
       </MultipleCheckbox>
       {shouldRenderSetupButton && (
