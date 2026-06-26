@@ -40,9 +40,9 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
             max_download_size=1000,
         )
 
-    def _make_base(self, version, number, install=1000, download=500):
+    def _make_base(self, version, number, project=None):
         base = self.create_preprod_artifact(
-            project=self.project,
+            project=project or self.project,
             file_id=self.create_file(
                 name=f"base-{version}.apk", type="application/octet-stream"
             ).id,
@@ -57,8 +57,8 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier="main",
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            max_install_size=install,
-            max_download_size=download,
+            max_install_size=1000,
+            max_download_size=500,
         )
         return base, metric
 
@@ -143,7 +143,7 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
 
     def test_returns_empty_when_no_comparisons(self) -> None:
         response = self.get_success_response(self.organization.slug, self.head_artifact.id)
-        assert response.data == []
+        assert response.data == {"comparisons": []}
 
     def test_returns_empty_when_head_has_no_size_metrics(self) -> None:
         head_without_metrics = self.create_preprod_artifact(
@@ -151,7 +151,7 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
         response = self.get_success_response(self.organization.slug, head_without_metrics.id)
-        assert response.data == []
+        assert response.data == {"comparisons": []}
 
     def test_lists_comparison_where_build_is_head(self) -> None:
         base, base_metric = self._make_base("2.0.0", 2)
@@ -159,10 +159,9 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, self.head_artifact.id)
 
-        assert len(response.data) == 1
-        item = response.data[0]
-        assert item["base_build_details"]["id"] == str(base.id)
-        assert "date_added" in item
+        comparisons = response.data["comparisons"]
+        assert len(comparisons) == 1
+        assert comparisons[0]["id"] == str(base.id)
 
     def test_excludes_comparison_where_build_is_base(self) -> None:
         # A newer build was compared against our build, so our build is the BASE
@@ -171,12 +170,26 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
         self._compare(newer_metric, self.head_metric, file_id=222)
 
         response = self.get_success_response(self.organization.slug, self.head_artifact.id)
-        assert response.data == []
+        assert response.data == {"comparisons": []}
+
+    def test_excludes_base_in_another_project(self) -> None:
+        # A comparison whose base build lives in another project (same org) must not be
+        # surfaced — returned bases are scoped to the head's project.
+        in_project_base, in_project_metric = self._make_base("2.0.0", 2)
+        self._compare(self.head_metric, in_project_metric, file_id=1)
+
+        other_project = self.create_project(organization=self.organization)
+        _other_base, other_metric = self._make_base("4.0.0", 4, project=other_project)
+        self._compare(self.head_metric, other_metric, file_id=2)
+
+        response = self.get_success_response(self.organization.slug, self.head_artifact.id)
+        ids = [item["id"] for item in response.data["comparisons"]]
+        assert ids == [str(in_project_base.id)]
 
     def test_only_returns_successful_comparisons(self) -> None:
         success_base, success_metric = self._make_base("2.0.0", 2)
-        failed_base, failed_metric = self._make_base("3.0.0", 3)
-        processing_base, processing_metric = self._make_base("4.0.0", 4)
+        _failed_base, failed_metric = self._make_base("3.0.0", 3)
+        _processing_base, processing_metric = self._make_base("4.0.0", 4)
         self._compare(self.head_metric, success_metric, file_id=1)
         self._compare(
             self.head_metric,
@@ -192,9 +205,7 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
         )
 
         response = self.get_success_response(self.organization.slug, self.head_artifact.id)
-        assert [item["base_build_details"]["id"] for item in response.data] == [
-            str(success_base.id)
-        ]
+        assert [item["id"] for item in response.data["comparisons"]] == [str(success_base.id)]
 
     def test_single_base_with_failed_and_successful_comparison(self) -> None:
         # A base with both a failed and a successful comparison still surfaces exactly
@@ -211,7 +222,8 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
         )
 
         response = self.get_success_response(self.organization.slug, self.head_artifact.id)
-        assert [item["base_build_details"]["id"] for item in response.data] == [str(base.id)]
+        ids = [item["id"] for item in response.data["comparisons"]]
+        assert ids == [str(base.id)]
 
     def test_multiple_bases_ordered_newest_first(self) -> None:
         older_base, older_metric = self._make_base("1.0.0", 1)
@@ -227,7 +239,7 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
         )
 
         response = self.get_success_response(self.organization.slug, self.head_artifact.id)
-        assert [item["base_build_details"]["id"] for item in response.data] == [
+        assert [item["id"] for item in response.data["comparisons"]] == [
             str(newer_base.id),
             str(older_base.id),
         ]
@@ -240,57 +252,42 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
         self._compare(head_watch_metric, base_watch_metric, file_id=2)
 
         response = self.get_success_response(self.organization.slug, self.head_artifact.id)
-        assert len(response.data) == 1
-        assert response.data[0]["base_build_details"]["id"] == str(base.id)
+        comparisons = response.data["comparisons"]
+        assert len(comparisons) == 1
+        assert comparisons[0]["id"] == str(base.id)
 
-    def test_paginates_by_base_build(self) -> None:
-        # Each base build is a single paginated unit even when it has multiple per-metric
-        # comparison rows, so a base never straddles a page boundary and ordering by the
-        # most recent comparison is stable across pages.
-        head_watch_metric = self._watch_metric(self.head_artifact)
-
-        base_old, base_old_metric = self._make_base("1.0.0", 1)
+    @patch(
+        "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_comparisons.MAX_COMPARISONS",
+        2,
+    )
+    def test_caps_results_to_max(self) -> None:
+        # With more comparisons than the cap, only the most recent MAX_COMPARISONS are returned.
+        _base_old, base_old_metric = self._make_base("1.0.0", 1)
         base_mid, base_mid_metric = self._make_base("2.0.0", 2)
-        base_mid_watch = self._watch_metric(base_mid)
         base_new, base_new_metric = self._make_base("3.0.0", 3)
 
         old_cmp = self._compare(self.head_metric, base_old_metric, file_id=1)
-        mid_main_cmp = self._compare(self.head_metric, base_mid_metric, file_id=2)
-        mid_watch_cmp = self._compare(head_watch_metric, base_mid_watch, file_id=3)
-        new_cmp = self._compare(self.head_metric, base_new_metric, file_id=4)
+        mid_cmp = self._compare(self.head_metric, base_mid_metric, file_id=2)
+        new_cmp = self._compare(self.head_metric, base_new_metric, file_id=3)
 
         PreprodArtifactSizeComparison.objects.filter(id=old_cmp.id).update(
             date_added=timezone.now() - timedelta(days=3)
         )
-        PreprodArtifactSizeComparison.objects.filter(
-            id__in=[mid_main_cmp.id, mid_watch_cmp.id]
-        ).update(date_added=timezone.now() - timedelta(days=2))
+        PreprodArtifactSizeComparison.objects.filter(id=mid_cmp.id).update(
+            date_added=timezone.now() - timedelta(days=2)
+        )
         PreprodArtifactSizeComparison.objects.filter(id=new_cmp.id).update(
             date_added=timezone.now() - timedelta(days=1)
         )
 
-        page1 = self.get_success_response(
-            self.organization.slug, self.head_artifact.id, qs_params={"per_page": 2}
-        )
-        ids1 = [item["base_build_details"]["id"] for item in page1.data]
-        # The multi-row base (base_mid) appears exactly once despite its two rows.
-        assert ids1 == [str(base_new.id), str(base_mid.id)]
-
-        cursor = self.get_cursor_headers(page1)[1]
-
-        page2 = self.get_success_response(
-            self.organization.slug,
-            self.head_artifact.id,
-            qs_params={"per_page": 2, "cursor": cursor},
-        )
-        ids2 = [item["base_build_details"]["id"] for item in page2.data]
-        # Load-bearing: with the old row-based pagination base_mid straddled the page
-        # boundary and reappeared here; this assertion is what proves the fix.
-        assert ids2 == [str(base_old.id)]
+        response = self.get_success_response(self.organization.slug, self.head_artifact.id)
+        ids = [item["id"] for item in response.data["comparisons"]]
+        # Capped at 2 (most recent first); base_old is dropped.
+        assert ids == [str(base_new.id), str(base_mid.id)]
 
     def test_download_count_for_installable_base(self) -> None:
-        # download_count for an installable base is read from the annotate_download_count
-        # annotation (parity with the builds list), not a per-row aggregate query.
+        # Value check: an installable base's download_count is summed correctly in the
+        # response. (No-N+1 isn't asserted here; it's structural via annotate_download_count.)
         base, base_metric = self._make_base("2.0.0", 2)
         base.installable_app_file_id = 12345
         base.save()
@@ -300,8 +297,9 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
         self._compare(self.head_metric, base_metric, file_id=1)
 
         response = self.get_success_response(self.organization.slug, self.head_artifact.id)
-        assert len(response.data) == 1
-        distribution_info = response.data[0]["base_build_details"]["distribution_info"]
+        comparisons = response.data["comparisons"]
+        assert len(comparisons) == 1
+        distribution_info = comparisons[0]["distribution_info"]
         assert distribution_info["download_count"] == 15
         assert distribution_info["is_installable"] is True
 
@@ -316,6 +314,6 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
             self.head_artifact.id,
             qs_params={"query": "build_version:9.9.9"},
         )
-        returned_ids = [item["base_build_details"]["id"] for item in response.data]
+        returned_ids = [item["id"] for item in response.data["comparisons"]]
         assert returned_ids == [str(base_match.id)]
         assert str(base_other.id) not in returned_ids

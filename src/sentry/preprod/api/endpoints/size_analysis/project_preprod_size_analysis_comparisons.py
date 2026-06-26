@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from django.db.models import OuterRef, Subquery
 from rest_framework.request import Request
@@ -10,7 +9,6 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.paginator import OffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.preprod.api.bases.preprod_artifact_endpoint import (
@@ -18,16 +16,19 @@ from sentry.preprod.api.bases.preprod_artifact_endpoint import (
     ProjectPreprodArtifactPermission,
 )
 from sentry.preprod.api.models.project_preprod_build_details_models import (
+    BuildDetailsApiResponse,
     transform_preprod_artifact_to_build_details,
 )
 from sentry.preprod.api.models.size_analysis.project_preprod_size_analysis_compare_models import (
-    SizeAnalysisComparisonListItem,
+    SizeAnalysisComparisonsResponse,
 )
 from sentry.preprod.builds_query import filtered_builds_queryset
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeComparison
 from sentry.preprod.quotas import get_size_retention_cutoff
 
 logger = logging.getLogger(__name__)
+
+MAX_COMPARISONS = 20
 
 
 @cell_silo_endpoint
@@ -49,25 +50,20 @@ class ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint(PreprodArtifactEndpo
         List existing successful size comparisons for which this build is the head.
 
         Returns one entry per base build the head has been compared against, ordered by
-        each base's most recent successful comparison (newest first), and paginated like
-        the builds list (25/100). Accepts the same ``query`` search syntax as the builds
+        each base's most recent successful comparison (newest first) and capped at
+        ``MAX_COMPARISONS``. Accepts the same ``query`` search syntax as the builds
         endpoint, applied to the base builds.
         """
         cutoff = get_size_retention_cutoff(project.organization)
         if head_artifact.date_added < cutoff:
             return Response({"detail": "This build's size data has expired."}, status=404)
 
-        # All successful comparisons where this build is the head. Reused for both the
-        # candidate base set and the per-base "latest comparison" annotation below, so
-        # the two always apply the same filters.
         head_success_comparisons = PreprodArtifactSizeComparison.objects.filter(
             organization_id=project.organization_id,
             head_size_analysis__preprod_artifact_id=head_artifact.id,
             state=PreprodArtifactSizeComparison.State.SUCCESS,
         )
 
-        # The base builds this head has a successful comparison against (a small candidate
-        # set), kept lazy so it constrains the search query below as a subquery.
         candidate_base_ids = head_success_comparisons.values_list(
             "base_size_analysis__preprod_artifact_id", flat=True
         )
@@ -89,14 +85,11 @@ class ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint(PreprodArtifactEndpo
                 .values_list("id", flat=True)
             )
         except InvalidSearchQuery as e:
+            # TODO: centralize the repeated InvalidSearchQuery response handling
             # CodeQL complains about str(e) below but ~all handlers
             # of InvalidSearchQuery do the same as this.
             return Response({"detail": str(e)}, status=400)
 
-        # Paginate over the distinct base builds rather than the per-metric comparison
-        # rows (a head/base pair has one row per size-metric type), so page sizes are
-        # stable and a base build can't straddle a page boundary. Order each base by its
-        # most recent successful comparison with this head, with a stable id tiebreaker.
         latest_comparison_date = (
             head_success_comparisons.filter(
                 base_size_analysis__preprod_artifact_id=OuterRef("pk"),
@@ -105,23 +98,16 @@ class ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint(PreprodArtifactEndpo
             .values("date_added")[:1]
         )
 
-        # project_id is also enforced via filtered_builds_queryset above; this keeps the
-        # project boundary on the returned bases explicit at the data layer.
         queryset = (
-            # annotate_download_count lives on the custom PreprodArtifactQuerySet, so call it
-            # on get_queryset() before filtering. Mirrors the builds list: the transform reads
-            # this annotation, else it runs a per-row aggregate query for installable builds.
             PreprodArtifact.objects.get_queryset()
-            .annotate_download_count()
+            .annotate_download_count()  # avoids N+1
             .filter(
                 id__in=matching_base_ids,
                 project_id=project.id,
             )
             .annotate(comparison_date_added=Subquery(latest_comparison_date))
-            # Exclude bases whose successful comparison was deleted between the candidate
-            # query and this one (the subquery would annotate to NULL), so the date is
-            # always present and ordering stays well-defined.
             .filter(comparison_date_added__isnull=False)
+            .order_by("-comparison_date_added", "-id")
             .select_related(
                 "project",
                 "build_configuration",
@@ -136,31 +122,15 @@ class ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint(PreprodArtifactEndpo
             )
         )
 
-        def on_results(artifacts: list[PreprodArtifact]) -> list[dict[str, Any]]:
-            results: list[dict[str, Any]] = []
-            for artifact in artifacts:
-                try:
-                    base_build_details = transform_preprod_artifact_to_build_details(artifact)
-                except Exception:
-                    logger.exception(
-                        "preprod.size_analysis.comparisons.transform_failed",
-                        extra={"base_artifact_id": artifact.id},
-                    )
-                    continue
-                results.append(
-                    SizeAnalysisComparisonListItem(
-                        base_build_details=base_build_details,
-                        date_added=artifact.comparison_date_added.isoformat(),  # type: ignore[attr-defined]
-                    ).dict()
+        comparisons: list[BuildDetailsApiResponse] = []
+        for artifact in queryset[:MAX_COMPARISONS]:
+            try:
+                comparisons.append(transform_preprod_artifact_to_build_details(artifact))
+            except Exception:
+                logger.exception(
+                    "preprod.size_analysis.comparisons.transform_failed",
+                    extra={"base_artifact_id": artifact.id},
                 )
-            return results
+                continue
 
-        return self.paginate(
-            request=request,
-            queryset=queryset,
-            order_by=["-comparison_date_added", "-id"],
-            on_results=on_results,
-            paginator_cls=OffsetPaginator,
-            default_per_page=25,
-            max_per_page=100,
-        )
+        return Response(SizeAnalysisComparisonsResponse(comparisons=comparisons).dict())

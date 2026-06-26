@@ -34,7 +34,6 @@ class SizeAnalysisComparePOSTResponse(BaseModel):
     comparisons: list[SizeAnalysisComparison] | None
 
 
-class SizeAnalysisComparisonListItem(BaseModel):
-    # The base build this head was compared against.
-    base_build_details: BuildDetailsApiResponse
-    date_added: str
+class SizeAnalysisComparisonsResponse(BaseModel):
+    # Base builds this head has been compared against, reusing the build-details shape.
+    comparisons: list[BuildDetailsApiResponse]
