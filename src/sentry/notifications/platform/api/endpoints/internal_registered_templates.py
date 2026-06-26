@@ -45,8 +45,7 @@ def _serialize_sections(
     sections: list[NotificationSection],
 ) -> list[dict[str, Any]]:
     return [
-        {"type": section.type, "blocks": [_serialize_blocks(block) for block in section.blocks]}
-        for section in sections
+        {"type": section.type, "blocks": _serialize_blocks(section.blocks)} for section in sections
     ]
 
 

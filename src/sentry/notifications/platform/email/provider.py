@@ -49,8 +49,9 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
 
         # Email doesn't support rich text in subjects (obviously, lol)
         subject = rendered_template.subject_text
-        footer_html = cls.render_text_blocks_to_html_string(rendered_template.footer_blocks)
-
+        footer_html = mark_safe(
+            cls.render_text_blocks_to_html_string(rendered_template.footer_blocks)
+        )
         footer_txt = cls.render_text_blocks_to_txt_string(rendered_template.footer_blocks)
 
         email_context = {
