@@ -201,8 +201,8 @@ describe('ReplayList', () => {
     mockUseProjectSdkNeedsUpdate.mockReturnValue({
       isError: false,
       isFetching: true,
-      needsUpdate: false,
-      data: [],
+      needsUpdate: undefined,
+      data: undefined,
     });
 
     render(<ListPage />, {
