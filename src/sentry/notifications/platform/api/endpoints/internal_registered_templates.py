@@ -39,9 +39,25 @@ class InternalRegisteredTemplatesEndpoint(Endpoint):
         return Response(response)
 
 
+def _serialize_blocks(blocks: list) -> list[dict[str, Any]]:
+    return [
+        {
+            "type": block.type,
+            "blocks": [
+                {"type": text_block.type, "text": text_block.text} for text_block in block.blocks
+            ],
+        }
+        for block in blocks
+    ]
+
+
 def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) -> dict[str, Any]:
     response: dict[str, Any] = {
-        "subject": rendered_template.subject,
+        "subject": (
+            _serialize_blocks(rendered_template.subject)
+            if isinstance(rendered_template.subject, list)
+            else rendered_template.subject
+        ),
         "body": [
             {
                 "type": block.type,
@@ -63,16 +79,7 @@ def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) 
         }
     if rendered_template.footer:
         if isinstance(rendered_template.footer, list):
-            response["footer"] = [
-                {
-                    "type": block.type,
-                    "blocks": [
-                        {"type": text_block.type, "text": text_block.text}
-                        for text_block in block.blocks
-                    ],
-                }
-                for block in rendered_template.footer
-            ]
+            response["footer"] = _serialize_blocks(rendered_template.footer)
         else:
             response["footer"] = rendered_template.footer
     return response

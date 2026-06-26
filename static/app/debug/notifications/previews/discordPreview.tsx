@@ -45,7 +45,16 @@ export function DiscordPreview({
             gap="md"
           >
             <DiscordWhiteText size="md" bold>
-              {subject}
+              {typeof subject === 'string' ? (
+                subject
+              ) : (
+                <NotificationBodyRenderer
+                  body={subject}
+                  codeBlockBackground="#2f3136"
+                  codeBlockBorder="#202225"
+                  codeBlockTextColor="#dcddde"
+                />
+              )}
             </DiscordWhiteText>
             <DiscordWhiteText size="sm">
               <NotificationBodyRenderer

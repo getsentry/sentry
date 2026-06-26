@@ -12,7 +12,7 @@ export interface NotificationTemplateRegistration {
   example: {
     actions: Array<{label: string; link: string}>;
     body: NotificationBodyFormattingBlock[];
-    subject: string;
+    subject: string | NotificationBodyFormattingBlock[];
     chart?: {alt_text: string; url: string};
     footer?: string | NotificationBodyFormattingBlock[];
   };

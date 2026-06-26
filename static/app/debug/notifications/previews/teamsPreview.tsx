@@ -72,7 +72,15 @@ export function TeamsPreview({
             </Flex>
             <TeamsCard direction="column" align="start" padding="xl" gap="md">
               <TeamsBlackText size="xl" bold>
-                {subject}
+                {typeof subject === 'string' ? (
+                  subject
+                ) : (
+                  <NotificationBodyRenderer
+                    body={subject}
+                    codeBlockBackground="#f3f2f1"
+                    codeBlockBorder="#e1dfdd"
+                  />
+                )}
               </TeamsBlackText>
               <TeamsBlackText>
                 <NotificationBodyRenderer

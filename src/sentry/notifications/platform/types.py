@@ -231,11 +231,13 @@ class NotificationRenderedImage:
 
 @dataclass(frozen=True)
 class NotificationRenderedTemplate:
-    subject: str
+    subject: str | list[NotificationBodyFormattingBlock]
     """
     The subject or title of the notification. It's expected that the receiver understand the
     expected content of the notification based on this alone, and it will be the first thing
-    they see. This string should not contain any formatting, and will be displayed as is.
+    they see. Accepts a plain string for simple text, or a list of NotificationBodyFormattingBlock
+    for rich formatting (links, bold, code, etc.). For providers that don't support rich subjects
+    (e.g. email subject lines), block content is rendered as plain text.
     """
     body: list[NotificationBodyFormattingBlock]
     """

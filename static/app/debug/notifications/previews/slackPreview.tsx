@@ -53,7 +53,15 @@ export function SlackPreview({
           </Flex>
           <Flex direction="column" align="start" padding="sm 0" gap="md">
             <SlackBlackText size="xl" bold>
-              {subject}
+              {typeof subject === 'string' ? (
+                subject
+              ) : (
+                <NotificationBodyRenderer
+                  body={subject}
+                  codeBlockBackground="#f8f8f8"
+                  codeBlockBorder="#e0e0e0"
+                />
+              )}
             </SlackBlackText>
             <SlackBodyText>
               <NotificationBodyRenderer

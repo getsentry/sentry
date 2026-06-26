@@ -46,10 +46,14 @@ export function DebugNotificationsExample({
           Subject
         </Text>
         {displayFormat === ExampleDataFormat.FORMATTED ? (
-          <Text>{registration.example.subject}</Text>
+          <Text>
+            {typeof registration.example.subject === 'string'
+              ? registration.example.subject
+              : JSON.stringify(registration.example.subject)}
+          </Text>
         ) : (
-          <CodeBlock language="javascript">
-            {JSON.stringify(registration.example.subject)}
+          <CodeBlock language="json">
+            {JSON.stringify(registration.example.subject, null, 2)}
           </CodeBlock>
         )}
         <Text variant="success" bold>

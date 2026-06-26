@@ -68,10 +68,15 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         embeds = []
 
         body_blocks = cls.render_body_blocks(rendered_template.body)
+        subject = (
+            cls.render_body_blocks(rendered_template.subject)
+            if isinstance(rendered_template.subject, list)
+            else rendered_template.subject
+        )
 
         embeds.append(
             DiscordMessageEmbed(
-                title=rendered_template.subject,
+                title=subject,
                 description=body_blocks,
                 image=(
                     DiscordMessageEmbedImage(url=rendered_template.chart.url)

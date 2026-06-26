@@ -10,7 +10,7 @@ from sentry.notifications.platform.provider import (
     SendSuccessResult,
 )
 from sentry.notifications.platform.registry import provider_registry
-from sentry.notifications.platform.renderer import NotificationRenderer
+from sentry.notifications.platform.renderer import NotificationRenderer, blocks_to_plain_text
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
@@ -47,6 +47,11 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
         html_body_blocks = cls.render_body_blocks_to_html_string(rendered_template.body)
         txt_body_blocks = cls.render_body_blocks_to_txt_string(rendered_template.body)
 
+        subject = (
+            blocks_to_plain_text(rendered_template.subject)
+            if isinstance(rendered_template.subject, list)
+            else rendered_template.subject
+        )
         footer_html = (
             cls.render_body_blocks_to_html_string(rendered_template.footer)
             if isinstance(rendered_template.footer, list)
@@ -58,7 +63,7 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
             else rendered_template.footer
         )
         email_context = {
-            "subject": rendered_template.subject,
+            "subject": subject,
             "actions": [(action.label, action.link) for action in rendered_template.actions],
             "chart_url": rendered_template.chart.url if rendered_template.chart else None,
             "chart_alt_text": rendered_template.chart.alt_text if rendered_template.chart else None,
@@ -80,7 +85,7 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
         # Required by RFC 2822 (https://www.rfc-editor.org/rfc/rfc2822.html)
         headers = {"Message-Id": make_msgid(domain=get_from_email_domain())}
         email = EmailMultiAlternatives(
-            subject=rendered_template.subject,
+            subject=subject,
             body=txt_body,
             # TODO(ecosystem): Potentially allow templates to configure more attributes of emails
             from_email=options.get("mail.from"),

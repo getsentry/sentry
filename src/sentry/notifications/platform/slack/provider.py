@@ -24,7 +24,7 @@ from sentry.notifications.platform.provider import (
     integration_error_result,
 )
 from sentry.notifications.platform.registry import provider_registry
-from sentry.notifications.platform.renderer import NotificationRenderer
+from sentry.notifications.platform.renderer import NotificationRenderer, blocks_to_plain_text
 from sentry.notifications.platform.target import (
     IntegrationNotificationTarget,
     PreparedIntegrationNotificationTarget,
@@ -70,10 +70,13 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> SlackRenderable:
-        subject = HeaderBlock(text=PlainTextObject(text=rendered_template.subject))
+        if isinstance(rendered_template.subject, list):
+            subject_blocks = cls._render_body(rendered_template.subject)
+        else:
+            subject_blocks = [HeaderBlock(text=PlainTextObject(text=rendered_template.subject))]
         body_blocks: list[Block] = cls._render_body(rendered_template.body)
 
-        blocks = [subject, *body_blocks]
+        blocks = [*subject_blocks, *body_blocks]
 
         if len(rendered_template.actions) > 0:
             actions_block = ActionsBlock(elements=[])
@@ -96,7 +99,12 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
                 footer = ContextBlock(elements=[MarkdownTextObject(text=rendered_template.footer)])
                 blocks.append(footer)
 
-        return SlackRenderable(blocks=blocks, text=rendered_template.subject)
+        subject_text = (
+            blocks_to_plain_text(rendered_template.subject)
+            if isinstance(rendered_template.subject, list)
+            else rendered_template.subject
+        )
+        return SlackRenderable(blocks=blocks, text=subject_text)
 
     @classmethod
     def _render_body(cls, body: list[NotificationBodyFormattingBlock]) -> list[Block]:

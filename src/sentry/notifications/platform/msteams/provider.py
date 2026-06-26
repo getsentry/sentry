@@ -57,8 +57,15 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             create_text_block,
         )
 
+        subject_text = (
+            cls.render_text_blocks(
+                [tb for block in rendered_template.subject for tb in block.blocks]
+            )
+            if isinstance(rendered_template.subject, list)
+            else rendered_template.subject
+        )
         title_text = create_text_block(
-            text=rendered_template.subject, size=TextSize.LARGE, weight=TextWeight.BOLDER
+            text=subject_text, size=TextSize.LARGE, weight=TextWeight.BOLDER
         )
         body_text = cls.render_body_blocks(rendered_template.body)
         body_blocks: list[Block] = [title_text, *body_text]
@@ -81,12 +88,13 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             )
             body_blocks.append(chart_image)
 
-        if footer := rendered_template.footer is not None:
-            if isinstance(footer, list):
-                footer_blocks = cls.render_body_blocks(footer, size=TextSize.SMALL)
-                body_blocks.extend(footer_blocks)
+        if rendered_template.footer is not None:
+            if isinstance(rendered_template.footer, list):
+                body_blocks.extend(
+                    cls.render_body_blocks(rendered_template.footer, size=TextSize.SMALL)
+                )
             else:
-                footer_text = create_text_block(text=footer, size=TextSize.SMALL)
+                footer_text = create_text_block(text=rendered_template.footer, size=TextSize.SMALL)
                 body_blocks.append(footer_text)
 
         card: AdaptiveCard = {
@@ -99,12 +107,16 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
     @classmethod
     def render_body_blocks(
-        cls, body: list[NotificationBodyFormattingBlock], size: TextSize = TextSize.MEDIUM
+        cls, body: list[NotificationBodyFormattingBlock], size: TextSize | None = None
     ) -> list[Block]:
         from sentry.integrations.msteams.card_builder.block import (
+            TextSize,
             create_code_block,
             create_text_block,
         )
+
+        if size is None:
+            size = TextSize.MEDIUM
 
         body_blocks: list[Block] = []
         for block in body:
@@ -113,9 +125,7 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
                     create_text_block(text=cls.render_text_blocks(block.blocks), size=size)
                 )
             elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
-                body_blocks.append(
-                    create_code_block(text=cls.render_text_blocks(block.blocks), size=size)
-                )
+                body_blocks.append(create_code_block(text=cls.render_text_blocks(block.blocks)))
         return body_blocks
 
     @classmethod
