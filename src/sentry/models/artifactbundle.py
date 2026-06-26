@@ -114,21 +114,22 @@ def delete_file_for_artifact_bundle(instance, **kwargs):
     from sentry.models.files import File
     from sentry.tasks.assemble import AssembleTask, delete_assemble_status
 
+    checksum = None
     try:
-        file = instance.file
+        checksum = instance.file.checksum
     except File.DoesNotExist:
-        return
-
-    try:
-        if instance.organization_id is not None and file.checksum is not None:
+        pass
+    else:
+        if instance.organization_id is not None and checksum is not None:
             delete_assemble_status(
                 AssembleTask.ARTIFACT_BUNDLE,
                 instance.organization_id,
-                file.checksum,
+                checksum,
             )
+
     finally:
         try:
-            file.delete()
+            instance.file.delete()
         except File.DoesNotExist:
             pass
 
