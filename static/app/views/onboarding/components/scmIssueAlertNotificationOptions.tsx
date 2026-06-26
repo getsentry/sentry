@@ -49,7 +49,7 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
         <Stack gap="md">
           <Flex as="label" align="start" gap="md">
             <Checkbox checked disabled readOnly />
-            <Text>{t('Email')}</Text>
+            <Text bold={false}>{t('Email')}</Text>
           </Flex>
           {shouldRenderSetupButton ? null : (
             <Flex as="label" align="start" gap="md">
@@ -63,7 +63,9 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
                   )
                 }
               />
-              <Text>{t('Integration (Slack, Discord, MS Teams, etc.)')}</Text>
+              <Text bold={false} ellipsis>
+                {t('Integration (Slack, Discord, MS Teams, etc.)')}
+              </Text>
             </Flex>
           )}
         </Stack>
