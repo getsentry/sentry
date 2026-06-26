@@ -34,6 +34,7 @@ class TestBuildMonitoringProviderModal(TestCase):
         assert "site_block" in block_ids
         assert "token_block" in block_ids
 
+        assert modal.private_metadata is not None
         metadata = orjson.loads(modal.private_metadata)
         assert metadata["org_id"] == self.organization.id
         assert metadata["provider_key"] == "datadog_pat"
@@ -55,6 +56,7 @@ class TestBuildMonitoringProviderModal(TestCase):
         block_ids = [b.block_id for b in modal.blocks]
         assert "org_block" in block_ids
 
+        assert modal.private_metadata is not None
         metadata = orjson.loads(modal.private_metadata)
         assert metadata["org_id"] is None
 
@@ -80,6 +82,7 @@ class TestBuildMonitoringProviderModal(TestCase):
             thread_ts=None,
             run_id=None,
         )
+        assert modal.title is not None
         assert modal.title.text == "Connect Datadog (Personal Access Token)"
 
     def test_private_metadata_includes_thread_ts_and_run_id(self) -> None:
@@ -91,6 +94,7 @@ class TestBuildMonitoringProviderModal(TestCase):
             thread_ts="1234567890.123456",
             run_id="run-abc",
         )
+        assert modal.private_metadata is not None
         metadata = orjson.loads(modal.private_metadata)
         assert metadata["thread_ts"] == "1234567890.123456"
         assert metadata["run_id"] == "run-abc"

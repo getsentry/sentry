@@ -197,7 +197,12 @@ def handle_monitoring_provider_submission(
 
     identity_user = slack_request.get_identity_user()
     if not identity_user:
-        return None
+        return {
+            "response_action": "errors",
+            "errors": {
+                "token_block": "Your Sentry identity is no longer linked. Use /sentry link and try again."
+            },
+        }
 
     state_values = get_path(view, "state", "values", default={})
 
@@ -212,10 +217,19 @@ def handle_monitoring_provider_submission(
         org_id = int(selected["value"])
 
     org_ctx = organization_service.get_organization_by_id(id=org_id, user_id=identity_user.id)
-    if org_ctx is None:
+    if org_ctx is None or org_ctx.member is None:
         return {
             "response_action": "errors",
             "errors": {"org_block": "You do not have access to this organization."},
+        }
+
+    oi = integration_service.get_organization_integration(
+        organization_id=org_id, integration_id=slack_request.integration.id
+    )
+    if oi is None:
+        return {
+            "response_action": "errors",
+            "errors": {"org_block": "This organization is not connected to this Slack workspace."},
         }
 
     if not features.has("organizations:seer-infra-telemetry", org_ctx.organization, actor=None):
@@ -320,7 +334,7 @@ def _get_orgs_with_feature(user_id: int, integration_id: int) -> list[tuple[int,
     result: list[tuple[int, str]] = []
     for oi in ois:
         ctx = organization_service.get_organization_by_id(id=oi.organization_id, user_id=user_id)
-        if ctx is None:
+        if ctx is None or ctx.member is None:
             continue
         if features.has("organizations:seer-infra-telemetry", ctx.organization, actor=None):
             result.append((ctx.organization.id, ctx.organization.slug))
