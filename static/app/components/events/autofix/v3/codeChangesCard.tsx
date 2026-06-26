@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -6,7 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Markdown} from '@sentry/scraps/markdown';
-import {Text} from '@sentry/scraps/text';
+import {Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -474,6 +475,10 @@ function FeedbackStatusIcon({status}: {status: FeedbackStatus}) {
   }
 }
 
+const FeedbackProse = styled(Prose)<{muted?: boolean}>`
+  ${p => (p.muted ? `color: ${p.theme.tokens.content.secondary};` : '')}
+`;
+
 function FeedbackItem({item}: {item: IterationFeedback}) {
   const isQueued = item.status === 'queued';
   return (
@@ -489,9 +494,9 @@ function FeedbackItem({item}: {item: IterationFeedback}) {
           {item.sourceType === 'github-pr-comment' ? (
             <ExternalLink href={item.commentUrl}>{item.text}</ExternalLink>
           ) : (
-            <Text wordBreak="break-word" variant={isQueued ? 'muted' : undefined}>
-              {item.text}
-            </Text>
+            <FeedbackProse muted={isQueued}>
+              <p>{item.text}</p>
+            </FeedbackProse>
           )}
         </Flex>
       </Flex>

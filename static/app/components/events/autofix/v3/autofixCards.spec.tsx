@@ -997,7 +997,9 @@ describe('ArtifactCard', () => {
         {organization: prIterationOrganization}
       );
 
-      const row = screen.getByText('fix the CI failure').parentElement!.parentElement!;
+      const row =
+        screen.getByText('fix the CI failure').parentElement!.parentElement!
+          .parentElement!;
       expect(within(row).getByTestId('loading-indicator')).toBeInTheDocument();
       expect(within(row).queryByTestId('icon-check-mark')).not.toBeInTheDocument();
     });
