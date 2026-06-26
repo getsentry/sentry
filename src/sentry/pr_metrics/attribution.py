@@ -131,7 +131,7 @@ def _log_unresolved_reported_pull_request(
     """Emit the attribution warnings for a reported PR that didn't resolve to a unique repo."""
     # A present-but-unrecognized provider means the source sent something we don't map —
     # warn so it can be corrected upstream.
-    if not resolved.provider_recognized:
+    if resolved.provider_unmappable:
         logger.warning("pr_metrics.attribution.unrecognized_provider", extra=log_context)
 
     if resolved.pull_request is None:

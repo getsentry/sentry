@@ -92,13 +92,14 @@ class ResolvedPullRequest(NamedTuple):
 
     ``pull_request`` is None when the reported ``(repo_name, provider)`` doesn't map to
     exactly one active ``Repository``; ``repo_resolution`` says why, and
-    ``provider_recognized`` flags a provider string we don't map. Callers decide how (and
+    ``provider_unmappable`` flags a *present* provider string we don't map (an empty or
+    ``"unknown"`` provider is treated as absent, not unmappable). Callers decide how (and
     whether) to log these under their own namespace.
     """
 
     pull_request: PullRequest | None
     repo_resolution: RepoResolution
-    provider_recognized: bool
+    provider_unmappable: bool
 
 
 def parse_pull_request_number(url: str) -> int | None:
@@ -183,8 +184,8 @@ class PullRequestManager(BaseManager["PullRequest"]):
         attribution).
         """
         normalized_provider = _normalize_scm_provider(provider)
-        provider_recognized = (
-            normalized_provider is None or normalized_provider in _KNOWN_SCM_PROVIDERS
+        provider_unmappable = (
+            normalized_provider is not None and normalized_provider not in _KNOWN_SCM_PROVIDERS
         )
 
         repository, resolution = self._resolve_repository(
@@ -193,7 +194,7 @@ class PullRequestManager(BaseManager["PullRequest"]):
             normalized_provider=normalized_provider,
         )
         if repository is None:
-            return ResolvedPullRequest(None, resolution, provider_recognized)
+            return ResolvedPullRequest(None, resolution, provider_unmappable)
 
         # get_or_create is race-safe via the unique constraint on (repository, key) —
         # Django retries the get on IntegrityError.
@@ -202,7 +203,7 @@ class PullRequestManager(BaseManager["PullRequest"]):
             repository_id=repository.id,
             key=str(key),
         )
-        return ResolvedPullRequest(pull_request, "resolved", provider_recognized)
+        return ResolvedPullRequest(pull_request, "resolved", provider_unmappable)
 
     def _resolve_repository(
         self, *, organization_id: int, repo_name: str, normalized_provider: str | None

@@ -455,7 +455,7 @@ class GetOrCreateFromReferenceTest(TestCase):
         resolved = self._resolve()
 
         assert resolved.repo_resolution == "resolved"
-        assert resolved.provider_recognized is True
+        assert resolved.provider_unmappable is False
         assert resolved.pull_request is not None
         assert resolved.pull_request.repository_id == self.repo.id
         assert resolved.pull_request.key == "42"
@@ -499,7 +499,7 @@ class GetOrCreateFromReferenceTest(TestCase):
 
         assert resolved.pull_request is None
         assert resolved.repo_resolution == "not_found"
-        assert resolved.provider_recognized is True
+        assert resolved.provider_unmappable is False
 
     def test_ambiguous_when_unknown_provider_matches_many(self) -> None:
         self.create_repo(self.project, name="getsentry/sentry", provider="integrations:gitlab")
@@ -516,25 +516,26 @@ class GetOrCreateFromReferenceTest(TestCase):
         resolved = self._resolve(provider="unknown")
 
         assert resolved.pull_request is not None
-        assert resolved.provider_recognized is True
+        # The "unknown" sentinel is treated as absent, not unmappable.
+        assert resolved.provider_unmappable is False
 
-    def test_flags_unrecognized_provider(self) -> None:
-        # An unmapped provider is surfaced via provider_recognized=False. Resolution still
+    def test_flags_unmappable_provider(self) -> None:
+        # An unmapped provider is surfaced via provider_unmappable=True. Resolution still
         # filters by it, so a repo stored under a recognized provider won't match.
         resolved = self._resolve(provider="subversion")
 
-        assert resolved.provider_recognized is False
+        assert resolved.provider_unmappable is True
         assert resolved.pull_request is None
         assert resolved.repo_resolution == "not_found"
 
-    def test_unrecognized_provider_resolves_against_a_matching_repo(self) -> None:
+    def test_unmappable_provider_resolves_against_a_matching_repo(self) -> None:
         svn_repo = self.create_repo(self.project, name="svn/project", provider="subversion")
 
         resolved = self._resolve(repo_name="svn/project", provider="subversion")
 
         # Still flagged, but resolution is attempted and succeeds when a repo actually
         # carries that provider.
-        assert resolved.provider_recognized is False
+        assert resolved.provider_unmappable is True
         assert resolved.pull_request is not None
         assert resolved.pull_request.repository_id == svn_repo.id
 
