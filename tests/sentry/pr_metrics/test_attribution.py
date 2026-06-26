@@ -45,8 +45,6 @@ class AttributeSeerCreatedPullRequestsTest(TestCase):
     def _attribute(
         self, pull_requests: list[dict[str, Any]], *, organization: Organization | None = None
     ) -> None:
-        # Mirror the operator: resolve the reported PRs once, then attribute the
-        # resolved rows. The operator fans the same resolved rows out to run→PR linking.
         org = organization or self.organization
         resolved_prs = resolve_seer_created_pull_requests(
             organization_id=org.id,
