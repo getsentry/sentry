@@ -78,7 +78,8 @@ export function Setup({
   const url = item.description || 'http://example.com';
 
   if (isVideoReplay) {
-    const docsUrl = getNetworkDetailsDocsUrl(replay?.getReplay()?.sdk?.name);
+    const sdkName = replay?.getReplay()?.sdk?.name;
+    const docsUrl = getNetworkDetailsDocsUrl(sdkName);
     if (!docsUrl) {
       return visibleTab === 'request' || visibleTab === 'response' ? (
         <StyledAlert variant="info">
@@ -96,6 +97,7 @@ export function Setup({
     return (
       <MobileSetupInstructions
         docsUrl={docsUrl}
+        sdkName={sdkName}
         showSnippet={showSnippet}
         url={url}
         visibleTab={visibleTab}
@@ -120,8 +122,82 @@ function getNetworkDetailsDocsUrl(sdkName: string | null | undefined): string | 
       return 'https://docs.sentry.io/platforms/android/session-replay/configuration/#network-details';
     case 'sentry.cocoa':
       return 'https://docs.sentry.io/platforms/apple/guides/ios/session-replay/configuration/#network-details';
+    case 'npm:@sentry/react-native':
+    case 'sentry.cocoa.react-native':
     case 'sentry.javascript.react-native':
+    case 'sentry.java.android.react-native':
       return 'https://docs.sentry.io/platforms/react-native/session-replay/#network-details';
+    default:
+      return null;
+  }
+}
+
+function getMobileCodeSnippet(
+  sdkName: string | null | undefined,
+  url: string,
+  includeHeaders: boolean
+): {code: string; filename: string; language: string} | null {
+  const kotlinHeaders = includeHeaders
+    ? [
+        '    options.sessionReplay.networkRequestHeaders = listOf("X-Custom-Header")',
+        '    options.sessionReplay.networkResponseHeaders = listOf("X-Custom-Header")',
+      ]
+    : [];
+  const swiftHeaders = includeHeaders
+    ? [
+        '    options.sessionReplay.networkRequestHeaders = ["X-Custom-Header"]',
+        '    options.sessionReplay.networkResponseHeaders = ["X-Custom-Header"]',
+      ]
+    : [];
+  const jsHeaders = includeHeaders
+    ? [
+        "      networkRequestHeaders: ['X-Custom-Header'],",
+        "      networkResponseHeaders: ['X-Custom-Header'],",
+      ]
+    : [];
+
+  switch (sdkName) {
+    case 'sentry.java.android':
+      return {
+        language: 'kotlin',
+        filename: 'Kotlin',
+        code: [
+          'SentryAndroid.init(this) { options ->',
+          `    options.sessionReplay.networkDetailAllowUrls = listOf("${url}")`,
+          ...kotlinHeaders,
+          '}',
+        ].join('\n'),
+      };
+    case 'sentry.cocoa':
+      return {
+        language: 'swift',
+        filename: 'Swift',
+        code: [
+          'SentrySDK.start { options in',
+          '    options.experimental.enableReplayNetworkDetailsCapturing = true',
+          `    options.sessionReplay.networkDetailAllowUrls = ["${url}"]`,
+          ...swiftHeaders,
+          '}',
+        ].join('\n'),
+      };
+    case 'npm:@sentry/react-native':
+    case 'sentry.cocoa.react-native':
+    case 'sentry.javascript.react-native':
+    case 'sentry.java.android.react-native':
+      return {
+        language: 'javascript',
+        filename: 'JavaScript',
+        code: [
+          'Sentry.init({',
+          '  integrations: [',
+          '    Sentry.mobileReplayIntegration({',
+          `      networkDetailAllowUrls: ['${url}'],`,
+          ...jsHeaders,
+          '    }),',
+          '  ],',
+          '})',
+        ].join('\n'),
+      };
     default:
       return null;
   }
@@ -129,11 +205,13 @@ function getNetworkDetailsDocsUrl(sdkName: string | null | undefined): string | 
 
 function MobileSetupInstructions({
   docsUrl,
+  sdkName,
   showSnippet,
   url,
   visibleTab,
 }: {
   docsUrl: string;
+  sdkName: string | null | undefined;
   showSnippet: Output;
   url: string;
   visibleTab: TabKey;
@@ -162,9 +240,17 @@ function MobileSetupInstructions({
         ? t('Capture Request and Response Headers')
         : t('Capture Request and Response Bodies');
 
+  const includeHeaders =
+    showSnippet === Output.SETUP ||
+    ([Output.URL_SKIPPED, Output.DATA].includes(showSnippet) && visibleTab === 'details');
+  const snippet =
+    url === '[Filtered]'
+      ? null
+      : getMobileCodeSnippet(sdkName, trimmedUrl, includeHeaders);
+
   return (
     <StyledInstructions data-test-id="network-setup-steps">
-      <h1>{title}</h1>
+      <h2>{title}</h2>
       <p>
         {tct(
           'To protect user privacy, Session Replay defaults to not capturing the request or response headers. However, we provide the option to do so, if it’s critical to your debugging process. [link].',
@@ -173,17 +259,18 @@ function MobileSetupInstructions({
           }
         )}
       </p>
-      {showSnippet === Output.URL_SKIPPED && url !== '[Filtered]' && (
-        <Container margin="md 0 lg 0">
-          {tct(
-            'Add the following to your [field] list to start capturing data: [alert] ',
-            {
-              field: <code>networkDetailAllowUrls</code>,
-              alert: <StyledTextCopyInput>{trimmedUrl}</StyledTextCopyInput>,
-            }
-          )}
-        </Container>
-      )}
+      {(showSnippet === Output.SETUP || showSnippet === Output.URL_SKIPPED) &&
+        url !== '[Filtered]' && (
+          <Container margin="md 0 lg 0">
+            {tct(
+              'Add the following to your [field] list to start capturing data: [alert] ',
+              {
+                field: <code>networkDetailAllowUrls</code>,
+                alert: <StyledTextCopyInput>{trimmedUrl}</StyledTextCopyInput>,
+              }
+            )}
+          </Container>
+        )}
       {showSnippet === Output.BODY_SKIPPED && (
         <Alert.Container>
           <Alert variant="warning" showIcon={false}>
@@ -192,6 +279,11 @@ function MobileSetupInstructions({
             })}
           </Alert>
         </Alert.Container>
+      )}
+      {snippet && (
+        <CodeBlock filename={snippet.filename} language={snippet.language}>
+          {snippet.code}
+        </CodeBlock>
       )}
     </StyledInstructions>
   );

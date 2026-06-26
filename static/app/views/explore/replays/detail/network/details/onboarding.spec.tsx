@@ -168,25 +168,44 @@ describe('Setup', () => {
     }
 
     it.each([
-      {sdk: 'sentry.java.android', platform: 'Android'},
-      {sdk: 'sentry.cocoa', platform: 'iOS'},
-      {sdk: 'sentry.javascript.react-native', platform: 'React Native'},
-    ])('should render setup instructions for $platform when not configured', ({sdk}) => {
-      mockVideoReplay(sdk);
-      render(
-        <Setup
-          item={MOCK_ITEM!}
-          projectId="0"
-          showSnippet={Output.SETUP}
-          visibleTab="details"
-        />
-      );
+      {
+        sdk: 'sentry.java.android',
+        platform: 'Android',
+        snippetMatch: 'SentryAndroid.init',
+      },
+      {sdk: 'sentry.cocoa', platform: 'iOS', snippetMatch: 'SentrySDK.start'},
+      {
+        sdk: 'sentry.javascript.react-native',
+        platform: 'React Native',
+        snippetMatch: 'mobileReplayIntegration',
+      },
+    ])(
+      'should render setup instructions with $platform code snippet when not configured',
+      ({sdk, snippetMatch}) => {
+        mockVideoReplay(sdk);
+        render(
+          <Setup
+            item={MOCK_ITEM!}
+            projectId="0"
+            showSnippet={Output.SETUP}
+            visibleTab="details"
+          />
+        );
 
-      expect(
-        screen.getByText('Capture Request and Response Headers and Bodies')
-      ).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: 'Learn More'})).toBeInTheDocument();
-    });
+        expect(
+          screen.getByText('Capture Request and Response Headers and Bodies')
+        ).toBeInTheDocument();
+        expect(screen.getByRole('link', {name: 'Learn More'})).toBeInTheDocument();
+        expect(screen.getByText(snippetMatch, {exact: false})).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            textWithMarkupMatcher(
+              'Add the following to your networkDetailAllowUrls list to start capturing data:'
+            )
+          )
+        ).toBeInTheDocument();
+      }
+    );
 
     it('should render URL skipped message for mobile replays', () => {
       mockVideoReplay('sentry.java.android');
