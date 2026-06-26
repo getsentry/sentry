@@ -166,8 +166,20 @@ function ConversationsTableInner() {
   );
 }
 
+function normalizeUserField(value: string | null): string | null {
+  if (!value || value.toLowerCase() === 'none') {
+    return null;
+  }
+  return value;
+}
+
 export function getUserDisplayName(user: ConversationUser): string | null {
-  return user.email || user.username || user.ip_address || null;
+  return (
+    normalizeUserField(user.email) ||
+    normalizeUserField(user.username) ||
+    normalizeUserField(user.ip_address) ||
+    null
+  );
 }
 
 const TOOLTIP_MAX_CHARS = 2048;
