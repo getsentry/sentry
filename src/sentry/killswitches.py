@@ -250,6 +250,16 @@ ALL_KILLSWITCH_OPTIONS = {
             "org_id": "An organization ID to filter segments by.",
         },
     ),
+    "unmerge.killswitch-projects": KillswitchInfo(
+        description="""
+        Halt the self-chaining unmerge task for the given projects.
+
+        Note that this will orphan any events that havne't been moved to the new group.
+        """,
+        fields={
+            "project_id": "A project ID to halt unmerge for.",
+        },
+    ),
 }
 
 
