@@ -77,6 +77,7 @@ export function PrIterationFeedbackForm({
             'Give Seer additional context to improve your pull request and make changes to your code. Hit ENTER to submit.'
           )}
           value={feedback}
+          disabled={isSubmitting}
           onChange={event => setFeedback(event.target.value)}
           onKeyDown={event => {
             if (event.nativeEvent.isComposing) {
@@ -100,12 +101,11 @@ export function PrIterationFeedbackForm({
         )}
         <Button
           ref={submitButtonRef}
-          icon={<IconArrow size="md" direction="right" />}
-          busy={isSubmitting}
-          disabled={isPolling || !feedback.trim()}
+          icon={isSubmitting ? undefined : <IconArrow size="md" direction="right" />}
+          disabled={isSubmitting || isPolling || !feedback.trim()}
           onClick={handleSubmit}
         >
-          {t('Submit')}
+          {isSubmitting ? t('Submitting feedback') : t('Submit')}
         </Button>
       </Flex>
     </Flex>

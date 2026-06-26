@@ -15,6 +15,7 @@ import {
   isCodeChangesArtifact,
   isPrIterationBlock,
   type AutofixSection,
+  type QueuedFeedbackItem,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
@@ -75,9 +76,30 @@ type DistributiveOmit<T, K extends keyof any> = T extends unknown ? Omit<T, K> :
  * we don't recognize return `null` so a backend change can roll out ahead of the
  * frontend without rendering anything unexpected.
  */
+function parseQueuedFeedback(
+  item: QueuedFeedbackItem,
+  iterationIndex: number
+): IterationFeedback | null {
+  const base = {text: item.text, timestamp: item.timestamp, iterationIndex};
+  switch (item.source?.type) {
+    case 'user-ui':
+      return {...base, sourceType: 'user-ui', user: item.source.user ?? null};
+    case 'github-pr-comment':
+      return {
+        ...base,
+        sourceType: 'github-pr-comment',
+        githubUsername: item.source.comment?.user?.login,
+        commentUrl: item.source.comment?.html_url,
+      };
+    default:
+      return null;
+  }
+}
+
 function parseFeedback(
   raw: string
 ): DistributiveOmit<IterationFeedback, 'iterationIndex'> | null {
+  const rawParsed = JSON.parse(raw);
   const parsed: {
     text: string;
     source?: {
@@ -86,7 +108,10 @@ function parseFeedback(
       user?: User;
     };
     timestamp?: string;
-  } = JSON.parse(raw);
+  } = Array.isArray(rawParsed) ? rawParsed[0] : rawParsed;
+  if (!parsed) {
+    return null;
+  }
   const base = {text: parsed.text, timestamp: parsed.timestamp};
   switch (parsed.source?.type) {
     case 'user-ui':
@@ -133,25 +158,30 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   // section's code-change artifact by getOrderedAutofixSections. Gated behind
   // the PR iteration feature; when it's off we render the card as if no
   // iterations exist.
-  const feedback = useMemo<IterationFeedback[]>(
-    () =>
-      hasPrIterationFeature
-        ? section.blocks.filter(isPrIterationBlock).flatMap(block => {
-            const metadata = block.message.metadata;
-            const value = metadata?.feedback;
-            const iterationIndex = metadata?.iteration_index;
-            if (!value || iterationIndex === undefined) {
-              return [];
-            }
-            const parsed = parseFeedback(value);
-            if (!parsed) {
-              return [];
-            }
-            return [{...parsed, iterationIndex: Number(iterationIndex)}];
-          })
-        : [],
-    [section.blocks, hasPrIterationFeature]
-  );
+  const feedback = useMemo<IterationFeedback[]>(() => {
+    if (!hasPrIterationFeature) {
+      return [];
+    }
+    const processed = section.blocks.filter(isPrIterationBlock).flatMap(block => {
+      const metadata = block.message.metadata;
+      const value = metadata?.feedback;
+      const iterationIndex = metadata?.iteration_index;
+      if (!value || iterationIndex === undefined) {
+        return [];
+      }
+      const parsed = parseFeedback(value);
+      if (!parsed) {
+        return [];
+      }
+      return [{...parsed, iterationIndex: Number(iterationIndex)}];
+    });
+    const maxIndex = processed.reduce<number>((m, f) => Math.max(m, f.iterationIndex), -1);
+    const queued = (autofix.runState?.queued_feedback ?? []).flatMap((item, i) => {
+      const parsed = parseQueuedFeedback(item, maxIndex + 1 + i);
+      return parsed ? [parsed] : [];
+    });
+    return [...processed, ...queued];
+  }, [section.blocks, hasPrIterationFeature, autofix.runState?.queued_feedback]);
 
   const latestIterationIndex = useMemo(
     () =>
@@ -163,10 +193,12 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     [feedback]
   );
 
+  const hasQueuedFeedback = (autofix.runState?.queued_feedback ?? []).length > 0;
+
   const isIterating =
     hasPrIterationFeature &&
-    section.status === 'processing' &&
-    section.blocks.some(isPrIterationBlock);
+    (hasQueuedFeedback ||
+      (section.status === 'processing' && section.blocks.some(isPrIterationBlock)));
 
   // While processing, only replay the assistant output from the current
   // in-progress step. Steps (the original coding step plus each PR iteration)
@@ -229,7 +261,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesByRepo]);
 
-  const isProcessing = section.status === 'processing';
+  const isProcessing = section.status === 'processing' || hasQueuedFeedback;
 
   return (
     <ArtifactCard
