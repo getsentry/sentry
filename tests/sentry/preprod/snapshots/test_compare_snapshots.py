@@ -1707,7 +1707,9 @@ class EndToEndFanoutTest(TestCase):
 
         # The orchestrator stamps the processing-start timestamp at fan-out, and
         # finalize reads it to emit the diff-duration metric — assert the full round-trip.
-        assert datetime.fromisoformat(comparison.extras["diff_processing_started_at"])
+        extras = comparison.extras
+        assert extras is not None
+        assert datetime.fromisoformat(extras["diff_processing_started_at"])
         mock_metrics.distribution.assert_any_call(
             "preprod.snapshots.diff.duration_s",
             ANY,
