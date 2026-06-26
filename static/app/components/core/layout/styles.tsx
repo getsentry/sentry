@@ -70,8 +70,7 @@ export function rc<T>(
     if (first) {
       first = false;
       return `
-          ${atRule} (min-width: ${theme.breakpoints[breakpoint]}),
-            (max-width: ${theme.breakpoints[breakpoint]}) {
+          ${atRule} (min-width: ${theme.breakpoints[breakpoint]}) or (max-width: ${theme.breakpoints[breakpoint]}) {
             ${property}: ${resolver ? resolver(v, breakpoint, theme) : (v as string)};
           }
         `;

@@ -139,6 +139,10 @@ describe('rc', () => {
     assert(output);
     expect(output).toContain('@media');
     expect(output).not.toContain('@container');
+    // Both @media and @container OR the first breakpoint's bounds via `or`.
+    expect(output).toContain(
+      `@media (min-width: ${theme.breakpoints.xs}) or (max-width: ${theme.breakpoints.xs})`
+    );
   });
 
   it('emits @container queries when mode is "container"', () => {
@@ -153,10 +157,13 @@ describe('rc', () => {
   it('container mode keeps the dual min/max prelude for the first breakpoint', () => {
     const output = rc('flex-direction', {xs: 'column', md: 'row'}, theme, 'container');
     assert(output);
-    // First defined breakpoint (xs) gets both min-width and max-width.
+    // First defined breakpoint (xs) gets both min-width and max-width, ORed
+    // with the `or` keyword — container queries don't support comma lists.
     expect(output).toContain(
-      `@container (min-width: ${theme.breakpoints.xs}),\n            (max-width: ${theme.breakpoints.xs})`
+      `@container (min-width: ${theme.breakpoints.xs}) or (max-width: ${theme.breakpoints.xs})`
     );
+    // A comma list here would be invalid container-query syntax.
+    expect(output).not.toContain(`@container (min-width: ${theme.breakpoints.xs}),`);
   });
 
   it('returns a plain declaration (no at-rule) for non-responsive container values', () => {
