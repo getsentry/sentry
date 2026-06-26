@@ -6,6 +6,7 @@ from django.db import connections, router, transaction
 
 from sentry import options
 from sentry.constants import DataCategory
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.silo.base import SiloMode
@@ -203,6 +204,9 @@ def compute_projectkey_config(key):
     if key.status != ProjectKeyStatus.ACTIVE:
         return {"disabled": True}
     else:
+        # Clear the local options cache; if any of them changed, we may need to get the latest values,
+        OrganizationOption.objects.reload_task_local_cache(key.project.organization_id)
+
         return get_project_config(key.project, project_keys=[key]).to_dict()
 
 

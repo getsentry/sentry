@@ -35,6 +35,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.data_condition import Condition
 
 InputData = dict[str, Any]
 ListInputData = list[InputData]
@@ -110,9 +111,11 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
     def validate_action_filters(self, value: ListInputData) -> ListInputData:
         for action_filter in value:
             actions, condition_group = self._split_action_and_condition_group(action_filter)
-            BaseDataConditionGroupValidator(data=condition_group, context=self.context).is_valid(
-                raise_exception=True
+            dcg_validator = BaseDataConditionGroupValidator(
+                data=condition_group, context=self.context
             )
+            dcg_validator.is_valid(raise_exception=True)
+            action_filter.update(dcg_validator.validated_data)
 
             validated_actions = []
             for action in actions:
@@ -126,6 +129,44 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             action_filter["actions"] = validated_actions
 
         return value
+
+    def has_seer_activity_trigger(self, triggers: InputData | None) -> bool:
+        from sentry.workflow_engine.models import DataCondition
+
+        # If this mutation affects triggers, check the incoming payload for activity triggers...
+        if triggers:
+            return any(
+                c.get("type") == Condition.SEER_ACTIVITY_TRIGGER
+                for c in triggers.get("conditions", [])
+            )
+        # ...otherwise, check if the existing workflow being modified has activity triggers
+        workflow: Workflow | None = self.context.get("workflow")
+        if workflow is None or workflow.when_condition_group_id is None:
+            return False
+        return DataCondition.objects.filter(
+            condition_group_id=workflow.when_condition_group_id,
+            type=Condition.SEER_ACTIVITY_TRIGGER,
+        ).exists()
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        from sentry.notifications.notification_action.activity_registry.base import (
+            get_supported_action_types,
+        )
+
+        has_activity_trigger = self.has_seer_activity_trigger(triggers=attrs.get("triggers"))
+        if not has_activity_trigger:
+            return attrs
+
+        supported_action_types = get_supported_action_types()
+        for action_filter in attrs.get("action_filters", []):
+            for action in action_filter.get("actions", []):
+                action_type = action.get("type")
+                if action_type and Action.Type(action_type) not in supported_action_types:
+                    raise serializers.ValidationError(
+                        f"Action type '{action_type}' is not supported for activity triggers"
+                    )
+
+        return attrs
 
     def _update_or_create(
         self,
@@ -198,14 +239,14 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         validator = BaseDataConditionGroupValidator(context=self.context)
 
         condition_group_id = condition_group_data.get("id")
-        if instance and condition_group_id and condition_group_id != str(instance.id):
+        if instance and condition_group_id and condition_group_id != instance.id:
             raise serializers.ValidationError(
                 f"Invalid Condition Group ID {condition_group_data.get('id')}"
             )
 
         # If an instance is provided but no id in the data, use the instance's id to ensure we update the existing condition group
         if instance and not condition_group_id:
-            condition_group_data["id"] = str(instance.id)
+            condition_group_data["id"] = instance.id
 
         actions = condition_group_data.pop("actions", None)
         condition_group = self._update_or_create(

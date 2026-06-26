@@ -659,8 +659,7 @@ def process_group_resolution(
         publish_action_from_context(
             ResolveAction(),
             group_id=group.id,
-            organization_id=group.project.organization_id,
-            project_id=group.project_id,
+            project=group.project,
         )
 
         # TODO(dcramer): we need a solution for activity rollups
@@ -841,8 +840,7 @@ def prepare_response(
                 MergeFromOtherAction(counterpart_group_ids=child_ids),
                 source=ctx.source,
                 group_id=primary_id,
-                organization_id=primary.project.organization_id,
-                project_id=primary.project_id,
+                project=primary.project,
                 actor=ctx.actor,
             )
             for child_id in child_ids:
@@ -851,8 +849,7 @@ def prepare_response(
                     MergeIntoOtherAction(counterpart_group_id=primary_id),
                     source=ctx.source,
                     group_id=child_id,
-                    organization_id=child.project.organization_id,
-                    project_id=child.project_id,
+                    project=child.project,
                     actor=ctx.actor,
                 )
 

@@ -27,8 +27,12 @@ from sentry.integrations.github.webhook import (
     CheckSuiteWebhook,
     GitHubIntegrationsWebhookEndpoint,
     InstallationRepositoriesEventWebhook,
+    _track_contributor_action_processor,
 )
-from sentry.integrations.github.webhook_types import InstallationRepositoriesEvent
+from sentry.integrations.github.webhook_types import (
+    GithubWebhookType,
+    InstallationRepositoriesEvent,
+)
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -41,9 +45,10 @@ from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
+from sentry.pr_metrics.webhooks import handle_check_suite as pr_metrics_handle_check_suite
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
@@ -158,7 +163,7 @@ class SCMOnlyWebhookTest(APITestCase):
 
     @patch("sentry.integrations.github.webhook.produce_event_to_scm_stream")
     @patch.object(CheckSuiteWebhook, "_handle", autospec=True)
-    def test_check_suite_handler_is_noop_and_publishes_to_scm_stream(
+    def test_check_suite_routes_to_handler_and_publishes_to_scm_stream(
         self, mock_handle: MagicMock, mock_produce: MagicMock
     ) -> None:
         self.create_github_integration_and_repo()
@@ -173,7 +178,9 @@ class SCMOnlyWebhookTest(APITestCase):
         )
 
         assert response.status_code == 204
-        assert CheckSuiteWebhook.WEBHOOK_EVENT_PROCESSORS == ()
+        # check_suite now feeds the PR-metrics activity timeline in addition to
+        # being republished to the SCM stream.
+        assert pr_metrics_handle_check_suite in CheckSuiteWebhook.WEBHOOK_EVENT_PROCESSORS
         mock_handle.assert_called_once()
         mock_produce.assert_called_once()
 
@@ -835,56 +842,6 @@ class PushEventWebhookTest(APITestCase):
         # The original casing is preserved; no casing-variant duplicate is created.
         assert external_actors[0].id == existing.id
         assert external_actors[0].external_name == "@NewDev"
-
-    @responses.activate
-    def test_push_after_pr_resolves_localhost_author(self) -> None:
-        """
-        PR webhook arrives first and creates an @localhost CommitAuthor.
-        Push webhook arrives second with the real git email. The @localhost
-        record must not hold external_id or the real-email record can never
-        claim it.
-        """
-        self._setup_github_integration_and_repo()
-
-        pr_body = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-        pr_body["pull_request"]["user"]["login"] = "newdev"
-        pr_body["pull_request"]["user"]["id"] = 99999
-        pr_bytes = json.dumps(pr_body).encode()
-        sig1 = GitHubIntegrationsWebhookEndpoint.compute_signature("sha1", pr_bytes, self.secret)
-        sig256 = GitHubIntegrationsWebhookEndpoint.compute_signature(
-            "sha256", pr_bytes, self.secret
-        )
-        response = self.client.post(
-            path=self.url,
-            data=pr_bytes,
-            content_type="application/json",
-            HTTP_X_GITHUB_EVENT="pull_request",
-            HTTP_X_HUB_SIGNATURE=f"sha1={sig1}",
-            HTTP_X_HUB_SIGNATURE_256=f"sha256={sig256}",
-            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
-        )
-        assert response.status_code == 204
-
-        # @localhost CommitAuthor exists but without external_id.
-        localhost_author = CommitAuthor.objects.get(
-            organization_id=self.organization.id, email="newdev@localhost"
-        )
-        assert localhost_author.external_id is None
-
-        # Push webhook sets external_id on the real-email record without collision.
-        assert (
-            self._send_push_event(
-                push_event_with_author(
-                    name="New Dev", email="newdev@example.com", username="newdev"
-                )
-            ).status_code
-            == 204
-        )
-
-        real_author = CommitAuthor.objects.get(
-            organization_id=self.organization.id, email="newdev@example.com"
-        )
-        assert real_author.external_id == "github:newdev"
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -2000,3 +1957,79 @@ class IssuesEventWebhookTest(APITestCase):
             assert response.status_code == 204
             # Sync should be called for each org that has a linked issue
             assert mock_sync.call_count >= 1
+
+
+class TrackContributorActionProcessorTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        self.repo = self.create_repo(
+            project=self.project, provider="integrations:github", integration_id=self.integration.id
+        )
+        self.rpc_integration = integration_service.get_integration(
+            integration_id=self.integration.id
+        )
+
+    @patch("sentry.integrations.github.webhook.record_contributor_action")
+    def test_success(self, mock_record: MagicMock) -> None:
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event=json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
+            organization=self.organization,
+            repo=self.repo,
+            integration=self.rpc_integration,
+        )
+
+        mock_record.assert_called_once()
+        kwargs = mock_record.call_args.kwargs
+        assert kwargs["organization"].id == self.organization.id
+        assert kwargs["repo"].id == self.repo.id
+        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["user_id"] == "6752317"
+        assert kwargs["user_username"] == "baxterthehacker"
+        assert kwargs["provider"] == "github"
+        assert kwargs["pr_number"] == 1
+        assert kwargs["is_opened"] is True
+        assert kwargs["tags"] == {"is_private": False}
+
+    @patch("sentry.integrations.github.webhook.record_contributor_action")
+    def test_is_opened_false_for_non_opened_action(self, mock_record: MagicMock) -> None:
+        event = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        event["action"] = "synchronize"
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            integration=self.rpc_integration,
+        )
+
+        assert mock_record.call_args.kwargs["is_opened"] is False
+
+    @patch("sentry.integrations.github.webhook.record_contributor_action")
+    def test_no_integration_skips(self, mock_record: MagicMock) -> None:
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event=json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
+            organization=self.organization,
+            repo=self.repo,
+            integration=None,
+        )
+
+        mock_record.assert_not_called()
+
+    @patch("sentry.integrations.github.webhook.record_contributor_action")
+    def test_missing_pull_request_skips(self, mock_record: MagicMock) -> None:
+        event = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        del event["pull_request"]
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            integration=self.rpc_integration,
+        )
+
+        mock_record.assert_not_called()

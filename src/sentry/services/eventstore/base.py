@@ -340,6 +340,7 @@ class EventStorage(Service):
         fetched on any attempt to access a property.
         """
         sentry_sdk.set_tag("eventstore.backend", "nodestore")
+        sentry_sdk.set_attribute("eventstore.backend", "nodestore")
 
         with sentry_sdk.start_span(op="eventstore.base.bind_nodes"):
             object_node_list = [(i, i.data) for i in object_list if i.data.id]

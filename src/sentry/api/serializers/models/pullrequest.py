@@ -1,13 +1,19 @@
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import Literal, TypedDict
+
+from django.db.models import Prefetch, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.api.serializers.models.repository import RepositorySerializerResponse
 from sentry.api.serializers.release_details_types import Author
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import PullRequest, PullRequestAttribution
 from sentry.models.repository import Repository
+from sentry.pr_metrics.attribution import is_seer_attribution
+
+PullRequestStatus = Literal["merged", "open", "closed", "draft", "unknown"]
 
 
 class PullRequestSerializerResponse(TypedDict):
@@ -18,6 +24,20 @@ class PullRequestSerializerResponse(TypedDict):
     repository: RepositorySerializerResponse
     author: Author
     externalUrl: str
+
+
+class LinkedPullRequestSeerAttributionResponse(TypedDict):
+    type: Literal["seer"]
+    id: Literal["seer"]
+
+
+LinkedPullRequestAttributionResponse = LinkedPullRequestSeerAttributionResponse
+
+
+class LinkedPullRequestResponse(PullRequestSerializerResponse):
+    attribution: LinkedPullRequestAttributionResponse | None
+    dateLinked: datetime
+    status: PullRequestStatus
 
 
 def get_users_for_pull_requests(item_list, user=None):
@@ -63,4 +83,55 @@ class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
             "repository": attrs["repository"],
             "author": attrs["user"],
             "externalUrl": attrs["external_url"],
+        }
+
+
+def _serialize_attribution(
+    attributions: Sequence[PullRequestAttribution],
+) -> LinkedPullRequestAttributionResponse | None:
+    if not any(is_seer_attribution(attribution) for attribution in attributions):
+        return None
+
+    return {
+        "type": "seer",
+        "id": "seer",
+    }
+
+
+class LinkedPullRequestSerializer(PullRequestSerializer):
+    """Serialize a pull request linked to a group.
+
+    The caller passes in the linked-at timestamp and PR status; this serializer
+    maps them, along with the PR's Seer attribution, into the response shape.
+    """
+
+    def __init__(
+        self,
+        *,
+        date_linked_by_pr_id: Mapping[int, datetime],
+        status_by_pr_id: Mapping[int, PullRequestStatus],
+    ) -> None:
+        self.date_linked_by_pr_id = date_linked_by_pr_id
+        self.status_by_pr_id = status_by_pr_id
+
+    def get_attrs(self, item_list, user, **kwargs):
+        attrs = super().get_attrs(item_list, user)
+        prefetch_related_objects(
+            item_list,
+            Prefetch(
+                "pullrequestattribution_set",
+                queryset=PullRequestAttribution.objects.filter(is_valid=True),
+                to_attr="valid_attributions",
+            ),
+        )
+        for item in item_list:
+            attrs[item]["attribution"] = _serialize_attribution(item.valid_attributions)
+        return attrs
+
+    def serialize(self, obj: PullRequest, attrs, user, **kwargs) -> LinkedPullRequestResponse:
+        return {
+            **super().serialize(obj, attrs, user, **kwargs),
+            "attribution": attrs["attribution"],
+            "dateLinked": self.date_linked_by_pr_id[obj.id],
+            "status": self.status_by_pr_id[obj.id],
         }

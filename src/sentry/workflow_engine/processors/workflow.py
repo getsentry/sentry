@@ -93,6 +93,7 @@ def enqueue_workflows(
     project_to_workflow: dict[int, list[int]] = {}
     if not items_by_project_id:
         sentry_sdk.set_tag("delayed_workflow_items", items)
+        sentry_sdk.set_attribute("delayed_workflow_items", items)
         return
 
     for project_id, queue_items in items_by_project_id.items():
@@ -104,6 +105,7 @@ def enqueue_workflows(
         project_to_workflow[project_id] = sorted({item.workflow.id for item in queue_items})
 
     sentry_sdk.set_tag("delayed_workflow_items", items)
+    sentry_sdk.set_attribute("delayed_workflow_items", items)
 
     client.add_project_ids(list(items_by_project_id.keys()))
 
@@ -563,6 +565,9 @@ def process_workflows(
     workflow_evaluation_data.delayed_conditions = queue_items_by_workflow_id
 
     sentry_sdk.set_tag(
+        "workflow_engine.triggered_actions", len(workflow_evaluation_data.triggered_actions)
+    )
+    sentry_sdk.set_attribute(
         "workflow_engine.triggered_actions", len(workflow_evaluation_data.triggered_actions)
     )
 

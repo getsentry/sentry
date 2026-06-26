@@ -587,6 +587,16 @@ def _create_seer_activity(
         pull_requests = event_payload.get("pull_requests", [])
         if pull_requests:
             activity_data["pull_requests"] = pull_requests
+    elif event_type == SentryAppEventType.SEER_ITERATION_COMPLETED:
+        pull_requests = event_payload.get("pull_requests", [])
+        if pull_requests:
+            activity_data["pull_requests"] = pull_requests
+        code_changes = event_payload.get("code_changes")
+        if code_changes:
+            activity_data["code_changes"] = code_changes
+        iteration_index = event_payload.get("iteration_index")
+        if iteration_index is not None:
+            activity_data["iteration_index"] = iteration_index
 
     Activity.objects.create_group_activity(
         group,

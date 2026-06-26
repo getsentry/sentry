@@ -856,6 +856,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             selected_columns=[f"sum({column})"],
         )
         sentry_sdk.set_tag("query.resolved_total", scope)
+        sentry_sdk.set_attribute("query.resolved_total", scope)
 
         total_results = total_query.run_query(
             Referrer.API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD.value

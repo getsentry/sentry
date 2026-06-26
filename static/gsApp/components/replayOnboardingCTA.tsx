@@ -49,7 +49,6 @@ function ReplayOnboardingCTAUpsell({
     trackGetsentryAnalytics('replay.list_page.viewed', {
       organization,
       surface: 'replay_onboarding_banner',
-      planTier: subscription.planTier,
       canSelfServe: subscription.canSelfServe,
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),
@@ -67,7 +66,6 @@ function ReplayOnboardingCTAUpsell({
         trackGetsentryAnalytics('replay.list_page.sent_email', {
           organization,
           surface: 'replay_onboarding_banner',
-          planTier: subscription.planTier,
           canSelfServe: subscription.canSelfServe,
           channel: subscription.channel,
           has_billing_scope: organization.access?.includes('org:billing'),
@@ -112,7 +110,6 @@ function ReplayOnboardingCTAUpsell({
       trackGetsentryAnalytics('replay.list_page.open_modal', {
         organization,
         surface: 'replay_onboarding_banner',
-        planTier: subscription.planTier,
         canSelfServe: subscription.canSelfServe,
         channel: subscription.channel,
         has_billing_scope: hasBillingAccess,
@@ -156,7 +153,6 @@ function ReplayOnboardingCTAUpsell({
     trackGetsentryAnalytics('replay.list_page.manage_sub', {
       organization,
       surface: 'replay_onboarding_banner',
-      planTier: subscription.planTier,
       canSelfServe: subscription.canSelfServe,
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),

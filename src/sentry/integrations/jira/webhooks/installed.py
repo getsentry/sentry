@@ -114,6 +114,7 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
             # here, because at this point the integration hasn't yet been bound to an organization. The
             # best we can do at this point is to record the integration's id.
             sentry_sdk.set_tag("integration_id", integration.id)
+            sentry_sdk.set_attribute("integration_id", integration.id)
 
             # Sync integration metadata from Jira. This must be executed *after*
             # the integration has been installed on Jira as the access tokens will

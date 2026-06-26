@@ -21,6 +21,7 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.exceptions import BadRequest as SentryBadRequest
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
+from sentry.api.serializers.models.commit import CommitSerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
@@ -29,10 +30,13 @@ from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
+from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import EventOrdering, Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
+from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.post_process import process_raw_response
@@ -57,8 +61,31 @@ from sentry.seer.agent.utils import (
     get_retention_boundary,
 )
 from sentry.seer.autofix.autofix import get_all_tags_overview
+from sentry.seer.autofix.utils import get_repo_url_path
 from sentry.seer.seer_setup import get_supported_scm_providers
-from sentry.seer.sentry_data_models import EAPTrace
+from sentry.seer.sentry_data_models import (
+    BaselineTagDistributionEntry,
+    BaselineTagDistributionResponse,
+    ComparativeAttributeDistributionsResponse,
+    EAPTrace,
+    EmptyResponse,
+    EventDetailsResponse,
+    ExecuteQueryErrorResponse,
+    ExecuteQuerySuccessResponse,
+    ExecuteTimeseriesQueryErrorResponse,
+    ExecuteTimeseriesQuerySuccessResponse,
+    GetDsnResponse,
+    IssueAndEventDetailsResponse,
+    IssueCommittersResponse,
+    IssueDetailsResponse,
+    ProfileFlamegraphErrorResponse,
+    ProfileFlamegraphMetadata,
+    ProfileFlamegraphSuccessResponse,
+    ReplayMetadataResponse,
+    RepositoryDefinitionResponse,
+    TraceItemAttributesResponse,
+    TraceItemEventsResponse,
+)
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.ourlogs import OurLogs
@@ -68,6 +95,13 @@ from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
+from sentry.utils import metrics
+from sentry.utils.committers import (
+    get_event_file_committers,
+    get_frame_paths,
+    get_release_commit_candidates,
+    get_serialized_committers,
+)
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
@@ -140,7 +174,7 @@ def execute_table_query(
     span_query: list[str] | None = None,
     log_query: list[str] | None = None,
     metric_query: list[str] | None = None,
-) -> dict[str, Any] | None:
+) -> ExecuteQuerySuccessResponse | ExecuteQueryErrorResponse | None:
     """
     Execute a query to get table data by calling the events endpoint.
 
@@ -213,16 +247,17 @@ def execute_table_query(
             path=f"/organizations/{organization.slug}/events/",
             params=params,
         )
-        return {
-            "data": resp.data["data"],
-            **({"meta": resp.data["meta"]} if resp.data.get("meta") else {}),
-        }
+        if resp.data.get("meta"):
+            return ExecuteQuerySuccessResponse(data=resp.data["data"], meta=resp.data["meta"])
+        return ExecuteQuerySuccessResponse(data=resp.data["data"])
     except client.ApiError as e:
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
             logger.exception("execute_table_query: bad request", extra={"org_id": org_id})
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+            return ExecuteQueryErrorResponse(
+                error=str(error_detail) if error_detail is not None else str(e.body)
+            )
         raise
 
 
@@ -242,7 +277,7 @@ def execute_timeseries_query(
     sampling_mode: SAMPLING_MODES = "NORMAL",
     partial: bool | None = None,
     case_insensitive: bool | None = None,
-) -> dict[str, Any] | None:
+) -> ExecuteTimeseriesQuerySuccessResponse | ExecuteTimeseriesQueryErrorResponse | None:
     """
     Execute a query to get chart/timeseries data by calling the events-stats endpoint.
 
@@ -313,11 +348,9 @@ def execute_timeseries_query(
         if e.status_code == 400:
             logger.exception("execute_timeseries_query: bad request", extra={"org_id": org_id})
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return {
-                "_seer_error_detail": (
-                    str(error_detail) if error_detail is not None else str(e.body)
-                )
-            }
+            return ExecuteTimeseriesQueryErrorResponse(
+                seer_error_detail=(str(error_detail) if error_detail is not None else str(e.body))
+            )
         raise
     data = resp.data
 
@@ -327,20 +360,22 @@ def execute_timeseries_query(
     if metric_name and metric_is_single:
         # Handle grouped data with single metric: wrap each group's data in the metric name
         if group_by:
-            return {
-                group_value: (
-                    {metric_name: group_data}
-                    if isinstance(group_data, dict) and "data" in group_data
-                    else group_data
-                )
-                for group_value, group_data in data.items()
-            }
+            return ExecuteTimeseriesQuerySuccessResponse(
+                __root__={
+                    group_value: (
+                        {metric_name: group_data}
+                        if isinstance(group_data, dict) and "data" in group_data
+                        else group_data
+                    )
+                    for group_value, group_data in data.items()
+                }
+            )
 
         # Handle non-grouped data with single metric: wrap data in the metric name
         if isinstance(data, dict) and "data" in data:
-            return {metric_name: data}
+            return ExecuteTimeseriesQuerySuccessResponse(__root__={metric_name: data})
 
-    return data
+    return ExecuteTimeseriesQuerySuccessResponse(__root__=data)
 
 
 def execute_trace_table_query(
@@ -356,7 +391,7 @@ def execute_trace_table_query(
     end: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     case_insensitive: bool | None = None,
-):
+) -> ExecuteQuerySuccessResponse | ExecuteQueryErrorResponse | None:
     """
     Execute a query to get trace samples by passing through the OrganizationTracesEndpoint.
     This endpoint does not support any kind of aggregation.
@@ -367,7 +402,14 @@ def execute_trace_table_query(
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
         Start/end params take precedence over stats_period. Default time range is the last 24 hours.
     """
-    organization = Organization.objects.get(id=organization_id)
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "execute_trace_table_query: Organization not found",
+            extra={"org_id": organization_id},
+        )
+        return None
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
 
@@ -399,10 +441,9 @@ def execute_trace_table_query(
             path=f"/organizations/{organization.slug}/traces/",
             params=params,
         )
-        return {
-            "data": resp.data["data"],
-            **({"meta": resp.data["meta"]} if resp.data.get("meta") else {}),
-        }
+        if resp.data.get("meta"):
+            return ExecuteQuerySuccessResponse(data=resp.data["data"], meta=resp.data["meta"])
+        return ExecuteQuerySuccessResponse(data=resp.data["data"])
     except client.ApiError as e:
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
@@ -410,7 +451,9 @@ def execute_trace_table_query(
                 "execute_trace_table_query: bad request", extra={"org_id": organization_id}
             )
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+            return ExecuteQueryErrorResponse(
+                error=str(error_detail) if error_detail is not None else str(e.body)
+            )
         raise
 
 
@@ -443,7 +486,7 @@ def execute_replays_query(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-) -> dict[str, Any] | None:
+) -> ExecuteQuerySuccessResponse | ExecuteQueryErrorResponse | None:
     """
     Execute a session replay search using the dedicated Replay collection query.
 
@@ -462,10 +505,14 @@ def execute_replays_query(
         return None
 
     if not features.has("organizations:session-replay", organization):
-        return {"error": "Session Replay is not enabled for this organization."}
+        return ExecuteQueryErrorResponse(
+            error="Session Replay is not enabled for this organization."
+        )
 
     if project_ids and project_slugs:
-        return {"error": "Pass either project_ids or project_slugs, not both."}
+        return ExecuteQueryErrorResponse(
+            error="Pass either project_ids or project_slugs, not both."
+        )
 
     project_filter: dict[str, Any] = {}
     if project_ids:
@@ -481,12 +528,14 @@ def execute_replays_query(
         ).values_list("id", flat=True)
     )
     if not resolved_project_ids:
-        return {"data": []}
+        return ExecuteQuerySuccessResponse(data=[])
 
     requested_fields = fields or DEFAULT_REPLAY_SEARCH_FIELDS
     invalid_fields = sorted(set(requested_fields) - set(REPLAY_VALID_FIELD_SET))
     if invalid_fields:
-        return {"error": f"Invalid replay field(s): {', '.join(invalid_fields)}"}
+        return ExecuteQueryErrorResponse(
+            error=f"Invalid replay field(s): {', '.join(invalid_fields)}"
+        )
 
     date_params: dict[str, Any] = {}
     if start and end:
@@ -523,18 +572,20 @@ def execute_replays_query(
                 "field": e.args[0] if e.args else None,
             },
         )
-        return {"error": f"Invalid replay field: {e.args[0]}" if e.args else "Invalid replay field"}
+        return ExecuteQueryErrorResponse(
+            error=f"Invalid replay field: {e.args[0]}" if e.args else "Invalid replay field"
+        )
     except (InvalidParams, InvalidSearchQuery, SentryBadRequest, BadRequest, ParseError) as e:
         logger.exception(
             "execute_replays_query: bad request",
             extra={"org_id": organization_id, "query": query},
         )
-        return {"error": str(e)}
+        return ExecuteQueryErrorResponse(error=str(e))
 
-    return {
-        "data": processed_response,
-        "meta": {"source": response.source, "has_more": response.has_more},
-    }
+    return ExecuteQuerySuccessResponse(
+        data=processed_response,
+        meta={"source": response.source, "has_more": response.has_more},
+    )
 
 
 def get_trace_waterfall(
@@ -606,13 +657,18 @@ def rpc_get_trace_waterfall(
     organization_id: int,
     additional_attributes: list[str] | None = None,
     referrer: str | None = None,
-) -> dict[str, Any]:
+) -> EAPTrace | EmptyResponse:
+    """Surface the underlying typed `EAPTrace` directly.
+
+    The not-found path returns `EmptyResponse`, which serializes to `{}` via
+    `.dict()` — byte-identical to the prior wire shape.
+    """
     try:
         referrer_enum = Referrer(referrer) if referrer else Referrer.SEER_EXPLORER_TOOLS
     except ValueError:
         referrer_enum = Referrer.SEER_EXPLORER_TOOLS
     trace = get_trace_waterfall(trace_id, organization_id, additional_attributes, referrer_enum)
-    return trace.dict() if trace else {}
+    return trace if trace else EmptyResponse()
 
 
 def rpc_get_profile_flamegraph(
@@ -620,7 +676,7 @@ def rpc_get_profile_flamegraph(
     organization_id: int,
     trace_id: str | None = None,
     span_description: str | None = None,
-) -> dict[str, Any]:
+) -> ProfileFlamegraphSuccessResponse | ProfileFlamegraphErrorResponse:
     """
     Fetch and format a profile flamegraph by profile ID (8-char or full 32-char).
 
@@ -649,7 +705,7 @@ def rpc_get_profile_flamegraph(
             "rpc_get_profile_flamegraph: Organization not found",
             extra={"organization_id": organization_id},
         )
-        return {"error": "Organization not found"}
+        return ProfileFlamegraphErrorResponse(error="Organization not found")
 
     # Get all projects for the organization
     projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
@@ -659,7 +715,7 @@ def rpc_get_profile_flamegraph(
             "rpc_get_profile_flamegraph: No projects found for organization",
             extra={"organization_id": organization_id},
         )
-        return {"error": "No projects found for organization"}
+        return ProfileFlamegraphErrorResponse(error="No projects found for organization")
 
     # Search up to 90 days back using 14-day sliding windows
     now = datetime.now(UTC)
@@ -760,13 +816,13 @@ def rpc_get_profile_flamegraph(
             "rpc_get_profile_flamegraph: Profile not found",
             extra={"profile_id": profile_id, "organization_id": organization_id},
         )
-        return {"error": "Profile not found in the last 90 days"}
+        return ProfileFlamegraphErrorResponse(error="Profile not found in the last 90 days")
     if not project_id:
         logger.warning(
             "rpc_get_profile_flamegraph: Could not find project id for profile",
             extra={"profile_id": profile_id, "organization_id": organization_id},
         )
-        return {"error": "Project not found"}
+        return ProfileFlamegraphErrorResponse(error="Project not found")
 
     logger.info(
         "rpc_get_profile_flamegraph: Found profile",
@@ -794,7 +850,9 @@ def rpc_get_profile_flamegraph(
             "rpc_get_profile_flamegraph: Failed to fetch profile data from profiling service",
             extra={"profile_id": actual_profile_id, "project_id": project_id},
         )
-        return {"error": "Failed to fetch profile data from profiling service"}
+        return ProfileFlamegraphErrorResponse(
+            error="Failed to fetch profile data from profiling service"
+        )
 
     # Convert to execution tree (returns dicts, not Pydantic models)
     execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
@@ -808,19 +866,21 @@ def rpc_get_profile_flamegraph(
                 "raw_profile_data": profile_data,
             },
         )
-        return {"error": "Failed to generate execution tree from profile data"}
+        return ProfileFlamegraphErrorResponse(
+            error="Failed to generate execution tree from profile data"
+        )
 
-    return {
-        "execution_tree": execution_tree,
-        "metadata": {
-            "profile_id": actual_profile_id,
-            "project_id": project_id,
-            "is_continuous": is_continuous,
-            "start_ts": min_start_ts,
-            "end_ts": max_end_ts,
-            "thread_id": selected_thread_id,
-        },
-    }
+    return ProfileFlamegraphSuccessResponse(
+        execution_tree=execution_tree,
+        metadata=ProfileFlamegraphMetadata(
+            profile_id=actual_profile_id,
+            project_id=project_id,
+            is_continuous=is_continuous,
+            start_ts=min_start_ts,
+            end_ts=max_end_ts,
+            thread_id=selected_thread_id,
+        ),
+    )
 
 
 def get_repository_definition(
@@ -828,7 +888,7 @@ def get_repository_definition(
     organization_id: int,
     repo_full_name: str,
     external_id: str | None = None,
-) -> dict | None:
+) -> RepositoryDefinitionResponse | None:
     """
     Look up a repository that the org has access to.
     Returns full RepoDefinition if found and accessible via code mappings, None otherwise.
@@ -891,18 +951,20 @@ def get_repository_definition(
         return None
 
     # Use the actual repo name from the database, not the requested name.
-    repo_name_parts = repo.name.split("/")
+    # For GitLab, repo.name is the display name (name_with_namespace, may contain spaces);
+    # get_repo_url_path() returns the URL-safe path_with_namespace instead.
+    repo_name_parts = get_repo_url_path(repo).split("/")
     owner = repo_name_parts[0]
     name = "/".join(repo_name_parts[1:])
 
-    return {
-        "organization_id": organization_id,
-        "integration_id": str(repo.integration_id) if repo.integration_id is not None else None,
-        "provider": repo.provider,
-        "owner": owner,
-        "name": name,
-        "external_id": repo.external_id,
-    }
+    return RepositoryDefinitionResponse(
+        organization_id=organization_id,
+        integration_id=str(repo.integration_id) if repo.integration_id is not None else None,
+        provider=repo.provider,
+        owner=owner,
+        name=name,
+        external_id=repo.external_id,
+    )
 
 
 # Tuples of (total period, interval) (both in sentry stats period format).
@@ -973,9 +1035,9 @@ def _get_issue_event_timeseries(
         partial=True,
     )
 
-    if data is None or data.get("_seer_error_detail"):
+    if data is None or isinstance(data, ExecuteTimeseriesQueryErrorResponse):
         return None
-    return data, selected_period, interval
+    return data.dict(), selected_period, interval
 
 
 def _get_recommended_event(
@@ -1114,11 +1176,11 @@ def _get_recommended_event(
                 )
                 return fallback_event or get_latest_event()
 
-            if result and result.get("data"):
+            if isinstance(result, ExecuteQuerySuccessResponse) and result.data:
                 # Return the first event with a span count greater than 0.
                 traces_with_spans = {
                     item["trace"]
-                    for item in result["data"]
+                    for item in result.data
                     if item.get("trace") and item.get(count_field, 0) > 0
                 }
 
@@ -1214,11 +1276,11 @@ def get_issue_and_event_response(
     organization: Organization,
     start: datetime | None = None,
     end: datetime | None = None,
-) -> dict[str, Any]:
+) -> IssueAndEventDetailsResponse:
     serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
     serialized_event.update(_get_event_troubleshooting_context(event))
 
-    result = {
+    event_fields: dict[str, Any] = {
         "event": serialized_event,
         "event_id": event.event_id,
         "event_trace_id": event.trace_id,
@@ -1226,88 +1288,139 @@ def get_issue_and_event_response(
         "project_slug": event.project.slug,
     }
 
-    if group is not None:
-        # Get the issue metadata, tags overview, and event count timeseries.
-        serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
-        # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
-        serialized_group["issueTypeDescription"] = group.issue_type.description
+    if group is None:
+        return IssueAndEventDetailsResponse(**event_fields)
 
-        logger.info(
-            "get_issue_and_event_details_v2: Querying for tags overview",
+    # Get the issue metadata, tags overview, and event count timeseries.
+    serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
+    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
+    serialized_group["issueTypeDescription"] = group.issue_type.description
+
+    logger.info(
+        "get_issue_and_event_details_v2: Querying for tags overview",
+        extra={
+            "organization_id": organization.id,
+            "issue_id": group.id,
+            "timedelta": (end - start) if start and end else None,
+            "start": start,
+            "end": end,
+        },
+    )
+
+    try:
+        tags_overview = get_all_tags_overview(group, start, end)
+    except Exception:
+        logger.exception(
+            "Failed to get tags overview for issue",
             extra={
                 "organization_id": organization.id,
                 "issue_id": group.id,
-                "timedelta": (end - start) if start and end else None,
                 "start": start,
                 "end": end,
             },
         )
+        tags_overview = None
 
+    try:
+        ts_result = _get_issue_event_timeseries(
+            group=group,
+            organization=organization,
+            start=start,
+            end=end,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to get issue event timeseries",
+            extra={
+                "organization_id": organization.id,
+                "issue_id": group.id,
+                "start": start,
+                "end": end,
+            },
+        )
+        ts_result = None
+
+    if ts_result:
+        timeseries, timeseries_stats_period, timeseries_interval = ts_result
+    else:
+        timeseries, timeseries_stats_period, timeseries_interval = None, None, None
+
+    # Fetch user activity (comments, status changes, etc.)
+    try:
+        activities = Activity.objects.filter(
+            group=group,
+            type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
+        ).order_by("-datetime")[:50]
+        serialized_activities = serialize(
+            list(activities), user=None, serializer=ActivitySerializer()
+        )
+    except Exception:
+        logger.exception(
+            "Failed to get user activity for issue",
+            extra={"organization_id": organization.id, "issue_id": group.id},
+        )
+        serialized_activities = []
+
+    return IssueAndEventDetailsResponse(
+        **event_fields,
+        issue=serialized_group,
+        event_timeseries=timeseries,
+        timeseries_stats_period=timeseries_stats_period,
+        timeseries_interval=timeseries_interval,
+        tags_overview=tags_overview,
+        user_activity=serialized_activities,
+    )
+
+
+def _resolve_seer_group(
+    *,
+    organization_id: int,
+    issue_id: str,
+    project_slug: str | None = None,
+) -> Group:
+    """
+    Resolve an ``issue_id`` to a :class:`Group`, scoped to ``organization_id`` (and to
+    ``project_slug`` when provided).
+
+    ``issue_id`` may be a numeric primary key or a qualified short id (e.g. ``PROJECT-123``):
+
+    - Numeric ids are looked up via ``get_from_cache``. The model cache only accepts a single
+      kwarg, so the org/project boundary cannot live in the query and is enforced with an
+      explicit post-fetch check instead. This also skips the ``project_ids`` query on the hot
+      numeric path.
+    - Short ids keep query-level project scoping via ``by_qualified_short_id`` to preserve the
+      in-org IDOR guard documented on that method; ``project_ids`` is only computed here.
+
+    Raises ``Group.DoesNotExist`` when no matching group is visible within the scope, so callers
+    can keep their existing ``except Group.DoesNotExist`` handling.
+    """
+    if issue_id.isdigit():
+        group = Group.objects.get_from_cache(id=int(issue_id))
+        # ``group.project`` is the org/project boundary the numeric query used to enforce.
+        # A hard-deleted project makes this FK access raise ``Project.DoesNotExist``; translate
+        # it so callers' ``except Group.DoesNotExist`` handling still applies.
         try:
-            tags_overview = get_all_tags_overview(group, start, end)
-        except Exception:
-            logger.exception(
-                "Failed to get tags overview for issue",
-                extra={
-                    "organization_id": organization.id,
-                    "issue_id": group.id,
-                    "start": start,
-                    "end": end,
-                },
-            )
-            tags_overview = None
+            project = group.project
+        except Project.DoesNotExist:
+            raise Group.DoesNotExist() from None
+        if (
+            project.organization_id != organization_id
+            or project.status != ObjectStatus.ACTIVE
+            or (project_slug is not None and project.slug != project_slug)
+        ):
+            raise Group.DoesNotExist()
+        return group
 
-        try:
-            ts_result = _get_issue_event_timeseries(
-                group=group,
-                organization=organization,
-                start=start,
-                end=end,
-            )
-        except Exception:
-            logger.exception(
-                "Failed to get issue event timeseries",
-                extra={
-                    "organization_id": organization.id,
-                    "issue_id": group.id,
-                    "start": start,
-                    "end": end,
-                },
-            )
-            ts_result = None
-
-        if ts_result:
-            timeseries, timeseries_stats_period, timeseries_interval = ts_result
-        else:
-            timeseries, timeseries_stats_period, timeseries_interval = None, None, None
-
-        # Fetch user activity (comments, status changes, etc.)
-        try:
-            activities = Activity.objects.filter(
-                group=group,
-                type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
-            ).order_by("-datetime")[:50]
-            serialized_activities = serialize(
-                list(activities), user=None, serializer=ActivitySerializer()
-            )
-        except Exception:
-            logger.exception(
-                "Failed to get user activity for issue",
-                extra={"organization_id": organization.id, "issue_id": group.id},
-            )
-            serialized_activities = []
-
-        result = {
-            **result,
-            "issue": serialized_group,
-            "event_timeseries": timeseries,
-            "timeseries_stats_period": timeseries_stats_period,
-            "timeseries_interval": timeseries_interval,
-            "tags_overview": tags_overview,
-            "user_activity": serialized_activities,
-        }
-
-    return result
+    project_ids = list(
+        Project.objects.filter(
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+            **({"slug": project_slug} if project_slug else {}),
+        ).values_list("id", flat=True)
+    )
+    if not project_ids:
+        raise Group.DoesNotExist()
+    return Group.objects.by_qualified_short_id(organization_id, issue_id, project_ids=project_ids)
 
 
 def get_issue_details(
@@ -1317,7 +1430,7 @@ def get_issue_details(
     start: str | None = None,
     end: str | None = None,
     project_slug: str | None = None,
-) -> dict[str, Any] | None:
+) -> IssueDetailsResponse | None:
     """
     Get issue-level details for an issue, optionally scoped by time range.
 
@@ -1331,27 +1444,18 @@ def get_issue_details(
     Returns:
         Dict with issue metadata, event_timeseries, tags_overview, and user_activity, or None if not found.
     """
+    # NOTE: start and end are interdependent. get_date_range_from_params raises InvalidParams
+    # unless both or neither are set, so passing only one will fail despite the optional signature.
     start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
 
     organization = Organization.objects.get(id=organization_id)
 
-    project_ids = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", flat=True)
-    )
-    if not project_ids:
-        return None
-
-    group: Group
-    if issue_id.isdigit():
-        group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-    else:
-        group = Group.objects.by_qualified_short_id(
-            organization_id, issue_id, project_ids=project_ids
+    try:
+        group = _resolve_seer_group(
+            organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
         )
+    except Group.DoesNotExist:
+        return None
 
     # Get the issue metadata.
     serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
@@ -1402,16 +1506,231 @@ def get_issue_details(
         )
         serialized_activities = []
 
-    return {
-        "issue": serialized_group,
-        "event_timeseries": timeseries,
-        "timeseries_stats_period": timeseries_stats_period,
-        "timeseries_interval": timeseries_interval,
-        "tags_overview": tags_overview,
-        "user_activity": serialized_activities,
-        "project_id": group.project_id,
-        "project_slug": group.project.slug,
-    }
+    return IssueDetailsResponse(
+        issue=serialized_group,
+        event_timeseries=timeseries,
+        timeseries_stats_period=timeseries_stats_period,
+        timeseries_interval=timeseries_interval,
+        tags_overview=tags_overview,
+        user_activity=serialized_activities,
+        project_id=group.project_id,
+        project_slug=group.project.slug,
+    )
+
+
+def get_issue_committers(
+    *,
+    organization_id: int,
+    issue_id: str,
+    start: str | None = None,
+    end: str | None = None,
+) -> IssueCommittersResponse | None:
+    """
+    Get the likely code authors for an issue from Sentry's ingested commit data.
+
+    Combines three signals, all computed from ingested commits with NO SCM/GitHub call
+    (so it works without SCM credentials):
+
+    - ``stack_commits``: commit authors that touched the files in the issue's
+      stacktrace, scored by frame relevance. This is the *input* to Sentry's
+      suspect-commit feature (release-based blame of the failing frames) and is
+      available far more often than a single precomputed suspect commit.
+    - ``suspect_commits``: the precomputed suspect commit(s) from ``GroupOwner``, if
+      any (the same "Suspect Commit" shown in the Sentry UI).
+    - ``release_commits``: a broader pool of commits shipped around when the issue
+      first appeared, NOT limited to the stacktrace frames (catches regressions in
+      code that does not appear in the trace), each enriched with PR title/body,
+      file-change count, and a merge-commit flag so the caller can prune.
+
+    Default time windows differ by signal: ``release_commits`` covers ~6 weeks before
+    the issue first appeared (to surface what shipped just before it regressed), while
+    the sampled stacktrace event (for ``stack_commits``) is drawn from the issue's own
+    lifetime (``first_seen``..``last_seen``), since the issue has no events before it
+    first appeared. Pass ``start``/``end`` to override both.
+
+    Args:
+        organization_id: The ID of the organization.
+        issue_id: The issue ID (numeric) or qualified short ID (e.g. PROJECT-123). The
+            project is derived from the issue, so no project identifier is needed.
+        start: ISO timestamp for the start of the time range (optional).
+        end: ISO timestamp for the end of the time range (optional).
+
+    Returns:
+        An ``IssueCommittersResponse`` with ``stack_commits``, ``suspect_commits``,
+        ``release_commits``, ``project_id``, ``project_slug``. The commit lists may be
+        empty (e.g. no release/commit data linked to the issue) — callers can iterate
+        them without ``None`` checks. Returns ``None`` if the project/issue cannot be
+        resolved.
+    """
+    try:
+        committers = _IssueCommitters(
+            organization_id=organization_id,
+            issue_id=issue_id,
+            start=start,
+            end=end,
+        )
+    except Group.DoesNotExist:
+        return None
+    return committers.get()
+
+
+class _IssueCommitters:
+    """Computes the likely code authors for an issue from ingested commit data.
+
+    Backs :func:`get_issue_committers`. The shared inputs (resolved group,
+    organization, time window) are computed once in ``__init__`` and reused by the
+    per-signal helpers. Each signal is computed independently and its failures are
+    isolated, so a problem in one signal doesn't blank out the others.
+    """
+
+    def __init__(
+        self,
+        *,
+        organization_id: int,
+        issue_id: str,
+        start: str | None = None,
+        end: str | None = None,
+    ) -> None:
+        self.organization_id = organization_id
+        self.issue_id = issue_id
+        self.start_dt: datetime | None
+        self.end_dt: datetime | None
+        self.start_dt, self.end_dt = get_date_range_from_params(
+            {"start": start, "end": end}, optional=True
+        )
+        self.organization = Organization.objects.get(id=organization_id)
+        # Lets ``Group.DoesNotExist`` propagate so ``get_issue_committers`` can map it to
+        # ``None`` (the shared "issue not found" signal for the seer issue methods).
+        self.group = _resolve_seer_group(organization_id=organization_id, issue_id=issue_id)
+
+    def get(self) -> IssueCommittersResponse:
+        return IssueCommittersResponse(
+            stack_commits=self._get_stack_commits(),
+            suspect_commits=self._get_suspect_commits(),
+            release_commits=self._get_release_commits(),
+            project_id=self.group.project_id,
+            project_slug=self.group.project.slug,
+        )
+
+    @property
+    def _log_extra(self) -> dict[str, Any]:
+        return {"organization_id": self.organization_id, "issue_id": self.issue_id}
+
+    def _get_suspect_commits(self) -> list[dict[str, Any]]:
+        """Precomputed author+commit (one or none) from the suspect-commit feature."""
+        try:
+            suspect_commits = get_serialized_committers(self.group.project, self.group.id)
+        except Exception:
+            metrics.incr("seer.get_issue_committers.error", tags={"step": "suspect_commits"})
+            logger.exception(
+                "get_issue_committers: Failed to get suspect commits",
+                extra=self._log_extra,
+            )
+            return []
+        return [dict(committer) for committer in suspect_commits]
+
+    def _get_stack_commits(self) -> list[dict[str, Any]]:
+        """Frame-based blame: authors of the files in the stacktrace.
+
+        This is the input to the suspect-commit feature and is available far more often.
+        """
+        try:
+            event = _get_recommended_event(
+                self.group, self.organization, self.start_dt, self.end_dt
+            )
+            if event is None:
+                return []
+            sdk_name = (event.data.get("sdk") or {}).get("name")
+            author_commits = get_event_file_committers(
+                self.group.project,
+                self.group.id,
+                get_frame_paths(event),
+                event.platform,
+                sdk_name=sdk_name,
+            )
+            # get_event_file_committers serializes the author but leaves commits as
+            # (Commit, score) tuples ordered weakest-first; serialize the commits and
+            # reverse so the strongest blame is first.
+            # Batch-serialize every commit in one call: CommitSerializer.get_attrs runs
+            # repository and pull request queries per invocation, so serializing one
+            # commit at a time would be an N+1.
+            commits_by_id = {
+                commit.id: commit
+                for entry in author_commits
+                for commit, _ in entry.get("commits", [])
+            }
+            serialized_by_id = {
+                commit_id: serialized
+                for commit_id, serialized in zip(
+                    commits_by_id,
+                    serialize(
+                        list(commits_by_id.values()),
+                        serializer=CommitSerializer(exclude=["author"]),
+                    ),
+                )
+            }
+            stack_commits = [
+                {
+                    "author": entry.get("author"),
+                    "commits": [
+                        {**serialized_by_id[commit.id], "score": score}
+                        for commit, score in entry.get("commits", [])
+                    ],
+                }
+                for entry in author_commits
+            ]
+            stack_commits.reverse()
+            return stack_commits
+        except (Release.DoesNotExist, Commit.DoesNotExist):
+            # No release/commit data linked to this issue; frame blame isn't available.
+            return []
+        except Exception:
+            metrics.incr("seer.get_issue_committers.error", tags={"step": "stack_commits"})
+            logger.exception(
+                "get_issue_committers: Failed to compute stack commits",
+                extra=self._log_extra,
+            )
+            return []
+
+    def _get_release_commits(self) -> list[dict[str, Any]]:
+        """Broader candidate pool: commits shipped around when the issue first appeared.
+
+        NOT limited to the stacktrace frames. Window defaults to ~6 weeks before
+        first_seen; an explicit start/end overrides it.
+        """
+        release_commits: list[dict[str, Any]] = []
+        try:
+            window_end = self.end_dt or self.group.first_seen
+            window_start = self.start_dt or (window_end - timedelta(weeks=6))
+            candidates = get_release_commit_candidates(
+                self.group.project, self.group.id, since=window_start, until=window_end
+            )
+            if candidates:
+                file_change_counts = dict(
+                    CommitFileChange.objects.filter(commit_id__in=[c.id for c in candidates])
+                    .values_list("commit_id")
+                    .annotate(n=models.Count("id"))
+                )
+                serialized_candidates = serialize(
+                    candidates, serializer=CommitSerializer(exclude=["repository"])
+                )
+                for commit, serialized in zip(candidates, serialized_candidates):
+                    message = (commit.message or "").strip()
+                    release_commits.append(
+                        {
+                            **serialized,
+                            "files_changed_count": file_change_counts.get(commit.id),
+                            "is_merge_commit": message.startswith("Merge "),
+                        }
+                    )
+        except Exception:
+            metrics.incr("seer.get_issue_committers.error", tags={"step": "release_commits"})
+            logger.exception(
+                "get_issue_committers: Failed to fetch release commits",
+                extra=self._log_extra,
+            )
+            return []
+        return release_commits
 
 
 def get_event_details(
@@ -1422,7 +1741,7 @@ def get_event_details(
     start: str | None = None,
     end: str | None = None,
     project_slug: str | None = None,
-) -> dict[str, Any] | None:
+) -> EventDetailsResponse | None:
     """
     Get event details by event ID, or get the recommended event for an issue, optionally scoped by time range.
     Exactly one of event_id or issue_id must be provided.
@@ -1443,16 +1762,6 @@ def get_event_details(
 
     organization = Organization.objects.get(id=organization_id)
 
-    project_ids = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", flat=True)
-    )
-    if not project_ids:
-        return None
-
     event: Event | GroupEvent | None
     group: Group | None
 
@@ -1461,16 +1770,26 @@ def get_event_details(
 
         # Fetch the group then get a sample event from the time range.
         assert issue_id is not None
-        if issue_id.isdigit():
-            group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-        else:
-            group = Group.objects.by_qualified_short_id(
-                organization_id, issue_id, project_ids=project_ids
+        try:
+            group = _resolve_seer_group(
+                organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
             )
-        assert group is not None
+        except Group.DoesNotExist:
+            return None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
+        # The project boundary is only needed for the by-event-id lookup below.
+        project_ids = list(
+            Project.objects.filter(
+                organization=organization,
+                status=ObjectStatus.ACTIVE,
+                **({"slug": project_slug} if project_slug else {}),
+            ).values_list("id", flat=True)
+        )
+        if not project_ids:
+            return None
+
         # Fetch the event directly by ID.
         uuid.UUID(event_id)  # Raises ValueError if not valid UUID
         if len(project_ids) == 1:
@@ -1523,13 +1842,13 @@ def get_event_details(
     serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
     serialized_event.update(_get_event_troubleshooting_context(event))
 
-    return {
-        "event": serialized_event,
-        "event_id": event.event_id,
-        "event_trace_id": event.trace_id,
-        "project_id": event.project_id,
-        "project_slug": event.project.slug,
-    }
+    return EventDetailsResponse(
+        event=serialized_event,
+        event_id=event.event_id,
+        event_trace_id=event.trace_id,
+        project_id=event.project_id,
+        project_slug=event.project.slug,
+    )
 
 
 def get_issue_and_event_details_v2(
@@ -1541,7 +1860,7 @@ def get_issue_and_event_details_v2(
     event_id: str | None = None,
     project_slug: str | None = None,
     include_issue: bool = True,
-) -> dict[str, Any] | None:
+) -> IssueAndEventDetailsResponse | None:
     if bool(issue_id) == bool(event_id):
         raise BadRequest("Either issue_id or event_id must be provided, but not both.")
 
@@ -1549,34 +1868,32 @@ def get_issue_and_event_details_v2(
 
     organization = Organization.objects.get(id=organization_id)
 
-    project_ids = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", flat=True)
-    )
-    if not project_ids:
-        return None
-
     event: Event | GroupEvent | None
     group: Group | None
 
     if event_id is None:
         # Fetch the group then get a sample event from the time range.
         assert issue_id is not None
-        if issue_id.isdigit():
-            group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-        else:
-            # Scope the short id lookup to the same projects as the numeric branch so both
-            # paths enforce the same project boundary.
-            group = Group.objects.by_qualified_short_id(
-                organization_id, issue_id, project_ids=project_ids
+        try:
+            group = _resolve_seer_group(
+                organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
             )
-        assert group is not None
+        except Group.DoesNotExist:
+            return None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
+        # The project boundary is only needed for the by-event-id lookup below.
+        project_ids = list(
+            Project.objects.filter(
+                organization=organization,
+                status=ObjectStatus.ACTIVE,
+                **({"slug": project_slug} if project_slug else {}),
+            ).values_list("id", flat=True)
+        )
+        if not project_ids:
+            return None
+
         # Fetch the event then look up its group.
         uuid.UUID(event_id)  # Raises ValueError if not valid UUID
         if len(project_ids) == 1:
@@ -1649,7 +1966,7 @@ def get_replay_metadata(
     replay_id: str,
     organization_id: int,
     project_slug: str | None = None,
-) -> dict[str, Any] | None:
+) -> ReplayMetadataResponse | None:
     """
     Get the metadata for a replay through an aggregate replay event query.
 
@@ -1746,7 +2063,7 @@ def get_replay_metadata(
     result["project_slug"] = next(
         filter(lambda x: x[0] == int(result["project_id"]), p_ids_and_slugs)
     )[1]
-    return result
+    return ReplayMetadataResponse(__root__=result)
 
 
 def get_trace_item_attributes(
@@ -1756,7 +2073,7 @@ def get_trace_item_attributes(
     trace_id: str,
     item_id: str,
     item_type: str,
-) -> dict[str, Any]:
+) -> TraceItemAttributesResponse:
     """
     Fetch all attributes for a given trace item (span, metric, log, etc.).
 
@@ -1779,7 +2096,7 @@ def get_trace_item_attributes(
             "get_trace_item_attributes: Organization not found",
             extra={"org_id": org_id},
         )
-        return {"attributes": []}
+        return TraceItemAttributesResponse(attributes=[])
 
     try:
         project = Project.objects.get(id=project_id, organization=organization)
@@ -1788,7 +2105,7 @@ def get_trace_item_attributes(
             "get_trace_item_attributes: Project not found",
             extra={"org_id": org_id, "project_id": project_id},
         )
-        return {"attributes": []}
+        return TraceItemAttributesResponse(attributes=[])
 
     params = {
         "item_type": item_type,
@@ -1803,7 +2120,7 @@ def get_trace_item_attributes(
         params=params,
     )
 
-    return {"attributes": resp.data["attributes"]}
+    return TraceItemAttributesResponse(attributes=resp.data["attributes"])
 
 
 def _make_get_trace_request(
@@ -1940,7 +2257,7 @@ def get_log_attributes_for_trace(
     project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     limit: int | None = 50,
-) -> dict[str, Any] | None:
+) -> TraceItemEventsResponse | None:
     """
     Get all attributes for all logs in a trace. You can optionally filter by message substring and/or project slugs.
 
@@ -1988,7 +2305,7 @@ def get_log_attributes_for_trace(
     )
 
     if not message_substring:
-        return {"data": items}
+        return TraceItemEventsResponse(data=items)
 
     # Filter on message substring.
     filtered_items: list[dict[str, Any]] = []
@@ -2002,7 +2319,7 @@ def get_log_attributes_for_trace(
         ):
             filtered_items.append(item)
 
-    return {"data": filtered_items}
+    return TraceItemEventsResponse(data=filtered_items)
 
 
 def get_metric_attributes_for_trace(
@@ -2016,7 +2333,7 @@ def get_metric_attributes_for_trace(
     project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     limit: int | None = 50,
-) -> dict[str, Any] | None:
+) -> TraceItemEventsResponse | None:
     """
     Get all attributes for all metrics in a trace. You can optionally filter by metric name and/or project slugs.
     The metric name is a case-insensitive exact match.
@@ -2065,7 +2382,7 @@ def get_metric_attributes_for_trace(
     )
 
     if not metric_name:
-        return {"data": items}
+        return TraceItemEventsResponse(data=items)
 
     # Filter on metric name (exact case-insensitive match).
     filtered_items: list[dict[str, Any]] = []
@@ -2077,7 +2394,7 @@ def get_metric_attributes_for_trace(
         if metric_name.lower() == item_metric_name.lower():
             filtered_items.append(item)
 
-    return {"data": filtered_items}
+    return TraceItemEventsResponse(data=filtered_items)
 
 
 def get_baseline_tag_distribution(
@@ -2089,7 +2406,7 @@ def get_baseline_tag_distribution(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-) -> dict[str, Any] | None:
+) -> BaselineTagDistributionResponse:
     """
     Get baseline tag distribution for suspect attributes analysis.
 
@@ -2124,7 +2441,7 @@ def get_baseline_tag_distribution(
     )
 
     if not tag_keys:
-        return {"baseline_tag_distribution": []}
+        return BaselineTagDistributionResponse(baseline_tag_distribution=[])
 
     # Use first/last seen if date params are not provided.
     start_dt, end_dt = get_group_date_range(group, organization, start_dt, end_dt)
@@ -2192,15 +2509,11 @@ def get_baseline_tag_distribution(
             combined_counts[key] = combined_counts.get(key, 0) + result["count"]
 
     baseline_distribution = [
-        {
-            "tag_key": tag_key,
-            "tag_value": tag_value,
-            "count": count,
-        }
+        BaselineTagDistributionEntry(tag_key=tag_key, tag_value=tag_value, count=count)
         for (tag_key, tag_value), count in combined_counts.items()
     ]
 
-    return {"baseline_tag_distribution": baseline_distribution}
+    return BaselineTagDistributionResponse(baseline_tag_distribution=baseline_distribution)
 
 
 def get_comparative_attribute_distributions(
@@ -2217,7 +2530,7 @@ def get_comparative_attribute_distributions(
     project_ids: list[int] | None = None,
     project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
-) -> dict[str, Any] | None:
+) -> ComparativeAttributeDistributionsResponse:
     """
     Fetch span attribute distributions for a selected time range (minute precision) compared to a baseline (defined by start/end/stats_period params).
     The selected range should be smaller and within the larger range. This is not validated.
@@ -2286,25 +2599,25 @@ def get_comparative_attribute_distributions(
         query_2=query_2,
     )
 
-    return {
-        "baseline_distribution": distributions_result["cohort_2_distribution"],
-        "total_baseline": distributions_result["total_cohort_2"],
-        "outliers_distribution": distributions_result["cohort_1_distribution"],
-        "total_outliers": distributions_result["total_cohort_1"],
-        "outliers_function_value": distributions_result["cohort_1_function_value"],
-    }
+    return ComparativeAttributeDistributionsResponse(
+        baseline_distribution=distributions_result["cohort_2_distribution"],
+        total_baseline=distributions_result["total_cohort_2"],
+        outliers_distribution=distributions_result["cohort_1_distribution"],
+        total_outliers=distributions_result["total_cohort_1"],
+        outliers_function_value=distributions_result["cohort_1_function_value"],
+    )
 
 
 def get_dsn(
     *,
     organization_id: int,
     project_slug: str,
-) -> dict[str, Any] | None:
+) -> GetDsnResponse | None:
     """
     Get the public DSN for a single project in an organization.
 
-    Returns a dict with project_slug, platform, and dsn_public, or None if the
-    organization/project does not exist or the project has no active client key.
+    Returns the project's public DSN, or None if the organization/project does
+    not exist or the project has no active client key.
     """
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -2337,8 +2650,8 @@ def get_dsn(
     if key is None:
         return None
 
-    return {
-        "project_slug": project.slug,
-        "platform": project.platform,
-        "dsn_public": key.dsn_public,
-    }
+    return GetDsnResponse(
+        project_slug=project.slug,
+        platform=project.platform,
+        dsn_public=key.dsn_public,
+    )

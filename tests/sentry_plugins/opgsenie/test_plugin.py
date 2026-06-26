@@ -56,7 +56,7 @@ class OpsGeniePluginTest(PluginTestCase):
         group_id = str(group.id)
         assert payload == {
             "recipients": "me",
-            "tags": ["level:warning"],
+            "tags": ["interface_type:logentry", "level:warning"],
             "entity": "foo.bar",
             "alias": "sentry: %s" % group_id,
             "details": {

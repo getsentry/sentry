@@ -33,7 +33,8 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a Project Environment",
+        operation_id="getProjectEnvironment",
+        summary="Retrieve a Project Environment",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -65,7 +66,8 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         return Response(body)
 
     @extend_schema(
-        operation_id="Update a Project Environment",
+        operation_id="updateProjectEnvironment",
+        summary="Update a Project Environment",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

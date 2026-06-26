@@ -1,9 +1,11 @@
-import type {BranchOverride} from 'sentry/components/events/autofix/types';
+import type {SeerProjectReposResponse} from 'sentry/utils/seer/types';
 
-export function overrideHasAllValues(override: BranchOverride) {
+export function overrideHasAllValues(
+  override: SeerProjectReposResponse['branchOverrides'][number]
+) {
   return (
-    override.branch_name.trim() !== '' &&
-    override.tag_name.trim() !== '' &&
-    override.tag_value.trim() !== ''
+    override.branchName.trim() !== '' &&
+    override.tagName.trim() !== '' &&
+    override.tagValue.trim() !== ''
   );
 }

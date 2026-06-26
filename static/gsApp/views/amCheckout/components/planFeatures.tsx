@@ -18,7 +18,7 @@ import {DataCategory} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
-import {PlanTier, type Plan} from 'getsentry/types';
+import type {Plan} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
@@ -56,7 +56,6 @@ type FeatureInfo = {
   key: FeatureKey;
   displayStringPrefix?: string;
   displayStringSuffix?: string;
-  excludedTiers?: PlanTier[];
 };
 
 const ORDERED_PLAN_TYPES = ['developer', 'team', 'business'];
@@ -94,7 +93,6 @@ const EXPANSION_PACK_FEATURES: FeatureInfo[] = [
       team: t('Insights w/ 30 day lookback'),
       business: t('+ 13 month sampled retention'),
     },
-    excludedTiers: [PlanTier.AM1],
   },
   {
     key: 'codeowners',

@@ -20,7 +20,7 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {CustomerOverview} from 'admin/components/customers/customerOverview';
-import {AddOnCategory, PlanTier} from 'getsentry/types';
+import {AddOnCategory} from 'getsentry/types';
 
 describe('CustomerOverview', () => {
   it('renders DetailLabels for SubscriptionSummary section', () => {
@@ -41,7 +41,6 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Gifted Errors:')).toBeInTheDocument();
     expect(screen.getByText('Gifted Transactions:')).toBeInTheDocument();
     expect(screen.getByText('Can Trial:')).toBeInTheDocument();
-    expect(screen.getByText('Legacy Soft Cap:')).toBeInTheDocument();
     expect(screen.getByText('Soft Cap By Category:')).toBeInTheDocument();
   });
 
@@ -266,6 +265,86 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('XX (migrated)')).toBeInTheDocument();
     expect(screen.getByText('ID: 123')).toBeInTheDocument();
     expect(screen.queryByText('Deactivate Partner')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Reset partner billing to self-serve')
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders reset button for stranded managed partner still partner-billed', async () => {
+    const organization = OrganizationFixture();
+    const partnerSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_business',
+      isPartner: true,
+      isManaged: true,
+      partner: {
+        externalId: '123',
+        name: 'test',
+        partnership: {
+          id: 'XX',
+          displayName: 'XX',
+          supportNote: '',
+        },
+        isActive: false,
+      },
+    });
+
+    const mockOnAction = jest.fn();
+
+    render(
+      <CustomerOverview
+        customer={partnerSubscription}
+        onAction={mockOnAction}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('XX (migrated)')).toBeInTheDocument();
+    expect(screen.getByText('ID: 123')).toBeInTheDocument();
+    expect(screen.queryByText('Deactivate Partner')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Reset partner billing to self-serve'));
+
+    expect(mockOnAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deactivatePartnerAccount: true,
+      })
+    );
+  });
+
+  it('hides reset button for stranded partner that is not managed', () => {
+    const organization = OrganizationFixture();
+    const partnerSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_business',
+      isPartner: true,
+      isManaged: false,
+      partner: {
+        externalId: '123',
+        name: 'test',
+        partnership: {
+          id: 'XX',
+          displayName: 'XX',
+          supportNote: '',
+        },
+        isActive: false,
+      },
+    });
+
+    render(
+      <CustomerOverview
+        customer={partnerSubscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('XX (migrated)')).toBeInTheDocument();
+    expect(screen.getByText('ID: 123')).toBeInTheDocument();
+    expect(screen.queryByText('Deactivate Partner')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Reset partner billing to self-serve')
+    ).not.toBeInTheDocument();
   });
 
   it('deactivates partner account with right data', async () => {
@@ -375,7 +454,6 @@ describe('CustomerOverview', () => {
     const enterprise_subscription = InvoicedSubscriptionFixture({
       organization,
       plan: 'am3_business_ent_auf',
-      planTier: PlanTier.AM3,
     });
 
     render(
@@ -402,7 +480,6 @@ describe('CustomerOverview', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      planTier: PlanTier.AM3,
     });
 
     render(
@@ -426,7 +503,6 @@ describe('CustomerOverview', () => {
     const am3Subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      planTier: PlanTier.AM3,
       productTrials: [
         {
           category: DataCategory.REPLAYS,
@@ -603,7 +679,6 @@ describe('CustomerOverview', () => {
     const am3Subscription = SubscriptionFixture({
       organization,
       plan: 'am3_team',
-      planTier: PlanTier.AM3,
     });
 
     MockApiClient.addMockResponse({
@@ -619,7 +694,7 @@ describe('CustomerOverview', () => {
       />
     );
 
-    expect(screen.getByText('Team Plan (am3)')).toBeInTheDocument();
+    expect(screen.getByText('Team Plan (am3_team)')).toBeInTheDocument();
     await waitFor(() => {
       const term = screen.getByText('Sample Rate (24h):');
       const definition = term.nextElementSibling;
@@ -771,15 +846,6 @@ describe('CustomerOverview', () => {
       plan: 'am3_f',
     });
 
-    subscription.planDetails = {
-      ...subscription.planDetails,
-      retentions: {
-        [DataCategory.SPANS]: {standard: 1234567, downsampled: 7654321},
-        [DataCategory.LOG_BYTE]: {standard: 1470369, downsampled: 9630741},
-        [DataCategory.ERRORS]: {standard: 2581471, downsampled: 1741852},
-      },
-    };
-
     subscription.categories.spans = MetricHistoryFixture({
       ...subscription.categories.spans,
       category: DataCategory.SPANS,
@@ -808,12 +874,7 @@ describe('CustomerOverview', () => {
 
     expect(screen.getByText('Retention Settings')).toBeInTheDocument();
 
-    // planDetails downsampled for span and logs in document, but not for errors
-    expect(screen.getByText('7654321')).toBeInTheDocument();
-    expect(screen.getByText('9630741')).toBeInTheDocument();
-    expect(screen.queryByText('1741852')).not.toBeInTheDocument();
-
-    // categories downsampled for span and logs in document, but not for errors
+    // categories standard/downsampled for span and logs in document, but not for errors
     expect(screen.getByText('13579')).toBeInTheDocument();
     expect(screen.getByText('null')).toBeInTheDocument();
     expect(screen.queryByText('36925')).not.toBeInTheDocument();

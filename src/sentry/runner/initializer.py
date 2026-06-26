@@ -4,6 +4,7 @@ import importlib.metadata
 import logging
 import os
 import sys
+import time
 from typing import IO, Any
 
 import click
@@ -117,6 +118,27 @@ options_mapper = {
     # 'system.databases': 'DATABASES',
     # 'system.debug': 'DEBUG',
     "system.secret-key": "SECRET_KEY",
+    "mail.backend": "EMAIL_BACKEND",
+    "mail.host": "EMAIL_HOST",
+    "mail.port": "EMAIL_PORT",
+    "mail.username": "EMAIL_HOST_USER",
+    "mail.password": "EMAIL_HOST_PASSWORD",
+    "mail.use-tls": "EMAIL_USE_TLS",
+    "mail.use-ssl": "EMAIL_USE_SSL",
+    "mail.from": "SERVER_EMAIL",
+    "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
+    "github-login.client-id": "GITHUB_APP_ID",
+    "github-login.client-secret": "GITHUB_API_SECRET",
+    "github-login.require-verified-email": "GITHUB_REQUIRE_VERIFIED_EMAIL",
+    "github-login.base-domain": "GITHUB_BASE_DOMAIN",
+    "github-login.api-domain": "GITHUB_API_DOMAIN",
+    "github-login.extended-permissions": "GITHUB_EXTENDED_PERMISSIONS",
+    "github-login.organization": "GITHUB_ORGANIZATION",
+}
+
+# Backward-compat promotion for self-hosted: config.yml keys that were migrated
+# to Django settings still work when SENTRY_SELF_HOSTED is True.
+self_hosted_options_mapper = {
     "system.base-hostname": "SENTRY_BASE_HOSTNAME",
     "system.organization-base-hostname": "SENTRY_ORGANIZATION_BASE_HOSTNAME",
     "system.organization-url-template": "SENTRY_ORGANIZATION_URL_TEMPLATE",
@@ -136,22 +158,6 @@ options_mapper = {
     "filestore.profiles-options": "SENTRY_PROFILES_FILE_STORAGE_CONFIG",
     "filestore.control.backend": "SENTRY_CONTROL_FILE_STORAGE_BACKEND",
     "filestore.control.options": "SENTRY_CONTROL_FILE_STORAGE_CONFIG",
-    "mail.backend": "EMAIL_BACKEND",
-    "mail.host": "EMAIL_HOST",
-    "mail.port": "EMAIL_PORT",
-    "mail.username": "EMAIL_HOST_USER",
-    "mail.password": "EMAIL_HOST_PASSWORD",
-    "mail.use-tls": "EMAIL_USE_TLS",
-    "mail.use-ssl": "EMAIL_USE_SSL",
-    "mail.from": "SERVER_EMAIL",
-    "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
-    "github-login.client-id": "GITHUB_APP_ID",
-    "github-login.client-secret": "GITHUB_API_SECRET",
-    "github-login.require-verified-email": "GITHUB_REQUIRE_VERIFIED_EMAIL",
-    "github-login.base-domain": "GITHUB_BASE_DOMAIN",
-    "github-login.api-domain": "GITHUB_API_DOMAIN",
-    "github-login.extended-permissions": "GITHUB_EXTENDED_PERMISSIONS",
-    "github-login.organization": "GITHUB_ORGANIZATION",
 }
 
 
@@ -207,9 +213,14 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
     # only in SENTRY_OPTIONS and no config.yml file
+    effective_mapper = (
+        {**options_mapper, **self_hosted_options_mapper}
+        if settings.SENTRY_SELF_HOSTED
+        else options_mapper
+    )
     for o in (settings.SENTRY_DEFAULT_OPTIONS, settings.SENTRY_OPTIONS):
         for k, v in o.items():
-            if k in options_mapper:
+            if k in effective_mapper:
                 # Map the mail.backend aliases to something Django understands
                 if k == "mail.backend":
                     try:
@@ -217,7 +228,7 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
                     except KeyError:
                         pass
                 # Escalate the few needed to actually get the app bootstrapped into settings
-                setattr(settings, options_mapper[k], v)
+                setattr(settings, effective_mapper[k], v)
 
 
 def configure_structlog() -> None:
@@ -299,6 +310,22 @@ def show_big_error(message: str | list[str]) -> None:
 def initialize_app(config: dict[str, Any], skip_service_validation: bool = False) -> None:
     settings = config["settings"]
 
+    # Instrumentation to diagnose slow/hanging startup (e.g. the process-spans
+    # flusher subprocess timing out during configure()). Opt-in via the
+    # SENTRY_TRACE_STARTUP env var. Logging isn't configured until
+    # configure_structlog() runs partway through this function, so emit
+    # breadcrumbs straight to stderr with cumulative timing.
+    _trace_startup = bool(os.environ.get("SENTRY_TRACE_STARTUP"))
+    _init_start = time.monotonic()
+
+    def _trace(step: str) -> None:
+        if not _trace_startup:
+            return
+        sys.stderr.write(f"[initialize_app] +{time.monotonic() - _init_start:6.1f}s {step}\n")
+        sys.stderr.flush()
+
+    _trace("start")
+
     # Just reuse the integration app for Single Org / Self-Hosted as
     # it doesn't make much sense to use 2 separate apps for SSO and
     # integration.
@@ -310,6 +337,7 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
             }
         )
 
+    _trace("bootstrap_options")
     bootstrap_options(settings, config["options"])
 
     # The SENTRY_LOG_FORMAT env var (e.g. the `--logformat` CLI flag) overrides
@@ -320,6 +348,7 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     logging.raiseExceptions = settings.DEBUG
 
+    _trace("configure_structlog")
     configure_structlog()
 
     # Commonly setups don't correctly configure themselves for production envs
@@ -359,38 +388,54 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     import django
 
+    _trace("django.setup")
     django.setup()
 
+    _trace("validate_regions")
     validate_regions(settings)
 
+    _trace("validate_outbox_config")
     validate_outbox_config()
 
+    _trace("monkeypatch_django_migrations")
     monkeypatch_django_migrations()
 
+    _trace("patch_silo_aware_atomic")
     patch_silo_aware_atomic()
 
+    _trace("apply_legacy_settings")
     apply_legacy_settings(settings)
 
+    _trace("bind_cache_to_option_store")
     bind_cache_to_option_store()
 
+    _trace("register_plugins")
     register_plugins(settings)
 
+    _trace("initialize_receivers")
     initialize_receivers()
 
+    _trace("validate_options")
     validate_options(settings)
 
+    _trace("validate_snuba")
     validate_snuba()
 
+    _trace("configure_sdk")
     configure_sdk()
 
+    _trace("setup_services")
     setup_services(validate=not skip_service_validation)
 
+    _trace("import_grouptype")
     import_grouptype()
 
+    _trace("initialize_arroyo_main")
     initialize_arroyo_main()
 
     # Encryption keys should be initialized before any
     # database queries that use encrypted fields are made
+    _trace("initialize_encrypted_field_key_store")
     initialize_encrypted_field_key_store()
 
     # Hacky workaround to dynamically set the CSRF_TRUSTED_ORIGINS for self hosted
@@ -403,6 +448,8 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
         else:
             # For first time users that have not yet set system url prefix, let's default to localhost url
             settings.CSRF_TRUSTED_ORIGINS = ["http://localhost:9000", "http://127.0.0.1:9000"]
+
+    _trace("done")
 
 
 def setup_services(validate: bool = True) -> None:
@@ -453,7 +500,13 @@ def setup_services(validate: bool = True) -> None:
 def validate_options(settings: Any) -> None:
     from sentry.options import default_manager
 
-    default_manager.validate(settings.SENTRY_OPTIONS, warn=True)
+    if settings.SENTRY_SELF_HOSTED:
+        opts = {
+            k: v for k, v in settings.SENTRY_OPTIONS.items() if k not in self_hosted_options_mapper
+        }
+    else:
+        opts = settings.SENTRY_OPTIONS
+    default_manager.validate(opts, warn=True)
 
 
 def validate_regions(settings: Any) -> None:
@@ -557,8 +610,13 @@ def apply_legacy_settings(settings: Any) -> None:
             # Django settings, so writing SENTRY_OPTIONS here is too late for any key
             # whose consumers read the setting (e.g. filestore.* -> SENTRY_FILE_STORAGE_*).
             # Re-promote the legacy value so the override actually takes effect.
-            if new in options_mapper:
-                setattr(settings, options_mapper[new], value)
+            effective_mapper = (
+                {**options_mapper, **self_hosted_options_mapper}
+                if settings.SENTRY_SELF_HOSTED
+                else options_mapper
+            )
+            if new in effective_mapper:
+                setattr(settings, effective_mapper[new], value)
 
     if hasattr(settings, "SENTRY_REDIS_OPTIONS"):
         if "redis.clusters" in settings.SENTRY_OPTIONS:

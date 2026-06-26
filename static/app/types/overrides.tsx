@@ -96,7 +96,6 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 type DashboardHeadersProps = {organization: Organization};
 
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
-type ReplayOnboardingAlertProps = {children: React.ReactNode};
 type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
 type ProductUnavailableCTAProps = {organization: Organization};
 
@@ -211,7 +210,6 @@ type ComponentOverrides = {
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:replay-init': React.ComponentType;
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
-  'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:replay-settings-alert': () => React.ComponentType | null;
   'component:scm-github-multi-org-install': () => React.ComponentType<ScmGithubMultiOrgInstallProps>;
@@ -320,7 +318,7 @@ type ReactHookOverrides = {
     matches: UIMatch[];
   }) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-billing-navigation-config': () => NavigationSection | null;
-  'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
+  'react-hook:use-button-tracking': () => (props: ButtonProps) => void;
   'react-hook:use-dashboard-dataset-retention-limit': (props: {
     dataset: WidgetType;
   }) => number;

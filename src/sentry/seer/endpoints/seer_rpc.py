@@ -3,11 +3,9 @@ import hashlib
 import hmac
 import logging
 import uuid
-from collections.abc import Callable
 from typing import Any, TypedDict
 
 import sentry_sdk
-from cryptography.fernet import Fernet
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
@@ -15,6 +13,7 @@ from django.db.models import Q
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from pydantic import BaseModel
+from requests.exceptions import RequestException
 from rest_framework.exceptions import (
     APIException,
     AuthenticationFailed,
@@ -43,14 +42,18 @@ from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentic
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
+from sentry.identity import default_manager as identity_manager
+from sentry.identity.oauth2 import OAuth2Provider
+from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.models.pullrequest import (
@@ -59,6 +62,7 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSource,
 )
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import organization_service
 from sentry.pr_metrics.attribution import (
     DELEGATED_SIGNAL_TYPES,
     DelegatedAgentSignalDetails,
@@ -70,6 +74,9 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
+from sentry.seer.agent.client import (
+    get_monitoring_provider_connections as fetch_monitoring_provider_connections,
+)
 from sentry.seer.agent.custom_tool_utils import call_custom_tool
 from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS, FeatureRunStatus
 from sentry.seer.agent.index_data import (
@@ -89,6 +96,7 @@ from sentry.seer.agent.tools import (
     get_dsn,
     get_event_details,
     get_issue_and_event_details_v2,
+    get_issue_committers,
     get_issue_details,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
@@ -119,6 +127,7 @@ from sentry.seer.autofix.utils import (
     read_preference_from_sentry_db,
 )
 from sentry.seer.constants import SeerSCMProvider
+from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
@@ -126,16 +135,23 @@ from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
+    AttributeBucket,
+    AttributesAndValuesResponse,
+    BulkProjectPreferencesResponse,
     GetRepoInstallationIdErrorResponse,
     GetRepoInstallationIdSuccessResponse,
     GitHubEnterpriseConfigErrorResponse,
     GitHubEnterpriseConfigSuccessResponse,
     HasRepoCodeMappingsResponse,
+    MonitoringProviderConnectionsResponse,
     OrganizationAutofixConsentResponse,
     OrganizationFeaturesResponse,
     OrganizationProject,
     OrganizationProjectIdsResponse,
     OrganizationSlugResponse,
+    PrAttributionResponse,
+    RefreshMonitoringProviderTokenErrorResponse,
+    RefreshMonitoringProviderTokenSuccessResponse,
     RepositoryIntegrationsStatusResponse,
     SendSeerWebhookErrorResponse,
     SendSeerWebhookSuccessResponse,
@@ -144,9 +160,10 @@ from sentry.seer.sentry_data_models import (
     ValidateRepoErrorResponse,
     ValidateRepoSuccessResponse,
 )
-from sentry.seer.utils import filter_repo_by_provider
+from sentry.seer.utils import encrypt_access_token_for_seer, filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
@@ -413,7 +430,7 @@ def get_attributes_and_values(
     max_attributes: int = 1000,
     sampled: bool = True,
     attributes_ignored: list[str] | None = None,
-) -> dict:
+) -> AttributesAndValuesResponse:
     """
     Fetches all string attributes and the corresponding values with counts for a given period.
     """
@@ -483,7 +500,7 @@ def get_attributes_and_values(
         definitions=SPAN_DEFINITIONS,
     )
 
-    attributes_and_values: dict[str, list[dict[str, Any]]] = {}
+    attributes_and_values: dict[str, list[AttributeBucket]] = {}
     for result in rpc_response.results:
         for attribute in result.attribute_distributions.attributes:
             try:
@@ -496,16 +513,11 @@ def get_attributes_and_values(
                 if attribute_name not in attributes_and_values:
                     attributes_and_values[attribute_name] = []
                 attributes_and_values[attribute_name].extend(
-                    [
-                        {
-                            "value": value.label,
-                            "count": value.value,
-                        }
-                        for value in attribute.buckets
-                    ]
+                    AttributeBucket(value=value.label, count=value.value)
+                    for value in attribute.buckets
                 )
 
-    return {"attributes_and_values": attributes_and_values}
+    return AttributesAndValuesResponse(attributes_and_values=attributes_and_values)
 
 
 def get_attributes_for_span(
@@ -592,11 +604,8 @@ def get_github_enterprise_integration_config(
         logger.error("No access token found for integration %s", integration.id)
         return GitHubEnterpriseConfigErrorResponse()
 
-    try:
-        fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
-        encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
-    except Exception:
-        logger.exception("Failed to encrypt access token")
+    encrypted_access_token = encrypt_access_token_for_seer(access_token)
+    if not encrypted_access_token:
         return GitHubEnterpriseConfigErrorResponse()
 
     return GitHubEnterpriseConfigSuccessResponse(
@@ -900,12 +909,14 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> SeerPro
 
 def bulk_get_project_preferences(
     *, organization_id: int, project_ids: list[int]
-) -> dict[str, dict]:
+) -> BulkProjectPreferencesResponse:
     """Bulk get Seer project preferences, keyed by stringified project ID.
 
     Projects not belonging to the given organization are silently skipped."""
     preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
-    return {str(project_id): pref.dict() for project_id, pref in preferences.items()}
+    return BulkProjectPreferencesResponse(
+        __root__={str(project_id): pref.dict() for project_id, pref in preferences.items()}
+    )
 
 
 def deliver_feature_result(
@@ -929,13 +940,77 @@ def deliver_feature_result(
     handler(organization_id, run_uuid, status, result, error)
 
 
+def get_monitoring_provider_connections(
+    *, organization_id: int, user_id: int
+) -> MonitoringProviderConnectionsResponse:
+    """Fetch the user's connected monitoring provider identities."""
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return MonitoringProviderConnectionsResponse(connections=[])
+
+    if (
+        organization_service.check_membership_by_id(
+            organization_id=organization_id, user_id=user_id
+        )
+        is None
+    ):
+        return MonitoringProviderConnectionsResponse(connections=[])
+
+    return MonitoringProviderConnectionsResponse(
+        connections=fetch_monitoring_provider_connections(organization, user_id)
+    )
+
+
+def refresh_monitoring_provider_token(
+    *, identity_id: int
+) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
+    """Refresh the access token for a monitoring provider identity."""
+    if not settings.SEER_GHE_ENCRYPT_KEY:
+        logger.error("Cannot encrypt monitoring provider access token without SEER_GHE_ENCRYPT_KEY")
+        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
+
+    identity = identity_service.get_identity(filter={"id": identity_id})
+    if identity is None:
+        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
+
+    idp = identity_service.get_provider(provider_id=identity.idp_id)
+    if idp is None or idp.type not in MONITORING_PROVIDERS:
+        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
+
+    provider = identity_manager.get(idp.type)
+    if not isinstance(provider, OAuth2Provider):
+        # Static-token providers (e.g. Datadog PAT) have no refresh flow.
+        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_not_supported")
+
+    try:
+        provider.refresh_identity(identity)
+    except IdentityNotValid:
+        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
+    except (ApiError, KeyError, RequestException):
+        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_failed")
+
+    access_token = identity.data.get("access_token")
+    if not access_token:
+        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
+
+    encrypted_access_token = encrypt_access_token_for_seer(access_token)
+    if not encrypted_access_token:
+        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
+
+    return RefreshMonitoringProviderTokenSuccessResponse(
+        encrypted_access_token=encrypted_access_token,
+        expires=identity.data.get("expires"),
+    )
+
+
 def record_pr_attribution(
     *,
     organization_id: int,
     pull_request_id: int,
     signal_type: str,
     signal_details: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+) -> PrAttributionResponse:
     """Record a PR attribution signal on behalf of Seer.
 
     Idempotent via the unique constraint on
@@ -968,7 +1043,7 @@ def record_pr_attribution(
             "seer.record_pr_attribution.feature_disabled",
             extra={"organization_id": organization_id, "pull_request_id": pull_request_id},
         )
-        return {"attribution_id": None}
+        return PrAttributionResponse(attribution_id=None)
 
     try:
         pull_request = PullRequest.objects.get(
@@ -1003,82 +1078,111 @@ def record_pr_attribution(
             "attribution_id": attribution.id,
         },
     )
-    return {"attribution_id": attribution.id}
+    return PrAttributionResponse(attribution_id=attribution.id)
 
 
-seer_method_registry: dict[str, Callable] = {  # return type must be serialized
+class ValidateLlmProxyKeyResponse(BaseModel):
+    valid: bool
+
+
+def validate_llm_proxy_key(api_key: str) -> ValidateLlmProxyKeyResponse:
+    return ValidateLlmProxyKeyResponse(valid=True)
+
+
+# Every value below MUST be a function returning a `pydantic.BaseModel` (or
+# a union of `BaseModel` subclasses, optionally with `None`). Two complementary
+# guards enforce this:
+#   1. The `dict[str, SeerRpcMethod]` annotation rejects `dict` /
+#      `dict[str, Any]` / generic `Callable` returns at type-check time.
+#   2. Wrapping each value with `seer_rpc(...)` triggers the custom mypy plugin
+#      (`tools.mypy_helpers.plugin._check_seer_rpc_handler_not_any`) to walk
+#      the registered function's return type and reject any `Any`. Without
+#      this, `-> Any` would slip past the structural check because `Any` is
+#      bidirectionally compatible with everything.
+# To add a method, define a Pydantic response model in
+# `sentry.seer.sentry_data_models`, annotate the handler with it, and register
+# the handler as `"name": seer_rpc(handler)`.
+seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serialized
     # Common to Seer features
-    "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
-    "get_organization_project_ids": get_organization_project_ids,
-    "get_organization_features": get_organization_features,
-    "check_repository_integrations_status": check_repository_integrations_status,
-    "validate_repo": validate_repo,
-    "get_repo_installation_id": get_repo_installation_id,
+    "get_github_enterprise_integration_config": seer_rpc(get_github_enterprise_integration_config),
+    "get_organization_project_ids": seer_rpc(get_organization_project_ids),
+    "get_organization_features": seer_rpc(get_organization_features),
+    "check_repository_integrations_status": seer_rpc(check_repository_integrations_status),
+    "validate_repo": seer_rpc(validate_repo),
+    "get_repo_installation_id": seer_rpc(get_repo_installation_id),
     #
     # Autofix
-    "get_organization_slug": get_organization_slug,
-    "get_organization_autofix_consent": get_organization_autofix_consent,
-    "get_error_event_details": get_error_event_details,
-    "get_profile_details": get_profile_details,
-    "send_seer_webhook": send_seer_webhook,
-    "get_attributes_for_span": get_attributes_for_span,
-    "get_project_preferences": get_project_preferences,
-    "bulk_get_project_preferences": bulk_get_project_preferences,
+    "get_organization_slug": seer_rpc(get_organization_slug),
+    "get_organization_autofix_consent": seer_rpc(get_organization_autofix_consent),
+    "get_error_event_details": seer_rpc(get_error_event_details),
+    "get_profile_details": seer_rpc(get_profile_details),
+    "send_seer_webhook": seer_rpc(send_seer_webhook),
+    "get_attributes_for_span": seer_rpc(get_attributes_for_span),
+    "get_project_preferences": seer_rpc(get_project_preferences),
+    "bulk_get_project_preferences": seer_rpc(bulk_get_project_preferences),
     #
     # Bug prediction
-    "has_repo_code_mappings": has_repo_code_mappings,
-    "get_issues_by_function_name": by_function_name.fetch_issues,
-    "get_issues_related_to_exception_type": by_error_type.fetch_issues,
-    "get_issues_by_raw_query": by_text_query.fetch_issues,
-    "get_latest_issue_event": utils.get_latest_issue_event,
+    "has_repo_code_mappings": seer_rpc(has_repo_code_mappings),
+    "get_issues_by_function_name": seer_rpc(by_function_name.fetch_issues),
+    "get_issues_related_to_exception_type": seer_rpc(by_error_type.fetch_issues),
+    "get_issues_by_raw_query": seer_rpc(by_text_query.fetch_issues),
+    "get_latest_issue_event": seer_rpc(utils.get_latest_issue_event),
     #
     # Assisted query
-    "get_attribute_names": get_attribute_names,
-    "get_attribute_values_with_substring": get_attribute_values_with_substring,
-    "get_attributes_and_values": get_attributes_and_values,
-    "get_metric_metadata": get_metric_metadata,
-    "get_issue_filter_keys": get_issue_filter_keys,
-    "get_filter_key_values": get_filter_key_values,
-    "get_issues_stats": get_issues_stats,
-    "get_event_filter_keys": get_event_filter_keys,
-    "get_event_filter_key_values": get_event_filter_key_values,
+    "get_attribute_names": seer_rpc(get_attribute_names),
+    "get_attribute_values_with_substring": seer_rpc(get_attribute_values_with_substring),
+    "get_attributes_and_values": seer_rpc(get_attributes_and_values),
+    "get_metric_metadata": seer_rpc(get_metric_metadata),
+    "get_issue_filter_keys": seer_rpc(get_issue_filter_keys),
+    "get_filter_key_values": seer_rpc(get_filter_key_values),
+    "get_issues_stats": seer_rpc(get_issues_stats),
+    "get_event_filter_keys": seer_rpc(get_event_filter_keys),
+    "get_event_filter_key_values": seer_rpc(get_event_filter_key_values),
     #
     # Agent
-    "get_transactions_for_project": rpc_get_transactions_for_project,
-    "get_trace_for_transaction": rpc_get_trace_for_transaction,
-    "get_profiles_for_trace": rpc_get_profiles_for_trace,
-    "get_issues_for_transaction": rpc_get_issues_for_transaction,
-    "get_trace_waterfall": rpc_get_trace_waterfall,
-    "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
-    "get_issue_details": get_issue_details,
-    "get_event_details": get_event_details,
-    "get_profile_flamegraph": rpc_get_profile_flamegraph,
-    "execute_table_query": execute_table_query,
-    "execute_timeseries_query": execute_timeseries_query,
-    "execute_trace_table_query": execute_trace_table_query,
-    "execute_replays_query": execute_replays_query,
-    "execute_issues_query": execute_issues_query,
-    "get_trace_item_attributes": get_trace_item_attributes,
-    "get_repository_definition": get_repository_definition,
-    "call_custom_tool": call_custom_tool,
-    "call_on_completion_hook": call_on_completion_hook,
-    "deliver_feature_result": deliver_feature_result,
-    "record_pr_attribution": record_pr_attribution,
-    "get_log_attributes_for_trace": get_log_attributes_for_trace,
-    "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
-    "get_baseline_tag_distribution": get_baseline_tag_distribution,
-    "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
-    "get_dsn": get_dsn,
+    "get_transactions_for_project": seer_rpc(rpc_get_transactions_for_project),
+    "get_trace_for_transaction": seer_rpc(rpc_get_trace_for_transaction),
+    "get_profiles_for_trace": seer_rpc(rpc_get_profiles_for_trace),
+    "get_issues_for_transaction": seer_rpc(rpc_get_issues_for_transaction),
+    "get_trace_waterfall": seer_rpc(rpc_get_trace_waterfall),
+    "get_issue_and_event_details_v2": seer_rpc(get_issue_and_event_details_v2),
+    "get_issue_details": seer_rpc(get_issue_details),
+    "get_issue_committers": seer_rpc(get_issue_committers),
+    "get_event_details": seer_rpc(get_event_details),
+    "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),
+    "execute_table_query": seer_rpc(execute_table_query),
+    "execute_timeseries_query": seer_rpc(execute_timeseries_query),
+    "execute_trace_table_query": seer_rpc(execute_trace_table_query),
+    "execute_replays_query": seer_rpc(execute_replays_query),
+    "execute_issues_query": seer_rpc(execute_issues_query),
+    "get_trace_item_attributes": seer_rpc(get_trace_item_attributes),
+    "get_repository_definition": seer_rpc(get_repository_definition),
+    "call_custom_tool": seer_rpc(call_custom_tool),
+    "call_on_completion_hook": seer_rpc(call_on_completion_hook),
+    "deliver_feature_result": seer_rpc(deliver_feature_result),
+    "record_pr_attribution": seer_rpc(record_pr_attribution),
+    "get_log_attributes_for_trace": seer_rpc(get_log_attributes_for_trace),
+    "get_metric_attributes_for_trace": seer_rpc(get_metric_attributes_for_trace),
+    "get_baseline_tag_distribution": seer_rpc(get_baseline_tag_distribution),
+    "get_comparative_attribute_distributions": seer_rpc(get_comparative_attribute_distributions),
+    "get_dsn": seer_rpc(get_dsn),
     #
     # Replays
-    "get_replay_summary_logs": rpc_get_replay_summary_logs,
-    "get_replay_metadata": get_replay_metadata,
+    "get_replay_summary_logs": seer_rpc(rpc_get_replay_summary_logs),
+    "get_replay_metadata": seer_rpc(get_replay_metadata),
     #
     # Issue Detection
-    "create_issue_occurrence": create_issue_occurrence,
+    "create_issue_occurrence": seer_rpc(create_issue_occurrence),
     #
     # PR metrics (judge path)
-    "update_pr_metrics": update_pr_metrics,
+    "update_pr_metrics": seer_rpc(update_pr_metrics),
+    #
+    # Monitoring provider tokens (MCP)
+    "get_monitoring_provider_connections": seer_rpc(get_monitoring_provider_connections),
+    "refresh_monitoring_provider_token": seer_rpc(refresh_monitoring_provider_token),
+    #
+    # LLM Proxy
+    "validate_llm_proxy_key": seer_rpc(validate_llm_proxy_key),
 }
 
 

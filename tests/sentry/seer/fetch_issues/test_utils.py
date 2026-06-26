@@ -11,6 +11,7 @@ from sentry.seer.fetch_issues.utils import (
     get_repo_and_projects,
     handle_fetch_issues_exceptions,
 )
+from sentry.seer.sentry_data_models import EmptyResponse, IssueDetails
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -246,7 +247,7 @@ class TestGetLatestIssueEvent(TestCase):
         assert group is not None
         result = get_latest_issue_event(group.id, self.organization.id)
 
-        assert result is not None
+        assert isinstance(result, IssueDetails)
         assert result.id == group.id
         assert result.title == group.title
         assert len(result.events) == 1
@@ -255,7 +256,7 @@ class TestGetLatestIssueEvent(TestCase):
     def test_get_latest_issue_event_not_found(self) -> None:
         nonexistent_group_id = 999999
         result = get_latest_issue_event(nonexistent_group_id, self.organization.id)
-        assert result is None
+        assert isinstance(result, EmptyResponse)
 
     def test_get_latest_issue_event_with_short_id(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=1))
@@ -265,7 +266,7 @@ class TestGetLatestIssueEvent(TestCase):
         assert group is not None
         result = get_latest_issue_event(group.qualified_short_id, self.organization.id)
 
-        assert result is not None
+        assert isinstance(result, IssueDetails)
         assert result.id == group.id
         assert result.title == group.title
         assert len(result.events) == 1
@@ -273,20 +274,20 @@ class TestGetLatestIssueEvent(TestCase):
 
     def test_get_latest_issue_event_with_short_id_not_found(self) -> None:
         result = get_latest_issue_event("INVALID-SHORT-ID", self.organization.id)
-        assert result is None
+        assert isinstance(result, EmptyResponse)
 
     def test_get_latest_issue_event_no_events(self) -> None:
         # Create a group but don't store any events for it
         group = self.create_group(project=self.project)
         result = get_latest_issue_event(group.id, self.organization.id)
-        assert result is None
+        assert isinstance(result, EmptyResponse)
 
     def test_get_latest_issue_event_wrong_organization(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         group = event.group
         assert group is not None
         results = get_latest_issue_event(group.id, self.organization.id + 1)
-        assert results is None
+        assert isinstance(results, EmptyResponse)
 
     def test_get_latest_issue_event_numeric_id_cross_org(self) -> None:
         """Numeric group ID from another org must not be returned."""
@@ -298,7 +299,7 @@ class TestGetLatestIssueEvent(TestCase):
         assert other_group is not None
 
         result = get_latest_issue_event(other_group.id, self.organization.id)
-        assert result is None
+        assert isinstance(result, EmptyResponse)
 
 
 class TestHandleFetchIssuesExceptions(TestCase):

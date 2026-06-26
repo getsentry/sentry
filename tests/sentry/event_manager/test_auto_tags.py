@@ -15,7 +15,6 @@ from sentry.event_manager_auto_tags import (
     get_enabled_derivers,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 def _make_event(
@@ -287,8 +286,7 @@ class TestDeriveTagsMany(TestCase):
         http = _make_http_interface(url=url)
         return _make_event(interfaces={"request": http})
 
-    @with_feature("organizations:derive-tags-without-plugins")
-    def test_new_path_derives_tags(self) -> None:
+    def test_derives_tags(self) -> None:
         project = self.create_project()
         event = self._make_url_event()
         job = _make_job(event, project.id)
@@ -297,17 +295,7 @@ class TestDeriveTagsMany(TestCase):
 
         assert get_tag(job["data"], "url") == "https://example.com/path"
 
-    def test_legacy_path_derives_tags(self) -> None:
-        project = self.create_project()
-        event = self._make_url_event()
-        job = _make_job(event, project.id)
-
-        _derive_tags_many([job], {project.id: project})
-
-        assert get_tag(job["data"], "url") == "https://example.com/path"
-
-    @with_feature("organizations:derive-tags-without-plugins")
-    def test_new_path_does_not_override_user_tags(self) -> None:
+    def test_does_not_override_user_tags(self) -> None:
         project = self.create_project()
         event = self._make_url_event()
         job = _make_job(event, project.id)

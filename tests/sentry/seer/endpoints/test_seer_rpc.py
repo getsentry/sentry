@@ -1,10 +1,12 @@
 import logging
 from datetime import datetime, timezone
+from time import time
 from typing import Any
 from unittest.mock import patch
 
 import orjson
 import pytest
+import requests.exceptions
 import responses
 from cryptography.fernet import Fernet
 from django.test import override_settings
@@ -25,25 +27,28 @@ from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_monitoring_provider_connections,
     get_organization_features,
     get_project_preferences,
     get_repo_installation_id,
     has_repo_code_mappings,
     record_pr_attribution,
+    refresh_monitoring_provider_token,
     validate_repo,
 )
 from sentry.seer.sentry_data_models import (
     GitHubEnterpriseConfigErrorResponse,
     GitHubEnterpriseConfigSuccessResponse,
+    PrAttributionResponse,
     SendSeerWebhookSuccessResponse,
 )
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
+from sentry.users.models.identity import Identity
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
-# Fernet key must be a base64 encoded string, exactly 32 bytes long
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
 
@@ -86,6 +91,15 @@ class TestSeerRpc(APITestCase):
         assert response.status_code == 200
         assert "features" in response.data
         assert isinstance(response.data["features"], list)
+
+    def test_validate_llm_proxy_key(self) -> None:
+        path = self._get_path("validate_llm_proxy_key")
+        data: dict[str, Any] = {"args": {"api_key": "test-key"}}
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+        assert response.status_code == 200
+        assert response.data["valid"] is True
 
     def test_snuba_rate_limit_returns_429(self) -> None:
         """Test that SnubaRPCRateLimitExceeded returns 429 to Seer for retry."""
@@ -214,9 +228,9 @@ class TestSeerRpcMethods(APITestCase):
                 item_type="tracemetrics",
             )
 
-        assert len(result["attributes"]) == 2
+        assert len(result.attributes) == 2
         # Check that we have both types (order may vary)
-        types = {attr["type"] for attr in result["attributes"]}
+        types = {attr["type"] for attr in result.attributes}
         assert types == {"str", "float"}
         mock_get.assert_called_once()
 
@@ -1684,6 +1698,203 @@ class TestGetOrganizationFeatures(APITestCase):
         assert result.dict() == {"features": ["seer-agent-source-code-search"]}
 
 
+@override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+@with_feature("organizations:seer-infra-telemetry")
+@cell_silo_test
+class TestGetMonitoringProviderConnections(APITestCase):
+    def test_returns_connections(self) -> None:
+        idp = self.create_identity_provider(type="datadog", external_id="org-uuid-1")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
+
+        result = get_monitoring_provider_connections(
+            organization_id=self.organization.id, user_id=self.user.id
+        )
+
+        assert len(result.connections) == 1
+        connection = result.connections[0]
+        assert connection.provider_key == "datadog"
+        assert connection.url == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
+        assert connection.identity_id == identity.id
+        assert connection.auth_method == "oauth"
+        decrypted = Fernet(TEST_FERNET_KEY.encode("utf-8")).decrypt(
+            connection.encrypted_access_token.encode("utf-8")
+        )
+        assert decrypted.decode("utf-8") == "access-token"
+
+    def test_unknown_organization_returns_empty(self) -> None:
+        result = get_monitoring_provider_connections(organization_id=999999, user_id=self.user.id)
+
+        assert result.connections == []
+
+    def test_non_member_returns_empty(self) -> None:
+        other_org = self.create_organization()
+        idp = self.create_identity_provider(type="datadog", external_id="org-uuid-2")
+        self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-2",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+
+        result = get_monitoring_provider_connections(
+            organization_id=other_org.id, user_id=self.user.id
+        )
+
+        assert result.connections == []
+
+
+@override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+@cell_silo_test
+class TestRefreshMonitoringProviderToken(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.idp = self.create_identity_provider(type="datadog", external_id="datadog-ext-r")
+        self.identity = self.create_identity(
+            user=self.user,
+            identity_provider=self.idp,
+            external_id="dd-user-uuid",
+            data={
+                "access_token": "old-tok",
+                "refresh_token": "ref-456",
+                "client_id": "dcr-cid",
+                "client_secret": "dcr-csec",
+                "site": "datadoghq.com",
+                "expires": int(time()) + 3600,
+            },
+        )
+
+    def _save_identity(self) -> None:
+        with assume_test_silo_mode_of(Identity):
+            self.identity.save()
+
+    @responses.activate
+    def test_success(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            json={
+                "access_token": "new-access-token",
+                "refresh_token": "refresh-token",
+                "expires_in": 3600,
+            },
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+        decrypted_access_token = fernet.decrypt(
+            result["encrypted_access_token"].encode("utf-8")
+        ).decode("utf-8")
+
+        assert decrypted_access_token == "new-access-token"
+        assert result["expires"] is not None
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    @override_settings(SEER_GHE_ENCRYPT_KEY=None)
+    def test_missing_encrypt_key(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            json={
+                "access_token": "new-access-token",
+                "refresh_token": "refresh-token",
+                "expires_in": 3600,
+            },
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        assert result == {"error": "encryption_failed"}
+        assert len(responses.calls) == 0
+
+    def test_identity_not_found(self) -> None:
+        result = refresh_monitoring_provider_token(identity_id=999999)
+
+        assert result == {"error": "identity_not_found"}
+
+    def test_missing_refresh_token(self) -> None:
+        self.identity.data.pop("refresh_token", None)
+        self._save_identity()
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        assert result == {"error": "identity_not_valid"}
+
+    @responses.activate
+    def test_api_error(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            json={"error": "server_error"},
+            status=500,
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        assert result == {"error": "refresh_failed"}
+
+    @responses.activate
+    def test_malformed_response(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            json={"not_access_token": "oops"},
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        assert result == {"error": "refresh_failed"}
+
+    @responses.activate
+    def test_connection_error(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            body=requests.exceptions.ConnectionError("Connection refused"),
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        assert result == {"error": "refresh_failed"}
+
+    @responses.activate
+    def test_missing_access_token_after_refresh(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            json={"refresh_token": "ref-456", "expires_in": 3600},
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        # Not "identity_not_valid" due to KeyError from get_oauth_data before reaching the .get() guard
+        assert result == {"error": "refresh_failed"}
+
+    def test_pat_provider_not_refreshable(self) -> None:
+        # Static-token providers (Datadog PAT) have no refresh flow.
+        pat_idp = self.create_identity_provider(type="datadog_pat", external_id="dd-org-pat")
+        pat_identity = self.create_identity(
+            user=self.user,
+            identity_provider=pat_idp,
+            external_id="dd-user-pat",
+            data={"access_token": "pat-tok", "site": "datadoghq.com"},
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=pat_identity.id)
+
+        assert result == {"error": "refresh_not_supported"}
+
+
 @with_feature("organizations:pr-metrics-attribution")
 @cell_silo_test
 class TestRecordPrAttribution(APITestCase):
@@ -1698,7 +1909,7 @@ class TestRecordPrAttribution(APITestCase):
 
     _DEFAULT_PR_URL = "https://github.com/getsentry/sentry/pull/99"
 
-    def _call(self, **overrides: Any) -> dict[str, Any]:
+    def _call(self, **overrides: Any) -> PrAttributionResponse:
         kwargs: dict[str, Any] = {
             "organization_id": self.organization.id,
             "pull_request_id": self.pr.id,
@@ -1714,7 +1925,7 @@ class TestRecordPrAttribution(APITestCase):
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
         assert attr.signal_type == PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE
         assert attr.is_valid is True
-        assert result == {"attribution_id": attr.id}
+        assert result.attribution_id == attr.id
 
     def test_stores_typed_signal_details_for_delegated_signals(self) -> None:
         self._call(

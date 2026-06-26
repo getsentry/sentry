@@ -3,9 +3,9 @@ from __future__ import annotations
 import io
 import logging
 from base64 import b64decode
-from collections.abc import Generator
+from collections.abc import Generator, Mapping, Sequence
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from operator import itemgetter
 from time import time
 from typing import Any
@@ -28,6 +28,7 @@ from taskbroker_client.retry import Retry
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
+from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import (
@@ -40,6 +41,7 @@ from sentry.lang.native.utils import native_images_from_data
 from sentry.models.eventerror import EventErrorType
 from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
+from sentry.models.profilechunkattachment import ProfileChunkAttachment
 from sentry.models.project import Project
 from sentry.models.projectsdk import (
     EventType,
@@ -47,6 +49,7 @@ from sentry.models.projectsdk import (
     get_minimum_sdk_version,
     get_rejected_sdk_version,
 )
+from sentry.objectstore import default_attachment_retention
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.options.rollout import in_random_rollout
 from sentry.profiles.java import (
@@ -63,7 +66,7 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import ingest_profiling_passthrough_tasks, ingest_profiling_tasks
+from sentry.taskworker.namespaces import ingest_profiling_passthrough_tasks
 from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
@@ -97,50 +100,58 @@ def _get_profiles_producer_from_topic(
     )
 
 
-_task_producer_name = "sentry.profiles.taskproducer"
+def _get_task_producer_name(name: str) -> str:
+    return f"sentry.profiles.{name}.taskproducer"
+
+
 processed_profiles_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES),
     max_futures=settings.SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT,
 )
+processed_profiles_name = _get_task_producer_name("processed")
 processed_profiles_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES, _task_producer_name),
+    processed_profiles_name,
+    lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES, processed_profiles_name),
 )
 
 profile_functions_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE),
     max_futures=settings.SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT,
 )
+profile_functions_name = _get_task_producer_name("functions")
 profile_functions_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE, _task_producer_name),
+    profile_functions_name,
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE, profile_functions_name),
 )
 
 profile_chunks_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS),
     max_futures=settings.SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT,
 )
+profile_chunks_name = _get_task_producer_name("chunks")
 profile_chunks_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS, _task_producer_name),
+    profile_chunks_name,
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS, profile_chunks_name),
 )
 
 profile_occurrences_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES),
     max_futures=settings.SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT,
 )
+profile_occurrences_name = _get_task_producer_name("occurrences")
 profile_occurrences_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES, _task_producer_name),
+    profile_occurrences_name,
+    lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES, profile_occurrences_name),
 )
 
 eap_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS),
     max_futures=settings.SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT,
 )
+profile_eap_name = _get_task_producer_name("eap")
 eap_task_producer = get_task_producer(
-    _task_producer_name,
-    lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS, _task_producer_name),
+    profile_eap_name,
+    lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS, profile_eap_name),
 )
 
 logger = logging.getLogger(__name__)
@@ -149,7 +160,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.profiles.task.process_profile_from_kafka",
     namespace=ingest_profiling_passthrough_tasks,
-    processing_deadline_duration=60,
+    processing_deadline_duration=80,
     retry=Retry(times=2, delay=5),
     compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.CELL,
@@ -159,20 +170,39 @@ def process_profile_from_kafka(
     message_bytes: bytes,
     headers: dict[str, str],
 ) -> None:
-    """Process a profile from raw Kafka message bytes (taskbroker passthrough mode)."""
-    from sentry.profiles.consumers.process.factory import _process_profile_message
+    """Process a profile from raw Kafka message bytes.
 
-    _process_profile_message(message_bytes, headers, inline=True)
+    This task is directly spawned from taskbroker in "raw mode". You won't find
+    any application code that calls apply_async or delay directly on it,
+    instead taskbroker itself is configured to consume a topic (in infra
+    templates) and spawns tasks for each message.
+
+    As such, the task signature, name and namespace cannot be changed without
+    coordination.
+    """
+    if _should_drop(headers):
+        return
+
+    sampled = _is_sampled(headers)
+
+    if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
+        return
+
+    process_profile_task(payload=message_bytes, sampled=sampled)
 
 
-@instrumented_task(
-    name="sentry.profiles.task.process_profile",
-    namespace=ingest_profiling_tasks,
-    processing_deadline_duration=60,
-    retry=Retry(times=2, delay=5),
-    compression_type=CompressionType.ZSTD,
-    silo_mode=SiloMode.CELL,
-)
+def _is_sampled(headers: dict[str, str]) -> bool:
+    return headers.get("sampled", "true") == "true"
+
+
+def _should_drop(headers: dict[str, str]) -> bool:
+    context = {"project_id": headers["project_id"]} if "project_id" in headers else {}
+
+    return bool(context) and killswitch_matches_context(
+        "profiling.killswitch.ingest-profiles", context
+    )
+
+
 def process_profile_task(
     profile: Profile | None = None,
     payload: bytes | str | None = None,
@@ -181,6 +211,10 @@ def process_profile_task(
 ) -> None:
     if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
         return
+
+    # Attachments (e.g. Perfetto traces) are only present on profile-chunk
+    # messages produced by Relay, alongside the profile payload.
+    attachments: Sequence[Mapping[str, Any]] = ()
 
     if payload:
         # Handle both bytes (new) and base64 string (legacy) payloads
@@ -201,6 +235,8 @@ def process_profile_task(
             }
         )
 
+        attachments = message_dict.get("attachments") or ()
+
     assert profile is not None
 
     if not sampled:
@@ -212,12 +248,16 @@ def process_profile_task(
     organization = Organization.objects.get_from_cache(id=profile["organization_id"])
 
     sentry_sdk.set_tag("organization", organization.id)
+    sentry_sdk.set_attribute("organization", organization.id)
     sentry_sdk.set_tag("organization.slug", organization.slug)
+    sentry_sdk.set_attribute("organization.slug", organization.slug)
 
     project = Project.objects.get_from_cache(id=profile["project_id"])
 
     sentry_sdk.set_tag("project", project.id)
+    sentry_sdk.set_attribute("project", project.id)
     sentry_sdk.set_tag("project.slug", project.slug)
+    sentry_sdk.set_attribute("project.slug", project.slug)
 
     if sampled and _is_deprecated(profile, project, organization):
         return
@@ -239,19 +279,25 @@ def process_profile_task(
         "profile",
         profile_context,
     )
+    sentry_sdk.set_attribute("profile.organization_id", profile_context["organization_id"])
+    sentry_sdk.set_attribute("profile.project_id", profile_context["project_id"])
 
     sentry_sdk.set_tag("platform", profile["platform"])
+    sentry_sdk.set_attribute("platform", profile["platform"])
 
     if "version" in profile:
         version = profile["version"]
         sentry_sdk.set_tag("format", f"sample_v{version}")
+        sentry_sdk.set_attribute("format", f"sample_v{version}")
         set_span_attribute("profile.samples", len(profile["profile"]["samples"]))
         set_span_attribute("profile.stacks", len(profile["profile"]["stacks"]))
         set_span_attribute("profile.frames", len(profile["profile"]["frames"]))
     elif "profiler_id" in profile and profile["platform"] == "android":
         sentry_sdk.set_tag("format", "android_chunk")
+        sentry_sdk.set_attribute("format", "android_chunk")
     else:
         sentry_sdk.set_tag("format", "legacy")
+        sentry_sdk.set_attribute("format", "legacy")
 
     if not _symbolicate_profile(profile, project):
         return
@@ -288,6 +334,10 @@ def process_profile_task(
     if not _process_vroomrs_profile(profile, project):
         return
 
+    if attachments and "profiler_id" in profile and "chunk_id" in profile:
+        if features.has("organizations:continuous-profiling-perfetto", organization):
+            _save_chunk_attachments(profile, project, attachments)
+
     if sampled:
         with metrics.timer("process_profile.track_outcome.accepted"):
             set_project_flag_and_signal(project, "has_profiles", first_profile_received)
@@ -321,6 +371,44 @@ def process_profile_task(
                 categories=[DataCategory.PROFILE_INDEXED],
                 reason="sampled",
             )
+
+
+def _save_chunk_attachments(
+    profile: Profile, project: Project, attachments: Sequence[Mapping[str, Any]]
+) -> None:
+    """
+    Persist references to profile-chunk attachments that Relay stored in
+    Objectstore. The blob itself lives in Objectstore (keyed by ``stored_id``)
+    and expires via its TTL; we only record the metadata so it can be listed
+    and downloaded. ``date_expires`` mirrors the chunk's retention so the row is
+    pruned on the same schedule.
+    """
+    try:
+        retention_days = profile.get("retention_days") or default_attachment_retention()
+        date_expires = datetime.now(timezone.utc) + timedelta(days=retention_days)
+        ProfileChunkAttachment.objects.bulk_create(
+            [
+                ProfileChunkAttachment(
+                    project_id=project.id,
+                    profiler_id=profile["profiler_id"],
+                    chunk_id=profile["chunk_id"],
+                    name=attachment["name"],
+                    content_type=attachment.get("content_type"),
+                    stored_id=attachment["stored_id"],
+                    date_expires=date_expires,
+                )
+                for attachment in attachments
+            ],
+            ignore_conflicts=True,
+        )
+        metrics.incr(
+            "process_profile.chunk_attachments.tracked",
+            len(attachments),
+            tags={"platform": profile["platform"]},
+            sample_rate=1.0,
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 def _is_deprecated(profile: Profile, project: Project, organization: Organization) -> bool:
@@ -999,8 +1087,13 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 if response["status"] == "failed":
                     deobfuscation_context["status"] = response["status"]
                     deobfuscation_context["message"] = response["message"]
+                    sentry_sdk.set_attribute("profile_deobfuscation.status", response["status"])
+                    sentry_sdk.set_attribute("profile_deobfuscation.message", response["message"])
                 if "errors" in response:
                     deobfuscation_context["errors"] = response["errors"]
+                    sentry_sdk.set_attribute(
+                        "profile_deobfuscation.errors", json.dumps(response["errors"])
+                    )
                 sentry_sdk.set_context("profile deobfuscation", deobfuscation_context)
                 if "stacktraces" in response:
                     merge_jvm_frames_with_android_methods(
@@ -1047,6 +1140,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 debug_file_id=debug_file_id,
             )
             sentry_sdk.set_tag("deobfuscated_with_symbolicator_with_success", success)
+            sentry_sdk.set_attribute("deobfuscated_with_symbolicator_with_success", success)
             if success:
                 return
     except Exception as e:
@@ -1207,6 +1301,9 @@ def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
                 "duration_ms": duration_ms,
             },
         )
+        sentry_sdk.set_attribute("profile_duration_calculation.min_timestamp", min_timestamp)
+        sentry_sdk.set_attribute("profile_duration_calculation.max_timestamp", max_timestamp)
+        sentry_sdk.set_attribute("profile_duration_calculation.duration_ms", duration_ms)
         sentry_sdk.capture_message("Calculated duration is above the limit")
         return MAX_DURATION_SAMPLE_V2
     return duration_ms

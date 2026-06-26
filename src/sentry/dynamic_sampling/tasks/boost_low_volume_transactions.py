@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from datetime import datetime
 from typing import TypedDict
 
 import sentry_sdk
@@ -53,6 +52,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.utils import metrics
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -147,6 +147,52 @@ def _process_orgs_for_boost_low_volume_transactions(
         )
 
 
+def _factor_bucket(factor: float) -> str:
+    """
+    Buckets a sampling factor (multiplier) into a coarse, low-cardinality range for use as a metric
+    tag.
+    """
+    # (inclusive lower bound, label), ordered high -> low; the first bound the factor clears wins.
+    factor_buckets: tuple[tuple[float, str], ...] = (
+        (0.1, "1-0.1"),
+        (0.001, "0.1-0.001"),
+        (0.0001, "0.001-0.0001"),
+        (0.00001, "0.0001-0.00001"),
+    )
+    if factor > 1:
+        return ">1"
+    return next((label for bound, label in factor_buckets if factor >= bound), "<0.00001")
+
+
+def _emit_smallest_transaction_factor_bucket(
+    named_rates: Sequence[RebalancedItem], implicit_rate: float
+) -> None:
+    """
+    Emits the bucket of the sampling factor (multiplier) the model assigned to the lowest-volume
+    (smallest) explicit transaction of a project, once per project run.
+
+    This records the value that actually lands in the project config rather than an absolute sample
+    rate: Relay multiplies the factor onto the implicit rate, so the factor is
+    ``new_sample_rate / implicit_rate`` (matching BoostLowVolumeTransactionsBias).
+    """
+    if not options.get(
+        "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric"
+    ):
+        return
+
+    if not named_rates:
+        return
+
+    smallest = min(named_rates, key=lambda item: item.count)
+    denominator = implicit_rate if implicit_rate != 0.0 else 1.0
+    factor = smallest.new_sample_rate / denominator
+    metrics.incr(
+        "dynamic_sampling.boost_low_volume_transactions.smallest_transaction_factor",
+        tags={"factor_bucket": _factor_bucket(factor)},
+        sample_rate=1.0,
+    )
+
+
 @instrumented_task(
     name="sentry.dynamic_sampling.boost_low_volume_transactions_of_project",
     namespace=telemetry_experience_tasks,
@@ -219,6 +265,7 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
 
     # Only after checking the nullability of rebalanced_transactions, we want to unpack the tuple.
     named_rates, implicit_rate = rebalanced_transactions
+    _emit_smallest_transaction_factor_bucket(named_rates, implicit_rate)
     if sample_rate > 0:
         implicit_factor = implicit_rate / sample_rate
         comparison = (
@@ -290,9 +337,9 @@ class FetchProjectTransactionTotals:
                 Condition(
                     Column("timestamp"),
                     Op.GTE,
-                    datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                    deprecated_utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
                 ),
-                Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                Condition(Column("timestamp"), Op.LT, deprecated_utcnow()),
                 Condition(Column("metric_id"), Op.EQ, self.metric_id),
                 Condition(Column("org_id"), Op.IN, self.org_ids),
             ]
@@ -439,9 +486,9 @@ class FetchProjectTransactionVolumes:
                 Condition(
                     Column("timestamp"),
                     Op.GTE,
-                    datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                    deprecated_utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
                 ),
-                Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                Condition(Column("timestamp"), Op.LT, deprecated_utcnow()),
                 Condition(Column("metric_id"), Op.EQ, self.metric_id),
                 Condition(Column("org_id"), Op.IN, self.org_ids),
             ]

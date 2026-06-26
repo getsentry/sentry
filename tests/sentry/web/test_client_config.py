@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import urllib.parse
+from collections.abc import Collection
 from typing import Any
 
 import pytest
@@ -63,8 +64,28 @@ def none_request() -> None:
     return None
 
 
+def create_test_localities(
+    cells: tuple[cell.Cell, ...], single_tenants: Collection[str] = ()
+) -> tuple[cell.Locality, ...]:
+    return tuple(
+        cell.Locality(
+            name=c.name,
+            cells=frozenset([c.name]),
+            category=(
+                cell.RegionCategory.SINGLE_TENANT
+                if c.name in single_tenants
+                else cell.RegionCategory.MULTI_TENANT
+            ),
+            new_org_cell=c.name,
+        )
+        for c in cells
+    )
+
+
+multiregion_cells = create_test_cells("us", "eu", "acme")
 multiregion_client_config_test = control_silo_test(
-    cells=create_test_cells("us", "eu", "acme", single_tenants=["acme"]),
+    cells=multiregion_cells,
+    localities=create_test_localities(multiregion_cells, single_tenants={"acme"}),
     include_monolith_run=True,
 )
 
@@ -102,6 +123,7 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory) -> None:
         # Removing the region lists as it varies based on silo mode.
         # See Locality.to_url()
         value.pop("localities")
+        value.pop("signupLocalities")
         value.pop("cells")
         value["links"].pop("regionUrl")
 
@@ -165,8 +187,10 @@ def test_client_config_default_locality_data() -> None:
 
     assert len(result["localities"]) == 1
     localities = result["localities"]
-    assert localities[0]["name"] == settings.SENTRY_MONOLITH_REGION
+    assert localities[0]["name"] == settings.SENTRY_FALLBACK_CELL
     assert localities[0]["url"] == options.get("system.url-prefix")
+    assert len(result["signupLocalities"]) == 1
+    assert result["signupLocalities"] == [settings.SENTRY_FALLBACK_CELL]
 
     assert len(result["cells"]) == 0, "No staff session"
 
@@ -186,9 +210,12 @@ def test_client_config_empty_region_data() -> None:
 
     assert len(result["cells"]) == 0, "no staff session"
     assert len(result["localities"]) == 1
+    assert len(result["signupLocalities"]) == 1
+
     localities = result["localities"]
-    assert localities[0]["name"] == settings.SENTRY_MONOLITH_REGION
+    assert localities[0]["name"] == settings.SENTRY_FALLBACK_CELL
     assert localities[0]["url"] == options.get("system.url-prefix")
+    assert result["signupLocalities"][0] == localities[0]["name"]
 
 
 @multiregion_client_config_test
@@ -209,14 +236,12 @@ hidden_cells = [
         name="us",
         snowflake_id=1,
         address="https//us.testserver",
-        category=cell.RegionCategory.MULTI_TENANT,
     ),
     cell.Cell(
         name="eu",
         snowflake_id=5,
         address="https//eu.testserver",
         visible=False,
-        category=cell.RegionCategory.MULTI_TENANT,
     ),
 ]
 
@@ -247,6 +272,9 @@ def test_client_config_with_hidden_cell_membership() -> None:
     assert len(result["localities"]) == 1
     localities = result["localities"]
     assert [r["name"] for r in localities] == ["us"]
+
+    # signup localities don't include hidden items;
+    assert result["signupLocalities"] == ["us"]
 
     # Cell list is hidden for regular users.
     assert len(result["cells"]) == 0
@@ -329,8 +357,12 @@ def test_client_config_links_regionurl() -> None:
         assert result["links"]["regionUrl"] == "http://eu.testserver"
 
 
+display_order_cells = create_test_cells("us", "eu", "acme", "de", "apac")
+
+
 @control_silo_test(
-    cells=create_test_cells("us", "eu", "acme", "de", "apac", single_tenants=["acme"]),
+    cells=display_order_cells,
+    localities=create_test_localities(display_order_cells, single_tenants={"acme"}),
     include_monolith_run=True,
 )
 @django_db_all

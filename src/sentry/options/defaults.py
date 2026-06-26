@@ -62,30 +62,6 @@ register(
     "system.internal-url-prefix",
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Base hostname that account domains are subdomains of.
-register(
-    "system.base-hostname",
-    default=os.environ.get("SENTRY_SYSTEM_BASE_HOSTNAME"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-# The template for organization subdomain hostnames.
-register(
-    "system.organization-base-hostname",
-    default=os.environ.get("SENTRY_ORGANIZATION_BASE_HOSTNAME"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-# Template for organization URL including protocol
-register(
-    "system.organization-url-template",
-    default=os.environ.get("SENTRY_ORGANIZATION_URL_TEMPLATE"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-# Template for region based API URL
-register(
-    "system.region-api-url-template",
-    default=os.environ.get("SENTRY_REGION_API_URL_TEMPLATE"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
 # The region that this instance is currently running in.
 register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 
@@ -174,7 +150,6 @@ register(
     default="root@localhost",
     flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
 )
-register("mail.list-namespace", type=String, default="localhost", flags=FLAG_NOSTORE)
 register(
     "mail.enable-replies",
     default=False,
@@ -271,6 +246,12 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
+register(
+    "auth.email-verification-at-signup.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
 
 # User Settings
 register(
@@ -345,54 +326,6 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Filestore (default)
-register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
-register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
-register("filestore.relocation-backend", default="filesystem", flags=FLAG_NOSTORE)
-register(
-    "filestore.relocation-options",
-    default={"location": "/tmp/sentry-relocation-files"},
-    flags=FLAG_NOSTORE,
-)
-register("filestore.profiles-backend", default="filesystem", flags=FLAG_NOSTORE)
-register(
-    "filestore.profiles-options",
-    default={"location": "/tmp/sentry-profiles", "allow_overwrite": True},
-    flags=FLAG_NOSTORE,
-)
-
-# Filestore for control silo
-register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
-register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
-
-
-# New `objectstore` service configuration. Additional supported options and
-# their defaults:
-#  - propagate_traces: bool = False,
-#  - retries: int | None = None,
-#  - timeout_ms: float | None = None,
-#  - connection_kwargs: Mapping[str, Any] | None = None,
-#  - token_generator: Mapping[str, Any] | None = None,
-#
-# For an always up-to-date list, see:
-# https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
-register(
-    "objectstore.config",
-    default={
-        "base_url": "http://127.0.0.1:8888",
-        # Test-only token generator with no permissions. Only active when no real
-        # objectstore config is deployed. Exists so mint_token() does not raise in
-        # test/dev environments that lack signing keys.
-        "token_generator": {
-            "kid": "test",
-            "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
-            "permissions": [],
-        },
-    },
-    flags=FLAG_NOSTORE,
-)
-
 
 # Symbol server
 register(
@@ -590,22 +523,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for moving accepted outcome emission from Relay to EAP.
-register(
-    "relay.eap-outcomes.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rollout rate for moving accepted outcome emission for spans from Relay to the Segment Consumer.
-register(
-    "relay.eap-span-outcomes.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Killswitch for fetching projects in the endpoints.
 register(
     "relay.endpoint-fetch-config.enabled",
@@ -628,11 +545,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Analytics
-register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
-register("analytics.options", default={}, flags=FLAG_NOSTORE)
-
 
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -828,9 +740,6 @@ register("aws-lambda.host-region", default="us-east-2", flags=FLAG_AUTOMATOR_MOD
 # the number of threads we should use to install Lambdas
 register("aws-lambda.thread-count", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Intercom Integration
-register("intercom.sentry-api-secret", flags=FLAG_NOSTORE | FLAG_CREDENTIAL, default="")
-
 # Snuba
 register(
     "snuba.search.pre-snuba-candidates-optimizer",
@@ -905,6 +814,31 @@ register(
 register(
     "snuba.search.recommended.agent-weight",
     default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Additive boost for regressed issues (GroupSubStatus.REGRESSED). A regression that just
+# came back is worth surfacing again; new/escalating issues are already lifted by recency
+# and the spike factor, so they aren't boosted here.
+register(
+    "snuba.search.recommended.regressed-weight",
+    default=0.10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Additive boost for newly-seen issues, decayed on Group.first_seen. The base recency
+# factor decays on last_seen (recent activity), so it can't distinguish a brand-new issue
+# from an old chronic one that just fired; this rewards true first appearance. Boost is
+# newness-weight * 1/2^(hours_since_first_seen / newness-halflife-hours).
+register(
+    "snuba.search.recommended.newness-weight",
+    default=0.10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Halflife (hours) of the newness decay. Governs how far back "new" reaches: at 24h the
+# boost is ~spent within a day or two; raise it (e.g. 168 = 1 week) to keep distinguishing
+# week-old from month-old issues. Set to 0 to disable newness.
+register(
+    "snuba.search.recommended.newness-halflife-hours",
+    default=24.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1195,18 +1129,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "seer.severity.cpu-rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.fixability.cpu-rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.night_shift.enable",
     type=Bool,
     default=False,
@@ -1215,6 +1137,23 @@ register(
 register(
     "seer.night_shift.issues_per_org",
     default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.shard_size",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Per-org overrides for night shift run options. Keyed by stringified
+# organization id; each value is a partial set of run-option overrides (e.g.
+# {"max_candidates": 20}) that layer on top of the global defaults but below
+# any explicit caller-provided options. See
+# sentry.tasks.seer.night_shift.tweaks.get_night_shift_org_tweaks.
+register(
+    "seer.night_shift.org_tweaks",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1333,7 +1272,6 @@ register(
 
 
 # All Relay options (statically authenticated Relays can be registered here)
-register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 # Whether Relay requests sent from internal ip addresses should be allowed even if the
 # credentials can not be verified.
 register("relay.allow_internal_ip_auth", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2105,6 +2043,12 @@ register(
     0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
+register(
+    "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Stops dynamic sampling rules from being emitted in relay config.
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
@@ -2145,6 +2089,25 @@ register(
     "dynamic-sampling.per_org.project-balancing-debug-project-ids",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
+# sample rate comparison. Empty disables the comparison entirely.
+register(
+    "dynamic-sampling.per_org.sliding-window-comparison-org-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Per-project sample rate overrides for custom dynamic sampling. Maps a stringified
+# project id to a fixed sample rate (0.0-1.0) that hard-replaces the rate the custom
+# dynamic sampling path would otherwise compute for that project. Example:
+# {"12345": 0.5}. An empty mapping disables the override.
+register(
+    "dynamic-sampling.sample-rate-override-per-project",
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2700,16 +2663,6 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Relocation: populates the target region drop down in the control silo. Note: this option has NO
-# EFFECT in region silos. However, the control silos `relocation.selectable-regions` array should be
-# a complete list of all regions where `relocation.enabled`. If a region is enabled/disabled, it
-# should also be added to/removed from this array in the control silo at the same time.
-register(
-    "relocation.selectable-regions",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Relocation: the step at which new relocations should be autopaused, requiring admin approval
 # before continuing.
 # DEPRECATED: will be removed after the new `relocation.autopause.*` options are fully rolled out.
@@ -2826,14 +2779,6 @@ register(
 # Enable sending a post update signal after we update groups using a queryset update
 register(
     "groups.enable-post-update-signal",
-    default=False,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Store the regression-triggering event's metadata in the activity data so
-# notifications show the correct title/message instead of stale group data.
-register(
-    "groups.regression-activity-event-metadata",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3753,15 +3698,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# ViewerContext — unified caller identity for all entrypoints.
-# Set via deploy config (SENTRY_OPTIONS); requires restart to change.
-register(
-    "viewer-context.enabled",
-    default=True,
-    type=Bool,
-    flags=FLAG_NOSTORE,
-)
-
 # Allows the recording of Seer actions as issue activities
 # https://linear.app/getsentry/project/add-seer-actions-to-issue-activityaction-log-0e641e1f5dac/overview
 register(
@@ -3771,13 +3707,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# When True, publish_action writes to the GroupActionLogEntry table.
-register(
-    "issues.action-log.write-to-db",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # When True, auto-link-repos-by-name logs matches but does not create ProjectRepository rows.
 register(
@@ -3827,8 +3756,32 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rolls out the new TaskProducer to track_outcome in tasks
+register(
+    "tasks.producer.track_outcome.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# If False, TaskWorkers will wait for a task's producer futures to complete
+# before marking a task as complete
+register(
+    "taskworker.skip.awaiting.futures",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "github-enterprise.disallow-domain-mismatch",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "error-embeds.control-silo-address",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

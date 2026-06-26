@@ -4,9 +4,9 @@ import {AM3_PLANS} from 'getsentry-test/fixtures/am3Plans';
 import {FeatureListFixture} from 'getsentry-test/fixtures/featureList';
 import {MM1_PLANS} from 'getsentry-test/fixtures/mm1Plans';
 import {MM2_PLANS} from 'getsentry-test/fixtures/mm2Plans';
+import {PlanTier} from 'getsentry-test/planTier';
 
 import type {BillingConfig} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 
 export function BillingConfigFixture(tier: PlanTier): BillingConfig {
   if (tier === PlanTier.TEST) {

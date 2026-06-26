@@ -95,6 +95,7 @@ def handle_message(
             )
             return
         scope.set_tag("query_subscription_id", contents["subscription_id"])
+        scope.set_attribute("query_subscription_id", contents["subscription_id"])
 
         try:
             with metrics.timer(
@@ -152,7 +153,9 @@ def handle_message(
             return
 
         sentry_sdk.set_tag("project_id", subscription.project_id)
+        sentry_sdk.set_attribute("project_id", subscription.project_id)
         sentry_sdk.set_tag("query_subscription_id", contents["subscription_id"])
+        sentry_sdk.set_attribute("query_subscription_id", contents["subscription_id"])
 
         callback = subscriber_registry[subscription.type]
         with (

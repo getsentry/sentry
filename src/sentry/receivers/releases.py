@@ -1,29 +1,35 @@
+import logging
+
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.db.models.signals import post_save, pre_save
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.analytics import IntegrationResolveCommitEvent, IntegrationResolvePREvent
 from sentry.issues.action_log import (
     ActionSource,
     GroupActionActor,
     action_context_scope,
+    publish_action,
 )
+from sentry.issues.action_log.types import PullRequestClosedAction
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
-from sentry.models.group import Group, GroupStatus
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphistory import (
     GroupHistoryStatus,
     record_group_history,
-    record_group_history_from_activity_type,
 )
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
@@ -31,9 +37,11 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
 from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import get_option_from_list, user_option_service
+
+logger = logging.getLogger(__name__)
 
 
 def validate_release_empty_version(instance: Release, **kwargs):
@@ -54,25 +62,40 @@ def resolve_group_resolutions(instance, created, **kwargs):
 
 
 def remove_resolved_link(link):
-    # TODO(dcramer): ideally this would simply "undo" the link change,
-    # but we don't know for a fact that the resolution was most recently from
-    # the GroupLink
     with transaction.atomic(router.db_for_write(GroupLink)):
         link.delete()
-        affected = Group.objects.filter(status=GroupStatus.RESOLVED, id=link.group_id).update(
-            status=GroupStatus.UNRESOLVED,
-            substatus=GroupSubStatus.ONGOING,
-        )
-        if affected:
-            Activity.objects.create(
-                project_id=link.project_id,
-                group_id=link.group_id,
-                type=ActivityType.SET_UNRESOLVED.value,
-                ident=link.group_id,
-            )
-            record_group_history_from_activity_type(
-                Group.objects.get(id=link.group_id), ActivityType.SET_UNRESOLVED.value
-            )
+
+
+def _find_pull_request_author_user(author: CommitAuthor, organization_id: int) -> RpcUser | None:
+    if author.organization_id != organization_id:
+        return None
+
+    users = list(author.find_users())
+    if users:
+        return users[0]
+
+    # Commit resolution generally has a real commit author email, so find_users()
+    # can match an org member by verified email. PR webhooks can create authors
+    # from a GitHub actor with a placeholder email, so use the same ExternalActor
+    # fallback that serializes PR authors.
+    # Keep this lazy; receivers are imported during process initialization.
+    from sentry.api.serializers.models.release import get_author_users_by_external_actors
+
+    external_actor_users, _ = get_author_users_by_external_actors(
+        [author],
+        organization_id,
+    )
+    user_id = external_actor_users.get(author)
+    if user_id is None:
+        return None
+
+    user_id_int = int(user_id)
+    if not OrganizationMember.objects.filter(
+        organization_id=organization_id, user_id=user_id_int
+    ).exists():
+        return None
+
+    return user_service.get_user(user_id=user_id_int)
 
 
 def resolved_in_commit(instance: Commit, created, **kwargs):
@@ -202,10 +225,11 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
         repo = Repository.objects.get(id=instance.repository_id)
     except Repository.DoesNotExist:
         repo = None
-    if instance.author:
-        user_list = list(instance.author.find_users())
-    else:
-        user_list = []
+    acting_user = (
+        _find_pull_request_author_user(instance.author, instance.organization_id)
+        if instance.author
+        else None
+    )
 
     for group in groups:
         try:
@@ -217,9 +241,7 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                     relationship=GroupLink.Relationship.resolves,
                     linked_id=instance.id,
                 )
-                acting_user: RpcUser | None = None
-                if user_list:
-                    acting_user = user_list[0]
+                if acting_user:
                     with action_context_scope(
                         source=ActionSource.SYSTEM, actor=GroupActionActor.user(acting_user.id)
                     ):
@@ -251,6 +273,62 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                 )
 
 
+def pull_request_closing(instance: PullRequest, **kwargs: object) -> None:
+    """
+    Emit PULL_REQUEST_CLOSED group activity when a PR transitions to closed.
+    """
+    try:
+        if instance.state != PullRequestLifecycleState.CLOSED:
+            return
+
+        try:
+            organization = Organization.objects.get_from_cache(id=instance.organization_id)
+        except Organization.DoesNotExist:
+            return
+        if not features.has("organizations:pr-group-activity", organization):
+            return
+
+        if instance.pk is not None:
+            old = PullRequest.objects.filter(pk=instance.pk).first()
+            if old is None or old.state == PullRequestLifecycleState.CLOSED:
+                return
+
+        group_ids = list(
+            GroupLink.objects.filter(
+                linked_type=GroupLink.LinkedType.pull_request,
+                linked_id=instance.id,
+            ).values_list("group_id", flat=True)
+        )
+        if not group_ids:
+            return
+
+        def create_activities():
+            # This runs after the transaction commits, outside the try/except below,
+            # so it needs its own error handling to avoid propagating failures.
+            try:
+                for group in Group.objects.filter(id__in=group_ids).select_related("project"):
+                    Activity.objects.create(
+                        project_id=group.project_id,
+                        group=group,
+                        type=ActivityType.PULL_REQUEST_CLOSED.value,
+                        ident=str(instance.id),
+                        data={"pull_request": instance.id},
+                    )
+                    publish_action(
+                        PullRequestClosedAction(pull_request=instance.id),
+                        source=ActionSource.SYSTEM,
+                        group_id=group.id,
+                        project=group.project,
+                    )
+            except Exception:
+                logger.exception("Failed to create pull request closed activity")
+
+        transaction.on_commit(create_activities, router.db_for_write(PullRequest))
+    except Exception:
+        # If something fails we don't want to block the model from saving.
+        logger.exception("Failed to create pull request closed activity")
+
+
 pre_save.connect(
     validate_release_empty_version,
     sender=Release,
@@ -263,6 +341,14 @@ post_save.connect(
 )
 
 post_save.connect(resolved_in_commit, sender=Commit, dispatch_uid="resolved_in_commit", weak=False)
+
+
+pre_save.connect(
+    pull_request_closing,
+    sender=PullRequest,
+    dispatch_uid="pull_request_closing",
+    weak=False,
+)
 
 post_save.connect(
     resolved_in_pull_request,

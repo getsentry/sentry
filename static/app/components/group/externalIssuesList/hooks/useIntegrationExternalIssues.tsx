@@ -13,6 +13,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ExternalIssueAction, GroupIntegrationIssueResult} from './types';
 
+const UNNUDGED_ICON_PROVIDER_KEYS = new Set(['github', 'github_enterprise']);
+
 interface IntegrationExternalIssueOptions {
   group: Group;
 }
@@ -87,6 +89,7 @@ export function useIntegrationExternalIssues({
           key: `integration-linked-${config.externalIssues[0]!.id}`,
           displayName: config.externalIssues[0]!.key,
           displayIcon,
+          displayIconOffset: UNNUDGED_ICON_PROVIDER_KEYS.has(providerKey) ? 0 : undefined,
           url: config.externalIssues[0]!.url,
           title: config.externalIssues[0]!.title,
           onUnlink: () => {

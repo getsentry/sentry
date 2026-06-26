@@ -307,7 +307,7 @@ class OrganizationReleaseDetailsEndpoint(
     ReleaseAnalyticsMixin,
     OrganizationReleaseDetailsPaginationMixin,
 ):
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
@@ -315,7 +315,8 @@ class OrganizationReleaseDetailsEndpoint(
     }
 
     @extend_schema(
-        operation_id="Retrieve an Organization's Release",
+        operation_id="getOrganizationRelease",
+        summary="Retrieve an Organization's Release",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
@@ -469,7 +470,8 @@ class OrganizationReleaseDetailsEndpoint(
         return Response(data)
 
     @extend_schema(
-        operation_id="Update an Organization's Release",
+        operation_id="updateOrganizationRelease",
+        summary="Update an Organization's Release",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
@@ -495,6 +497,7 @@ class OrganizationReleaseDetailsEndpoint(
 
         scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("version", version)
+        scope.set_attribute("version", version)
         try:
             release = Release.objects.get(organization_id=organization.id, version=version)
             projects = release.projects.all()
@@ -562,6 +565,7 @@ class OrganizationReleaseDetailsEndpoint(
                     release.clear_commits()
 
         scope.set_tag("has_refs", bool(refs))
+        scope.set_attribute("has_refs", bool(refs))
         if refs:
             if not request.user.is_authenticated and not request.auth:
                 scope.set_tag("failure_reason", "user_not_authenticated")
@@ -593,7 +597,8 @@ class OrganizationReleaseDetailsEndpoint(
         return Response(data)
 
     @extend_schema(
-        operation_id="Delete an Organization's Release",
+        operation_id="deleteOrganizationRelease",
+        summary="Delete an Organization's Release",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,

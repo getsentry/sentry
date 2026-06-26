@@ -89,6 +89,7 @@ export interface PipelineStepProps<
   stepData: D | null;
   stepIndex: number;
   totalSteps: number;
+  description?: string;
 }
 
 /**

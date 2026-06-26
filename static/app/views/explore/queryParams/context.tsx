@@ -124,6 +124,9 @@ export function useSetQueryParams() {
         // setting it to null tells the implementer that it should be reset
         writableQueryParams.cursor = null;
         writableQueryParams.aggregateCursor = null;
+        writableQueryParams.breakdownCursor = null;
+      } else if (defined(writableQueryParams.breakdownQuery)) {
+        writableQueryParams.breakdownCursor = null;
       }
 
       setQueryParams(writableQueryParams);

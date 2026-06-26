@@ -5,11 +5,11 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
 describe('ChooseYourBillingCycle', () => {
@@ -18,7 +18,7 @@ describe('ChooseYourBillingCycle', () => {
   const subscription = SubscriptionFixture({
     organization,
     plan: 'am3_f',
-    contractPeriodEnd: '2025-08-28',
+    billingPeriodEnd: '2025-08-28',
   });
 
   beforeEach(() => {
@@ -104,7 +104,6 @@ describe('ChooseYourBillingCycle', () => {
       <AMCheckout
         {...RouteComponentPropsFixture()}
         api={api}
-        checkoutTier={PlanTier.AM3}
         location={location}
         navigate={jest.fn()}
       />,
@@ -125,7 +124,7 @@ describe('ChooseYourBillingCycle', () => {
     const monthlySub = SubscriptionFixture({
       organization,
       plan: 'am3_business',
-      contractPeriodEnd: '2025-08-28',
+      billingPeriodEnd: '2025-08-28',
     });
     SubscriptionStore.set(organization.slug, monthlySub);
     renderCheckout();
@@ -139,8 +138,8 @@ describe('ChooseYourBillingCycle', () => {
   it('renders for monthly downgrade', async () => {
     const annualSub = SubscriptionFixture({
       planDetails: PlanDetailsLookupFixture('am2_business_auf'),
-      contractPeriodStart: '2025-07-16',
-      contractPeriodEnd: '2026-07-15',
+      billingPeriodStart: '2025-07-16',
+      billingPeriodEnd: '2026-07-15',
       organization,
     });
     SubscriptionStore.set(organization.slug, annualSub);
@@ -153,7 +152,7 @@ describe('ChooseYourBillingCycle', () => {
 
   it('renders for migrating partner customers', async () => {
     const partnerSub = SubscriptionFixture({
-      contractInterval: 'annual',
+      billingInterval: 'annual',
       sponsoredType: 'FOO',
       partner: {
         isActive: true,

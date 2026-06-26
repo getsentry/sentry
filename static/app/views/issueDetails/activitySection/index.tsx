@@ -1,131 +1,43 @@
 import {Fragment, useCallback, useState} from 'react';
-import {useTheme, type Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
-import {useMutateActivity} from 'sentry/components/feedback/useMutateActivity';
 import {Timeline} from 'sentry/components/timeline';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {GroupStore} from 'sentry/stores/groupStore';
-import type {NoteType} from 'sentry/types/alerts';
-import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
+import {t} from 'sentry/locale';
+import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
-import {useUser} from 'sentry/utils/useUser';
+import {getActivityColorConfig} from 'sentry/views/issueDetails/activitySection/activityColorConfig';
+import {ActivityMarker} from 'sentry/views/issueDetails/activitySection/activityMarker';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
 import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
+import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-function getAuthorName(item: GroupActivity) {
-  if (item.sentry_app) {
-    return item.sentry_app.name;
-  }
-  if (item.user) {
-    return item.user.name;
-  }
-  if (
-    item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
-    item.data.pullRequest?.author?.name &&
-    !item.data.pullRequest.author.email?.endsWith('@localhost')
-  ) {
-    return item.data.pullRequest.author.name;
-  }
-  return 'Sentry';
-}
-
-function getActivityMarker(item: GroupActivity, color: string) {
-  if (item.sentry_app) {
-    return (
-      <AvatarMarker color={color}>
-        <SentryAppAvatar
-          data-test-id="sentry-app-activity-marker"
-          sentryApp={item.sentry_app}
-          size={22}
-        />
-      </AvatarMarker>
-    );
-  }
-  if (item.user) {
-    return (
-      <AvatarMarker color={color}>
-        <UserAvatar data-test-id="user-activity-marker" user={item.user} size={22} />
-      </AvatarMarker>
-    );
-  }
-  return <SentryMarker color={color} data-test-id="sentry-activity-marker" />;
-}
-
-function getActivityColorConfig(theme: Theme, type: GroupActivityType) {
-  const defaultConfig = {
-    title: theme.tokens.content.primary,
-    icon: theme.tokens.content.secondary,
-    iconBorder: theme.tokens.content.secondary,
-  };
-
-  switch (type) {
-    case GroupActivityType.SET_RESOLVED:
-    case GroupActivityType.SET_RESOLVED_BY_AGE:
-    case GroupActivityType.SET_RESOLVED_IN_RELEASE:
-    case GroupActivityType.SET_RESOLVED_IN_COMMIT:
-    case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST:
-    case GroupActivityType.MARK_REVIEWED:
-    case GroupActivityType.SEER_RCA_COMPLETED:
-    case GroupActivityType.SEER_SOLUTION_COMPLETED:
-    case GroupActivityType.SEER_CODING_COMPLETED:
-    case GroupActivityType.SEER_PR_CREATED:
-      return {
-        ...defaultConfig,
-        icon: theme.tokens.graphics.success.vibrant,
-        iconBorder: theme.tokens.border.success.vibrant,
-      };
-    case GroupActivityType.SET_UNRESOLVED:
-    case GroupActivityType.SET_REGRESSION:
-      return {
-        ...defaultConfig,
-        icon: theme.tokens.graphics.danger.vibrant,
-        iconBorder: theme.tokens.border.danger.vibrant,
-      };
-    case GroupActivityType.SET_ESCALATING:
-    case GroupActivityType.SET_PRIORITY:
-      return {
-        ...defaultConfig,
-        icon: theme.tokens.graphics.warning.vibrant,
-        iconBorder: theme.tokens.border.warning.vibrant,
-      };
-    case GroupActivityType.SET_IGNORED:
-      return {
-        ...defaultConfig,
-      };
-    default:
-      return defaultConfig;
-  }
-}
-
 function TimelineItem({
   item,
   handleDelete,
-  handleUpdate,
+  onCommentEdited,
   group,
   teams,
   size,
@@ -133,26 +45,24 @@ function TimelineItem({
   timestampUnitStyle,
 }: {
   group: Group;
-  handleDelete: (item: GroupActivity) => void;
-  handleUpdate: (item: GroupActivity, n: NoteType) => void;
+  handleDelete: (item: GroupActivity) => Promise<void>;
   inputVariant: 'compact' | 'full';
   item: GroupActivity;
   size: 'sm' | 'md';
   teams: Team[];
+  onCommentEdited?: (activity: GroupActivity[]) => void;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }) {
   const organization = useOrganization();
   const theme = useTheme();
   const [editing, setEditing] = useState(false);
   const useTwoColumnLayout = organization.features.includes('issue-activity-feed-v2');
-  const authorName = getAuthorName(item);
   const colorConfig = getActivityColorConfig(theme, item.type);
   const {title, message} = getGroupActivityItem(
     item,
     organization,
     group.project,
     group.issueCategory,
-    <strong>{authorName}</strong>,
     teams
   );
 
@@ -186,7 +96,11 @@ function TimelineItem({
         </Flex>
       }
       timestamp={<Timestamp date={item.dateCreated} unitStyle={timestampUnitStyle} />}
-      marker={useTwoColumnLayout ? getActivityMarker(item, colorConfig.icon) : undefined}
+      marker={
+        useTwoColumnLayout ? (
+          <ActivityMarker item={item} color={colorConfig.icon} />
+        ) : undefined
+      }
       colorConfig={useTwoColumnLayout ? colorConfig : undefined}
       icon={
         Icon && (
@@ -206,8 +120,9 @@ function TimelineItem({
           variant={inputVariant}
           text={item.data.text}
           noteId={item.id}
-          onUpdate={n => {
-            handleUpdate(item, n);
+          group={group}
+          onCommentEdited={activity => {
+            onCommentEdited?.(activity);
             setEditing(false);
           }}
           onCancel={() => setEditing(false)}
@@ -238,9 +153,9 @@ interface ActivitySectionProps {
    */
   filterComments?: boolean;
   minHeight?: number;
-  onCreate?: (n: NoteType, me: User) => void;
-  onDelete?: (item: GroupActivity) => void;
-  onUpdate?: (item: GroupActivity, n: NoteType) => void;
+  onCommentCreated?: (activity: GroupActivity[]) => void;
+  onCommentDeleted?: (activity: GroupActivity[]) => void;
+  onCommentEdited?: (activity: GroupActivity[]) => void;
   /**
    * Controls layout and input style.
    * - `sidebar` (default): fold section, compact input, collapses at 5 items
@@ -254,9 +169,9 @@ interface ActivitySectionProps {
 export function ActivitySection({
   group,
   filterComments,
-  onCreate: onCreateProp,
-  onDelete: onDeleteProp,
-  onUpdate: onUpdateProp,
+  onCommentCreated,
+  onCommentDeleted,
+  onCommentEdited,
   variant = 'sidebar',
   size = 'sm',
   minHeight = 96,
@@ -269,12 +184,9 @@ export function ActivitySection({
   const location = useLocation();
   const [inputId, setInputId] = useState(() => uniqueId());
 
-  const activeUser = useUser();
-  const projectSlugs = group?.project ? [group.project.slug] : [];
   const noteProps = {
     minHeight,
     group,
-    projectSlugs,
     placeholder,
   };
 
@@ -284,90 +196,18 @@ export function ActivitySection({
   });
 
   const handleDelete = useCallback(
-    (item: GroupActivity) => {
-      if (onDeleteProp) {
-        onDeleteProp(item);
-        return;
-      }
-
-      const restore = group.activity.find(activity => activity.id === item.id);
-      const index = GroupStore.removeActivity(group.id, item.id);
-
-      if (index === -1 || restore === undefined) {
-        addErrorMessage(t('Failed to delete comment'));
-        return;
-      }
-      mutators.handleDelete(
-        item.id,
-        group.activity.filter(a => a.id !== item.id),
-        {
-          onError: () => {
-            addErrorMessage(t('Failed to delete comment'));
-          },
-          onSuccess: () => {
-            trackAnalytics('issue_details.comment_deleted', {
-              organization,
-              streamline: true,
-              org_streamline_only: organization.streamlineOnly ?? undefined,
-            });
-            addSuccessMessage(t('Comment removed'));
-          },
-        }
-      );
-    },
-    [onDeleteProp, group.activity, mutators, group.id, organization]
-  );
-
-  const handleUpdate = useCallback(
-    (item: GroupActivity, n: NoteType) => {
-      if (onUpdateProp) {
-        onUpdateProp(item, n);
-        return;
-      }
-
-      mutators.handleUpdate(n, item.id, group.activity, {
-        onError: () => {
-          addErrorMessage(t('Unable to update comment'));
-        },
-        onSuccess: data => {
-          const d = data as GroupActivityNote;
-          GroupStore.updateActivity(group.id, data.id, {text: d.data.text});
-          addSuccessMessage(t('Comment updated'));
-          trackAnalytics('issue_details.comment_updated', {
-            organization,
-            streamline: true,
-            org_streamline_only: organization.streamlineOnly ?? undefined,
-          });
+    async (item: GroupActivity): Promise<void> => {
+      const filteredActivity = group.activity.filter(a => a.id !== item.id);
+      await mutators.handleDelete(item.id, {
+        onSuccess: () => {
+          trackAnalytics('issue_details.comment_deleted', {organization});
+          addSuccessMessage(t('Comment removed'));
+          onCommentDeleted?.(filteredActivity);
         },
       });
     },
-    [onUpdateProp, group.activity, mutators, group.id, organization]
+    [group.activity, mutators, organization, onCommentDeleted]
   );
-
-  const handleCreate = (n: NoteType, me: User) => {
-    if (onCreateProp) {
-      onCreateProp(n, me);
-      return;
-    }
-
-    mutators.handleCreate(n, group.activity, {
-      onError: err => {
-        const errMessage = err.responseJSON?.detail
-          ? tct('Error: [msg]', {msg: err.responseJSON?.detail as string})
-          : t('Unable to post comment');
-        addErrorMessage(errMessage);
-      },
-      onSuccess: data => {
-        GroupStore.addActivity(group.id, data);
-        trackAnalytics('issue_details.comment_created', {
-          organization,
-          streamline: true,
-          org_streamline_only: organization.streamlineOnly ?? undefined,
-        });
-        addSuccessMessage(t('Comment posted'));
-      },
-    });
-  };
 
   const activityLink = {
     pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
@@ -394,7 +234,7 @@ export function ActivitySection({
     <TimelineItem
       item={item}
       handleDelete={handleDelete}
-      handleUpdate={handleUpdate}
+      onCommentEdited={onCommentEdited}
       group={group}
       teams={teams}
       key={item.id}
@@ -409,8 +249,8 @@ export function ActivitySection({
       key={inputId}
       storageKey="groupinput:latest"
       itemKey={group.id}
-      onCreate={n => {
-        handleCreate(n, activeUser);
+      onCommentCreated={activity => {
+        onCommentCreated?.(activity);
         setInputId(uniqueId());
       }}
       variant={inputVariant}
@@ -534,37 +374,4 @@ const MoreActivityIcon = styled('div')`
 const ActivityInputFrame = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   min-width: 0;
-`;
-
-const AvatarMarker = styled('span')<{color: string}>`
-  display: block;
-  position: relative;
-  border-radius: 100%;
-  line-height: 0;
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 100%;
-    box-shadow: inset 0 0 0 2px ${p => p.color};
-    pointer-events: none;
-  }
-`;
-
-const SentryMarker = styled('span')<{color: string}>`
-  width: 12px;
-  height: 12px;
-  border-radius: 100%;
-  background: ${p => p.theme.tokens.background.primary};
-  display: grid;
-  place-items: center;
-
-  &::after {
-    content: '';
-    width: 6px;
-    height: 6px;
-    border-radius: 100%;
-    background: ${p => p.color};
-  }
 `;

@@ -982,6 +982,33 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 200
         assert response.data["data"] == [{"count(message)": 1}]
 
+    def test_aggregate_condition_filters_grouped_logs(self) -> None:
+        self.store_eap_items(
+            [
+                self.create_ourlog({"body": "foo"}, timestamp=self.ten_mins_ago),
+                self.create_ourlog({"body": "foo"}, timestamp=self.nine_mins_ago),
+                self.create_ourlog({"body": "bar"}, timestamp=self.ten_mins_ago),
+            ]
+        )
+        request = {
+            "field": ["message", "count(message)"],
+            "orderby": "message",
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "statsPeriod": "1h",
+        }
+
+        unfiltered = self.do_request(request)
+        filtered = self.do_request({**request, "query": "count(message):>1"})
+
+        assert unfiltered.status_code == 200, unfiltered.content
+        assert unfiltered.data["data"] == [
+            {"message": "bar", "count(message)": 1},
+            {"message": "foo", "count(message)": 2},
+        ]
+        assert filtered.status_code == 200, filtered.content
+        assert filtered.data["data"] == [{"message": "foo", "count(message)": 2}]
+
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
     def test_no_project_sent_logs(self):
         project1 = self.create_project()

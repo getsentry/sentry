@@ -35,6 +35,7 @@ class JiraSentryUninstalledWebhook(JiraWebhookBase):
         integration = Integration.objects.get(id=rpc_integration.id)
         bind_org_context_from_integration(integration.id, {"webhook": "uninstalled"})
         sentry_sdk.set_tag("integration_id", integration.id)
+        sentry_sdk.set_attribute("integration_id", integration.id)
 
         integration.update(status=ObjectStatus.DISABLED)
 

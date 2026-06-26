@@ -110,7 +110,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
             attrs["cell_name"] = resolve_provisioning_cell(locality_name)
         else:
             # TODO(cells) Remove this when cell silo compatibility is removed.
-            attrs["cell_name"] = settings.SENTRY_LOCAL_CELL or settings.SENTRY_MONOLITH_REGION
+            attrs["cell_name"] = settings.SENTRY_LOCAL_CELL or settings.SENTRY_FALLBACK_CELL
 
         return attrs
 
@@ -125,7 +125,8 @@ class OrganizationIndexEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
     @extend_schema(
-        operation_id="List Your Organizations",
+        operation_id="listOrganizations",
+        summary="List Your Organizations",
         parameters=[
             OrganizationParams.OWNER,
             CursorQueryParam,
@@ -428,6 +429,16 @@ class OrganizationIndexEndpoint(Endpoint):
                                 terms of service and privacy policy.
         :auth: required, user-context-needed
         """
+        if SiloMode.get_current_mode() == SiloMode.CELL:
+            metrics.incr("api.organization_index.post.rejected")
+            base_url = options.get("system.url-prefix")
+            return Response(
+                {
+                    "detail": f"This endpoint is no longer available on this host. Use {base_url}/api/0/organizations/ instead."
+                },
+                status=404,
+            )
+
         if not request.user.is_authenticated:
             return Response({"detail": "This endpoint requires user info"}, status=401)
 

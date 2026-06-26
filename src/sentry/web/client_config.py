@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Iterable, Mapping
 from functools import cached_property
 from typing import Any
 
@@ -37,6 +37,7 @@ from sentry.types.cell import (
     RegionCategory,
     find_all_cell_names,
     find_all_multitenant_locality_names,
+    find_all_signup_locality_names,
     get_cell_by_name,
     get_global_directory,
     get_locality_by_name,
@@ -128,7 +129,7 @@ def _get_public_dsn() -> str | None:
     result = cache.get(cache_key)
     if result is None:
         key = project_key_service.get_project_key_by_cell(
-            cell_name=settings.SENTRY_MONOLITH_REGION,
+            cell_name=settings.SENTRY_FALLBACK_CELL,
             project_id=project_id,
             role=ProjectKeyRole.store,
         )
@@ -352,14 +353,6 @@ class _ClientConfig:
             if (loc := directory.get_locality_for_cell(name)) is not None
         )
 
-    @staticmethod
-    def _serialize_localities(
-        locality_names: Iterable[str], display_order: Callable[[Locality], Any]
-    ) -> list[Mapping[str, Any]]:
-        localities = [get_locality_by_name(name) for name in locality_names]
-        localities.sort(key=display_order)
-        return [locality.api_serialize() for locality in localities]
-
     @property
     def localities(self) -> list[Mapping[str, Any]]:
         """
@@ -370,7 +363,7 @@ class _ClientConfig:
         if not locality_names:
             return [{"name": "default", "url": options.get("system.url-prefix")}]
 
-        monolith_locality = get_locality_name_for_cell(settings.SENTRY_MONOLITH_REGION)
+        monolith_locality = get_locality_name_for_cell(settings.SENTRY_FALLBACK_CELL)
 
         def region_display_order(region: Locality) -> tuple[bool, bool, str]:
             return (
@@ -379,7 +372,21 @@ class _ClientConfig:
                 region.name,  # then sort alphabetically
             )
 
-        return self._serialize_localities(locality_names, region_display_order)
+        localities = [get_locality_by_name(name) for name in locality_names]
+        localities.sort(key=region_display_order)
+
+        return [locality.api_serialize() for locality in localities]
+
+    @property
+    def signup_localities(self) -> list[str]:
+        """
+        The locality names that are available to new orgs
+        """
+        localities = find_all_signup_locality_names()
+        if not localities:
+            monolith_locality = get_locality_name_for_cell(settings.SENTRY_FALLBACK_CELL)
+            return [monolith_locality]
+        return localities
 
     @property
     def cells(self) -> list[Mapping[str, Any]]:
@@ -393,10 +400,9 @@ class _ClientConfig:
         ):
             return []
 
-        def cell_display_order(cell: Cell) -> tuple[bool, bool, bool, str]:
+        def cell_display_order(cell: Cell) -> tuple[bool, bool, str]:
             return (
-                cell.name != settings.SENTRY_MONOLITH_REGION,  # default historical cell comes first
-                cell.category != RegionCategory.MULTI_TENANT,  # multi-tenant before single
+                cell.name != settings.SENTRY_FALLBACK_CELL,  # default historical cell comes first
                 not cell.visible,  # visible cells first
                 cell.name,  # then sort alphabetically
             )
@@ -466,6 +472,7 @@ class _ClientConfig:
             "languageCode": self.language_code,
             "cells": self.cells,
             "localities": self.localities,
+            "signupLocalities": self.signup_localities,
             "userIdentity": dict(self.user_identity),
             "csrfCookieName": settings.CSRF_COOKIE_NAME,
             "superUserCookieName": superuser.COOKIE_NAME,
@@ -484,7 +491,6 @@ class _ClientConfig:
                 "allowUrls": self.allow_list,
                 "tracePropagationTargets": settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS or [],
             },
-            "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
             "demoMode": is_demo_mode_enabled() and is_demo_user(self.user),
             "enableAnalytics": settings.ENABLE_ANALYTICS,
             "validateSUForm": getattr(

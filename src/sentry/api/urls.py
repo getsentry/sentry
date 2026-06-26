@@ -19,12 +19,13 @@ from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_intercom_jwt import OrganizationIntercomJwtEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
-from sentry.api.endpoints.organization_pipeline import OrganizationPipelineEndpoint
-from sentry.api.endpoints.organization_plugin_deprecation_info import (
-    OrganizationPluginDeprecationInfoEndpoint,
+from sentry.api.endpoints.organization_monitoring_provider_details import (
+    OrganizationMonitoringProviderDetailsEndpoint,
 )
-from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
-from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
+from sentry.api.endpoints.organization_monitoring_provider_index import (
+    OrganizationMonitoringProviderIndexEndpoint,
+)
+from sentry.api.endpoints.organization_pipeline import OrganizationPipelineEndpoint
 from sentry.api.endpoints.organization_project_keys import OrganizationProjectKeysEndpoint
 from sentry.api.endpoints.organization_releases import (
     OrganizationReleasesEndpoint,
@@ -248,9 +249,6 @@ from sentry.integrations.api.endpoints.organization_integration_direct_enable im
 )
 from sentry.integrations.api.endpoints.organization_integration_issues import (
     OrganizationIntegrationIssuesEndpoint,
-)
-from sentry.integrations.api.endpoints.organization_integration_migrate_opsgenie import (
-    OrganizationIntegrationMigrateOpsgenieEndpoint,
 )
 from sentry.integrations.api.endpoints.organization_integration_repo_sync import (
     OrganizationIntegrationRepoSyncEndpoint,
@@ -507,6 +505,7 @@ from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
 from sentry.seer.endpoints.admin_night_shift_trigger import SeerAdminNightShiftTriggerEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
+from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.seer.endpoints.issue_view_title_generate import IssueViewTitleGenerateEndpoint
 from sentry.seer.endpoints.organization_autofix_automation_settings import (
@@ -772,6 +771,7 @@ from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskE
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
+    OrganizationProfilingChunkAttachmentsEndpoint,
     OrganizationProfilingChunksEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
     OrganizationProfilingHasChunksEndpoint,
@@ -804,16 +804,14 @@ from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundl
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
-from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
 )
-from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
-from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_profiling_profile import (
+    ProjectProfilingChunkAttachmentEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawChunkEndpoint,
     ProjectProfilingRawProfileEndpoint,
@@ -984,6 +982,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/autofix/setup/$",
             GroupAutofixSetupCheck.as_view(),
             name=f"{name_prefix}-group-autofix-setup",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^/]+)/autofix/repos/$",
+            GroupAutofixReposEndpoint.as_view(),
+            name=f"{name_prefix}-group-autofix-repos",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/summarize/$",
@@ -1908,6 +1911,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-issue-timeseries",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/$",
+        OrganizationMonitoringProviderIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-monitoring-providers",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/(?P<provider_key>[^/]+)/$",
+        OrganizationMonitoringProviderDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-monitoring-provider-details",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/$",
         OrganizationIntegrationsEndpoint.as_view(),
         name="sentry-api-0-organization-integrations",
@@ -1951,11 +1964,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/issues/$",
         OrganizationIntegrationIssuesEndpoint.as_view(),
         name="sentry-api-0-organization-integration-issues",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/migrate-opsgenie/$",
-        OrganizationIntegrationMigrateOpsgenieEndpoint.as_view(),
-        name="sentry-api-0-organization-integration-migrate-opsgenie",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/serverless-functions/$",
@@ -2195,16 +2203,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/platforms-test/$",
         OrganizationRepositoryPlatformsTestEndpoint.as_view(),
         name="sentry-api-0-organization-repository-platforms-test",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/plugins/$",
-        OrganizationPluginsEndpoint.as_view(),
-        name="sentry-api-0-organization-plugins",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/plugins/configs/$",
-        OrganizationPluginsConfigsEndpoint.as_view(),
-        name="sentry-api-0-organization-plugins-configs",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/legacy-webhooks/$",
@@ -2597,6 +2595,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
                     name="sentry-api-0-organization-profiling-chunks",
                 ),
                 re_path(
+                    r"^chunk-attachments/$",
+                    OrganizationProfilingChunkAttachmentsEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-chunk-attachments",
+                ),
+                re_path(
                     r"^has-chunks/$",
                     OrganizationProfilingHasChunksEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-has-chunks",
@@ -2670,11 +2673,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     *workflow_urls.organization_urlpatterns,
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/plugins/(?P<plugin_slug>[^/]+)/deprecation-info/$",
-        OrganizationPluginDeprecationInfoEndpoint.as_view(),
-        name="sentry-api-0-organization-plugin-deprecation-info",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/conduit-demo/$",
         OrganizationConduitDemoEndpoint.as_view(),
         name="sentry-api-0-organization-conduit-demo",
@@ -2717,11 +2715,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/create-sample/$",
         ProjectCreateSampleEndpoint.as_view(),
         name="sentry-api-0-project-create-sample",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/create-sample-transaction/$",
-        ProjectCreateSampleTransactionEndpoint.as_view(),
-        name="sentry-api-0-project-create-sample-transaction",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/environments/$",
@@ -3168,17 +3161,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectLegacyWebhooksEndpoint.as_view(),
         name="sentry-api-0-project-legacy-webhooks",
     ),
-    # Load plugin project urls
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/plugins/$",
-        ProjectPluginsEndpoint.as_view(),
-        name="sentry-api-0-project-plugins",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/plugins/(?P<plugin_id>[^/]+)/$",
-        ProjectPluginDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-plugin-details",
-    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/cluster-transaction-names/$",
         ProjectTransactionNamesCluster.as_view(),
@@ -3229,6 +3211,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/profiling/raw_chunks/(?P<profiler_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/(?P<chunk_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingRawChunkEndpoint.as_view(),
         name="sentry-api-0-project-profiling-raw-chunk",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/profiling/chunks/(?P<profiler_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/(?P<chunk_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/attachments/(?P<attachment_id>\d+)/$",
+        ProjectProfilingChunkAttachmentEndpoint.as_view(),
+        name="sentry-api-0-project-profiling-chunk-attachment",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/statistical-detector/$",

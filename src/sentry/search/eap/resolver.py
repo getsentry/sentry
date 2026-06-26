@@ -276,6 +276,41 @@ class SearchResolver:
                 self.qualified_short_id_to_group_id_cache[g.project.id] = {}
             self.qualified_short_id_to_group_id_cache[g.project.id][raw] = g.id
 
+    def parse_search_query(self, querystring: str) -> Sequence[event_search.QueryToken]:
+        """Helper function so this can be called by validate separately"""
+        return event_search.parse_search_query(
+            querystring,
+            config=event_search.SearchConfig.create_from(
+                event_search.default_config,
+                wildcard_free_text=True,
+            ),
+            params=self.params.filter_params,
+            get_field_type=self.get_field_type,
+            get_function_result_type=self.get_field_type,
+        )
+
+    def collect_terms(self, parsed_terms: Sequence[event_search.QueryToken]) -> list[str]:
+        """Helper function to collect all the search terms from a parsed query ignoring the actual query tree"""
+        terms = []
+        for term in parsed_terms:
+            if event_search.SearchBoolean.is_operator(term):
+                continue
+            elif isinstance(term, event_search.ParenExpression):
+                for collected_term in self.collect_terms(term.children):
+                    if collected_term not in terms:
+                        terms.append(collected_term)
+            else:
+                if isinstance(term, event_search.SearchFilter):
+                    for converted_term in self.convert_term(term):
+                        column = converted_term.key.name
+                        if column not in terms:
+                            terms.append(column)
+                else:
+                    column = term.key.name
+                    if column not in terms:
+                        terms.append(column)
+        return terms
+
     def __resolve_query(
         self, querystring: str | None
     ) -> tuple[
@@ -286,16 +321,7 @@ class SearchResolver:
         if querystring is None:
             return None, None, []
         try:
-            parsed_terms = event_search.parse_search_query(
-                querystring,
-                config=event_search.SearchConfig.create_from(
-                    event_search.default_config,
-                    wildcard_free_text=True,
-                ),
-                params=self.params.filter_params,
-                get_field_type=self.get_field_type,
-                get_function_result_type=self.get_field_type,
-            )
+            parsed_terms = self.parse_search_query(querystring)
         except ParseError as e:
             if e.expr is not None:
                 raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")

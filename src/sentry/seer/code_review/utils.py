@@ -75,11 +75,6 @@ class SeerEndpoint(StrEnum):
     PR_REVIEW_RERUN = "/v1/code_review/check/rerun"
     CODE_REVIEW_REVIEW_REQUEST = "/v1/code_review/review-request"
     CODE_REVIEW_PR_CLOSED = "/v1/code_review/pr-closed"
-    # The scm_code_review endpoints route every SCM operation through the
-    # scm-platform RPC instead of direct PyGithub calls, so they are the
-    # provider-agnostic path required for non-GitHub providers like GitLab.
-    SCM_CODE_REVIEW_REVIEW_REQUEST = "/v1/scm_code_review/review-request"
-    SCM_CODE_REVIEW_PR_CLOSED = "/v1/scm_code_review/pr-closed"
     REPOSITORY_OFFBOARD = "/v1/offboarding/repository"
 
 

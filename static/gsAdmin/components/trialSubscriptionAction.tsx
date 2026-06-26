@@ -4,14 +4,12 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 
 import {NumberField} from 'sentry/components/forms/fields/numberField';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
 
 import type {
   AdminConfirmParams,
   AdminConfirmRenderProps,
 } from 'admin/components/adminConfirmationModal';
 import type {Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 
 type Props = AdminConfirmRenderProps & {
   subscription: Subscription;
@@ -20,7 +18,6 @@ type Props = AdminConfirmRenderProps & {
 
 type State = {
   trialDays: number;
-  trialTier?: PlanTier;
 };
 
 /**
@@ -32,7 +29,6 @@ export class TrialSubscriptionAction extends Component<Props, State> {
       this.props.subscription.isEnterpriseTrial || this.props.startEnterpriseTrial
         ? 28
         : 14,
-    trialTier: PlanTier.AM3,
   };
 
   componentDidMount() {
@@ -40,18 +36,17 @@ export class TrialSubscriptionAction extends Component<Props, State> {
   }
 
   handleConfirm = (_params: AdminConfirmParams) => {
-    const {trialDays, trialTier} = this.state;
+    const {trialDays} = this.state;
     const {startEnterpriseTrial, onConfirm} = this.props;
 
     // XXX(epurkhiser): In the original implementation none of the audit params
     // were passed, is that an oversight?
-
+    //
+    // The trial tier is resolved server-side (omitting `trialTier` falls back
+    // to the subscription's default enterprise-trial plan).
     const data = {
       trialDays,
-      ...(startEnterpriseTrial && {
-        startEnterpriseTrial,
-        trialTier,
-      }),
+      ...(startEnterpriseTrial && {startEnterpriseTrial}),
     };
 
     onConfirm?.(data);
@@ -74,7 +69,7 @@ export class TrialSubscriptionAction extends Component<Props, State> {
 
   render() {
     const {subscription, startEnterpriseTrial} = this.props;
-    const {trialDays, trialTier} = this.state;
+    const {trialDays} = this.state;
 
     if (!subscription) {
       return null;
@@ -84,12 +79,6 @@ export class TrialSubscriptionAction extends Component<Props, State> {
       (!startEnterpriseTrial && subscription.trialEnd) || undefined
     );
     const trialEndDate = currentTrialEnd.add(trialDays, 'days').format('MMMM Do YYYY');
-
-    const tierChoices: Array<[string | PlanTier, string | PlanTier]> = [
-      [PlanTier.AM3, PlanTier.AM3],
-      [PlanTier.AM2, PlanTier.AM2],
-      [PlanTier.AM1, PlanTier.AM1],
-    ];
 
     return (
       <Fragment>
@@ -114,22 +103,6 @@ export class TrialSubscriptionAction extends Component<Props, State> {
           value={trialDays}
           onChange={this.onDaysChange}
         />
-        <div data-test-id="trial-plan-tier-choices">
-          {startEnterpriseTrial && (
-            <SelectField
-              inline={false}
-              stacked
-              flexibleControlStateSize
-              label="Trial Plan Tier"
-              name="tier"
-              value={trialTier}
-              onChange={(val: any) => {
-                this.setState({trialTier: val});
-              }}
-              choices={tierChoices}
-            />
-          )}
-        </div>
       </Fragment>
     );
   }

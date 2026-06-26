@@ -505,6 +505,18 @@ function EAPSpanNodeDetailsContent({
     }
   }, [hasProfileDetails, hasLogDetails, organization]);
 
+  const genAiOperationType = attributesMap['gen_ai.operation.type'];
+  useEffect(() => {
+    // Skip when rendered outside the waterfall drawer (e.g. the AI tab and
+    // conversations views render the same details with node actions hidden).
+    if (hideNodeActions) {
+      return;
+    }
+    if (typeof genAiOperationType === 'string' && genAiOperationType) {
+      traceAnalytics.trackGenAISpanDetailsViewed(organization, genAiOperationType);
+    }
+  }, [genAiOperationType, organization, hideNodeActions]);
+
   const isSdkSentV2Span =
     // The presence of this attribute indicates that the EAP span was sent as a v2 span
     // from SDKs rather than an SDK-sent transaction converted to EAP spans during ingestion.

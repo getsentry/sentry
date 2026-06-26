@@ -22,14 +22,15 @@ from sentry.models.repository import Repository
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
     @extend_schema(
-        operation_id="List a Project Release's Commits",
+        operation_id="listProjectReleaseCommits",
+        summary="List a Project Release's Commits",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

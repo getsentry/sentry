@@ -7,16 +7,21 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from enum import StrEnum
 
+from django.db import router, transaction
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import features
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupAction, GroupActionActor
-from sentry.issues.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.derived.processing import process_group_log_batch
+from sentry.issues.derived.tasks import process_group_log_task
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.middleware import is_frontend_request
+from sentry.models.project import Project
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
+from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +35,6 @@ logger = logging.getLogger(__name__)
 # If you're adding a new caller to an instrumented function (e.g. GroupAssignee.objects.assign),
 # wrap it with action_context_scope() so the action gets proper source attribution.
 
-MCP_USER_AGENT_PREFIX = "sentry-mcp/"
 MCP_CLIENT_FAMILY_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_FAMILY"
 SEER_REFERRER_HEADER = "HTTP_X_SEER_REFERRER"
 
@@ -76,7 +80,7 @@ def resolve_action_source(request: Request) -> str:
     """
     user_agent = request.META.get("HTTP_USER_AGENT", "")
 
-    if user_agent.startswith(MCP_USER_AGENT_PREFIX):
+    if is_mcp_request(request):
         family = request.META.get(MCP_CLIENT_FAMILY_HEADER, "").strip().lower()
         if family in KNOWN_MCP_CLIENT_FAMILIES:
             return f"{ActionSource.MCP}:{family}"
@@ -180,8 +184,7 @@ def publish_action(
     *,
     source: str,
     group_id: int,
-    organization_id: int,
-    project_id: int,
+    project: Project,
     actor: GroupActionActor = SYSTEM_ACTOR,
 ) -> None:
     """
@@ -208,8 +211,8 @@ def publish_action(
             # IDs are stringified so large values aren't rendered in scientific
             # notation by downstream log tooling.
             "group_id": str(group_id),
-            "organization_id": str(organization_id),
-            "project_id": str(project_id),
+            "organization_id": str(project.organization_id),
+            "project_id": str(project.id),
             "actor_type": actor.actor_type.name.lower(),
             "actor_id": str(actor.actor_id),
             "metadata": action.dict(),
@@ -217,12 +220,12 @@ def publish_action(
     )
 
     # Don't write to the database until we're confident in the action schemas.
-    if not options.get("issues.action-log.write-to-db"):
+    if not features.has("projects:issue-action-log-write-to-db", project):
         return
 
     GroupActionLogEntry.objects.create(
         group_id=group_id,
-        project_id=project_id,
+        project_id=project.id,
         type=action.get_type().value,
         actor_type=actor.actor_type.value,
         actor_id=actor.actor_id,
@@ -230,13 +233,30 @@ def publish_action(
         data=action.dict(),
     )
 
+    # Process derived data after the current transaction commits so the log
+    # entry is visible. Will be replaced by outbox processing later.
+    transaction.on_commit(
+        lambda: _process_derived_data(group_id), using=router.db_for_write(GroupActionLogEntry)
+    )
+
+
+def _process_derived_data(group_id: int) -> None:
+    """Process derived data after a log entry has been committed."""
+    from sentry.models.group import Group
+
+    try:
+        result = process_group_log_batch(group_id)
+    except Group.DoesNotExist:
+        return
+    if not result.caught_up:
+        process_group_log_task.delay(group_id)
+
 
 def publish_action_from_context(
     action: GroupAction,
     *,
     group_id: int,
-    organization_id: int,
-    project_id: int,
+    project: Project,
 ) -> None:
     """
     Record an issue action using the current ActionContext. This is the primary API
@@ -259,7 +279,6 @@ def publish_action_from_context(
         action,
         source=source,
         group_id=group_id,
-        organization_id=organization_id,
-        project_id=project_id,
+        project=project,
         actor=actor,
     )

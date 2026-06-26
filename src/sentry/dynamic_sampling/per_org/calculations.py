@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, cast
 
 import orjson
@@ -21,25 +23,118 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingModel,
 )
 from sentry.dynamic_sampling.per_org.gate import project_balancing_debug_project_ids
-from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
+from sentry.dynamic_sampling.per_org.queries import (
+    ProjectTransactionCounts,
+    ProjectVolume,
+    get_eap_organization_volume,
+    get_generic_metrics_organization_volume,
+    get_outcomes_organization_volume,
+)
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.common import sample_rate_to_float
+from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrides
+from sentry.dynamic_sampling.tasks.common import (
+    OrganizationDataVolume,
+    compute_sliding_window_sample_rate,
+    sample_rate_to_float,
+)
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     generate_boost_low_volume_transactions_cache_key,
 )
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
+    from sentry.dynamic_sampling.per_org.configuration import (
+        AutomaticDynamicSamplingConfiguration,
+        BaseDynamicSamplingConfiguration,
+    )
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 REBALANCE_INTENSITY = 0.8
 PROJECT_BALANCING_DEBUG_METRIC_PREFIX = "dynamic_sampling.per_org.project_balancing_debug"
+SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
 logger = logging.getLogger(__name__)
+
+
+def compare_organization_sliding_window_sample_rates(
+    config: AutomaticDynamicSamplingConfiguration,
+    window: timedelta = timedelta(hours=24),
+) -> None:
+    end = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
+    eap_volume = get_eap_organization_volume(config, time_interval=window, end=end)
+    outcomes_volume = get_outcomes_organization_volume(config, time_interval=window, end=end)
+    generic_metrics_volume = get_generic_metrics_organization_volume(
+        config.organization.id, time_interval=window, end=end
+    )
+
+    def sample_rate_for(volume: OrganizationDataVolume | None) -> float | None:
+        if volume is None:
+            return None
+        return compute_sliding_window_sample_rate(
+            org_id=config.organization.id,
+            project_id=None,
+            total_root_count=volume.total,
+            window_size=FALLBACK_SLIDING_WINDOW_SIZE,
+        )
+
+    eap_sample_rate = sample_rate_for(eap_volume)
+    outcomes_sample_rate = sample_rate_for(outcomes_volume)
+    generic_metrics_sample_rate = sample_rate_for(generic_metrics_volume)
+
+    tags = {"ds_org": str(config.organization.id)}
+    if eap_sample_rate is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_sample_rate",
+            eap_sample_rate,
+            sample_rate=1.0,
+            tags=tags,
+        )
+    if outcomes_sample_rate is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.outcomes_sample_rate",
+            outcomes_sample_rate,
+            sample_rate=1.0,
+            tags=tags,
+        )
+    if generic_metrics_sample_rate is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.generic_metrics_sample_rate",
+            generic_metrics_sample_rate,
+            sample_rate=1.0,
+            tags=tags,
+        )
+    if eap_volume is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_volume",
+            eap_volume.total,
+            sample_rate=1.0,
+            tags=tags,
+        )
+        if eap_volume.indexed is not None:
+            metrics.distribution(
+                f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_volume_without_extrapolation",
+                eap_volume.indexed,
+                sample_rate=1.0,
+                tags=tags,
+            )
+    if outcomes_volume is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.outcomes_volume",
+            outcomes_volume.total,
+            sample_rate=1.0,
+            tags=tags,
+        )
+    if generic_metrics_volume is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.generic_metrics_volume",
+            generic_metrics_volume.total,
+            sample_rate=1.0,
+            tags=tags,
+        )
 
 
 def run_project_balancing(
@@ -61,6 +156,29 @@ def run_project_balancing(
             sample_rate=sample_rate,
         )
     )
+
+
+def apply_project_sample_rate_overrides(
+    rebalanced_projects: list[RebalancedItem],
+) -> list[RebalancedItem]:
+    """
+    Hard-replace the balanced sample rate of any project that has a per-project override
+    configured via the ``dynamic-sampling.sample-rate-override-per-project`` option.
+
+    Applied as an explicit step in the scheduler (rather than inside the balancing model)
+    so the override is surfaced in the pipeline. The result feeds the cached project
+    sample rates and the downstream transaction balancing.
+    """
+    overrides = get_sample_rate_overrides()
+    if not overrides:
+        return rebalanced_projects
+
+    return [
+        replace(item, new_sample_rate=overrides[int(item.id)])
+        if int(item.id) in overrides
+        else item
+        for item in rebalanced_projects
+    ]
 
 
 def get_cached_rebalanced_project_sample_rates(org_id: int) -> dict[int, float | None]:
@@ -137,6 +255,9 @@ def compare_rebalanced_projects_with_cache(
                 generic_metrics_sample_rate=generic_metrics_sample_rate,
                 eap_volume=rebalanced_project.count,
                 eap_volume_without_extrapolation=eap_volume_without_extrapolation,
+                seconds_since_last_item=(
+                    project_volume.seconds_since_last_item if project_volume is not None else None
+                ),
             )
 
 
@@ -147,6 +268,7 @@ def _emit_project_balancing_debug_metrics(
     generic_metrics_sample_rate: float | None,
     eap_volume: float,
     eap_volume_without_extrapolation: float | None,
+    seconds_since_last_item: float | None,
 ) -> None:
     tags = {"org": str(org_id), "ds_project": str(project_id)}
     metrics.distribution(
@@ -155,6 +277,13 @@ def _emit_project_balancing_debug_metrics(
         sample_rate=1.0,
         tags=tags,
     )
+    if seconds_since_last_item is not None:
+        metrics.distribution(
+            f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_seconds_since_last_item",
+            seconds_since_last_item,
+            sample_rate=1.0,
+            tags=tags,
+        )
     if generic_metrics_sample_rate is not None:
         metrics.distribution(
             f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.generic_metrics_sample_rate",

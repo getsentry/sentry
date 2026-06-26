@@ -34,7 +34,7 @@ import {
   type ReservedBudgetMetricHistory,
   type Subscription,
 } from 'getsentry/types';
-import {displayBudgetName, hasPerformance, isTrialPlan} from 'getsentry/utils/billing';
+import {displayBudgetName, hasPerformance} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
@@ -197,8 +197,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
             // Legacy errors-only enterprise plans (e1, mm2) can no longer be
             // provisioned.
             hasPerformance(plan) &&
-            plan.contractInterval === MONTHLY &&
-            !isTrialPlan(plan.id) &&
+            plan.billingInterval === MONTHLY &&
             !plan.isTestPlan
           ) {
             acc[plan.id] = plan;
@@ -613,7 +612,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 />
                 <BooleanField
                   label={`Apply Changes at the End of the Current Billing Period (${prettyDate(
-                    this.props.subscription.contractPeriodEnd
+                    this.props.subscription.billingPeriodEnd
                   )})`}
                   name="atPeriodEnd"
                   disabled={this.state.data.coterm}

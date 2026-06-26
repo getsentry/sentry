@@ -424,6 +424,7 @@ class Referrer(StrEnum):
     API_INSIGHTS_MCP_TRAFFIC_BY_CLIENT_WIDGET = "api.insights.mcp.traffic-by-client-widget"
     API_INSIGHTS_MCP_TRAFFIC_WIDGET = "api.insights.mcp.traffic-widget"
     API_INSIGHTS_MCP_TRANSPORT_WIDGET = "api.insights.mcp.transport-widget"
+    API_MCP_SEARCH_EVENTS = "api.mcp.search-events"
 
     # Misc
     API_INSIGHTS_ORG_EVENT_AVERAGE_SPAN = "api.insights.org-event-average-span"
@@ -787,6 +788,7 @@ class Referrer(StrEnum):
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_ERRORS_BATCHED = "reports.key_errors.batched"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
+    REPORTS_PAST_RESOLVED_ISSUES = "reports.past_resolved_issues"
     REPORTS_KEY_TRANSACTIONS_THIS_WEEK = "reports.key_transactions.this_week"
     REPORTS_KEY_TRANSACTIONS_LAST_WEEK = "reports.key_transactions.last_week"
     REPORTS_OUTCOME_SERIES = "reports.outcome_series"

@@ -92,7 +92,9 @@ def query(
         if snuba_params.debug:
             results["meta"]["debug_info"] = {"query": str(metrics_query.get_snql_query().query)}
         sentry_sdk.set_tag("performance.dataset", "metrics")
+        sentry_sdk.set_attribute("performance.dataset", "metrics")
         sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
+        sentry_sdk.set_attribute("on_demand.is_extracted", metrics_query.use_on_demand)
         return results
 
 
@@ -196,6 +198,7 @@ def bulk_timeseries_query(
         with sentry_sdk.start_span(op="mep", name="query.transform_results"):
             result = metrics_query.process_results(_result)
             sentry_sdk.set_tag("performance.dataset", "metrics")
+            sentry_sdk.set_attribute("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
 
             # Sometimes additional formatting needs to be done downstream
@@ -307,8 +310,10 @@ def timeseries_query(
                 else result["data"]
             )
             sentry_sdk.set_tag("performance.dataset", "metrics")
+            sentry_sdk.set_attribute("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
             sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
+            sentry_sdk.set_attribute("on_demand.is_extracted", metrics_query.use_on_demand)
             result["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
 
             return {

@@ -1099,8 +1099,8 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assert self.group1 in set(results)
         assert self.group2 not in set(results)
 
-    def test_issue_progress_triaged(self) -> None:
-        results = self.make_query(search_filter_query="issue.progress:triaged")
+    def test_issue_progress_assigned(self) -> None:
+        results = self.make_query(search_filter_query="issue.progress:assigned")
         assert self.group2 in set(results)
         assert self.group1 not in set(results)
 
@@ -1110,7 +1110,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         results = self.make_query(search_filter_query="issue.progress:diagnosed")
         assert self.group2 in set(results)
 
-        results = self.make_query(search_filter_query="issue.progress:triaged")
+        results = self.make_query(search_filter_query="issue.progress:assigned")
         assert self.group2 not in set(results)
 
     def test_issue_progress_negation(self) -> None:
@@ -1130,14 +1130,14 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         results = self.make_query(search_filter_query="issue.progress:fix_proposed")
         assert self.group1 not in set(results)
 
-    def test_issue_progress_regression_preserves_triaged(self) -> None:
+    def test_issue_progress_regression_preserves_assigned(self) -> None:
         GroupAssignee.objects.create(
             user_id=self.user.id, group=self.group1, project=self.group1.project
         )
         self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
         self.create_group_activity(group=self.group1, type=ActivityType.SET_REGRESSION.value)
 
-        results = self.make_query(search_filter_query="issue.progress:triaged")
+        results = self.make_query(search_filter_query="issue.progress:assigned")
         assert self.group1 in set(results)
 
         results = self.make_query(search_filter_query="issue.progress:fix_proposed")

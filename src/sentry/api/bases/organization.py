@@ -51,6 +51,10 @@ class NoProjects(Exception):
     pass
 
 
+class UnknownEnvironments(ResourceDoesNotExist):
+    pass
+
+
 class SingleProjectIdOrSlug(NamedTuple):
     project_id: int | None
     project_slug: str | None
@@ -711,7 +715,11 @@ class OrganizationEndpoint(Endpoint):
             "organization_id": organization.id,
         }
 
-        environments = self.get_environments(request, organization)
+        try:
+            environments = self.get_environments(request, organization)
+        except ResourceDoesNotExist:
+            raise UnknownEnvironments("Unknown environments selected")
+
         if environments:
             params["environment"] = [env.name for env in environments]
             params["environment_objects"] = environments

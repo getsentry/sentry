@@ -2,16 +2,10 @@ import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {
-  renderGlobalModal,
-  screen,
-  userEvent,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import {TrialSubscriptionAction} from 'admin/components/trialSubscriptionAction';
-import {PlanTier} from 'getsentry/types';
 
 describe('TrialSubscriptionAction', () => {
   const organization = OrganizationFixture();
@@ -75,7 +69,6 @@ describe('TrialSubscriptionAction', () => {
     expect(onConfirm).toHaveBeenCalledWith({
       trialDays: 45,
       startEnterpriseTrial: true,
-      trialTier: PlanTier.AM3,
     });
   });
 
@@ -217,87 +210,6 @@ describe('TrialSubscriptionAction', () => {
     expect(daysInput).toHaveAccessibleDescription(
       `Their trial will end on ${formattedNow}`
     );
-  });
-
-  it('displays am3 trial tier option when free plan', async () => {
-    jest.mock('@sentry/scraps/alert');
-
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({
-            organization,
-            plan: 'am2_f',
-            isFree: true,
-            planTier: PlanTier.AM2,
-          })}
-          startEnterpriseTrial
-          {...deps}
-        />
-      ),
-    });
-
-    renderGlobalModal();
-
-    await userEvent.click(screen.getByTestId('trial-plan-tier-choices'));
-    const trialTierInputs = within(screen.getByRole('dialog')).getAllByRole('textbox');
-    await userEvent.click(trialTierInputs[1]!);
-    expect(screen.getByText('am3')).toBeInTheDocument();
-  });
-
-  it('displays am3 trial tier option when am3 plan', async () => {
-    jest.mock('@sentry/scraps/alert');
-
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({
-            organization,
-            plan: 'am3_team',
-            isFree: false,
-            planTier: PlanTier.AM3,
-          })}
-          startEnterpriseTrial
-          {...deps}
-        />
-      ),
-    });
-
-    renderGlobalModal();
-
-    await userEvent.click(screen.getByTestId('trial-plan-tier-choices'));
-    const trialTierInputs = within(screen.getByRole('dialog')).getAllByRole('textbox');
-    await userEvent.click(trialTierInputs[1]!);
-    expect(screen.getByText('am3')).toBeInTheDocument();
-  });
-
-  it('displays am3 trial tier option when am2 plan', async () => {
-    jest.mock('@sentry/scraps/alert');
-
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({
-            organization,
-            plan: 'am2_team',
-            isFree: false,
-            planTier: PlanTier.AM2,
-          })}
-          startEnterpriseTrial
-          {...deps}
-        />
-      ),
-    });
-
-    renderGlobalModal();
-
-    await userEvent.click(screen.getByTestId('trial-plan-tier-choices'));
-    const trialTierInputs = within(screen.getByRole('dialog')).getAllByRole('textbox');
-    await userEvent.click(trialTierInputs[1]!);
-    expect(screen.getByText('am3')).toBeInTheDocument();
   });
 
   it('defaults 14-day trial for self-serve', () => {

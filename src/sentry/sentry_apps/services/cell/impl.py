@@ -184,8 +184,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             ),
             source=ActionSource.API,
             group_id=group.id,
-            organization_id=organization_id,
-            project_id=external_issue.project_id or group.project_id,
+            project=group.project,
             actor=GroupActionActor.user(user.id),
         )
 
@@ -266,8 +265,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             ),
             source=ActionSource.API,
             group_id=group.id,
-            organization_id=organization_id,
-            project_id=external_issue.project_id or group.project_id,
+            project=group.project,
             actor=GroupActionActor.user(user.id) if user is not None else SYSTEM_ACTOR,
         )
 
@@ -341,8 +339,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             ),
             source=ActionSource.API,
             group_id=platform_external_issue.group_id,
-            organization_id=organization_id,
-            project_id=issue_project.id,
+            project=issue_project,
             actor=GroupActionActor.user(user.id) if user is not None else SYSTEM_ACTOR,
         )
 

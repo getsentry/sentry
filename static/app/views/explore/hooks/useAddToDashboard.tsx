@@ -30,9 +30,7 @@ export const CHART_TYPE_TO_DISPLAY_TYPE: Record<ChartType, DisplayType> = {
   [ChartType.LINE]: DisplayType.LINE,
   [ChartType.BAR]: DisplayType.BAR,
   [ChartType.AREA]: DisplayType.AREA,
-  // Heatmaps are filtered out before reaching dashboard code, but the
-  // mapping must be exhaustive because other consumers index by ChartType.
-  [ChartType.HEATMAP]: DisplayType.LINE,
+  [ChartType.HEATMAP]: DisplayType.HEATMAP,
 };
 
 export function useAddToDashboard() {
