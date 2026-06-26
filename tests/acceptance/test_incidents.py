@@ -10,7 +10,11 @@ from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 
-FEATURE_NAME = ["organizations:incidents", "organizations:performance-view"]
+FEATURE_NAME = [
+    "organizations:incidents",
+    "organizations:performance-view",
+    "organizations:visibility-explore-view",
+]
 
 
 @no_silo_test

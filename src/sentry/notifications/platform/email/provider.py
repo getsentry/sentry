@@ -14,6 +14,7 @@ from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
+    LinkTextBlock,
     NotificationBodyFormattingBlock,
     NotificationBodyFormattingBlockType,
     NotificationBodyTextBlock,
@@ -107,10 +108,14 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
             if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
                 texts.append(escaped_text)
             elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
-                # HTML tags are safe, content is escaped
                 texts.append(f"<strong>{escaped_text}</strong>")
             elif block.type == NotificationBodyTextBlockType.CODE:
                 texts.append(f"<code>{escaped_text}</code>")
+            elif block.type == NotificationBodyTextBlockType.LINK and isinstance(
+                block, LinkTextBlock
+            ):
+                escaped_url = escape(block.url)
+                texts.append(f'<a href="{escaped_url}">{escaped_text}</a>')
 
         return " ".join(texts)
 
@@ -134,6 +139,10 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
                 texts.append(f"**{block.text}**")
             elif block.type == NotificationBodyTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
+            elif block.type == NotificationBodyTextBlockType.LINK and isinstance(
+                block, LinkTextBlock
+            ):
+                texts.append(f"{block.text} ({block.url})")
         return " ".join(texts)
 
 

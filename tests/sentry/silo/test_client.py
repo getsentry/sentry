@@ -351,7 +351,7 @@ class SiloClientTest(TestCase):
         assert err.args == ("Disallowed Cell Silo IP address: 172.31.255.31",)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_options({"apigateway.proxy.use_gateway_address": 1.0})
+    @override_options({"apigateway.proxy.cell-rollout": {"us": 1.0}})
     @responses.activate
     def test_cell_gateway_address_is_allowed(self) -> None:
         cell = Cell(
@@ -383,6 +383,74 @@ class SiloClientTest(TestCase):
             )
             res = client.proxy_request(request)
             assert res.content == b'{"ok": "66"}'
+
+            assert mock_capture_exception.call_count == 0
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_options({"apigateway.proxy.cell-rollout": {"nope": 1.0}})
+    @responses.activate
+    def test_cell_gateway_address_option_key_undefined(self) -> None:
+        cell = Cell(
+            name="us",
+            snowflake_id=1,
+            address="http://10.2.0.88:9000",
+            api_gateway_address="http://10.2.0.66:9000",
+        )
+
+        responses.add(
+            responses.GET,
+            "http://10.2.0.88:9000/api/0/imaginary-public-endpoint/",
+            json={"ok": "88"},
+            headers={"X-Some-Header": "Some-Value", PROXY_SIGNATURE_HEADER: "123"},
+        )
+
+        # We're not mocking allowed_cell_silo_ip_addresses, so the cell attributes
+        # above are used.
+        with (
+            override_cells((cell,)),
+            patch("sentry_sdk.capture_exception") as mock_capture_exception,
+        ):
+            client = CellSiloClient(cell)
+            assert client.base_url == "http://10.2.0.88:9000"
+            request = self.factory.get(
+                "/api/0/imaginary-public-endpoint/", HTTP_HOST="http://control.sentry.io"
+            )
+            res = client.proxy_request(request)
+            assert res.content == b'{"ok": "88"}'
+
+            assert mock_capture_exception.call_count == 0
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_options({"apigateway.proxy.cell-rollout": "oops"})
+    @responses.activate
+    def test_cell_gateway_address_corrupt_option(self) -> None:
+        cell = Cell(
+            name="us",
+            snowflake_id=1,
+            address="http://10.2.0.88:9000",
+            api_gateway_address="http://10.2.0.66:9000",
+        )
+
+        responses.add(
+            responses.GET,
+            "http://10.2.0.88:9000/api/0/imaginary-public-endpoint/",
+            json={"ok": "88"},
+            headers={"X-Some-Header": "Some-Value", PROXY_SIGNATURE_HEADER: "123"},
+        )
+
+        # We're not mocking allowed_cell_silo_ip_addresses, so the cell attributes
+        # above are used.
+        with (
+            override_cells((cell,)),
+            patch("sentry_sdk.capture_exception") as mock_capture_exception,
+        ):
+            client = CellSiloClient(cell)
+            assert client.base_url == "http://10.2.0.88:9000"
+            request = self.factory.get(
+                "/api/0/imaginary-public-endpoint/", HTTP_HOST="http://control.sentry.io"
+            )
+            res = client.proxy_request(request)
+            assert res.content == b'{"ok": "88"}'
 
             assert mock_capture_exception.call_count == 0
 

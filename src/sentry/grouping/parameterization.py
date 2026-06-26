@@ -118,8 +118,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         raw_pattern=r"""
             # Scheme - by spec, must start with a letter, but after that can contain anything
             # alphanumeric in addition to plus, minus (has to be escaped so it's clear it's not part
-            # of a range), and dot
-            [a-zA-Z][a-zA-Z0-9+\-.]*
+            # of a range), and dot. The length is bounded (real schemes are short) to prevent
+            # quadratic backtracking on long runs of scheme-valid characters that lack a `://`.
+            [a-zA-Z][a-zA-Z0-9+\-.]{0,32}
             # The normal separator
             ://
             # First character of the domain (or path, if the domain is empty) - must be a valid URL

@@ -45,6 +45,7 @@ interface ToolbarGroupByDropdownProps {
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;
   fieldDefinitionType?: GetFieldDefinitionType;
+  groupBys?: readonly string[];
   loading?: boolean;
   onClose?: () => void;
   onSearch?: (search: string) => void;
@@ -60,11 +61,31 @@ export function ToolbarGroupByDropdown({
   loading,
   onClose,
   fieldDefinitionType = 'span',
+  groupBys = [],
 }: ToolbarGroupByDropdownProps) {
   const {attributes, listeners, setNodeRef, transform} = useSortable({
     id: column.id,
     transition: null,
   });
+
+  const optionsWithDisabled = useMemo(() => {
+    const usedByOtherColumns = new Set(
+      groupBys.filter(groupBy => groupBy && groupBy !== column.column)
+    );
+    if (usedByOtherColumns.size === 0) {
+      return options;
+    }
+    return options.map(option =>
+      usedByOtherColumns.has(option.value)
+        ? {
+            ...option,
+            disabled: true,
+            tooltip: t('This attribute is already being grouped by.'),
+            tooltipOptions: {position: 'left' as const},
+          }
+        : option
+    );
+  }, [options, groupBys, column.column]);
 
   function handleColumnChange(option: SelectOption<SelectKey>) {
     if (typeof option.value === 'string') {
@@ -87,7 +108,7 @@ export function ToolbarGroupByDropdown({
       {canDelete ? <DragReorderButton iconSize="sm" {...listeners} /> : null}
       <StyledCompactSelect
         data-test-id="editor-column"
-        options={options}
+        options={optionsWithDisabled}
         value={column.column ?? ''}
         onChange={handleColumnChange}
         search={{

@@ -87,6 +87,10 @@ describe('IssueDetailsSidebar', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
       method: 'POST',
       body: {whatsWrong: 'Test summary'},

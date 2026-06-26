@@ -576,7 +576,7 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config_with_gateway)
-    @override_options({"apigateway.proxy.use_gateway_address": 1.0})
+    @override_options({"apigateway.proxy.cell-rollout": {"us": 1.0}})
     def test_drain_success_api_gateway_address(self) -> None:
         responses.add(
             responses.POST,

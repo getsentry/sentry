@@ -274,6 +274,7 @@ class DatadogIdentityProvider(McpIdentityProvider, OAuth2Provider):
     key = IntegrationProviderSlug.DATADOG
     name = "Datadog"
     auto_create_provider_model = True
+    create_organization_identity = True
 
     oauth_scopes: tuple[str, ...] = (
         "mcp_read",
@@ -419,6 +420,7 @@ class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
 
     key = IntegrationProviderSlug.DATADOG_PAT
     name = "Datadog (Personal Access Token)"
+    create_organization_identity = True
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return []
@@ -430,7 +432,7 @@ class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
         return f"{base}{MCP_ENDPOINT_PATH}" if base else None
 
     def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
-        access_token = data.get("access_token")
+        access_token = (data.get("access_token") or "").strip()
         if not access_token:
             raise ValueError("Datadog requires an 'access_token' parameter.")
 

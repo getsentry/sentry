@@ -379,6 +379,42 @@ incorrect_cases = [
         "{'dogs are great': <bool>, 'dog_id': '<id>'}",
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
     ),
+    (
+        "random id - leading underscore",
+        "img_k9Mtd2gDcgG.jpg",
+        "img_<random_id>.jpg",
+        "img_k9Mtd2gDcgG.jpg",
+    ),
+    (
+        "random id - trailing underscore",
+        "k9Mtd2gDcgG_thumbnail.jpg",
+        "<random_id>_thumbnail.jpg",
+        "k9Mtd2gDcgG_thumbnail.jpg",
+    ),
+    (
+        "random id - no capitals",
+        "k9m2gd",
+        "<random_id>",
+        "k9m2gd",
+    ),
+    (
+        "random id - no lowercase",
+        "K9M2GD",
+        "<random_id>",
+        "K9M2GD",
+    ),
+    (
+        "random id - dash-separated",
+        "k9Mt-d2vg-DcgG",
+        "<random_id>",
+        "k9Mt-d2vg-DcgG",
+    ),
+    (
+        "random id - dot-separated",
+        "k9Mt.d2vg.DcgG",
+        "<random_id>",
+        "k9Mt.d2vg.DcgG",
+    ),
 ]
 
 

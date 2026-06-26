@@ -22,6 +22,8 @@ from sentry.models.pullrequest import (
 from sentry.pr_metrics.webhooks import (
     handle_activity,
     handle_attribution,
+    handle_check_run,
+    handle_check_suite,
     handle_comment,
     handle_emission,
     handle_metrics,
@@ -575,6 +577,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         after: str | None = None,
         changes: dict[str, Any] | None = None,
         label: dict[str, Any] | None = None,
+        auto_merge: dict[str, Any] | None = None,
         extra_event: dict[str, Any] | None = None,
     ) -> None:
         pull_request: dict[str, Any] = {
@@ -592,6 +595,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
             "commits": commits,
             "comments": comments,
             "review_comments": review_comments,
+            "auto_merge": auto_merge,
             "user": {"id": 999, "login": "testuser"},
         }
         event: dict[str, Any] = {
@@ -888,10 +892,38 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    # --- Merge-intent signals ---
+
+    def test_auto_merge_enabled_writes_activity_with_method(self) -> None:
+        self._call(action="auto_merge_enabled", auto_merge={"merge_method": "squash"})
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.AUTO_MERGE_ENABLED
+        assert activity.payload["merge_method"] == "squash"
+
+    def test_auto_merge_disabled_writes_activity(self) -> None:
+        self._call(action="auto_merge_disabled", auto_merge=None)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.AUTO_MERGE_DISABLED
+
+    def test_enqueued_writes_activity(self) -> None:
+        self._call(action="enqueued")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.ENQUEUED
+
+    def test_dequeued_writes_activity_with_reason(self) -> None:
+        self._call(action="dequeued", extra_event={"reason": "MERGE_CONFLICT"})
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.DEQUEUED
+        assert activity.payload["reason"] == "MERGE_CONFLICT"
+
     # --- Unhandled actions ---
 
     def test_unhandled_actions_do_not_write_activity(self) -> None:
-        for action in ("auto_merge_enabled", "milestoned", "demilestoned"):
+        for action in ("milestoned", "demilestoned", "locked", "unlocked"):
             self._call(action=action, webhook_id=f"delivery-{action}")
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
@@ -1095,9 +1127,18 @@ class HandleReviewForPrMetricsTest(TestCase):
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.payload["review_state"] == "changes_requested"
 
-    def test_non_submitted_actions_skipped(self) -> None:
+    def test_dismissed_writes_review_dismissed_activity(self) -> None:
+        # GitHub reports the dismissed review's state as "dismissed"; the review_id
+        # is what lets the judge correlate back to the earlier submitted row.
+        self._call(action="dismissed", review_state="dismissed", review_id=100)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.REVIEW_DISMISSED
+        assert activity.payload["review_id"] == 100
+        assert activity.payload["sender_login"] == "reviewer"
+
+    def test_unhandled_review_action_skipped(self) -> None:
         self._call(action="edited")
-        self._call(action="dismissed")
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -1346,6 +1387,177 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
     def test_no_seer_access_skips_thread_event(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@cell_silo_test
+class HandleCheckEventsForPrMetricsTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="42",
+        )
+
+    def _call_suite(
+        self,
+        action: str = "completed",
+        conclusion: str = "success",
+        head_sha: str = "headsha1",
+        app_slug: str = "github-actions",
+        check_runs_count: int = 4,
+        pr_numbers: tuple[int, ...] = (42,),
+        webhook_id: str | None = "delivery-1",
+    ) -> None:
+        event: dict[str, Any] = {
+            "action": action,
+            "check_suite": {
+                "head_sha": head_sha,
+                "status": "completed",
+                "conclusion": conclusion,
+                "app": {"slug": app_slug},
+                "latest_check_runs_count": check_runs_count,
+                "pull_requests": [{"number": n} for n in pr_numbers],
+            },
+            "sender": {"id": 5, "login": "ci-bot", "type": "Bot"},
+        }
+        handle_check_suite(
+            github_event=GithubWebhookType.CHECK_SUITE,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            github_delivery_id=webhook_id,
+        )
+
+    def _call_run(
+        self,
+        action: str = "completed",
+        conclusion: str = "failure",
+        check_name: str = "build",
+        head_sha: str = "headsha1",
+        app_slug: str = "github-actions",
+        pr_numbers: tuple[int, ...] = (42,),
+        webhook_id: str | None = "delivery-1",
+    ) -> None:
+        event: dict[str, Any] = {
+            "action": action,
+            "check_run": {
+                "name": check_name,
+                "head_sha": head_sha,
+                "status": "completed",
+                "conclusion": conclusion,
+                "app": {"slug": app_slug},
+                "pull_requests": [{"number": n} for n in pr_numbers],
+            },
+            "sender": {"id": 5, "login": "ci-bot", "type": "Bot"},
+        }
+        handle_check_run(
+            github_event=GithubWebhookType.CHECK_RUN,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            github_delivery_id=webhook_id,
+        )
+
+    # --- check_suite ---
+
+    def test_check_suite_completed_writes_activity(self) -> None:
+        self._call_suite(conclusion="success", app_slug="github-actions", check_runs_count=6)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.CHECK_SUITE_COMPLETED
+        assert activity.webhook_id == "delivery-1"
+        assert activity.payload["conclusion"] == "success"
+        assert activity.payload["app_slug"] == "github-actions"
+        assert activity.payload["check_runs_count"] == 6
+        assert activity.payload["head_sha"] == "headsha1"
+        assert activity.payload["sender_type"] == "Bot"
+
+    def test_check_suite_non_completed_action_skipped(self) -> None:
+        for action in ("requested", "rerequested"):
+            self._call_suite(action=action, webhook_id=f"delivery-{action}")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_suite_writes_row_per_referenced_pr(self) -> None:
+        other_pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="77",
+        )
+        self._call_suite(pr_numbers=(42, 77))
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).count() == 1
+        assert PullRequestActivity.objects.filter(pull_request=other_pr).count() == 1
+
+    def test_check_suite_duplicate_pr_numbers_deduped(self) -> None:
+        self._call_suite(pr_numbers=(42, 42))
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).count() == 1
+
+    def test_check_suite_without_prs_writes_nothing(self) -> None:
+        self._call_suite(pr_numbers=())
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_suite_unknown_pr_skipped(self) -> None:
+        self._call_suite(pr_numbers=(9999,))
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_suite_no_activity_without_webhook_id(self) -> None:
+        self._call_suite(webhook_id=None)
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_suite_redelivery_deduplicated(self) -> None:
+        self._call_suite(webhook_id="delivery-dup")
+        self._call_suite(webhook_id="delivery-dup")
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).count() == 1
+
+    def test_check_suite_flag_off_skips(self) -> None:
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call_suite()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_suite_no_seer_access_skips(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call_suite()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    # --- check_run ---
+
+    def test_check_run_completed_writes_activity(self) -> None:
+        self._call_run(conclusion="failure", check_name="lint", app_slug="github-actions")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.CHECK_RUN_COMPLETED
+        assert activity.payload["check_name"] == "lint"
+        assert activity.payload["conclusion"] == "failure"
+        assert activity.payload["app_slug"] == "github-actions"
+        assert activity.payload["head_sha"] == "headsha1"
+
+    def test_check_run_non_completed_action_skipped(self) -> None:
+        for action in ("created", "rerequested", "requested_action"):
+            self._call_run(action=action, webhook_id=f"delivery-{action}")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_run_without_prs_writes_nothing(self) -> None:
+        self._call_run(pr_numbers=())
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_run_flag_off_skips(self) -> None:
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call_run()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 

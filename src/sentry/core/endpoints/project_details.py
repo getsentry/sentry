@@ -591,9 +591,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         else:
             data["dynamicSamplingBiases"] = None
 
-        # filter for enabled plugins o/w the response body is gigantic and difficult to read
-        data["plugins"] = [plugin for plugin in data["plugins"] if plugin.get("enabled")]
-
         return Response(data)
 
     @extend_schema(

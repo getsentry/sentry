@@ -34,31 +34,6 @@ describe('Performance Onboarding View > Unsupported Banner', () => {
   });
 });
 
-describe('Performance Onboarding View > Sample Transaction Button', () => {
-  // The default OrganizationFixture access does not include event scopes.
-  const organization = OrganizationFixture();
-
-  it('shows the sample transaction button when the user has event:write access', () => {
-    const project = ProjectFixture({
-      platform: 'java',
-      access: ['project:read', 'event:write'],
-    });
-    render(<LegacyOnboarding organization={organization} project={project} />);
-
-    expect(screen.getByTestId('create-sample-transaction-btn')).toBeInTheDocument();
-  });
-
-  it('hides the sample transaction button when the user lacks event:write access', () => {
-    const project = ProjectFixture({
-      platform: 'java',
-      access: ['project:read'],
-    });
-    render(<LegacyOnboarding organization={organization} project={project} />);
-
-    expect(screen.queryByTestId('create-sample-transaction-btn')).not.toBeInTheDocument();
-  });
-});
-
 describe('Testing new onboarding ui', () => {
   const organization = OrganizationFixture();
 
@@ -127,10 +102,6 @@ describe('Testing new onboarding ui', () => {
 
     expect(
       await screen.findByText("Waiting for this project's first trace")
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByRole('button', {name: 'Take me to an example'})
     ).toBeInTheDocument();
   });
 

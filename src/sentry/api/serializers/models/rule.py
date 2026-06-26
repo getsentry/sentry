@@ -305,6 +305,14 @@ class RuleSerializer(Serializer[RuleSerializerResponse]):
                         action_data["targetIdentifier"] = str(action_data["targetIdentifier"])
                     if "fallthroughType" not in action_data:
                         action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+                # IssueOwners email actions also emit a default fallthroughType to match
+                # WorkflowEngineRuleSerializer output
+                elif (
+                    action_data.get("id") == EMAIL_ACTION
+                    and action_data.get("targetType") == ActionTargetType.ISSUE_OWNERS.value
+                    and "fallthroughType" not in action_data
+                ):
+                    action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
                 actions.append(action_data)
             except serializers.ValidationError:
                 # Integrations can be deleted and we don't want to fail to load the rule
@@ -663,6 +671,15 @@ class WorkflowEngineRuleSerializer(Serializer):
                 if not action_data:
                     continue
 
+                # XXX: default an empty/missing fallthrough_type before rendering the
+                # label so the label and the fallthroughType we return below agree
+                if (
+                    action.type == Action.Type.EMAIL.value
+                    and action_data.get("targetType")
+                    and not action_data.get("fallthrough_type")
+                ):
+                    action_data["fallthrough_type"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+
                 action_data["name"] = action_to_handler[action].render_label(
                     workflow.organization_id, action_data, integration_cache=integration_cache
                 )
@@ -695,18 +712,10 @@ class WorkflowEngineRuleSerializer(Serializer):
                 # HACKs below - we don't want to change the underlying data we render for ACI but we need to return it in the expected issue alert format
 
                 # XXX: convert fallthrough_type to fallthroughType
-                if action_data.get("fallthrough_type"):
-                    action_data["fallthroughType"] = action_data.get("fallthrough_type")
-                    del action_data["fallthrough_type"]
-
-                # XXX: add default fallthroughType for email Team/Member actions
-                if (
-                    action.type == Action.Type.EMAIL.value
-                    and "fallthroughType" not in action_data
-                    and action_data.get("targetType")
-                    in (ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value)
-                ):
-                    action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+                if "fallthrough_type" in action_data:
+                    fallthrough_type = action_data.pop("fallthrough_type")
+                    if fallthrough_type:
+                        action_data["fallthroughType"] = fallthrough_type
 
                 # XXX: add a targetIdentifier empty string for email only
                 if (
