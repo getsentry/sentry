@@ -621,12 +621,19 @@ function useCodingAgents({
   });
   useFetchAllPages({result: reposQuery});
   const repos = reposQuery.data ?? [];
+
+  // `useFetchAllPages` streams pages in across renders, so `isPending` alone only
+  // means "page 1 arrived" — not that every repo is loaded. Wait until pagination is
+  // fully drained so the gate below is computed over the complete repo list.
+  const isReposLoading =
+    reposQuery.isPending || reposQuery.isFetchingNextPage || reposQuery.hasNextPage;
+
   const isGithubOnly =
     repos.length > 0 && repos.every(repo => isGitHubProvider(repo.provider));
 
   const codingAgentIntegrations = useMemo(
-    () => (reposQuery.isPending ? undefined : codingAgentResponse?.integrations),
-    [codingAgentResponse?.integrations, reposQuery.isPending]
+    () => (isReposLoading ? undefined : codingAgentResponse?.integrations),
+    [codingAgentResponse?.integrations, isReposLoading]
   );
 
   const codingAgentDisabledReason = isGithubOnly
