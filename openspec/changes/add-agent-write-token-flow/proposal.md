@@ -29,10 +29,15 @@ just internal Seer.
   the JWT signature + expiry and feeds the embedded scopes through Sentry's normal
   `from_rpc_auth` / `_intersect_member_and_token_scopes` path to build `request.access`.
 - **Ephemeral tokens are not stored.** They are verified by signature and `exp`; the
-  agent re-mints on demand. Only **grants** persist in the DB.
-- **Grants persist, tied to an agent session.** A write the token cannot satisfy returns
-  a structured `403` challenge; the user approves via an API-only approval endpoint; the
-  grant is recorded and folded into the next minted token.
+  agent re-mints on demand. Only **approved grants** persist in the DB.
+- **The denial path is stateless.** A write the token cannot satisfy returns a structured
+  `403` carrying a short-lived **Sentry-signed challenge token** (user, org, grantable
+  scopes, session) — no database write. This avoids client-driven write-amplification and
+  keeps the permission check pure.
+- **The grant is created only on approval.** The user approves via an API-only endpoint
+  that verifies the signed challenge token and persists the grant in `approved` state; it
+  is then folded into the next minted token. The grant table holds approved consent only —
+  no `pending`/`declined` rows, no `nonce`.
 - **Transport**: the agent sends the minted JWT as `Authorization: Bearer <jwt>` on data
   requests. `X-Viewer-Context` is used only on the mint call to prove identity.
 - Feature-flagged (`organizations:seer-agent-token-flow`, default off); a no-op for all

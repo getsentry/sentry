@@ -45,10 +45,16 @@ Seer over `X-Viewer-Context`.
    - `iat`, `exp`: issued-at and a short expiry (prototype: 5 minutes)
    - `jti`: unique id (for future deny-list / audit correlation)
    - `act`: how the caller authenticated to mint (`viewer_context` | `oauth`) — for audit
-2. **Grant** — a persistent DB record (`SeerAgentWriteGrant`): a user's standing approval
+2. **Challenge token** — a Sentry-signed JWT returned in the `403` when a write is denied.
+   **Not stored.** Claims: `sub` (acting user), `org`, `scopes` (the grantable write
+   scopes), `sid` (agent session), `aud` (`sentry-agent-approval`, distinct from the
+   capability-token audience), `iat`/`exp` (short — long enough for the user to approve).
+   It is the self-contained handle the approval step consumes; there is no DB `nonce`.
+3. **Grant** — a persistent DB record (`SeerAgentWriteGrant`): a user's standing approval
    that the agent may hold specific write scopes for one org **and one agent session**,
-   with its own TTL. This is the only thing written to the DB. (Same model as the sibling
-   change, plus an `agent_session_id` column.)
+   with its own TTL. **Created only on approval**, so the table holds approved consent
+   only. This is the only thing written to the DB. (`(user_id, organization_id,
+agent_session_id, scope_list, expires_at)`; no `pending`/`declined` states or `nonce`.)
 
 ## Decisions
 
@@ -124,16 +130,33 @@ Reuse the HS256 + `SEER_API_SHARED_SECRET` pattern already used by `X-Viewer-Con
 marker keep agent tokens from being confused with viewer-context JWTs even though they
 share a secret. A separate secret can be introduced later without changing the shape.
 
-### Decision 5 — Challenge & approval reuse the sibling change's design
+### Decision 5 — Stateless signed challenge on deny; persist the grant only on approval
 
-The `403` challenge body, the pending-grant creation, and the API-only approval endpoint
-(`POST /api/0/organizations/{org}/agent/approve/{nonce}/`, first-party-session-only to
-prevent the agent self-approving) are carried over unchanged in spirit from
-`add-agent-write-permission-gate`, with grants additionally carrying `agent_session_id`.
-The one structural difference: the challenge is raised by the **ordinary scope check on a
-token request** (the JWT simply lacks the write scope), not by a masking hook. We add a
-small permission helper that, on a denied agent-token write, emits the structured
-challenge instead of a bare `403`.
+A denied write must not write to the database. Creating a `pending` grant row inside the
+permission check is (a) write amplification on a denial path whose inputs (agent
+`session_id`, target endpoint → required scopes) are client-controlled, so a buggy or
+hostile caller could spam rows by varying the session, and (b) an impure permission check
+that mutates state on retries/prefetches. Even with find-or-create dedupe, the
+client-supplied session id defeats it.
+
+So instead: on a grantable denial the permission helper **mints a short-lived
+Sentry-signed challenge token** (audience `sentry-agent-approval`, carrying user, org,
+grantable scopes, session, exp) and returns it in the structured `403` alongside
+human-readable detail. **No row is written.** The challenge is raised by the ordinary
+scope check on a token request (the JWT simply lacks the write scope), not a masking hook.
+
+The grant is created **only when the user approves**: `POST
+/api/0/organizations/{org}/agent/approve/` takes the signed challenge token, verifies its
+signature/audience/expiry, requires a first-party session (rejecting `X-Viewer-Context`
+and agent tokens so the agent can't self-approve), checks the session user == the token's
+subject and the URL org == the token's org, and then writes the grant in `approved` state
+with exactly the token's scopes (never body scopes). The grant table therefore holds only
+approved consent — there is no `pending`/`declined` state and no `nonce`. Scopes can't be
+forged or escalated because they live inside the Sentry-signed challenge token.
+
+We lose the "audit trail of un-approved asks" that storing `pending`/`declined` rows gave;
+that is recovered with a **log line** on deny (cheap, no amplification), and
+decline-memory becomes opt-in persistence rather than the default.
 
 ## Flow
 
@@ -146,11 +169,13 @@ challenge instead of a bare `403`.
 2. Agent → GET  /organizations/{org}/issues/   Authorization: Bearer <jwt>   → 200 (read ok)
 
 3. Agent → PUT  /organizations/{org}/issues/   Authorization: Bearer <jwt>
-   Sentry: token lacks issue write → structured 403 challenge { nonce, approval_endpoint }
-           + pending grant row (user, org, session, scopes)
+   Sentry: token lacks issue write → structured 403 { challenge: <signed-jwt>,
+           required_scopes, operation }                       [no DB write]
 
-4. User  → POST /organizations/{org}/agent/approve/{nonce}/  (first-party session)
-   Sentry: grant.status = approved (identity-checked, no escalation)
+4. User  → POST /organizations/{org}/agent/approve/  body: { challenge: <jwt>, decision }
+           (first-party session)
+   Sentry: verify challenge sig/aud/exp; session user == sub; org match
+           → create grant (approved) with the token's scopes   [only DB write in the flow]
 
 5. Agent → POST /organizations/{org}/agent/token/  → new jwt now includes the write scope
 
@@ -167,6 +192,10 @@ challenge instead of a bare `403`.
 - **Stateless scopes can go stale**: if a grant is revoked mid-token-life, the token keeps
   its scope until expiry. Acceptable at minutes-long TTL; documented.
 - **Clock skew** on `exp`/`iat`: use a small leeway, as elsewhere in `utils.jwt`.
+- **No state on deny (improvement)**: because the denial path mints a signed challenge
+  rather than a row, there is no client-driven write-amplification surface and the
+  permission check stays pure. The cost is losing the pending/declined audit rows, replaced
+  by a deny-time log line.
 
 ## Migration / Compatibility
 

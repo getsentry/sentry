@@ -55,10 +55,22 @@
 - [x] 8.6 Forged / unsigned / tampered JWT rejected.
 - [x] 8.7 Token minted for org A is rejected against org B (org-bound; mirrors org-scoped token checks).
 
-## 9. Deferred (post-prototype)
+## 9. Rework: stateless challenge, persist grant on approval
 
-- [ ] 9.1 `jti` deny-list for pre-expiry revocation.
-- [ ] 9.2 Dedicated signing secret separate from `SEER_API_SHARED_SECRET`.
-- [ ] 9.3 Per-resource (per-project) scope narrowing.
-- [ ] 9.4 Audit-log mint, challenge, approve, and writes performed under a token.
-- [ ] 9.5 Seer-side change: obtain/cache/attach token; render challenge as approval prompt.
+Supersedes the create-`pending`-grant-on-deny behavior in §5/§6 (which writes to the DB
+from the denial path — a client-driven write-amplification surface and an impure
+permission check). The grant model and mint-time folding (§5.1 fields, §5.3 lookup) stay.
+
+- [ ] 9.1 Add a signed **challenge token**: encode/verify a JWT with audience `sentry-agent-approval` carrying `sub`/`org`/`scopes`/`sid`/`exp` (reuse `agent_token` JWT helpers).
+- [ ] 9.2 Change `maybe_challenge` to mint + return the challenge token in the structured `403` and **stop writing a grant row**; log the denied ask instead. Drop `_find_or_create_pending_grant`, `nonce`, and the `pending`/`declined` statuses from the model + migration.
+- [ ] 9.3 Rework the approval endpoint to `POST /api/0/organizations/{org}/agent/approve/` taking `{challenge, decision}`: verify signature/aud/exp; require first-party session; enforce `session_user == sub` and URL org == token `org`; on approve create the grant in `approved` state with the token's scopes; decline persists nothing. Remove the `nonce` route + GET-details handler.
+- [ ] 9.4 Update tests: deny writes nothing (assert no row); forged/expired/cross-user/cross-org challenge rejected; approve creates the approved grant; re-mint folds it in; end-to-end read→challenge→approve→write.
+- [ ] 9.5 Seer-side delta: send the `challenge` token back to the approval endpoint (instead of a `nonce`); surface the challenge details from the `403` body. Update `tests/experimental/mcp/test_agent_token.py` accordingly.
+
+## 10. Deferred (post-prototype)
+
+- [ ] 10.1 `jti` deny-list for pre-expiry revocation.
+- [ ] 10.2 Dedicated signing secret separate from `SEER_API_SHARED_SECRET`.
+- [ ] 10.3 Per-resource (per-project) scope narrowing.
+- [ ] 10.4 Audit-log mint, challenge, approve, and writes performed under a token.
+- [ ] 10.5 Decline-memory (opt-in persistence) to suppress re-prompting after a decline.

@@ -1731,7 +1731,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-agent-token",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/agent/approve/(?P<nonce>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/agent/approve/$",
         OrganizationAgentApproveEndpoint.as_view(),
         name="sentry-api-0-organization-agent-approve",
     ),

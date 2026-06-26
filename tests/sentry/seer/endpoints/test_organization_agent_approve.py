@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.test import override_settings
 
 from sentry.seer import agent_token
-from sentry.seer.models.agent_write_grant import AgentWriteGrantStatus, SeerAgentWriteGrant
+from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.testutils.cases import APITestCase
 from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
 
@@ -19,126 +21,139 @@ class OrganizationAgentApproveTest(APITestCase):
         self.other = self.create_user()
         self.create_member(user=self.other, organization=self.org, role="owner")
 
-    def _grant(self, user=None, organization=None, session_id="s1", scopes=("org:write",)):
-        return SeerAgentWriteGrant.objects.create(
-            organization_id=(organization or self.org).id,
+    def _challenge(
+        self, *, user=None, organization=None, session_id="s1", scopes=("org:write",), ttl=None
+    ):
+        kwargs = {} if ttl is None else {"ttl": ttl}
+        token, _ = agent_token.encode_challenge_token(
             user_id=(user or self.owner).id,
-            agent_session_id=session_id,
-            scope_list=list(scopes),
-            status=AgentWriteGrantStatus.PENDING,
+            organization_id=(organization or self.org).id,
+            scopes=list(scopes),
+            session_id=session_id,
+            **kwargs,
         )
+        return token
 
-    def _url(self, nonce, organization=None):
-        slug = (organization or self.org).slug
-        return f"/api/0/organizations/{slug}/agent/approve/{nonce}/"
+    def _url(self, organization=None):
+        return f"/api/0/organizations/{(organization or self.org).slug}/agent/approve/"
+
+    def _post(self, challenge, decision="approve", organization=None):
+        return self.client.post(
+            self._url(organization),
+            data={"challenge": challenge, "decision": decision},
+            format="json",
+        )
 
     # ----- happy path -----
 
-    def test_get_returns_details_to_owner(self) -> None:
-        grant = self._grant()
+    def test_approve_creates_grant(self) -> None:
         self.login_as(self.owner)
-        resp = self.client.get(self._url(grant.nonce))
-        assert resp.status_code == 200
-        assert resp.data["nonce"] == grant.nonce
-        assert resp.data["requiredScopes"] == ["org:write"]
+        resp = self._post(self._challenge(scopes=["org:write"]))
+        assert resp.status_code == 200, resp.content
+        assert resp.data["status"] == "approved"
+        grant = SeerAgentWriteGrant.objects.get(organization_id=self.org.id, user_id=self.owner.id)
+        assert grant.get_scopes() == ["org:write"]
+        assert grant.agent_session_id == "s1"
 
-    def test_approve(self) -> None:
-        grant = self._grant()
+    def test_decline_persists_nothing(self) -> None:
         self.login_as(self.owner)
-        resp = self.client.post(self._url(grant.nonce), data={"decision": "approve"}, format="json")
+        resp = self._post(self._challenge(), decision="decline")
         assert resp.status_code == 200
-        grant.refresh_from_db()
-        assert grant.status == AgentWriteGrantStatus.APPROVED
-        assert grant.approved_at is not None
-
-    def test_decline(self) -> None:
-        grant = self._grant()
-        self.login_as(self.owner)
-        resp = self.client.post(self._url(grant.nonce), data={"decision": "decline"}, format="json")
-        assert resp.status_code == 200
-        grant.refresh_from_db()
-        assert grant.status == AgentWriteGrantStatus.DECLINED
-
-    def test_decline_then_approve_conflicts(self) -> None:
-        grant = self._grant()
-        self.login_as(self.owner)
-        self.client.post(self._url(grant.nonce), data={"decision": "decline"}, format="json")
-        resp = self.client.post(self._url(grant.nonce), data={"decision": "approve"}, format="json")
-        assert resp.status_code == 409
-        grant.refresh_from_db()
-        assert grant.status == AgentWriteGrantStatus.DECLINED
+        assert resp.data["status"] == "declined"
+        assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()
 
     def test_invalid_decision(self) -> None:
-        grant = self._grant()
         self.login_as(self.owner)
-        resp = self.client.post(self._url(grant.nonce), data={"decision": "maybe"}, format="json")
+        assert self._post(self._challenge(), decision="maybe").status_code == 400
+
+    def test_challenge_required(self) -> None:
+        self.login_as(self.owner)
+        resp = self.client.post(self._url(), data={"decision": "approve"}, format="json")
         assert resp.status_code == 400
 
-    # ----- IDOR -----
+    # ----- challenge validation -----
 
-    def test_other_user_cannot_read(self) -> None:
-        grant = self._grant(user=self.owner)
-        self.login_as(self.other)
-        assert self.client.get(self._url(grant.nonce)).status_code == 404
+    def test_forged_challenge_rejected(self) -> None:
+        import sentry.utils.jwt as jwt
 
-    def test_other_user_cannot_approve(self) -> None:
-        grant = self._grant(user=self.owner)
-        self.login_as(self.other)
-        resp = self.client.post(self._url(grant.nonce), data={"decision": "approve"}, format="json")
-        assert resp.status_code == 404
-        grant.refresh_from_db()
-        assert grant.status == AgentWriteGrantStatus.PENDING
-
-    def test_cross_org_nonce_rejected(self) -> None:
-        other_org = self.create_organization(owner=self.owner)
-        grant = self._grant(user=self.owner, organization=self.org)
+        forged = jwt.encode(
+            {
+                "aud": agent_token.AGENT_APPROVAL_AUDIENCE,
+                "sub": str(self.owner.id),
+                "org": self.org.id,
+                "scopes": ["org:admin"],
+                "sid": "s1",
+            },
+            "wrong-secret",
+        )
         self.login_as(self.owner)
-        # Same nonce, but addressed under a different org -> not found.
-        assert self.client.get(self._url(grant.nonce, organization=other_org)).status_code == 404
+        resp = self._post(forged)
+        assert resp.status_code == 400
+        assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()
 
-    def test_approval_cannot_escalate_scope(self) -> None:
-        grant = self._grant(scopes=["org:write"])
+    def test_expired_challenge_rejected(self) -> None:
+        self.login_as(self.owner)
+        resp = self._post(self._challenge(ttl=timedelta(seconds=-1)))
+        assert resp.status_code == 400
+        assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()
+
+    # ----- identity / IDOR -----
+
+    def test_other_user_cannot_approve_someone_elses_challenge(self) -> None:
+        challenge = self._challenge(user=self.owner)
+        self.login_as(self.other)
+        resp = self._post(challenge)
+        assert resp.status_code == 403
+        assert not SeerAgentWriteGrant.objects.filter(user_id=self.owner.id).exists()
+
+    def test_cross_org_challenge_rejected(self) -> None:
+        other_org = self.create_organization(owner=self.owner)
+        challenge = self._challenge(organization=self.org)  # issued for self.org
+        self.login_as(self.owner)
+        resp = self._post(challenge, organization=other_org)  # presented at other_org
+        assert resp.status_code == 403
+        assert not SeerAgentWriteGrant.objects.filter(user_id=self.owner.id).exists()
+
+    def test_approval_grants_only_token_scopes(self) -> None:
+        # Body cannot inject extra scopes; only the signed challenge's scopes are granted.
         self.login_as(self.owner)
         resp = self.client.post(
-            self._url(grant.nonce),
-            data={"decision": "approve", "scopes": ["org:admin", "member:admin"]},
+            self._url(),
+            data={
+                "challenge": self._challenge(scopes=["org:write"]),
+                "decision": "approve",
+                "scopes": ["org:admin", "member:admin"],
+            },
             format="json",
         )
         assert resp.status_code == 200
-        grant.refresh_from_db()
+        grant = SeerAgentWriteGrant.objects.get(organization_id=self.org.id)
         assert grant.get_scopes() == ["org:write"]
 
     # ----- self-approval is blocked -----
 
     def test_agent_token_cannot_self_approve(self) -> None:
-        grant = self._grant()
         token, _ = agent_token.encode_agent_token(
-            user_id=self.owner.id,
-            organization_id=self.org.id,
-            scopes=["org:read"],
-            session_id="s1",
+            user_id=self.owner.id, organization_id=self.org.id, scopes=["org:read"], session_id="s1"
         )
         resp = self.client.post(
-            self._url(grant.nonce),
-            data={"decision": "approve"},
+            self._url(),
+            data={"challenge": self._challenge(), "decision": "approve"},
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {token}",
         )
         assert resp.status_code == 403
-        grant.refresh_from_db()
-        assert grant.status == AgentWriteGrantStatus.PENDING
+        assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()
 
     def test_viewer_context_cannot_self_approve(self) -> None:
-        grant = self._grant()
         context = encode_viewer_context(
             ViewerContext(user_id=self.owner.id, actor_type=ActorType.USER), key=SECRET
         )
         resp = self.client.post(
-            self._url(grant.nonce),
-            data={"decision": "approve"},
+            self._url(),
+            data={"challenge": self._challenge(), "decision": "approve"},
             format="json",
             HTTP_X_VIEWER_CONTEXT=context,
         )
         assert resp.status_code == 403
-        grant.refresh_from_db()
-        assert grant.status == AgentWriteGrantStatus.PENDING
+        assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()

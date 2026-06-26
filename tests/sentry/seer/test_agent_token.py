@@ -13,7 +13,7 @@ from sentry.api.authentication import AgentTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.seer import agent_token
 from sentry.seer.agent_token import AgentWritePermissionRequired
-from sentry.seer.models.agent_write_grant import AgentWriteGrantStatus, SeerAgentWriteGrant
+from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
 from sentry.utils import jwt
@@ -50,6 +50,15 @@ class AgentTokenAuthAndGateTest(TestCase):
         drf_request.user, drf_request.auth = result
         return drf_request
 
+    def _grant(self, *, session_id="s", scopes=("org:write",), expires_at=None):
+        return SeerAgentWriteGrant.objects.create(
+            organization_id=self.org.id,
+            user_id=self.owner.id,
+            agent_session_id=session_id,
+            scope_list=list(scopes),
+            **({"expires_at": expires_at} if expires_at else {}),
+        )
+
     def _has_permission(self, drf_request) -> bool:
         return OrganizationPermission().has_permission(drf_request, APIView())
 
@@ -63,24 +72,20 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert request.user.id == self.owner.id
         assert request.auth is not None
         assert request.auth.get_scopes() == ["org:read"]
-        # The challenge step recognizes this as an agent request.
         assert agent_token.get_agent_claims(request) is not None
 
     def test_non_agent_bearer_is_deferred(self) -> None:
-        # An opaque (non-JWT) bearer is not ours: we defer so the normal token auth runs.
         request = RequestFactory().get("/")
         request.META["HTTP_AUTHORIZATION"] = "Bearer sntrya_deadbeef"
         assert AgentTokenAuthentication().authenticate(drf_request_from_request(request)) is None
 
     def test_wrong_audience_is_deferred(self) -> None:
-        # A signed JWT for a different audience is not an agent token; defer, don't reject.
         token = jwt.encode({"aud": "something-else", "sub": "1", "org": 1, "scopes": []}, SECRET)
         request = RequestFactory().get("/")
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         assert AgentTokenAuthentication().authenticate(drf_request_from_request(request)) is None
 
     def test_forged_token_is_rejected(self) -> None:
-        # Right audience, wrong signature -> it claims to be an agent token but is forged.
         token = jwt.encode(
             {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": "1", "org": 1, "scopes": []},
             "wrong-secret",
@@ -104,9 +109,9 @@ class AgentTokenAuthAndGateTest(TestCase):
         request = self._agent_request(self.member, ["org:read", "org:write"], method="PUT")
         assert self._has_object_perm(request) is False
 
-    # ----- challenge -----
+    # ----- challenge (stateless: signs a token, writes nothing) -----
 
-    def test_readonly_token_write_is_challenged(self) -> None:
+    def test_readonly_token_write_is_challenged_without_persisting(self) -> None:
         request = self._agent_request(self.owner, ["org:read"], method="PUT", session_id="abc")
         with pytest.raises(AgentWritePermissionRequired) as excinfo:
             self._has_permission(request)
@@ -116,19 +121,33 @@ class AgentTokenAuthAndGateTest(TestCase):
         extra = detail["extra"]
         assert "org:write" in extra["required_scopes"]
         assert extra["organization"] == self.org.slug
-        assert extra["approval_endpoint"].endswith(f"/agent/approve/{extra['nonce']}/")
+        assert extra["approval_endpoint"].endswith("/agent/approve/")
 
-        grant = SeerAgentWriteGrant.objects.get(nonce=extra["nonce"])
-        assert grant.status == AgentWriteGrantStatus.PENDING
-        assert grant.user_id == self.owner.id
-        assert grant.agent_session_id == "abc"
-        assert "org:write" in grant.get_scopes()
+        # The challenge is a signed token bound to this user/org/session/scopes.
+        claims = agent_token.decode_challenge_token(extra["challenge"])
+        assert int(claims["sub"]) == self.owner.id
+        assert int(claims["org"]) == self.org.id
+        assert claims["sid"] == "abc"
+        assert "org:write" in claims["scopes"]
+
+        # The denial path persists nothing.
+        assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()
 
     def test_no_challenge_when_role_lacks_scope(self) -> None:
         # A plain member has no org:write to grant, so an ordinary denial follows.
         request = self._agent_request(self.member, ["org:read"], method="PUT")
         assert self._has_permission(request) is False
         assert not SeerAgentWriteGrant.objects.filter(user_id=self.member.id).exists()
+
+    def test_challenge_token_roundtrip_rejects_wrong_audience(self) -> None:
+        # A capability token must not be usable as a challenge token (distinct audiences).
+        from jwt import PyJWTError
+
+        cap, _ = agent_token.encode_agent_token(
+            user_id=self.owner.id, organization_id=self.org.id, scopes=["org:read"], session_id="s"
+        )
+        with pytest.raises(PyJWTError):
+            agent_token.decode_challenge_token(cap)
 
     # ----- scope computation (de-escalation rule) -----
 
@@ -144,14 +163,7 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert "project:read" in scopes
 
     def test_compute_scopes_includes_active_grant(self) -> None:
-        SeerAgentWriteGrant.objects.create(
-            organization_id=self.org.id,
-            user_id=self.owner.id,
-            agent_session_id="s",
-            scope_list=["org:write"],
-            status=AgentWriteGrantStatus.APPROVED,
-            approved_at=timezone.now(),
-        )
+        self._grant(session_id="s", scopes=["org:write"])
         scopes = agent_token.compute_token_scopes(
             caller_scopes={"org:read", "org:write"},
             organization_id=self.org.id,
@@ -161,15 +173,8 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert "org:write" in scopes
 
     def test_compute_scopes_never_exceeds_caller(self) -> None:
-        # An approved grant for a scope the caller does not currently hold is dropped.
-        SeerAgentWriteGrant.objects.create(
-            organization_id=self.org.id,
-            user_id=self.owner.id,
-            agent_session_id="s",
-            scope_list=["org:write"],
-            status=AgentWriteGrantStatus.APPROVED,
-            approved_at=timezone.now(),
-        )
+        # A grant for a scope the caller does not currently hold is dropped.
+        self._grant(session_id="s", scopes=["org:write"])
         scopes = agent_token.compute_token_scopes(
             caller_scopes={"org:read"},  # caller lacks org:write right now
             organization_id=self.org.id,
@@ -188,37 +193,12 @@ class AgentTokenAuthAndGateTest(TestCase):
         )
         assert scopes == ["org:read"]
 
-    def test_active_grant_scopes_excludes_pending_expired_and_other_session(self) -> None:
-        SeerAgentWriteGrant.objects.create(
-            organization_id=self.org.id,
-            user_id=self.owner.id,
-            agent_session_id="s",
-            scope_list=["org:write"],
-            status=AgentWriteGrantStatus.PENDING,
+    def test_active_grant_scopes_excludes_expired_and_other_session(self) -> None:
+        self._grant(session_id="other", scopes=["member:admin"])
+        self._grant(
+            session_id="s",
+            scopes=["org:admin"],
+            expires_at=timezone.now() - timedelta(hours=1),  # expired
         )
-        SeerAgentWriteGrant.objects.create(
-            organization_id=self.org.id,
-            user_id=self.owner.id,
-            agent_session_id="other",
-            scope_list=["member:admin"],
-            status=AgentWriteGrantStatus.APPROVED,
-            approved_at=timezone.now(),
-        )
-        SeerAgentWriteGrant.objects.create(
-            organization_id=self.org.id,
-            user_id=self.owner.id,
-            agent_session_id="s",
-            scope_list=["org:admin"],
-            status=AgentWriteGrantStatus.APPROVED,
-            approved_at=timezone.now() - timedelta(hours=5),
-            expires_at=timezone.now() - timedelta(hours=1),
-        )
-        SeerAgentWriteGrant.objects.create(
-            organization_id=self.org.id,
-            user_id=self.owner.id,
-            agent_session_id="s",
-            scope_list=["org:write"],
-            status=AgentWriteGrantStatus.APPROVED,
-            approved_at=timezone.now(),
-        )
+        self._grant(session_id="s", scopes=["org:write"])  # active
         assert agent_token.active_grant_scopes(self.org.id, self.owner.id, "s") == {"org:write"}

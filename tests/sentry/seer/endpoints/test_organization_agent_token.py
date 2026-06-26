@@ -4,7 +4,7 @@ from django.test import override_settings
 
 from sentry.models.apitoken import ApiToken
 from sentry.seer import agent_token
-from sentry.seer.models.agent_write_grant import AgentWriteGrantStatus, SeerAgentWriteGrant
+from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -25,6 +25,14 @@ class OrganizationAgentTokenTest(APITestCase):
     def _mint(self, **data):
         return self.client.post(
             f"/api/0/organizations/{self.org.slug}/agent/token/", data=data, format="json"
+        )
+
+    def _grant(self, *, organization=None, session_id="s1", scopes=("org:write",)):
+        return SeerAgentWriteGrant.objects.create(
+            organization_id=(organization or self.org).id,
+            user_id=self.owner.id,
+            agent_session_id=session_id,
+            scope_list=list(scopes),
         )
 
     def test_mint_defaults_to_readonly(self) -> None:
@@ -60,14 +68,7 @@ class OrganizationAgentTokenTest(APITestCase):
         assert claims["org"] == self.org.id
 
     def test_approved_grant_is_folded_into_token(self) -> None:
-        SeerAgentWriteGrant.objects.create(
-            organization_id=self.org.id,
-            user_id=self.owner.id,
-            agent_session_id="s1",
-            scope_list=["org:write"],
-            status=AgentWriteGrantStatus.APPROVED,
-            approved_at=self.org.date_added,
-        )
+        self._grant(session_id="s1", scopes=["org:write"])
         self.login_as(self.owner)
         with self.feature(FLAG):
             resp = self._mint(sessionId="s1")
@@ -77,14 +78,7 @@ class OrganizationAgentTokenTest(APITestCase):
     def test_oauth_caller_capped_by_token_scopes(self) -> None:
         # The owner has org:write by role and an approved grant for it, but the OAuth
         # token used to mint only carries org:read -> the minted token cannot exceed it.
-        SeerAgentWriteGrant.objects.create(
-            organization_id=self.org.id,
-            user_id=self.owner.id,
-            agent_session_id="s1",
-            scope_list=["org:write"],
-            status=AgentWriteGrantStatus.APPROVED,
-            approved_at=self.org.date_added,
-        )
+        self._grant(session_id="s1", scopes=["org:write"])
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.owner, scope_list=["org:read"])
         with self.feature(FLAG):
@@ -101,14 +95,7 @@ class OrganizationAgentTokenTest(APITestCase):
     def test_end_to_end_approved_write_succeeds(self) -> None:
         # The core happy path: an approved grant produces a token whose write passes
         # end-to-end against a real org endpoint.
-        SeerAgentWriteGrant.objects.create(
-            organization_id=self.org.id,
-            user_id=self.owner.id,
-            agent_session_id="s1",
-            scope_list=["org:write"],
-            status=AgentWriteGrantStatus.APPROVED,
-            approved_at=self.org.date_added,
-        )
+        self._grant(session_id="s1", scopes=["org:write"])
         self.login_as(self.owner)
         with self.feature(FLAG):
             token = self._mint(sessionId="s1").data["token"]
@@ -125,14 +112,7 @@ class OrganizationAgentTokenTest(APITestCase):
         # A token minted for org A (carrying an org:write granted for A) must not be
         # honored against org B, even though the same user is also an owner of B.
         other_org = self.create_organization(owner=self.owner)
-        SeerAgentWriteGrant.objects.create(
-            organization_id=self.org.id,
-            user_id=self.owner.id,
-            agent_session_id="s1",
-            scope_list=["org:write"],
-            status=AgentWriteGrantStatus.APPROVED,
-            approved_at=self.org.date_added,
-        )
+        self._grant(session_id="s1", scopes=["org:write"])
         self.login_as(self.owner)
         with self.feature(FLAG):
             token = self._mint(sessionId="s1").data["token"]
@@ -162,7 +142,9 @@ class OrganizationAgentTokenTest(APITestCase):
         )
         assert write.status_code == 403
         assert write.data["detail"]["code"] == "agent-write-permission-required"
-        nonce = write.data["detail"]["extra"]["nonce"]
-        grant = SeerAgentWriteGrant.objects.get(nonce=nonce)
-        assert grant.user_id == self.owner.id
-        assert grant.agent_session_id == "s1"
+        extra = write.data["detail"]["extra"]
+        # Stateless challenge: a signed token is returned and nothing is persisted on deny.
+        claims = agent_token.decode_challenge_token(extra["challenge"])
+        assert int(claims["sub"]) == self.owner.id
+        assert claims["sid"] == "s1"
+        assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()
