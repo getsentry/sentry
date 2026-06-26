@@ -260,6 +260,17 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to halt unmerge for.",
         },
     ),
+    "merge.killswitch-projects": KillswitchInfo(
+        description="""
+        Halt the self-chaining merge_groups task for the given projects.
+
+        Note that this leaves a partial merge: groups already processed stay merged,
+        and the rest remain in PENDING_MERGE.
+        """,
+        fields={
+            "project_id": "A project ID to halt merge for.",
+        },
+    ),
 }
 
 
