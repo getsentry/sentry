@@ -13,7 +13,7 @@ import type {
 } from 'sentry/types/group';
 import {GroupActivityType, IssueCategory as IssueCategoryEnum} from 'sentry/types/group';
 import type {PullRequest} from 'sentry/types/integrations';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
@@ -236,7 +236,6 @@ interface GetCompactGroupActivityItemParams {
   issueCategory: IssueCategory;
   organization: Organization;
   project: Project;
-  teams: Team[];
 }
 
 export function getCompactGroupActivityItem({
@@ -244,7 +243,6 @@ export function getCompactGroupActivityItem({
   organization,
   project,
   issueCategory,
-  teams,
 }: GetCompactGroupActivityItemParams): CompactGroupActivityItem {
   const author = getAuthorName(activity);
   const issuesLink = `/organizations/${organization.slug}/issues/`;
@@ -253,7 +251,6 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.NOTE:
       return {
         title: author,
-        body: activity.data.text,
       };
     case GroupActivityType.SET_RESOLVED: {
       const integrationLink = getIntegrationLink({data: activity.data, organization});
@@ -519,7 +516,7 @@ export function getCompactGroupActivityItem({
           : null,
       };
     case GroupActivityType.ASSIGNED:
-      return getAssignedActivityItem({activity, teams, author});
+      return getAssignedActivityItem({activity, author});
     case GroupActivityType.UNASSIGNED:
       return {
         title: t('Unassigned'),

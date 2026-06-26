@@ -5,14 +5,15 @@ import {t, tct} from 'sentry/locale';
 import type {GroupActivityAssigned} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {AssigneePill} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips';
+import {getAssignmentIntegrationName} from 'sentry/views/issueDetails/activitySection/assignmentIntegration';
 
 import type {CompactGroupActivityItem} from './types';
 
 interface GetAssignedActivityItemParams {
   activity: GroupActivityAssigned;
   author: string;
-  teams: Team[];
 }
 
 function isTeam(value: Team | User): value is Team {
@@ -113,11 +114,8 @@ function RuleText({children}: {children: React.ReactNode}) {
   );
 }
 
-export function getAssignedActivityItem({
-  activity,
-  teams,
-  author,
-}: GetAssignedActivityItemParams): CompactGroupActivityItem {
+function AssignedActivityTitle({activity, author}: GetAssignedActivityItemParams) {
+  const {teams} = useTeamsById();
   const {data} = activity;
   const assignedToSelf = data.assignee === activity.user?.id;
   const assignee = assignedToSelf ? (
@@ -125,47 +123,48 @@ export function getAssignedActivityItem({
   ) : (
     <AssigneePill assignee={getAssignedAssignee(activity, teams)} />
   );
-  const integrationName: Record<
-    NonNullable<GroupActivityAssigned['data']['integration']>,
-    string
-  > = {
-    msteams: t('Microsoft Teams'),
-    slack: t('Slack'),
-    projectOwnership: t('Ownership Rule'),
-    codeowners: t('Codeowners Rule'),
-    suspectCommitter: t('Suspect Commit'),
-  };
+  const integrationName = getAssignmentIntegrationName(data.integration);
 
-  if (data.integration && integrationName[data.integration]) {
-    return {
-      title: (
-        <AssignmentLead>
-          <AssignmentPrefix>
-            <AssignmentTitleText>{t('Assigned')}</AssignmentTitleText>
-            <AssignmentDetailText>
-              {tct('to [assignee] due to', {assignee})}
-            </AssignmentDetailText>
-          </AssignmentPrefix>
-          <RuleSource>{integrationName[data.integration]}</RuleSource>
-        </AssignmentLead>
-      ),
-      subtext: data.rule ? <RuleText>{data.rule}</RuleText> : null,
-    };
-  }
-
-  return {
-    title: (
+  if (integrationName) {
+    return (
       <AssignmentLead>
         <AssignmentPrefix>
           <AssignmentTitleText>{t('Assigned')}</AssignmentTitleText>
           <AssignmentDetailText>
-            {assignedToSelf
-              ? tct('to [assignee]', {assignee})
-              : tct('to [assignee] by', {assignee})}
+            {tct('to [assignee] due to', {assignee})}
           </AssignmentDetailText>
         </AssignmentPrefix>
-        {assignedToSelf ? null : author}
+        <RuleSource>{integrationName}</RuleSource>
       </AssignmentLead>
-    ),
+    );
+  }
+
+  return (
+    <AssignmentLead>
+      <AssignmentPrefix>
+        <AssignmentTitleText>{t('Assigned')}</AssignmentTitleText>
+        <AssignmentDetailText>
+          {assignedToSelf
+            ? tct('to [assignee]', {assignee})
+            : tct('to [assignee] by', {assignee})}
+        </AssignmentDetailText>
+      </AssignmentPrefix>
+      {assignedToSelf ? null : author}
+    </AssignmentLead>
+  );
+}
+
+export function getAssignedActivityItem({
+  activity,
+  author,
+}: GetAssignedActivityItemParams): CompactGroupActivityItem {
+  const integrationName = getAssignmentIntegrationName(activity.data.integration);
+
+  return {
+    title: <AssignedActivityTitle activity={activity} author={author} />,
+    subtext:
+      integrationName && activity.data.rule ? (
+        <RuleText>{activity.data.rule}</RuleText>
+      ) : null,
   };
 }

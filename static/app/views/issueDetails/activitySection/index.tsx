@@ -22,7 +22,11 @@ import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
-import {ActivityLineItem} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+import {
+  ActivityLine,
+  ActivityLineNote,
+  isActivityNote,
+} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
@@ -34,6 +38,17 @@ import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
+interface TimelineItemProps {
+  group: Group;
+  handleDelete: (item: GroupActivity) => Promise<void>;
+  inputVariant: 'compact' | 'full';
+  item: GroupActivity;
+  size: 'sm' | 'md';
+  teams: Team[];
+  onCommentEdited?: (activity: GroupActivity[]) => void;
+  timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
+}
+
 function TimelineItem({
   item,
   handleDelete,
@@ -43,38 +58,37 @@ function TimelineItem({
   size,
   inputVariant,
   timestampUnitStyle,
-}: {
-  group: Group;
-  handleDelete: (item: GroupActivity) => Promise<void>;
-  inputVariant: 'compact' | 'full';
-  item: GroupActivity;
-  size: 'sm' | 'md';
-  teams: Team[];
-  onCommentEdited?: (activity: GroupActivity[]) => void;
-  timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
-}) {
+}: TimelineItemProps) {
   const organization = useOrganization();
-  const [editing, setEditing] = useState(false);
   const useActivityLineItems = organization.features.includes('issue-activity-feed-v2');
 
   if (useActivityLineItems) {
+    if (isActivityNote(item)) {
+      // Keep note mutations wired from ActivitySection until the v2 note API settles.
+      return (
+        <ActivityLineNote
+          activity={item}
+          group={group}
+          inputVariant={inputVariant}
+          onDelete={() => handleDelete(item)}
+          onCommentEdited={onCommentEdited}
+          timestampUnitStyle={timestampUnitStyle}
+        />
+      );
+    }
+
     return (
-      <ActivityLineItem
+      <ActivityLine
         item={item}
-        handleDelete={handleDelete}
-        onCommentEdited={onCommentEdited}
         group={group}
-        teams={teams}
         inputVariant={inputVariant}
         timestampUnitStyle={timestampUnitStyle}
-        editing={editing}
-        setEditing={setEditing}
       />
     );
   }
 
   return (
-    <LegacyTimelineItem
+    <LegacyTimelineItemWithEditing
       item={item}
       handleDelete={handleDelete}
       onCommentEdited={onCommentEdited}
@@ -83,10 +97,14 @@ function TimelineItem({
       size={size}
       inputVariant={inputVariant}
       timestampUnitStyle={timestampUnitStyle}
-      editing={editing}
-      setEditing={setEditing}
     />
   );
+}
+
+function LegacyTimelineItemWithEditing(props: TimelineItemProps) {
+  const [editing, setEditing] = useState(false);
+
+  return <LegacyTimelineItem {...props} editing={editing} setEditing={setEditing} />;
 }
 
 function LegacyTimelineItem({
@@ -245,7 +263,7 @@ export function ActivitySection({
         },
       });
     },
-    [group.activity, mutators, group.id, organization, onCommentDeleted]
+    [group.activity, group.id, mutators, onCommentDeleted, organization]
   );
 
   const activityLink = {
