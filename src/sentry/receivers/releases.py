@@ -303,20 +303,25 @@ def pull_request_closing(instance: PullRequest, **kwargs: object) -> None:
             return
 
         def create_activities():
-            for group in Group.objects.filter(id__in=group_ids):
-                Activity.objects.create(
-                    project_id=group.project_id,
-                    group=group,
-                    type=ActivityType.PULL_REQUEST_CLOSED.value,
-                    ident=str(instance.id),
-                    data={"pull_request": instance.id},
-                )
-                publish_action(
-                    PullRequestClosedAction(pull_request=instance.id),
-                    source=ActionSource.SYSTEM,
-                    group_id=group.id,
-                    project=group.project,
-                )
+            # This runs after the transaction commits, outside the try/except below,
+            # so it needs its own error handling to avoid propagating failures.
+            try:
+                for group in Group.objects.filter(id__in=group_ids).select_related("project"):
+                    Activity.objects.create(
+                        project_id=group.project_id,
+                        group=group,
+                        type=ActivityType.PULL_REQUEST_CLOSED.value,
+                        ident=str(instance.id),
+                        data={"pull_request": instance.id},
+                    )
+                    publish_action(
+                        PullRequestClosedAction(pull_request=instance.id),
+                        source=ActionSource.SYSTEM,
+                        group_id=group.id,
+                        project=group.project,
+                    )
+            except Exception:
+                logger.exception("Failed to create pull request closed activity")
 
         transaction.on_commit(create_activities, router.db_for_write(PullRequest))
     except Exception:
