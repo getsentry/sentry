@@ -235,6 +235,9 @@ class QuotaConfig:
     def __str__(self) -> str:
         return str(self.to_json())
 
+    def __repr__(self) -> str:
+        return str(self.to_json())
+
 
 class RateLimit:
     """
