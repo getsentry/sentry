@@ -18,19 +18,14 @@ import type {Project} from 'sentry/types/project';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
+import {CommitChip} from './chips/commitChip';
+import {ExternalIssueChip} from './chips/externalIssueChip';
+import {ActivityPriorityChip} from './chips/priorityChip';
+import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
+import {ActivityRelease} from './chips/releaseChip';
 import {getAssignedActivityItem} from './compactActivityItem/assignment';
-import {
-  CommitActivityLink,
-  getResolvedInCommitDetails,
-} from './compactActivityItem/commitDetails';
+import {getResolvedInCommitDetails} from './compactActivityItem/commitDetails';
 import type {CompactGroupActivityItem} from './compactActivityItem/types';
-import {
-  ActivityPriorityChip,
-  ActivityRelease,
-  ExternalIssueChip,
-  PullRequestChip,
-  SeerPullRequestChip,
-} from './chips';
 
 export type {CompactGroupActivityItem} from './compactActivityItem/types';
 
@@ -344,13 +339,16 @@ export function getCompactGroupActivityItem({
       };
     case GroupActivityType.REFERENCED_IN_COMMIT:
       return {
-        title: t('Referenced in commit'),
+        title: t('Commit created'),
         details: activity.data.commit
-          ? tct('by [author] in [commit]', {
-              author,
-              commit: <CommitActivityLink commit={activity.data.commit} />,
+          ? tct('on [provider] [commit]', {
+              commit: <CommitChip commit={activity.data.commit} />,
+              provider: getProviderName(
+                activity.data.commit.repository?.provider?.name ??
+                  activity.data.commit.repository?.provider?.id
+              ),
             })
-          : tct('by [author] in a commit', {author}),
+          : t('in a commit'),
       };
     case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
       const pullRequest = activity.data.pullRequest;

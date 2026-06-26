@@ -6,7 +6,7 @@ import type {GroupActivityAssigned} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
-import {AssigneePill} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips';
+import {AssigneePill} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/assigneeChip';
 import {getAssignmentIntegrationName} from 'sentry/views/issueDetails/activitySection/assignmentIntegration';
 
 import type {CompactGroupActivityItem} from './types';

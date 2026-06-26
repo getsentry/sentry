@@ -12,6 +12,7 @@ export type ProgressMarkerVariant =
 export function getProgressMarkerVariant(item: GroupActivity): ProgressMarkerVariant {
   switch (item.type) {
     case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST:
+    case GroupActivityType.REFERENCED_IN_COMMIT:
     case GroupActivityType.SEER_PR_CREATED:
       return 'fix-proposed';
     case GroupActivityType.SET_RESOLVED:

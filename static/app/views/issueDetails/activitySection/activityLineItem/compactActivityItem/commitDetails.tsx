@@ -7,7 +7,7 @@ import {GroupActivityType} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {ActivityRelease} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips';
+import {ActivityRelease} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/releaseChip';
 
 export function CommitActivityLink({commit}: {commit: Commit}) {
   return <CommitLink inline commitId={commit.id} repository={commit.repository} />;
