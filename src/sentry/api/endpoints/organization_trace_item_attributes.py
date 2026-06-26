@@ -427,10 +427,12 @@ def as_attribute_key(
         # When context is requested we always attach it. We match against the
         # sentry conventions by name and type regardless of source_type, because
         # `source_type` reflects who set the attribute (SDK vs user), not whether
-        # it maps to a convention -- e.g. `http.route` is a convention but isn't
-        # in `attributes.py`, so it resolves as a `user` source attribute.
-        # Anything without a matching convention gets an empty context for now;
-        # serving custom attribute context is planned.
+        # it maps to a convention. `attributes.py` only lists conventions that
+        # need an alias (a public name distinct from their internal name), so a
+        # convention whose name is already the same internally -- e.g.
+        # `http.route` -- is missing from it and resolves as a `user` source
+        # attribute. Anything without a matching convention gets an empty context
+        # for now; serving custom attribute context is planned.
         context = build_sentry_convention_context(public_name, name, attr_type) or {}
         attribute_key["context"] = context
 
