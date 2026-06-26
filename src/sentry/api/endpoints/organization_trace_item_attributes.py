@@ -298,8 +298,21 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
         raise ValueError(f"Invalid item type: {item_type}")
 
 
+# Maps sentry-convention attribute types to EAP search types. Array and "any"
+# convention types aren't representable as a single search type, so they're
+# omitted and treated as "no type constraint" when matching.
+_CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, str] = {
+    "string": "string",
+    "boolean": "boolean",
+    "integer": "number",
+    "double": "number",
+}
+
+
 def build_sentry_convention_context(
-    public_name: str, internal_name: str
+    public_name: str,
+    internal_name: str,
+    attribute_type: Literal["string", "number", "boolean"] | None = None,
 ) -> TraceItemAttributeContext | None:
     """
     Build the sentry conventions context for an attribute, if it maps to a known
@@ -310,16 +323,30 @@ def build_sentry_convention_context(
     alias or the internal name (see
     ``_update_attribute_definitions_with_deprecations`` in
     ``search/eap/spans/attributes.py``), so we try the public name first and
-    fall back to the internal name.
+    fall back to the internal name. The lookup is purely by name and does not
+    depend on the attribute's source, so conventions defined in
+    ``sentry_conventions`` but not in ``attributes.py`` (e.g. ``http.route``)
+    still resolve.
+
+    When ``attribute_type`` is provided, the convention only matches if its
+    expected type is compatible, so a custom attribute that merely shares a name
+    with a convention but has a different type isn't treated as that convention.
     """
     metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(internal_name)
     if metadata is None:
         return None
 
+    if attribute_type is not None:
+        expected_type = _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value)
+        if expected_type is not None and expected_type != attribute_type:
+            return None
+
     deprecation = metadata.deprecation
 
-    # brief and isDeprecated are always present for a known convention.
+    # isConvention, brief and isDeprecated are always present for a known
+    # convention.
     context: TraceItemAttributeContext = {
+        "isConvention": True,
         "brief": metadata.brief,
         "isDeprecated": bool(
             deprecation is not None and (deprecation.status is not None or deprecation.replacement)
@@ -397,13 +424,16 @@ def as_attribute_key(
         attribute_key["secondaryAliases"] = sorted(secondary_aliases)
 
     if include_context:
-        # When context is requested we always attach it, even for custom
-        # (non-sentry-convention) attributes. Today only sentry-convention
-        # attributes have metadata to surface, so custom attributes get an empty
-        # context for now; serving custom attribute context is planned.
-        context: TraceItemAttributeContext = {}
-        if serialized_source["source_type"] == AttributeSourceType.SENTRY.value:
-            context = build_sentry_convention_context(public_name, name) or {}
+        # When context is requested we always attach it. We match against the
+        # sentry conventions by name and type regardless of source_type, because
+        # `source_type` reflects who set the attribute (SDK vs user), not whether
+        # it maps to a convention. `attributes.py` only lists conventions that
+        # need an alias (a public name distinct from their internal name), so a
+        # convention whose name is already the same internally -- e.g.
+        # `http.route` -- is missing from it and resolves as a `user` source
+        # attribute. Anything without a matching convention gets an empty context
+        # for now; serving custom attribute context is planned.
+        context = build_sentry_convention_context(public_name, name, attr_type) or {}
         attribute_key["context"] = context
 
     return attribute_key

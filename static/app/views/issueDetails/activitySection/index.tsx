@@ -13,7 +13,6 @@ import {Timeline} from 'sentry/components/timeline';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
@@ -254,16 +253,15 @@ export function ActivitySection({
   const handleDelete = useCallback(
     async (item: GroupActivity): Promise<void> => {
       const filteredActivity = group.activity.filter(a => a.id !== item.id);
-      await mutators.handleDelete(item.id, filteredActivity, {
+      await mutators.handleDelete(item.id, {
         onSuccess: () => {
-          GroupStore.removeActivity(group.id, item.id);
           trackAnalytics('issue_details.comment_deleted', {organization});
           addSuccessMessage(t('Comment removed'));
           onCommentDeleted?.(filteredActivity);
         },
       });
     },
-    [group.activity, group.id, mutators, onCommentDeleted, organization]
+    [group.activity, mutators, onCommentDeleted, organization]
   );
 
   const activityLink = {

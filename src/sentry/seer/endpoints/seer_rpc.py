@@ -77,6 +77,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.seer.agent.client import (
     get_monitoring_provider_connections as fetch_monitoring_provider_connections,
 )
+from sentry.seer.agent.context_engine_utils import get_instrumentation_types
 from sentry.seer.agent.custom_tool_utils import call_custom_tool
 from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS, FeatureRunStatus
 from sentry.seer.agent.index_data import (
@@ -96,6 +97,7 @@ from sentry.seer.agent.tools import (
     get_dsn,
     get_event_details,
     get_issue_and_event_details_v2,
+    get_issue_committers,
     get_issue_details,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
@@ -146,7 +148,9 @@ from sentry.seer.sentry_data_models import (
     OrganizationAutofixConsentResponse,
     OrganizationFeaturesResponse,
     OrganizationProject,
+    OrganizationProjectDetail,
     OrganizationProjectIdsResponse,
+    OrganizationProjectsResponse,
     OrganizationSlugResponse,
     PrAttributionResponse,
     RefreshMonitoringProviderTokenErrorResponse,
@@ -364,6 +368,25 @@ def get_organization_project_ids(*, org_id: int) -> OrganizationProjectIdsRespon
     ]
 
     return OrganizationProjectIdsResponse(projects=projects)
+
+
+def get_organization_projects(*, org_id: int) -> OrganizationProjectsResponse:
+    """Get all active projects with instrumentation types for an organization"""
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        return OrganizationProjectsResponse(projects=[])
+
+    projects = [
+        OrganizationProjectDetail(
+            id=project.id,
+            slug=project.slug,
+            instrumentation=get_instrumentation_types(project),
+        )
+        for project in Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+    ]
+
+    return OrganizationProjectsResponse(projects=projects)
 
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
@@ -1146,6 +1169,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_trace_waterfall": seer_rpc(rpc_get_trace_waterfall),
     "get_issue_and_event_details_v2": seer_rpc(get_issue_and_event_details_v2),
     "get_issue_details": seer_rpc(get_issue_details),
+    "get_issue_committers": seer_rpc(get_issue_committers),
     "get_event_details": seer_rpc(get_event_details),
     "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),
     "execute_table_query": seer_rpc(execute_table_query),

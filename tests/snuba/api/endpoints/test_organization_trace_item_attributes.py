@@ -43,6 +43,7 @@ class TestBuildAttributeContext:
         assert "span.op" not in ATTRIBUTE_METADATA
         context = build_sentry_convention_context("span.op", "sentry.op")
         assert context == {
+            "isConvention": True,
             "brief": "The operation of a span.",
             "examples": ["http.client"],
             "isDeprecated": False,
@@ -51,11 +52,30 @@ class TestBuildAttributeContext:
     def test_deprecated_attribute_includes_replacement(self) -> None:
         context = build_sentry_convention_context("transaction", "sentry.transaction")
         assert context is not None
+        assert context["isConvention"] is True
         assert context["isDeprecated"] is True
         assert context["replacementAttribute"] == "sentry.segment.name"
 
     def test_unknown_attribute_returns_none(self) -> None:
         assert build_sentry_convention_context("not.a.convention", "also.not.a.convention") is None
+
+    def test_matches_convention_not_in_attributes_py(self) -> None:
+        # `http.route` is defined in sentry-conventions but not in attributes.py,
+        # so it resolves as a `user` source attribute. It should still match.
+        context = build_sentry_convention_context("http.route", "http.route")
+        assert context is not None
+        assert context["isConvention"] is True
+        assert context["brief"]
+
+    def test_matching_type_is_required_when_provided(self) -> None:
+        # `http.route` is a string convention; a number attribute with the same
+        # name is not that convention.
+        assert build_sentry_convention_context("http.route", "http.route", "string") is not None
+        assert build_sentry_convention_context("http.route", "http.route", "number") is None
+        # Array / "any" convention types don't constrain the match (`ai.citations`
+        # is a `string[]` convention).
+        context = build_sentry_convention_context("ai.citations", "ai.citations", "number")
+        assert context is not None and context["isConvention"] is True
 
 
 class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase):
@@ -499,10 +519,11 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             uuid4().hex,
             organization_id=self.organization.id,
             timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-            # `gen_ai.request.model` is a sentry convention name, but as a
-            # user-supplied tag it resolves to a `user` source. It must not pick
-            # up convention metadata.
-            tags={"foo": "foo", "gen_ai.request.model": "gpt-4"},
+            # `gen_ai.request.model` is a sentry convention name supplied as a
+            # user tag, and `http.route` is a convention defined in
+            # sentry-conventions but not in attributes.py. Both stay `user`
+            # source but should still be matched to their convention's context.
+            tags={"foo": "foo", "gen_ai.request.model": "gpt-4", "http.route": "/users/:id"},
         )
 
     def test_expand_context(self) -> None:
@@ -517,6 +538,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         # A non-deprecated sentry convention gets brief + examples + isDeprecated.
         assert attributes["device.class"]["context"] == {
+            "isConvention": True,
             "brief": (
                 "The classification of the device. For example, `low`, `medium`, or `high`. "
                 "Typically inferred by Relay - SDKs generally do not need to set this directly."
@@ -526,18 +548,38 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         }
         # A deprecated convention also surfaces the replacement attribute.
         assert attributes["transaction"]["context"] == {
+            "isConvention": True,
             "brief": "The sentry transaction (segment name).",
             "examples": ["GET /"],
             "isDeprecated": True,
             "replacementAttribute": "sentry.segment.name",
         }
-        # Custom attribute context isn't served yet, so user tags get an empty
-        # context for now.
+        # Custom (non-convention) attributes aren't served yet, so they get an
+        # empty context.
         assert attributes["foo"]["context"] == {}
-        # A user tag whose name collides with a sentry convention still gets an
-        # empty context, because only `sentry`-source attributes are expanded.
+        # A user tag whose name matches a sentry convention keeps its `user`
+        # source (it was user-set) but is still matched to the convention's
+        # context, since context is matched by name/type, not source.
         assert attributes["gen_ai.request.model"]["attributeSource"]["source_type"] == "user"
-        assert attributes["gen_ai.request.model"]["context"] == {}
+        assert attributes["gen_ai.request.model"]["context"] == {
+            "isConvention": True,
+            "brief": "The model identifier being used for the request.",
+            "examples": ["gpt-4-turbo-preview"],
+            "isDeprecated": False,
+        }
+        # `http.route` is a convention defined in sentry-conventions but not in
+        # attributes.py, so it resolves as a `user` source attribute but is still
+        # matched to its convention's context.
+        assert attributes["http.route"]["attributeSource"]["source_type"] == "user"
+        assert attributes["http.route"]["context"] == {
+            "isConvention": True,
+            "brief": (
+                "The matched route, that is, the path template in the format used "
+                "by the respective server framework."
+            ),
+            "examples": ["/users/:id"],
+            "isDeprecated": False,
+        }
 
     def test_expand_context_without_feature_flag(self) -> None:
         self._store_basic_segment()
