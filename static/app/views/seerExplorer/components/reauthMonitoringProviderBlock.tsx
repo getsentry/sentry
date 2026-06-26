@@ -16,10 +16,6 @@ import type {ReauthMonitoringProviderData} from 'sentry/views/seerExplorer/types
 
 interface ReauthMonitoringProviderBlockProps {
   data: ReauthMonitoringProviderData;
-  /**
-   * Resume the paused run. The backend re-pulls the (now valid) connections,
-   * so this is called once the provider has been reconnected.
-   */
   onComplete: () => void;
 }
 
