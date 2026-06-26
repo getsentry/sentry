@@ -1123,6 +1123,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.pull-request-linking.killswitch.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.explorer.context-engine-rollout",
     type=Float,
     default=0.0,
