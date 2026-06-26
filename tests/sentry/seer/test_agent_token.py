@@ -140,7 +140,9 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()
 
     def test_no_challenge_when_role_lacks_scope(self) -> None:
-        # A plain member has no org:write to grant, so an ordinary denial follows.
+        # A plain member has no org:write to grant, so no approval challenge is offered: the
+        # view-level check just denies (the standard insufficient_scope 403 is surfaced by
+        # permission_denied in the real request flow, not here).
         request = self._agent_request(self.member, ["org:read"], method="PUT")
         assert self._has_permission(request) is False
         assert not SeerAgentWriteGrant.objects.filter(user_id=self.member.id).exists()
