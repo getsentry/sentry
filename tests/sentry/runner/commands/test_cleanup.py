@@ -20,6 +20,7 @@ from sentry.runner.commands.cleanup import (
     models_which_use_expiry_deletions,
     prepare_deletes_by_project,
     remove_cross_project_bulk_query_models,
+    remove_cross_project_models,
     remove_old_notification_messages,
     run_bulk_deletes_by_project,
     run_bulk_deletes_in_deletes,
@@ -240,6 +241,17 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         # Should have seen both projects
         assert project1.id in project_ids_seen
         assert project2.id in project_ids_seen
+
+
+class RemoveCrossProjectModelsTest(TestCase):
+    def test_removes_seer_run(self) -> None:
+        # SeerRun is organization-scoped (no project_id), so it must be dropped
+        # from the deletes list when cleanup is scoped to a single project.
+        deletes = models_which_use_deletions_code_path()
+        assert SeerRun in {m for m, _, _ in deletes}
+
+        remove_cross_project_models(deletes)
+        assert SeerRun not in {m for m, _, _ in deletes}
 
 
 class RemoveCrossProjectBulkQueryModelsTest(TestCase):

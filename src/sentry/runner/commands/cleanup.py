@@ -727,12 +727,14 @@ def remove_cross_project_models(
 ) -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.files.file import File
+    from sentry.seer.models.run import SeerRun
     from sentry.uptime.models import UptimeResponseCapture
 
     # These models span across projects, so let's skip them
     deletes.remove((ArtifactBundle, "date_added", "date_added"))
     deletes.remove((File, "timestamp", "id"))
     deletes.remove((UptimeResponseCapture, "date_added", "date_added"))
+    deletes.remove((SeerRun, "last_triggered_at", "last_triggered_at"))
     return deletes
 
 
