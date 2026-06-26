@@ -101,6 +101,8 @@ class ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint(PreprodArtifactEndpo
                 .values_list("id", flat=True)
             )
         except InvalidSearchQuery as e:
+            # CodeQL complains about str(e) below but ~all handlers
+            # of InvalidSearchQuery do the same as this.
             return Response({"detail": str(e)}, status=400)
 
         # Paginate over the distinct base builds rather than the per-metric comparison
@@ -123,6 +125,10 @@ class ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint(PreprodArtifactEndpo
                 project_id=project.id,
             )
             .annotate(comparison_date_added=Subquery(latest_comparison_date))
+            # Exclude bases whose successful comparison was deleted between the candidate
+            # query and this one (the subquery would annotate to NULL), so the date is
+            # always present and ordering stays well-defined.
+            .filter(comparison_date_added__isnull=False)
             .select_related(
                 "project",
                 "build_configuration",
