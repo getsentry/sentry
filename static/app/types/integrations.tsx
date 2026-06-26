@@ -267,6 +267,8 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+  // Each entry is a "Header-Name: value" line. Saved values are masked by the API
+  webhookHeaders?: string[];
 };
 
 // Minimal Sentry App representation for use with avatars

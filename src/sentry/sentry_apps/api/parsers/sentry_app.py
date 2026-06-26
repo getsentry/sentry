@@ -16,9 +16,15 @@ from sentry.sentry_apps.models.sentry_app import REQUIRED_EVENT_PERMISSIONS, UUI
 from sentry.sentry_apps.utils.webhooks import VALID_EVENT_RESOURCES
 from sentry.utils.display_name_filter import is_spam_display_name
 
-# Custom webhook headers are intentionally limited to Authorization and X-*
+# Custom webhook headers are intentionally limited to the below list and "X-*"
 # custom headers. Names are compared case-insensitively.
-ALLOWED_WEBHOOK_HEADERS = frozenset({"authorization"})
+ALLOWED_WEBHOOK_HEADERS = frozenset(
+    {
+        "authorization",
+        "anthropic-version",
+        "anthropic-beta",
+    }
+)
 
 # RFC 7230 §3.2.6 — header field names are "tokens": letters, digits, and
 # the limited punctuation set below. Excludes separators and control chars.

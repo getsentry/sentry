@@ -1,5 +1,6 @@
 import {useRef, useState} from 'react';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
@@ -68,7 +69,10 @@ export function PrIterationFeedbackForm({
 
   return (
     <Flex direction="column" gap="lg">
-      <Text>{prompt}</Text>
+      <Flex gap="xs" align="center">
+        <Text>{prompt}</Text>
+        <FeatureBadge type="alpha" />
+      </Flex>
       <InputGroup>
         <InputGroup.TextArea
           autosize
