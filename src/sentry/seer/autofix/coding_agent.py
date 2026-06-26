@@ -14,6 +14,7 @@ class IntegrationNotFound(NotFound):
     pass
 
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.claude_code.integration import (
     ClaudeCodeIntegrationMetadata,
@@ -24,7 +25,11 @@ from sentry.integrations.coding_agent.utils import get_coding_agent_providers
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
-from sentry.models.pullrequest import PullRequestAttributionSignalType
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestAttributionSignalType,
+    parse_pull_request_number,
+)
 from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
 from sentry.seer.autofix.utils import (
     AutofixState,
@@ -37,10 +42,68 @@ from sentry.seer.autofix.utils import (
     update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError
+from sentry.seer.models.run import SeerRun, SeerRunPullRequest
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.utils.imports import import_string
 
 logger = logging.getLogger(__name__)
+
+
+def _link_delegated_agent_pull_request(
+    *,
+    organization_id: int,
+    run_id: int | None,
+    repo_full_name: str,
+    repo_provider: str,
+    pr_url: str,
+) -> None:
+    """Link a PR opened by a delegated coding agent to the ``SeerRun`` that spawned it.
+
+    Independent of attribution and gated on its own killswitch: resolution goes through the
+    shared model-layer resolver (``PullRequest.objects.get_or_create_from_reference``), so it
+    converges on the same canonical row attribution uses without depending on attribution
+    being enabled. Best-effort — failures are logged and swallowed.
+    """
+    if run_id is None or options.get("seer.run-pr-link.killswitch.enabled"):
+        return
+
+    pr_number = parse_pull_request_number(pr_url)
+    if pr_number is None:
+        return
+
+    log_context = {
+        "organization_id": organization_id,
+        "seer_run_state_id": run_id,
+        "repo_name": repo_full_name,
+        "pr_url": pr_url,
+    }
+
+    try:
+        resolved = PullRequest.objects.get_or_create_from_reference(
+            organization_id=organization_id,
+            repo_name=repo_full_name,
+            provider=repo_provider,
+            key=pr_number,
+        )
+        if resolved.pull_request is None:
+            return
+
+        run = SeerRun.objects.filter(
+            organization_id=organization_id, seer_run_state_id=run_id
+        ).first()
+        if run is None:
+            logger.warning("seer.pr_link.run_not_found", extra=log_context)
+            return
+
+        SeerRunPullRequest.objects.get_or_create(seer_run=run, pull_request=resolved.pull_request)
+    except Exception:
+        logger.exception("seer.pr_link.failed", extra=log_context)
+        return
+
+    logger.info(
+        "seer.pr_link.recorded",
+        extra={**log_context, "pull_request_id": resolved.pull_request.id},
+    )
 
 
 # Follows the GitHub branch name rules:
@@ -288,6 +351,14 @@ def poll_github_copilot_agents(
                             extra={"agent_id": agent_id, "pr_url": pr_url},
                         )
 
+                    _link_delegated_agent_pull_request(
+                        organization_id=organization_id,
+                        run_id=run_id,
+                        repo_full_name=f"{owner}/{repo}",
+                        repo_provider="github",
+                        pr_url=pr_url,
+                    )
+
                 logger.info(
                     "coding_agent.github_copilot.pr_update",
                     extra={
@@ -399,6 +470,14 @@ def poll_claude_agent(
                         "coding_agent.claude_code.pr_attribution_failed",
                         extra={"agent_id": agent_id, "pr_url": result.pr_url},
                     )
+
+                _link_delegated_agent_pull_request(
+                    organization_id=org_id,
+                    run_id=run_id,
+                    repo_full_name=result.repo_full_name,
+                    repo_provider=result.repo_provider,
+                    pr_url=result.pr_url,
+                )
 
         logger.info(
             "coding_agent.claude_code.poll_update",
