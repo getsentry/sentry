@@ -84,7 +84,7 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
                     data={"detail": "Code generation is disabled for this organization"},
                 )
 
-        resolved = resolve_seer_run(run_id, organization)
+        resolved = resolve_seer_run(run_id, organization, for_continue=True)
         if isinstance(resolved, Response):
             return resolved
 
