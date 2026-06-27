@@ -335,7 +335,7 @@ register(
 
 register(
     "issues.merge-unmerge.max-group-times-seen",
-    default=10000,
+    default=0,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
