@@ -93,7 +93,8 @@ class VercelClient(ApiClient):
         return self.get(self.GET_PROJECT_URL % vercel_project_id)
 
     def get_env_vars(self, vercel_project_id):
-        return self.get(self.GET_ENV_VAR_URL % vercel_project_id)
+        results = self.get_from_pagination(self.GET_ENV_VAR_URL % vercel_project_id, "envs")
+        return {"envs": results}
 
     def create_env_variable(self, vercel_project_id, data, upsert=False):
         # The v10 endpoint is required for `upsert=true`
