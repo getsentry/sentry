@@ -35,26 +35,6 @@ class BaseClassification(abc.ABC):
         raise NotImplementedError
 
 
-class PluginClassification(BaseClassification):
-    plugin_prefix = "/plugins/"
-    """Prefix for plugin requests."""
-
-    def should_operate(self, request: HttpRequest) -> bool:
-        from .parsers import PluginRequestParser
-
-        is_plugin = request.path.startswith(self.plugin_prefix)
-        if not is_plugin:
-            return False
-        rp = PluginRequestParser(request=request, response_handler=self.response_handler)
-        return rp.should_operate()
-
-    def get_response(self, request: HttpRequest) -> HttpResponseBase:
-        from .parsers import PluginRequestParser
-
-        rp = PluginRequestParser(request=request, response_handler=self.response_handler)
-        return rp.get_response()
-
-
 class IntegrationClassification(BaseClassification):
     integration_prefix = "/extensions/"
     """Prefix for all integration requests. See `src/sentry/web/urls.py`"""

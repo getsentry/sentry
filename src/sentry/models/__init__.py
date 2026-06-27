@@ -81,6 +81,7 @@ from .organizationmemberteamreplica import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
 from .organizationslugreservation import *  # NOQA
 from .orgauthtoken import *  # NOQA
+from .profilechunkattachment import *  # NOQA
 from .project import *  # NOQA
 from .projectbookmark import *  # NOQA
 from .projectcodeowners import *  # NOQA

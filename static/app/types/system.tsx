@@ -229,9 +229,6 @@ export interface Config {
     agreements: ParntershipAgreementType[];
     partnerDisplayName: string;
   } | null;
-  relocationConfig?: {
-    selectableRegions: string[];
-  };
   shouldShowBeaconConsentPrompt?: boolean;
   statuspage?: {
     api_host: string;
@@ -261,7 +258,7 @@ export interface Broadcast {
    * Category of the broadcast.
    * Synced with https://github.com/getsentry/sentry/blob/master/src/sentry/models/broadcast.py#L14
    */
-  category?: 'announcement' | 'feature' | 'blog' | 'event' | 'video';
+  category?: 'announcement' | 'feature' | 'blog' | 'event' | 'video' | 'sdk_update';
   /**
    * The text for the CTA link at the bottom of the panel item
    */

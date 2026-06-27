@@ -36,6 +36,18 @@ describe('useIssuePreviewDrawer', () => {
       url: '/organizations/org-slug/members/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/42/tags/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/42/autofix/setup/',
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
+    });
   });
 
   it('sets the preview query param when opening a preview', async () => {

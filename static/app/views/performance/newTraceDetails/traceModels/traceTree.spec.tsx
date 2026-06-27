@@ -946,11 +946,56 @@ describe('TraceTree', () => {
           expect.objectContaining({key: 'lcp', measurement: {value: 200}}),
         ])
       );
+      expect(tree.vital_types).toEqual(new Set(['web']));
       expect(tree.indicators).toEqual(
         expect.arrayContaining([
           expect.objectContaining({type: 'lcp', measurement: {value: 200}}),
         ])
       );
+    });
+
+    it('collects mobile vitals from app vital values', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'eap-span-1',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            mobile_app_vital: {
+              'app.vitals.start.cold.value': 1600,
+              'app.vitals.start.warm.value': 400,
+              'app.vitals.ttid.value': 1200,
+              'app.vitals.ttfd.value': 2400,
+            },
+            children: [],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const span1 = tree.root.findChild(n => n.id === 'eap-span-1');
+      expect(tree.vitals.get(span1!)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            key: 'app_start_cold',
+            measurement: {value: 1600},
+          }),
+          expect.objectContaining({
+            key: 'app_start_warm',
+            measurement: {value: 400},
+          }),
+          expect.objectContaining({
+            key: 'time_to_initial_display',
+            measurement: {value: 1200},
+          }),
+          expect.objectContaining({
+            key: 'time_to_full_display',
+            measurement: {value: 2400},
+          }),
+        ])
+      );
+      expect(tree.vital_types).toEqual(new Set(['mobile']));
     });
 
     it('standalone LCP span indicator takes priority over pageload LCP indicator', () => {

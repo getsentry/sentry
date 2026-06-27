@@ -1,3 +1,4 @@
+import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -12,6 +13,29 @@ import {IssueCategory} from 'sentry/types/group';
 import {IssuePreviewDrawer} from 'sentry/views/issueDetails/issuePreview/issuePreviewDrawer';
 
 describe('IssuePreviewDrawer', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/replay-count/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/123/tags/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/123/attachments/',
+      body: [],
+    });
+  });
+
   it('renders the issue short ID and title', async () => {
     const project = ProjectFixture();
     const group = GroupFixture({
@@ -28,20 +52,12 @@ describe('IssuePreviewDrawer', () => {
       body: group,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/attachments/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/replay-count/`,
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/users/`,
-      body: [],
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
     });
 
     render(<IssuePreviewDrawer groupId={group.id} />);
@@ -79,16 +95,12 @@ describe('IssuePreviewDrawer', () => {
       ],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/replay-count/`,
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/users/`,
-      body: [],
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
     });
 
     render(<IssuePreviewDrawer groupId={group.id} />);
@@ -151,6 +163,10 @@ describe('IssuePreviewDrawer', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       body: [],
     });
@@ -182,5 +198,130 @@ describe('IssuePreviewDrawer', () => {
     });
 
     expect(await screen.findAllByText('Resolved')).not.toHaveLength(0);
+  });
+
+  it('does not show the Autofix tab when AI features are unavailable', async () => {
+    const project = ProjectFixture();
+    const group = GroupFixture({id: '123', shortId: 'JAVASCRIPT-6QS', project});
+
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: group,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
+    });
+
+    render(<IssuePreviewDrawer groupId={group.id} />);
+
+    expect(await screen.findByRole('tab', {name: 'Activity'})).toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
+  });
+
+  it('opens the Details tab and renders the event content', async () => {
+    const project = ProjectFixture();
+    const group = GroupFixture({id: '123', shortId: 'JAVASCRIPT-6QS', project});
+    const event = EventFixture({
+      id: 'event-1',
+      entries: [
+        {
+          type: 'message',
+          data: {formatted: 'ReferenceError: foo is not defined'},
+        },
+      ],
+    });
+
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: group,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
+    });
+    const eventRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/events/recommended/`,
+      body: event,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/events/${event.id}/committers/`,
+      body: {committers: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/events/${event.id}/owners/`,
+      body: {owners: [], rules: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/integrations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/`,
+      body: project,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/events/${event.id}/actionable-items/`,
+      body: {errors: []},
+    });
+
+    render(<IssuePreviewDrawer groupId={group.id} />);
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Details'}));
+
+    await waitFor(() => expect(eventRequest).toHaveBeenCalled());
+
+    expect(
+      await screen.findByText('ReferenceError: foo is not defined')
+    ).toBeInTheDocument();
+  });
+
+  it('opens the Autofix tab and shows the start state', async () => {
+    const organization = OrganizationFixture({features: ['gen-ai-features']});
+    const project = ProjectFixture();
+    const group = GroupFixture({id: '123', shortId: 'JAVASCRIPT-6QS', project});
+
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: group,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: true, reason: null},
+        billing: {hasAutofixQuota: true},
+        seerReposLinked: true,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<IssuePreviewDrawer groupId={group.id} />, {organization});
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Autofix'}));
+
+    expect(
+      await screen.findByRole('button', {name: 'Start Analysis'})
+    ).toBeInTheDocument();
   });
 });

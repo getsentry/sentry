@@ -40,8 +40,8 @@ type Props = {
   noteId?: string;
   onCancel?: () => void;
   onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
-  onCreate?: (data: NoteType) => void;
-  onUpdate?: (data: NoteType) => void;
+  onCreate?: (data: NoteType) => Promise<void>;
+  onUpdate?: (data: NoteType) => Promise<void>;
   placeholder?: string;
   /**
    * The note text itself
@@ -91,16 +91,21 @@ export function NoteInput({
       .replace(/\[sentry\.strip:team\]/g, '');
 
   const submitNote = useCallback(
-    (comment: string) => {
+    async (comment: string) => {
       const cleanMarkdown = getCleanMarkdown(comment);
       // each mention looks like [id, display]
       const finalizedMentions = [...memberMentions, ...teamMentions]
         .filter(mention => comment.includes(mention[1]))
         .map(mention => mention[0]);
 
-      return existingItem
-        ? onUpdate?.({text: cleanMarkdown, mentions: finalizedMentions})
-        : onCreate?.({text: cleanMarkdown, mentions: finalizedMentions});
+      try {
+        await (existingItem
+          ? onUpdate?.({text: cleanMarkdown, mentions: finalizedMentions})
+          : onCreate?.({text: cleanMarkdown, mentions: finalizedMentions}));
+      } catch {
+        // An error indicator is surfaced by the parent component. Keep this
+        // open so the user can retry without losing their draft.
+      }
     },
     [existingItem, memberMentions, onCreate, onUpdate, teamMentions]
   );
@@ -249,9 +254,13 @@ export function NoteInput({
                 )}
                 <Flex gap="sm">
                   {existingItem && (
-                    <Button size="xs" onClick={handleCancel}>
-                      {t('Cancel')}
-                    </Button>
+                    <form.Subscribe selector={state => state.isSubmitting}>
+                      {isSubmitting => (
+                        <Button size="xs" onClick={handleCancel} disabled={isSubmitting}>
+                          {t('Cancel')}
+                        </Button>
+                      )}
+                    </form.Subscribe>
                   )}
                   <form.Subscribe selector={state => state.values.text.trim() === ''}>
                     {isEmpty => (

@@ -26,6 +26,7 @@ from sentry import options
 from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
 from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
+    PRESERVE_CONTENT_ENCODING_URL_NAMES,
     PROXY_APIGATEWAY_HEADER,
     PROXY_DIRECT_LOCATION_HEADER,
     clean_outbound_headers,
@@ -191,10 +192,11 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
         return StreamingHttpResponse(streaming_content="relay proxy skipped", status=404)
 
+    if content_encoding and url_name in PRESERVE_CONTENT_ENCODING_URL_NAMES:
+        header_dict["Content-Encoding"] = content_encoding
+
     data: bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None = None
     if url_name == "sentry-api-0-organization-objectstore":
-        if content_encoding:
-            header_dict["Content-Encoding"] = content_encoding
         data = get_raw_body(request)
     else:
         data = BodyWithLength(request)
