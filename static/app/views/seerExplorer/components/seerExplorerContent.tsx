@@ -255,6 +255,9 @@ export function SeerExplorerContent({
     userScrolledUpRef,
   });
 
+  const showReauth =
+    isReauthPending && !!organization?.features.includes('seer-infra-telemetry');
+
   // - Topbar, menu, and slash command handlers -------------------------------
   const copySessionEnabled = runId !== null && !!organization?.slug;
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
@@ -551,7 +554,7 @@ export function SeerExplorerContent({
                   runId={runId ?? undefined}
                   getPageReferrer={getPageReferrer}
                   interactionPending={
-                    isFileApprovalPending || isQuestionPending || isReauthPending
+                    isFileApprovalPending || isQuestionPending || showReauth
                   }
                   readOnly={readOnly}
                   showThinking={showThinking}
@@ -577,7 +580,7 @@ export function SeerExplorerContent({
                 selectedOption={selectedOption}
               />
             )}
-            {!readOnly && isReauthPending && reauthData && (
+            {!readOnly && showReauth && reauthData && (
               <ReauthMonitoringProviderBlock
                 data={reauthData}
                 onComplete={handleReauthComplete}
