@@ -55,8 +55,9 @@ class HandleIssueMergeTest(TestCase):
         self.groups[0].update(times_seen=10001)
         self.groups[0].refresh_from_db()
 
-        with pytest.raises(rest_framework.exceptions.ValidationError) as exc_info:
-            handle_merge(self.groups, self.project_lookup, self.user)
+        with self.options({"issues.merge-unmerge.max-group-times-seen": 10000}):
+            with pytest.raises(rest_framework.exceptions.ValidationError) as exc_info:
+                handle_merge(self.groups, self.project_lookup, self.user)
 
         assert "temporarily restricted" in str(exc_info.value.detail)
         assert not merge_groups.called
@@ -67,7 +68,8 @@ class HandleIssueMergeTest(TestCase):
             group.update(times_seen=10000)
             group.refresh_from_db()
 
-        handle_merge(self.groups, self.project_lookup, self.user)
+        with self.options({"issues.merge-unmerge.max-group-times-seen": 10000}):
+            handle_merge(self.groups, self.project_lookup, self.user)
         assert merge_groups.called
 
     @patch("sentry.tasks.merge.merge_groups.delay")

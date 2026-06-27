@@ -278,7 +278,8 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
             ]
         )
 
-        response = self.client.put(url, format="json")
+        with self.options({"issues.merge-unmerge.max-group-times-seen": 10000}):
+            response = self.client.put(url, format="json")
 
         assert response.status_code == 400
         assert "temporarily restricted" in response.data["detail"]
@@ -300,6 +301,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
             ]
         )
 
-        response = self.client.put(url, format="json")
+        with self.options({"issues.merge-unmerge.max-group-times-seen": 10000}):
+            response = self.client.put(url, format="json")
 
         assert response.status_code == 202
