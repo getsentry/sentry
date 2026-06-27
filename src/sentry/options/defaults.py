@@ -327,6 +327,13 @@ register(
 )
 
 register(
+    "merge.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "issues.merge-unmerge.max-group-times-seen",
     default=10000,
     type=Int,
