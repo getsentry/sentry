@@ -142,15 +142,7 @@ def parse_public_field(field: str) -> MetricField:
 def _coerce_metric_operation_params(
     params: dict[str, None | str | int | float | Sequence[tuple[str | int, ...]]] | None,
 ) -> MetricOperationParams | None:
-    if params is None:
-        return None
-
-    coerced_params: dict[str, str | int | float] = {}
-    for key, value in params.items():
-        if isinstance(value, (str, int, float)):
-            coerced_params[key] = value
-
-    return coerced_params or None
+    return cast("MetricOperationParams | None", params)
 
 
 def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=None):
