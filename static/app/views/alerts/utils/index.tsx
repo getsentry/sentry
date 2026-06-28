@@ -110,12 +110,18 @@ export function getQueryDatasource(
 }
 
 export function isSessionAggregate(aggregate: string) {
-  return Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate);
+  return (
+    Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate) ||
+    aggregate === 'percentage(sessions_crashed, sessions)' ||
+    aggregate === 'percentage(users_crashed, users)'
+  );
 }
 
 export const SESSION_AGGREGATE_TO_FIELD: Record<string, SessionFieldWithOperation> = {
   [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionFieldWithOperation.SESSIONS,
   [SessionsAggregate.CRASH_FREE_USERS]: SessionFieldWithOperation.USERS,
+  'percentage(sessions_crashed, sessions)': SessionFieldWithOperation.SESSIONS,
+  'percentage(users_crashed, users)': SessionFieldWithOperation.USERS,
 };
 
 export function alertAxisFormatter(value: number, seriesName: string, aggregate: string) {
