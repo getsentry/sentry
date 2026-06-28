@@ -309,7 +309,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             responses.add(
                 responses.GET,
                 f"{VercelClient.base_url}{VercelClient.GET_ENV_VAR_URL % self.project_id}",
-                json={"envs": [{"id": count, "key": env_var}]},
+                json={"envs": [{"id": count, "key": env_var}], "pagination": {"next": None}},
             )
             # mock update env var
             responses.add(
