@@ -234,6 +234,34 @@ describe('getIssueFieldRenderer', () => {
       expect(screen.getByText('Matching search filters')).toBeInTheDocument();
       expect(screen.getByText('Since issue began')).toBeInTheDocument();
     });
+
+    it('forwards the dashboard page filters to the issue detail link', () => {
+      location.query = {
+        environment: 'production',
+        statsPeriod: '30d',
+        project: '2',
+        // Non page-filter params should not be forwarded.
+        widgetId: '5',
+      };
+      data['issue.id'] = '123';
+      data.issue = 'JS-456';
+
+      const renderer = getIssueFieldRenderer('issue', {});
+
+      render(
+        renderer(data, {
+          location,
+          navigate: jest.fn(),
+          organization,
+          theme,
+        }) as React.ReactElement
+      );
+
+      expect(screen.getByRole('link', {name: '123'})).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/issues/123/?environment=production&project=2&statsPeriod=30d`
+      );
+    });
   });
 
   it('can render links', () => {
