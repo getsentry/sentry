@@ -17,7 +17,7 @@ type Props = {
   onClose: () => void;
   projectId: undefined | string;
   startTimestampMs: number;
-} & Omit<ReturnType<typeof useResizableDrawer>, 'size'>;
+} & Omit<ReturnType<typeof useResizableDrawer>, 'onPointerDown' | 'size'>;
 
 export function NetworkDetails({
   isHeld,

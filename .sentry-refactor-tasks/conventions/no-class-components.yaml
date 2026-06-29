@@ -1,0 +1,111 @@
+name: no-class-components
+severity: warning
+tags: [react, migration, hooks]
+
+why: |
+  Class components (those extending Component or PureComponent) are the legacy
+  style of writing React components. They are more verbose, harder to share
+  logic between (no hooks), bind `this` in confusing ways, and split related
+  logic across lifecycle methods (componentDidMount, componentDidUpdate,
+  componentWillUnmount). Functional components with hooks are the modern
+  standard: they are smaller, colocate related logic, and can reuse stateful
+  logic via custom hooks.
+
+  See: https://react.dev/reference/react/Component (note: "We recommend
+  defining components as functions instead of classes.")
+
+detect: |
+  Look for class declarations that extend a React base class:
+    - extends Component / extends React.Component
+    - extends PureComponent / extends React.PureComponent
+    - extends a generic form like Component<Props, State>
+
+  Flag the class component declaration itself (the `class Foo extends ...`
+  line through the end of the class body).
+
+  Do NOT flag:
+    - Functional components (function or arrow components)
+    - Classes that do not extend a React component base class (plain utility
+      classes, stores, models, error boundaries' non-React helpers)
+    - Class definitions inside comments, documentation, or test mocks
+    - React.Component referenced only in a type position (e.g. a prop typed as
+      ComponentType) without a class extending it
+
+  Note: Error Boundaries currently REQUIRE a class component (there is no hook
+  equivalent for componentDidCatch / getDerivedStateFromError). Flag these only
+  with low confidence and mention the limitation in the explanation.
+
+fix: |
+  Rewrite the class component as a functional component with hooks:
+
+    - Constructor `this.state = {...}` + `this.setState(...)` → useState (one
+      per independent piece of state, or useReducer for complex/related state)
+    - componentDidMount → useEffect(() => { ... }, [])
+    - componentDidUpdate → useEffect(() => { ... }, [deps])
+    - componentWillUnmount → the cleanup function returned from useEffect
+    - Instance methods → plain functions defined in the component body (no
+      `this.` prefix); wrap in useCallback only if referenced in effect deps
+      or passed to memoized children
+    - Instance fields (refs, timers, cached values) → useRef
+    - `this.props.x` → destructure from props; `this.state.x` → the state value
+    - Bound handlers (`this.handleClick = this.handleClick.bind(this)`) → just
+      define the handler function; no binding needed
+
+  Example before:
+    class Counter extends Component<Props, State> {
+      state = {count: 0};
+      componentDidMount() { document.title = `${this.state.count}`; }
+      handleClick = () => this.setState({count: this.state.count + 1});
+      render() {
+        return <button onClick={this.handleClick}>{this.state.count}</button>;
+      }
+    }
+
+  Example after:
+    function Counter({}: Props) {
+      const [count, setCount] = useState(0);
+      useEffect(() => { document.title = `${count}`; }, [count]);
+      return <button onClick={() => setCount(count + 1)}>{count}</button>;
+    }
+
+  Gotchas:
+    1. PureComponent's shallow-prop comparison maps to React.memo wrapping the
+       functional component, not to anything inside it
+    2. setState merges partial state; useState replaces — split state or merge
+       manually (setState({...prev, x}))
+    3. setState callbacks (the second arg) have no direct equivalent — move
+       that logic into a useEffect keyed on the changed state
+    4. Reading this.state right after setState gave the OLD value; with hooks,
+       use the functional updater setCount(c => c + 1) for sequential updates
+    5. Error boundaries (componentDidCatch / getDerivedStateFromError) cannot
+       be converted — they must remain class components
+
+examples:
+  bad:
+    - 'class Profile extends Component<Props, State> { render() { return null; } }'
+    - 'class Avatar extends React.PureComponent<Props> { render() { return <img />; } }'
+    - |
+      class Toggle extends PureComponent {
+        state = {on: false};
+        render() { return <button>{this.state.on ? 'on' : 'off'}</button>; }
+      }
+  good:
+    - 'function Profile(props: Props) { return null; }'
+    - 'const Avatar = React.memo(function Avatar(props: Props) { return <img />; });'
+    - |
+      function Toggle() {
+        const [on, setOn] = useState(false);
+        return <button>{on ? 'on' : 'off'}</button>;
+      }
+
+include:
+  - 'static/app/**/*.tsx'
+  - 'static/app/**/*.ts'
+exclude:
+  - '**/__fixtures__/**'
+  - '**/__mocks__/**'
+  - '**/*.spec.*'
+  - '**/*.test.*'
+  - '**/test/**'
+
+prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'extends (React\\.)?(Pure)?Component' {repo_path}/static/app/"

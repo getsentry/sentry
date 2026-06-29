@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -98,6 +98,8 @@ interface ScmProjectDetailsForm {
   isBusy: boolean;
   /** Whether the team selector should be hidden (no-access member). */
   isOrgMemberWithNoAccess: boolean;
+  /** Required fields still missing, for disabled-submit messaging. */
+  missingFields: {platform: boolean; projectName: boolean; team: boolean};
   onAlertChange: <K extends keyof AlertRuleOptions>(
     key: K,
     value: AlertRuleOptions[K]
@@ -211,13 +213,33 @@ export function useScmProjectDetails({
     ]
   );
 
+  const missingFields = {
+    platform: !selectedPlatform,
+    projectName: projectNameResolved.length === 0,
+    // While teams load, teamSlugResolved is empty only because firstAdminTeam
+    // isn't available yet, not because the user must pick one. Don't report it
+    // as missing so the disabled-CTA tooltip stays silent for this transient
+    // blocker (canSubmit gates on !isLoadingTeams independently).
+    team: !isOrgMemberWithNoAccess && !isLoadingTeams && teamSlugResolved.length === 0,
+  };
+
+  // Tracks the create -> repo-link -> onComplete handoff as one busy span.
+  // createProjectAndRules.isPending only covers the project POST, so the
+  // repo-link request that follows it would otherwise run with the button
+  // re-enabled and let a second click create a duplicate. Reset on every exit
+  // (see the finally in submit) rather than held until unmount, so the button
+  // does not depend on the consumer unmounting on completion. The ref is the
+  // synchronous re-entry guard; the state drives the button's busy/disabled UI.
+  const isCompletingRef = useRef(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+
   // Block submission until teams and the projects store have loaded so the
   // reuse check below can't be bypassed by a race.
   const canSubmit =
-    projectNameResolved.length > 0 &&
-    (isOrgMemberWithNoAccess || teamSlugResolved.length > 0) &&
-    !!selectedPlatform &&
-    !createProjectAndRules.isPending &&
+    !missingFields.projectName &&
+    !missingFields.team &&
+    !missingFields.platform &&
+    !isCompleting &&
     !isLoadingTeams &&
     projectsLoaded;
 
@@ -242,9 +264,11 @@ export function useScmProjectDetails({
     alertRuleConfig.threshold === savedAlert?.threshold;
 
   const submit = useCallback(async () => {
-    if (!selectedPlatform || !canSubmit) {
+    if (!selectedPlatform || !canSubmit || isCompletingRef.current) {
       return;
     }
+    isCompletingRef.current = true;
+    setIsCompleting(true);
 
     trackAnalytics(CREATE_CLICKED_EVENT[analyticsFlow], {organization});
 
@@ -254,19 +278,19 @@ export function useScmProjectDetails({
       alertRuleConfig,
     };
 
-    // User navigated back and clicked Create without changing anything; skip
-    // to completion without creating a duplicate. Any actual change abandons
-    // the previous project and creates a new one, matching legacy onboarding.
-    if (existingProject && nothingChanged) {
-      trackAnalytics(CREATE_SUCCEEDED_EVENT[analyticsFlow], {
-        organization,
-        project_slug: existingProject.slug,
-      });
-      onComplete({project: existingProject, projectDetailsForm: submittedForm});
-      return;
-    }
-
     try {
+      // User navigated back and clicked Create without changing anything; skip
+      // to completion without creating a duplicate. Any actual change abandons
+      // the previous project and creates a new one, matching legacy onboarding.
+      if (existingProject && nothingChanged) {
+        trackAnalytics(CREATE_SUCCEEDED_EVENT[analyticsFlow], {
+          organization,
+          project_slug: existingProject.slug,
+        });
+        onComplete({project: existingProject, projectDetailsForm: submittedForm});
+        return;
+      }
+
       const {project} = await createProjectAndRules.mutateAsync({
         projectName: projectNameResolved,
         platform: selectedPlatform,
@@ -297,6 +321,9 @@ export function useScmProjectDetails({
       trackAnalytics(CREATE_FAILED_EVENT[analyticsFlow], {organization});
       addErrorMessage(t('Failed to create project'));
       Sentry.captureException(error);
+    } finally {
+      isCompletingRef.current = false;
+      setIsCompleting(false);
     }
   }, [
     analyticsFlow,
@@ -323,8 +350,9 @@ export function useScmProjectDetails({
     alertRuleConfig,
     onAlertChange,
     isOrgMemberWithNoAccess,
+    missingFields,
     canSubmit,
-    isBusy: createProjectAndRules.isPending,
+    isBusy: isCompleting,
     error: createProjectAndRules.error,
     submit,
   };

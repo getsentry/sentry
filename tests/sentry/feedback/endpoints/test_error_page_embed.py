@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
 from unittest import mock
-from urllib.parse import quote, urlencode, urlparse
+from urllib.parse import quote, urlencode, urljoin, urlparse
 from uuid import uuid4
 
 import pytest
@@ -23,6 +23,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
@@ -91,7 +92,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp["Access-Control-Allow-Origin"] == "*"
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
 
-    def test_endpoint_reflects_region_url(self) -> None:
+    def test_endpoint_reflects_region_url_by_default(self) -> None:
         resp = self.client.get(
             self.path_with_qs,
             HTTP_REFERER="http://example.com",
@@ -104,6 +105,27 @@ class ErrorPageEmbedTest(TestCase):
         region_url = get_local_locality().to_url(self.path_with_qs)
         body = resp.content.decode("utf8")
         assert f'endpoint = /**/"{region_url}";/**/' in body
+
+    def test_endpoint_reflects_control_silo_url_when_option_enabled(self) -> None:
+        with override_options(
+            {
+                "error-embeds.control-silo-address": True,
+                "system.url-prefix": "http://controlsilo.testserver",
+            }
+        ):
+            resp = self.client.get(
+                self.path_with_qs,
+                HTTP_REFERER="http://example.com",
+                HTTP_ACCEPT="text/html, text/javascript",
+            )
+            assert resp.status_code == 200, resp.content
+            assert resp["Access-Control-Allow-Origin"] == "*"
+            self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
+
+            control_url = urljoin("http://controlsilo.testserver", self.path_with_qs)
+            body = resp.content.decode("utf8")
+            # Endpoint should use the base control silo URL, not a locality-specific one
+            assert f'endpoint = /**/"{control_url}";/**/' in body
 
     def test_uses_locale_from_header(self) -> None:
         resp = self.client.get(

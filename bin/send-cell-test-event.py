@@ -3,7 +3,7 @@
 
 Pair with `devservices up --mode cell-routing`. Resolves a project key from the
 local dev database (the internal project, id 1, which every dev install
-bootstraps — override with PROJECT_ID), points a DSN at the edge relay on :7901,
+bootstraps — override with PROJECT_ID), points a DSN at the edge relay on :7899,
 and captures an event with sentry_sdk.
 The edge reads the advertised upstream from its project config and forwards the
 envelope there (relay-cell), which processes it to Kafka -> Sentry.
@@ -35,7 +35,7 @@ from sentry.models.projectkey import ProjectKey  # noqa: E402
 
 # Defaults to the edge relay's address from devservices/config.yml (cell-routing
 # mode). Override TARGET to send elsewhere, e.g. straight to relay-cell on :7900.
-target = os.environ.get("TARGET", "127.0.0.1:7901")
+target = os.environ.get("TARGET", "127.0.0.1:7899")
 # The internal project (id 1) is bootstrapped for every dev install.
 project_id = os.environ.get("PROJECT_ID", "1")
 project = Project.objects.filter(id=project_id).first()

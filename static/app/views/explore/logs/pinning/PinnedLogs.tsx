@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {GridRow} from 'sentry/components/tables/gridEditable/styles';
-import {IconChevron, IconClose} from 'sentry/icons';
+import {IconChevron, IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TableBody} from 'sentry/views/explore/components/table';
 import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
@@ -23,8 +24,12 @@ interface Props {
 }
 
 export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: Props) {
-  const {fetchedRows: fetchedPinnedRows, isPending: isFetchingPinnedRows} =
-    pinnedLogsQuery;
+  const {
+    fetchedRows: fetchedPinnedRows,
+    isPending: isFetchingPinnedRows,
+    isError: isErrorPinnedRows,
+    refetch: refetchPinnedRows,
+  } = pinnedLogsQuery;
   const [expanded, setExpanded] = useState(true);
   const pinnedRows = logsPinning.getPinnedRowIds();
 
@@ -63,12 +68,30 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
                 </GridRow>
               );
             }
-            return null;
+            return (
+              <GridRow key={rowId}>
+                <UnavailableGridBodyCell>
+                  <Flex align="center" gap="sm">
+                    <IconWarning size="xs" />
+                    <Text size="sm" variant="muted">
+                      {isErrorPinnedRows
+                        ? t('Could not load pinned log')
+                        : t('Pinned log unavailable in the selected time range')}
+                    </Text>
+                    {isErrorPinnedRows && (
+                      <Button size="xs" onClick={() => refetchPinnedRows()}>
+                        {t('Retry')}
+                      </Button>
+                    )}
+                  </Flex>
+                </UnavailableGridBodyCell>
+              </GridRow>
+            );
           }
 
           return <Fragment key={rowId}>{renderRow(dataRow)}</Fragment>;
         })}
-      <GridRow role="toolbar">
+      <PinnedToolbarRow role="toolbar">
         <PinnedGridBodyCell>
           <Flex justify="end">
             <Button
@@ -91,7 +114,7 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
             </Button>
           </Flex>
         </PinnedGridBodyCell>
-      </GridRow>
+      </PinnedToolbarRow>
     </PinnedTableBody>
   );
 }
@@ -106,11 +129,21 @@ const PinnedTableBody = styled(TableBody)`
   scrollbar-width: thin;
 `;
 
+const PinnedToolbarRow = styled(GridRow)`
+  z-index: 1;
+`;
+
 const PinnedGridBodyCell = styled('td')`
   grid-column: 1 / -1;
   padding: ${p => p.theme.space.sm};
 `;
 
 const LoadingGridBodyCell = styled(PinnedGridBodyCell)`
+  height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
+`;
+
+const UnavailableGridBodyCell = styled(PinnedGridBodyCell)`
+  display: flex;
+  align-items: center;
   height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 `;

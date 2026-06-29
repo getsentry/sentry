@@ -115,8 +115,6 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
-from sentry.options.rollout import in_random_rollout
-from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
@@ -152,6 +150,7 @@ from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.utils.tracing import set_span_tag, start_span
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
     ensure_association_with_detector,
@@ -228,15 +227,6 @@ def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
     except Exception:
         logger.warning("failed to set normalized SDK name", exc_info=True)
         return {}
-
-
-def plugin_is_regression(group: Group, event: BaseEvent) -> bool:
-    project = event.project
-    for plugin in plugins.for_project(project):
-        result = safe_execute(plugin.is_regression, group, event, version=1)
-        if result is not None:
-            return bool(result)
-    return True
 
 
 def has_pending_commit_resolution(group: Group) -> bool:
@@ -1488,13 +1478,16 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
     check_for_group_creation_load_shed(project, event)
 
     with (
-        sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
+        start_span(
+            op="event_manager.create_group_transaction",
+            name="event_manager.create_group_transaction",
+        ) as span,
         metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
         transaction.atomic(router.db_for_write(GroupHash)),
     ):
         # These values will get overridden with whatever happens inside the lock if we do manage to
         # acquire it, so it should only end up with `wait-for-lock` if we don't
-        span.set_tag("outcome", "wait_for_lock")
+        set_span_tag(span, "outcome", "wait_for_lock")
         metrics_timer_tags["outcome"] = "wait_for_lock"
 
         # If we're in this branch, we checked our grouphashes and didn't find one with a group
@@ -1522,7 +1515,7 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
         # If we still haven't found a matching grouphash, we're now safe to go ahead and create
         # the group.
         if existing_grouphash is None:
-            span.set_tag("outcome", "new_group")
+            set_span_tag(span, "outcome", "new_group")
             metrics_timer_tags["outcome"] = "new_group"
             record_new_group_metrics(event)
 
@@ -1719,9 +1712,6 @@ def _handle_regression(
     elif has_pending_commit_resolution(group):
         return None
 
-    if not plugin_is_regression(group, event):
-        return None
-
     # we now think its a regression, rely on the database to validate that
     # no one beat us to this
     date = max(event.datetime, group.last_seen)
@@ -1824,7 +1814,7 @@ def _handle_regression(
             "event_id": event.event_id,
             "version": release.version if release else "",
         }
-        if incoming_group_values and options.get("groups.regression-activity-event-metadata"):
+        if incoming_group_values:
             event_data = incoming_group_values.get("data", {})
             activity_data["event_metadata"] = event_data.get("metadata", {})
             activity_data["event_title"] = event_data.get("title", "")
@@ -1964,12 +1954,6 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEER_SCORING_URL,
-    retries=settings.SEER_SEVERITY_RETRIES,
-    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
-)
-
-severity_connection_pool_cpu = connection_from_url(
     settings.SEER_SUMMARIZATION_URL,
     retries=settings.SEER_SEVERITY_RETRIES,
     timeout=settings.SEER_SEVERITY_TIMEOUT,
@@ -2216,22 +2200,17 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
 
     logger_data["payload"] = payload
 
-    with sentry_sdk.start_span(op=op):
+    with start_span(op=op, name=op):
         try:
             with metrics.timer(op):
                 timeout = options.get(
                     "issues.severity.seer-timeout",
                     settings.SEER_SEVERITY_TIMEOUT,
                 )
-                pool = (
-                    severity_connection_pool_cpu
-                    if in_random_rollout("seer.severity.cpu-rollout")
-                    else severity_connection_pool
-                )
                 viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
                 response = make_severity_score_request(
                     payload,
-                    connection_pool=pool,
+                    connection_pool=severity_connection_pool,
                     timeout=timeout,
                     viewer_context=viewer_context,
                 )
@@ -2647,7 +2626,10 @@ def _record_transaction_info(
             event = job["event"]
 
             project = event.project
-            with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
+            with start_span(
+                op="event_manager.record_transaction_name_for_clustering",
+                name="event_manager.record_transaction_name_for_clustering",
+            ):
                 record_transaction_name_for_clustering(project, event.data)
 
             record_event_processed(project, event)

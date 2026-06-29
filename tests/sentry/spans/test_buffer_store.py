@@ -156,6 +156,10 @@ def test_update_queue_writes_deadlines_and_removes_stale_span_keys(
         latency_ms=15,
         latency_metrics=[],
         gauge_metrics=[],
+        merged_segment_span_ids=[
+            first_span.span_id.encode("ascii"),
+            second_span.span_id.encode("ascii"),
+        ],
     )
     debug_trace_logger = mock.Mock()
     debug_trace_logger._should_log_trace.return_value = True
@@ -171,7 +175,6 @@ def test_update_queue_writes_deadlines_and_removes_stale_span_keys(
     )
 
     storage.update_queue(
-        {subsegment.key: [first_span, second_span]},
         [InsertedSubsegment(subsegment, result)],
         now=100,
         redis_ttl=3600,
@@ -219,12 +222,12 @@ def test_update_queue_uses_timeout_for_non_root_segments(storage: SpansBufferSto
         latency_ms=15,
         latency_metrics=[],
         gauge_metrics=[],
+        merged_segment_span_ids=[],
     )
     debug_trace_logger = mock.Mock()
     debug_trace_logger._should_log_trace.return_value = False
 
     storage.update_queue(
-        {subsegment.key: [span]},
         [InsertedSubsegment(subsegment, result)],
         now=100,
         redis_ttl=3600,
@@ -260,7 +263,8 @@ def test_update_queue_keeps_child_span_keys_for_detached_segments(
         spans=[span],
     )
     # A detached segment's key ends with the subsegment salt; its child span keys
-    # must be left in the queue rather than removed.
+    # must be left in the queue rather than removed, even when the script reports
+    # merged child segments.
     detached_segment_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, salt)
     result = EvalshaResult(
         segment_key=detached_segment_key,
@@ -268,6 +272,7 @@ def test_update_queue_keeps_child_span_keys_for_detached_segments(
         latency_ms=15,
         latency_metrics=[],
         gauge_metrics=[],
+        merged_segment_span_ids=[span.span_id.encode("ascii")],
     )
     debug_trace_logger = mock.Mock()
     debug_trace_logger._should_log_trace.return_value = False
@@ -275,7 +280,6 @@ def test_update_queue_keeps_child_span_keys_for_detached_segments(
     storage.client.zadd(queue_key, {span_key: 90})
 
     storage.update_queue(
-        {subsegment.key: [span]},
         [InsertedSubsegment(subsegment, result)],
         now=100,
         redis_ttl=3600,

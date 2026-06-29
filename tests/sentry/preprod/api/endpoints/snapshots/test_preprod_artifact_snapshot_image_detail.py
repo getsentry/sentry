@@ -3,9 +3,11 @@ from unittest.mock import MagicMock, patch
 import orjson
 from django.urls import reverse
 
+from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotImageEvent
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
 MOCK_TARGET = "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_image_detail.get_preprod_session"
 
@@ -126,8 +128,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
 
         url = self._get_url(artifact.id, "components/alert.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -152,6 +153,68 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert (
             head["image_url"]
             == f"/api/0/projects/{self.org.slug}/{self.project.slug}/files/images/abc123/"
+        )
+
+    @patch("sentry.analytics.record")
+    @patch(MOCK_TARGET)
+    def test_records_web_client_analytics(self, mock_get_session, mock_record):
+        images = {
+            "components/alert.png": {
+                "content_hash": "abc123",
+                "display_name": "Alert",
+                "width": 400,
+                "height": 200,
+            },
+        }
+        artifact, _, manifest_key, manifest_json = self._create_artifact_with_manifest(images)
+        mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
+
+        response = self.client.get(self._get_url(artifact.id, "components/alert.png"))
+
+        assert response.status_code == 200
+        assert_last_analytics_event(
+            mock_record,
+            PreprodArtifactApiGetSnapshotImageEvent(
+                organization_id=self.org.id,
+                project_id=self.project.id,
+                user_id=self.user.id,
+                artifact_id=str(artifact.id),
+                image_identifier="components/alert.png",
+                client="web",
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    @patch(MOCK_TARGET)
+    def test_records_mcp_client_analytics(self, mock_get_session, mock_record):
+        images = {
+            "components/alert.png": {
+                "content_hash": "abc123",
+                "display_name": "Alert",
+                "width": 400,
+                "height": 200,
+            },
+        }
+        artifact, _, manifest_key, manifest_json = self._create_artifact_with_manifest(images)
+        mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
+
+        response = self.client.get(
+            self._get_url(artifact.id, "components/alert.png"),
+            HTTP_USER_AGENT="sentry-mcp/1.0",
+            HTTP_X_SENTRY_MCP_CLIENT_FAMILY="cursor",
+        )
+
+        assert response.status_code == 200
+        assert_last_analytics_event(
+            mock_record,
+            PreprodArtifactApiGetSnapshotImageEvent(
+                organization_id=self.org.id,
+                project_id=self.project.id,
+                user_id=self.user.id,
+                artifact_id=str(artifact.id),
+                image_identifier="components/alert.png",
+                client="mcp:cursor",
+            ),
         )
 
     @patch(MOCK_TARGET)
@@ -206,8 +269,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(key_to_data)
 
         url = self._get_url(head_artifact.id, "alert.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -267,8 +329,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(key_to_data)
 
         url = self._get_url(head_artifact.id, "new_screen.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -313,8 +374,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(key_to_data)
 
         url = self._get_url(head_artifact.id, "old_screen.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -369,8 +429,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(key_to_data)
 
         url = self._get_url(head_artifact.id, "new_alert.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -414,8 +473,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(key_to_data)
 
         url = self._get_url(head_artifact.id, "stable.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -459,8 +517,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(key_to_data)
 
         url = self._get_url(head_artifact.id, "skipped_screen.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -488,8 +545,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
 
         url = self._get_url(artifact.id, "abc123")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         data = response.data
@@ -513,8 +569,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
 
         url = self._get_url(artifact.id, "screen.png")
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         head = response.data["head_image"]

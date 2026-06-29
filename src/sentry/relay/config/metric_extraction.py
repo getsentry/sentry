@@ -52,6 +52,7 @@ from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
+from sentry.utils.tracing import set_span_data, start_span
 
 OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
 
@@ -114,11 +115,11 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
     sentry_sdk.set_tag("organization_id", project.organization_id)
     sentry_sdk.set_attribute("organization_id", project.organization_id)
 
-    with sentry_sdk.start_span(op="get_on_demand_metric_specs"):
+    with start_span(op="get_on_demand_metric_specs", name="get_on_demand_metric_specs"):
         alert_specs, widget_specs = build_safe_config(
             "on_demand_metric_specs", get_on_demand_metric_specs, project
         ) or ([], [])
-    with sentry_sdk.start_span(op="merge_metric_specs"):
+    with start_span(op="merge_metric_specs", name="merge_metric_specs"):
         metric_specs = _merge_metric_specs(alert_specs, widget_specs)
 
     if not metric_specs:
@@ -135,13 +136,13 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
 def get_on_demand_metric_specs(
     timeout: TimeChecker, project: Project
 ) -> tuple[list[HashedMetricSpec], list[HashedMetricSpec]]:
-    with sentry_sdk.start_span(op="on_demand_metrics_feature_flags"):
+    with start_span(op="on_demand_metrics_feature_flags", name="on_demand_metrics_feature_flags"):
         enabled_features = on_demand_metrics_feature_flags(project.organization)
     timeout.check()
 
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
 
-    with sentry_sdk.start_span(op="get_alert_metric_specs"):
+    with start_span(op="get_alert_metric_specs", name="get_alert_metric_specs"):
         alert_specs = _get_alert_metric_specs(
             project,
             enabled_features,
@@ -149,7 +150,7 @@ def get_on_demand_metric_specs(
             prefilling_for_deprecation=False,
         )
     timeout.check()
-    with sentry_sdk.start_span(op="get_widget_metric_specs"):
+    with start_span(op="get_widget_metric_specs", name="get_widget_metric_specs"):
         widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
     timeout.check()
 
@@ -845,8 +846,10 @@ def _convert_aggregate_and_query_to_metrics(
         "groupbys": groupbys,
     }
 
-    with sentry_sdk.start_span(op="converting_aggregate_and_query") as span:
-        span.set_data("widget_query_args", {"query": query, "aggregate": aggregate})
+    with start_span(
+        op="converting_aggregate_and_query", name="converting_aggregate_and_query"
+    ) as span:
+        set_span_data(span, "widget_query_args", {"query": query, "aggregate": aggregate})
         # Create as many specs as we support
         for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
             try:

@@ -215,7 +215,6 @@ class SpansBuffer:
         )
 
         self._update_queue(
-            trees,
             inserted_subsegments,
             now=now,
             redis_ttl=redis_ttl,
@@ -342,7 +341,6 @@ class SpansBuffer:
 
     def _update_queue(
         self,
-        trees: dict[tuple[str, str], list[Span]],
         inserted_subsegments: Sequence[InsertedSubsegment],
         *,
         now: int,
@@ -351,7 +349,6 @@ class SpansBuffer:
         root_timeout: int,
     ) -> None:
         self.store.update_queue(
-            trees,
             inserted_subsegments,
             now=now,
             redis_ttl=redis_ttl,

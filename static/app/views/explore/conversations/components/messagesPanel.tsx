@@ -16,6 +16,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {MessageToolCalls} from 'sentry/views/explore/conversations/components/messageToolCalls';
 import type {ConversationMessage} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {extractMessagesFromNodes} from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
@@ -57,6 +58,9 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
   const handleMessageClick = useCallback(
     (message: ConversationMessage) => {
       trackAnalytics('conversations.message.click', {
+        organization,
+      });
+      trackAnalytics('conversations.detail.select-span', {
         organization,
       });
       setClickedMessageId(message.id);
@@ -131,22 +135,30 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               {isAssistant && message.reasoning && (
                 <ReasoningSection reasoning={message.reasoning} />
               )}
-              {message.content !== '' && (
-                <StyledClippedBox
-                  clipHeight={200}
-                  buttonProps={{variant: 'secondary', size: 'xs'}}
-                  collapsible
-                >
-                  <Container padding="md">
-                    <MessageText size="sm" align="left">
-                      <AIContentRenderer
-                        text={message.content}
-                        inline
-                        autoCollapseLimit={10}
-                      />
-                    </MessageText>
-                  </Container>
-                </StyledClippedBox>
+              {message.content === EMPTY_TEXT_CONTENT ? (
+                <Container padding="md">
+                  <MessageText size="sm" align="left" variant="muted">
+                    {message.content}
+                  </MessageText>
+                </Container>
+              ) : (
+                message.content !== '' && (
+                  <StyledClippedBox
+                    clipHeight={200}
+                    buttonProps={{variant: 'secondary', size: 'xs'}}
+                    collapsible
+                  >
+                    <Container padding="md">
+                      <MessageText size="sm" align="left">
+                        <AIContentRenderer
+                          text={message.content}
+                          inline
+                          autoCollapseLimit={10}
+                        />
+                      </MessageText>
+                    </Container>
+                  </StyledClippedBox>
+                )
               )}
             </MessageBubble>
           );
@@ -235,7 +247,17 @@ const MessageBubble = styled('div')<{
 `;
 
 function ReasoningSection({reasoning}: {reasoning: string}) {
+  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleToggleExpanded = () => {
+    const newState = !isExpanded;
+    setIsExpanded(newState);
+    trackAnalytics('conversations.detail.expand-thinking', {
+      organization,
+      expanded: newState,
+    });
+  };
 
   return (
     <Fragment>
@@ -244,7 +266,7 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
         variant="link"
         onClick={e => {
           e.stopPropagation();
-          setIsExpanded(prev => !prev);
+          handleToggleExpanded();
         }}
         aria-expanded={isExpanded}
       >

@@ -25,9 +25,6 @@ import {
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {usePrevious} from 'sentry/utils/usePrevious';
-import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
-import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {ExploreSchemaHintsSection} from 'sentry/views/explore/components/styles';
 import {
   TraceItemSearchQueryBuilder,
   type TraceItemSearchQueryBuilderProps,
@@ -43,10 +40,11 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {CrossEventQueryingDropdown} from 'sentry/views/explore/spans/crossEvents/crossEventQueryingDropdown';
 import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBars';
+import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
 import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
+import {SPANS_BREAKDOWN_CURSOR_KEY} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
-import {useExploreSchemaHintsRemoval} from 'sentry/views/explore/useExploreSchemaHintsRemoval';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
 
 function SpansSearchBar({
@@ -81,12 +79,10 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
     selection.datetime.start && selection.datetime.end && !selection.datetime.period
   );
 
-  const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
-    useSpanItemAttributes({}, 'number');
-  const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
-    useSpanItemAttributes({}, 'string');
-  const {attributes: booleanAttributes, isLoading: booleanAttributesLoading} =
-    useSpanItemAttributes({}, 'boolean');
+  const {attributes: numberAttributes} = useSpanItemAttributes({}, 'number');
+  const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
+  const {attributes: booleanAttributes} = useSpanItemAttributes({}, 'boolean');
+  const {data: validatedSearchQueryData} = useValidateSpansTab();
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
@@ -129,6 +125,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       ],
       caseInsensitive,
       onCaseInsensitiveClick: setCaseInsensitive,
+      validatedSearchQueryData,
     }),
     [
       booleanAttributes,
@@ -141,13 +138,12 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       setCaseInsensitive,
       setQueryParams,
       stringAttributes,
+      validatedSearchQueryData,
     ]
   );
 
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
     useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
-
-  const schemaHintsRemoval = useExploreSchemaHintsRemoval();
 
   return (
     <Layout.Main width="full">
@@ -177,9 +173,16 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                   }}
                 >
                   <StyledPageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter {...datePageFilterProps} />
+                    <ProjectPageFilter
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                    />
+                    <EnvironmentPageFilter
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                    />
+                    <DatePageFilter
+                      {...datePageFilterProps}
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                    />
                   </StyledPageFilterBar>
                   <SpansSearchBar
                     spanSearchQueryBuilderProps={spanSearchQueryBuilderProps}
@@ -193,25 +196,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                   <SpansTabCrossEventSearchBars hasIndependentDateColumn />
                 ) : null}
               </Grid>
-              {hasCrossEvents || schemaHintsRemoval ? null : (
-                <ExploreSchemaHintsSection>
-                  <SchemaHintsList
-                    supportedAggregates={
-                      mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
-                    }
-                    booleanTags={booleanAttributes}
-                    numberTags={numberAttributes}
-                    stringTags={stringAttributes}
-                    isLoading={
-                      numberAttributesLoading ||
-                      stringAttributesLoading ||
-                      booleanAttributesLoading
-                    }
-                    exploreQuery={query}
-                    source={SchemaHintsSources.EXPLORE}
-                  />
-                </ExploreSchemaHintsSection>
-              )}
             </div>
           )}
         </TourElement>

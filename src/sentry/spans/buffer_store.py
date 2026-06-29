@@ -193,7 +193,6 @@ class SpansBufferStore:
 
     def update_queue(
         self,
-        trees: dict[tuple[str, str], list[Span]],
         inserted_subsegments: Sequence[InsertedSubsegment],
         *,
         now: int,
@@ -233,8 +232,8 @@ class SpansBufferStore:
                 delete_set = queue_deletes.setdefault(queue_key, set())
                 if not inserted_subsegment.is_detached_segment:
                     delete_set.update(
-                        self.get_span_key(subsegment.project_and_trace, span.span_id)
-                        for span in trees[subsegment.key]
+                        self.get_span_key(subsegment.project_and_trace, span_id.decode("ascii"))
+                        for span_id in result.merged_segment_span_ids
                     )
                 delete_set.discard(result.segment_key)
 

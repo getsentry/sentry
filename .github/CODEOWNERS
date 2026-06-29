@@ -92,7 +92,6 @@
 /src/sentry/tasks/assemble.py                            @getsentry/ingest
 /src/sentry/tasks/reprocessing2.py                       @getsentry/ingest
 /src/sentry/reprocessing2.py                             @getsentry/ingest
-/src/sentry/api/endpoints/event_attachments.py           @getsentry/ingest
 /src/sentry/attachments/                                 @getsentry/ingest
 /src/sentry/debug_files/                                 @getsentry/ingest
 /src/sentry/lang/                                        @getsentry/ingest
@@ -910,6 +909,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 # End of cell architecture
 
 # Foundational Storage
+/src/sentry/api/endpoints/event_attachments.py        @getsentry/foundational-storage
 /src/sentry/objectstore/                              @getsentry/foundational-storage
 /tests/sentry/objectstore/                            @getsentry/foundational-storage
 # End of Foundational Storage

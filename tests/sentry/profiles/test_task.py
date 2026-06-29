@@ -1073,6 +1073,109 @@ def test_track_latest_sdk_with_payload(
 
 
 @patch("sentry.profiles.task._symbolicate_profile")
+@patch("sentry.profiles.task._process_vroomrs_profile")
+@django_db_all
+def test_process_profile_task_tracks_chunk_attachments(
+    _process_vroomrs_profile: Any,
+    _symbolicate_profile: Any,
+    organization: Organization,
+    project: Project,
+    request: Any,
+) -> None:
+    from sentry.models.profilechunkattachment import ProfileChunkAttachment
+
+    _process_vroomrs_profile.return_value = True
+    _symbolicate_profile.return_value = True
+
+    profiler_id = "abfecec9b81a401fa26705dc595814ba"
+    chunk_id = "11111111111111111111111111111111"
+
+    profile = request.getfixturevalue("sample_v2_profile")
+    profile["organization_id"] = organization.id
+    profile["project_id"] = project.id
+    profile["profiler_id"] = profiler_id
+    profile["chunk_id"] = chunk_id
+
+    kafka_payload = {
+        "organization_id": organization.id,
+        "project_id": project.id,
+        "received": "2024-01-02T03:04:05",
+        "retention_days": 90,
+        "payload": json.dumps(profile),
+        "attachments": [
+            {
+                "name": "trace.perfetto",
+                "content_type": "application/x-perfetto",
+                "stored_id": "objectstore-key-1",
+            }
+        ],
+    }
+    payload = msgpack.packb(kafka_payload)
+
+    with Feature({"organizations:continuous-profiling-perfetto": True}):
+        # Process twice to confirm reprocessing the same chunk message does not
+        # create duplicate rows (deduped by the unique constraint).
+        process_profile_task(payload=payload)
+        process_profile_task(payload=payload)
+
+    attachments = list(
+        ProfileChunkAttachment.objects.filter(
+            project_id=project.id, profiler_id=profiler_id, chunk_id=chunk_id
+        )
+    )
+    assert len(attachments) == 1
+    assert attachments[0].name == "trace.perfetto"
+    assert attachments[0].content_type == "application/x-perfetto"
+    assert attachments[0].stored_id == "objectstore-key-1"
+
+
+@patch("sentry.profiles.task._symbolicate_profile")
+@patch("sentry.profiles.task._process_vroomrs_profile")
+@django_db_all
+def test_process_profile_task_skips_attachments_without_feature(
+    _process_vroomrs_profile: Any,
+    _symbolicate_profile: Any,
+    organization: Organization,
+    project: Project,
+    request: Any,
+) -> None:
+    from sentry.models.profilechunkattachment import ProfileChunkAttachment
+
+    _process_vroomrs_profile.return_value = True
+    _symbolicate_profile.return_value = True
+
+    profiler_id = "abfecec9b81a401fa26705dc595814ba"
+    chunk_id = "22222222222222222222222222222222"
+
+    profile = request.getfixturevalue("sample_v2_profile")
+    profile["organization_id"] = organization.id
+    profile["project_id"] = project.id
+    profile["profiler_id"] = profiler_id
+    profile["chunk_id"] = chunk_id
+
+    kafka_payload = {
+        "organization_id": organization.id,
+        "project_id": project.id,
+        "received": "2024-01-02T03:04:05",
+        "payload": json.dumps(profile),
+        "attachments": [
+            {
+                "name": "trace.perfetto",
+                "content_type": "application/x-perfetto",
+                "stored_id": "objectstore-key-2",
+            }
+        ],
+    }
+    payload = msgpack.packb(kafka_payload)
+
+    process_profile_task(payload=payload)
+
+    assert not ProfileChunkAttachment.objects.filter(
+        project_id=project.id, profiler_id=profiler_id, chunk_id=chunk_id
+    ).exists()
+
+
+@patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._track_outcome")
 @patch("sentry.profiles.task._process_vroomrs_profile")
 @django_db_all

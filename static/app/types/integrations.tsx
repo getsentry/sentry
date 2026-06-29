@@ -13,7 +13,6 @@ import type {
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
 import type {ParsedOwnershipRule} from './ownership';
-import type {PlatformKey} from './platform';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
@@ -133,6 +132,8 @@ export type CommitAuthor = {
   name?: string;
 };
 
+export type PullRequestAuthor = User | CommitAuthor;
+
 export type CommitFile = {
   author: CommitAuthor;
   commitMessage: string;
@@ -143,7 +144,7 @@ export type CommitFile = {
   type: string;
 };
 
-export type PullRequest = {
+export interface PullRequest {
   dateCreated: string;
   externalUrl: string;
   id: string;
@@ -151,7 +152,27 @@ export type PullRequest = {
   repository: Repository;
   title: string | null;
   author?: CommitAuthor;
+}
+
+export type PullRequestStatus = 'merged' | 'open' | 'closed' | 'draft' | 'unknown';
+
+type SeerAttribution = {
+  id: 'seer';
+  type: 'seer';
 };
+
+export type PullRequestAttribution = SeerAttribution;
+
+export interface LinkedPullRequest extends Omit<PullRequest, 'author'> {
+  attribution: PullRequestAttribution | null;
+  dateLinked: string;
+  status: PullRequestStatus;
+  author?: PullRequestAuthor;
+}
+
+export interface LinkedPullRequestsResponse {
+  pullRequests: LinkedPullRequest[];
+}
 
 /**
  * Sentry Apps
@@ -246,6 +267,8 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+  // Each entry is a "Header-Name: value" line. Saved values are masked by the API
+  webhookHeaders?: string[];
 };
 
 // Minimal Sentry App representation for use with avatars
@@ -487,64 +510,7 @@ export type IntegrationIssueConfig = {
   linkIssueConfig?: IssueConfigField[];
 };
 
-/**
- * Project Plugins
- */
-export type PluginNoProject = {
-  canDisable: boolean;
-  // TODO(ts)
-  contexts: any[];
-  doc: string;
-  featureDescriptions: IntegrationFeature[];
-  features: string[];
-  hasConfiguration: boolean;
-  id: string;
-  isDeprecated: boolean;
-  isHidden: boolean;
-  isTestable: boolean;
-  metadata: any;
-  name: string;
-  shortName: string;
-  slug: string;
-  status: string;
-  type: string;
-  altIsSentryApp?: boolean;
-  author?: {name: string; url: string};
-  deprecationDate?: string;
-  description?: string;
-  firstPartyAlternative?: string;
-  issue?: {
-    issue_id: string;
-    // TODO(TS): Label can be an object, unknown shape
-    label: string | any;
-    url: string;
-  };
-  resourceLinks?: Array<{title: string; url: string}>;
-  version?: string;
-};
-
-export type Plugin = PluginNoProject & {
-  enabled: boolean;
-};
-
-export type PluginProjectItem = {
-  configured: boolean;
-  enabled: boolean;
-  projectId: string;
-  projectName: string;
-  projectPlatform: PlatformKey;
-  projectSlug: string;
-};
-
-export type PluginWithProjectList = PluginNoProject & {
-  projectList: PluginProjectItem[];
-};
-
-export type AppOrProviderOrPlugin =
-  | SentryApp
-  | IntegrationProvider
-  | PluginWithProjectList
-  | DocIntegration;
+export type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | DocIntegration;
 
 export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
 

@@ -9,6 +9,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_conventions.attributes import ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
@@ -34,6 +35,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
+    TraceItemAttributeContext,
     TraceItemAttributeKey,
     TraceItemAttributeSource,
 )
@@ -90,6 +92,7 @@ from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.tracing import set_span_data, start_span
 
 POSSIBLE_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
 
@@ -185,6 +188,24 @@ SEARCH_QUERY_PARAM = OpenApiParameter(
     description="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter trace items before computing attributes.",
 )
 
+EXPAND_QUERY_PARAM = OpenApiParameter(
+    name="expand",
+    location="query",
+    required=False,
+    many=True,
+    type=str,
+    enum=["context"],
+    # Internal-only for now (context is currently limited to sentry conventions;
+    # custom attribute context is still to come), so exclude it from the public
+    # OpenAPI spec.
+    exclude=True,
+    description=(
+        "Optional fields to expand. Pass `context` to include the sentry "
+        "conventions metadata (brief, examples, deprecation, etc.) for "
+        "attributes that map to a known convention."
+    ),
+)
+
 
 class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase):
     publish_status = {
@@ -221,6 +242,7 @@ class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
     )
     substringMatch = serializers.CharField(required=False, source="substring_match")
     query = serializers.CharField(required=False)
+    expand = serializers.MultipleChoiceField(choices=["context"], required=False)
 
     def validate(self, attrs: Any) -> Any:
         if attrs.get("item_type") is None and attrs.get("dataset") is None:
@@ -277,11 +299,87 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
         raise ValueError(f"Invalid item type: {item_type}")
 
 
+# Maps sentry-convention attribute types to EAP search types. Array and "any"
+# convention types aren't representable as a single search type, so they're
+# omitted and treated as "no type constraint" when matching.
+_CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, str] = {
+    "string": "string",
+    "boolean": "boolean",
+    "integer": "number",
+    "double": "number",
+}
+
+
+def build_sentry_convention_context(
+    public_name: str,
+    internal_name: str,
+    attribute_type: Literal["string", "number", "boolean"] | None = None,
+) -> TraceItemAttributeContext | None:
+    """
+    Build the sentry conventions context for an attribute, if it maps to a known
+    convention. Only fields actually present in the conventions metadata are
+    included.
+
+    A convention may be keyed in ``ATTRIBUTE_METADATA`` by either the public
+    alias or the internal name (see
+    ``_update_attribute_definitions_with_deprecations`` in
+    ``search/eap/spans/attributes.py``), so we try the public name first and
+    fall back to the internal name. The lookup is purely by name and does not
+    depend on the attribute's source, so conventions defined in
+    ``sentry_conventions`` but not in ``attributes.py`` (e.g. ``http.route``)
+    still resolve.
+
+    When ``attribute_type`` is provided, the convention only matches if its
+    expected type is compatible, so a custom attribute that merely shares a name
+    with a convention but has a different type isn't treated as that convention.
+    """
+    metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(internal_name)
+    if metadata is None:
+        return None
+
+    if attribute_type is not None:
+        expected_type = _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value)
+        if expected_type is not None and expected_type != attribute_type:
+            return None
+
+    deprecation = metadata.deprecation
+
+    # isConvention, brief and isDeprecated are always present for a known
+    # convention.
+    context: TraceItemAttributeContext = {
+        "isConvention": True,
+        "brief": metadata.brief,
+        "isDeprecated": bool(
+            deprecation is not None and (deprecation.status is not None or deprecation.replacement)
+        ),
+    }
+
+    if metadata.additional_context:
+        context["details"] = (
+            list(metadata.additional_context)
+            if isinstance(metadata.additional_context, (list, tuple))
+            else [metadata.additional_context]
+        )
+
+    if metadata.example is not None:
+        context["examples"] = (
+            list(metadata.example)
+            if isinstance(metadata.example, (list, tuple))
+            else [metadata.example]
+        )
+
+    if deprecation is not None and deprecation.replacement:
+        context["replacementAttribute"] = deprecation.replacement
+
+    return context
+
+
 def as_attribute_key(
     name: str,
     attr_type: Literal["string", "number", "boolean"],
     item_type: SupportedTraceItemType,
     is_proxy: bool = False,
+    include_context: bool = False,
 ) -> TraceItemAttributeKey:
     public_key, public_name, attribute_source = translate_internal_to_public_alias(
         name, attr_type, item_type
@@ -326,6 +424,19 @@ def as_attribute_key(
     if secondary_aliases:
         attribute_key["secondaryAliases"] = sorted(secondary_aliases)
 
+    if include_context:
+        # When context is requested we always attach it. We match against the
+        # sentry conventions by name and type regardless of source_type, because
+        # `source_type` reflects who set the attribute (SDK vs user), not whether
+        # it maps to a convention. `attributes.py` only lists conventions that
+        # need an alias (a public name distinct from their internal name), so a
+        # convention whose name is already the same internally -- e.g.
+        # `http.route` -- is missing from it and resolves as a `user` source
+        # attribute. Anything without a matching convention gets an empty context
+        # for now; serving custom attribute context is planned.
+        context = build_sentry_convention_context(public_name, name, attr_type) or {}
+        attribute_key["context"] = context
+
     return attribute_key
 
 
@@ -365,6 +476,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             ATTRIBUTE_TYPE_QUERY_PARAM,
             SUBSTRING_MATCH_QUERY_PARAM,
             SEARCH_QUERY_PARAM,
+            EXPAND_QUERY_PARAM,
             CursorQueryParam,
         ],
         responses={
@@ -438,6 +550,13 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         debug = request.user.is_superuser and request.GET.get("debug", False)
         debug_infos: list[dict] = []
 
+        # Expand the sentry conventions context when explicitly requested via
+        # `expand=context`. The conventions metadata is static with no data
+        # implications, so it isn't gated. (Custom attribute context, planned
+        # later, will be gated behind the data-browsing-attribute-context
+        # feature.)
+        include_context = "context" in serialized.get("expand", set())
+
         def data_fn(offset: int, limit: int) -> list[TraceItemAttributeKey]:
             futures = []
             with ContextPropagatingThreadPoolExecutor(
@@ -457,6 +576,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             column_definitions,
                             trace_item_type,
                             include_internal,
+                            include_context,
                             debug=debug,
                         )
                     )
@@ -490,6 +610,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         column_definitions: ColumnDefinitions,
         trace_item_type: SupportedTraceItemType,
         include_internal: bool,
+        include_context: bool = False,
         debug: str | bool = False,
     ) -> tuple[list[TraceItemAttributeKey], dict | None]:
         debug_info: dict | None = None
@@ -497,7 +618,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
             attribute_type, AttributeKey.Type.TYPE_STRING
         )
-        with sentry_sdk.start_span(op="filter", name="hardcoded_aliases") as span:
+        with start_span(op="filter", name="hardcoded_aliases") as span:
             all_aliased_attributes = []
             # our aliases don't exist in the db, so filter over our aliases
             # virtually page through defined aliases before we hit the db
@@ -547,7 +668,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                                 )
                             )
             aliased_attributes = all_aliased_attributes[offset : offset + limit]
-        with sentry_sdk.start_span(op="query", name="attribute_names") as span:
+        with start_span(op="query", name="attribute_names") as span:
             if len(aliased_attributes) < limit:
                 offset -= len(all_aliased_attributes) - len(aliased_attributes)
                 limit -= len(aliased_attributes)
@@ -571,7 +692,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             else:
                 rpc_response = TraceItemAttributeNamesResponse()
 
-        with sentry_sdk.start_span(op="query", name="serialize") as span:
+        with start_span(op="query", name="serialize") as span:
             attributes = self.serialize_trace_attributes(
                 rpc_response,
                 attribute_type,
@@ -580,12 +701,13 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 substring_match,
                 aliased_attributes,
                 all_aliased_attributes,
+                include_context,
             )
 
             sentry_sdk.set_context("api_response", {"attributes": attributes})
             sentry_sdk.set_attribute("api_response.attributes", str(attributes))
-            span.set_data("attribute_count", len(attributes))
-            span.set_data("attribute_type", attribute_type)
+            set_span_data(span, "attribute_count", len(attributes))
+            set_span_data(span, "attribute_type", attribute_type)
         return attributes, debug_info
 
     def serialize_trace_attributes(
@@ -597,6 +719,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         substring_match: str,
         aliased_attributes: list[ResolvedAttribute | ProxyResolvedAttribute],
         exclude_attributes: list[ResolvedAttribute | ProxyResolvedAttribute],
+        include_context: bool = False,
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
         for attribute in rpc_response.attributes:
@@ -609,6 +732,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     attribute.name,
                     attribute_type,
                     trace_item_type,
+                    include_context=include_context,
                 )
                 if (
                     not is_sentry_convention_replacement_attribute(
@@ -645,6 +769,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     attribute_type,
                     trace_item_type,
                     is_proxy=isinstance(aliased_attr, ProxyResolvedAttribute),
+                    include_context=include_context,
                 )
                 if can_expose_attribute_to_api(
                     aliased_attr.internal_name,

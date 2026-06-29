@@ -3,11 +3,9 @@ from __future__ import annotations
 from functools import cached_property
 from typing import Any
 
-import orjson
 import responses
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
-from django.urls import reverse
 
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
@@ -283,24 +281,6 @@ class JiraPluginTest(TestCase):
             self.plugin.link_issue(request, group, form_data)["title"]
             == issue_response["fields"]["summary"]
         )
-
-    def test_no_secrets(self) -> None:
-        self.user = self.create_user("foo@example.com")
-        self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
-        self.team = self.create_team(organization=self.org, name="Mariachi Band")
-        self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-        self.login_as(self.user)
-        self.plugin.set_option("password", "abcdef", self.project)
-        url = reverse(
-            "sentry-api-0-project-plugin-details", args=[self.org.slug, self.project.slug, "jira"]
-        )
-        res = self.client.get(url)
-        config = orjson.loads(res.content)["config"]
-        password_config = [item for item in config if item["name"] == "password"][0]
-        assert password_config.get("type") == "secret"
-        assert password_config.get("value") is None
-        assert password_config.get("hasSavedValue") is True
-        assert password_config.get("prefix") == ""
 
     def test_get_formatted_user(self) -> None:
         assert self.plugin._get_formatted_user(

@@ -9,12 +9,10 @@ from urllib3.exceptions import HTTPError
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.seer.code_review.utils import ClientError, delete_existing_reactions_and_add_reaction
-from sentry.seer.code_review.webhooks.issue_comment import (
-    GitHubIssueCommentAction,
-    is_pr_review_command,
-)
+from sentry.seer.code_review.webhooks.issue_comment import GitHubIssueCommentAction
 from sentry.seer.code_review.webhooks.pull_request import PullRequestAction
 from sentry.seer.code_review.webhooks.task import MAX_RETRIES, process_github_webhook_event
+from sentry.seer.webhooks import SentryReviewCommand, sentry_command
 from sentry.testutils.cases import TestCase
 
 
@@ -589,17 +587,17 @@ class TestProcessGitHubWebhookEventSetsTags:
 
 class TestIsPrReviewCommand:
     def test_true_cases(self) -> None:
-        assert is_pr_review_command("@sentry review")
-        assert is_pr_review_command("Please @sentry review this PR")
-        assert is_pr_review_command("@Sentry Review")
-        assert is_pr_review_command("@SENTRY REVIEW")
+        assert isinstance(sentry_command("@sentry review"), SentryReviewCommand)
+        assert isinstance(sentry_command("Please @sentry review this PR"), SentryReviewCommand)
+        assert isinstance(sentry_command("@Sentry Review"), SentryReviewCommand)
+        assert isinstance(sentry_command("@SENTRY REVIEW"), SentryReviewCommand)
 
     def test_false_cases(self) -> None:
-        assert not is_pr_review_command("This is a regular comment")
-        assert not is_pr_review_command("@sentry")
-        assert not is_pr_review_command("review")
-        assert not is_pr_review_command(None)
-        assert not is_pr_review_command("")
+        assert not isinstance(sentry_command("This is a regular comment"), SentryReviewCommand)
+        assert not isinstance(sentry_command("@sentry"), SentryReviewCommand)
+        assert not isinstance(sentry_command("review"), SentryReviewCommand)
+        assert not isinstance(sentry_command(None), SentryReviewCommand)
+        assert not isinstance(sentry_command(""), SentryReviewCommand)
 
 
 class AddEyesReactionTest(TestCase):

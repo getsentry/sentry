@@ -234,7 +234,7 @@ describe('Default Tier Checkout', () => {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toISOString(),
+      billingPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am2_sponsored_team_auf',
       isSponsored: true,
       partner: {
@@ -281,7 +281,7 @@ describe('Default Tier Checkout', () => {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toISOString(),
+      billingPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am3_f',
       isSelfServePartner: true,
       partner: {
@@ -324,7 +324,7 @@ describe('Default Tier Checkout', () => {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toISOString(),
+      billingPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am3_f',
       isSelfServePartner: true,
       partner: {
@@ -366,7 +366,7 @@ describe('Default Tier Checkout', () => {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toISOString(),
+      billingPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am3_f',
       isSelfServePartner: true,
       partner: {
