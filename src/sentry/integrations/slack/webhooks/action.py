@@ -69,6 +69,7 @@ from sentry.users.models import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.safe import get_path
 
 _logger = logging.getLogger(__name__)
 
@@ -715,12 +716,17 @@ class SlackActionEndpoint(Endpoint):
             )
             return self.respond(status=e.status)
 
+        skip_request_data = (
+            slack_request.data.get("type") == "view_submission"
+            and get_path(slack_request.data, "view", "callback_id")
+            == MONITORING_PROVIDER_CALLBACK_ID
+        )
         _logger.info(
             "slack.action.request",
             extra={
                 "trigger_id": slack_request.data.get("trigger_id"),
                 "integration_id": slack_request.integration.id,
-                "request_data": slack_request.data,
+                **({} if skip_request_data else {"request_data": slack_request.data}),
             },
         )
 

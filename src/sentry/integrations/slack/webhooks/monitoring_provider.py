@@ -4,6 +4,7 @@ from typing import Any
 import orjson
 from django.db import IntegrityError
 from requests.exceptions import RequestException
+from slack_sdk.errors import SlackApiError
 from slack_sdk.models.views import View
 
 from sentry import features
@@ -283,11 +284,14 @@ def handle_monitoring_provider_submission(
 
     _clear_declined_provider(slack_request, provider_key)
 
-    _send_success_ephemeral(
-        slack_request=slack_request,
-        provider_key=provider_key,
-        channel_id=channel_id,
-    )
+    try:
+        _send_success_ephemeral(
+            slack_request=slack_request,
+            provider_key=provider_key,
+            channel_id=channel_id,
+        )
+    except SlackApiError:
+        logger.exception("slack.monitoring_provider.ephemeral_failed")
 
     return None
 
