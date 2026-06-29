@@ -57,6 +57,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                     "clientSecret": self.unpublished_app.application.client_secret,
                     "overview": self.unpublished_app.overview,
                     "allowedOrigins": [],
+                    "webhookHeaders": [],
                     "schema": {},
                     "owner": {"id": self.org.id, "slug": self.org.slug},
                     "featureData": [

@@ -1,5 +1,4 @@
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconSettings} from 'sentry/icons';
@@ -38,35 +37,33 @@ export function ScmIntegrationSelect({
   }));
 
   return (
-    <Flex justify="start">
-      <CompactSelect
-        size="sm"
-        value={selectedIntegration.id}
-        options={options}
-        onChange={option => {
-          const next = integrations.find(integration => integration.id === option.value);
-          if (next) {
-            onChange(next);
-          }
-        }}
-        trigger={triggerProps => (
-          <OverlayTrigger.Button
-            {...triggerProps}
-            icon={getIntegrationIcon(selectedIntegration.provider.key, 'sm')}
-          >
-            {selectedIntegration.name}
-          </OverlayTrigger.Button>
-        )}
-        menuFooter={({closeOverlay}) => (
-          <MenuComponents.CTALinkButton
-            icon={<IconSettings />}
-            to={`/settings/${organization.slug}/integrations/?category=source%20code%20management`}
-            onClick={closeOverlay}
-          >
-            {t('Manage providers')}
-          </MenuComponents.CTALinkButton>
-        )}
-      />
-    </Flex>
+    <CompactSelect
+      size="md"
+      value={selectedIntegration.id}
+      options={options}
+      onChange={option => {
+        const next = integrations.find(integration => integration.id === option.value);
+        if (next) {
+          onChange(next);
+        }
+      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          icon={getIntegrationIcon(selectedIntegration.provider.key, 'sm')}
+        >
+          {selectedIntegration.name}
+        </OverlayTrigger.Button>
+      )}
+      menuFooter={({closeOverlay}) => (
+        <MenuComponents.CTALinkButton
+          icon={<IconSettings />}
+          to={`/settings/${organization.slug}/integrations/?category=source%20code%20management`}
+          onClick={closeOverlay}
+        >
+          {t('Manage providers')}
+        </MenuComponents.CTALinkButton>
+      )}
+    />
   );
 }

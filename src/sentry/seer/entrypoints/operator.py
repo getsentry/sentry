@@ -29,6 +29,7 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
 )
 from sentry.seer.models import SeerPermissionError
+from sentry.seer.pull_requests import link_seer_run_pull_requests
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
@@ -668,19 +669,32 @@ def process_autofix_updates(
                 },
             )
 
-        if event_type == SentryAppEventType.SEER_PR_CREATED and features.has(
-            "organizations:pr-metrics-attribution", organization
-        ):
+        if event_type == SentryAppEventType.SEER_PR_CREATED:
+            pull_requests = event_payload.get("pull_requests", [])
+
+            if features.has("organizations:pr-metrics-attribution", organization):
+                try:
+                    attribute_seer_created_pull_requests(
+                        organization=organization,
+                        pull_requests=pull_requests,
+                        run_id=run_id,
+                        group_id=group_id,
+                    )
+                except Exception:
+                    logger.exception(
+                        "seer.pr_attribution.failed",
+                        extra={"group_id": group_id, "run_id": run_id},
+                    )
+
             try:
-                attribute_seer_created_pull_requests(
+                link_seer_run_pull_requests(
                     organization=organization,
-                    pull_requests=event_payload.get("pull_requests", []),
-                    run_id=run_id,
-                    group_id=group_id,
+                    seer_run_state_id=run_id,
+                    pull_requests=pull_requests,
                 )
             except Exception:
                 logger.exception(
-                    "seer.pr_attribution.failed",
+                    "seer.pr_link.failed",
                     extra={"group_id": group_id, "run_id": run_id},
                 )
 

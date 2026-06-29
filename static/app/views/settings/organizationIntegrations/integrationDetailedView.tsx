@@ -15,8 +15,8 @@ import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -25,6 +25,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getAlertText,
   getIntegrationStatus,
+  integrationRequiresUpgrade,
   isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
@@ -406,7 +407,7 @@ export default function IntegrationDetailedView() {
                     organization,
                   });
                 }}
-                requiresUpgrade={!!alertText}
+                requiresUpgrade={integrationRequiresUpgrade(integration)}
               />
             </PanelItem>
           ))}

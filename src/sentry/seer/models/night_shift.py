@@ -21,8 +21,6 @@ class SeerNightShiftRun(DefaultFieldsModel):
     workflow_config = FlexibleForeignKey(
         "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
     )
-    # TODO: make required once backfilled
-    seer_run = FlexibleForeignKey("seer.SeerRun", on_delete=models.SET_NULL, null=True)
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:

@@ -451,8 +451,6 @@ class TraceItemAttributeContext(DefaultFieldsModel):
 
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
     updated_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
-    # When the attribute was last seen in storage. Used to prune stale attributes.
-    last_received = models.DateTimeField(null=True)
 
     class Meta:
         app_label = "explore"
@@ -512,8 +510,6 @@ class TraceItemAttributeValueContext(DefaultFieldsModel):
 
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
     updated_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
-    # When the value was last seen in storage. Used to prune stale entries.
-    last_received = models.DateTimeField(null=True)
 
     class Meta:
         app_label = "explore"
