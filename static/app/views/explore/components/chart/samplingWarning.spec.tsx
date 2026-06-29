@@ -1,6 +1,7 @@
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
@@ -31,7 +32,9 @@ describe('SamplingWarning', () => {
 
     expect(
       await screen.findByText(
-        'Due to the estimation being applied, count_unique is likely to return unreliable results. Treat count_unique for estimation purposes only.'
+        textWithMarkupMatcher(
+          'Due to the estimation being applied, count_unique is likely to return unreliable results. Treat count_unique for estimation purposes only.'
+        )
       )
     ).toBeInTheDocument();
   });
@@ -49,7 +52,9 @@ describe('SamplingWarning', () => {
 
     expect(
       await screen.findByText(
-        'Due to your configured sample rate, count_unique is likely to return unreliable results. Increase your sample rate, or treat count_unique for estimation purposes only.'
+        textWithMarkupMatcher(
+          'Due to your configured sample rate, count_unique is likely to return unreliable results. Increase your sample rate, or treat count_unique for estimation purposes only.'
+        )
       )
     ).toBeInTheDocument();
   });

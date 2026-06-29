@@ -20,15 +20,20 @@ export function SamplingWarning({yAxis, series, dataScanned}: SamplingWarningPro
   }
 
   const name = parseFunction(yAxis)?.name ?? yAxis;
+  const nameNode = (
+    <Text as="span" monospace>
+      {name}
+    </Text>
+  );
   const title =
     reason === 'partialData'
       ? tct(
           'Due to the estimation being applied, [name] is likely to return unreliable results. Treat [name] for estimation purposes only.',
-          {name}
+          {name: nameNode}
         )
       : tct(
           'Due to your configured sample rate, [name] is likely to return unreliable results. Increase your sample rate, or treat [name] for estimation purposes only.',
-          {name}
+          {name: nameNode}
         );
 
   return (
@@ -36,11 +41,7 @@ export function SamplingWarning({yAxis, series, dataScanned}: SamplingWarningPro
       isHoverable
       skipWrapper
       position="top"
-      title={
-        <Text as="span" monospace>
-          {title}
-        </Text>
-      }
+      title={<Text as="span">{title}</Text>}
     >
       <IconWarning variant="warning" size="sm" data-test-id="sampling-warning" />
     </Tooltip>
