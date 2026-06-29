@@ -356,14 +356,17 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
             logs.extend(
                 [
                     self.create_ourlog(
-                        {"release": "0.9"},
+                        attributes={"sentry.release": "0.9"},
                         timestamp=self.start + timedelta(hours=hour, minutes=minute),
                     )
                     for minute in range(count)
                 ],
             )
         logs.append(
-            self.create_ourlog({"release": "0.8"}, timestamp=self.start + timedelta(minutes=1))
+            self.create_ourlog(
+                attributes={"sentry.release": "0.8"},
+                timestamp=self.start + timedelta(minutes=1),
+            )
         )
         self.store_eap_items(logs)
 

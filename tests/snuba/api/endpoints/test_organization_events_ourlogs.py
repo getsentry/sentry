@@ -1011,7 +1011,9 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
     def test_resolves_latest_release_alias(self) -> None:
         self.create_release(version="0.8")
-        self.store_eap_items([self.create_ourlog({"release": "0.8"}, timestamp=self.ten_mins_ago)])
+        self.store_eap_items(
+            [self.create_ourlog(attributes={"sentry.release": "0.8"}, timestamp=self.ten_mins_ago)]
+        )
 
         request = {
             "field": ["release"],
@@ -1025,7 +1027,9 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.data["data"] == [{"release": "0.8"}]
 
         self.create_release(version="0.9")
-        self.store_eap_items([self.create_ourlog({"release": "0.9"}, timestamp=self.ten_mins_ago)])
+        self.store_eap_items(
+            [self.create_ourlog(attributes={"sentry.release": "0.9"}, timestamp=self.ten_mins_ago)]
+        )
 
         response = self.do_request(request)
         assert response.status_code == 200, response.content
@@ -1036,8 +1040,12 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         self.create_release(version="test@1.2.4")
         self.store_eap_items(
             [
-                self.create_ourlog({"release": "test@1.2.3"}, timestamp=self.ten_mins_ago),
-                self.create_ourlog({"release": "test@1.2.4"}, timestamp=self.ten_mins_ago),
+                self.create_ourlog(
+                    attributes={"sentry.release": "test@1.2.3"}, timestamp=self.ten_mins_ago
+                ),
+                self.create_ourlog(
+                    attributes={"sentry.release": "test@1.2.4"}, timestamp=self.ten_mins_ago
+                ),
             ]
         )
 
