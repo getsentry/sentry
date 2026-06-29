@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import errno
 import logging
 
+from rest_framework import status
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
@@ -14,11 +16,25 @@ from sentry.integrations.gitlab.metrics import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiForbiddenError,
+    ApiUnauthorized,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 
 logger = logging.getLogger(__name__)
+
+GITLAB_RETRY_CODES = (
+    status.HTTP_429_TOO_MANY_REQUESTS,
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    status.HTTP_502_BAD_GATEWAY,
+    status.HTTP_503_SERVICE_UNAVAILABLE,
+    status.HTTP_504_GATEWAY_TIMEOUT,
+    errno.ECONNRESET,
+)
 
 
 @instrumented_task(
@@ -55,47 +71,56 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
             organization_id=organization_id,
             id=repository_id,
         )
+
+        lifecycle.add_extras(
+            {
+                "integration_id": integration_id,
+                "organization_id": organization_id,
+                "repository_id": repository_id,
+            }
+        )
+
         if not repo or repo.status != ObjectStatus.ACTIVE:
             lifecycle.record_halt(
                 GitLabWebhookUpdateHaltReason.REPOSITORY_NOT_FOUND,
-                extra={
-                    "integration_id": integration_id,
-                    "organization_id": organization_id,
-                    "repository_id": repository_id,
-                },
             )
             return
-
-        lifecycle.add_extra("repository_id", repository_id)
 
         webhook_id = repo.config.get("webhook_id")
         project_id = repo.config.get("project_id")
 
+        lifecycle.add_extras(
+            {
+                "repository_id": repo.id,
+                "webhook_id": webhook_id,
+                "project_id": project_id,
+            }
+        )
+
         if not webhook_id or not project_id:
             lifecycle.record_halt(
                 GitLabWebhookUpdateHaltReason.MISSING_WEBHOOK_CONFIG,
-                extra={
-                    "repository_id": repo.id,
-                    "repository_name": repo.name,
-                    "has_webhook_id": bool(webhook_id),
-                    "has_project_id": bool(project_id),
-                },
             )
             return
 
         installation = integration.get_installation(organization_id=organization_id)
         client = installation.get_client()
 
-        client.update_project_webhook(project_id, webhook_id)
-        logger.info(
-            "update-project-webhook.webhook-updated",
-            extra={
-                "repository_id": repo.id,
-                "repository_name": repo.name,
-                "project_id": project_id,
-                "webhook_id": webhook_id,
-            },
-        )
+        try:
+            client.update_project_webhook(project_id, webhook_id)
+        except (ApiUnauthorized, ApiForbiddenError) as e:
+            lifecycle.record_halt(e)
+            # Don't retry if we've lost access
+            return
+
+        except ApiError as e:
+            # Raise for retry on a small number of transient errors
+            if e.code in GITLAB_RETRY_CODES:
+                raise
+
+            # Anything not in the retry list should be considered a hard-stop
+            # failure.
+            lifecycle.record_failure(e)
 
 
 @instrumented_task(

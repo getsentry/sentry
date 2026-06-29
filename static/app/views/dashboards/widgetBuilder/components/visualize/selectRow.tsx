@@ -16,7 +16,7 @@ import {
   type AggregationRefinement,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {AggregationKey} from 'sentry/utils/fields';
+import {AggregationKey, prettifyTagKey} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -191,6 +191,23 @@ export function SelectRow({
     field.kind === FieldValueKind.FUNCTION
       ? (parsedFunction?.arguments[0] ?? '')
       : field.field;
+
+  // Ensure the currently selected column is always present in the options so the
+  // dropdown reflects the saved state instead of showing "None" when the field is
+  // missing from the fetched attributes (e.g. a saved field no longer returned by
+  // the /attributes call).
+  const columnOptionsWithSelected = useMemo(() => {
+    if (columnValue && !columnOptions.some(option => option.value === columnValue)) {
+      return [
+        ...columnOptions,
+        {
+          label: prettifyTagKey(columnValue),
+          value: columnValue,
+        },
+      ];
+    }
+    return columnOptions;
+  }, [columnValue, columnOptions]);
 
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
@@ -454,7 +471,7 @@ export function SelectRow({
         <SelectWrapper ref={columnSelectRef}>
           <ColumnCompactSelect
             search
-            options={sortSelectedFirst(columnValue, columnOptions)}
+            options={sortSelectedFirst(columnValue, columnOptionsWithSelected)}
             value={columnValue}
             onChange={newField => {
               const newFields = cloneDeep(fields);
