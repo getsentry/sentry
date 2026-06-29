@@ -10,7 +10,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.options.rollout import in_random_rollout
-from sentry.taskworker.producer import get_task_producer
+from sentry.taskworker.producer import TaskProducer, get_task_producer
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import metrics
@@ -39,6 +39,12 @@ _eap_items_taskproducer = get_task_producer(
 )
 
 
+def _get_producer() -> TaskProducer | SingletonProducer:
+    if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout("tasks.producer.uptime.rollout"):
+        return _eap_items_taskproducer
+    return _eap_items_producer
+
+
 def produce_eap_uptime_result(
     detector: Detector,
     result: CheckResult,
@@ -61,15 +67,11 @@ def produce_eap_uptime_result(
             detector.project, result, incident_status
         )
         topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
+        producer = _get_producer()
 
         for trace_item in trace_items:
             payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
-            if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
-                "tasks.producer.uptime.rollout"
-            ):
-                _eap_items_taskproducer.produce(ArroyoTopic(topic), payload)
-            else:
-                _eap_items_producer.produce(ArroyoTopic(topic), payload)
+            producer.produce(ArroyoTopic(topic), payload)
 
         metrics.incr(
             "uptime.result_processor.eap_message_produced",
