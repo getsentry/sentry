@@ -1597,7 +1597,6 @@ class WeeklyReportsTest(
 
         assert ctx["enhanced_privacy"]
         assert len(ctx["key_errors"]) == 0
-        assert len(ctx["key_transactions"]) == 0
         assert len(ctx["key_performance_issues"]) == 0
         assert ctx["trends"]["total_error_count"] == 2
         assert ctx["issue_summary"] is not None
@@ -1629,7 +1628,6 @@ class WeeklyReportsTest(
 
         for project_ctx in ctx.projects_context_map.values():
             assert project_ctx.key_errors_by_group == []
-            assert project_ctx.key_transactions == []
             assert project_ctx.key_performance_issues == []
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))

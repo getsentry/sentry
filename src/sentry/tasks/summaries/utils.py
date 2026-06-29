@@ -33,7 +33,6 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
-from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
@@ -89,8 +88,6 @@ class ProjectContext:
 
         self.key_errors_by_id: list[tuple[int, int]] = []
         self.key_errors_by_group: list[tuple[Group, int]] = []
-        # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
-        self.key_transactions = []
         # Array of (Group, count)
         self.key_performance_issues = []
         # Array of (Group, event_count, has_linked_pr_or_commit)
@@ -115,7 +112,6 @@ class ProjectContext:
     def check_if_project_is_empty(self):
         return (
             not self.key_errors_by_group
-            and not self.key_transactions
             and not self.key_performance_issues
             and not self.past_resolved_issues
             and not self.accepted_error_count
@@ -562,75 +558,6 @@ def _project_key_performance_issues_eap(
         normalized_rows.append({"group_id": int(group_id), "count()": int(count)})
 
     return normalized_rows
-
-
-def project_key_transactions_this_week(ctx, project):
-    if not project.flags.has_transactions:
-        return
-    with start_span(
-        op="weekly_reports.project_key_transactions", name="weekly_reports.project_key_transactions"
-    ):
-        # Take the 3 most frequently occuring transactions this week
-        query = Query(
-            match=Entity("transactions"),
-            select=[
-                Column("transaction_name"),
-                Function("quantile(0.95)", [Column("duration")], "p95"),
-                Function("count", [], "count"),
-            ],
-            where=[
-                Condition(Column("finish_ts"), Op.GTE, ctx.start),
-                Condition(Column("finish_ts"), Op.LT, ctx.end + timedelta(days=1)),
-                Condition(Column("project_id"), Op.EQ, project.id),
-            ],
-            groupby=[Column("transaction_name")],
-            orderby=[OrderBy(Function("count", []), Direction.DESC)],
-            limit=Limit(3),
-        )
-        request = Request(
-            dataset=Dataset.Transactions.value,
-            app_id="reports",
-            query=query,
-            tenant_ids={"organization_id": ctx.organization.id},
-        )
-        query_result = raw_snql_query(
-            request, referrer=Referrer.REPORTS_KEY_TRANSACTIONS_THIS_WEEK.value
-        )
-        key_transactions = query_result["data"]
-        return key_transactions
-
-
-def project_key_transactions_last_week(ctx, project, key_transactions):
-    # Query the p95 for those transactions last week
-    query = Query(
-        match=Entity("transactions"),
-        select=[
-            Column("transaction_name"),
-            Function("quantile(0.95)", [Column("duration")], "p95"),
-            Function("count", [], "count"),
-        ],
-        where=[
-            Condition(Column("finish_ts"), Op.GTE, ctx.start - timedelta(days=7)),
-            Condition(Column("finish_ts"), Op.LT, ctx.end - timedelta(days=7)),
-            Condition(Column("project_id"), Op.EQ, project.id),
-            Condition(
-                Column("transaction_name"),
-                Op.IN,
-                [i["transaction_name"] for i in key_transactions],
-            ),
-        ],
-        groupby=[Column("transaction_name")],
-    )
-    request = Request(
-        dataset=Dataset.Transactions.value,
-        app_id="reports",
-        query=query,
-        tenant_ids={"organization_id": ctx.organization.id},
-    )
-    query_result = raw_snql_query(
-        request, referrer=Referrer.REPORTS_KEY_TRANSACTIONS_LAST_WEEK.value
-    )
-    return query_result
 
 
 def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
