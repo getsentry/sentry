@@ -64,12 +64,10 @@ export function OurlogsSection({
     retry: false,
   });
 
-  const replayRecord = useMemo(
-    () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),
-    [replayData?.data]
-  );
-
   const freeze = useMemo<LogsFrozenContextProviderProps | undefined>(() => {
+    const replayRecord = replayData?.data
+      ? mapResponseToReplayRecord(replayData.data)
+      : undefined;
     if (replayId && replayRecord?.started_at) {
       const traceIds = Array.from(
         new Set([...replayRecord.trace_ids, ...(traceId ? [traceId] : [])])
@@ -85,7 +83,7 @@ export function OurlogsSection({
       return {traceId};
     }
     return;
-  }, [replayId, replayRecord, traceId]);
+  }, [replayId, replayData?.data, traceId]);
 
   if (replayId && isReplayLoading) {
     return null;
