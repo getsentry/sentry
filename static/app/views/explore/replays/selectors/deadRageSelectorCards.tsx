@@ -1,8 +1,8 @@
 import type {ReactNode} from 'react';
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {Accordion} from 'sentry/components/container/accordion';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -24,53 +24,27 @@ import {ProjectInfo} from 'sentry/views/explore/replays/selectors/projectInfo';
 import {SelectorLink} from 'sentry/views/explore/replays/selectors/selectorLink';
 import {transformSelectorQuery} from 'sentry/views/explore/replays/selectors/utils';
 
+type ClickType = 'count_dead_clicks' | 'count_rage_clicks';
+type DeadOrRage = 'dead' | 'rage';
+
 export function DeadRageSelectorCards() {
   return (
     <SplitCardContainer>
-      <AccordionWidget
-        clickType="count_dead_clicks"
-        header={
-          <div>
-            <StyledWidgetHeader>
-              <Flex align="center" gap="md">
-                {t('Most Dead Clicks')}
-                <QuestionTooltip
-                  size="xs"
-                  position="top"
-                  title={t(
-                    'The top selectors your users have dead clicked on (i.e., a user click that does not result in any page activity after 7 seconds).'
-                  )}
-                  isHoverable
-                />
-              </Flex>
-            </StyledWidgetHeader>
-            <Subtitle>{t('Suggested replays to watch')}</Subtitle>
-          </div>
-        }
-        deadOrRage="dead"
-      />
-      <AccordionWidget
-        clickType="count_rage_clicks"
-        header={
-          <div>
-            <StyledWidgetHeader>
-              <Flex align="center" gap="md">
-                {t('Most Rage Clicks')}
-                <QuestionTooltip
-                  size="xs"
-                  position="top"
-                  title={t(
-                    'The top selectors your users have rage clicked on (i.e., 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds).'
-                  )}
-                  isHoverable
-                />
-              </Flex>
-            </StyledWidgetHeader>
-            <Subtitle>{t('Suggested replays to watch')}</Subtitle>
-          </div>
-        }
-        deadOrRage="rage"
-      />
+      <AccordionWidget clickType="count_dead_clicks" deadOrRage="dead" />
+      <AccordionWidget clickType="count_rage_clicks" deadOrRage="rage" />
+    </SplitCardContainer>
+  );
+}
+
+export function DeadRageSelectorCardsPlaceholder() {
+  return (
+    <SplitCardContainer>
+      <WidgetFrame deadOrRage="dead">
+        <SelectorCardPlaceholder />
+      </WidgetFrame>
+      <WidgetFrame deadOrRage="rage">
+        <SelectorCardPlaceholder />
+      </WidgetFrame>
     </SplitCardContainer>
   );
 }
@@ -78,11 +52,9 @@ export function DeadRageSelectorCards() {
 function AccordionWidget({
   clickType,
   deadOrRage,
-  header,
 }: {
-  clickType: 'count_dead_clicks' | 'count_rage_clicks';
-  deadOrRage: 'dead' | 'rage';
-  header: ReactNode;
+  clickType: ClickType;
+  deadOrRage: DeadOrRage;
 }) {
   const clickVariant = deadOrRage === 'dead' ? 'warning' : 'danger';
   const [selectedListIndex, setSelectListIndex] = useState(-1);
@@ -97,17 +69,9 @@ function AccordionWidget({
   const filteredData = data.filter(d => (d[clickType] ?? 0) > 0);
 
   return (
-    <StyledWidgetContainer data-test-id="selector-widget">
-      <StyledHeaderContainer>
-        <IconCursorArrow variant={clickVariant} />
-        {header}
-      </StyledHeaderContainer>
+    <WidgetFrame deadOrRage={deadOrRage}>
       {isLoading ? (
-        <LoadingContainer>
-          <StyledPlaceholder />
-          <StyledPlaceholder />
-          <StyledPlaceholder />
-        </LoadingContainer>
+        <SelectorCardPlaceholder />
       ) : isError || (!isLoading && filteredData.length === 0) ? (
         <Flex flex="1 1 auto" direction="column" justify="center">
           <StyledEmptyStateWarning withIcon={false}>
@@ -127,7 +91,9 @@ function AccordionWidget({
         <Flex flex="1 1 auto" direction="column" justify="start">
           <Accordion
             collapsible
+            collapsedChevronDirection="right"
             expandedIndex={selectedListIndex}
+            expandedChevronDirection="down"
             setExpandedIndex={setSelectListIndex}
             items={filteredData.map(d => {
               const selectorQuery = `${deadOrRage}.selector:"${transformSelectorQuery(
@@ -156,7 +122,69 @@ function AccordionWidget({
           />
         </Flex>
       )}
+    </WidgetFrame>
+  );
+}
+
+function WidgetFrame({
+  children,
+  deadOrRage,
+}: {
+  children: ReactNode;
+  deadOrRage: DeadOrRage;
+}) {
+  const clickVariant = deadOrRage === 'dead' ? 'warning' : 'danger';
+
+  return (
+    <StyledWidgetContainer data-test-id="selector-widget">
+      <StyledHeaderContainer>
+        <IconCursorArrow variant={clickVariant} />
+        <SelectorCardHeader deadOrRage={deadOrRage} />
+      </StyledHeaderContainer>
+      {children}
     </StyledWidgetContainer>
+  );
+}
+
+function SelectorCardHeader({deadOrRage}: {deadOrRage: DeadOrRage}) {
+  return (
+    <div>
+      <StyledWidgetHeader>
+        <Flex align="center" gap="md">
+          {deadOrRage === 'dead' ? t('Most Dead Clicks') : t('Most Rage Clicks')}
+          <QuestionTooltip
+            size="xs"
+            position="top"
+            title={
+              deadOrRage === 'dead'
+                ? t(
+                    'The top selectors your users have dead clicked on (i.e., a user click that does not result in any page activity after 7 seconds).'
+                  )
+                : t(
+                    'The top selectors your users have rage clicked on (i.e., 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds).'
+                  )
+            }
+            isHoverable
+          />
+        </Flex>
+      </StyledWidgetHeader>
+      <Subtitle>{t('Suggested replays to watch')}</Subtitle>
+    </div>
+  );
+}
+
+function SelectorCardPlaceholder() {
+  return (
+    <Fragment>
+      <Container paddingTop="md" />
+      <LoadingContainer borderTop="muted">
+        <Stack gap="xs">
+          <Placeholder style={{height: '32px'}} />
+          <Placeholder style={{height: '32px'}} />
+          <Placeholder style={{height: '32px'}} />
+        </Stack>
+      </LoadingContainer>
+    </Fragment>
   );
 }
 
@@ -256,11 +284,7 @@ const EmptySubtitle = styled('div')`
 const LoadingContainer = styled((props: FlexProps) => (
   <Flex gap="2xs" flex="1 1 auto" direction="column" justify="start" {...props} />
 ))`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xs} 3px ${p => p.theme.space.xs};
-`;
-
-const StyledPlaceholder = styled(Placeholder)`
-  height: 36px;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xs} 4px ${p => p.theme.space.xs};
 `;
 
 const EmptyHeader = styled(Flex)`

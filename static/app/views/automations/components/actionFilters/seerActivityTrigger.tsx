@@ -13,8 +13,8 @@ import {useDataConditionNodeContext} from 'sentry/views/automations/components/d
 const SEER_ACTIVITY_STAGE_CHOICES: Array<{label: string; value: string}> = [
   {value: 'rca_started', label: t('Root cause analysis started')},
   {value: 'rca_completed', label: t('Root cause analysis completed')},
-  {value: 'solution_started', label: t('Solution search started')},
-  {value: 'solution_completed', label: t('Solution search completed')},
+  {value: 'solution_started', label: t('Planning started')},
+  {value: 'solution_completed', label: t('Planning completed')},
   {value: 'coding_started', label: t('Coding started')},
   {value: 'coding_completed', label: t('Coding completed')},
   {value: 'pr_created', label: t('Pull request created')},

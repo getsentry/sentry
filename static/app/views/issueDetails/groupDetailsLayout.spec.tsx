@@ -96,7 +96,6 @@ describe('GroupDetailsLayout', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
       }),
     });
     MockApiClient.addMockResponse({

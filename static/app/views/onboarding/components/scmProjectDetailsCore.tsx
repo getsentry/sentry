@@ -54,7 +54,7 @@ export function ScmProjectDetailsCore({
   }, [organization, analyticsFlow]);
 
   return (
-    <Grid width="100%" columns={{sm: '1fr', md: '1fr 1fr'}} gap="2xl">
+    <Grid width="100%" columns={{sm: '1fr', md: '1fr 1fr'}} gap="xl">
       <Stack gap="md">
         <Container>
           <Heading as="h4">{t('Project name')}</Heading>

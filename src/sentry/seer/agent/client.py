@@ -147,21 +147,23 @@ def get_monitoring_provider_connections(
             access_token = identity.data.get("access_token")
             if not access_token:
                 continue
-            url = provider.build_mcp_url(identity.data)
-            if not url:
+            urls = provider.build_mcp_urls(identity.data)
+            if not urls:
                 continue
             encrypted_access_token = encrypt_access_token_for_seer(access_token)
             if not encrypted_access_token:
                 continue
-            connections.append(
-                {
-                    "provider_key": provider_type,
-                    "url": url,
-                    "encrypted_access_token": encrypted_access_token,
-                    "identity_id": identity.id,
-                    "auth_method": "oauth" if is_oauth_provider else "pat",
-                }
-            )
+            auth_method = "oauth" if is_oauth_provider else "pat"
+            for url in urls:
+                connections.append(
+                    {
+                        "provider_key": provider_type,
+                        "url": url,
+                        "encrypted_access_token": encrypted_access_token,
+                        "identity_id": identity.id,
+                        "auth_method": auth_method,
+                    }
+                )
 
     return connections
 

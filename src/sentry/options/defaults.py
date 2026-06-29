@@ -326,6 +326,20 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "merge.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.merge-unmerge.max-group-times-seen",
+    default=0,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "cleanup.abort_execution",
@@ -1115,6 +1129,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Fraction of grouping requests to route to the CPU (summarization) backend instead of GPU
+register(
+    "seer.similarity.cpu-backend-sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "embeddings-grouping.seer.delete-record-batch-size",
@@ -1511,17 +1533,17 @@ register(
 )
 
 # Brownout schedule for the deprecated alerts API endpoints.
-# 1 minute blackout 6 times a day (every 4 hours, on the hour, UTC).
+# 2 minute blackout 12 times a day (every 2 hours, on the hour, UTC).
 register(
     "api.deprecation.alerts-cron",
-    default="0 */4 * * *",
+    default="0 */2 * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "api.deprecation.alerts-duration",
     type=Int,
-    default=60,
+    default=120,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

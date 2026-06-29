@@ -7,12 +7,36 @@ from sentry import tagstore
 from sentry.integrations.data_forwarding.base import BaseDataForwarder
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
+from sentry.utils.anonymizeip import anonymize_ip
 from sentry.utils.hashlib import md5_text
-from sentry_plugins.anonymizeip import anonymize_ip
-from sentry_plugins.splunk.client import SplunkApiClient
 
 logger = logging.getLogger(__name__)
+
+
+class SplunkApiClient(BaseApiClient):
+    integration_type = "plugin"
+    metrics_prefix = "integrations.splunk"
+    plugin_name = "splunk"
+    allow_redirects = False
+
+    def __init__(self, endpoint, token):
+        self.endpoint = endpoint
+        self.token = token
+        super().__init__(verify_ssl=False)
+
+    def request(self, data):
+        headers = {"Authorization": f"Splunk {self.token}"}
+        return self._request(
+            path=self.endpoint,
+            method="post",
+            data=data,
+            headers=headers,
+            json=True,
+            timeout=5,
+            allow_text=True,
+        )
 
 
 class SplunkForwarder(BaseDataForwarder):

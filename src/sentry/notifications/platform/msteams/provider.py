@@ -18,21 +18,21 @@ from sentry.notifications.platform.target import (
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     LinkTextBlock,
-    NotificationBodyFormattingBlock,
-    NotificationBodyFormattingBlockType,
-    NotificationBodyTextBlock,
-    NotificationBodyTextBlockType,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSection,
+    NotificationSectionType,
     NotificationTarget,
     NotificationTargetResourceType,
+    NotificationTextBlock,
+    NotificationTextBlockType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
 
 if TYPE_CHECKING:
-    from sentry.integrations.msteams.card_builder.block import AdaptiveCard, Block
+    from sentry.integrations.msteams.card_builder.block import AdaptiveCard, Block, TextSize
 
 type MSTeamsRenderable = AdaptiveCard
 
@@ -57,8 +57,9 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             create_text_block,
         )
 
+        subject_text = cls.render_text_blocks(rendered_template.subject_blocks)
         title_text = create_text_block(
-            text=rendered_template.subject, size=TextSize.LARGE, weight=TextWeight.BOLDER
+            text=subject_text, size=TextSize.LARGE, weight=TextWeight.BOLDER
         )
         body_text = cls.render_body_blocks(rendered_template.body)
         body_blocks: list[Block] = [title_text, *body_text]
@@ -82,8 +83,8 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             body_blocks.append(chart_image)
 
         if rendered_template.footer is not None:
-            footer_text = create_text_block(text=rendered_template.footer, size=TextSize.SMALL)
-            body_blocks.append(footer_text)
+            footer_str = cls.render_text_blocks(rendered_template.footer_blocks)
+            body_blocks.append(create_text_block(text=footer_str, size=TextSize.SMALL))
 
         card: AdaptiveCard = {
             "type": "AdaptiveCard",
@@ -94,33 +95,39 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         return card
 
     @classmethod
-    def render_body_blocks(cls, body: list[NotificationBodyFormattingBlock]) -> list[Block]:
+    def render_body_blocks(
+        cls, body: list[NotificationSection], size: TextSize | None = None
+    ) -> list[Block]:
         from sentry.integrations.msteams.card_builder.block import (
+            TextSize,
             create_code_block,
             create_text_block,
         )
 
+        if size is None:
+            size = TextSize.MEDIUM
+
         body_blocks: list[Block] = []
         for block in body:
-            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
-                body_blocks.append(create_text_block(text=cls.render_text_blocks(block.blocks)))
-            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+            if block.type == NotificationSectionType.PARAGRAPH:
+                body_blocks.append(
+                    create_text_block(text=cls.render_text_blocks(block.blocks), size=size)
+                )
+            elif block.type == NotificationSectionType.CODE_BLOCK:
                 body_blocks.append(create_code_block(text=cls.render_text_blocks(block.blocks)))
         return body_blocks
 
     @classmethod
-    def render_text_blocks(cls, blocks: list[NotificationBodyTextBlock]) -> str:
+    def render_text_blocks(cls, blocks: list[NotificationTextBlock]) -> str:
         texts = []
         for block in blocks:
-            if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+            if block.type == NotificationTextBlockType.PLAIN_TEXT:
                 texts.append(block.text)
-            elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+            elif block.type == NotificationTextBlockType.BOLD_TEXT:
                 texts.append(f"**{block.text}**")
-            elif block.type == NotificationBodyTextBlockType.CODE:
+            elif block.type == NotificationTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
-            elif block.type == NotificationBodyTextBlockType.LINK and isinstance(
-                block, LinkTextBlock
-            ):
+            elif block.type == NotificationTextBlockType.LINK and isinstance(block, LinkTextBlock):
                 texts.append(f"[{block.text}]({block.url})")
         return " ".join(texts)
 

@@ -18,16 +18,15 @@ import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
   ALL_CONVERSATION_COLUMNS,
-  type ConversationColumnKey,
+  type ConversationColumn,
   CONVERSATION_COLUMNS,
   DEFAULT_CONVERSATION_COLUMNS,
-  parseConversationColumns,
 } from 'sentry/views/explore/conversations/utils/tableColumns';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 
 interface ConversationsTableEditModalProps extends ModalRenderProps {
-  columns: readonly ConversationColumnKey[];
-  onColumnsChange: (columns: ConversationColumnKey[]) => void;
+  columns: readonly ConversationColumn[];
+  onColumnsChange: (columns: ConversationColumn[]) => void;
 }
 
 export function ConversationsTableEditModal({
@@ -45,9 +44,12 @@ export function ConversationsTableEditModal({
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => {
         // Default the new row to the first column not already shown, falling back
         // to the first column so a duplicate is allowed once they're all in use.
-        const usedColumns = new Set(editableColumns.map(c => c.column));
-        const nextColumn: ConversationColumnKey =
-          ALL_CONVERSATION_COLUMNS.find(key => !usedColumns.has(key)) ?? 'conversationId';
+        const usedColumns = new Set(editableColumns.map(c => c.column.key));
+        const nextColumn: ConversationColumn = {
+          key:
+            ALL_CONVERSATION_COLUMNS.find(key => !usedColumns.has(key)) ??
+            'conversationId',
+        };
 
         return (
           <Fragment>
@@ -78,16 +80,17 @@ export function ConversationsTableEditModal({
             </Body>
             <Footer>
               <Grid flow="column" align="center" gap="md">
-                <Button onClick={() => setTempColumns([...DEFAULT_CONVERSATION_COLUMNS])}>
+                <Button
+                  onClick={() =>
+                    setTempColumns(DEFAULT_CONVERSATION_COLUMNS.map(key => ({key})))
+                  }
+                >
                   {t('Reset')}
                 </Button>
                 <Button
                   variant="primary"
                   onClick={() => {
-                    const parsedConversationColumns = parseConversationColumns(
-                      editableColumns.map(c => c.column)
-                    );
-                    onColumnsChange(parsedConversationColumns);
+                    onColumnsChange(editableColumns.map(c => c.column));
                     closeModal();
                   }}
                 >
@@ -104,8 +107,8 @@ export function ConversationsTableEditModal({
 
 interface ColumnEditorRowProps {
   canDelete: boolean;
-  column: Column<ConversationColumnKey>;
-  onColumnChange: (column: ConversationColumnKey) => void;
+  column: Column<ConversationColumn>;
+  onColumnChange: (column: ConversationColumn) => void;
   onColumnDelete: () => void;
 }
 
@@ -135,11 +138,13 @@ function ColumnEditorRow({
               label: CONVERSATION_COLUMNS[key].name,
               trailingItems: <TypeBadge valueType={CONVERSATION_COLUMNS[key].type} />,
             }))}
-            value={column.column}
-            onChange={option => onColumnChange(option.value)}
+            value={column.column.key}
+            onChange={option =>
+              onColumnChange({key: option.value, width: column.column.width})
+            }
             style={{flex: 1, minWidth: 0}}
             trigger={triggerProps => {
-              const definition = CONVERSATION_COLUMNS[column.column];
+              const definition = CONVERSATION_COLUMNS[column.column.key];
               return (
                 <OverlayTrigger.Button
                   {...triggerProps}

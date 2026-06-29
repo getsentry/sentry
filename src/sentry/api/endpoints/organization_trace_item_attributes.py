@@ -92,6 +92,7 @@ from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.tracing import set_span_data, start_span
 
 POSSIBLE_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
 
@@ -617,7 +618,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
             attribute_type, AttributeKey.Type.TYPE_STRING
         )
-        with sentry_sdk.start_span(op="filter", name="hardcoded_aliases") as span:
+        with start_span(op="filter", name="hardcoded_aliases") as span:
             all_aliased_attributes = []
             # our aliases don't exist in the db, so filter over our aliases
             # virtually page through defined aliases before we hit the db
@@ -667,7 +668,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                                 )
                             )
             aliased_attributes = all_aliased_attributes[offset : offset + limit]
-        with sentry_sdk.start_span(op="query", name="attribute_names") as span:
+        with start_span(op="query", name="attribute_names") as span:
             if len(aliased_attributes) < limit:
                 offset -= len(all_aliased_attributes) - len(aliased_attributes)
                 limit -= len(aliased_attributes)
@@ -691,7 +692,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             else:
                 rpc_response = TraceItemAttributeNamesResponse()
 
-        with sentry_sdk.start_span(op="query", name="serialize") as span:
+        with start_span(op="query", name="serialize") as span:
             attributes = self.serialize_trace_attributes(
                 rpc_response,
                 attribute_type,
@@ -705,8 +706,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
             sentry_sdk.set_context("api_response", {"attributes": attributes})
             sentry_sdk.set_attribute("api_response.attributes", str(attributes))
-            span.set_data("attribute_count", len(attributes))
-            span.set_data("attribute_type", attribute_type)
+            set_span_data(span, "attribute_count", len(attributes))
+            set_span_data(span, "attribute_type", attribute_type)
         return attributes, debug_info
 
     def serialize_trace_attributes(
