@@ -304,6 +304,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 },
             }
             for pull_request in state.repo_pr_states.values()
+            if pull_request.pr_creation_status == "completed"
         ]
 
     @classmethod
