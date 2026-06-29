@@ -9,8 +9,7 @@ import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.models.options.project_option import ProjectOption
-from sentry.replays.lib.eap.write import write_trace_items
-from sentry.replays.lib.kafka import publish_replay_event
+from sentry.replays.lib.kafka import publish_replay_event, write_trace_items
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta, TapEvent
 from sentry.replays.usecases.ingest.issue_creation import (
     report_hydration_error_issue_with_replay_event,
