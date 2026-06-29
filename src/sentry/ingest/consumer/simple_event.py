@@ -91,7 +91,16 @@ def process_simple_event_message(
     silo_mode=SiloMode.CELL,
 )
 def process_event_from_kafka(message_bytes: bytes) -> None:
-    """Process an event from raw Kafka message bytes (taskbroker raw mode)."""
+    """Process an event from raw Kafka message bytes.
+
+    This task is directly spawned from taskbroker in "raw mode". You won't find
+    any application code that calls apply_async or delay directly on it,
+    instead taskbroker itself is configured to consume a topic (in infra
+    templates) and spawns tasks for each message.
+
+    As such, the task signature, name and namespace cannot be changed without
+    coordination.
+    """
     metrics.distribution(
         "ingest_consumer.payload_size",
         len(message_bytes),

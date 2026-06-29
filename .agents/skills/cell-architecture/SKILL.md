@@ -136,14 +136,28 @@ Project.objects.filter(teams__organizationmember__user_id=user_id)
 | **Denormalize to control silo** | High QPS, paginated lists, eventual consistency acceptable. Replicate needed fields to a `@control_silo_model` via outboxes — single local query, no RPC. See **hybrid-cloud-outboxes** skill.  |
 | **API gateway fan-out**         | Temporary stopgap only — breaks pagination, latency = slowest cell.                                                                                                                             |
 
-## Running Cell-Routing Locally
+## Running Cell-Routing proxy locally
 
 ```bash
 devservices up --mode cell-routing            # brings up synapse + deps
-SENTRY_CELL_ROUTING=1 sentry devserver        # or devservices serve
+SENTRY_CELL_ROUTING=1 sentry devserver --client-hostname=dev.getsentry.net # or devservices serve
 ```
 
 Only cell-scoped API XHRs (`/api/0/organizations/{slug}/*`) cross to Synapse on `:13000`; UI HTML and control API stay on the sentry devserver at `:8000`. The env var gates a block in `src/sentry/conf/server.py` that sets `system.region-api-url-template` to the Synapse port and flips `system:multi-region`. The frontend reads `regionUrl` from the bootstrap blob and routes cell XHRs there per `static/app/api.tsx:715`.
+
+### Sending a test envelope
+
+`bin/send-cell-test-event.py` exercises the ingestion path: it resolves a DSN from the
+local dev DB and sends an envelope through the edge relay (`:7899`), which forwards to
+relay-cell -> Kafka -> Sentry.
+
+```bash
+bin/send-cell-test-event.py                       # internal project (id 1)
+PROJECT_ID=42 bin/send-cell-test-event.py         # different project
+TARGET=127.0.0.1:7900 bin/send-cell-test-event.py # straight to relay-cell, bypass edge
+```
+
+Watch it route with `docker logs -f sentry-relay-edge-1`.
 
 ## Active Migration
 

@@ -24,14 +24,6 @@ _DEFAULT_DAEMONS = {
     "taskworker-scheduler": ["sentry", "run", "taskworker-scheduler"],
 }
 
-_SUBSCRIPTION_RESULTS_CONSUMERS = [
-    "events-subscription-results",
-    "transactions-subscription-results",
-    "generic-metrics-subscription-results",
-    "metrics-subscription-results",
-    "subscription-results-eap-items",
-]
-
 
 def add_daemon(name: str, command: list[str]) -> None:
     """
@@ -311,9 +303,6 @@ def devserver(
                 kafka_consumers.add("post-process-forwarder-issue-platform")
 
             daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
-
-            if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
-                kafka_consumers.update(_SUBSCRIPTION_RESULTS_CONSUMERS)
 
             if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
                 kafka_consumers.add("ingest-metrics")

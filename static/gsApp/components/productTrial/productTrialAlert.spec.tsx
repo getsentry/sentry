@@ -166,8 +166,8 @@ describe('ProductTrialAlert', () => {
       organization,
       planDetails: {
         ...SubscriptionFixture({organization}).planDetails,
-        price: 99,
         name: PlanName.BUSINESS,
+        totalPrice: 99,
       },
     });
 
@@ -205,8 +205,8 @@ describe('ProductTrialAlert', () => {
       organization,
       planDetails: {
         ...SubscriptionFixture({organization}).planDetails,
-        price: 29,
         name: PlanName.TEAM,
+        totalPrice: 29,
       },
     });
 
