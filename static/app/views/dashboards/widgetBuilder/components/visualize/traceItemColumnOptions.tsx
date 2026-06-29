@@ -26,20 +26,27 @@ export function buildTraceItemColumnOptions({
   stringTags,
   numberTags,
 }: BuildTraceItemColumnOptionsParams): TraceItemColumnOption[] {
+  // `textValue` is set to the attribute key so the dropdown's search matcher
+  // (sortSearchedAttributes scores `textValue ?? label`) filters on the key
+  // rather than the prettified label. Otherwise a server match whose query hits
+  // the key but not the display label would be filtered out client-side.
   return [
     ...Object.values(booleanTags).map(tag => ({
       label: tag.name,
       value: tag.key,
+      textValue: tag.key,
       trailingItems: () => <TypeBadge kind={FieldKind.BOOLEAN} />,
     })),
     ...Object.values(stringTags).map(tag => ({
       label: tag.name,
       value: tag.key,
+      textValue: tag.key,
       trailingItems: () => <TypeBadge kind={FieldKind.TAG} />,
     })),
     ...Object.values(numberTags).map(tag => ({
       label: prettifyTagKey(tag.name),
       value: tag.key,
+      textValue: tag.key,
       trailingItems: () => <TypeBadge kind={FieldKind.MEASUREMENT} />,
     })),
   ];

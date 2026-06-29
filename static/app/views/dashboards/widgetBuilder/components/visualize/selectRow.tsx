@@ -236,7 +236,11 @@ export function SelectRow({
 
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 250);
-  const hasSearch = debouncedSearch.length > 0;
+  // Require both the immediate and debounced values: the debounced value gates
+  // fetching while typing, and the immediate value tears the merge down the
+  // moment the search is cleared (e.g. on close) instead of lingering for the
+  // debounce window.
+  const hasSearch = search.length > 0 && debouncedSearch.length > 0;
 
   const supportedKinds = useMemo(
     () => getSearchableAttributeKinds(field, parsedFunction?.name),

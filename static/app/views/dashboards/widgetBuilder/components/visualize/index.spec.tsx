@@ -1551,8 +1551,94 @@ describe('Visualize', () => {
       // attribute should not linger in the options when there is no query.
       await userEvent.keyboard('{Escape}');
       await userEvent.click(screen.getByRole('button', {name: 'Column Selection'}));
-      expect(await screen.findByText('span.duration')).toBeInTheDocument();
-      expect(screen.queryByText('measurements.app_start_cold')).not.toBeInTheDocument();
+      const reopenedListbox = await screen.findByRole('listbox', {
+        name: 'Column Selection',
+      });
+      expect(within(reopenedListbox).getByText('span.duration')).toBeInTheDocument();
+      expect(
+        within(reopenedListbox).queryByText('measurements.app_start_cold')
+      ).not.toBeInTheDocument();
+    });
+
+    it('matches searched attributes by key even when the display label differs', async () => {
+      // The attribute's display label ("Cold Start") does not contain the
+      // queried substring, but its key does. The dropdown filter must score on
+      // the key so the server match is not dropped client-side.
+      jest
+        .mocked(useTraceItemDatasetAttributes)
+        .mockImplementation((_traceItemType, options, type?) => {
+          if (type === 'number') {
+            const searched =
+              options?.enabled && options?.search?.includes('app_start')
+                ? {
+                    'measurements.app_start_cold': {
+                      key: 'measurements.app_start_cold',
+                      name: 'Cold Start',
+                      kind: 'measurement',
+                    },
+                  }
+                : {};
+            return {
+              attributes: {
+                'span.duration': {
+                  key: 'span.duration',
+                  name: 'span.duration',
+                  kind: 'measurement',
+                },
+                ...searched,
+              } as TagCollection,
+              secondaryAliases: {},
+              isLoading: false,
+            };
+          }
+
+          if (type === 'boolean') {
+            return {attributes: {}, secondaryAliases: {}, isLoading: false};
+          }
+
+          return {
+            attributes: {
+              'span.description': {
+                key: 'span.description',
+                name: 'span.description',
+                kind: 'tag',
+              },
+            } as TagCollection,
+            secondaryAliases: {},
+            isLoading: false,
+          };
+        });
+
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization: OrganizationFixture({
+            features: ['performance-view', 'visibility-explore-view'],
+          }),
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                field: ['span.duration'],
+              },
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Column Selection'})
+      );
+
+      // Searching by the key surfaces the attribute even though its label is
+      // "Cold Start".
+      await userEvent.type(screen.getByPlaceholderText('Search…'), 'app_start');
+      expect(await screen.findByText('Cold Start')).toBeInTheDocument();
     });
 
     it('differentiates between function and column values in selection', async () => {
