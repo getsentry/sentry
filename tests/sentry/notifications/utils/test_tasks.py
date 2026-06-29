@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -5,7 +6,11 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils.functional import SimpleLazyObject
 
 from sentry.notifications.class_manager import NotificationClassNotSetException, manager, register
-from sentry.notifications.utils.tasks import _send_notification, async_send_notification
+from sentry.notifications.utils.tasks import (
+    _send_notification,
+    _serialize_value,
+    async_send_notification,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import AnotherDummyNotification, DummyNotification
 from sentry.users.services.user.serial import serialize_generic_user
@@ -139,3 +144,43 @@ class NotificationTaskTests(TestCase):
     def test_invalid_notification(self) -> None:
         with pytest.raises(NotificationClassNotSetException):
             async_send_notification(DummyNotification, self.organization, "some_value")
+
+
+class SerializeValueTests(TestCase):
+    def test_serialize_datetime(self) -> None:
+        dt = datetime(2024, 1, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert _serialize_value(dt) == "2024-01-15T12:30:45+00:00"
+
+    def test_serialize_nested_datetime_in_dict(self) -> None:
+        dt = datetime(2024, 1, 15, 12, 30, 45, tzinfo=timezone.utc)
+        data = {"created_at": dt, "name": "test"}
+        result = _serialize_value(data)
+        assert result == {"created_at": "2024-01-15T12:30:45+00:00", "name": "test"}
+
+    def test_serialize_nested_datetime_in_list(self) -> None:
+        dt = datetime(2024, 1, 15, 12, 30, 45, tzinfo=timezone.utc)
+        data = [{"created_at": dt}, {"updated_at": dt}]
+        result = _serialize_value(data)
+        assert result == [
+            {"created_at": "2024-01-15T12:30:45+00:00"},
+            {"updated_at": "2024-01-15T12:30:45+00:00"},
+        ]
+
+    def test_serialize_deeply_nested_datetime(self) -> None:
+        dt = datetime(2024, 1, 15, 12, 30, 45, tzinfo=timezone.utc)
+        data = {"user": {"authenticators": [{"created_at": dt, "type": 1}]}}
+        result = _serialize_value(data)
+        assert result == {
+            "user": {"authenticators": [{"created_at": "2024-01-15T12:30:45+00:00", "type": 1}]}
+        }
+
+    def test_serialize_frozenset(self) -> None:
+        data = frozenset(["a", "b", "c"])
+        result = _serialize_value(data)
+        assert sorted(result) == ["a", "b", "c"]
+
+    def test_serialize_primitive_passthrough(self) -> None:
+        assert _serialize_value("string") == "string"
+        assert _serialize_value(123) == 123
+        assert _serialize_value(None) is None
+        assert _serialize_value(True) is True

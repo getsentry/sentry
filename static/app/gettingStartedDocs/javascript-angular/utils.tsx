@@ -41,11 +41,11 @@ const getIntegrations = (params: Params): string[] => {
   const integrations = [];
 
   if (params.isPerformanceSelected) {
-    integrations.push(`Sentry.browserTracingIntegration()`);
+    integrations.push('Sentry.browserTracingIntegration()');
   }
 
   if (params.isProfilingSelected) {
-    integrations.push(`Sentry.browserProfilingIntegration()`);
+    integrations.push('Sentry.browserProfilingIntegration()');
   }
 
   if (params.isReplaySelected) {
@@ -127,9 +127,12 @@ bootstrapApplication(appConfig, AppComponent)
     params,
     staticParts: [
       `dsn: "${params.dsn.public}"`,
-      `// Setting this option to true will send default PII data to Sentry.
-      // For example, automatic IP address collection on events
-      sendDefaultPii: true`,
+      `dataCollection: {
+    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/guides/angular/configuration/options/#dataCollection
+    // userInfo: false,
+    // httpBodies: []
+  }`,
     ],
     getIntegrations,
     getDynamicParts,

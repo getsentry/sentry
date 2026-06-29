@@ -144,7 +144,7 @@ export function BaseChartActionDropdown({
       key: 'add-to-dashboard',
       label: (
         <Feature
-          hookName="feature-disabled:dashboards-edit"
+          overrideName="feature-disabled:dashboards-edit"
           features="organizations:dashboards-edit"
           renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
         >
@@ -200,7 +200,7 @@ export function BaseChartActionDropdown({
       triggerProps={{
         'aria-label': t('Widget actions'),
         size: 'xs',
-        priority: 'transparent',
+        variant: 'transparent',
         showChevron: false,
         icon: <IconEllipsis direction="down" size="sm" />,
       }}

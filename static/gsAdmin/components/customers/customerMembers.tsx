@@ -8,7 +8,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {IconMail} from 'sentry/icons';
 
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = {
   orgId: string;
@@ -20,7 +20,7 @@ const getRow = (row: any) => [
       <UserAvatar user={row} size={18} />
       <LinkButton
         external
-        priority="link"
+        variant="link"
         href={`mailto:${row.email}`}
         icon={<IconMail size="xs" />}
         tooltipProps={{title: 'Send email'}}

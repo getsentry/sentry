@@ -1,5 +1,4 @@
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 from time import sleep, time
 from unittest import TestCase
 
@@ -9,6 +8,7 @@ from sentry.ratelimits import above_rate_limit_check, finish_request
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.ratelimit import RateLimit, RateLimitMeta, RateLimitType
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 
 class RatelimitMiddlewareTest(TestCase):
@@ -76,7 +76,7 @@ class RatelimitMiddlewareTest(TestCase):
             finish_request("foo", uid)
             return meta
 
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ContextPropagatingThreadPoolExecutor(max_workers=4) as executor:
             futures = []
             for _ in range(4):
                 futures.append(executor.submit(do_request))

@@ -6,7 +6,7 @@ import type {ResourceSpanOps} from 'sentry/views/insights/browser/resources/type
 import type {SubregionCode} from 'sentry/views/insights/types';
 
 // TODO - we should probably just use SpanMetricsField here
-export enum BrowserStarfishFields {
+enum BrowserStarfishFields {
   SPAN_OP = 'span.op',
   TRANSACTION = 'transaction',
   SPAN_DOMAIN = 'span.domain',

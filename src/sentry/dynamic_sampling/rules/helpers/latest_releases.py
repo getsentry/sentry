@@ -12,6 +12,7 @@ from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT, get_redi
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 ENVIRONMENT_SEPARATOR = ":e:"
 BOOSTED_RELEASE_CACHE_KEY_REGEX = re.compile(
@@ -21,15 +22,6 @@ BOOSTED_RELEASE_CACHE_KEY_REGEX = re.compile(
 
 def _get_environment_cache_key(environment: str | None) -> str:
     return f"{ENVIRONMENT_SEPARATOR}{environment}" if environment else ""
-
-
-def _get_project_platform(project_id: int) -> Platform:
-    try:
-        return Platform(Project.objects.get(id=project_id).platform)
-    except Project.DoesNotExist:
-        # If we don't find the project of this release we just default to having no platform name in the
-        # BoostedRelease.
-        return Platform()
 
 
 @dataclass(frozen=True)
@@ -44,14 +36,14 @@ class BoostedRelease:
     # We also store the cache key corresponding to this boosted release entry, in order to remove it efficiently.
     cache_key: str
 
-    def extend(self, release: Release, project_id: int) -> "ExtendedBoostedRelease":
+    def extend(self, release: Release, platform: Platform) -> "ExtendedBoostedRelease":
         return ExtendedBoostedRelease(
             id=self.id,
             timestamp=self.timestamp,
             environment=self.environment,
             cache_key=self.cache_key,
             version=release.version,
-            platform=_get_project_platform(project_id),
+            platform=platform,
         )
 
 
@@ -85,7 +77,7 @@ class BoostedReleases:
         )
 
     def to_extended_boosted_releases(
-        self, project_id: int
+        self, platform: Platform
     ) -> tuple[list[ExtendedBoostedRelease], list[str]]:
         # We get release models in order to have all the information to extend the releases we get from the cache.
         models = self._get_releases_models()
@@ -104,7 +96,7 @@ class BoostedReleases:
                 continue
 
             extended_boosted_release = boosted_release.extend(
-                release=release_model, project_id=project_id
+                release=release_model, platform=platform
             )
 
             if extended_boosted_release.is_active(current_timestamp):
@@ -134,10 +126,10 @@ class ProjectBoostedReleases:
     # Limit of boosted releases per project.
     BOOSTED_RELEASES_HASH_EXPIRATION = 60 * 60 * 1000
 
-    def __init__(self, project_id: int):
+    def __init__(self, project: Project):
         self.redis_client = get_redis_client_for_ds()
-        self.project_id = project_id
-        self.project_platform = _get_project_platform(self.project_id)
+        self.project_id = project.id
+        self.project_platform = Platform(project.platform)
 
     @property
     def has_boosted_releases(self) -> bool:
@@ -171,7 +163,9 @@ class ProjectBoostedReleases:
         """
         # We read all boosted releases and we augment them in two separate loops in order to perform a single query
         # to fetch all the release models. This optimization avoids peforming a query for each release.
-        active, expired = self._get_boosted_releases().to_extended_boosted_releases(self.project_id)
+        active, expired = self._get_boosted_releases().to_extended_boosted_releases(
+            self.project_platform
+        )
         # We delete all the expired releases.
         if expired:
             self.redis_client.hdel(self._generate_cache_key_for_boosted_releases_hash(), *expired)
@@ -296,9 +290,7 @@ class LatestReleaseBias:
     def __init__(self, latest_release_params: LatestReleaseParams):
         self.redis_client = get_redis_client_for_ds()
         self.latest_release_params = latest_release_params
-        self.project_boosted_releases = ProjectBoostedReleases(
-            self.latest_release_params.project.id
-        )
+        self.project_boosted_releases = ProjectBoostedReleases(self.latest_release_params.project)
 
     @sentry_sdk.tracing.trace
     def observe_release(self, on_boosted_release_added: Callable[[], None]) -> None:
@@ -381,18 +373,22 @@ def record_latest_release(project: Project, release: Release, environment: str |
         return
 
     def on_release_boosted() -> None:
-        span.set_tag(
+        set_span_tag(
+            span,
             "dynamic_sampling.observe_release_status",
             "(release, environment) pair observed and boosted",
         )
-        span.set_data("release", release.id)
-        span.set_data("environment", environment)
+        set_span_data(span, "release", release.id)
+        set_span_data(span, "environment", environment)
 
         schedule_invalidate_project_config(
             project_id=project.id,
             trigger="dynamic_sampling:boost_release",
         )
 
-    with sentry_sdk.start_span(op="event_manager.dynamic_sampling_observe_latest_release") as span:
+    with start_span(
+        op="event_manager.dynamic_sampling_observe_latest_release",
+        name="event_manager.dynamic_sampling_observe_latest_release",
+    ) as span:
         params = LatestReleaseParams(release=release, project=project, environment=environment)
         LatestReleaseBias(params).observe_release(on_release_boosted)

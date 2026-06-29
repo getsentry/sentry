@@ -1,10 +1,13 @@
 /* global process */
 
+import type {Scope} from 'sentry/constants/scopes';
 import {t} from 'sentry/locale';
-import type {DataCategoryInfo, Scope} from 'sentry/types/core';
-import {DataCategory, DataCategoryExact} from 'sentry/types/core';
-import type {PermissionResource} from 'sentry/types/integrations';
-import type {Organization, OrgRole} from 'sentry/types/organization';
+import type {DataCategoryInfo} from 'sentry/types/dataCategory';
+import {DataCategory, DataCategoryExact} from 'sentry/types/dataCategory';
+import type {PermissionResource} from 'sentry/types/permissions';
+import type {OrgRole} from 'sentry/types/roles';
+
+export {API_ACCESS_SCOPES, ALLOWED_SCOPES} from 'sentry/constants/scopes';
 
 /**
  * Common constants here
@@ -32,55 +35,6 @@ export const CUSTOM_REFERRER_KEY = 'customReferrer';
 export const DEFAULT_APP_ROUTE = USING_CUSTOMER_DOMAIN
   ? '/issues/'
   : '/organizations/:orgSlug/issues/';
-
-export const API_ACCESS_SCOPES = [
-  'alerts:read',
-  'alerts:write',
-  'event:admin',
-  'event:read',
-  'event:write',
-  'member:admin',
-  'member:read',
-  'member:write',
-  'org:admin',
-  'org:integrations',
-  'org:read',
-  'org:write',
-  'project:admin',
-  'project:distribution',
-  'project:read',
-  'project:releases',
-  'project:write',
-  'team:admin',
-  'team:read',
-  'team:write',
-] as const;
-
-export const ALLOWED_SCOPES = [
-  'alerts:read',
-  'alerts:write',
-  'event:admin',
-  'event:read',
-  'event:write',
-  'member:admin',
-  'member:invite',
-  'member:read',
-  'member:write',
-  'org:admin',
-  'org:billing',
-  'org:integrations',
-  'org:read',
-  'org:superuser', // not an assignable API access scope
-  'org:write',
-  'project:admin',
-  'project:distribution',
-  'project:read',
-  'project:releases',
-  'project:write',
-  'team:admin',
-  'team:read',
-  'team:write',
-] as const;
 
 // These should only be used in the case where we cannot obtain roles through
 // the members endpoint (primarily in cases where a user is admining a
@@ -137,6 +91,14 @@ export type PermissionObj = {
   label?: string;
 };
 
+export type SpecialPermissionObj = {
+  fieldName: string;
+  help: string;
+  label: string;
+  scope: Scope;
+  summary: string;
+};
+
 export const RELEASE_ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
 
 export const DISTRIBUTION_SENTRY_APP_PERMISSION: PermissionObj = {
@@ -147,6 +109,18 @@ export const DISTRIBUTION_SENTRY_APP_PERMISSION: PermissionObj = {
     read: {label: 'Read', scopes: ['project:distribution']},
   },
 };
+
+export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj = {
+  fieldName: 'ContinuousIntegration--permission',
+  label: 'Continuous Integration (CI)',
+  help: 'Allows CI and deployment tools to upload source maps, create releases, and manage code mappings for this organization.',
+  summary: 'Source map upload, release creation, and code mappings.',
+  scope: 'org:ci',
+};
+
+export const SPECIAL_SENTRY_APP_PERMISSIONS: SpecialPermissionObj[] = [
+  CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
+];
 
 // We expose permissions for Sentry Apps in a more resource-centric way.
 // All of the API_ACCESS_SCOPES from above should be represented in a more
@@ -229,9 +203,10 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
 export const DEFAULT_TOAST_DURATION = 6000;
 export const DEFAULT_DEBOUNCE_DURATION = 300;
 
-export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
+// sentry.io project ID for seer-agents.
+export const SEER_AGENTS_PROJECT_ID = 6178942;
 
-export const MENU_CLOSE_DELAY = 200;
+export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
 
 export const SLOW_TOOLTIP_DELAY = 1000;
 
@@ -633,10 +608,10 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.TRACE_METRIC]: {
     name: DataCategoryExact.TRACE_METRIC,
     plural: DataCategory.TRACE_METRICS,
-    singular: 'metric',
-    displayName: 'metric',
-    titleName: t('Metrics'),
-    productName: t('Metrics'),
+    singular: 'applicationMetric',
+    displayName: 'application metric',
+    titleName: t('Application Metric Counts'), // Only currently visible internally, this name should change if we expose this to users.
+    productName: t('Application Metrics'),
     uid: 33,
     isBilledCategory: false,
     statsInfo: {
@@ -648,10 +623,10 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.TRACE_METRIC_BYTE]: {
     name: DataCategoryExact.TRACE_METRIC_BYTE,
     plural: DataCategory.TRACE_METRIC_BYTE,
-    singular: 'traceMetricByte',
-    displayName: 'metric byte',
-    titleName: t('Metrics (Bytes)'),
-    productName: t('Metrics'),
+    singular: 'applicationMetricByte',
+    displayName: 'application metric byte',
+    titleName: t('Application Metrics'),
+    productName: t('Application Metrics'),
     uid: 37,
     isBilledCategory: true,
     statsInfo: {
@@ -674,8 +649,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: false, // TODO(seer): add external stats when ready
     },
-    getProductLink: (organization: Organization) =>
-      `/settings/${organization.slug}/seer/`,
+    getProductLink: organization => `/settings/${organization.slug}/seer/`,
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.SIZE_ANALYSIS]: {
@@ -742,8 +716,7 @@ export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queri
 export const SPAN_PROPS_DOCS_URL =
   'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 
-export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
-export const NODE_ENV = process.env.NODE_ENV;
+export {IS_ACCEPTANCE_TEST, NODE_ENV} from './env';
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;

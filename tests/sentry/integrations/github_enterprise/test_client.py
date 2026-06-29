@@ -5,6 +5,7 @@ import pytest
 import responses
 from django.utils import timezone
 
+from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
@@ -15,6 +16,61 @@ GITHUB_CODEOWNERS = {
     "html_url": "https://github.example.org/Test-Organization/foo/blob/master/CODEOWNERS",
     "raw": "docs/*    @jianyuan   @getsentry/ecosystem\n* @jianyuan\n",
 }
+
+
+class GitHubEnterpriseCloudApiClientTest(TestCase):
+    """Tests for GHE.com (GitHub Enterprise Cloud with data residency) URL construction."""
+
+    def _make_client(self, base_url: str) -> GitHubEnterpriseApiClient:
+        integration = mock.MagicMock()
+        integration.metadata = {"installation_id": "123"}
+        return GitHubEnterpriseApiClient(
+            base_url=base_url,
+            integration=integration,
+            app_id="1",
+            private_key="key",
+            verify_ssl=True,
+            org_integration_id=1,
+        )
+
+    def test_ghe_cloud_base_url(self) -> None:
+        client = self._make_client("acme-corp.ghe.com")
+        assert client.base_url == "https://api.acme-corp.ghe.com"
+
+    def test_ghes_base_url_unchanged(self) -> None:
+        client = self._make_client("github.example.org")
+        assert client.base_url == "https://github.example.org"
+
+    def test_ghe_cloud_build_url_no_api_v3_prefix(self) -> None:
+        client = self._make_client("acme-corp.ghe.com")
+        assert client.build_url("/repos/org/repo") == "https://api.acme-corp.ghe.com/repos/org/repo"
+
+    def test_ghe_cloud_build_url_graphql(self) -> None:
+        client = self._make_client("acme-corp.ghe.com")
+        assert client.build_url("/graphql") == "https://api.acme-corp.ghe.com/graphql"
+
+    def test_ghes_build_url_adds_api_v3_prefix(self) -> None:
+        client = self._make_client("github.example.org")
+        assert (
+            client.build_url("/repos/org/repo")
+            == "https://github.example.org/api/v3/repos/org/repo"
+        )
+
+    def test_ghes_build_url_graphql(self) -> None:
+        client = self._make_client("github.example.org")
+        assert client.build_url("/graphql") == "https://github.example.org/api/graphql"
+
+    def test_github_com_base_url(self) -> None:
+        client = self._make_client("github.com")
+        assert client.base_url == "https://api.github.com"
+
+    def test_github_com_build_url_no_api_v3_prefix(self) -> None:
+        client = self._make_client("github.com")
+        assert client.build_url("/repos/org/repo") == "https://api.github.com/repos/org/repo"
+
+    def test_github_com_build_url_graphql(self) -> None:
+        client = self._make_client("github.com")
+        assert client.build_url("/graphql") == "https://api.github.com/graphql"
 
 
 class GitHubEnterpriseApiClientTest(TestCase):
@@ -138,7 +194,7 @@ class GitHubEnterpriseApiClientTest(TestCase):
             body="docs/*    @jianyuan   @getsentry/ecosystem\n* @jianyuan\n",
         )
         result = self.install.get_codeowner_file(
-            self.config.repository, ref=self.config.default_branch
+            self.config.project_repository.repository, ref=self.config.default_branch
         )
         assert (
             responses.calls[1].request.headers["Content-Type"] == "application/raw; charset=utf-8"

@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -58,8 +58,8 @@ export function useDatasetChoices(): Array<SelectValue<DetectorDataset>> {
         ? [
             {
               value: DetectorDataset.METRICS,
-              label: t('Metrics'),
-              trailingItems: <FeatureBadge type="beta" />,
+              label: t('Application Metrics'),
+              trailingItems: <FeatureBadge type="new" />,
             },
           ]
         : []),

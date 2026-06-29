@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -24,7 +24,7 @@ import {
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -68,11 +68,11 @@ export function NewProviderForm({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const handleGoBack = useCallback(() => {
+  const handleGoBack = () => {
     navigate(
       normalizeUrl(`/settings/${organization.slug}/feature-flags/change-tracking/`)
     );
-  }, [organization.slug, navigate]);
+  };
 
   const mutation = useMutation({
     mutationFn: ({provider, secret}: CreateSecretData) => {

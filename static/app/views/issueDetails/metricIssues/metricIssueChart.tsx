@@ -17,7 +17,7 @@ import {
   useEventOpenPeriod,
   useOpenPeriods,
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
-import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetails} from 'sentry/views/issueDetails/context';
 
 interface MetricIssueChartProps {
   event: Event | undefined;
@@ -88,7 +88,7 @@ function MetricIssueChartContent({
   openPeriods: GroupOpenPeriod[];
 }) {
   const {selection} = usePageFilters();
-  const {openPeriod, isPending: isOpenPeriodPending} = useEventOpenPeriod({
+  const {data: openPeriod, isPending: isOpenPeriodPending} = useEventOpenPeriod({
     groupId: group.id,
     eventId: event?.id,
   });

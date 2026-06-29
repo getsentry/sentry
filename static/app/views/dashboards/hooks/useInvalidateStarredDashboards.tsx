@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 

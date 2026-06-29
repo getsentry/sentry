@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Hotkey} from '@sentry/scraps/hotkey';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Container} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
@@ -61,8 +61,8 @@ export function SearchDropdown({
   visibleShortcuts,
   maxMenuHeight,
   onIconClick,
-  searchSubstring = '',
-  onClick = () => {},
+  searchSubstring,
+  onClick,
   supportedTags,
   customInvalidTagMessage,
   mergeItemsWith,
@@ -141,7 +141,7 @@ export function SearchDropdown({
           {runShortcut &&
             visibleShortcuts?.map(shortcut => (
               <Button
-                priority="transparent"
+                variant="transparent"
                 size="xs"
                 key={shortcut.text}
                 onClick={() => runShortcut(shortcut)}
@@ -175,13 +175,13 @@ type HeaderItemProps = {
 
 function HeaderItem({group}: HeaderItemProps) {
   return (
-    <SearchDropdownGroup key={group.title}>
+    <Container as="li" key={group.title}>
       <SearchDropdownGroupTitle>
         {group.icon}
         {group.title && group.title}
         {group.desc && <span>{group.desc}</span>}
       </SearchDropdownGroupTitle>
-    </SearchDropdownGroup>
+    </Container>
   );
 }
 
@@ -367,7 +367,7 @@ function DropdownItem({
             onClick={e => {
               // stop propagation so the item-level onClick doesn't get called
               e.stopPropagation();
-              onIconClick(item.value as string);
+              onIconClick(item.value!);
             }}
           />
         )}
@@ -507,8 +507,6 @@ const Info = styled('div')`
   }
 `;
 
-const SearchDropdownGroup = styled('li')``;
-
 const SearchDropdownGroupTitle = styled('header')`
   display: flex;
   align-items: center;
@@ -550,7 +548,11 @@ const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
   padding: 4px ${p => p.theme.space.xl};
 
   min-height: ${p => (p.isChild ? '30px' : '36px')};
-  ${p => !p.isChild && `border-top: 1px solid ${p.theme.tokens.border.secondary};`}
+  ${p =>
+    !p.isChild &&
+    css`
+      border-top: 1px solid ${p.theme.tokens.border.secondary};
+    `}
 
   ${p => {
     if (!p.isDisabled) {
@@ -623,7 +625,7 @@ const Documentation = styled('span')`
   white-space: pre;
 `;
 
-const DropdownFooter = styled(`div`)`
+const DropdownFooter = styled('div')`
   width: 100%;
   min-height: 45px;
   background-color: ${p => p.theme.tokens.background.secondary};

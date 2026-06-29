@@ -12,15 +12,15 @@ from typing import TYPE_CHECKING, Any, Final, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import click
-import sentry_sdk
 from django.conf import settings
 from django.db import router as db_router
-from django.db.models import QuerySet
+from django.db.models import Exists, OuterRef, QuerySet
 from django.utils import timezone
 from sentry_sdk import capture_exception
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +74,7 @@ _WorkQueue: TypeAlias = (
     "Queue[Literal['91650ec271ae4b3e8a67cdc909d80f8c'] | tuple[str, tuple[int, ...], int | None]]"
 )
 
+
 API_TOKEN_TTL_IN_DAYS = 30
 
 
@@ -125,8 +126,8 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             return
 
         try:
-            with sentry_sdk.start_transaction(
-                op="cleanup", name=f"{TRANSACTION_PREFIX}.multiprocess_worker"
+            with start_span(
+                op="cleanup", name=f"{TRANSACTION_PREFIX}.multiprocess_worker", transaction=True
             ):
                 task_execution(model_name, chunk, project_id)
         except Exception:
@@ -266,13 +267,19 @@ def cleanup(
     partition_total: int | None,
     partition_key: str,
 ) -> None:
-    """Delete a portion of trailing data based on creation date.
+    """Delete a portion of trailing data based on a model's configured datetime column.
 
-    All data that is older than `--days` will be deleted.  The default for
-    this is 30 days.  In the default setting all projects will be truncated
-    but if you have a specific project or organization you want to limit this to,
-    this can be done with the `--project` or `--organization` flags respectively,
-    which accepts a project/organization ID or a string with the form `org/project` where both are slugs.
+    Each model has a configured datetime column that will determine which records should
+    be deleted. If the datetime in the configured datetime column passed more than `--days`
+    days ago, the record will be deleted. By default, `--days` is 30 days. Models may
+    choose their `date_added` column to delete records with a uniform expiration policy or
+    they may choose an `date_expires` column and rely on the application to set the expiry
+    based on the owner's plan.
+
+    In the default setting all projects will be truncated but if you have a specific project
+    or organization you want to limit this to, this can be done with the `--project` or
+    `--organization` flags respectively, which accept a project/organization ID or a string
+    with the form `org/project` where both are slugs.
     """
     _cleanup(
         model=model,
@@ -339,9 +346,7 @@ def _cleanup(
     # Start transaction AFTER creating the multiprocessing pool to avoid
     # transaction context issues in child processes. This ensures only the
     # main process tracks the overall cleanup operation performance.
-    with sentry_sdk.start_transaction(
-        op="cleanup", name=f"{TRANSACTION_PREFIX}.main"
-    ) as transaction:
+    with start_span(op="cleanup", name=f"{TRANSACTION_PREFIX}.main", transaction=True) as span:
         try:
             # Check if cleanup should be aborted before starting
             if options.get("cleanup.abort_execution"):
@@ -368,6 +373,7 @@ def _cleanup(
                 return model.__name__.lower() not in model_list
 
             deletes = models_which_use_deletions_code_path()
+            expiry_deletes = models_which_use_expiry_deletions()
             bulk_query_deletes = generate_bulk_query_deletes()
 
             _run_specialized_cleanups(is_filtered, days, models_attempted)
@@ -377,9 +383,9 @@ def _cleanup(
                 project, organization, days, deletes, bulk_query_deletes
             )
             if organization_id is not None:
-                transaction.set_tag("organization_id", organization_id)
+                set_span_tag(span, "organization_id", organization_id)
             if project_id is not None:
-                transaction.set_tag("project_id", project_id)
+                set_span_tag(span, "project_id", project_id)
 
             run_bulk_query_deletes(
                 bulk_query_deletes,
@@ -396,6 +402,18 @@ def _cleanup(
                 deletes,
                 is_filtered,
                 days,
+                project,
+                project_id,
+                models_attempted,
+            )
+
+            # Expiry-based models always use days=0 so records are deleted exactly
+            # when they expire, regardless of the --days flag.
+            run_bulk_deletes_in_deletes(
+                task_queue,
+                expiry_deletes,
+                is_filtered,
+                0,
                 project,
                 project_id,
                 models_attempted,
@@ -506,6 +524,7 @@ def _run_specialized_cleanups(
     remove_expired_values_for_org_members(is_filtered, days, models_attempted)
     delete_api_models(is_filtered, models_attempted)
     exported_data(is_filtered, models_attempted)
+    remove_old_notification_messages(is_filtered, models_attempted)
 
 
 def _handle_project_organization_cleanup(
@@ -659,12 +678,10 @@ def exported_data(
 def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.commit import Commit
-    from sentry.models.eventattachment import EventAttachment
     from sentry.models.files.file import File
     from sentry.models.grouprulestatus import GroupRuleStatus
-    from sentry.models.pullrequest import PullRequest
+    from sentry.models.pullrequest import PullRequest, PullRequestActivity
     from sentry.models.release import Release
-    from sentry.models.rulefirehistory import RuleFireHistory
     from sentry.monitors.models import MonitorCheckIn
     from sentry.preprod.models import PreprodArtifact
     from sentry.replays.models import ReplayRecordingSegment
@@ -673,18 +690,31 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
     # Deletions that use the `deletions` code path (which handles their child relations)
     # (model, datetime_field, order_by)
     return [
-        (EventAttachment, "date_added", "date_added"),
+        # Delete based on a record's age (universal retention policies)
         (ReplayRecordingSegment, "date_added", "date_added"),
         (ArtifactBundle, "date_added", "date_added"),
         (MonitorCheckIn, "date_added", "date_added"),
         (GroupRuleStatus, "date_added", "date_added"),
         (PreprodArtifact, "date_added", "date_added"),
         (PullRequest, "date_added", "date_added"),
-        (RuleFireHistory, "date_added", "date_added"),
+        (PullRequestActivity, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "id"),
         (Commit, "date_added", "id"),
         (UptimeResponseCapture, "date_added", "date_added"),
+    ]
+
+
+def models_which_use_expiry_deletions() -> list[tuple[type[BaseModel], str, str]]:
+    from sentry.models.eventattachment import EventAttachment
+    from sentry.models.profilechunkattachment import ProfileChunkAttachment
+
+    # Models deleted based on their per-record expiry date, independent of --days.
+    # Always run with days=0 so records are deleted exactly when they expire,
+    # regardless of the --days value passed to the cleanup command.
+    return [
+        (EventAttachment, "date_expires", "date_expires"),
+        (ProfileChunkAttachment, "date_expires", "date_expires"),
     ]
 
 
@@ -739,8 +769,10 @@ def remove_old_nodestore_values(days: int) -> None:
 def remove_cross_project_bulk_query_models(
     bulk_query_deletes: list[tuple[type[BaseModel], str, str | None]],
 ) -> list[tuple[type[BaseModel], str, str | None]]:
+    from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
     from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
+    bulk_query_deletes.remove((GroupOpenPeriodActivity, "date_added", None))
     bulk_query_deletes.remove((WorkflowFireHistory, "date_added", None))
     return bulk_query_deletes
 
@@ -749,6 +781,7 @@ def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None
     from django.apps import apps
 
     from sentry.models.groupemailthread import GroupEmailThread
+    from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
     from sentry.models.userreport import UserReport
     from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
@@ -763,6 +796,7 @@ def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None
     BULK_QUERY_DELETES = [
         (UserReport, "date_added", None),
         (GroupEmailThread, "date", None),
+        (GroupOpenPeriodActivity, "date_added", None),
         (WorkflowFireHistory, "date_added", None),
     ] + additional_bulk_query_deletes
 
@@ -1131,3 +1165,38 @@ def cleanup_unused_files() -> None:
         if File.objects.filter(blob=blob).exists():
             continue
         blob.delete()
+
+
+@continue_on_error("specialized_cleanup_notification_messages")
+def remove_old_notification_messages(
+    is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
+) -> None:
+    from sentry.notifications.models.notificationmessage import NotificationMessage
+
+    NOTIFICATION_MESSAGE_TTL_IN_DAYS = 90
+    NOTIFICATION_MESSAGE_BATCH_SIZE = 1000
+
+    if is_filtered(NotificationMessage):
+        debug_output(">> Skipping NotificationMessage")
+        return
+
+    debug_output("Removing expired values for NotificationMessage")
+    models_attempted.add(NotificationMessage.__name__.lower())
+
+    cutoff = timezone.now() - timedelta(days=NOTIFICATION_MESSAGE_TTL_IN_DAYS)
+
+    # only delete rows with no child instance
+    has_child = NotificationMessage.objects.filter(parent_notification_message_id=OuterRef("id"))
+
+    while True:
+        ids = list(
+            NotificationMessage.objects.filter(date_added__lt=cutoff)
+            .annotate(has_child=Exists(has_child))
+            .filter(has_child=False)
+            .values_list("id", flat=True)
+            .order_by("id")[:NOTIFICATION_MESSAGE_BATCH_SIZE]
+        )
+        if not ids:
+            break
+
+        NotificationMessage.objects.filter(id__in=ids).delete()

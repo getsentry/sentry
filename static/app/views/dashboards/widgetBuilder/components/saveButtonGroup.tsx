@@ -19,7 +19,7 @@ export function SaveButtonGroup({
   return (
     <Flex gap="lg">
       <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
-      <Button onClick={onClose} priority="default">
+      <Button onClick={onClose} variant="secondary">
         {t('Cancel')}
       </Button>
     </Flex>

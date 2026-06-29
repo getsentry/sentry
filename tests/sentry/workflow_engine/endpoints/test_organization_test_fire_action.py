@@ -12,9 +12,7 @@ from sentry.notifications.notification_action.group_type_notification_registry i
 )
 from sentry.notifications.notification_action.issue_alert_registry import (
     PagerDutyIssueAlertHandler,
-    PluginIssueAlertHandler,
 )
-from sentry.rules.actions.notify_event import NotifyEventAction
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -103,20 +101,12 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             f"[{self.issue_stream_detector.name}]:"
         )
 
-    @mock.patch.object(NotifyEventAction, "after")
     @mock.patch(
-        "sentry.notifications.notification_action.registry.group_type_notification_registry.get",
-        return_value=IssueAlertRegistryHandler,
-    )
-    @mock.patch(
-        "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get",
-        return_value=PluginIssueAlertHandler,
+        "sentry.notifications.notification_action.action_handler_registry.plugin_handler.send_legacy_webhooks_for_invocation"
     )
     def test_plugin_notify_event_action(
         self,
-        mock_get_issue_alert_handler: mock.MagicMock,
-        mock_get_group_type_handler: mock.MagicMock,
-        mock_after: mock.MagicMock,
+        mock_send: mock.MagicMock,
     ) -> None:
         """Test a Plugin action (NotifyEventAction)"""
         action_data = [
@@ -129,7 +119,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
 
         response = self.get_success_response(self.organization.slug, actions=action_data)
         assert response.status_code == 200
-        assert mock_after.called
+        assert mock_send.called
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")
@@ -221,6 +211,78 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         assert response.status_code == 400
         assert response.data == {
             "detail": "No projects found for this organization that the user has access to"
+        }
+
+    @mock.patch("sentry.workflow_engine.endpoints.organization_test_fire_action.test_fire_actions")
+    def test_uses_specified_project_slug(
+        self,
+        mock_test_fire_actions: mock.MagicMock,
+    ) -> None:
+        """Test that providing project_slug uses the specified project"""
+        mock_test_fire_actions.return_value = (None, None)
+
+        team = self.create_team(organization=self.organization, members=[self.user])
+        target_project = self.create_project(
+            organization=self.organization, name="zzz-target-project", teams=[team]
+        )
+
+        action_data = [
+            {
+                "type": Action.Type.PLUGIN.value,
+                "data": {},
+                "config": {},
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            actions=action_data,
+            project_slug=target_project.slug,
+        )
+        assert response.status_code == 200
+
+        # Verify test_fire_actions was called with the specified project
+        mock_test_fire_actions.assert_called_once()
+        _, project_arg = mock_test_fire_actions.call_args[0]
+        assert project_arg == target_project
+
+    def test_invalid_project_slug(self) -> None:
+        """Test that an invalid project_slug returns with a 400 error"""
+        action_data = [
+            {
+                "type": Action.Type.PLUGIN.value,
+                "data": {},
+                "config": {},
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug,
+            actions=action_data,
+            project_slug="nonexistent-project",
+        )
+        assert response.status_code == 400
+
+    def test_deprecated_plugin_returns_400(self) -> None:
+        self.project.update_option("twilio:enabled", True)
+
+        action_data = [
+            {
+                "type": Action.Type.WEBHOOK.value,
+                "data": {},
+                "config": {
+                    "target_identifier": "twilio",
+                    "target_type": None,
+                },
+            }
+        ]
+
+        response = self.get_error_response(self.organization.slug, actions=action_data)
+        assert response.status_code == 400
+        assert response.data == {
+            "actions": {
+                "service": ["Select a valid choice. twilio is not one of the available choices."]
+            }
         }
 
     @mock.patch(

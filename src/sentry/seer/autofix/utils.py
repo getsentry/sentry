@@ -1,21 +1,22 @@
 import logging
-from collections.abc import Iterable
+from collections import defaultdict
+from collections.abc import Callable, Iterable, Mapping
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, NotRequired, TypedDict
 
 import orjson
-import pydantic
+import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 from pydantic import BaseModel
 from rest_framework import serializers
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
-from urllib3.util.retry import Retry
 
-from sentry import features, options, ratelimits
+from sentry import features, options, projectoptions, ratelimits
 from sentry.constants import (
     AUTO_OPEN_PRS_DEFAULT,
+    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     DataCategory,
     ObjectStatus,
@@ -25,28 +26,26 @@ from sentry.issues.auto_source_code_config.code_mapping import (
     get_sorted_code_mapping_configs,
 )
 from sentry.models.group import Group
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
+from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
 from sentry.seer.models import (
+    AutofixHandoffPoint,
     BranchOverride,
-    SeerApiError,
-    SeerApiResponseValidationError,
-    SeerPermissionError,
+    SeerAutomationHandoffConfiguration,
     SeerProjectPreference,
-    SeerRawPreferenceResponse,
     SeerRepoDefinition,
 )
 from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
-from sentry.seer.models.seer_api_models import (
-    AutofixHandoffPoint,
-    SeerAutomationHandoffConfiguration,
-)
+from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -67,14 +66,48 @@ class AutofixStoppingPoint(StrEnum):
     OPEN_PR = "open_pr"
 
 
+SEAT_BASED_STOPPING_POINTS: frozenset[AutofixStoppingPoint] = frozenset(
+    {
+        AutofixStoppingPoint.CODE_CHANGES,
+        AutofixStoppingPoint.OPEN_PR,
+        AutofixStoppingPoint.ROOT_CAUSE,
+    }
+)
+
+USAGE_BASED_STOPPING_POINTS: frozenset[AutofixStoppingPoint] = SEAT_BASED_STOPPING_POINTS | {
+    AutofixStoppingPoint.SOLUTION,
+}
+
+
+def extract_api_error_message(response: Any) -> str | None:
+    # Anthropic returns {"error": {"type": "...", "message": "..."}}; others
+    # (OpenAI, GitHub, Stripe) use one of "error.message" or top-level "message".
+    if response is None:
+        return None
+    try:
+        body = response.json()
+    except (ValueError, AttributeError):
+        return None
+    if not isinstance(body, dict):
+        return None
+    error = body.get("error")
+    if isinstance(error, dict):
+        message = error.get("message")
+        if isinstance(message, str) and message:
+            return message
+    message = body.get("message")
+    if isinstance(message, str) and message:
+        return message
+    return None
+
+
 def get_valid_automated_run_stopping_points(
     organization: Organization,
-) -> set[AutofixStoppingPoint]:
-    """Return the set of stopping points valid for the given organization."""
-    valid = {AutofixStoppingPoint.CODE_CHANGES, AutofixStoppingPoint.OPEN_PR}
-    if features.has("organizations:root-cause-stopping-point", organization):
-        valid.add(AutofixStoppingPoint.ROOT_CAUSE)
-    return valid
+) -> frozenset[AutofixStoppingPoint]:
+    """Return the set of stopping points valid for an org's billing tier."""
+    if is_seer_seat_based_tier_enabled(organization):
+        return SEAT_BASED_STOPPING_POINTS
+    return USAGE_BASED_STOPPING_POINTS
 
 
 class AutofixRequest(BaseModel):
@@ -109,22 +142,24 @@ class CodingAgentStatus(StrEnum):
         return status_mapping.get(cursor_status.upper(), None)
 
 
-class AutofixTriggerSource(StrEnum):
-    ROOT_CAUSE = "root_cause"
-    SOLUTION = "solution"
-
-
 class CodingAgentResult(BaseModel):
     description: str
     repo_provider: str
     repo_full_name: str
     pr_url: str | None = None
+    branch_name: str | None = None
 
 
 class CodingAgentProviderType(StrEnum):
     CURSOR_BACKGROUND_AGENT = "cursor_background_agent"
     GITHUB_COPILOT_AGENT = "github_copilot_agent"
     CLAUDE_CODE_AGENT = "claude_code_agent"
+
+
+class AutomationCodingAgent(StrEnum):
+    SEER = "seer"
+    CURSOR = CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
+    CLAUDE = CodingAgentProviderType.CLAUDE_CODE_AGENT
 
 
 class CodingAgentState(BaseModel):
@@ -176,148 +211,9 @@ autofix_connection_pool = connection_from_url(
 )
 
 
-class GetProjectPreferenceRequest(TypedDict):
-    project_id: int
-
-
-class SetProjectPreferenceRequest(TypedDict):
-    preference: dict[str, Any]
-
-
-class BulkGetProjectPreferencesRequest(TypedDict):
-    organization_id: int
-    project_ids: list[int]
-
-
-class BulkSetProjectPreferencesRequest(TypedDict):
-    organization_id: int
-    preferences: list[dict[str, Any]]
-
-
-class GetAutofixStateRequest(TypedDict):
-    group_id: int | None
-    run_id: int | None
-    check_repo_access: bool
-    is_user_fetching: bool
-
-
-class GetAutofixStatePrRequest(TypedDict):
-    provider: str
-    pr_id: int
-
-
-class GetAutofixPromptRequest(TypedDict):
-    run_id: int
-    include_root_cause: bool
-    include_solution: bool
-
-
 class StoreCodingAgentStatesRequest(TypedDict):
     run_id: int
     coding_agent_states: list[dict[str, Any]]
-
-
-def make_get_project_preference_request(
-    body: GetProjectPreferenceRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    timeout: int | float | None = None,
-    retries: Retry | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/project-preference",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        retries=retries,
-        viewer_context=viewer_context,
-    )
-
-
-def make_set_project_preference_request(
-    body: SetProjectPreferenceRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/project-preference/set",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_bulk_get_project_preferences_request(
-    body: BulkGetProjectPreferencesRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/project-preference/bulk",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_bulk_set_project_preferences_request(
-    body: BulkSetProjectPreferencesRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/project-preference/bulk-set",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_get_autofix_state_request(
-    body: GetAutofixStateRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/state",
-        body=orjson.dumps(body),
-        viewer_context=viewer_context,
-    )
-
-
-def make_get_autofix_state_pr_request(
-    body: GetAutofixStatePrRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/state/pr",
-        body=orjson.dumps(body),
-        viewer_context=viewer_context,
-    )
-
-
-def make_get_autofix_prompt_request(
-    body: GetAutofixPromptRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/prompt",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
 
 
 def make_update_coding_agent_state_request(
@@ -328,35 +224,9 @@ def make_update_coding_agent_state_request(
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/coding-agent/state/update",
+        "/v1/automation/coding-agent/state/update",
         body=orjson.dumps(body.dict(exclude_none=True)),
         timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_autofix_start_request(
-    body: bytes,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/start",
-        body=body,
-        viewer_context=viewer_context,
-    )
-
-
-def make_autofix_update_request(
-    body: bytes,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/update",
-        body=body,
         viewer_context=viewer_context,
     )
 
@@ -369,7 +239,7 @@ def make_store_coding_agent_states_request(
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/coding-agent/state/set",
+        "/v1/automation/coding-agent/state/set",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -416,12 +286,12 @@ def default_seer_project_preference(project: Project) -> SeerProjectPreference:
 def get_org_default_seer_automation_handoff(
     organization: Organization,
 ) -> tuple[str, SeerAutomationHandoffConfiguration | None]:
-    """Get the default stopping point and automation handoff for an organization."""
+    """Get the default stopping point and automation handoff for a seat-based organization."""
     stopping_point = organization.get_option(
         "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
     )
     # Guard against stored stopping points that are no longer valid.
-    if stopping_point not in get_valid_automated_run_stopping_points(organization):
+    if stopping_point not in SEAT_BASED_STOPPING_POINTS:
         stopping_point = SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
 
     auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
@@ -448,32 +318,6 @@ def get_org_default_seer_automation_handoff(
     return stopping_point, automation_handoff
 
 
-def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
-    """
-    Fetch Seer project preferences from the Seer API.
-
-    Args:
-        project_id: The project ID to fetch preferences for
-
-    Returns:
-        SeerRawPreferenceResponse object if successful
-    """
-    response = make_get_project_preference_request(
-        GetProjectPreferenceRequest(project_id=project_id),
-        timeout=5,
-        retries=Retry(total=2, backoff_factor=0.5),
-    )
-
-    if response.status == 200:
-        try:
-            result = orjson.loads(response.data)
-            return SeerRawPreferenceResponse.validate(result)
-        except (pydantic.ValidationError, orjson.JSONDecodeError, UnicodeDecodeError) as e:
-            raise SeerApiResponseValidationError(str(e)) from e
-
-    raise SeerApiError(response.data.decode("utf-8"), response.status)
-
-
 def deduplicate_repositories(
     repositories: Iterable[dict[str, Any]], *, key_by_org_id: bool = False
 ) -> list[dict[str, Any]]:
@@ -496,84 +340,6 @@ def deduplicate_repositories(
     return deduplicated
 
 
-def resolve_repository_ids(
-    organization_id: int, preferences: list[SeerProjectPreference]
-) -> list[SeerProjectPreference]:
-    """Return a new list of preferences with missing repository_id fields resolved via a single bulk query."""
-    external_ids: set[str] = set()
-    providers: set[str] = set()
-    for pref in preferences:
-        for repo in pref.repositories:
-            if repo.repository_id is not None:
-                continue
-
-            external_ids.add(repo.external_id)
-
-            bare_provider = repo.provider.removeprefix("integrations:")
-            providers.add(bare_provider)
-            providers.add(f"integrations:{bare_provider}")
-
-    if not external_ids:
-        return preferences
-
-    resolved_ids: dict[tuple[str, str], int] = {}
-    for db_repo in (
-        Repository.objects.filter(
-            organization_id=organization_id,
-            external_id__in=external_ids,
-            provider__in=providers,
-            status=ObjectStatus.ACTIVE,
-        )
-        .values("id", "external_id", "provider")
-        .order_by("provider")  # prefer prefixed provider over bare provider
-    ):
-        resolved_ids[
-            (str(db_repo["external_id"]), str(db_repo["provider"]).removeprefix("integrations:"))
-        ] = db_repo["id"]
-
-    def _resolve_repo(repo: SeerRepoDefinition) -> SeerRepoDefinition:
-        if repo.repository_id is not None:
-            return repo
-        resolved_id = resolved_ids.get(
-            (repo.external_id, repo.provider.removeprefix("integrations:"))
-        )
-        if resolved_id is not None:
-            return repo.copy(update={"repository_id": resolved_id})
-        return repo
-
-    return [
-        pref.copy(update={"repositories": [_resolve_repo(r) for r in pref.repositories]})
-        for pref in preferences
-    ]
-
-
-def _write_preference_project_options(project: Project, preference: SeerProjectPreference) -> None:
-    stopping_point = preference.automated_run_stopping_point
-    if stopping_point and stopping_point != SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT:
-        project.update_option("sentry:seer_automated_run_stopping_point", stopping_point)
-    else:
-        project.delete_option("sentry:seer_automated_run_stopping_point")
-
-    handoff = preference.automation_handoff
-    if handoff is not None:
-        project.update_option("sentry:seer_automation_handoff_point", handoff.handoff_point)
-        project.update_option("sentry:seer_automation_handoff_target", handoff.target)
-        project.update_option(
-            "sentry:seer_automation_handoff_integration_id", handoff.integration_id
-        )
-        if handoff.auto_create_pr:
-            project.update_option(
-                "sentry:seer_automation_handoff_auto_create_pr", handoff.auto_create_pr
-            )
-        else:
-            project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
-    else:
-        project.delete_option("sentry:seer_automation_handoff_point")
-        project.delete_option("sentry:seer_automation_handoff_target")
-        project.delete_option("sentry:seer_automation_handoff_integration_id")
-        project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
-
-
 def _write_preferences_to_sentry_db(
     project_preferences: list[tuple[Project, SeerProjectPreference]],
 ) -> None:
@@ -587,21 +353,38 @@ def _write_preferences_to_sentry_db(
     with transaction.atomic(using=router.db_for_write(SeerProjectRepository)):
         project_ids = {project.id for project, _ in project_preferences}
 
-        # Lock project rows to serialize concurrent preference writes.
-        list(Project.objects.select_for_update().filter(id__in=project_ids).order_by("id"))
+        # Only delete SeerProjectRepository for active repos.
+        SeerProjectRepository.objects.filter(
+            project_repository__project_id__in=project_ids,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+        ).delete()
 
-        # Delete existing project repos and branch overrides.
-        SeerProjectRepository.objects.filter(project_id__in=project_ids).delete()
+        all_repo_ids = {
+            repo_def.repository_id
+            for _, pref in project_preferences
+            for repo_def in pref.repositories
+            if repo_def.repository_id is not None
+        }
+        active_repo_ids = (
+            set(
+                Repository.objects.filter(
+                    id__in=all_repo_ids, status=ObjectStatus.ACTIVE
+                ).values_list("id", flat=True)
+            )
+            if all_repo_ids
+            else set()
+        )
 
         # Collect project repos to create.
-        project_repos_to_create: list[SeerProjectRepository] = []
+        project_repos_to_create: list[tuple[Project, int, SeerProjectRepository]] = []
         overrides_by_key: dict[tuple[int, int], list[BranchOverride]] = {}
         for project, pref in project_preferences:
             for repo_def in pref.repositories:
                 if repo_def.repository_id is None:
-                    logger.warning(
-                        "seer.write_preferences.repo_missing_id",
-                        extra={
+                    sentry_sdk.capture_message(
+                        "SeerRepoDefinition missing repository_id at write time",
+                        level="error",
+                        extras={
                             "project_id": project.id,
                             "organization_id": project.organization_id,
                             "external_id": repo_def.external_id,
@@ -609,12 +392,18 @@ def _write_preferences_to_sentry_db(
                     )
                     continue
 
+                # Only create new project repos for active repos.
+                if repo_def.repository_id not in active_repo_ids:
+                    continue
+
                 project_repos_to_create.append(
-                    SeerProjectRepository(
-                        project=project,
-                        repository_id=repo_def.repository_id,
-                        branch_name=repo_def.branch_name,
-                        instructions=repo_def.instructions,
+                    (
+                        project,
+                        repo_def.repository_id,
+                        SeerProjectRepository(
+                            branch_name=repo_def.branch_name,
+                            instructions=repo_def.instructions,
+                        ),
                     )
                 )
 
@@ -623,40 +412,64 @@ def _write_preferences_to_sentry_db(
                         repo_def.branch_overrides
                     )
 
-        # Create project repos.
-        created_project_repos = SeerProjectRepository.objects.bulk_create(project_repos_to_create)
-
-        # Create branch overrides using the created project repos.
-        overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
-        for seer_project_repo in created_project_repos:
-            for override in overrides_by_key.get(
-                (seer_project_repo.project_id, seer_project_repo.repository_id), []
-            ):
-                overrides_to_create.append(
-                    SeerProjectRepositoryBranchOverride(
-                        seer_project_repository=seer_project_repo,
-                        tag_name=override.tag_name,
-                        tag_value=override.tag_value,
-                        branch_name=override.branch_name,
-                    )
+        if project_repos_to_create:
+            for project, repository_id, spr in project_repos_to_create:
+                spr.project_repository, _ = ProjectRepository.objects.get_or_create_with_source(
+                    project_id=project.id,
+                    repository_id=repository_id,
+                    source=ProjectRepositorySource.SEER_PREFERENCE,
                 )
-        SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
 
-        # Write ProjectOptions last so cache updates only happen after all DB writes succeed
+            created_project_repos = SeerProjectRepository.objects.bulk_create(
+                [spr for _, _, spr in project_repos_to_create]
+            )
+
+            # Create branch overrides using the created project repos.
+            overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
+            for seer_project_repo in created_project_repos:
+                pr = seer_project_repo.project_repository
+                key = (pr.project_id, pr.repository_id)
+                for override in overrides_by_key.get(key, []):
+                    overrides_to_create.append(
+                        SeerProjectRepositoryBranchOverride(
+                            seer_project_repository=seer_project_repo,
+                            tag_name=override.tag_name,
+                            tag_value=override.tag_value,
+                            branch_name=override.branch_name,
+                        )
+                    )
+            SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
+
+        # Write ProjectOptions last so cache updates happen after repo DB writes succeed
         # (cache cannot be rolled back by the transaction).
         for project, pref in project_preferences:
-            _write_preference_project_options(project, pref)
+            update = SeerProjectSettingsUpdate()
+
+            if pref.automated_run_stopping_point is not None:
+                update["stopping_point"] = pref.automated_run_stopping_point
+
+            if pref.automation_handoff is not None:
+                update["agent"] = AutomationCodingAgent(pref.automation_handoff.target)
+                update["integration_id"] = pref.automation_handoff.integration_id
+                update["auto_create_pr"] = pref.automation_handoff.auto_create_pr
+            else:
+                update["agent"] = AutomationCodingAgent.SEER
+
+            update_seer_project_settings([project.id], update)
 
 
 def write_preference_to_sentry_db(project: Project, preference: SeerProjectPreference) -> None:
-    """Write a single Seer project preference to ProjectOption and SeerProjectRepository."""
+    """Write a single Seer project preference to ProjectOption and SeerProjectRepository.
+    TODO(AIML-2753): Add support for writing autofix_automation_tuning"""
     _write_preferences_to_sentry_db([(project, preference)])
 
 
 def bulk_write_preferences_to_sentry_db(
     projects: list[Project], preferences: list[SeerProjectPreference]
 ) -> None:
-    """Write multiple Seer project preferences using bulk operations."""
+    """Write multiple Seer project preferences using bulk operations.
+    TODO(AIML-2753): Add support for writing autofix_automation_tuning
+    """
     projects_by_id = {p.id: p for p in projects}
 
     project_preferences: list[tuple[Project, SeerProjectPreference]] = []
@@ -673,92 +486,369 @@ def bulk_write_preferences_to_sentry_db(
     _write_preferences_to_sentry_db(project_preferences)
 
 
-def set_project_seer_preference(preference: SeerProjectPreference) -> None:
-    """Set Seer project preference for a single project via Seer API."""
-    response = make_set_project_preference_request(
-        SetProjectPreferenceRequest(preference=preference.dict()),
-        timeout=15,
+def clear_preference_automation_handoff(project: Project) -> None:
+    """Atomically clear a project's automation handoff settings."""
+    ProjectOption.objects.filter(
+        project=project,
+        key__in=[
+            "sentry:seer_automation_handoff_point",
+            "sentry:seer_automation_handoff_target",
+            "sentry:seer_automation_handoff_integration_id",
+        ],
+    ).delete()
+
+
+def get_repo_url_path(repo: Repository) -> str:
+    """Return the URL-safe owner/name path for a repository.
+
+    For GitLab, ``repo.name`` is ``name_with_namespace`` (the human-readable
+    display name, e.g. ``"My Group / My Project"`` — with spaces).  The
+    URL-safe equivalent is stored in ``repo.config["path"]``
+    (``path_with_namespace``, e.g. ``"my-group/my-project"``).
+
+    For GitHub and all other providers, ``repo.name`` is already the
+    URL-safe ``owner/repo`` string, so we return it unchanged.
+
+    Raises ``ValueError`` for a GitLab repo missing ``config["path"]``. This
+    should never happen in practice (every GitLab repo we store has the path
+    populated), so we fail loudly rather than silently falling back to the
+    space-containing display name, which would produce broken URLs / 404s.
+    """
+    if repo.provider == "integrations:gitlab":
+        path = repo.config.get("path")
+        if not path:
+            raise ValueError(
+                f"GitLab repository {repo.id} is missing config['path'] (path_with_namespace)"
+            )
+        return path
+    return repo.name
+
+
+def build_repo_definition_from_project_repo(
+    seer_project_repo: SeerProjectRepository,
+) -> SeerRepoDefinition | None:
+    """Build a SeerRepoDefinition from a SeerProjectRepository with its joined Repository.
+
+    Returns None if Repository name is invalid."""
+    repo = seer_project_repo.project_repository.repository
+    repo_name_sections = get_repo_url_path(repo).split("/")
+    if len(repo_name_sections) < 2:
+        sentry_sdk.capture_exception(ValueError(f"Invalid repository name format: {repo.name}"))
+        return None
+
+    return SeerRepoDefinition(
+        repository_id=repo.id,
+        organization_id=repo.organization_id,
+        integration_id=str(repo.integration_id) if repo.integration_id is not None else None,
+        provider=repo.provider or "",
+        owner=repo_name_sections[0],
+        name="/".join(repo_name_sections[1:]),
+        external_id=repo.external_id or "",
+        branch_name=seer_project_repo.branch_name,
+        instructions=seer_project_repo.instructions,
+        branch_overrides=[
+            BranchOverride(
+                tag_name=bo.tag_name,
+                tag_value=bo.tag_value,
+                branch_name=bo.branch_name,
+            )
+            for bo in seer_project_repo.branch_overrides.all()
+        ],
     )
 
-    if response.status >= 400:
-        raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+def get_automation_handoff(
+    get_option: Callable[[str], Any],
+) -> SeerAutomationHandoffConfiguration | None:
+    """Build a SeerAutomationHandoffConfiguration from option key/value pairs, or None if incomplete."""
+    handoff_point = get_option("sentry:seer_automation_handoff_point")
+    handoff_target = get_option("sentry:seer_automation_handoff_target")
+    handoff_integration_id = get_option("sentry:seer_automation_handoff_integration_id")
+
+    if handoff_point is None or handoff_target is None or handoff_integration_id is None:
+        return None
+
+    return SeerAutomationHandoffConfiguration(
+        handoff_point=handoff_point,
+        target=handoff_target,
+        integration_id=handoff_integration_id,
+        auto_create_pr=get_option("sentry:seer_automation_handoff_auto_create_pr"),
+    )
 
 
-def has_project_connected_repos(
-    organization_id: int, project_id: int, *, skip_cache: bool = False
-) -> bool:
-    """
-    Check if a project has connected repositories for Seer automation.
-    Checks Seer preferences first, then falls back to Sentry code mappings.
-    Results are cached for 15 minutes to minimize API calls.
-    """
-    cache_key = f"seer-project-has-repos:{organization_id}:{project_id}"
-    if not skip_cache:
-        cached_value = cache.get(cache_key)
-        if cached_value is not None:
-            return cached_value
-
-    has_repos = False
-
-    try:
-        project_preferences = get_project_seer_preferences(project_id)
-        has_repos = bool(
-            project_preferences.preference and project_preferences.preference.repositories
+def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
+    """Read a single project's Seer preferences from Sentry DB."""
+    seer_project_repo_qs = (
+        SeerProjectRepository.objects.filter(
+            project_repository__project=project,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
         )
-    except (SeerApiError, SeerApiResponseValidationError):
-        pass
+        .select_related("project_repository", "project_repository__repository")
+        .prefetch_related("branch_overrides")
+    )
+    repo_definitions = [
+        repo_def
+        for project_repo in seer_project_repo_qs
+        if (repo_def := build_repo_definition_from_project_repo(project_repo)) is not None
+    ]
 
-    if not has_repos:
-        # If it's the first autofix run of project we check code mapping.
-        try:
-            project = Project.objects.get(id=project_id)
-            has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
-        except Project.DoesNotExist:
-            pass
-
-    logger.info(
-        "Checking if project has repositories connected",
-        extra={
-            "org_id": organization_id,
-            "project_id": project_id,
-            "has_repos": has_repos,
-        },
+    return SeerProjectPreference(
+        organization_id=project.organization_id,
+        project_id=project.id,
+        repositories=repo_definitions,
+        automated_run_stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
+        automation_handoff=get_automation_handoff(project.get_option),
+        autofix_automation_tuning=project.get_option("sentry:autofix_automation_tuning"),
     )
 
-    cache.set(cache_key, has_repos, timeout=60 * 15)  # Cache for 15 minutes
-    return has_repos
 
+def bulk_read_preferences_from_sentry_db(
+    organization_id: int, project_ids: list[int]
+) -> dict[int, SeerProjectPreference]:
+    """Bulk read Seer preferences from Sentry DB."""
+    if not project_ids:
+        return {}
 
-def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -> dict[str, dict]:
-    """Bulk fetch Seer project preferences. Returns dict mapping project ID (string) to preference dict."""
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-    response = make_bulk_get_project_preferences_request(
-        BulkGetProjectPreferencesRequest(organization_id=organization_id, project_ids=project_ids),
-        timeout=10,
-        viewer_context=viewer_context,
+    projects = list(Project.objects.filter(id__in=project_ids, organization_id=organization_id))
+
+    repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
+    seer_repo_qs = (
+        SeerProjectRepository.objects.filter(
+            project_repository__project_id__in=project_ids,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+        )
+        .select_related("project_repository", "project_repository__repository")
+        .prefetch_related("branch_overrides")
     )
+    for seer_repo in seer_repo_qs:
+        repo_def = build_repo_definition_from_project_repo(seer_repo)
+        if repo_def is not None:
+            repo_definitions_by_project[seer_repo.project_repository.project_id].append(repo_def)
 
-    if response.status >= 400:
-        raise SeerApiError(response.data.decode("utf-8"), response.status)
+    # get_value_bulk_id returns None for missing options, unlike project.get_option
+    # which automatically falls back to the registered well-known key default.
+    project_options: dict[str, Mapping[int, Any]] = {
+        key: ProjectOption.objects.get_value_bulk_id(project_ids, key)
+        for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS
+    }
 
-    result = orjson.loads(response.data)
-    return result.get("preferences", {})
+    result: dict[int, SeerProjectPreference] = {}
+    for project in projects:
+
+        def _get_project_option(key: str) -> Any:
+            value = project_options[key][project.id]
+            if value is None:
+                return projectoptions.get_well_known_default(key, project=project)
+            return value
+
+        result[project.id] = SeerProjectPreference(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            repositories=repo_definitions_by_project.get(project.id, []),
+            automated_run_stopping_point=_get_project_option(
+                "sentry:seer_automated_run_stopping_point"
+            ),
+            automation_handoff=get_automation_handoff(_get_project_option),
+            autofix_automation_tuning=_get_project_option("sentry:autofix_automation_tuning"),
+        )
+
+    return result
 
 
-def bulk_set_project_preferences(organization_id: int, preferences: list[dict]) -> None:
-    """Bulk set Seer project preferences for multiple projects via Seer API."""
-    if not preferences:
+class SeerProjectSettingsUpdate(TypedDict, total=False):
+    agent: AutomationCodingAgent
+    integration_id: int
+    stopping_point: str
+    automation_tuning: str
+    scanner_automation: bool
+    auto_create_pr: bool
+
+
+def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettingsUpdate) -> None:
+    """Apply Seer project settings to one or more projects.
+    For any ProjectOptions, delete the row if we're setting that field to its default."""
+    if not project_ids or not data:
         return
 
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-    response = make_bulk_set_project_preferences_request(
-        BulkSetProjectPreferencesRequest(organization_id=organization_id, preferences=preferences),
-        timeout=15,
-        viewer_context=viewer_context,
-    )
+    options_to_set: dict[str, Any] = {}
+    options_to_clear: list[str] = []
 
-    if response.status >= 400:
-        raise SeerApiError(response.data.decode("utf-8"), response.status)
+    def _set_or_clear(key: str, value: Any, default: Any) -> None:
+        if value == default:
+            options_to_clear.append(key)
+        else:
+            options_to_set[key] = value
+
+    if "agent" in data:
+        agent = data["agent"]
+        if agent == AutomationCodingAgent.SEER:
+            options_to_clear += [
+                "sentry:seer_automation_handoff_point",
+                "sentry:seer_automation_handoff_target",
+                "sentry:seer_automation_handoff_integration_id",
+            ]
+        else:
+            integration_id = data.get("integration_id")
+            if integration_id is None:
+                raise ValueError("integrationId is required for external coding agents")
+            options_to_set["sentry:seer_automation_handoff_point"] = AutofixHandoffPoint.ROOT_CAUSE
+            options_to_set["sentry:seer_automation_handoff_target"] = agent
+            options_to_set["sentry:seer_automation_handoff_integration_id"] = data["integration_id"]
+
+    if "scanner_automation" in data:
+        _set_or_clear("sentry:seer_scanner_automation", data["scanner_automation"], default=True)
+
+    if "stopping_point" in data:
+        _set_or_clear(
+            "sentry:seer_automated_run_stopping_point",
+            data["stopping_point"],
+            default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+        )
+
+    if "auto_create_pr" in data:
+        _set_or_clear(
+            "sentry:seer_automation_handoff_auto_create_pr", data["auto_create_pr"], default=False
+        )
+
+    if "automation_tuning" in data:
+        _set_or_clear(
+            "sentry:autofix_automation_tuning",
+            data["automation_tuning"],
+            default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+        )
+
+    if not options_to_set and not options_to_clear:
+        return
+
+    with transaction.atomic(using=router.db_for_write(ProjectOption)):
+        if options_to_clear:
+            # Use _raw_delete to skip per-row post_delete signals that each trigger reload_cache.
+            # For efficiency, we reload once per project after the transaction instead.
+            ProjectOption.objects.filter(
+                project_id__in=project_ids, key__in=options_to_clear
+            )._raw_delete(using=router.db_for_write(ProjectOption))
+
+        if options_to_set:
+            ProjectOption.objects.bulk_create(
+                [
+                    ProjectOption(project_id=pid, key=key, value=value)
+                    for pid in project_ids
+                    for key, value in options_to_set.items()
+                ],
+                update_conflicts=True,
+                unique_fields=["project_id", "key"],
+                update_fields=["value"],
+            )
+
+    # Manually reload each project's cache, since _raw_delete and bulk_create
+    # bypass the cache reloading in update_option and delete_option.
+    for project_id in project_ids:
+        ProjectOption.objects.reload_cache(project_id, "projectoption.bulk_set_value")
+
+
+class BranchOverrideData(TypedDict):
+    tag_name: str
+    tag_value: str
+    branch_name: str
+
+
+class ProjectRepoCreateData(TypedDict):
+    repository_id: int
+    branch_name: NotRequired[str | None]
+    instructions: NotRequired[str | None]
+    branch_overrides: NotRequired[list[BranchOverrideData]]
+
+
+def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateData]) -> list[int]:
+    """Upsert Seer project repos."""
+    if not repos_data:
+        return []
+
+    with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        seer_project_repos_to_add: list[SeerProjectRepository] = []
+        branch_overrides_by_key: dict[tuple[int, int], list[BranchOverrideData]] = {}
+
+        # Collect SeerProjectRepository objects to upsert, linking each to its ProjectRepository.
+        for data in repos_data:
+            project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
+                project_id=project.id,
+                repository_id=data["repository_id"],
+                source=ProjectRepositorySource.SEER_PREFERENCE,
+            )
+            seer_project_repos_to_add.append(
+                SeerProjectRepository(
+                    project_repository=project_repo,
+                    branch_name=data.get("branch_name"),
+                    instructions=data.get("instructions"),
+                )
+            )
+
+            # Key branch overrides by project id and repo id so we can link them to
+            # the right SeerProjectRepository later.
+            if data.get("branch_overrides"):
+                branch_overrides_by_key[(project.id, data["repository_id"])] = data[
+                    "branch_overrides"
+                ]
+
+        seer_project_repos = SeerProjectRepository.objects.bulk_create(
+            seer_project_repos_to_add,
+            update_conflicts=True,
+            update_fields=["branch_name", "instructions", "date_updated"],
+            unique_fields=["project_repository"],
+        )
+
+        # Upsert branch overrides using the upserted SeerProjectRepository rows.
+        branch_overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
+        for seer_project_repo in seer_project_repos:
+            project_repo = seer_project_repo.project_repository
+            for override in branch_overrides_by_key.get(
+                (project_repo.project_id, project_repo.repository_id), []
+            ):
+                branch_overrides_to_create.append(
+                    SeerProjectRepositoryBranchOverride(
+                        seer_project_repository=seer_project_repo,
+                        tag_name=override["tag_name"],
+                        tag_value=override["tag_value"],
+                        branch_name=override["branch_name"],
+                    )
+                )
+
+        SeerProjectRepositoryBranchOverride.objects.filter(
+            seer_project_repository__in=seer_project_repos
+        ).delete()
+
+        if branch_overrides_to_create:
+            SeerProjectRepositoryBranchOverride.objects.bulk_create(
+                branch_overrides_to_create,
+                update_conflicts=True,
+                update_fields=["branch_name", "date_updated"],
+                unique_fields=["seer_project_repository", "tag_name", "tag_value"],
+            )
+
+    return [sr.id for sr in seer_project_repos]
+
+
+def replace_all_seer_project_repos(
+    project: Project, repos_data: list[ProjectRepoCreateData]
+) -> None:
+    """Replace all active Seer repos for the given project."""
+    with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        SeerProjectRepository.objects.filter(
+            project_repository__project=project,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+        ).delete()
+
+        add_seer_project_repos(project, repos_data)
+
+
+def has_project_connected_repos(organization: Organization, project: Project) -> bool:
+    """Check if a project has connected repositories for Seer automation."""
+    return SeerProjectRepository.objects.filter(
+        project_repository__project=project,
+        project_repository__project__organization_id=organization.id,
+        project_repository__project__status=ObjectStatus.ACTIVE,
+        project_repository__repository__status=ObjectStatus.ACTIVE,
+    ).exists()
 
 
 def get_autofix_repos_from_project_code_mappings(
@@ -774,84 +864,34 @@ def get_autofix_repos_from_project_code_mappings(
 
     repos: dict[tuple, dict] = {}
     for code_mapping in code_mappings:
-        repo: Repository = code_mapping.repository
-        repo_name_sections = repo.name.split("/")
+        repo: Repository = code_mapping.project_repository.repository
+        repo_name_sections = get_repo_url_path(repo).split("/")
 
-        # We expect a repository name to be in the format of "owner/name" for now.
-        if len(repo_name_sections) > 1 and repo.provider:
+        if (
+            # We expect a repository name to be in the format of "owner/name" for now.
+            len(repo_name_sections) > 1
+            # Only include active repos with a supported provider, active integration, and external ID.
+            and repo.status == ObjectStatus.ACTIVE
+            and repo.integration_id is not None
+            and repo.external_id
+            and repo.provider
+            and repo.provider in get_supported_scm_providers(project.organization)
+        ):
             repo_dict = {
                 "repository_id": repo.id,
                 "organization_id": repo.organization_id,
-                "integration_id": (
-                    str(repo.integration_id) if repo.integration_id is not None else None
-                ),
+                "integration_id": str(repo.integration_id),
                 "provider": repo.provider,
                 "owner": repo_name_sections[0],
                 "name": "/".join(repo_name_sections[1:]),
                 "external_id": repo.external_id,
+                "languages": repo.languages or [],
             }
             repo_key = (repo_dict["provider"], repo_dict["owner"], repo_dict["name"])
 
             repos[repo_key] = repo_dict
 
     return list(repos.values())
-
-
-def get_autofix_state(
-    *,
-    group_id: int | None = None,
-    run_id: int | None = None,
-    check_repo_access: bool = False,
-    is_user_fetching: bool = False,
-    organization_id: int,
-) -> AutofixState | None:
-    body = GetAutofixStateRequest(
-        group_id=group_id,
-        run_id=run_id,
-        check_repo_access=check_repo_access,
-        is_user_fetching=is_user_fetching,
-    )
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-    response = make_get_autofix_state_request(body, viewer_context=viewer_context)
-
-    if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
-
-    result = response.json()
-
-    if result:
-        if (
-            group_id is not None
-            and result["group_id"] == group_id
-            or run_id is not None
-            and result["run_id"] == run_id
-        ):
-            state = AutofixState.validate(result["state"])
-
-            if state.request.organization_id != organization_id:
-                raise SeerPermissionError("Different organization ID found in autofix state")
-
-            return state
-
-    return None
-
-
-def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | None:
-    body = GetAutofixStatePrRequest(provider=provider, pr_id=pr_id)
-    response = make_get_autofix_state_pr_request(body)
-
-    if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
-    result = response.json()
-
-    if not result:
-        return None
-
-    state = result.get("state", None)
-    if state is None:
-        return None
-
-    return AutofixState.validate(state)
 
 
 def is_seer_scanner_rate_limited(project: Project, organization: Organization) -> bool:
@@ -926,7 +966,6 @@ def is_issue_category_eligible(group: Group) -> bool:
 
     return group.issue_category in {
         GroupCategory.ERROR,
-        GroupCategory.PERFORMANCE,
         GroupCategory.MOBILE,
         GroupCategory.FRONTEND,
         GroupCategory.DB_QUERY,
@@ -1023,59 +1062,16 @@ def is_seer_autotriggered_autofix_rate_limited_and_increment(
     return is_rate_limited
 
 
-def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: bool) -> str:
-    """Get the autofix prompt from Seer API."""
-
-    body = GetAutofixPromptRequest(
-        run_id=run_id,
-        include_root_cause=include_root_cause,
-        include_solution=include_solution,
-    )
-    response = make_get_autofix_prompt_request(body, timeout=15)
-
-    if response.status >= 400:
-        raise SeerApiError(response.data.decode("utf-8"), response.status)
-
-    response_data = orjson.loads(response.data)
-
-    return response_data.get("prompt")
-
-
-def get_coding_agent_prompt(
-    run_id: int,
-    trigger_source: AutofixTriggerSource,
-    instruction: str | None = None,
-    short_id: str | None = None,
-) -> str:
-    """Get the coding agent prompt with prefix from Seer API."""
-    include_root_cause = trigger_source in [
-        AutofixTriggerSource.ROOT_CAUSE,
-        AutofixTriggerSource.SOLUTION,
-    ]
-    include_solution = trigger_source == AutofixTriggerSource.SOLUTION
-
-    autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
-
-    base_prompt = "Please fix the following issue. Ensure that your fix is fully working."
-
-    if short_id:
-        base_prompt = f"{base_prompt}\n\nInclude 'Fixes {short_id}' in the commit message."
-
-    if instruction and instruction.strip():
-        base_prompt = f"{base_prompt}\n\n{instruction.strip()}"
-
-    return f"{base_prompt}\n\n{autofix_prompt}"
-
-
 def update_coding_agent_state(
     *,
     agent_id: str,
     status: CodingAgentStatus,
     agent_url: str | None = None,
     result: CodingAgentResult | None = None,
-) -> None:
+) -> bool:
     """Send coding agent state update to Seer.
 
+    Returns True if Seer accepted the update (2xx), False otherwise.
     Errors are logged and swallowed so that callers iterating over
     multiple agents are never interrupted by a single failed update.
     """
@@ -1097,7 +1093,7 @@ def update_coding_agent_state(
             "coding_agent.state_update_error",
             extra={"agent_id": agent_id},
         )
-        return
+        return False
 
     if response.status >= 400:
         logger.error(
@@ -1108,3 +1104,6 @@ def update_coding_agent_state(
                 "response": response.data.decode("utf-8"),
             },
         )
+        return False
+
+    return True

@@ -8,7 +8,7 @@ describe('ContactBillingMembers', () => {
   it('renders helpful members', async () => {
     const member = MemberFixture();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
+      url: '/organizations/org-slug/members/',
       method: 'GET',
       body: [member],
     });
@@ -22,7 +22,7 @@ describe('ContactBillingMembers', () => {
 
   it('does not render helpful members', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
+      url: '/organizations/org-slug/members/',
       method: 'GET',
       body: [],
     });
@@ -30,7 +30,7 @@ describe('ContactBillingMembers', () => {
     render(<ContactBillingMembers />);
     expect(
       await screen.findByText(
-        `You don't have access to manage billing and subscription details.`
+        "You don't have access to manage billing and subscription details."
       )
     ).toBeInTheDocument();
   });

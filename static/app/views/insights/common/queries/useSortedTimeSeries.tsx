@@ -7,7 +7,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
@@ -29,10 +29,6 @@ import type {
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
-import {
-  getRetryDelay,
-  shouldRetryHandler,
-} from 'sentry/views/insights/common/utils/retryHandlers';
 import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
 
 type SeriesMap = Record<string, TimeSeries[]>;
@@ -124,9 +120,6 @@ export const useSortedTimeSeries = <
       extrapolate: !disableAggregateExtrapolation,
       queryOptions: {
         enabled: enabled && pageFilters.isReady,
-        refetchOnWindowFocus: false,
-        retry: shouldRetryHandler,
-        retryDelay: getRetryDelay,
         staleTime:
           usesRelativeDateRange &&
           defined(intervalInMilliseconds) &&
@@ -150,6 +143,8 @@ export const useSortedTimeSeries = <
     meta: result.data?.meta,
   };
 };
+
+export type SortedTimeSeries = ReturnType<typeof useSortedTimeSeries>;
 
 export function transformToSeriesMap(
   result: MultiSeriesEventsStats | GroupedMultiSeriesEventsStats | undefined,
@@ -215,7 +210,7 @@ export function transformToSeriesMap(
           return;
         }
 
-        const seriesData = groupData[axis] as EventsStats;
+        const seriesData = groupData[axis]!;
         const [, timeSeries] = convertEventsStatsToTimeSeriesData(
           axis,
           seriesData,

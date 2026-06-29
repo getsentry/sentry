@@ -26,10 +26,11 @@ import {
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-export const CHART_TYPE_TO_DISPLAY_TYPE = {
+export const CHART_TYPE_TO_DISPLAY_TYPE: Record<ChartType, DisplayType> = {
   [ChartType.LINE]: DisplayType.LINE,
   [ChartType.BAR]: DisplayType.BAR,
   [ChartType.AREA]: DisplayType.AREA,
+  [ChartType.HEATMAP]: DisplayType.HEATMAP,
 };
 
 export function useAddToDashboard() {

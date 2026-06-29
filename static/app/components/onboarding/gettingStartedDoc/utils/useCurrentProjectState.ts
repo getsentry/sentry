@@ -5,7 +5,8 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -105,9 +106,7 @@ export function useCurrentProjectState({
 
   const defaultCurrentProject = getDefaultCurrentProject();
 
-  const [currentProject, setCurrentProject] = useState<Project | undefined>(
-    defaultCurrentProject
-  );
+  const [currentProject, setCurrentProject] = useState(defaultCurrentProject);
 
   // Update default project if none is set
   useEffect(() => {

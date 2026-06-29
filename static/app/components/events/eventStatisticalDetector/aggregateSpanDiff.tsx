@@ -14,8 +14,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields} from 'sentry/views/insights/types';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 import {EventRegressionTable, type EventRegressionTableRow} from './eventRegressionTable';
@@ -217,8 +217,8 @@ export function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     });
 
   return (
-    <InterimSection
-      type={SectionKey.REGRESSION_POTENTIAL_CAUSES}
+    <FoldSection
+      sectionKey={SectionKey.REGRESSION_POTENTIAL_CAUSES}
       title={t('Potential Causes')}
       actions={
         <SegmentedControl
@@ -243,7 +243,7 @@ export function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
         error={shouldUseSpansData ? spansError : rcaError}
         onDescriptionLink={getDescriptionLink}
       />
-    </InterimSection>
+    </FoldSection>
   );
 }
 

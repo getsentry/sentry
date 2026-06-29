@@ -40,6 +40,7 @@ class IdentityFilterArgs(TypedDict, total=False):
     id: int
     user_id: int
     identity_ext_id: str
+    identity_ext_ids: list[str]
     provider_id: int
     provider_ext_id: str
     provider_type: str

@@ -19,7 +19,7 @@ from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import Detector, Workflow
 
 
-class WorkflowEngineCombinedRuleSerializer(Serializer):
+class WorkflowEngineCombinedRuleSerializer(Serializer[MutableMapping[Any, Any]]):
     """
     Serializer for combined rules endpoint when using workflow engine.
     Dispatches to appropriate serializers based on object type.
@@ -62,17 +62,21 @@ class WorkflowEngineCombinedRuleSerializer(Serializer):
         serialized_cron_monitors = serialize(cron_monitors, user=user)
 
         # Map by position since serializers return fake IDs that can't be used for lookup
-        for detector, serialized in zip(metric_detectors, serialized_metric_detectors):
-            results[detector] = serialized
+        for metric_detector, serialized_metric in zip(
+            metric_detectors, serialized_metric_detectors
+        ):
+            results[metric_detector] = serialized_metric
 
-        for workflow, serialized in zip(workflows, serialized_workflows):
-            results[workflow] = serialized
+        for workflow, serialized_workflow in zip(workflows, serialized_workflows):
+            results[workflow] = serialized_workflow
 
-        for detector, serialized in zip(uptime_detectors, serialized_uptime_detectors):
-            results[detector] = serialized
+        for uptime_detector, serialized_uptime in zip(
+            uptime_detectors, serialized_uptime_detectors
+        ):
+            results[uptime_detector] = serialized_uptime
 
-        for monitor, serialized in zip(cron_monitors, serialized_cron_monitors):
-            results[monitor] = serialized
+        for monitor, serialized_monitor in zip(cron_monitors, serialized_cron_monitors):
+            results[monitor] = serialized_monitor
 
         return results
 

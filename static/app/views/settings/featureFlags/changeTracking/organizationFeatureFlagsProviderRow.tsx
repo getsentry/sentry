@@ -37,7 +37,13 @@ export function OrganizationFeatureFlagsProviderRow({
         <TimeSince date={secret.createdAt} />
       </Flex>
 
-      <Flex align="center">{isUserPending ? <LoadingIndicator mini /> : user?.name}</Flex>
+      <Flex align="center">
+        {isUserPending ? (
+          <LoadingIndicator mini />
+        ) : (
+          (user?.name ?? t('Deactivated user'))
+        )}
+      </Flex>
 
       <Flex justify="end">
         <Tooltip

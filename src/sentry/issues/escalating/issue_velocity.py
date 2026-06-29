@@ -25,8 +25,10 @@ from snuba_sdk import (
 )
 
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.post_process import locks
 from sentry.utils import metrics
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import redis_clusters
 
@@ -37,7 +39,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # for snuba operations
-REFERRER = "sentry.issues.escalating.issue_velocity"
 THRESHOLD_QUANTILE = {"name": "p95", "function": "quantile(0.95)"}
 WEEK_IN_HOURS = 7 * 24
 
@@ -128,13 +129,18 @@ def calculate_threshold(project: Project) -> float | None:
 
     request = Request(
         dataset=Dataset.Events.value,
-        app_id=REFERRER,
+        app_id=Referrer.ISSUES_ESCALATING_ISSUE_VELOCITY.value,
         query=query,
-        tenant_ids={"referrer": REFERRER, "organization_id": project.organization.id},
+        tenant_ids={
+            "referrer": Referrer.ISSUES_ESCALATING_ISSUE_VELOCITY.value,
+            "organization_id": project.organization.id,
+        },
     )
 
     try:
-        result = raw_snql_query(request, referrer=REFERRER)["data"]
+        result = raw_snql_query(request, referrer=Referrer.ISSUES_ESCALATING_ISSUE_VELOCITY.value)[
+            "data"
+        ]
     except Exception:
         logger.exception(
             "sentry.issues.escalating.issue_velocity.calculate_threshold.error",
@@ -166,7 +172,7 @@ def update_threshold(
     client = get_redis_client()
     with client.pipeline() as p:
         p.set(threshold_key, threshold, ex=ttl)
-        p.set(stale_date_key, str(datetime.utcnow()), ex=ttl)
+        p.set(stale_date_key, str(deprecated_utcnow()), ex=ttl)
         p.execute()
     metrics.incr("issues.update_new_escalation_threshold", tags={"useFallback": False})
     return threshold
@@ -184,7 +190,7 @@ def fallback_to_stale_or_zero(
     ttl = FALLBACK_TTL
     # current datetime - the amount of time a threshold is valid for + how much time to wait before trying to query Snuba for the threshold again
     stale_date = (
-        datetime.utcnow()
+        deprecated_utcnow()
         - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
         + timedelta(seconds=FALLBACK_TTL)
     )
@@ -224,7 +230,7 @@ def get_latest_threshold(project: Project) -> float:
     stale_date = None
     if cache_results[1] is not None:
         stale_date = datetime.fromisoformat(cache_results[1])
-    now = datetime.utcnow()
+    now = deprecated_utcnow()
     if (
         stale_date is None
         or threshold is None

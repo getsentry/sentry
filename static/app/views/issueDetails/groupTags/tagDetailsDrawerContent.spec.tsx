@@ -38,7 +38,7 @@ describe('TagDetailsDrawerContent', () => {
       body: tags,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/`,
+      url: '/organizations/org-slug/issues/1/',
       body: GroupFixture(),
     });
   });
@@ -362,7 +362,7 @@ describe('TagDetailsDrawerContent', () => {
       body: deviceValues,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/`,
+      url: '/organizations/org-slug/issues/1/',
       body: group,
     });
 

@@ -17,7 +17,7 @@ type Props = {
    */
   buttonProps: Pick<
     React.ComponentProps<typeof AddIntegrationButton>,
-    'size' | 'priority' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
+    'size' | 'variant' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
   >;
   onAddIntegration: (integration: Integration) => void;
   onExternalClick: () => void;
@@ -33,7 +33,7 @@ export function IntegrationButton({
   buttonProps,
 }: Props) {
   const organization = useOrganization();
-  const {provider, type, installStatus, analyticsParams, modalParams} =
+  const {provider, type, installStatus, analyticsParams, suppressSuccessMessage} =
     useContext(IntegrationContext) ?? {};
   if (!provider || !type) {
     return null;
@@ -61,7 +61,7 @@ export function IntegrationButton({
         onAddIntegration={onAddIntegration}
         installStatus={installStatus}
         analyticsParams={analyticsParams}
-        modalParams={modalParams}
+        suppressSuccessMessage={suppressSuccessMessage}
         {...buttonProps}
         organization={organization}
       />

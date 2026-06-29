@@ -1,7 +1,6 @@
 from unittest import mock
 
 import pytest
-from taskbroker_client.retry import RetryTaskError
 
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.example import ExampleIntegration
@@ -56,7 +55,11 @@ class TestSyncAssigneeOutbound(TestCase):
         sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
         mock_sync_assignee.assert_called_once()
         mock_sync_assignee.assert_called_with(
-            self.external_issue, mock.ANY, assign=True, assignment_source=None
+            self.external_issue,
+            mock.ANY,
+            assign=True,
+            assignment_source=None,
+            lifecycle=mock.ANY,
         )
 
         user_arg = mock_sync_assignee.call_args_list[0][0][1]
@@ -72,7 +75,7 @@ class TestSyncAssigneeOutbound(TestCase):
     ) -> None:
         mock_sync_assignee.side_effect = raise_sync_assignee_exception
 
-        with pytest.raises(RetryTaskError):
+        with pytest.raises(Exception, match="Something went wrong"):
             sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
 
         mock_record_failure.assert_called_once()

@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -25,10 +25,12 @@ function hasOrganizationRole(organization: Organization, roleRequired: string): 
 
 // Helper function to safely get role from project
 function getProjectRole(
-  project: Project | undefined,
+  project: DetailedProject | undefined,
   role: 'debugFilesRole' | 'attachmentsRole'
 ): string | undefined {
-  if (!project) return undefined;
+  if (!project) {
+    return undefined;
+  }
 
   if (role === 'debugFilesRole') {
     return project.debugFilesRole ?? undefined;
@@ -51,7 +53,7 @@ interface UseRoleOptions {
    * Project.
    * If not provided, the role will be checked against the organization.
    */
-  project?: Project | undefined;
+  project?: DetailedProject | undefined;
 }
 
 interface UseRoleResult {

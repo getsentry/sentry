@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 
 interface Options {
+  offset?: number;
   position?: 'top' | 'bottom';
 }
 
@@ -18,7 +19,10 @@ export function useIsStuck(el: HTMLElement | null, options: Options = {}) {
     const observer = new IntersectionObserver(
       ([entry]) => setIsStuck(entry!.intersectionRatio < 1),
       {
-        rootMargin: options.position === 'top' ? '-1px 0px 0px 0px' : '0px 0px -1px 0px',
+        rootMargin:
+          options.position === 'bottom'
+            ? `0px 0px ${-(options.offset ?? 0) - 1}px 0px`
+            : `${-(options.offset ?? 0) - 1}px 0px 0px 0px`,
         threshold: [1],
       }
     );
@@ -26,7 +30,7 @@ export function useIsStuck(el: HTMLElement | null, options: Options = {}) {
     observer.observe(el);
 
     return () => observer.disconnect();
-  }, [el, options.position]);
+  }, [el, options.position, options.offset]);
 
   return isStuck;
 }

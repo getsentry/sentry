@@ -116,8 +116,8 @@ export function getRows({
   framesOmitted: [number, number] | null | undefined;
   hiddenFrameToggleMap: Record<number, boolean>;
   includeSystemFrames: boolean;
-  maxDepth: number | undefined;
   newestFirst: boolean;
+  maxDepth?: number;
 }): Row[] {
   const hiddenFrameIndices = getHiddenFrameIndices({
     frames,

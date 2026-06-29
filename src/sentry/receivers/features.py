@@ -245,7 +245,9 @@ def record_issue_assigned(project, group, user, **kwargs):
 
 
 @issue_resolved.connect(weak=False)
-def record_issue_resolved(organization_id, project, group, user, resolution_type, **kwargs):
+def record_issue_resolved(
+    organization_id, project, group, user, resolution_type, provider=None, commit_id=None, **kwargs
+):
     """There are three main types of ways to resolve issues
     1) via a release (current release, next release, or other)
     2) via commit (in the UI with the commit hash (marked as "in_commit")
@@ -276,6 +278,8 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
                 organization_id=organization_id,
                 group_id=group.id,
                 resolution_type=resolution_type,
+                provider=provider,
+                commit_id=commit_id,
                 issue_type=group.issue_type.slug,
                 issue_category=group.issue_category.name.lower(),
             )

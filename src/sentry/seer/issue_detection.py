@@ -1,6 +1,7 @@
 import logging
 
 from sentry.models.project import Project
+from sentry.seer.sentry_data_models import CreateIssueOccurrenceResponse
 from sentry.tasks.llm_issue_detection.detection import (
     DetectedIssue,
     create_issue_occurrence_from_detection,
@@ -14,7 +15,7 @@ def create_issue_occurrence(
     organization_id: int,
     project_id: int,
     detected_issue: dict,
-) -> dict:
+) -> CreateIssueOccurrenceResponse:
     """
     Create an issue occurrence from Seer detection data.
 
@@ -42,9 +43,7 @@ def create_issue_occurrence(
             "title": issue.title,
             "trace_id": issue.trace_id,
             "project_id": effective_project_id,
-            "category": issue.category,
-            "subcategory": issue.subcategory,
         },
     )
 
-    return {"success": True}
+    return CreateIssueOccurrenceResponse()

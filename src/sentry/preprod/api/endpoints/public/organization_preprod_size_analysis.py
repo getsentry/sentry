@@ -8,7 +8,6 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -17,6 +16,7 @@ from sentry.api.serializers.rest_framework.base import convert_dict_key_case, sn
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.files.file import File
 from sentry.models.organization import Organization
@@ -70,7 +70,8 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve Size Analysis results for a given artifact",
+        operation_id="getOrganizationPreprodArtifactSizeAnalysis",
+        summary="Retrieve Size Analysis results for a given artifact",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -104,7 +105,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
         artifact_id: str,
-    ) -> Response:
+    ) -> Response[SizeAnalysisResponseDict] | Response[DetailResponse]:
         """
         Retrieve size analysis results for a given artifact.
 
@@ -119,16 +120,14 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         - `COMPLETED`: Analysis finished successfully with full size data.
         """
 
-        if not features.has(
-            "organizations:preprod-frontend-routes", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         try:
             head_artifact = PreprodArtifact.objects.select_related(
-                "mobile_app_info", "build_configuration", "commit_comparison"
+                "mobile_app_info", "build_configuration", "commit_comparison", "project"
             ).get(id=int(artifact_id), project__organization_id=organization.id)
         except (PreprodArtifact.DoesNotExist, ValueError):
+            return Response({"detail": "The requested preprod artifact does not exist"}, status=404)
+
+        if not request.access.has_project_access(head_artifact.project):
             return Response({"detail": "The requested preprod artifact does not exist"}, status=404)
 
         response_data = _base_response(head_artifact)
@@ -153,7 +152,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.invalid_state",
                 level="warning",
-                extra={"artifact_id": head_artifact.id, "state": main_metric.state},
+                extra={"preprod_artifact_id": head_artifact.id, "state": main_metric.state},
             )
             return Response(
                 {"detail": "There was an error retrieving size analysis results"}, status=500
@@ -205,7 +204,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.no_file_id",
                 level="warning",
-                extra={"artifact_id": head_artifact.id, "size_metric_id": main_metric.id},
+                extra={"preprod_artifact_id": head_artifact.id, "size_metric_id": main_metric.id},
             )
             return Response(
                 {"detail": "There was an error retrieving size analysis results"}, status=500
@@ -217,7 +216,10 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.file_not_found",
                 level="warning",
-                extra={"artifact_id": head_artifact.id, "analysis_file_id": analysis_file_id},
+                extra={
+                    "preprod_artifact_id": head_artifact.id,
+                    "analysis_file_id": analysis_file_id,
+                },
             )
             return Response({"detail": "Analysis file not found"}, status=404)
 
@@ -229,7 +231,10 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         except Exception:
             logger.exception(
                 "preprod.public_api.size_analysis.parse_error",
-                extra={"artifact_id": head_artifact.id, "analysis_file_id": analysis_file_id},
+                extra={
+                    "preprod_artifact_id": head_artifact.id,
+                    "analysis_file_id": analysis_file_id,
+                },
             )
             return Response(
                 {"detail": "There was an error retrieving size analysis results"}, status=500
@@ -282,15 +287,28 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         if base_artifact_id:
             try:
                 base_artifact = PreprodArtifact.objects.select_related(
-                    "mobile_app_info", "build_configuration", "commit_comparison"
+                    "mobile_app_info", "build_configuration", "commit_comparison", "project"
                 ).get(id=int(base_artifact_id), project__organization_id=organization.id)
-                return base_artifact
             except (PreprodArtifact.DoesNotExist, ValueError):
                 raise PreprodArtifactResourceDoesNotExist(
                     detail="The requested base preprod artifact does not exist"
                 )
 
-        base_artifact_qs = head_artifact.get_base_artifact_for_commit().select_related(
-            "mobile_app_info", "build_configuration", "commit_comparison"
+            if base_artifact.project_id != head_artifact.project_id:
+                raise PreprodArtifactResourceDoesNotExist(
+                    detail="The requested base preprod artifact does not exist"
+                )
+
+            if not request.access.has_project_access(base_artifact.project):
+                raise PreprodArtifactResourceDoesNotExist(
+                    detail="The requested base preprod artifact does not exist"
+                )
+
+            return base_artifact
+
+        base_artifact_qs = (
+            head_artifact.get_base_artifact_for_commit()
+            .filter(project_id=head_artifact.project_id)
+            .select_related("mobile_app_info", "build_configuration", "commit_comparison")
         )
         return base_artifact_qs.first()

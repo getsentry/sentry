@@ -35,7 +35,7 @@ export function NextBillCard({
     isError,
   } = useApiQuery<PreviewData>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/subscription/next-bill/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/subscription/next-bill/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -49,8 +49,7 @@ export function NextBillCard({
   // only additional fees (ie. taxes) are listed individually
   const invoiceItems = nextBill?.invoiceItems ?? [];
   const planItem = invoiceItems.find(item => item.type === 'subscription');
-  const plan = planItem?.data.plan;
-  const isAnnualPlan = plan?.endsWith('_auf');
+  const isAnnualPlan = nextBill?.isAnnual;
   const reservedTotal =
     (planItem ? planItem.amount : 0) +
     invoiceItems

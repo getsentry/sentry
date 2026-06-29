@@ -151,9 +151,9 @@ export function useSearchTokenCombobox<T>(
       onKeyDown: isReadOnly
         ? props.onKeyDown
         : chain(state.isOpen && collectionProps.onKeyDown, onKeyDown, props.onKeyDown),
-      onBlur: onBlur as (e: FocusEvent<Element, Element>) => void,
+      onBlur: onBlur as (e: FocusEvent) => void,
       value: state.inputValue,
-      onFocus: onFocus as (e: FocusEvent<Element, Element>) => void,
+      onFocus: onFocus as (e: FocusEvent) => void,
       autoComplete: 'off',
       validate: undefined,
       [privateValidationStateProp]: state,

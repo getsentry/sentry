@@ -29,10 +29,8 @@ describe('ProjectHpkpReports', () => {
       initialRouterConfig,
     });
 
-    // Heading
-    expect(
-      await screen.findByText('HTTP Public Key Pinning', {selector: 'h1'})
-    ).toBeInTheDocument();
+    // Panel heading
+    expect(await screen.findByText('About')).toBeInTheDocument();
   });
 
   it('renders loading error', async () => {

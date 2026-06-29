@@ -1,10 +1,7 @@
 import type {Repository} from 'sentry/types/integrations';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  useApiQuery,
-  type ApiQueryKey,
-  type UseApiQueryOptions,
-} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 
 function getReleaseRepositoriesQueryKey({
   orgSlug,

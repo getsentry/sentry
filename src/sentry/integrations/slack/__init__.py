@@ -25,7 +25,6 @@ from .requests.command import *  # noqa: F401,F403
 from .requests.event import *  # noqa: F401,F403
 from .unfurl.discover import *  # noqa: F401,F403
 from .unfurl.issues import *  # noqa: F401,F403
-from .unfurl.metric_alerts import *  # noqa: F401,F403
 from .urls import *  # noqa: F401,F403
 from .utils.auth import *  # noqa: F401,F403
 from .utils.channel import *  # noqa: F401,F403

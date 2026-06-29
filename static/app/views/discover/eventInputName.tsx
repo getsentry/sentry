@@ -1,5 +1,4 @@
 import {EditableText} from 'sentry/components/editableText';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -57,13 +56,16 @@ export function EventInputName({organization, eventView, savedQuery, isHomepage}
   const value = isHomepage ? HOMEPAGE_DEFAULT : eventView.name || NAME_DEFAULT;
 
   return (
-    <Layout.Title data-test-id={`discover2-query-name-${value}`}>
+    <div data-test-id={`discover2-query-name-${value}`}>
       <EditableText
         value={value}
         onChange={handleChange}
-        isDisabled={!eventView.id || isHomepage}
         errorMessage={t('Please set a name for this query')}
+        isDisabled={!eventView.id || isHomepage}
+        aria-label={t('Edit query name')}
+        maxLength={255}
+        variant="compact"
       />
-    </Layout.Title>
+    </div>
   );
 }

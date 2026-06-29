@@ -30,7 +30,8 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectReplayEndpoint):
         super().__init__(**options)
 
     @extend_schema(
-        operation_id="List Recording Segments",
+        operation_id="listProjectReplayRecordingSegments",
+        summary="List Recording Segments",
         parameters=[
             CursorQueryParam,
             GlobalParams.ORG_ID_OR_SLUG,
@@ -48,7 +49,9 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectReplayEndpoint):
         },
         examples=ReplayExamples.GET_REPLAY_SEGMENTS,
     )
-    def get(self, request: Request, project, replay_id: str) -> Response:
+    def get(
+        self, request: Request, project, replay_id: str
+    ) -> Response[list[list[dict[str, Any]]]]:
         """Return a collection of replay recording segments."""
         self.check_replay_access(request, project)
 

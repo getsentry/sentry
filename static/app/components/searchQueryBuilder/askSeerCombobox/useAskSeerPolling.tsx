@@ -1,10 +1,10 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -19,7 +19,10 @@ const POLL_INTERVAL = 500; // Poll every 500ms, matching Seer Explorer
 /**
  * Generate the query key for polling the search agent state.
  */
-const makeAskSeerQueryKey = (orgSlug: string, runId?: number): ApiQueryKey | null => {
+const makeAskSeerQueryKey = (
+  orgSlug: string,
+  runId?: number | string
+): ApiQueryKey | null => {
   if (!runId) {
     return null;
   }
@@ -46,7 +49,7 @@ const isPolling = <T extends QueryTokensProps>(
   }
 
   // Poll while status is processing or there's a current step in progress
-  return sessionData.status === 'processing' || sessionData.current_step !== null;
+  return sessionData.status === 'processing' || !!sessionData.current_step;
 };
 
 const makeInitialAskSeerData = <
@@ -60,6 +63,7 @@ interface UseAskSeerPollingOptions<T extends QueryTokensProps> {
   strategy: string;
   onError?: (error: Error) => void;
   onSuccess?: (result: T) => void;
+  options?: Record<string, unknown>;
 }
 
 /**
@@ -78,9 +82,10 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   const organization = useOrganization();
   const orgSlug = organization.slug;
 
-  const [runId, setRunId] = useState<number | null>(null);
+  const [runId, setRunId] = useState<number | string | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState(false);
   const [startFailed, setStartFailed] = useState(false);
+  const inFlightQueryRef = useRef<string | null>(null);
 
   const queryKey = makeAskSeerQueryKey(orgSlug, runId ?? undefined);
 
@@ -92,13 +97,13 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
       retry: false,
       enabled: !!runId && !!orgSlug,
       refetchInterval: query => {
-        const sessionData = query.state.data?.[0]?.session ?? null;
+        const sessionData = query.state.data?.json?.session ?? null;
         if (isPolling(sessionData, waitingForResponse)) {
           return POLL_INTERVAL;
         }
         return false;
       },
-    } as UseApiQueryOptions<AskSeerPollingResponse<T>, RequestError>
+    }
   );
 
   const sessionData = apiData?.session ?? null;
@@ -106,6 +111,10 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   // Start a new search
   const submitQuery = useCallback(
     async (query: string) => {
+      if (inFlightQueryRef.current === query) {
+        return;
+      }
+      inFlightQueryRef.current = query;
       setWaitingForResponse(true);
 
       try {
@@ -117,34 +126,46 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
               natural_language_query: query,
               project_ids: options.projectIds,
               strategy: options.strategy,
+              ...(options.options ? {options: options.options} : {}),
             },
           }
         )) as AskSeerStartResponse;
 
-        setRunId(response.run_id);
+        const newRunId = response.sentry_run_id ?? response.run_id;
+        if (!newRunId) {
+          Sentry.captureMessage('Search agent start response missing run ID', 'error');
+          throw new Error('Search agent start response missing run ID');
+        }
+        setRunId(newRunId);
 
         // Invalidate to start polling
-        const newQueryKey = makeAskSeerQueryKey(orgSlug, response.run_id);
+        const newQueryKey = makeAskSeerQueryKey(orgSlug, newRunId);
         if (newQueryKey) {
           queryClient.invalidateQueries({
             queryKey: newQueryKey,
           });
         }
       } catch (error) {
+        inFlightQueryRef.current = null;
         setWaitingForResponse(false);
         setStartFailed(true);
-        addErrorMessage((error as Error)?.message ?? 'Failed to start AI search');
         options.onError?.(error as Error);
       }
     },
     [api, orgSlug, options, queryClient]
   );
 
+  useEffect(() => {
+    if (!waitingForResponse) {
+      inFlightQueryRef.current = null;
+    }
+  }, [waitingForResponse]);
+
   // Handle completion callback
   useEffect(() => {
     if (waitingForResponse && sessionData) {
       const isStillProcessing =
-        sessionData.status === 'processing' || sessionData.current_step !== null;
+        sessionData.status === 'processing' || !!sessionData.current_step;
       if (!isStillProcessing) {
         setWaitingForResponse(false);
         if (sessionData.status === 'completed' && sessionData.final_response) {
@@ -156,10 +177,13 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
 
   // Reset function
   const reset = useCallback(() => {
+    inFlightQueryRef.current = null;
     setRunId(null);
     setWaitingForResponse(false);
     setStartFailed(false);
     if (queryKey) {
+      // Will be fixed soon when we get rid of setApiQueryData.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
       setApiQueryData<AskSeerPollingResponse<T>>(
         queryClient,
         queryKey,
@@ -177,17 +201,17 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
      */
     sessionData,
     /**
-     * Whether we're waiting for a response (initial load or polling).
-     */
-    isPending: isActuallyPending,
-    /**
      * Whether polling is active.
      */
     isPolling: isPolling(sessionData, waitingForResponse),
     /**
-     * Whether the request errored.
+     * Whether we're waiting for a response (initial load or polling).
      */
-    isError: sessionData?.status === 'error',
+    isSessionPending: isActuallyPending,
+    /**
+     * Whether the agent run errored.
+     */
+    isSessionError: sessionData?.status === 'error',
     /**
      * Whether the start request failed (use fallback).
      */

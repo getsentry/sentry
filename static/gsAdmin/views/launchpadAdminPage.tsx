@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -11,10 +12,9 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ConfigStore} from 'sentry/stores/configStore';
-import type {Region} from 'sentry/types/system';
+import {getLocalities} from 'sentry/utils/cells';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
@@ -22,49 +22,59 @@ import {PageHeader} from 'admin/components/pageHeader';
 
 export function LaunchpadAdminPage() {
   const api = useApi();
-  const [rerunArtifactId, setRerunArtifactId] = useState<string>('');
-  const [deleteArtifactId, setDeleteArtifactId] = useState<string>('');
-  const [fetchInfoArtifactId, setFetchInfoArtifactId] = useState<string>('');
-  const [batchDeleteArtifactIds, setBatchDeleteArtifactIds] = useState<string>('');
-  const [downloadArtifactId, setDownloadArtifactId] = useState<string>('');
+  const [rerunArtifactId, setRerunArtifactId] = useState('');
+  const [deleteArtifactId, setDeleteArtifactId] = useState('');
+  const [fetchInfoArtifactId, setFetchInfoArtifactId] = useState('');
+  const [batchDeleteArtifactIds, setBatchDeleteArtifactIds] = useState('');
+  const [downloadArtifactId, setDownloadArtifactId] = useState('');
   const [fetchedArtifactInfo, setFetchedArtifactInfo] = useState<any>(null);
-  const regions = ConfigStore.get('regions');
-  const [region, setRegion] = useState<Region | null>(regions[0] ?? null);
+  const localities = getLocalities();
+  const [locality, setLocality] = useState(localities[0] ?? null);
 
   const {mutate: rerunAnalysis} = useMutation({
     mutationFn: () => {
+      const ids = rerunArtifactId
+        .split(',')
+        .map(id => id.trim())
+        .filter(Boolean);
       return fetchMutation({
-        url: `/internal/preprod-artifact/rerun-analysis/`,
+        url: '/internal/preprod-artifact/batch-rerun-analysis/',
         method: 'POST',
-        data: {
-          preprod_artifact_id: rerunArtifactId,
-        },
-        options: {
-          host: region?.url,
-        },
+        data: {artifact_ids: ids},
+        options: {host: locality?.url},
       });
     },
-    onSuccess: () => {
-      addSuccessMessage(
-        `Analysis rerun initiated successfully for artifact: ${rerunArtifactId}`
-      );
+    onSuccess: (data: any) => {
+      const results = data?.results ?? [];
+      const succeeded = results.filter((r: any) => r.success);
+      const failed = results.filter((r: any) => !r.success);
+      if (failed.length > 0) {
+        addErrorMessage(
+          `Failed to dispatch ${failed.length} artifact${failed.length > 1 ? 's' : ''}: ${failed.map((r: any) => r.artifact_id).join(', ')}`
+        );
+      }
+      if (succeeded.length > 0) {
+        addSuccessMessage(
+          `Analysis rerun initiated for ${succeeded.length} artifact${succeeded.length > 1 ? 's' : ''}`
+        );
+      }
       setRerunArtifactId('');
     },
     onError: () => {
-      addErrorMessage(`Failed to rerun analysis for artifact: ${rerunArtifactId}`);
+      addErrorMessage('Failed to rerun analysis');
     },
   });
 
   const {mutate: deleteArtifactData} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: `/internal/preprod-artifact/batch-delete/`,
+        url: '/internal/preprod-artifact/batch-delete/',
         method: 'DELETE',
         data: {
           preprod_artifact_ids: [deleteArtifactId],
         },
         options: {
-          host: region?.url,
+          host: locality?.url,
         },
       });
     },
@@ -84,14 +94,14 @@ export function LaunchpadAdminPage() {
       addErrorMessage('Artifact ID is required');
       return;
     }
-    if (!region) {
+    if (!locality) {
       addErrorMessage('Please select a region first');
       return;
     }
 
     api.request(`/internal/preprod-artifact/${fetchInfoArtifactId}/info/`, {
       method: 'GET',
-      host: region?.url,
+      host: locality?.url,
       success: (data: any) => {
         addSuccessMessage(
           `Artifact info fetched successfully for: ${fetchInfoArtifactId}`
@@ -108,16 +118,16 @@ export function LaunchpadAdminPage() {
   const {mutate: batchDeleteArtifacts} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: `/internal/preprod-artifact/batch-delete/`,
+        url: '/internal/preprod-artifact/batch-delete/',
         method: 'DELETE',
         data: {
           preprod_artifact_ids: batchDeleteArtifactIds
             .split(',')
             .map(id => id.trim())
-            .filter(id => id),
+            .filter(Boolean),
         },
         options: {
-          host: region?.url,
+          host: locality?.url,
         },
       });
     },
@@ -129,7 +139,7 @@ export function LaunchpadAdminPage() {
       setBatchDeleteArtifactIds('');
     },
     onError: () => {
-      addErrorMessage(`Failed to batch delete artifacts`);
+      addErrorMessage('Failed to batch delete artifacts');
     },
   });
 
@@ -138,7 +148,7 @@ export function LaunchpadAdminPage() {
       addErrorMessage('Artifact ID is required');
       return;
     }
-    if (!region) {
+    if (!locality) {
       addErrorMessage('Please select a region first');
       return;
     }
@@ -148,7 +158,7 @@ export function LaunchpadAdminPage() {
         `/internal/preprod-artifact/${downloadArtifactId}/info/`,
         {
           method: 'GET',
-          host: region?.url,
+          host: locality?.url,
         }
       );
 
@@ -165,7 +175,7 @@ export function LaunchpadAdminPage() {
         organizationSlug: orgSlug,
         projectSlug,
         artifactId,
-        regionUrl: region.url,
+        regionUrl: locality.url,
       });
 
       setDownloadArtifactId('');
@@ -176,7 +186,7 @@ export function LaunchpadAdminPage() {
 
   const handleRerunSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!region) {
+    if (!locality) {
       addErrorMessage('Please select a region first');
       return;
     }
@@ -185,7 +195,7 @@ export function LaunchpadAdminPage() {
 
   const handleDeleteSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!region) {
+    if (!locality) {
       addErrorMessage('Please select a region first');
       return;
     }
@@ -224,7 +234,7 @@ export function LaunchpadAdminPage() {
 
   const handleBatchDeleteSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!region) {
+    if (!locality) {
       addErrorMessage('Please select a region first');
       return;
     }
@@ -232,7 +242,7 @@ export function LaunchpadAdminPage() {
     const artifactIds = batchDeleteArtifactIds
       .split(',')
       .map(id => id.trim())
-      .filter(id => id);
+      .filter(Boolean);
     const artifactCount = artifactIds.length;
 
     openAdminConfirmModal({
@@ -282,17 +292,17 @@ export function LaunchpadAdminPage() {
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix="Region" />
           )}
-          value={region ? region.url : undefined}
-          options={regions.map((r: any) => ({
+          value={locality ? locality.url : undefined}
+          options={localities.map((r: any) => ({
             label: r.name,
             value: r.url,
           }))}
           onChange={opt => {
-            const regionOption = regions.find((r: any) => r.url === opt.value);
-            if (regionOption === undefined) {
+            const localityOption = localities.find(l => l.url === opt.value);
+            if (localityOption === undefined) {
               return;
             }
-            setRegion(regionOption);
+            setLocality(localityOption);
           }}
         />
 
@@ -310,7 +320,8 @@ export function LaunchpadAdminPage() {
               <Flex direction="column" gap="md">
                 <Heading as="h3">Fetch Artifact Info</Heading>
                 <Text as="p" variant="muted">
-                  Retrieve all data and details for a specific preprod artifact.
+                  Retrieve all data and details for a specific preprod artifact (includes
+                  snapshot info).
                 </Text>
                 <label htmlFor="fetchInfoArtifactId">
                   <Text bold>Preprod Artifact ID:</Text>
@@ -323,9 +334,9 @@ export function LaunchpadAdminPage() {
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="default"
+                  variant="secondary"
                   type="submit"
-                  disabled={!fetchInfoArtifactId.trim() || !region}
+                  disabled={!fetchInfoArtifactId.trim() || !locality}
                   css={css`
                     width: fit-content;
                   `}
@@ -354,9 +365,9 @@ export function LaunchpadAdminPage() {
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="danger"
+                  variant="danger"
                   type="submit"
-                  disabled={!deleteArtifactId.trim() || !region}
+                  disabled={!deleteArtifactId.trim() || !locality}
                   css={css`
                     width: fit-content;
                   `}
@@ -370,24 +381,25 @@ export function LaunchpadAdminPage() {
           <form onSubmit={handleRerunSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
               <Flex direction="column" gap="md">
-                <Heading as="h3">Rerun Analysis</Heading>
+                <Heading as="h3">Batch Rerun Analyses</Heading>
                 <Text as="p" variant="muted">
-                  Rerun analysis for a specific preprod artifact.
+                  Rerun all enabled analyses (size, snapshots, etc.) for one or more
+                  preprod artifacts using comma-separated IDs.
                 </Text>
                 <label htmlFor="rerunArtifactId">
-                  <Text bold>Preprod Artifact ID:</Text>
+                  <Text bold>Preprod Artifact ID (comma-separated):</Text>
                 </label>
                 <StyledInput
                   type="text"
                   name="rerunArtifactId"
                   value={rerunArtifactId}
                   onChange={e => setRerunArtifactId(e.target.value)}
-                  placeholder="Enter preprod artifact ID"
+                  placeholder="e.g., 123, 456, 789"
                 />
                 <Button
-                  priority="primary"
+                  variant="primary"
                   type="submit"
-                  disabled={!rerunArtifactId.trim() || !region}
+                  disabled={!rerunArtifactId.trim() || !locality}
                   css={css`
                     width: fit-content;
                   `}
@@ -416,9 +428,9 @@ export function LaunchpadAdminPage() {
                   placeholder="e.g., 123, 456, 789"
                 />
                 <Button
-                  priority="danger"
+                  variant="danger"
                   type="submit"
-                  disabled={!batchDeleteArtifactIds.trim() || !region}
+                  disabled={!batchDeleteArtifactIds.trim() || !locality}
                   css={css`
                     width: fit-content;
                   `}
@@ -447,9 +459,9 @@ export function LaunchpadAdminPage() {
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="default"
+                  variant="secondary"
                   type="submit"
-                  disabled={!downloadArtifactId.trim() || !region}
+                  disabled={!downloadArtifactId.trim() || !locality}
                   css={css`
                     width: fit-content;
                   `}
@@ -489,7 +501,7 @@ export function LaunchpadAdminPage() {
               <InfoDisplay>
                 <pre>{JSON.stringify(fetchedArtifactInfo, null, 2)}</pre>
               </InfoDisplay>
-              <Button priority="default" onClick={() => setFetchedArtifactInfo(null)}>
+              <Button variant="secondary" onClick={() => setFetchedArtifactInfo(null)}>
                 Clear Info
               </Button>
             </Flex>

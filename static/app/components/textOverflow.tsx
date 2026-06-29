@@ -61,7 +61,7 @@ export const TextOverflow = styled(
     css`
       direction: rtl;
       text-align: left;
-    `};
+    `}
   width: auto;
   line-height: 1.2;
 `;

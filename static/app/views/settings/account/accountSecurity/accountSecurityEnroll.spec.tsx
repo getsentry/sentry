@@ -99,7 +99,7 @@ describe('AccountSecurityEnroll', () => {
         method: 'POST',
       });
       const fetchOrgsMock = MockApiClient.addMockResponse({
-        url: `/organizations/`,
+        url: '/organizations/',
         body: [usorg],
       });
 
@@ -150,7 +150,7 @@ describe('AccountSecurityEnroll', () => {
         method: 'POST',
       });
       const fetchOrgsMock = MockApiClient.addMockResponse({
-        url: `/organizations/`,
+        url: '/organizations/',
         body: [usorg],
       });
 

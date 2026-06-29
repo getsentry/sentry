@@ -6,7 +6,7 @@ import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {Truncate} from 'sentry/components/truncate';
 
 import {PageHeader} from 'admin/components/pageHeader';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 const getRow = (row: any) => [
   <td key="user">

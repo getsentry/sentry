@@ -1,7 +1,10 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {MCP_RESOURCES_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -76,7 +79,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
-const RESOURCES_TABLE = {
+const RESOURCES_TABLE: PrebuiltWidget = {
   id: 'mcp-resources-table',
   title: t('Resources'),
   displayType: DisplayType.TABLE,
@@ -90,14 +93,14 @@ const RESOURCES_TABLE = {
         SpanFields.MCP_RESOURCE_URI,
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
-        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
+        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error) + count_if(${SpanFields.SPAN_STATUS},equals,error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
-        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
+        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error) + count_if(${SpanFields.SPAN_STATUS},equals,error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],

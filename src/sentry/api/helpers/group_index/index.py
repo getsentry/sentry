@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Collection, Sequence
 from datetime import datetime
 from typing import Any
 
@@ -126,11 +126,17 @@ def build_query_params_from_request(
             query = saved_search.query
 
     sentry_sdk.set_tag("search.query", query)
-    sentry_sdk.set_tag("search.sort", query)
+    sentry_sdk.set_attribute("search.query", query)
+    sentry_sdk.set_tag("search.sort", query_kwargs["sort_by"])
+    sentry_sdk.set_attribute("search.sort", query_kwargs["sort_by"])
     if projects:
         sentry_sdk.set_tag("search.projects", len(projects) if len(projects) <= 5 else ">5")
+        sentry_sdk.set_attribute("search.projects", len(projects) if len(projects) <= 5 else ">5")
     if environments:
         sentry_sdk.set_tag(
+            "search.environments", len(environments) if len(environments) <= 5 else ">5"
+        )
+        sentry_sdk.set_attribute(
             "search.environments", len(environments) if len(environments) <= 5 else ">5"
         )
     if query:
@@ -170,17 +176,27 @@ def validate_search_filter_permissions(
                 )
 
 
-def get_by_short_id(
+def get_by_short_ids(
     organization_id: int,
     is_short_id_lookup: str,
     query: str,
-) -> Group | None:
-    if is_short_id_lookup == "1" and looks_like_short_id(query):
+    *,
+    project_ids: Collection[int] | None,
+) -> list[Group]:
+    # Match short id tokens anywhere in the query
+    if is_short_id_lookup != "1":
+        return []
+    groups: list[Group] = []
+    for token in set(query.split()):
+        if not looks_like_short_id(token):
+            continue
         try:
-            return Group.objects.by_qualified_short_id(organization_id, query)
+            groups.append(
+                Group.objects.by_qualified_short_id(organization_id, token, project_ids=project_ids)
+            )
         except Group.DoesNotExist:
-            pass
-    return None
+            continue
+    return groups
 
 
 def track_slo_response(name: str) -> Callable[[EndpointFunction], EndpointFunction]:

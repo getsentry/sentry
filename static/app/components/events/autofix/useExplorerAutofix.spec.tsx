@@ -1,19 +1,27 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import {
   collectPatches,
+  getOrderedAutofixSections,
+  getPollInterval,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
+  isLastStepPrIteration,
+  isPrIterationBlock,
   isPullRequestsArtifact,
   isRootCauseArtifact,
+  isRunValidForPrIteration,
   isSolutionArtifact,
   useExplorerAutofix,
+  type ExplorerAutofixState,
   type RootCauseArtifact,
   type SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import type {Artifact, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+import type {Artifact, Block, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -24,6 +32,51 @@ function makeValidArtifact<T>(data: T): Artifact<T> {
     data,
   };
 }
+
+describe('getPollInterval', () => {
+  function makeState(
+    overrides: Partial<ExplorerAutofixState> = {}
+  ): ExplorerAutofixState {
+    return {
+      run_id: 1,
+      blocks: [],
+      status: 'completed',
+      updated_at: '2026-01-01T00:00:00Z',
+      ...overrides,
+    };
+  }
+
+  const completedPr: ExplorerAutofixState['repo_pr_states'] = {
+    'org/repo': {pr_creation_status: 'completed'} as any,
+  };
+
+  it('polls when pollPR is set and a PR has been created, even when idle', () => {
+    const state = makeState({status: 'completed', repo_pr_states: completedPr});
+    expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
+      1000
+    );
+  });
+
+  it('does not poll when pollPR is set but no PR has been created', () => {
+    const state = makeState({status: 'completed', repo_pr_states: {}});
+    expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
+      false
+    );
+  });
+
+  it('ignores PR state when pollPR is not set', () => {
+    const state = makeState({status: 'completed', repo_pr_states: completedPr});
+    expect(getPollInterval({autofixState: state, runStarted: false})).toBe(false);
+  });
+
+  it('polls while processing regardless of pollPR', () => {
+    const state = makeState({status: 'processing'});
+    expect(getPollInterval({autofixState: state, runStarted: false})).toBe(1000);
+    expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
+      1000
+    );
+  });
+});
 
 describe('isRootCauseArtifact', () => {
   function makeValidRootCauseData(): RootCauseArtifact {
@@ -391,6 +444,260 @@ describe('collectPatches', () => {
   });
 });
 
+describe('getOrderedAutofixSections', () => {
+  let blockId = 0;
+
+  function makeBlock(
+    overrides: Omit<Partial<Block>, 'message'> & {message?: Partial<Block['message']>}
+  ) {
+    const {message, ...rest} = overrides;
+    return {
+      id: `block-${blockId++}`,
+      timestamp: '2026-01-01T00:00:00Z',
+      message: {
+        content: 'hello',
+        role: 'assistant',
+        ...message,
+      },
+      ...rest,
+    } as Block;
+  }
+
+  function makePatch(repoName: string, path: string, diff = 'diff'): ExplorerFilePatch {
+    return {
+      repo_name: repoName,
+      diff,
+      patch: {
+        added: 1,
+        removed: 0,
+        path,
+        source_file: path,
+        target_file: path,
+        type: DiffFileType.MODIFIED,
+        hunks: [],
+      },
+    };
+  }
+
+  function makeState(blocks: Block[]): ExplorerAutofixState {
+    return {
+      run_id: 1,
+      status: 'completed',
+      updated_at: '2026-01-01T00:00:00Z',
+      blocks,
+    };
+  }
+
+  it('returns an empty array for null state or no blocks', () => {
+    expect(getOrderedAutofixSections(null)).toEqual([]);
+    expect(getOrderedAutofixSections(makeState([]))).toEqual([]);
+  });
+
+  it('groups blocks into sections at each step marker', () => {
+    const sections = getOrderedAutofixSections(
+      makeState([
+        makeBlock({message: {metadata: {step: 'root_cause'}}}),
+        makeBlock({}),
+        makeBlock({message: {metadata: {step: 'solution'}}}),
+      ])
+    );
+
+    expect(sections.map(s => s.step)).toEqual(['root_cause', 'solution']);
+    expect(sections[0]!.blocks).toHaveLength(2);
+    expect(sections[1]!.blocks).toHaveLength(1);
+  });
+
+  it('merges all code_changes blocks into a single section with the cumulative diff', () => {
+    const sections = getOrderedAutofixSections(
+      makeState([
+        makeBlock({
+          message: {metadata: {step: 'code_changes'}},
+          merged_file_patches: [makePatch('org/repo', 'a.py', 'first diff')],
+        }),
+        makeBlock({
+          message: {metadata: {step: 'code_changes'}},
+          merged_file_patches: [makePatch('org/repo', 'b.py', 'second diff')],
+        }),
+      ])
+    );
+
+    // Consecutive code_changes blocks collapse into one section that carries the
+    // cumulative patch set merged across all of its blocks.
+    expect(sections).toHaveLength(1);
+    expect(sections[0]!.step).toBe('code_changes');
+    expect(sections[0]!.artifacts).toEqual([
+      [
+        makePatch('org/repo', 'a.py', 'first diff'),
+        makePatch('org/repo', 'b.py', 'second diff'),
+      ],
+    ]);
+  });
+
+  it('folds consecutive pr_iteration blocks into the single code_changes section', () => {
+    const sections = getOrderedAutofixSections(
+      makeState([
+        makeBlock({
+          message: {metadata: {step: 'pr_iteration', iteration_index: '1'}},
+          merged_file_patches: [makePatch('org/repo', 'a.py')],
+        }),
+        makeBlock({
+          message: {metadata: {step: 'pr_iteration', iteration_index: '2'}},
+          merged_file_patches: [makePatch('org/repo', 'b.py')],
+        }),
+      ])
+    );
+
+    // pr_iteration work is folded into the one code_changes section; both
+    // iteration blocks and their merged patches live there.
+    expect(sections).toHaveLength(1);
+    expect(sections[0]!.step).toBe('code_changes');
+    expect(sections[0]!.blocks.map(b => b.message.metadata?.iteration_index)).toEqual([
+      '1',
+      '2',
+    ]);
+    expect(sections[0]!.artifacts).toEqual([
+      [makePatch('org/repo', 'a.py'), makePatch('org/repo', 'b.py')],
+    ]);
+  });
+
+  it('merges patches for the same file within a section, last write wins', () => {
+    const sections = getOrderedAutofixSections(
+      makeState([
+        makeBlock({
+          message: {metadata: {step: 'code_changes'}},
+          merged_file_patches: [makePatch('org/repo', 'a.py', 'old')],
+        }),
+        makeBlock({
+          merged_file_patches: [makePatch('org/repo', 'a.py', 'new')],
+        }),
+      ])
+    );
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0]!.artifacts).toEqual([[makePatch('org/repo', 'a.py', 'new')]]);
+  });
+
+  it('does not push an empty patch artifact for a code-change section with no patches', () => {
+    const sections = getOrderedAutofixSections(
+      makeState([makeBlock({message: {metadata: {step: 'pr_iteration'}}})])
+    );
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0]!.artifacts).toEqual([]);
+  });
+
+  it('appends a synthetic pull_request section from repo_pr_states', () => {
+    const prState = {
+      repo_name: 'org/repo',
+      pr_number: 42,
+      pr_url: 'https://github.com/org/repo/pull/42',
+      branch_name: 'fix/issue',
+      commit_sha: 'abc123',
+      pr_creation_error: null,
+      pr_creation_status: 'completed',
+      pr_id: 1,
+      title: 'Fix issue',
+    } as const;
+
+    const sections = getOrderedAutofixSections({
+      ...makeState([makeBlock({message: {metadata: {step: 'code_changes'}}})]),
+      repo_pr_states: {'org/repo': prState},
+    });
+
+    expect(sections.map(s => s.step)).toEqual(['code_changes', 'pull_request']);
+    const prSection = sections[sections.length - 1]!;
+    expect(prSection.status).toBe('completed');
+    expect(prSection.artifacts).toEqual([[prState]]);
+  });
+
+  it('marks the synthetic pull_request section as processing while a PR is creating', () => {
+    const sections = getOrderedAutofixSections({
+      ...makeState([makeBlock({message: {metadata: {step: 'code_changes'}}})]),
+      repo_pr_states: {
+        'org/repo': {
+          repo_name: 'org/repo',
+          pr_creation_status: 'creating',
+        } as any,
+      },
+    });
+
+    expect(sections[sections.length - 1]!.status).toBe('processing');
+  });
+});
+
+describe('isPrIterationBlock', () => {
+  function block(metadata?: Record<string, string>): Block {
+    return {
+      id: 'block-1',
+      timestamp: '2026-01-01T00:00:00Z',
+      message: {content: 'hello', role: 'assistant', metadata},
+    } as Block;
+  }
+
+  it('is true only for blocks whose step is pr_iteration', () => {
+    expect(isPrIterationBlock(block({step: 'pr_iteration'}))).toBe(true);
+    expect(isPrIterationBlock(block({step: 'code_changes'}))).toBe(false);
+    expect(isPrIterationBlock(block())).toBe(false);
+  });
+});
+
+describe('isRunValidForPrIteration', () => {
+  it('is true only when the autofix-pr-iteration feature is enabled', () => {
+    expect(
+      isRunValidForPrIteration(OrganizationFixture({features: ['autofix-pr-iteration']}))
+    ).toBe(true);
+    expect(isRunValidForPrIteration(OrganizationFixture({features: []}))).toBe(false);
+  });
+});
+
+describe('isLastStepPrIteration', () => {
+  let blockId = 0;
+  function block(step?: string): Block {
+    return {
+      id: `block-${blockId++}`,
+      timestamp: '2026-01-01T00:00:00Z',
+      message: {
+        content: 'hello',
+        role: 'assistant',
+        metadata: step ? {step} : undefined,
+      },
+    } as Block;
+  }
+  function state(blocks: Block[]): ExplorerAutofixState {
+    return {
+      run_id: 1,
+      status: 'completed',
+      updated_at: '2026-01-01T00:00:00Z',
+      blocks,
+    };
+  }
+
+  it('is true when the last block carrying a step is pr_iteration', () => {
+    expect(
+      isLastStepPrIteration(state([block('code_changes'), block('pr_iteration')]))
+    ).toBe(true);
+  });
+
+  it('ignores trailing step-less blocks when finding the last step', () => {
+    expect(
+      isLastStepPrIteration(
+        state([block('pr_iteration'), block(undefined), block(undefined)])
+      )
+    ).toBe(true);
+  });
+
+  it('is false when the last step is not pr_iteration', () => {
+    expect(
+      isLastStepPrIteration(state([block('pr_iteration'), block('code_changes')]))
+    ).toBe(false);
+  });
+
+  it('is false when there are no blocks with a step or no run state', () => {
+    expect(isLastStepPrIteration(state([block(undefined)]))).toBe(false);
+    expect(isLastStepPrIteration(null)).toBe(false);
+  });
+});
+
 describe('useExplorerAutofix - createPR', () => {
   const GROUP_ID = '123';
   const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
@@ -420,7 +727,7 @@ describe('useExplorerAutofix - createPR', () => {
       expect.objectContaining({
         method: 'POST',
         query: {mode: 'explorer'},
-        data: {step: 'open_pr', run_id: 42},
+        data: {step: 'open_pr', run_id: 42, referrer: 'api.web'},
       })
     );
   });
@@ -441,7 +748,7 @@ describe('useExplorerAutofix - createPR', () => {
       expect.objectContaining({
         method: 'POST',
         query: {mode: 'explorer'},
-        data: {step: 'open_pr', run_id: 42, repo_name: 'org/repo'},
+        data: {step: 'open_pr', run_id: 42, repo_name: 'org/repo', referrer: 'api.web'},
       })
     );
   });
@@ -461,5 +768,190 @@ describe('useExplorerAutofix - createPR', () => {
     await waitFor(() => {
       expect(addErrorMessage).toHaveBeenCalledWith('Server error');
     });
+  });
+});
+
+describe('useExplorerAutofix - startStep pr_iteration', () => {
+  const GROUP_ID = '123';
+  const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
+  const baseState = {
+    run_id: 42,
+    blocks: [],
+    status: 'processing' as const,
+    updated_at: '2026-01-01T00:00:00Z',
+  };
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: baseState},
+    });
+  });
+
+  it('sends the POST with user_context', async () => {
+    const mockPost = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {run_id: 42},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+
+    await act(() =>
+      result.current.startStep('pr_iteration', {runId: 42, userContext: 'make it blue'})
+    );
+
+    expect(mockPost).toHaveBeenCalledWith(
+      AUTOFIX_URL,
+      expect.objectContaining({
+        method: 'POST',
+        query: {mode: 'explorer'},
+        data: {
+          step: 'pr_iteration',
+          run_id: 42,
+          user_context: 'make it blue',
+          referrer: 'api.web',
+        },
+      })
+    );
+  });
+
+  it('awaits the refetch so queued feedback is present once it resolves', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {run_id: 42},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+    expect(result.current.runState?.queued_feedback).toBeUndefined();
+
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {
+        autofix: {
+          ...baseState,
+          queued_feedback: [{text: 'make it blue', source: {type: 'user-ui'}}],
+        },
+      },
+    });
+
+    await act(() =>
+      result.current.startStep('pr_iteration', {runId: 42, userContext: 'make it blue'})
+    );
+
+    expect(result.current.runState?.queued_feedback).toHaveLength(1);
+  });
+});
+
+describe('useExplorerAutofix - codingAgentErrors', () => {
+  const GROUP_ID = '123';
+  const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
+  const integration = {id: '42', name: 'Claude Agent', provider: 'claude_code' as const};
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: null},
+    });
+  });
+
+  it('accumulates generic failures across multiple launch attempts', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {
+        successes: [],
+        failures: [{error_message: 'first error', repo_name: 'org/repo'}],
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+
+    await act(() => result.current.triggerCodingAgentHandoff(1, integration));
+    await waitFor(() => {
+      expect(result.current.codingAgentErrors.map(e => e.message)).toEqual([
+        'first error',
+      ]);
+    });
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {
+        successes: [],
+        failures: [{error_message: 'second error', repo_name: 'org/repo'}],
+      },
+    });
+
+    await act(() => result.current.triggerCodingAgentHandoff(1, integration));
+    await waitFor(() => {
+      expect(result.current.codingAgentErrors.map(e => e.message)).toEqual([
+        'first error',
+        'second error',
+      ]);
+    });
+  });
+
+  it('appends API-level errors (rejected request) to the list', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 500,
+      body: {detail: 'boom'},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+
+    await expect(
+      act(() => result.current.triggerCodingAgentHandoff(1, integration))
+    ).rejects.toBeDefined();
+
+    await waitFor(() => {
+      expect(result.current.codingAgentErrors.map(e => e.message)).toEqual(['boom']);
+    });
+  });
+
+  it('dismissCodingAgentError removes the error with the given id', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {
+        successes: [],
+        failures: [
+          {error_message: 'a', repo_name: 'org/repo'},
+          {error_message: 'b', repo_name: 'org/repo'},
+          {error_message: 'c', repo_name: 'org/repo'},
+        ],
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+
+    await act(() => result.current.triggerCodingAgentHandoff(1, integration));
+    await waitFor(() => {
+      expect(result.current.codingAgentErrors.map(e => e.message)).toEqual([
+        'a',
+        'b',
+        'c',
+      ]);
+    });
+
+    const bId = result.current.codingAgentErrors[1]!.id;
+    act(() => result.current.dismissCodingAgentError(bId));
+    expect(result.current.codingAgentErrors.map(e => e.message)).toEqual(['a', 'c']);
   });
 });

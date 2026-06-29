@@ -94,8 +94,8 @@ export function location6ToLocation3<Q extends Query = DefaultQuery>(
     key,
 
     // XXX(epurkhiser): It would be possible to extract this from the
-    // react-router 6 browserHistory object. But beecause of how we're
-    // shimming it it's a little hard, so for now just mock
+    // react-router 6 history object. But because of how we're shimming it
+    // it's a little hard, so for now just mock
     action: 'POP',
   } satisfies Location3<Q>;
 }

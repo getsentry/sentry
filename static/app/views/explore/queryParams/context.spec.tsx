@@ -1,18 +1,17 @@
-import {useMemo, type ReactNode} from 'react';
+import {useMemo, useState, type ReactNode} from 'react';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useResettableState} from 'sentry/utils/useResettableState';
 import {
   defaultAggregateFields,
   defaultAggregateSortBys,
   defaultFields,
-  defaultQuery,
   defaultSortBys,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {
   QueryParamsContextProvider,
   useQueryParamsCrossEvents,
+  useSetQueryParams,
   useSetQueryParamsCrossEvents,
 } from 'sentry/views/explore/queryParams/context';
 import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
@@ -22,7 +21,7 @@ import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQuer
 const mockSetQueryParams = jest.fn();
 
 function Wrapper({children}: {children: ReactNode}) {
-  const [query] = useResettableState(defaultQuery);
+  const [query] = useState('');
 
   const readableQueryParams = useMemo(
     () =>
@@ -54,6 +53,29 @@ function Wrapper({children}: {children: ReactNode}) {
 }
 
 describe('QueryParamsContext', () => {
+  beforeEach(() => {
+    mockSetQueryParams.mockClear();
+  });
+
+  describe('useSetQueryParams', () => {
+    it('clears breakdown cursor when setting the query', () => {
+      renderHookWithProviders(
+        () => {
+          const setQueryParams = useSetQueryParams();
+          setQueryParams({query: 'span.op:db'});
+        },
+        {additionalWrapper: Wrapper}
+      );
+
+      expect(mockSetQueryParams).toHaveBeenCalledWith({
+        query: 'span.op:db',
+        cursor: null,
+        aggregateCursor: null,
+        breakdownCursor: null,
+      });
+    });
+  });
+
   describe('crossEvents', () => {
     describe('useQueryParamsCrossEvents', () => {
       it('should return the crossEvents', () => {
@@ -80,6 +102,19 @@ describe('QueryParamsContext', () => {
         expect(mockSetQueryParams).toHaveBeenCalledWith({
           crossEvents: [{query: 'bar', type: 'logs'}],
         });
+      });
+
+      it('should clear the crossEvents when setting an empty array', () => {
+        renderHookWithProviders(
+          () => {
+            const setCrossEvents = useSetQueryParamsCrossEvents();
+            setCrossEvents([]);
+            return useQueryParamsCrossEvents();
+          },
+          {additionalWrapper: Wrapper}
+        );
+
+        expect(mockSetQueryParams).toHaveBeenCalledWith({crossEvents: null});
       });
     });
   });

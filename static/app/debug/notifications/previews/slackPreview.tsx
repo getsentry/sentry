@@ -14,7 +14,7 @@ import {
   NotificationProviderKey,
   type NotificationTemplateRegistration,
 } from 'sentry/debug/notifications/types';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 
 const SLACK_PREVIEW_BASE_URL = 'https://app.slack.com/block-kit-builder/';
 
@@ -32,10 +32,10 @@ export function SlackPreview({
       title="Slack"
       actions={
         <LinkButton
-          to={previewLink}
+          href={previewLink}
           size="xs"
           icon={<PluginIcon pluginId="slack" size={24} />}
-          target="_blank"
+          external
         >
           BlockKit Builder
         </LinkButton>

@@ -17,7 +17,7 @@ function addTimeseries(
   series: TimeseriesValue[]
 ): TimeseriesValue[] {
   if (acc === null) {
-    return series.map(([ts, val]) => [ts, val] as TimeseriesValue);
+    return series.map(([ts, val]) => [ts, val]);
   }
   for (let i = 0; i < Math.min(acc.length, series.length); i++) {
     acc[i] = [acc[i]![0], acc[i]![1] + series[i]![1]];

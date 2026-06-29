@@ -54,7 +54,7 @@ function createInitialState(): State {
   };
 }
 
-const StateContext = createContext<State>(createInitialState());
+const StateContext = createContext(createInitialState());
 const DispatchContext = createContext<Dispatch<ReplayerAction>>(() => {});
 const UserActionContext = createContext((_action: UserAction) => {});
 

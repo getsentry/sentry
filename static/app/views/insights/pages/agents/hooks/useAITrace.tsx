@@ -33,8 +33,11 @@ const AI_TRACE_BASE_ATTRIBUTES = [
   SpanFields.GEN_AI_TOOL_NAME,
   SpanFields.GEN_AI_OPERATION_TYPE,
   SpanFields.GEN_AI_OPERATION_NAME,
+  SpanFields.GEN_AI_CONVERSATION_ID,
   SpanFields.SPAN_STATUS,
   'status',
+  'gen_ai.tool.call.arguments',
+  'gen_ai.tool.input',
 ];
 
 export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceResult {
@@ -90,13 +93,15 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
         await Promise.all(zoomPromises);
 
         // Keep only transactions that include AI spans and the AI spans themselves
-        const flattenedNodes = tree.root.findAllChildren<AITraceSpanNode>(node => {
-          if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-            return false;
-          }
+        const flattenedNodes = tree.root.findAllChildren<AITraceSpanNode>(
+          (node): node is AITraceSpanNode => {
+            if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
+              return false;
+            }
 
-          return getIsAiNode(node);
-        });
+            return getIsAiNode(node);
+          }
+        );
 
         setNodes(flattenedNodes);
         setIsLoading(false);

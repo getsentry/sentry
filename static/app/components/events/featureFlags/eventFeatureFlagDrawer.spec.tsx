@@ -8,6 +8,7 @@ import {
   MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG,
   MOCK_FLAGS,
 } from 'sentry/components/events/featureFlags/testUtils';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 async function renderFlagDrawer() {
   // Needed to mock useVirtualizer lists.
@@ -24,7 +25,14 @@ async function renderFlagDrawer() {
       bottom: 0,
       toJSON: jest.fn(),
     }));
-  render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />);
+  render(
+    <GroupDataContextProvider
+      group={MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG.group}
+      project={MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG.group.project}
+    >
+      <EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />
+    </GroupDataContextProvider>
+  );
   await userEvent.click(screen.getByRole('button', {name: 'View 1 More Flag'}));
   return screen.getByRole('complementary', {name: 'Feature flags drawer'});
 }
@@ -40,7 +48,7 @@ describe('FeatureFlagDrawer', () => {
       body: {data: []},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/tags/`,
+      url: '/organizations/org-slug/issues/1/tags/',
       body: TagsFixture(),
     });
   });
@@ -79,7 +87,7 @@ describe('FeatureFlagDrawer', () => {
   it('allows search to affect displayed flags', async () => {
     const drawerScreen = await renderFlagDrawer();
 
-    const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result === true);
+    const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result);
     expect(within(drawerScreen).getByText(webVitalsFlag!.flag)).toBeInTheDocument();
     expect(within(drawerScreen).getByText(enableReplay!.flag)).toBeInTheDocument();
 
@@ -95,7 +103,7 @@ describe('FeatureFlagDrawer', () => {
   it('allows sort dropdown to affect displayed flags', async () => {
     const drawerScreen = await renderFlagDrawer();
 
-    const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result === true);
+    const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result);
 
     // the flags are reversed by default, so webVitalsFlag should be following enableReplay
     expect(

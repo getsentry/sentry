@@ -7,7 +7,7 @@ const productionEntryPoints = [
   'static/app/index.tsx',
   // defined in rspack.config.ts pipelines
   'static/app/utils/statics-setup.tsx',
-  'static/app/views/integrationPipeline/index.tsx',
+  'static/app/serviceWorker/worker/worker.ts',
   // very dynamically imported
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
   // this is imported with require.context
@@ -17,22 +17,23 @@ const productionEntryPoints = [
   // --- we should be able to get rid of those: ---
   // Only used in stories (so far)
   'static/app/components/core/quote/*.tsx',
+  'static/app/components/core/markdown/**/*.{ts,tsx}',
+  'static/app/components/core/revealOnHover/*.tsx',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when used
-  'static/app/components/pipeline/**/*.{js,ts,tsx}',
-  // TODO: Remove when used
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
+  // TODO: Remove when wired into the connect repository modal
+  'static/app/components/connectRepository/**/*.{ts,tsx}',
 ];
 
 const testingEntryPoints = [
   'static/**/*.spec.{js,ts,tsx}',
   'static/**/*.snapshots.tsx',
   'tests/js/**/*.spec.{js,ts,tsx}',
-  // jest uses this
-  'tests/js/test-balancer/index.js',
+  'tests/js/test-balancer/*.ts',
 ];
 
 const storyBookEntryPoints = [
@@ -67,30 +68,30 @@ const config: KnipConfig = {
     // ignore eslint plugins in production
     '!static/eslint/**/*.ts!',
   ],
+  ignore: [
+    // api-docs has its own package.json with its own dependencies
+    'api-docs/**',
+  ],
   ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
     'core-js',
     'tslib', // subdependency of many packages, declare the latest version
-    'jest-environment-jsdom', // used as testEnvironment in jest config
-    'swc-plugin-component-annotate', // used in rspack config, needs better knip plugin
-    '@swc/plugin-emotion', // used in rspack config, needs better knip plugin
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
-    '@babel/preset-env', // Still used in jest
-    '@babel/preset-react', // Still used in jest
-    '@babel/preset-typescript', // Still used in jest
-    '@emotion/babel-plugin', // Still used in jest
     'odiff-bin', // raw binary consumed by Python backend, not a JS import
+    'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
+    '@swc-contrib/mut-cjs-exports', // used in jest config
   ],
   rules: {
     binaries: 'off',
     enumMembers: 'off',
-    unlisted: 'off',
   },
   include: ['nsExports', 'nsTypes'],
   mdx: {
     config: 'tsconfig.mdx.json',
   },
+  treatConfigHintsAsErrors: true,
+  treatTagHintsAsErrors: true,
 };
 
 export default config;

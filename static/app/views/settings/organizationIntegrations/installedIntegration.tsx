@@ -14,7 +14,6 @@ import {t} from 'sentry/locale';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
@@ -27,7 +26,9 @@ type Props = {
   onRemove: (integration: Integration) => void;
   organization: Organization;
   provider: IntegrationProvider;
-  trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
+  trackIntegrationAnalytics: (
+    eventKey: 'integrations.uninstall_clicked' | 'integrations.uninstall_completed'
+  ) => void; // analytics callback
   requiresUpgrade?: boolean;
 };
 
@@ -149,13 +150,13 @@ export class InstalledIntegration extends Component<Props> {
                       onAddIntegration={() => {}}
                       organization={organization}
                       provider={provider}
-                      priority="primary"
+                      variant="primary"
                       size="sm"
                     />
                   )}
                   {!provider.metadata.aspects?.directEnable && (
                     <StyledLinkButton
-                      priority="transparent"
+                      variant="transparent"
                       icon={<IconSettings />}
                       disabled={!allowMemberConfiguration && !canConfigure}
                       to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
@@ -179,14 +180,14 @@ export class InstalledIntegration extends Component<Props> {
                     disabled={!hasAccess || isPendingDeletion}
                     {...removeConfirmProps}
                   >
-                    <StyledButton
+                    <Button
                       disabled={!hasAccess || isPendingDeletion}
-                      priority="transparent"
+                      variant="transparent"
                       icon={<IconDelete />}
                       data-test-id="integration-remove-button"
                     >
                       {t('Uninstall')}
-                    </StyledButton>
+                    </Button>
                   </Confirm>
                 </Tooltip>
               </div>
@@ -202,10 +203,6 @@ export class InstalledIntegration extends Component<Props> {
     );
   }
 }
-
-const StyledButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
 
 const StyledLinkButton = styled(LinkButton)`
   color: ${p => p.theme.tokens.content.secondary};

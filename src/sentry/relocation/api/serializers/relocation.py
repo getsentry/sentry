@@ -42,7 +42,7 @@ def get_all_imported_ids_of_model(chunks: QuerySet[BaseImportChunk]) -> list[int
 
 
 @register(Relocation)
-class RelocationSerializer(Serializer):
+class RelocationSerializer(Serializer[Mapping[str, Any]]):
     def serialize(
         self,
         obj: Relocation,

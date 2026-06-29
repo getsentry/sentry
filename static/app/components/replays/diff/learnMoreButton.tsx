@@ -23,7 +23,7 @@ function Resource({
   return (
     <StyledLinkButton
       icon={<IconOpen />}
-      priority="transparent"
+      variant="transparent"
       external
       href={link}
       analyticsEventKey="learn-more-resource.clicked"

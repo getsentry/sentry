@@ -25,11 +25,16 @@ SLACK_SDK_ERROR_CATEGORIES = (
     ORG_LOGIN_REQUIRED := SlackSdkErrorCategory("org_login_required"),
     ALREADY_REACTED := SlackSdkErrorCategory("already_reacted"),
     NO_REACTION := SlackSdkErrorCategory("no_reaction"),
+    FATAL_ERROR := SlackSdkErrorCategory("fatal_error"),
+    INTERNAL_ERROR := SlackSdkErrorCategory("internal_error"),
+    INVALID_BLOCKS := SlackSdkErrorCategory("invalid_blocks"),
+    INVALID_ATTACHMENTS := SlackSdkErrorCategory("invalid_attachments"),
+    INVALID_AUTH := SlackSdkErrorCategory("invalid_auth"),
+    NON_JSON_RESPONSE := SlackSdkErrorCategory("non_json_response"),
 )
 
-"""
-Errors that are user configuration errors and should be recorded as a halt for SLOs.
-"""
+# Errors that are not actionable (external/ambiguous) and should be recorded as a halt for SLOs.
+# Errors NOT in this set (e.g. invalid_blocks) are treated as failures that need investigation.
 SLACK_SDK_HALT_ERROR_CATEGORIES = (
     ACCOUNT_INACTIVE,
     CHANNEL_NOT_FOUND,
@@ -38,6 +43,10 @@ SLACK_SDK_HALT_ERROR_CATEGORIES = (
     RESTRICTED_ACTION,
     MESSAGE_LIMIT_EXCEEDED,
     ORG_LOGIN_REQUIRED,
+    FATAL_ERROR,
+    INTERNAL_ERROR,
+    INVALID_AUTH,
+    NON_JSON_RESPONSE,
 )
 
 _CATEGORIES_BY_MESSAGE = {c.message: c for c in SLACK_SDK_ERROR_CATEGORIES}
@@ -54,6 +63,10 @@ def unpack_slack_api_error(exc: SlackApiError | SlackRequestError) -> SlackSdkEr
     if isinstance(exc, SlackApiError):
         try:
             error_attr = exc.response["error"]
+            if isinstance(error_attr, str) and error_attr.startswith(
+                "Received a response in a non-JSON format"
+            ):
+                return NON_JSON_RESPONSE
             return _CATEGORIES_BY_MESSAGE[error_attr]
         except KeyError:
             pass

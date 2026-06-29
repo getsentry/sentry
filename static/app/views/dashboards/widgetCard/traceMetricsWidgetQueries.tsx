@@ -3,7 +3,7 @@ import {useCallback, useState} from 'react';
 import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {EQUATION_PREFIX, isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -33,6 +33,9 @@ type TraceMetricsWidgetQueriesProps = {
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
   widgetInterval?: string;
+  // Number of buckets for a non-time axis. Used by heat maps for the Y-axis
+  // bucket count, derived from the rendered chart height.
+  yBuckets?: number;
 };
 
 type TraceMetricsWidgetQueriesImplProps = TraceMetricsWidgetQueriesProps & {
@@ -80,6 +83,7 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
   getConfidenceInformation,
   selection,
   widgetInterval,
+  yBuckets,
 }: TraceMetricsWidgetQueriesImplProps) {
   const config = TraceMetricsConfig;
   const [confidence, setConfidence] = useState<Confidence | null>(null);
@@ -108,16 +112,22 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
   // Trace metric aggregates encode the metric name and type in the function
   // arguments: fn(value, metricName, metricType, unit). We must wait for
   // the metric selector to load and populate these before firing the query.
-  const disabled = widget.queries.some(q =>
-    q.aggregates.some(agg => {
-      const parsed = parseFunction(agg);
-      if (!parsed) {
-        return true;
-      }
-      const metricName = parsed.arguments[1];
-      const metricType = parsed.arguments[2];
-      return !metricName || !metricType;
-    })
+  const disabled = widget.queries.some(
+    q =>
+      q.aggregates.length === 0 ||
+      q.aggregates.some(agg => {
+        if (isEquation(agg)) {
+          // Disable if the aggregate is empty, i.e. just the equation prefix
+          return agg === EQUATION_PREFIX;
+        }
+        const parsed = parseFunction(agg);
+        if (!parsed) {
+          return true;
+        }
+        const metricName = parsed.arguments[1];
+        const metricType = parsed.arguments[2];
+        return !metricName || !metricType;
+      })
   );
 
   const props = useGenericWidgetQueries<SeriesResult, TableResult>({
@@ -134,6 +144,7 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     loading: disabled,
     selection,
     widgetInterval,
+    yBuckets,
   });
 
   return getDynamicText({

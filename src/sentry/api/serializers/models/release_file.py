@@ -1,8 +1,20 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
+from datetime import datetime
+from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.distribution import Distribution
 from sentry.models.releasefile import ReleaseFile
+
+
+class ReleaseFileSerializerResponse(TypedDict):
+    id: str
+    name: str
+    dist: str | None
+    headers: dict[str, Any]
+    size: int
+    sha1: str
+    dateCreated: datetime
 
 
 def encode_release_file_id(obj):
@@ -34,8 +46,8 @@ def decode_release_file_id(id: str):
 
 
 @register(ReleaseFile)
-class ReleaseFileSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+class ReleaseFileSerializer(Serializer[ReleaseFileSerializerResponse]):
+    def serialize(self, obj, attrs, user, **kwargs) -> ReleaseFileSerializerResponse:
         dist_name = None
         if obj.dist_id:
             dist_name = Distribution.objects.get(pk=obj.dist_id).name

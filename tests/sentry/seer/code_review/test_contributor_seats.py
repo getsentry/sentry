@@ -1,14 +1,79 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.constants import ObjectStatus
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
+    OrganizationContributorAction,
     OrganizationContributors,
 )
+from sentry.models.project import Project
 from sentry.seer.code_review.contributor_seats import (
+    _is_autofix_enabled_for_repo,
+    record_contributor_action,
     should_increment_contributor_seat,
     track_contributor_seat,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
+
+
+class IsAutofixEnabledForRepoTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github:1",
+        )
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="123",
+        )
+
+    def test_seer_project_repository_exists_for_repo(self) -> None:
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+
+        assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is True
+
+    def test_no_seer_project_repository_exists(self) -> None:
+        assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is False
+
+    def test_seer_project_repository_exists_for_different_repo(self) -> None:
+        other_repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+        )
+        self.create_seer_project_repository(project=self.project, repository=other_repo)
+
+        assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is False
+
+    def test_project_is_inactive(self) -> None:
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+        self.project.update(status=ObjectStatus.PENDING_DELETION)
+
+        assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is False
+
+    def test_organization_has_no_active_projects(self) -> None:
+        Project.objects.filter(organization_id=self.organization.id).update(
+            status=ObjectStatus.PENDING_DELETION
+        )
+
+        assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is False
+
+    def test_repo_is_inactive(self) -> None:
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+        self.repo.status = ObjectStatus.DISABLED
+        self.repo.save()
+
+        assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is False
+
+    def test_returns_true_via_project_repository_fk(self) -> None:
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+
+        assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is True
 
 
 class ShouldIncrementContributorSeatTest(TestCase):
@@ -43,6 +108,27 @@ class ShouldIncrementContributorSeatTest(TestCase):
                 self.organization, self.repo, self.contributor
             )
             assert result is False
+
+    @patch(
+        "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
+        return_value=True,
+    )
+    def test_returns_false_when_autofix_disabled(self, mock_quota: MagicMock) -> None:
+        """SeerProjectRepository for a different repo → autofix is not enabled for self.repo."""
+        self.create_repository_settings(repository=self.repo, enabled_code_review=False)
+        other_repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+        )
+        self.create_seer_project_repository(project=self.project, repository=other_repo)
+
+        with self.feature("organizations:seat-based-seer-enabled"):
+            result = should_increment_contributor_seat(
+                self.organization, self.repo, self.contributor
+            )
+            assert result is False
+            mock_quota.assert_not_called()
 
     def test_returns_false_when_repo_has_no_integration_id(self) -> None:
         repo_no_integration = self.create_repo(
@@ -96,8 +182,7 @@ class ShouldIncrementContributorSeatTest(TestCase):
     def test_returns_true_when_autofix_enabled_and_quota_available(
         self, mock_quota: MagicMock
     ) -> None:
-        self.create_code_mapping(project=self.project, repo=self.repo)
-        self.project.update_option("sentry:autofix_automation_tuning", "medium")
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
 
         with self.feature("organizations:seat-based-seer-enabled"):
             result = should_increment_contributor_seat(
@@ -244,3 +329,116 @@ class TrackContributorSeatTest(TestCase):
         # Should not raise
         self._call()
         mock_assign_seat.delay.assert_not_called()
+
+
+@with_feature("organizations:dual-write-contributor-actions")
+class RecordContributorActionTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github:1",
+        )
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+        )
+
+    def _contributor(self) -> OrganizationContributors:
+        return OrganizationContributors.objects.get(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier="123",
+        )
+
+    def _action_count(self, pr_number: str = "5") -> int:
+        return OrganizationContributorAction.objects.filter(
+            repository_id=self.repo.id, pr_number=pr_number
+        ).count()
+
+    @patch(
+        "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
+        return_value=False,
+    )
+    def test_not_eligible_does_not_record_action(self, mock_should: MagicMock) -> None:
+        record_contributor_action(
+            organization=self.organization,
+            repo=self.repo,
+            integration_id=self.integration.id,
+            user_id="123",
+            user_username="alice",
+            provider="github",
+            pr_number=5,
+            is_opened=True,
+            tags={"is_private": False},
+        )
+
+        contributor = self._contributor()
+        assert contributor.alias == "alice"
+        assert contributor.num_actions == 0
+        assert self._action_count() == 0
+
+    @patch(
+        "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
+        return_value=True,
+    )
+    def test_opened_and_eligible_records_action(self, mock_should: MagicMock) -> None:
+        record_contributor_action(
+            organization=self.organization,
+            repo=self.repo,
+            integration_id=self.integration.id,
+            user_id="123",
+            user_username="alice",
+            provider="github",
+            pr_number=5,
+            is_opened=True,
+            tags={"is_private": False},
+        )
+
+        contributor = self._contributor()
+        action = OrganizationContributorAction.objects.get(
+            repository_id=self.repo.id, pr_number="5"
+        )
+        assert action.organization_contributor_id == contributor.id
+
+    @patch(
+        "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
+        return_value=True,
+    )
+    def test_not_opened_does_not_record_action(self, mock_should: MagicMock) -> None:
+        record_contributor_action(
+            organization=self.organization,
+            repo=self.repo,
+            integration_id=self.integration.id,
+            user_id="123",
+            user_username="alice",
+            provider="github",
+            pr_number=5,
+            is_opened=False,
+            tags={"is_private": False},
+        )
+
+        self._contributor()
+        assert self._action_count() == 0
+
+    @patch(
+        "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
+        return_value=True,
+    )
+    def test_records_idempotently(self, mock_should: MagicMock) -> None:
+        for _ in range(2):
+            record_contributor_action(
+                organization=self.organization,
+                repo=self.repo,
+                integration_id=self.integration.id,
+                user_id="123",
+                user_username="alice",
+                provider="github",
+                pr_number=5,
+                is_opened=True,
+                tags={"is_private": False},
+            )
+
+        assert self._action_count() == 1

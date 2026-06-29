@@ -64,7 +64,7 @@ export interface FlexPropsWithRenderFunction<T extends ContainerElement = 'div'>
 
 export const Flex = styled(Container, {
   shouldForwardProp: prop => {
-    return !omitFlexProps.has(prop as any);
+    return !omitFlexProps.has(prop as keyof FlexLayoutProps | 'as');
   },
 })<FlexProps<any> | FlexPropsWithRenderFunction<any>>`
   ${p => rc('display', p.display ?? 'flex', p.theme, v => v ?? 'flex')};

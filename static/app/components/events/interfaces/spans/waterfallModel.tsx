@@ -155,9 +155,9 @@ export class WaterfallModel {
           'description',
         ]);
 
-        const basicValues: string[] = Object.values(pickedSpan)
+        const basicValues = Object.values(pickedSpan)
           .filter(value => !!value)
-          .map(value => String(value));
+          .map(String);
 
         indexed.push(...basicValues);
 
@@ -200,7 +200,6 @@ export class WaterfallModel {
       threshold: 0.6,
       location: 0,
       distance: 100,
-      maxPatternLength: 32,
     });
   }
 

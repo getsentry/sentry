@@ -3,8 +3,8 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {ensureAttributeObject} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
@@ -34,13 +34,10 @@ export function MCPOutputSection({
   const toolOutput = attributeDict[TOOL_OUTPUT_ATTRIBUTE];
   const promptOutputDict = Object.entries(attributeDict)
     .filter(([key]) => key.startsWith(PROMPT_OUTPUT_PREFIX))
-    .reduce(
-      (acc, [key, value]) => {
-        acc[key.replace(PROMPT_OUTPUT_PREFIX, '')] = value;
-        return acc;
-      },
-      {} as Record<string, string | number | boolean>
-    );
+    .reduce<Record<string, string | number | boolean>>((acc, [key, value]) => {
+      acc[key.replace(PROMPT_OUTPUT_PREFIX, '')] = value;
+      return acc;
+    }, {});
   const hasPromptOutput = Object.keys(promptOutputDict).length > 0;
 
   if (!toolOutput && !hasPromptOutput) {

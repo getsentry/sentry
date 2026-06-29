@@ -11,13 +11,13 @@ logger = logging.getLogger(__name__)
 type ModelId = str
 
 
-# Cache key for storing AI model costs
-AI_MODEL_COSTS_CACHE_KEY = "ai-model-costs:v2"
+# Cache key for storing AI model metadata
+AI_MODEL_METADATA_CACHE_KEY = "ai-model-metadata:v1"
 # Cache timeout: 30 days (we re-fetch every 30 minutes, so this provides more than enough overlap)
-AI_MODEL_COSTS_CACHE_TTL = 30 * 24 * 60 * 60
+AI_MODEL_METADATA_CACHE_TTL = 30 * 24 * 60 * 60
 
 
-class AIModelCostV2(TypedDict):
+class AIModelCost(TypedDict):
     inputPerToken: float
     outputPerToken: float
     outputReasoningPerToken: float
@@ -25,29 +25,34 @@ class AIModelCostV2(TypedDict):
     inputCacheWritePerToken: float
 
 
-class AIModelCosts(TypedDict):
+class AIModelMetadata(TypedDict, total=False):
+    costs: Required[AIModelCost]
+    contextSize: int
+
+
+class AIModelMetadataConfig(TypedDict):
     version: Required[int]
-    models: Required[dict[ModelId, AIModelCostV2]]
+    models: Required[dict[ModelId, AIModelMetadata]]
 
 
-def ai_model_costs_config() -> AIModelCosts | None:
+def ai_model_metadata_config() -> AIModelMetadataConfig | None:
     """
-    Get AI model costs configuration.
-    AI model costs are set in cache by a cron job,
-    if there are no costs, it should be investigated why.
+    Get AI model metadata configuration.
+    AI model metadata is set in cache by a cron job,
+    if there is no metadata, it should be investigated why.
 
     Returns:
-        AIModelCosts object containing cost information for AI models
+        AIModelMetadataConfig containing cost and context size information for AI models
     """
     if settings.SENTRY_AIR_GAP:
         return None
 
-    cached_costs = cache.get(AI_MODEL_COSTS_CACHE_KEY)
-    if cached_costs is not None:
-        return cached_costs
+    cached_metadata = cache.get(AI_MODEL_METADATA_CACHE_KEY)
+    if cached_metadata is not None:
+        return cached_metadata
 
     if not settings.IS_DEV:
         # in dev environment, we don't want to log this
-        logger.warning("Empty model costs")
+        logger.warning("Empty AI model metadata")
 
     return None

@@ -119,7 +119,7 @@ export type OpenConfirmOptions = {
   /**
    * Button priority
    */
-  priority?: ButtonProps['priority'];
+  priority?: ButtonProps['variant'];
   /**
    * Custom function to render the cancel button
    */
@@ -257,9 +257,9 @@ function ConfirmModal({
   closeModal,
 }: ModalProps) {
   const confirmCallbackRef = useRef<() => void>(() => {});
-  const isConfirmingRef = useRef(false);
   const [shouldDisableConfirmButton, setShouldDisableConfirmButton] =
     useState(disableConfirmButton);
+  const [isConfirming, setIsConfirming] = useState(false);
   const [isError, setIsError] = useState(false);
 
   const handleClose = () => {
@@ -267,27 +267,25 @@ function ConfirmModal({
     setShouldDisableConfirmButton(disableConfirmButton ?? false);
 
     // always reset `confirming` when modal visibility changes
-    isConfirmingRef.current = false;
+    setIsConfirming(false);
     closeModal();
   };
 
   const handleConfirm = async () => {
-    if (isConfirmingRef.current) {
+    if (isConfirming) {
       return;
     }
 
-    isConfirmingRef.current = true;
-    setShouldDisableConfirmButton(true);
+    setIsConfirming(true);
 
     if (onConfirm) {
       try {
         await onConfirm();
       } catch (error) {
         setIsError(true);
-        setShouldDisableConfirmButton(disableConfirmButton ?? false);
         return;
       } finally {
-        isConfirmingRef.current = false;
+        setIsConfirming(false);
       }
     }
 
@@ -351,7 +349,8 @@ function ConfirmModal({
             <Button
               data-test-id="confirm-button"
               disabled={shouldDisableConfirmButton}
-              priority={priority}
+              busy={isConfirming}
+              variant={priority}
               onClick={handleConfirm}
               autoFocus={!isDangerous}
               aria-label={typeof confirmText === 'string' ? confirmText : t('Confirm')}

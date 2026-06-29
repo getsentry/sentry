@@ -25,6 +25,8 @@ class NotificationCategory(StrEnum):
     SEER = "seer"
     ISSUE = "issue"
     METRIC_ALERT = "metric-alert"
+    SENTRY_APP = "sentry-app"
+    WORKFLOW_ENGINE = "workflow-engine"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -65,8 +67,22 @@ class NotificationSource(StrEnum):
     SEER_AUTOFIX_TRIGGER = "seer-autofix-trigger"
     SEER_AUTOFIX_FOOTER = "seer-autofix-footer"
     SEER_AUTOFIX_SUCCESS = "seer-autofix-success"
-    SEER_EXPLORER_RESPONSE = "seer-explorer-response"
-    SEER_EXPLORER_ERROR = "seer-explorer-error"
+    SEER_AGENT_RESPONSE = "seer-agent-response"
+    SEER_AGENT_ERROR = "seer-agent-error"
+
+    # SENTRY_APP
+    SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
+
+    # WORKFLOW_ENGINE
+    ACTIVITY_SEER_RCA_STARTED = "activity-seer-rca-started"
+    ACTIVITY_SEER_RCA_COMPLETED = "activity-seer-rca-completed"
+    ACTIVITY_SEER_SOLUTION_STARTED = "activity-seer-solution-started"
+    ACTIVITY_SEER_SOLUTION_COMPLETED = "activity-seer-solution-completed"
+    ACTIVITY_SEER_CODING_STARTED = "activity-seer-coding-started"
+    ACTIVITY_SEER_CODING_COMPLETED = "activity-seer-coding-completed"
+    ACTIVITY_SEER_PR_CREATED = "activity-seer-pr-created"
+    ACTIVITY_SEER_ITERATION_STARTED = "activity-seer-iteration-started"
+    ACTIVITY_SEER_ITERATION_COMPLETED = "activity-seer-iteration-completed"
 
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
@@ -99,8 +115,22 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.SEER_AUTOFIX_ERROR,
         NotificationSource.SEER_AUTOFIX_SUCCESS,
         NotificationSource.SEER_AUTOFIX_UPDATE,
-        NotificationSource.SEER_EXPLORER_RESPONSE,
-        NotificationSource.SEER_EXPLORER_ERROR,
+        NotificationSource.SEER_AGENT_RESPONSE,
+        NotificationSource.SEER_AGENT_ERROR,
+    ],
+    NotificationCategory.SENTRY_APP: [
+        NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
+    ],
+    NotificationCategory.WORKFLOW_ENGINE: [
+        NotificationSource.ACTIVITY_SEER_RCA_STARTED,
+        NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
+        NotificationSource.ACTIVITY_SEER_SOLUTION_STARTED,
+        NotificationSource.ACTIVITY_SEER_SOLUTION_COMPLETED,
+        NotificationSource.ACTIVITY_SEER_CODING_STARTED,
+        NotificationSource.ACTIVITY_SEER_CODING_COMPLETED,
+        NotificationSource.ACTIVITY_SEER_PR_CREATED,
+        NotificationSource.ACTIVITY_SEER_ITERATION_STARTED,
+        NotificationSource.ACTIVITY_SEER_ITERATION_COMPLETED,
     ],
 }
 
@@ -262,6 +292,10 @@ class NotificationBodyTextBlockType(StrEnum):
     """
     Inline block of code.
     """
+    LINK = "link"
+    """
+    A hyperlink with display text.
+    """
 
 
 class NotificationBodyFormattingBlockType(StrEnum):
@@ -327,8 +361,8 @@ class CodeBlock(NotificationBodyFormattingBlock):
 
 @dataclass
 class BoldTextBlock(NotificationBodyTextBlock):
-    type: Literal[NotificationBodyTextBlockType.BOLD_TEXT]
     text: str
+    type: Literal[NotificationBodyTextBlockType.BOLD_TEXT] = NotificationBodyTextBlockType.BOLD_TEXT
 
 
 @dataclass
@@ -343,6 +377,13 @@ class PlainTextBlock(NotificationBodyTextBlock):
     type: Literal[NotificationBodyTextBlockType.PLAIN_TEXT] = (
         NotificationBodyTextBlockType.PLAIN_TEXT
     )
+
+
+@dataclass
+class LinkTextBlock(NotificationBodyTextBlock):
+    text: str
+    url: str
+    type: Literal[NotificationBodyTextBlockType.LINK] = NotificationBodyTextBlockType.LINK
 
 
 class NotificationTemplate[T: NotificationData](abc.ABC):

@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 from django.test import override_settings
 
-from sentry.types.cell import Cell, CellDirectory, Locality, get_global_directory
+from sentry.types.cell import Cell, CellDirectory, Locality, RegionCategory, get_global_directory
 
 
 class TestEnvCellDirectory(CellDirectory):
@@ -16,20 +16,23 @@ class TestEnvCellDirectory(CellDirectory):
         self._default_cell = next(iter(cells))
         self._apply_cells(cells)
 
-    def _apply_cells(self, cells: Collection[Cell]) -> None:
-        localities = frozenset(
-            Locality(
-                name=c.name,
-                cells=frozenset([c.name]),
-                category=c.category,
-                visible=c.visible,
-                new_org_cell=c.name,
-            )
-            for c in cells
-        )
+    def _apply_cells(
+        self, cells: Collection[Cell], localities: Collection[Locality] | None = None
+    ) -> None:
+        if localities is None:
+            localities = [
+                Locality(
+                    name=c.name,
+                    cells=frozenset([c.name]),
+                    category=RegionCategory.MULTI_TENANT,
+                    visible=c.visible,
+                    new_org_cell=c.name,
+                )
+                for c in cells
+            ]
         self._cells = frozenset(cells)
         self._by_name = {c.name: c for c in self._cells}
-        self._localities = localities
+        self._localities = frozenset(localities)
         self._localities_by_name = {loc.name: loc for loc in localities}
         self._cell_to_locality = {cell_name: loc for loc in localities for cell_name in loc.cells}
 
@@ -37,6 +40,7 @@ class TestEnvCellDirectory(CellDirectory):
     def swap_state(
         self,
         cells: Sequence[Cell],
+        localities: Sequence[Locality] | None = None,
         local_cell: Cell | None = None,
     ) -> Generator[None]:
         prev_state = (
@@ -49,9 +53,9 @@ class TestEnvCellDirectory(CellDirectory):
         )
         try:
             self._default_cell = local_cell or cells[0]
-            self._apply_cells(cells)
+            self._apply_cells(cells, localities)
             monolith_cell = cells[0]
-            with override_settings(SENTRY_MONOLITH_REGION=monolith_cell.name):
+            with override_settings(SENTRY_FALLBACK_CELL=monolith_cell.name):
                 if local_cell:
                     with override_settings(SENTRY_LOCAL_CELL=local_cell.name):
                         yield
@@ -90,13 +94,22 @@ def get_test_env_directory() -> TestEnvCellDirectory:
 
 
 @contextmanager
-def override_cells(cells: Sequence[Cell], local_cell: Cell | None = None) -> Generator[None]:
+def override_cells(
+    cells: Sequence[Cell],
+    local_cell: Cell | None = None,
+    localities: Sequence[Locality] | None = None,
+) -> Generator[None]:
     """Override the global set of existing cells.
 
     The overriding value takes the place of the `SENTRY_CELLS` setting and
     changes the behavior of the module-level functions in `sentry.types.cell`. This
     is preferable to overriding the `SENTRY_CELLS` setting value directly
     because the cell mapping may already be cached.
+
+    When `localities` is omitted, a visible multi-tenant 1:1 locality is
+    generated for each cell, mirroring `SENTRY_LOCALITIES` defaults. Pass
+    explicit localities to test locality-level attributes such as category,
+    visibility, or cell grouping.
     """
-    with get_test_env_directory().swap_state(cells, local_cell=local_cell):
+    with get_test_env_directory().swap_state(cells, localities=localities, local_cell=local_cell):
         yield

@@ -1,48 +1,5 @@
-import type {Theme} from '@emotion/react';
-
-import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
-
-export const webVitalPoor = {
-  [WebVital.FP]: 3000,
-  [WebVital.FCP]: 3000,
-  [WebVital.LCP]: 4000,
-  [WebVital.FID]: 300,
-  [WebVital.CLS]: 0.25,
-  [WebVital.INP]: 500,
-  [WebVital.TTFB]: 1800,
-};
-
-export const webVitalMeh = {
-  [WebVital.FP]: 1000,
-  [WebVital.FCP]: 1000,
-  [WebVital.LCP]: 2500,
-  [WebVital.FID]: 100,
-  [WebVital.CLS]: 0.1,
-  [WebVital.INP]: 200,
-  [WebVital.TTFB]: 800,
-};
-
-export enum VitalState {
-  POOR = 'Poor',
-  MEH = 'Meh',
-  GOOD = 'Good',
-}
-
-export function makeVitalStateColors(theme: Theme): Record<VitalState, string> {
-  return {
-    [VitalState.POOR]: theme.colors.red400,
-    [VitalState.MEH]: theme.colors.yellow400,
-    [VitalState.GOOD]: theme.colors.green400,
-  };
-}
-
-export const vitalStateIcons: Record<VitalState, React.ReactNode> = {
-  [VitalState.POOR]: <IconSad variant="danger" />,
-  [VitalState.MEH]: <IconMeh variant="warning" />,
-  [VitalState.GOOD]: <IconHappy variant="success" />,
-};
 
 export const vitalSupportedBrowsers: Partial<Record<WebVital, Browser[]>> = {
   [WebVital.LCP]: [

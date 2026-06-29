@@ -2,9 +2,7 @@ import {useMemo} from 'react';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -26,17 +24,9 @@ export function FilteredAnnotatedTextValue({value, meta}: Props) {
 
   // Fetch full project details including `project.relayPiiConfig`
   // That property is not normally available in the store
-  const {data: projectDetails} = useApiQuery<Project>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: currentProject?.slug!,
-        },
-      }),
-    ],
+  const {data: projectDetails} = useDetailedProject(
+    {orgSlug: organization.slug, projectSlug: currentProject?.slug ?? ''},
     {
-      staleTime: Infinity,
       retry: false,
       enabled: !!currentProject?.slug,
       notifyOnChangeProps: ['data'],

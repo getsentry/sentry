@@ -51,6 +51,7 @@ def _build_details_from_artifact(artifact: PreprodArtifact) -> InstallableBuildD
         or not mobile_app_info.app_name
     ):
         return None
+    download_url, _ = get_download_url_for_artifact(artifact)
     return InstallableBuildDetails(
         id=str(artifact.id),
         build_version=mobile_app_info.build_version,
@@ -58,7 +59,7 @@ def _build_details_from_artifact(artifact: PreprodArtifact) -> InstallableBuildD
         release_notes=(artifact.extras.get("release_notes") if artifact.extras else None),
         install_groups=(artifact.extras.get("install_groups") if artifact.extras else None),
         app_name=mobile_app_info.app_name,
-        download_url=get_download_url_for_artifact(artifact),
+        download_url=download_url,
         created_date=artifact.date_added.isoformat(),
     )
 

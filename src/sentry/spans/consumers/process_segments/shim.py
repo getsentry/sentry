@@ -79,7 +79,7 @@ def build_shim_event_data(
         },
         "event_id": uuid.uuid4().hex,
         "project_id": segment_span["project_id"],
-        "transaction": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_TRANSACTION),
+        "transaction": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME),
         "release": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_RELEASE),
         "dist": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_DIST),
         "environment": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT),

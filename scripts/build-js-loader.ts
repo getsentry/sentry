@@ -17,7 +17,7 @@ import * as ts from 'typescript';
  * then verify the build output of both generated `js.tmpl` files and check all three files in.
  */
 
-const header = `{% load sentry_helpers %}`;
+const header = '{% load sentry_helpers %}';
 const loaderScriptPath = './src/sentry/templates/sentry/js-sdk-loader.ts';
 const loaderTmplPath = './src/sentry/templates/sentry/js-sdk-loader.js.tmpl';
 const loaderMinTmplPath = './src/sentry/templates/sentry/js-sdk-loader.min.js.tmpl';

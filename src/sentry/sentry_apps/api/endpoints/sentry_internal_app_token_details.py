@@ -24,11 +24,12 @@ from sentry.utils.audit import create_audit_entry
 
 @control_silo_endpoint
 class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SentryInternalAppTokenPermission, DisallowImpersonatedTokenCreation)
+    allow_disabled_sentry_app_for_methods = {"DELETE"}
 
     def convert_args(self, request: Request, sentry_app_id_or_slug, api_token_id, *args, **kwargs):
         # get the sentry_app from the SentryAppBaseEndpoint class

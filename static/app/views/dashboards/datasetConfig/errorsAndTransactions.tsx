@@ -2,13 +2,13 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Link} from '@sentry/scraps/link';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -19,12 +19,13 @@ import type {
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import {emptyStringValue} from 'sentry/utils/discover/emptyFieldValues';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type {
   FieldFormatterRenderFunctionPartial,
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
-import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   errorsAndTransactionsAggregateFunctionOutputType,
@@ -258,7 +259,7 @@ export function filterYAxisAggregateParams(
 
     const functionName = fieldValue.function[0];
     const primaryOutput = errorsAndTransactionsAggregateFunctionOutputType(
-      functionName as string,
+      functionName,
       option.value.meta.name
     );
     if (primaryOutput) {

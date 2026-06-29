@@ -6,7 +6,6 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {DataCategory} from 'sentry/types/core';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -18,7 +17,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {redirectToPerformanceHomepage} from 'sentry/views/performance/transactionSummary/pageLayout';
 
 import {TransactionProfilesContent} from './content';
@@ -52,7 +50,6 @@ function Profiles({transaction}: ProfilesProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const {projects} = useProjects();
-  const shouldUseEAP = useTransactionSummaryEAP();
 
   const project = projects.find(p => p.id === location.query.project);
 
@@ -63,11 +60,7 @@ function Profiles({transaction}: ProfilesProps) {
 
   const query = useMemo(() => {
     const conditions = new MutableSearch(rawQuery);
-    if (shouldUseEAP) {
-      conditions.setFilterValues('is_transaction', ['true']);
-    } else {
-      conditions.setFilterValues('event.type', ['transaction']);
-    }
+    conditions.setFilterValues('is_transaction', ['true']);
     conditions.setFilterValues('transaction', [transaction]);
 
     Object.keys(conditions.filters).forEach(field => {
@@ -77,7 +70,7 @@ function Profiles({transaction}: ProfilesProps) {
     });
 
     return conditions.formatString();
-  }, [transaction, rawQuery, shouldUseEAP]);
+  }, [transaction, rawQuery]);
 
   const handleSearch = useCallback(
     (searchQuery: string) => {
@@ -110,20 +103,11 @@ function Profiles({transaction}: ProfilesProps) {
           <EnvironmentPageFilter />
           <DatePageFilter {...datePageFilterProps} />
         </PageFilterBar>
-        {shouldUseEAP ? (
-          <EAPSearchBar
-            projects={projectIds ?? []}
-            initialQuery={rawQuery}
-            onSearch={handleSearch}
-          />
-        ) : (
-          <TransactionSearchQueryBuilder
-            projects={projectIds}
-            initialQuery={rawQuery}
-            onSearch={handleSearch}
-            searchSource="transaction_profiles"
-          />
-        )}
+        <EAPSearchBar
+          projects={projectIds ?? []}
+          initialQuery={rawQuery}
+          onSearch={handleSearch}
+        />
       </FilterActions>
       <TransactionProfilesContent query={query} transaction={transaction} />
     </StyledMain>
@@ -146,10 +130,11 @@ const StyledMain = styled(Layout.Main)`
 function ProfilesIndex() {
   const organization = useOrganization();
   const location = useLocation();
+  const navigate = useNavigate();
   const transaction = decodeScalar(location.query.transaction);
 
   if (!transaction) {
-    redirectToPerformanceHomepage(organization, location);
+    redirectToPerformanceHomepage(organization, location, navigate);
     return null;
   }
 

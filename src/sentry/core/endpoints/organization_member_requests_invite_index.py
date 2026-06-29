@@ -1,5 +1,6 @@
 from django.db import router, transaction
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,6 +11,23 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
+from sentry.api.serializers.models.organization_member.response import (
+    OrganizationMemberResponse,
+    OrganizationMemberWithTeamsResponse,
+)
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
 from sentry.core.endpoints.organization_member_utils import save_team_assignments
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -26,15 +44,33 @@ class InviteRequestPermissions(OrganizationPermission):
     }
 
 
+@extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (InviteRequestPermissions,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="List an Organization's Invite Requests",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListInviteRequests", list[OrganizationMemberWithTeamsResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[OrganizationMemberWithTeamsResponse]]:
+        """
+        Return a list of pending invite and join requests for an organization.
+        """
         queryset = OrganizationMember.objects.filter(
             Q(user_id__isnull=True),
             Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
@@ -54,21 +90,28 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="Create an Invite Request",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=OrganizationMemberRequestSerializer,
+        responses={
+            201: inline_sentry_response_serializer("InviteRequest", OrganizationMemberResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[OrganizationMemberResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
-        Add a invite request to Organization
-        ````````````````````````````````````
-
-        Creates an invite request given an email and suggested role / teams.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the member will belong to
-        :param string email: the email address to invite
-        :param string role: the suggested role of the new member
-        :param string orgRole: the suggested org-role of the new member
-        :param array teams: the teams which the member should belong to.
-        :param array teamRoles: the teams and team-roles assigned to the member
-
-        :auth: required
+        Create an invite request for an organization given an email and suggested
+        role / teams.
         """
         serializer = OrganizationMemberRequestSerializer(
             data=request.data,
@@ -76,7 +119,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         if request.access.requires_sso:
             return Response(
@@ -116,4 +159,5 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         async_send_notification(InviteRequestNotification, om, request.user)
 
-        return Response(serialize(om), status=201)
+        data: OrganizationMemberResponse = serialize(om)
+        return Response(data, status=201)

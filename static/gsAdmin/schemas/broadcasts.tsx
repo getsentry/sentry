@@ -10,7 +10,7 @@ import {
   TRIALCHOICES,
 } from 'getsentry/utils/broadcasts';
 
-const mapChoices = <T extends readonly [string, string]>(choices: readonly T[]) =>
+const mapChoices = (choices: ReadonlyArray<readonly [string, string]>) =>
   choices.map(([value, label]) => ({value, label}));
 
 export function getBroadcastSchema(): Field[] {
@@ -37,6 +37,14 @@ export function getBroadcastSchema(): Field[] {
       required: true,
       label: 'Link',
       placeholder: 'e.g. https://blog.sentry.io/2021/01/01/shiny-new-feature',
+    },
+    {
+      name: 'organizations',
+      type: 'string',
+      required: false,
+      label: 'Organization IDs',
+      placeholder: 'e.g. 123, 456, 789 (leave empty to broadcast to all users)',
+      help: 'Comma-separated list of organization IDs to restrict this broadcast to. If left empty, the broadcast will be shown to all users.',
     },
     {
       name: 'mediaUrl',

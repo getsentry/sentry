@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -14,7 +15,7 @@ import {
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
-import {FTCConsentLocation, PlanTier} from 'getsentry/types';
+import {FTCConsentLocation} from 'getsentry/types';
 import {BillingInformation} from 'getsentry/views/subscriptionPage/billingInformation';
 
 // Stripe mocks handled by global setup.ts
@@ -51,11 +52,6 @@ describe('Subscription > BillingInformation', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/`,
-      method: 'GET',
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
@@ -100,8 +96,6 @@ describe('Subscription > BillingInformation', () => {
     });
 
     render(<BillingInformation subscription={subscription} />, {organization});
-
-    await screen.findByText('Billing Information');
 
     // panels are collapsed with pre-existing information
     const cardPanel = await screen.findByTestId('credit-card-panel');
@@ -161,8 +155,6 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
-
     // panels are expanded with no pre-existing information
     const cardPanel = await screen.findByTestId('credit-card-panel');
     expect(cardPanel).toBeInTheDocument();
@@ -217,7 +209,6 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
     expect(await screen.findByText('Account balance: $100')).toBeInTheDocument();
   });
 
@@ -232,7 +223,6 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
     expect(await screen.findByText('Account balance: $100 credit')).toBeInTheDocument();
   });
 
@@ -242,7 +232,7 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
+    await screen.findByText('Payment method');
     expect(screen.queryByText(/account balance/i)).not.toBeInTheDocument();
   });
 
@@ -283,7 +273,7 @@ describe('Subscription > BillingInformation', () => {
       organization,
     });
 
-    await screen.findByText('Billing Information');
+    await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
@@ -333,7 +323,7 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={testSubscription} />, {organization});
 
-    await screen.findByText('Billing Information');
+    await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
@@ -359,7 +349,6 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
 

@@ -1,5 +1,4 @@
-import {useMemo} from 'react';
-import * as React from 'react';
+import {Fragment, useMemo} from 'react';
 import type {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
@@ -58,7 +57,7 @@ export function FlamegraphUIFramesTooltip({
         const cssColor = toRGBAString(color[0], color[1], color[2], color[3] ?? 1);
 
         return (
-          <React.Fragment key={i}>
+          <Fragment key={i}>
             <FlamegraphTooltipFrameMainInfo>
               <FlamegraphTooltipColorIndicator backgroundColor={cssColor} />
               {uiFrames.formatter(rect.width)}{' '}
@@ -68,7 +67,7 @@ export function FlamegraphUIFramesTooltip({
               {uiFrames.timelineFormatter(rect.left)} {' \u2014 '}
               {uiFrames.timelineFormatter(rect.right)}
             </FlamegraphTooltipTimelineInfo>
-          </React.Fragment>
+          </Fragment>
         );
       })}
     </BoundTooltip>

@@ -35,4 +35,4 @@ class GroupSearchViewPermission(OrganizationPermission):
 
             return False
 
-        return True
+        return False

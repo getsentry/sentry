@@ -1,6 +1,9 @@
+from django.contrib.sessions.backends.base import SessionBase
+from django.test import RequestFactory
 from rest_framework.views import APIView
 
-from sentry.api.bases.project import ProjectAndStaffPermission, ProjectPermission
+from sentry.api.bases.project import ProjectAndStaffPermission, ProjectEndpoint, ProjectPermission
+from sentry.auth.access import from_request
 from sentry.models.apitoken import ApiToken
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
@@ -8,6 +11,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.requests import drf_request_from_request
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.viewer_context import ViewerContext, get_viewer_context, viewer_context_scope
 
 
 class ProjectPermissionBase(TestCase):
@@ -32,6 +36,26 @@ class ProjectPermissionBase(TestCase):
         return perm.has_permission(drf_request, APIView()) and perm.has_object_permission(
             drf_request, APIView(), obj
         )
+
+
+class ProjectEndpointViewerContextTest(TestCase):
+    def test_convert_args_enriches_viewer_context_with_organization(self) -> None:
+        endpoint = ProjectEndpoint()
+        raw_request = RequestFactory().get("/")
+        raw_request.session = SessionBase()
+        raw_request.user = self.user
+        raw_request.auth = None
+        raw_request.access = from_request(drf_request_from_request(raw_request), self.organization)
+        request = drf_request_from_request(raw_request)
+        request._request.organization = None
+
+        with viewer_context_scope(ViewerContext(user_id=self.user.id)):
+            endpoint.convert_args(request, self.organization.slug, self.project.slug)
+            ctx = get_viewer_context()
+
+        assert ctx is not None
+        assert ctx.user_id == self.user.id
+        assert ctx.organization_id == self.organization.id
 
 
 class ProjectPermissionTest(ProjectPermissionBase):

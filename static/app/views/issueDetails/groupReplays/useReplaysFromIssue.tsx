@@ -7,11 +7,10 @@ import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useRepla
 import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
-import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/explore/replays/types';
 
 export function useReplaysFromIssue({
   group,
@@ -63,12 +62,12 @@ export function useReplaysFromIssue({
       name: '',
       version: 2,
       fields: REPLAY_LIST_FIELDS,
-      query: replayIds.length ? `id:[${String(replayIds)}]` : `id:1`,
+      query: replayIds.length ? `id:[${String(replayIds)}]` : 'id:1',
       range: '90d',
       projects: [],
-      orderby: decodeScalar(location.query.sort, DEFAULT_REPLAY_LIST_SORT),
+      orderby: DEFAULT_REPLAY_LIST_SORT,
     });
-  }, [location.query.sort, replayIds]);
+  }, [replayIds]);
 
   useCleanQueryParamsOnRouteLeave({
     fieldsToClean: ['cursor'],

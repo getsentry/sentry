@@ -6,12 +6,7 @@ import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
-import {
-  renderGlobalModal,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openSentryAppIssueModal} from 'sentry/components/group/sentryAppExternalIssueModal';
 
@@ -42,7 +37,7 @@ describe('openSentryAppIssueModal', () => {
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/external-issues/`,
+      url: '/organizations/org-slug/issues/1/external-issues/',
       body: [],
     });
   });
@@ -64,10 +59,10 @@ describe('openSentryAppIssueModal', () => {
 
     renderGlobalModal();
 
-    // renders the Create Issue form fields, based on schema
-    await waitFor(() => {
-      expect(component.schema.create.required_fields).toHaveLength(2);
-    });
+    // renders the Create Issue form fields, based on schema (once the
+    // mount-time cascade resolves and the loading indicator clears)
+    expect(component.schema.create.required_fields).toHaveLength(2);
+    await screen.findByRole('textbox', {name: 'Title'});
     for (const field of component.schema.create.required_fields) {
       expect(screen.getByRole('textbox', {name: field.label})).toBeInTheDocument();
     }

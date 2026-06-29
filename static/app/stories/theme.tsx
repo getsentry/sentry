@@ -1,5 +1,3 @@
-import {useCallback} from 'react';
-
 import {Button} from '@sentry/scraps/button';
 
 import {IconMoon} from 'sentry/icons';
@@ -11,9 +9,9 @@ export function ThemeSwitcher() {
   const config = useLegacyStore(ConfigStore);
   const isDark = config.theme === 'dark';
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     ConfigStore.set('theme', isDark ? 'light' : 'dark');
-  }, [isDark]);
+  };
 
   return (
     <Button

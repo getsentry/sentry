@@ -224,6 +224,41 @@ class ProjectDisableAuditLogEvent(AuditLogEvent):
         return render_project_action(audit_log_entry, "disable")
 
 
+class CustomInboundFilterAuditLogEvent(AuditLogEvent):
+    """A single audit log event covering all custom inbound filter operations.
+
+    The specific operation (add/edit/remove) is carried in ``data["operation"]``.
+    """
+
+    OPERATION_VERBS = {
+        "add": "added",
+        "edit": "edited",
+        "remove": "removed",
+    }
+
+    def __init__(self) -> None:
+        super().__init__(
+            event_id=218,
+            name="CUSTOM_INBOUND_FILTER",
+            api_name="custom-inbound-filter",
+        )
+
+    def _display(self, audit_log_entry: AuditLogEntry) -> str:
+        filter_name = audit_log_entry.data.get("filter_name", "unknown")
+        project_slug = audit_log_entry.data.get("project_slug", "unknown")
+        return f'custom inbound filter "{filter_name}" for project {project_slug}'
+
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        target = self._display(audit_log_entry)
+        operation = audit_log_entry.data.get("operation")
+        verb = self.OPERATION_VERBS.get(operation, "updated")
+        if operation == "edit":
+            changes = audit_log_entry.data.get("changes", {})
+            changed_fields = ", ".join(sorted(changes)) if changes else "unknown fields"
+            return f"{verb} {target}: {changed_fields}"
+        return f"{verb} {target}"
+
+
 class ProjectOwnershipRuleEditAuditLogEvent(AuditLogEvent):
     def __init__(self) -> None:
         super().__init__(
@@ -384,3 +419,38 @@ class RepoSettingsEditAuditLogEvent(AuditLogEvent):
         return "updated repository settings for {repository_count} repositories".format(
             repository_count=data.get("repository_count", 0),
         )
+
+
+def _render_repo_event(action: str, audit_log_entry: AuditLogEntry) -> str:
+    data = audit_log_entry.data
+    actor = audit_log_entry.actor_label or "unknown"
+    repo_name = data.get("repo_name", "unknown")
+    source = data.get("source", "")
+    msg = f"{actor} {action} repository {repo_name}"
+    if source:
+        msg += f" (via {source})"
+    return msg
+
+
+class RepoAddedAuditLogEvent(AuditLogEvent):
+    def __init__(self) -> None:
+        super().__init__(event_id=1170, name="REPO_ADDED", api_name="repo.added")
+
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        return _render_repo_event("added", audit_log_entry)
+
+
+class RepoDisabledAuditLogEvent(AuditLogEvent):
+    def __init__(self) -> None:
+        super().__init__(event_id=1171, name="REPO_DISABLED", api_name="repo.disabled")
+
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        return _render_repo_event("disabled", audit_log_entry)
+
+
+class RepoEnabledAuditLogEvent(AuditLogEvent):
+    def __init__(self) -> None:
+        super().__init__(event_id=1172, name="REPO_ENABLED", api_name="repo.enabled")
+
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        return _render_repo_event("enabled", audit_log_entry)

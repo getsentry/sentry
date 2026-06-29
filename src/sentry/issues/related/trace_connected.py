@@ -134,7 +134,7 @@ def trace_connected_issues(event: Event | GroupEvent) -> tuple[list[int], dict[s
             snuba_results,
             eap_results,
             "issues.related.trace_connected_issues",
-            is_experimental_data_a_null_result=len(eap_results) == 0,
+            is_experimental_data_nullish=len(eap_results) == 0,
             reasonable_match_comparator=lambda snuba, eap: eap.issubset(snuba),
             debug_context={
                 "trace_id": event.trace_id,

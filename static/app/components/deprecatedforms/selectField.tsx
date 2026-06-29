@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import {Select} from '@sentry/scraps/select';
 
 import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {StyledForm} from './form';
 import {FormField, type FormFieldProps} from './formField';
 
 // Combined interface for SelectField props
-export interface SelectFieldProps extends FormFieldProps {
+interface SelectFieldProps extends FormFieldProps {
   // Modified to accept various choice formats
   choices?: Array<[value: any, label: string | number]> | string[][] | string[];
   clearable?: boolean;
@@ -28,7 +28,10 @@ export interface SelectFieldProps extends FormFieldProps {
 /**
  * @deprecated Do not use this
  */
-export class SelectField extends FormField<SelectFieldProps> {
+
+// Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
+class SelectField extends FormField<SelectFieldProps> {
   static defaultProps = {
     ...FormField.defaultProps,
     clearable: true,
@@ -70,7 +73,7 @@ export class SelectField extends FormField<SelectFieldProps> {
     if (defined(props.value)) {
       return props.value;
     }
-    if (form?.data.hasOwnProperty(props.name)) {
+    if (form && Object.hasOwn(form.data, props.name)) {
       return defined(form.data[props.name]) ? form.data[props.name] : defaultValue;
     }
     return defined(props.defaultValue) ? props.defaultValue : defaultValue;
@@ -90,7 +93,7 @@ export class SelectField extends FormField<SelectFieldProps> {
     if (this.isMultiple()) {
       return value.map((v: any) => v.value);
     }
-    if (value.hasOwnProperty('value')) {
+    if (Object.hasOwn(value, 'value')) {
       return value.value;
     }
 

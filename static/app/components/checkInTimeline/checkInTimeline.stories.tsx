@@ -25,17 +25,17 @@ enum ExampleStatus {
 
 const statusStyle: TickStyle<ExampleStatus> = theme => ({
   [ExampleStatus.ERROR]: {
-    labelColor: theme.colors.red500,
-    tickColor: theme.colors.red400,
+    labelColor: theme.tokens.content.danger,
+    tickColor: theme.tokens.dataviz.semantic.bad,
   },
   [ExampleStatus.TIMEOUT]: {
-    labelColor: theme.colors.yellow500,
-    tickColor: theme.colors.yellow400,
-    hatchTick: theme.colors.yellow200,
+    labelColor: theme.tokens.content.warning,
+    tickColor: theme.tokens.dataviz.semantic.meh,
+    hatchTick: theme.tokens.border.warning.muted,
   },
   [ExampleStatus.OK]: {
-    labelColor: theme.colors.green500,
-    tickColor: theme.colors.green400,
+    labelColor: theme.tokens.content.success,
+    tickColor: theme.tokens.dataviz.semantic.good,
   },
 });
 
@@ -54,7 +54,7 @@ function generateMockTickData(
   const buckets = timeWindowConfig.timelineWidth;
   const secondsPerBucket = (timeWindowConfig.elapsedMinutes * 60) / buckets;
 
-  return new Array(timeWindowConfig.timelineWidth)
+  return Array.from({length: timeWindowConfig.timelineWidth})
     .fill(null)
     .map<CheckInBucket<ExampleStatus>>((_, bucketIndex) => {
       const second = Math.floor(bucketIndex * secondsPerBucket);
@@ -82,7 +82,7 @@ function generateMockTickData(
 export default Storybook.story('CheckInTimeline', story => {
   story('Simple', () => {
     const elementRef = useRef<HTMLDivElement>(null);
-    const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+    const {width: timelineWidth} = useDimensions({elementRef});
     const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
     const [secondsGap, setSecondsGap] = useState(60);

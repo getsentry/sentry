@@ -12,8 +12,8 @@ import {Wrapper} from 'sentry/views/relocation/components/wrapper';
 import type {StepProps} from './types';
 
 export function PublicKey({publicKeys, relocationState, onComplete}: StepProps) {
-  const {regionUrl} = relocationState;
-  const publicKey = publicKeys.get(regionUrl);
+  const {localityName} = relocationState;
+  const publicKey = publicKeys.get(localityName);
   const handleContinue = (event: any) => {
     event.preventDefault();
     onComplete();
@@ -38,7 +38,7 @@ export function PublicKey({publicKeys, relocationState, onComplete}: StepProps) 
           <CodeBlock dark filename="key.pub" icon={<IconFile />} hideCopyButton={false}>
             {publicKey}
           </CodeBlock>
-          <ContinueButton priority="primary" type="submit" onClick={handleContinue} />
+          <ContinueButton variant="primary" type="submit" onClick={handleContinue} />
         </motion.div>
       ) : (
         <motion.div

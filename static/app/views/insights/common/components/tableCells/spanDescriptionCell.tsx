@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
-import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {emptyStringValue, emptyValue} from 'sentry/utils/discover/emptyFieldValues';
+import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {SpanGroupDetailsLink} from 'sentry/views/insights/common/components/spanGroupDetailsLink';
 import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
@@ -15,11 +16,11 @@ const formatter = new SQLishFormatter();
 const {SPAN_OP} = SpanFields;
 
 interface Props {
-  description: string;
   moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
+  description?: string;
   extraLinkQueryParams?: Record<string, string>;
-  group?: string;
+  group?: string | null;
   spanAction?: string;
   spanOp?: string;
   system?: string;
@@ -36,7 +37,7 @@ export function SpanDescriptionCell({
   extraLinkQueryParams,
 }: Props) {
   const formatterDescription = useMemo(() => {
-    if (moduleName !== ModuleName.DB) {
+    if (!rawDescription || moduleName !== ModuleName.DB) {
       return rawDescription;
     }
 
@@ -48,7 +49,7 @@ export function SpanDescriptionCell({
   }, [moduleName, rawDescription, spanAction, system]);
 
   if (!rawDescription) {
-    return NULL_DESCRIPTION;
+    return rawDescription === '' ? emptyStringValue : emptyValue;
   }
 
   const descriptionLink = (
@@ -102,8 +103,6 @@ export function SpanDescriptionCell({
 
   return descriptionLink;
 }
-
-const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;
 
 export const WiderHovercard = styled(
   ({children, className, ...props}: React.ComponentProps<typeof Hovercard>) => (

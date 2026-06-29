@@ -15,7 +15,7 @@ from sentry.identity.services.identity.model import (
 from sentry.identity.services.identity.serial import serialize_identity, serialize_identity_provider
 from sentry.identity.services.identity.service import IdentityService
 from sentry.models.authidentity import AuthIdentity
-from sentry.users.models.identity import Identity
+from sentry.users.models.identity import Identity, OrganizationIdentity
 
 
 class DatabaseBackedIdentityService(IdentityService):
@@ -69,6 +69,20 @@ class DatabaseBackedIdentityService(IdentityService):
 
         return [serialize_identity(identity) for identity in identities]
 
+    def get_org_user_identities_by_provider_type(
+        self,
+        *,
+        organization_id: int,
+        user_id: int,
+        provider_type: str,
+    ) -> list[RpcIdentity]:
+        org_identities = OrganizationIdentity.objects.filter(
+            organization_id=organization_id,
+            identity__user_id=user_id,
+            identity__idp__type=provider_type,
+        ).select_related("identity")
+        return [serialize_identity(oi.identity) for oi in org_identities]
+
     def delete_identities(self, user_id: int, organization_id: int) -> None:
         """
         Deletes the set of identities associated with a user and organization context.
@@ -97,6 +111,8 @@ class DatabaseBackedIdentityService(IdentityService):
                 query = query.filter(user_id=filters["user_id"])
             if "identity_ext_id" in filters:
                 query = query.filter(external_id=filters["identity_ext_id"])
+            if "identity_ext_ids" in filters:
+                query = query.filter(external_id__in=filters["identity_ext_ids"])
             if "provider_id" in filters:
                 query = query.filter(idp_id=filters["provider_id"])
             if "provider_ext_id" in filters:

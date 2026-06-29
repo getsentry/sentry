@@ -4,9 +4,6 @@ from sentry.auth.services.auth import RpcApiKey, RpcApiToken, RpcAuthIdentity, R
 from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
 from sentry.hybridcloud.rpc.resolvers import ByCellName
 from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method, rpc_method
-from sentry.hybridcloud.services.control_organization_provisioning import (
-    RpcOrganizationSlugReservation,
-)
 from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
 from sentry.notifications.services import RpcExternalActor
 from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
@@ -51,6 +48,18 @@ class ControlReplicaService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def upsert_organization_avatar_replica(
+        self, *, organization_id: int, avatar_type: int, avatar_ident: str
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def delete_organization_avatar_replica(self, *, organization_id: int) -> None:
         pass
 
     @classmethod
@@ -120,26 +129,6 @@ class CellReplicaService(RpcService):
         self,
         *,
         token: RpcOrgAuthToken,
-        cell_name: str,
-    ) -> None:
-        pass
-
-    @cell_rpc_method(resolve=ByCellName())
-    @abc.abstractmethod
-    def upsert_replicated_org_slug_reservation(
-        self,
-        *,
-        slug_reservation: RpcOrganizationSlugReservation,
-        cell_name: str,
-    ) -> None:
-        pass
-
-    @cell_rpc_method(resolve=ByCellName())
-    @abc.abstractmethod
-    def delete_replicated_org_slug_reservation(
-        self,
-        *,
-        organization_slug_reservation_id: int,
         cell_name: str,
     ) -> None:
         pass

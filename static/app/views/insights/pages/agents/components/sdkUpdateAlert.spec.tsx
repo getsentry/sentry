@@ -120,7 +120,7 @@ describe('SdkUpdateAlert', () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(textWithMarkupMatcher('Update to 2.5.0 or later.'))
+      screen.getByText(textWithMarkupMatcher('Update to 2.0.0 or later.'))
     ).toBeInTheDocument();
   });
 
@@ -155,7 +155,7 @@ describe('SdkUpdateAlert', () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(textWithMarkupMatcher('Update to 8.5.0 or later.'))
+      screen.getByText(textWithMarkupMatcher('Update to 8.0.0 or later.'))
     ).toBeInTheDocument();
   });
 
@@ -190,7 +190,7 @@ describe('SdkUpdateAlert', () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(textWithMarkupMatcher('Update to 10.5.0 or later.'))
+      screen.getByText(textWithMarkupMatcher('Update to 10.0.0 or later.'))
     ).toBeInTheDocument();
   });
 
@@ -263,11 +263,11 @@ describe('SdkUpdateAlert', () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(textWithMarkupMatcher('Update to 2.5.0 or later.'))
+      screen.getByText(textWithMarkupMatcher('Update to 2.0.0 or later.'))
     ).toBeInTheDocument();
   });
 
-  it('renders alert without suggested version when suggestions are not available', async () => {
+  it('renders alert with minVersion when suggestions are not available', async () => {
     renderMockSdkUpdateRequest({
       organization,
       body: [
@@ -296,6 +296,8 @@ describe('SdkUpdateAlert', () => {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByText(/Update to the latest version\./)).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher('Update to 2.0.0 or later.'))
+    ).toBeInTheDocument();
   });
 });

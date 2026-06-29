@@ -6,7 +6,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {EventTransaction, Level} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -15,8 +15,8 @@ import {
   SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
 } from 'sentry/views/explore/constants';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {fixJson} from 'sentry/views/explore/replays/detail/network/truncateJson/fixJson';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {fixJson} from 'sentry/views/replays/detail/network/truncateJson/fixJson';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export function getProfileMeta(event: EventTransaction | null) {

@@ -9,12 +9,13 @@ from collections.abc import Sequence
 def extract_packages(package_specs: list[str]) -> set[str]:
     names = set()
     for spec in package_specs:
-        parts = spec.split(">=")
-        if len(parts) == 1:
-            raise SystemExit(
-                f"Only >= is allowed for packages in pyproject.toml. Offfending spec: {spec}"
-            )
-        names.add(parts[0])
+        # Split on version specifiers or extras bracket
+        for sep in ("[", ">=", "==", "~=", "<=", "<", ">"):
+            if sep in spec:
+                names.add(spec.split(sep)[0])
+                break
+        else:
+            names.add(spec)
     return names
 
 

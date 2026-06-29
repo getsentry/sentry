@@ -4,12 +4,10 @@ from typing import Any
 
 import jsonschema
 import orjson
-import sentry_sdk
-from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -27,6 +25,7 @@ from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_ch
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tasks.assemble import ChunkFileState
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.tracing import start_span
 
 SUPPORTED_VCS_PROVIDERS = [
     IntegrationProviderSlug.GITHUB,
@@ -145,12 +144,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             )
         )
 
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
-            return Response({"error": "Feature not enabled"}, status=403)
-
-        with sentry_sdk.start_span(op="preprod_artifact.assemble"):
+        with start_span(op="preprod_artifact.assemble", name="preprod_artifact.assemble"):
             data, error_message = validate_preprod_artifact_schema(request.body)
             if error_message:
                 return Response({"error": error_message}, status=400)

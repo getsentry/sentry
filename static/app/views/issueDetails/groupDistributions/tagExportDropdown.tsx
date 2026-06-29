@@ -1,9 +1,7 @@
-import {useState} from 'react';
-
 import {Button} from '@sentry/scraps/button';
 
-import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {ExportQueryType, useDataExport} from 'sentry/components/exports/useDataExport';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -18,18 +16,9 @@ interface Props {
 }
 
 export function TagExportDropdown({tagKey, group, organization, project}: Props) {
-  const [isExportDisabled, setIsExportDisabled] = useState(false);
   const hasDiscoverQuery = organization.features.includes('discover-query');
-  const handleDataExport = useDataExport({
-    payload: {
-      queryType: ExportQueryType.ISSUES_BY_TAG,
-      queryInfo: {
-        project: project.id,
-        group: group.id,
-        key: tagKey,
-      },
-    },
-  });
+  const {mutate: handleDataExport, isPending, isSuccess} = useDataExport();
+  const isExportDisabled = isPending || isSuccess;
 
   return (
     <DropdownMenu
@@ -37,7 +26,7 @@ export function TagExportDropdown({tagKey, group, organization, project}: Props)
       trigger={triggerProps => (
         <Button
           {...triggerProps}
-          priority="transparent"
+          variant="transparent"
           size="xs"
           aria-label={t('Export options')}
           icon={<IconDownload />}
@@ -50,7 +39,7 @@ export function TagExportDropdown({tagKey, group, organization, project}: Props)
           // TODO(issues): Dropdown menu doesn't support hrefs yet
           onAction: () => {
             window.open(
-              `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+              `/organizations/${organization.slug}/projects/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
               '_blank'
             );
           },
@@ -59,8 +48,14 @@ export function TagExportDropdown({tagKey, group, organization, project}: Props)
           key: 'export-all',
           label: isExportDisabled ? t('Export in progress...') : t('Export All to CSV'),
           onAction: () => {
-            handleDataExport();
-            setIsExportDisabled(true);
+            handleDataExport({
+              queryType: ExportQueryType.ISSUES_BY_TAG,
+              queryInfo: {
+                project: project.id,
+                group: group.id,
+                key: tagKey,
+              },
+            });
           },
           disabled: isExportDisabled || !hasDiscoverQuery,
           tooltip: hasDiscoverQuery

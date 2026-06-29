@@ -93,7 +93,7 @@ export function useCreateNotificationAction({
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {integrationType: 'messaging'}},
@@ -123,7 +123,7 @@ export function useCreateNotificationAction({
     undefined
   );
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(undefined);
-  const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState<boolean>(false);
+  const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState(false);
 
   useEffect(() => {
     // Initializes form state based on the first default action and available integrations.
@@ -187,7 +187,7 @@ export function useCreateNotificationAction({
         action => action === MultipleCheckboxOptions.INTEGRATION
       );
       if (!shouldCreateRule || !isCreatingIntegrationNotification) {
-        return undefined;
+        return;
       }
 
       let integrationAction: IntegrationAction;
@@ -216,7 +216,7 @@ export function useCreateNotificationAction({
           };
           break;
         default:
-          return undefined;
+          return;
       }
 
       return createProjectRules.mutateAsync({

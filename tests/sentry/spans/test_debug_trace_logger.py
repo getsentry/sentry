@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from unittest import mock
 
-from sentry.spans.buffer import Span
+from sentry.spans.buffer_types import Span
 from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.testutils.helpers.options import override_options
 

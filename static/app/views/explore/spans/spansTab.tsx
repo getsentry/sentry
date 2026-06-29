@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -19,7 +20,10 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
+import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -38,17 +42,23 @@ import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQuer
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
-import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import {
+  type TracesTableResult,
+  useExploreTracesTableApiOptions,
+} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
   useQueryParamsExtrapolate,
+  useQueryParamsGroupBys,
   useQueryParamsId,
   useQueryParamsQuery,
+  useQueryParamsSortBys,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
+import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
 import {DroppedFieldsAlert} from 'sentry/views/explore/spans/droppedFieldsAlert';
 import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
 import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
@@ -60,6 +70,8 @@ import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
@@ -162,16 +174,16 @@ function SpanTabControlSection({controlSectionExpanded}: SpanTabControlSectionPr
   );
 }
 
-interface SpanTabContentSectionProps {
+type SpanTabContentSectionProps = {
   controlSectionExpanded: boolean;
   setControlSectionExpanded: (expanded: boolean) => void;
-}
+};
 
-function SpanTabContentSection({
+function SpanTabContentSectionInner({
   controlSectionExpanded,
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
-  const {isReady} = usePageFilters();
+  const {isReady, selection} = usePageFilters();
   const query = useQueryParamsQuery();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
@@ -179,12 +191,25 @@ function SpanTabContentSection({
   const id = useQueryParamsId();
   const [tab, setTab] = useTab();
   const [caseInsensitive] = useCaseInsensitivity();
-  const crossEventQueries = useCrossEventQueries();
-
   const organization = useOrganization();
-  const hasCrossEventQueries = organization.features.includes(
-    'traces-page-cross-event-querying'
-  );
+  const crossEventDatasetAvailability = useCrossEventDatasetAvailability(organization);
+  const crossEventQueries = useCrossEventQueries(crossEventDatasetAvailability);
+  const sortBys = useQueryParamsSortBys();
+  const groupBys = useQueryParamsGroupBys();
+
+  // Push page state into the LLM context tree for Seer Explorer.
+  useLLMContext({
+    contextHint:
+      'Sentry traces explorer page. Users search spans/traces by attributes and view samples, aggregates, or breakdowns. ' +
+      'You can search live telemetry for spans/traces/errors/logs/metrics, get a trace waterfall by trace ID, ' +
+      'list telemetry index nodes by keyword to discover span/function types, and query node dependencies for upstream/downstream call graphs.',
+    searchQuery: query,
+    activeTab: tab,
+    visualizes: visualizes.map(v => v.yAxis),
+    groupBys: groupBys.filter(g => g !== ''),
+    sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+    currentSelectedDateRange: selection.datetime,
+  });
 
   const queryType =
     tab === Mode.AGGREGATE
@@ -205,7 +230,7 @@ function SpanTabContentSection({
     enabled: isReady && queryType === 'aggregate',
     queryExtras: {
       caseInsensitive,
-      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+      ...crossEventQueries,
     },
   });
   const spansTableResult = useExploreSpansTable({
@@ -214,18 +239,25 @@ function SpanTabContentSection({
     enabled: isReady && queryType === 'samples',
     queryExtras: {
       caseInsensitive,
-      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+      ...crossEventQueries,
     },
   });
-  const tracesTableResult = useExploreTracesTable({
-    query,
-    limit,
+  const tracesTableQuery = useQuery({
+    ...useExploreTracesTableApiOptions({
+      query,
+      limit,
+      queryExtras: {
+        caseInsensitive,
+        ...crossEventQueries,
+      },
+    }),
+    select: selectJsonWithHeaders,
     enabled: isReady && queryType === 'traces',
-    queryExtras: {
-      caseInsensitive,
-      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
-    },
   });
+  const tracesTableResult = {
+    result: tracesTableQuery,
+    error: parseError(tracesTableQuery.error),
+  } satisfies TracesTableResult;
 
   const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
     useExploreTimeseries({
@@ -233,7 +265,7 @@ function SpanTabContentSection({
       enabled: isReady,
       queryExtras: {
         caseInsensitive,
-        ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+        ...crossEventQueries,
       },
     });
 
@@ -258,6 +290,7 @@ function SpanTabContentSection({
     tracesTableResult,
     timeseriesResult,
     interval,
+    crossEventQueries,
   });
 
   const error = defined(timeseriesResult.error)
@@ -265,13 +298,13 @@ function SpanTabContentSection({
     : queryType === 'samples'
       ? spansTableResult.result.error
       : queryType === 'traces'
-        ? tracesTableResult.result.error
+        ? tracesTableResult.error
         : queryType === 'aggregate'
           ? aggregatesTableResult.result.error
           : null;
 
   return (
-    <ExploreContentSection>
+    <ExploreContentSection gap="md">
       <OverChartButtonGroup>
         <ChevronButton
           aria-label={
@@ -326,7 +359,6 @@ function SpanTabContentSection({
               visualizes={visualizes}
               setVisualizes={setVisualizes}
               samplingMode={timeseriesSamplingMode}
-              setTab={setTab}
               rawSpanCounts={rawSpanCounts}
             />
             <ExploreTables
@@ -335,10 +367,18 @@ function SpanTabContentSection({
               tracesTableResult={tracesTableResult}
               confidences={confidences}
               tab={tab}
-              setTab={(newTab: Mode | Tab) => {
+              setTab={(newTab, reason) => {
                 if (newTab === Mode.AGGREGATE) {
                   setControlSectionExpanded(true);
                 }
+
+                if (reason === 'click') {
+                  trackAnalytics('trace.explorer.table_tab_changed', {
+                    organization,
+                    tab: newTab,
+                  });
+                }
+
                 setTab(newTab);
               }}
             />
@@ -348,6 +388,11 @@ function SpanTabContentSection({
     </ExploreContentSection>
   );
 }
+
+const SpanTabContentSection = registerLLMContext(
+  'traces-explorer',
+  SpanTabContentSectionInner
+);
 
 const OnboardingContentSection = styled('section')`
   grid-column: 1/3;

@@ -24,7 +24,7 @@ function renderMockRequests(organization: Organization) {
   });
 
   const mutateUserOptionsMock = MockApiClient.addMockResponse({
-    url: `/users/me/`,
+    url: '/users/me/',
     method: 'PUT',
   });
 
@@ -51,7 +51,7 @@ describe('Onboarding Status', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/assistant/`,
+      url: '/assistant/',
       body: [],
     });
   });

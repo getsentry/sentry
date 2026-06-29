@@ -1,6 +1,6 @@
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -56,6 +56,8 @@ export function CronsBannerOnDemandCTA({
   hasBillingAccess,
   subscription,
 }: OnDemandCTAProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
 
   const openOnDemandBudgetEditModal = () => {

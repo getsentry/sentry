@@ -54,7 +54,7 @@ export function SuspectCommits({group, eventId, projectSlug}: Props) {
   const handlePullRequestClick = (commit: Commit, commitIndex: number) => {
     trackAnalytics('issue_details.suspect_commits.pull_request_clicked', {
       organization,
-      project_id: parseInt(project?.id as string, 10),
+      project_id: parseInt(project?.id!, 10),
       suspect_commit_calculation: commit.suspectCommitType ?? 'unknown',
       suspect_commit_index: commitIndex,
       ...getAnalyticsDataForGroup(group),
@@ -64,7 +64,7 @@ export function SuspectCommits({group, eventId, projectSlug}: Props) {
   const handleCommitClick = (commit: Commit, commitIndex: number) => {
     trackAnalytics('issue_details.suspect_commits.commit_clicked', {
       organization,
-      project_id: parseInt(project?.id as string, 10),
+      project_id: parseInt(project?.id!, 10),
       has_pull_request: commit.pullRequest?.id !== undefined,
       suspect_commit_calculation: commit.suspectCommitType ?? 'unknown',
       suspect_commit_index: commitIndex,

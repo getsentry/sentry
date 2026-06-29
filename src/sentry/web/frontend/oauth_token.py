@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import logging
 from datetime import datetime
-from typing import Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
@@ -398,7 +398,7 @@ class OAuthTokenView(View):
                 "reason": str(e) if str(e) else "grant expired",
             }
 
-        token_data = {"token": api_token}
+        token_data: dict[str, Any] = {"token": api_token}
 
         # OpenID token generation (stays in endpoint)
         if grant_has_openid and options.get("codecov.signing_secret"):

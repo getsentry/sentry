@@ -67,10 +67,9 @@ describe('GDPRPanel', () => {
     render(<GDPRPanel subscription={subscription} />, {organization});
     renderGlobalModal();
 
-    // Not currently shown to people with access to  update it
     expect(
-      screen.queryByText('There is no information on file for this contact.')
-    ).not.toBeInTheDocument();
+      screen.getAllByText('There is no information on file for this contact.')
+    ).toHaveLength(2);
 
     await userEvent.click(
       screen.getAllByRole('button', {name: 'Add Contact Details'})[0]!

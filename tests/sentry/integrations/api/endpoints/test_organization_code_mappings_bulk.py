@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -59,13 +60,23 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.data["mappings"][0]["status"] == "created"
 
         config = RepositoryProjectPathConfig.objects.get(
-            project=self.project1, stack_root="com/example/maps"
+            project_repository__project=self.project1, stack_root="com/example/maps"
         )
         assert config.source_root == "modules/maps/src/main/java/com/example/maps"
         assert config.default_branch == "main"
-        assert config.repository == self.repo1
+        assert config.project_repository.repository == self.repo1
         assert config.organization_id == self.organization.id
         assert config.automatically_generated is False
+        assert config.project_repository is not None
+        assert ProjectRepository.objects.filter(
+            project=self.project1, repository=self.repo1
+        ).exists()
+
+    def test_create_single_mapping_with_project_id(self) -> None:
+        response = self.make_post({"project": self.project1.id})
+
+        assert response.status_code == 200, response.content
+        assert response.data["created"] == 1
 
     def test_create_multiple_mappings(self) -> None:
         response = self.make_post(
@@ -89,7 +100,12 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["created"] == 3
         assert response.data["updated"] == 0
-        assert RepositoryProjectPathConfig.objects.filter(project=self.project1).count() == 3
+        assert (
+            RepositoryProjectPathConfig.objects.filter(
+                project_repository__project=self.project1
+            ).count()
+            == 3
+        )
 
     def test_update_existing_mapping(self) -> None:
         self.create_code_mapping(
@@ -115,7 +131,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.data["updated"] == 1
 
         config = RepositoryProjectPathConfig.objects.get(
-            project=self.project1,
+            project_repository__project=self.project1,
             stack_root="com/example/maps",
             source_root="modules/maps/src/main/java/com/example/maps",
         )
@@ -207,6 +223,23 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         )
         assert response.status_code == 400
 
+    def test_invalid_mappings_detail_message(self) -> None:
+        response = self.make_post(
+            {
+                "mappings": [
+                    {"stackRoot": "valid/path", "sourceRoot": "also/valid"},
+                    {"stackRoot": "has space", "sourceRoot": "valid/path"},
+                    {"stackRoot": "valid/path", "sourceRoot": "has'quote"},
+                ],
+            }
+        )
+        assert response.status_code == 400
+        assert "invalid format" in response.data["detail"]
+        assert "[1, 2]" in response.data["detail"]
+        assert response.data["mappings"][0] == {}
+        assert "stackRoot" in response.data["mappings"][1]
+        assert "sourceRoot" in response.data["mappings"][2]
+
     def test_invalid_branch_name(self) -> None:
         response = self.make_post({"defaultBranch": "/leading-slash"})
         assert response.status_code == 400
@@ -227,6 +260,16 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         response = self.make_post({"project": "nonexistent-project"})
         assert response.status_code == 404
         assert "Project not found" in response.data["detail"]
+
+    def test_all_project_id_sentinel_returns_400(self) -> None:
+        response = self.make_post({"project": "-1"})
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project"
+
+    def test_all_project_slug_sentinel_returns_400(self) -> None:
+        response = self.make_post({"project": "$all"})
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project"
 
     def test_unknown_repository_name(self) -> None:
         response = self.make_post({"repository": "nonexistent/repo"})
@@ -269,7 +312,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
             response = self.client.post(self.url, data=payload, format="json")
         assert response.status_code == 200, response.content
         config = RepositoryProjectPathConfig.objects.get(
-            project=self.project1, stack_root="com/example/a"
+            project_repository__project=self.project1, stack_root="com/example/a"
         )
         assert config.default_branch == "develop"
 
@@ -334,21 +377,18 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
             name=new_repo_name, organization_id=self.organization.id
         ).exists()
 
-        def fake_auto_create(organization, repo_name, provider):
-            repo, _ = Repository.objects.get_or_create(
-                name=repo_name,
-                organization_id=organization.id,
-                defaults={
-                    "integration_id": self.integration.id,
-                    "provider": "integrations:github",
-                },
-            )
-            return repo, None
+        mock_repos = [
+            {
+                "name": "new-repo",
+                "identifier": new_repo_name,
+                "external_id": "99999",
+                "default_branch": "main",
+            }
+        ]
 
         with mock.patch(
-            "sentry.integrations.api.endpoints.organization_code_mappings_bulk."
-            "OrganizationCodeMappingsBulkEndpoint._auto_create_repository",
-            side_effect=fake_auto_create,
+            "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+            return_value=mock_repos,
         ):
             response = self.make_post(
                 {
@@ -362,6 +402,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         repo = Repository.objects.get(name=new_repo_name, organization_id=self.organization.id)
         assert repo.provider == "integrations:github"
         assert repo.integration_id == self.integration.id
+        assert repo.external_id == "99999"
 
     def test_skip_post_save_does_not_leak_to_fetched_instances(self) -> None:
         """The endpoint sets _skip_post_save on in-memory instances to batch
@@ -369,7 +410,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         carry the suppressed flag, so normal post_save signals fire for them."""
         self.make_post()
         config = RepositoryProjectPathConfig.objects.get(
-            project=self.project1, stack_root="com/example/maps"
+            project_repository__project=self.project1, stack_root="com/example/maps"
         )
         assert config._skip_post_save is False
 
@@ -429,6 +470,12 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         response = self.make_post({"project": other_project.slug})
         assert response.status_code == 404
 
+    def test_project_id_from_other_org_returns_404(self) -> None:
+        other_org = self.create_organization(name="other-org", owner=self.user)
+        other_project = self.create_project(organization=other_org, name="other-project")
+        response = self.make_post({"project": other_project.id})
+        assert response.status_code == 404
+
     def test_repo_from_other_org_returns_404(self) -> None:
         other_org = self.create_organization(name="other-org", owner=self.user)
         other_project = self.create_project(organization=other_org, name="other-proj")
@@ -463,7 +510,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.data["updated"] == 0
 
         configs = RepositoryProjectPathConfig.objects.filter(
-            project=self.project1, stack_root="com/example/maps"
+            project_repository__project=self.project1, stack_root="com/example/maps"
         )
         assert configs.count() == 2
         assert set(configs.values_list("source_root", flat=True)) == {

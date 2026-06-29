@@ -40,6 +40,10 @@ class IssueAlertActionType(SentryAppActionType):
     TRIGGERED = "triggered"
 
 
+class ActivityAlertActionType(SentryAppActionType):
+    TRIGGERED = "triggered"
+
+
 class InstallationActionType(SentryAppActionType):
     CREATED = "created"
     DELETED = "deleted"
@@ -52,11 +56,9 @@ class SeerActionType(SentryAppActionType):
     SOLUTION_COMPLETED = "solution_completed"
     CODING_STARTED = "coding_started"
     CODING_COMPLETED = "coding_completed"
-    TRIAGE_STARTED = "triage_started"
-    TRIAGE_COMPLETED = "triage_completed"
-    IMPACT_ASSESSMENT_STARTED = "impact_assessment_started"
-    IMPACT_ASSESSMENT_COMPLETED = "impact_assessment_completed"
     PR_CREATED = "pr_created"
+    ITERATION_STARTED = "iteration_started"
+    ITERATION_COMPLETED = "iteration_completed"
 
 
 class PreprodArtifactActionType(SentryAppActionType):
@@ -85,6 +87,7 @@ class SentryAppResourceType(StrEnum):
 
     # Represents an issue alert resource
     EVENT_ALERT = "event_alert"
+    ACTIVITY_ALERT = "activity_alert"
 
 
 # When a developer selects to receive "<Resource> Webhooks" it really means

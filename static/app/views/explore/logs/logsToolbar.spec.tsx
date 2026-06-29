@@ -38,31 +38,31 @@ describe('LogsToolbar', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
-        {key: 'bar', name: 'bar', attributeSource: {source_type: 'custom'}},
-        {key: 'foo', name: 'foo', attributeSource: {source_type: 'custom'}},
-      ],
-      match: [MockApiClient.matchQuery({attributeType: 'number', itemType: 'logs'})],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [
-        {key: 'severity', name: 'severity', attributeSource: {source_type: 'custom'}},
         {
+          attributeType: 'number',
+          key: 'bar',
+          name: 'bar',
+          attributeSource: {source_type: 'custom'},
+        },
+        {
+          attributeType: 'number',
+          key: 'foo',
+          name: 'foo',
+          attributeSource: {source_type: 'custom'},
+        },
+        {
+          attributeType: 'string',
+          key: 'severity',
+          name: 'severity',
+          attributeSource: {source_type: 'custom'},
+        },
+        {
+          attributeType: 'string',
           key: 'custom.string_tag',
           name: 'custom.string_tag',
           attributeSource: {source_type: 'custom'},
         },
       ],
-      match: [MockApiClient.matchQuery({attributeType: 'string', itemType: 'logs'})],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [],
-      match: [MockApiClient.matchQuery({attributeType: 'boolean', itemType: 'logs'})],
     });
   });
 
@@ -162,6 +162,50 @@ describe('LogsToolbar', () => {
       );
     });
 
+    it('keeps the selected field when it is not in the default attribute list', async () => {
+      const searchAttributesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/`,
+        method: 'GET',
+        body: [
+          {
+            attributeType: 'number',
+            key: 'searched_number',
+            name: 'searched_number',
+            attributeSource: {source_type: 'custom'},
+          },
+        ],
+        match: [MockApiClient.matchQuery({substringMatch: 'searched'})],
+      });
+
+      const {router} = render(<LogsToolbar />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
+
+      // The default number attributes do not include `searched_number`.
+      await userEvent.click(screen.getByRole('button', {name: 'count'}));
+      await userEvent.click(screen.getByRole('option', {name: 'avg'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      const searchInput = screen.getByRole('textbox');
+      await userEvent.type(searchInput, 'searched');
+      await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
+
+      await userEvent.click(await screen.findByRole('option', {name: 'searched_number'}));
+
+      // Once the search clears, `searched_number` is no longer in the fetched
+      // attributes, but the dropdown must keep displaying the selected field
+      // rather than reverting to an empty value.
+      expect(router.location.query.aggregateField).toEqual(
+        [{groupBy: ''}, {yAxes: ['avg(searched_number)']}].map(aggregateField =>
+          JSON.stringify(aggregateField)
+        )
+      );
+      expect(
+        await screen.findByRole('button', {name: 'searched_number'})
+      ).toBeInTheDocument();
+    });
+
     it('can add/delete visualizes', async () => {
       const {router} = render(<LogsToolbar />, {
         organization,
@@ -189,7 +233,7 @@ describe('LogsToolbar', () => {
 
   describe('group by section', () => {
     it('can switch group bys', async () => {
-      let mode: Mode | undefined = undefined;
+      let mode: Mode | undefined;
 
       function Component() {
         mode = useQueryParamsMode();
@@ -246,8 +290,33 @@ describe('LogsToolbar', () => {
       );
     });
 
+    it('disables an attribute already selected in another group by', async () => {
+      render(<LogsToolbar />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
+
+      const firstColumn = screen.getAllByTestId('editor-column')[0]!;
+      await userEvent.click(within(firstColumn).getByRole('button', {name: '—'}));
+      await userEvent.click(screen.getByRole('option', {name: 'message'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Group'}));
+
+      const secondColumn = screen.getAllByTestId('editor-column')[1]!;
+      await userEvent.click(within(secondColumn).getByRole('button', {name: '—'}));
+
+      expect(await screen.findByRole('option', {name: 'message'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('option', {name: 'severity'})).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
     it('can clear the last selected group by', async () => {
-      let mode: Mode | undefined = undefined;
+      let mode: Mode | undefined;
 
       function Component() {
         mode = useQueryParamsMode();
@@ -276,30 +345,18 @@ describe('LogsToolbar', () => {
   });
 
   it('re-fetches attributes on search', async () => {
-    const searchStringMock = MockApiClient.addMockResponse({
+    const searchAttributesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
         {
+          attributeType: 'string',
           key: 'custom.searched_tag',
           name: 'custom.searched_tag',
           attributeSource: {source_type: 'custom'},
         },
-      ],
-      match: [
-        MockApiClient.matchQuery({
-          attributeType: 'string',
-          itemType: 'logs',
-          substringMatch: 'searched',
-        }),
-      ],
-    });
-
-    const searchNumberMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [
         {
+          attributeType: 'number',
           key: 'searched_number',
           name: 'searched_number',
           attributeSource: {source_type: 'custom'},
@@ -307,20 +364,7 @@ describe('LogsToolbar', () => {
       ],
       match: [
         MockApiClient.matchQuery({
-          attributeType: 'number',
-          itemType: 'logs',
-          substringMatch: 'searched',
-        }),
-      ],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [],
-      match: [
-        MockApiClient.matchQuery({
-          attributeType: 'boolean',
+          attributeType: ['string', 'number', 'boolean'],
           itemType: 'logs',
           substringMatch: 'searched',
         }),
@@ -339,8 +383,7 @@ describe('LogsToolbar', () => {
     const searchInput = screen.getByRole('textbox');
     await userEvent.type(searchInput, 'searched');
 
-    await waitFor(() => expect(searchStringMock).toHaveBeenCalled());
-    await waitFor(() => expect(searchNumberMock).toHaveBeenCalled());
+    await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
 
     expect(
       await screen.findByRole('option', {name: 'custom.searched_tag'})

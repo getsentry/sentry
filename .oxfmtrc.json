@@ -115,6 +115,7 @@
     "api-docs/**/*.json",
     ".vscode/**",
     "static/app/data/world.json",
-    "tests/sentry/grouping/**/*.json"
+    "tests/sentry/grouping/**/*.json",
+    "pyproject.toml"
   ]
 }

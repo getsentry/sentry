@@ -21,10 +21,11 @@ import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
@@ -190,7 +191,7 @@ type UseMetricDetectorChartResult =
   | {chartProps: null; error: null; isAnomalyThresholdCutOff: false; isLoading: true}
   | {
       chartProps: null;
-      error: RequestError;
+      error: Error;
       isAnomalyThresholdCutOff: false;
       isLoading: false;
     };
@@ -226,7 +227,9 @@ export function useMetricDetectorChart({
     detectorDataset: dataset,
     dataset: snubaQuery.dataset,
     extrapolationMode: snubaQuery.extrapolationMode,
-    aggregate,
+    aggregate: snubaQuery.eventTypes.includes(EventTypes.TRACE_ITEM_METRIC)
+      ? snubaQuery.aggregate
+      : aggregate,
     interval: snubaQuery.timeWindow,
     query: datasetConfig.toSnubaQueryString(snubaQuery),
     environment: snubaQuery.environment,
@@ -634,7 +637,9 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
   }
   if (error || !chartProps) {
     const errorMessage =
-      typeof error?.responseJSON?.detail === 'string' ? error.responseJSON.detail : null;
+      error instanceof RequestError && typeof error?.responseJSON?.detail === 'string'
+        ? error.responseJSON.detail
+        : null;
     return (
       <ChartContainer overflow="hidden">
         {errorMessage && (

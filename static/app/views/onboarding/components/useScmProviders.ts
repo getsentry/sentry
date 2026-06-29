@@ -1,12 +1,18 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useQuery} from 'sentry/utils/queryClient';
+import {isScmProvider} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ScmProvidersData = {
+  // First active SCM integration, if any. Kept for callers that only support a
+  // single integration (the onboarding connect step).
   activeIntegrationExisting: Integration | null;
+  // Every active SCM integration, for callers that let the user pick which one
+  // to search repos within (the project-creation connect surface).
+  activeIntegrations: Integration[];
   isError: boolean;
   isPending: boolean;
   refetch: () => void;
@@ -16,12 +22,11 @@ type ScmProvidersData = {
 
 /**
  * Fetches SCM integration providers and active installations for use in the
- * onboarding connect step. Providers are identified by having a feature gate
- * that includes 'commits'.
+ * onboarding connect step. SCM providers are identified by `isScmProvider`.
  *
- * Note: This duplicates the provider filter from useScmIntegrationTreeData but
- * intentionally avoids reusing that hook -- it fetches connected repos and
- * pagination data we don't need, and doesn't filter integrations by active status.
+ * Note: Intentionally avoids reusing useScmIntegrationTreeData -- it fetches
+ * connected repos and pagination data we don't need, and doesn't filter
+ * integrations by active status.
  */
 export function useScmProviders(): ScmProvidersData {
   const organization = useOrganization();
@@ -37,10 +42,7 @@ export function useScmProviders(): ScmProvidersData {
   );
 
   const scmProviders = useMemo(
-    () =>
-      (providersQuery.data?.providers ?? []).filter(p =>
-        p.metadata.features.some(f => f.featureGate.includes('commits'))
-      ),
+    () => (providersQuery.data?.providers ?? []).filter(isScmProvider),
     [providersQuery.data]
   );
 
@@ -55,17 +57,19 @@ export function useScmProviders(): ScmProvidersData {
     })
   );
 
-  const activeIntegration = useMemo(
+  const activeIntegrations = useMemo(
     () =>
-      (integrationsQuery.data ?? []).find(
+      (integrationsQuery.data ?? []).filter(
         i => i.organizationIntegrationStatus === 'active' && i.status === 'active'
-      ) ?? null,
+      ),
     [integrationsQuery.data]
   );
 
   return {
-    // V1 only supports a single active SCM integration in onboarding.
-    activeIntegrationExisting: activeIntegration,
+    // The onboarding connect step only supports a single active SCM
+    // integration, so it reads the first one.
+    activeIntegrationExisting: activeIntegrations[0] ?? null,
+    activeIntegrations,
     scmProviders,
     isPending: providersQuery.isPending || integrationsQuery.isPending,
     isError: providersQuery.isError || integrationsQuery.isError,

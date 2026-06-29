@@ -2,10 +2,10 @@ import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {
   platformToPerformanceType,
   ProjectPerformanceType,
@@ -47,14 +47,14 @@ const LANDING_DISPLAYS = [
 
 export function excludeTransaction(
   transaction: string | number,
-  props: {eventView: EventView; location: Location}
+  props: {eventView: EventView; location: Location; navigate: ReactRouter3Navigate}
 ) {
-  const {eventView, location} = props;
+  const {eventView, location, navigate} = props;
 
   const searchConditions = new MutableSearch(eventView.query);
   searchConditions.addFilterValues('!transaction', [`${transaction}`]);
 
-  browserHistory.push({
+  navigate({
     pathname: location.pathname,
     query: {
       ...location.query,

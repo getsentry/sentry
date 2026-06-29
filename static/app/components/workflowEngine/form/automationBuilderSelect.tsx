@@ -8,7 +8,7 @@ export function AutomationBuilderSelect(props: ComponentProps<typeof Select>) {
 }
 
 const StyledSelect = styled(Select)`
-  width: 180px;
+  min-width: 180px;
   padding: 0;
   > div {
     padding-left: 0;
@@ -20,7 +20,6 @@ export const selectControlStyles = {
   control: (provided: any) => ({
     ...provided,
     minHeight: '32px',
-    height: '32px',
     padding: 0,
   }),
 };

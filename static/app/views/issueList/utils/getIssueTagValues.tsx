@@ -1,6 +1,6 @@
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {TagValue} from 'sentry/types/group';
-import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
+import {DEVICE_CLASS_TAG_VALUES, FieldKey, isDeviceClass} from 'sentry/utils/fields';
 
 /**
  * Returns a function that fetches tag values for a given tag key. Useful as
@@ -11,14 +11,14 @@ import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
 export function makeGetIssueTagValues(
   tagValueLoader: (key: string, search: string) => Promise<TagValue[]>
 ): GetTagValues {
-  return async (tag, query) => {
+  return async ({tag, searchQuery}) => {
     // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
     // and low search filter values because discover maps device.class to these values.
     if (isDeviceClass(tag.key)) {
       return DEVICE_CLASS_TAG_VALUES;
     }
-    const values = await tagValueLoader(tag.key, query);
-    return values.map(({value}) => {
+    const values = await tagValueLoader(tag.key, searchQuery);
+    const stringValues = values.map(({value}) => {
       // Truncate results to 5000 characters to avoid exceeding the max url query length
       // The message attribute for example can be 8192 characters.
       if (typeof value === 'string' && value.length > 5000) {
@@ -26,5 +26,15 @@ export function makeGetIssueTagValues(
       }
       return value;
     });
+
+    const includeLatest =
+      (tag.key === FieldKey.RELEASE || tag.key === FieldKey.FIRST_RELEASE) &&
+      'latest'.startsWith(searchQuery.toLowerCase());
+
+    if (includeLatest) {
+      return ['latest', ...stringValues];
+    }
+
+    return stringValues;
   };
 }

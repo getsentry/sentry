@@ -27,7 +27,7 @@ export function RequestSdkAccessButton({
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       size="sm"
       data-test-id="request-sdk-access"
       icon={<IconLock locked />}

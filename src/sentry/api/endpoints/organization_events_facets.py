@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import TypedDict
 
-import sentry_sdk
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,8 +11,10 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.search.utils import DEVICE_CLASS
+from sentry.utils.tracing import set_span_data, start_span
 
 
 class _TopValue(TypedDict):
@@ -32,6 +34,13 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @extend_schema(
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsFacetsResponse", list[_KeyTopValues]
+            )
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -43,10 +52,10 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
 
         update_snuba_params_with_timestamp(request, snuba_params, timestamp_key="traceTimestamp")
 
-        dataset = self.get_dataset(request)
+        dataset = self.get_dataset(request, organization)
 
         def data_fn(offset, limit):
-            with sentry_sdk.start_span(op="discover.endpoint", name="discover_query"):
+            with start_span(op="discover.endpoint", name="discover_query"):
                 with handle_query_errors():
                     facets = dataset.get_facets(
                         query=request.GET.get("query"),
@@ -56,8 +65,8 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
                         cursor=offset,
                     )
 
-            with sentry_sdk.start_span(op="discover.endpoint", name="populate_results") as span:
-                span.set_data("facet_count", len(facets or []))
+            with start_span(op="discover.endpoint", name="populate_results") as span:
+                set_span_data(span, "facet_count", len(facets or []))
                 resp: dict[str, _KeyTopValues]
                 resp = defaultdict(lambda: {"key": "", "topValues": []})
                 for row in facets:

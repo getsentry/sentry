@@ -4,25 +4,17 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {BillingHistoryFixture} from 'getsentry-test/fixtures/billingHistory';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {
-  Am3DsEnterpriseSubscriptionFixture,
-  SubscriptionFixture,
-} from 'getsentry-test/fixtures/subscription';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DataCategory} from 'sentry/types/core';
 
 import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
-import {
-  GIGABYTE,
-  RESERVED_BUDGET_QUOTA,
-  UNLIMITED,
-  UNLIMITED_ONDEMAND,
-  UNLIMITED_RESERVED,
-} from 'getsentry/constants';
+import {GIGABYTE, UNLIMITED, UNLIMITED_ONDEMAND} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {OnDemandBudgetMode} from 'getsentry/types';
 import UsageHistory from 'getsentry/views/subscriptionPage/usageHistory';
 
 describe('Subscription > UsageHistory', () => {
@@ -50,12 +42,6 @@ describe('Subscription > UsageHistory', () => {
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/`,
-      query: {scheduled: 1, applied: 0},
-      method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
@@ -71,9 +57,7 @@ describe('Subscription > UsageHistory', () => {
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
-    expect(
-      await screen.findByRole('heading', {name: /Usage History/i})
-    ).toBeInTheDocument();
+    expect(await screen.findByTestId('history-expand')).toBeInTheDocument();
   });
 
   it('shows an error for non-billing roles', async () => {
@@ -86,7 +70,6 @@ describe('Subscription > UsageHistory', () => {
     const org = OrganizationFixture();
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization: org,
     });
     SubscriptionStore.set(org.slug, subscription);
@@ -104,7 +87,6 @@ describe('Subscription > UsageHistory', () => {
 
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -123,7 +105,6 @@ describe('Subscription > UsageHistory', () => {
 
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -155,7 +136,6 @@ describe('Subscription > UsageHistory', () => {
 
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -197,7 +177,6 @@ describe('Subscription > UsageHistory', () => {
 
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -240,7 +219,6 @@ describe('Subscription > UsageHistory', () => {
 
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -282,7 +260,6 @@ describe('Subscription > UsageHistory', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -334,7 +311,6 @@ describe('Subscription > UsageHistory', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -368,7 +344,6 @@ describe('Subscription > UsageHistory', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -411,7 +386,6 @@ describe('Subscription > UsageHistory', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -454,7 +428,6 @@ describe('Subscription > UsageHistory', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -498,7 +471,6 @@ describe('Subscription > UsageHistory', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -642,179 +614,6 @@ describe('Subscription > UsageHistory', () => {
       })
     ).toBeInTheDocument();
     expect(screen.queryByText(/performance units/i)).not.toBeInTheDocument();
-    expect(mockCall).toHaveBeenCalled();
-  });
-
-  it('displays spans for am3 DS without custom dynamic sampling', async () => {
-    const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/history/`,
-      method: 'GET',
-      body: [
-        BillingHistoryFixture({
-          plan: 'am3_business_ent_ds_auf',
-          categories: {
-            spans: MetricHistoryFixture({
-              category: DataCategory.SPANS,
-              prepaid: RESERVED_BUDGET_QUOTA,
-              reserved: RESERVED_BUDGET_QUOTA,
-            }),
-            spansIndexed: MetricHistoryFixture({
-              category: DataCategory.SPANS_INDEXED,
-              prepaid: RESERVED_BUDGET_QUOTA,
-              reserved: RESERVED_BUDGET_QUOTA,
-            }),
-          },
-          hadCustomDynamicSampling: false,
-        }),
-      ],
-    });
-
-    const subscription = Am3DsEnterpriseSubscriptionFixture({
-      organization,
-      hadCustomDynamicSampling: true, // even if the current status is true, we rely on the status from the history
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<UsageHistory />, {organization});
-
-    expect(
-      await screen.findByRole('row', {
-        name: /spans/i,
-      })
-    ).toBeInTheDocument();
-    expect(screen.getAllByText('N/A')).toHaveLength(2);
-    expect(mockCall).toHaveBeenCalled();
-  });
-
-  it('displays accepted and stored spans for am3 DS with custom dynamic sampling', async () => {
-    const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/history/`,
-      method: 'GET',
-      body: [
-        BillingHistoryFixture({
-          plan: 'am3_business_ent_ds_auf',
-          categories: {
-            spans: MetricHistoryFixture({
-              category: DataCategory.SPANS,
-              prepaid: RESERVED_BUDGET_QUOTA,
-              reserved: RESERVED_BUDGET_QUOTA,
-            }),
-            spansIndexed: MetricHistoryFixture({
-              category: DataCategory.SPANS_INDEXED,
-              prepaid: RESERVED_BUDGET_QUOTA,
-              reserved: RESERVED_BUDGET_QUOTA,
-            }),
-          },
-          hadCustomDynamicSampling: true,
-        }),
-      ],
-    });
-
-    const subscription = Am3DsEnterpriseSubscriptionFixture({
-      organization,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<UsageHistory />, {organization});
-
-    expect(
-      await screen.findByRole('row', {
-        name: /accepted spans/i,
-      })
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByRole('row', {
-        name: /stored spans/i,
-      })
-    ).toBeInTheDocument();
-    expect(screen.getAllByText('N/A')).toHaveLength(4);
-    expect(mockCall).toHaveBeenCalled();
-  });
-
-  it('displays spans for am3 DS trial without custom dynamic sampling', async () => {
-    const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/history/`,
-      method: 'GET',
-      body: [
-        BillingHistoryFixture({
-          plan: 'am3_t_ent_ds',
-          categories: {
-            spans: MetricHistoryFixture({
-              category: DataCategory.SPANS,
-              prepaid: UNLIMITED_RESERVED,
-              reserved: UNLIMITED_RESERVED,
-            }),
-            spansIndexed: MetricHistoryFixture({
-              category: DataCategory.SPANS_INDEXED,
-              prepaid: UNLIMITED_RESERVED,
-              reserved: UNLIMITED_RESERVED,
-            }),
-          },
-          hadCustomDynamicSampling: false,
-        }),
-      ],
-    });
-
-    const subscription = Am3DsEnterpriseSubscriptionFixture({organization});
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<UsageHistory />, {organization});
-
-    expect(
-      await screen.findByRole('row', {
-        name: /spans/i,
-      })
-    ).toBeInTheDocument();
-    expect(screen.queryByText('N/A')).not.toBeInTheDocument();
-    expect(screen.queryByText(/accepted spans/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/stored spans/i)).not.toBeInTheDocument();
-    expect(mockCall).toHaveBeenCalled();
-  });
-
-  it('displays accepted and stored spans for am3 DS trial with custom dynamic sampling', async () => {
-    const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/history/`,
-      method: 'GET',
-      body: [
-        BillingHistoryFixture({
-          plan: 'am3_t_ent_ds',
-          categories: {
-            spans: MetricHistoryFixture({
-              category: DataCategory.SPANS,
-              prepaid: UNLIMITED_RESERVED,
-              reserved: UNLIMITED_RESERVED,
-            }),
-            spansIndexed: MetricHistoryFixture({
-              category: DataCategory.SPANS_INDEXED,
-              prepaid: UNLIMITED_RESERVED,
-              reserved: UNLIMITED_RESERVED,
-            }),
-          },
-          hadCustomDynamicSampling: true,
-        }),
-      ],
-    });
-
-    const subscription = Am3DsEnterpriseSubscriptionFixture({
-      organization,
-      hadCustomDynamicSampling: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<UsageHistory />, {organization});
-
-    expect(
-      await screen.findByRole('row', {
-        name: /accepted spans/i,
-      })
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByRole('row', {
-        name: /stored spans/i,
-      })
-    ).toBeInTheDocument();
-    expect(screen.queryByText('N/A')).not.toBeInTheDocument();
-
     expect(mockCall).toHaveBeenCalled();
   });
 

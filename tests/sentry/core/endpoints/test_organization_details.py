@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
-import responses
 from django.core import mail
 from django.db import router
 from django.utils import timezone
@@ -633,7 +632,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert resp.data["avatar"]["avatarUuid"] == "abc123"
         assert (
             resp.data["avatar"]["avatarUrl"]
-            == generate_locality_url() + "/organization-avatar/abc123/"
+            == generate_locality_url() + f"/organization-avatar/{organization.slug}/abc123/"
         )
 
     def test_old_orgs_with_options_do_not_get_onboarding_feature_flag(self) -> None:
@@ -678,7 +677,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             assert "onboarding" not in response.data["features"]
 
     def test_invalid_stored_stopping_point_falls_back_to_default(self) -> None:
-        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "foo-bar")
         response = self.get_success_response(self.organization.slug)
         assert (
             response.data["defaultAutomatedRunStoppingPoint"]
@@ -746,36 +745,19 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert avatar.get_avatar_type_display() == "upload"
         assert avatar.file_id
 
-    @responses.activate
-    @patch(
-        "sentry.integrations.github.client.GitHubBaseClient.get_repos",
-        return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
-    )
-    @with_feature(["organizations:codecov-integration", "organizations:dynamic-sampling-custom"])
-    def test_various_options(self, mock_get_repositories: MagicMock) -> None:
+    @with_feature("organizations:dynamic-sampling-custom")
+    def test_various_options(self) -> None:
         self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
         initial = self.organization.get_audit_log_data()
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
-        self.create_integration(
-            organization=self.organization, provider="github", external_id="extid"
-        )
-        responses.add(
-            responses.GET,
-            "https://api.codecov.io/api/v2/github/testgit",
-            status=200,
-        )
 
         data = {
             "openMembership": False,
             "isEarlyAdopter": True,
-            "codecovAccess": True,
             "allowSuperuserAccess": False,
             "allowMemberInvite": False,
             "hideAiFeatures": True,
-            "githubNudgeInvite": True,
-            "githubPRBot": True,
-            "gitlabPRBot": True,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -811,7 +793,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert initial != org.get_audit_log_data()
 
         assert org.flags.early_adopter
-        assert org.flags.codecov_access
         assert org.flags.prevent_superuser_access
         assert org.flags.disable_member_invite
         assert not org.flags.allow_joinleave
@@ -845,7 +826,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["defaultRole"]) in log.data["default_role"]
         assert "to {}".format(data["openMembership"]) in log.data["allow_joinleave"]
         assert "to {}".format(data["isEarlyAdopter"]) in log.data["early_adopter"]
-        assert "to {}".format(data["codecovAccess"]) in log.data["codecov_access"]
         assert (
             "to {}".format(not data["allowSuperuserAccess"]) in log.data["prevent_superuser_access"]
         )
@@ -865,33 +845,30 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert "to {}".format(data["hideAiFeatures"]) in log.data["hideAiFeatures"]
-        assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
-        assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
-        assert "to {}".format(data["gitlabPRBot"]) in log.data["gitlabPRBot"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
         assert "to Default Mode" in log.data["samplingMode"]
 
-    @responses.activate
-    @patch(
-        "sentry.integrations.github.client.GitHubBaseClient.get_repos",
-        return_value=[{"name": "abc", "full_name": "testgit/abc"}],
-    )
-    @with_feature("organizations:codecov-integration")
-    def test_setting_codecov_without_integration_forbidden(
-        self, mock_get_repositories: MagicMock
-    ) -> None:
-        responses.add(
-            responses.GET,
-            "https://api.codecov.io/api/v2/github/testgit",
-            status=404,
+    def test_scm_option_writes_are_silently_ignored(self) -> None:
+        """PUT with githubPRBot et al. must not raise; the fields are dropped."""
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:github_pr_bot", value=False
         )
-        data = {"codecovAccess": True}
-        self.get_error_response(self.organization.slug, status_code=400, **data)
 
-    def test_setting_codecov_without_paid_plan_forbidden(self) -> None:
-        data = {"codecovAccess": True}
-        self.get_error_response(self.organization.slug, status_code=403, **data)
+        self.get_success_response(
+            self.organization.slug,
+            githubPRBot=True,
+            githubNudgeInvite=True,
+            gitlabPRBot=True,
+        )
+
+        options = {
+            o.key: o.value
+            for o in OrganizationOption.objects.filter(organization=self.organization)
+        }
+        assert options.get("sentry:github_pr_bot") is False
+        assert "sentry:github_nudge_invite" not in options
+        assert "sentry:gitlab_pr_bot" not in options
 
     def test_setting_duplicate_trusted_keys(self) -> None:
         """
@@ -1261,30 +1238,18 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         # by default option is not set
         assert self.organization.get_option("sentry:ingest-through-trusted-relays-only") is None
 
-        with self.feature("organizations:ingest-through-trusted-relays-only"):
-            data = {"ingestThroughTrustedRelaysOnly": "enabled"}
-            self.get_success_response(self.organization.slug, **data)
-            assert (
-                self.organization.get_option("sentry:ingest-through-trusted-relays-only")
-                == "enabled"
-            )
+        data = {"ingestThroughTrustedRelaysOnly": "enabled"}
+        self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:ingest-through-trusted-relays-only") == "enabled"
+        )
 
-        with self.feature("organizations:ingest-through-trusted-relays-only"):
-            data = {"ingestThroughTrustedRelaysOnly": "invalid"}
-            self.get_error_response(self.organization.slug, status_code=400, **data)
+        data = {"ingestThroughTrustedRelaysOnly": "invalid"}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
 
-        with self.feature({"organizations:ingest-through-trusted-relays-only": False}):
-            data = {"ingestThroughTrustedRelaysOnly": "enabled"}
-            self.get_error_response(self.organization.slug, status_code=400, **data)
-
-    @with_feature("organizations:ingest-through-trusted-relays-only")
     def test_get_ingest_through_trusted_relays_only_option(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data["ingestThroughTrustedRelaysOnly"] == "disabled"
-
-    def test_get_ingest_through_trusted_relays_only_option_without_feature(self) -> None:
-        response = self.get_success_response(self.organization.slug)
-        assert "ingestThroughTrustedRelaysOnly" not in response.data
 
     @with_feature("organizations:dynamic-sampling-custom")
     def test_target_sample_rate_range(self) -> None:
@@ -1506,25 +1471,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         mock_cleanup_task.assert_called_once_with(self.organization.id, [])
 
-    def test_enable_seer_enhanced_alerts_default_true(self) -> None:
-        response = self.get_success_response(self.organization.slug)
-        assert response.data["enableSeerEnhancedAlerts"] is True
-
-    def test_enable_seer_enhanced_alerts_can_be_disabled(self) -> None:
-        data = {"enableSeerEnhancedAlerts": False}
-        self.get_success_response(self.organization.slug, **data)
-
-        assert self.organization.get_option("sentry:enable_seer_enhanced_alerts") is False
-
-    def test_enable_seer_enhanced_alerts_can_be_enabled(self) -> None:
-        # First disable it
-        self.organization.update_option("sentry:enable_seer_enhanced_alerts", False)
-
-        data = {"enableSeerEnhancedAlerts": True}
-        self.get_success_response(self.organization.slug, **data)
-
-        assert self.organization.get_option("sentry:enable_seer_enhanced_alerts") is True
-
     def test_enable_seer_coding_default_true(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data["enableSeerCoding"] is True
@@ -1641,7 +1587,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
             == integration.id
         )
-        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+        assert response.data["defaultCodingAgentIntegrationId"] == str(integration.id)
 
     def test_default_coding_agent_integration_id_rejects_foreign_org(self) -> None:
         other_org = self.create_organization()
@@ -1665,7 +1611,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
             == integration.id
         )
-        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+        assert response.data["defaultCodingAgentIntegrationId"] == str(integration.id)
 
     def test_default_coding_agent_integration_id_null_on_first_write_create_path(self) -> None:
         # Tests the create path (no OrganizationOption row exists yet): sending null
@@ -1685,23 +1631,18 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         )
 
     def test_default_automated_run_stopping_point_can_be_set(self) -> None:
-        for choice in ("code_changes", "open_pr"):
+        for choice in ("code_changes", "open_pr", "root_cause"):
             with self.subTest(choice=choice):
                 data = {"defaultAutomatedRunStoppingPoint": choice}
                 response = self.get_success_response(self.organization.slug, **data)
                 assert response.data["defaultAutomatedRunStoppingPoint"] == choice
 
-    def test_default_automated_run_stopping_point_rejects_invalid(self) -> None:
-        for invalid in ("solution", "invalid_point", "root_cause"):
+    @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
+    def test_default_automated_run_stopping_point_rejects_invalid(self, mock_seat_based) -> None:
+        for invalid in ("solution", "invalid_point"):
             with self.subTest(value=invalid):
                 data = {"defaultAutomatedRunStoppingPoint": invalid}
                 self.get_error_response(self.organization.slug, status_code=400, **data)
-
-    def test_default_automated_run_stopping_point_accepts_root_cause_with_flag(self) -> None:
-        with self.feature("organizations:root-cause-stopping-point"):
-            data = {"defaultAutomatedRunStoppingPoint": "root_cause"}
-            response = self.get_success_response(self.organization.slug, **data)
-            assert response.data["defaultAutomatedRunStoppingPoint"] == "root_cause"
 
     def test_default_coding_agent_integration_id_can_be_cleared(self) -> None:
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 123)
@@ -2234,7 +2175,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
             assert self.has_2fa.has_2fa()
 
     def assert_2fa_email_equal(self, outbox, expected):
-        invite_url_regex = re.compile(r"http://.*/accept/[0-9]+/[a-f0-9]+/")
+        invite_url_regex = re.compile(r"http://.*/accept/[^/]+/[0-9]+/[a-f0-9]+/")
         assert len(outbox) == len(expected)
         assert sorted(email.to[0] for email in outbox) == sorted(expected)
         for email in outbox:

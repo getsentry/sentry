@@ -1,6 +1,9 @@
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {REPLAY_LOADING_HEIGHT_LARGE} from 'sentry/components/events/eventReplay/constants';
 import {ReplayPreviewPlayer} from 'sentry/components/events/eventReplay/replayPreviewPlayer';
@@ -14,7 +17,7 @@ import {useLogEventReplayStatus} from 'sentry/utils/replays/hooks/useLogEventRep
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
+import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 
 interface Props {
   analyticsContext: string;
@@ -42,6 +45,21 @@ export function GroupReplaysPlayer({
       readerResult={replayReaderResult}
       renderArchived={() => (
         <ArchivedReplayAlert message={t('The replay for this event has been deleted.')} />
+      )}
+      renderError={({onRetry}) => (
+        <Alert.Container>
+          <Alert
+            variant="danger"
+            data-test-id="replay-error"
+            trailingItems={
+              <Button size="xs" onClick={onRetry}>
+                {t('Retry')}
+              </Button>
+            }
+          >
+            {t('There was an error loading the replay.')}
+          </Alert>
+        </Alert.Container>
       )}
       renderLoading={() => (
         <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
@@ -76,7 +94,7 @@ export function GroupReplaysPlayer({
                     handleForwardClick={handleForwardClick}
                     overlayContent={overlayContent}
                     showNextAndPrevious
-                    playPausePriority="default"
+                    playPauseVariant="secondary"
                   />
                 </ReplayPlayerStateContextProvider>
               </ReplayReaderProvider>

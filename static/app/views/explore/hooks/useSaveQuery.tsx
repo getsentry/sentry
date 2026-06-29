@@ -14,6 +14,7 @@ import {
   type SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
@@ -35,6 +36,7 @@ type ExploreSavedQueryRequest = {
   name: string;
   projects: number[];
   changedReason?: ExploreQueryChangedReason;
+  crossEvents?: CrossEvent[];
   end?: DateString;
   environment?: string[];
   interval?: string;
@@ -221,7 +223,7 @@ function convertQueryParamsToRequest({
   const {datetime, projects, environments} = selection;
   const {start, end, period} = datetime;
 
-  const {sortBys, fields, search, mode} = queryParams;
+  const {sortBys, fields, search, mode, crossEvents} = queryParams;
   const query = search?.formatString() ?? '';
 
   const aggregateFields = queryParams.aggregateFields
@@ -251,6 +253,7 @@ function convertQueryParamsToRequest({
     name: title,
     projects,
     dataset,
+    crossEvents: crossEvents?.length ? [...crossEvents] : undefined,
     start,
     end,
     range: period ?? undefined,

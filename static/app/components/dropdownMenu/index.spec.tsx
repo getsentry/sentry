@@ -274,9 +274,18 @@ describe('DropdownMenu', () => {
   });
 
   it('closes after clicking external link', async () => {
+    const onAction = jest.fn();
+
     render(
       <DropdownMenu
-        items={[{key: 'item1', label: 'Item One', externalHref: 'https://example.com'}]}
+        items={[
+          {
+            key: 'item1',
+            label: 'Item One',
+            externalHref: 'https://example.com',
+            onAction,
+          },
+        ]}
         triggerLabel="Menu"
       />
     );
@@ -286,6 +295,7 @@ describe('DropdownMenu', () => {
     await waitFor(() => {
       expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
     });
+    expect(onAction).toHaveBeenCalledTimes(1);
   });
 
   it('navigates to link on enter', async () => {

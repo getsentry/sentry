@@ -68,6 +68,12 @@ describe('SpanNodeDetails', () => {
       body: {data: []},
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      method: 'GET',
+      body: [],
+    });
+
     render(
       <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
         <EAPSpanNodeDetails

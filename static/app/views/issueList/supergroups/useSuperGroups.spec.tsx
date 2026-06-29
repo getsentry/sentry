@@ -1,30 +1,16 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {SupergroupDetailFixture} from 'sentry-fixture/supergroupDetail';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 
 const organization = OrganizationFixture({features: ['top-issues-ui']});
 const API_URL = `/organizations/${organization.slug}/seer/supergroups/by-group/`;
 
-function makeSupergroup(overrides: Partial<SupergroupDetail> = {}): SupergroupDetail {
-  return {
-    id: 1,
-    title: 'Test Supergroup',
-    summary: 'A test supergroup',
-    error_type: 'TypeError',
-    code_area: 'frontend',
-    group_ids: [1, 2, 3],
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    ...overrides,
-  };
-}
-
 describe('useSuperGroups', () => {
   it('does not show loading state when archiving a group backfills a new one', async () => {
-    const supergroup = makeSupergroup({group_ids: [1, 2, 3]});
+    const supergroup = SupergroupDetailFixture({group_ids: [1, 2, 3]});
     const mockRequest = MockApiClient.addMockResponse({
       url: API_URL,
       body: {data: [supergroup]},
@@ -54,7 +40,7 @@ describe('useSuperGroups', () => {
   });
 
   it('shows loading state when navigating to an entirely new page', async () => {
-    const supergroup = makeSupergroup({group_ids: [1, 2, 3]});
+    const supergroup = SupergroupDetailFixture({group_ids: [1, 2, 3]});
     const mockRequest = MockApiClient.addMockResponse({
       url: API_URL,
       body: {data: [supergroup]},

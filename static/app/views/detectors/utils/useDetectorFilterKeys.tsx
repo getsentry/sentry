@@ -23,7 +23,7 @@ const DETECTOR_FILTER_KEYS: Record<
   type: {
     predefined: true,
     fieldDefinition: {
-      desc: 'Type of the detector',
+      desc: 'Type of the monitor',
       kind: FieldKind.FIELD,
       valueType: FieldValueType.STRING,
       allowWildcard: false,

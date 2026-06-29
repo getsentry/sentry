@@ -2,11 +2,12 @@ import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import type {CursorHandler} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
+
 import type {EventQuery} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import type {CursorHandler} from 'sentry/components/pagination';
-import {Pagination} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
@@ -106,7 +107,7 @@ class Table extends PureComponent<TableProps, TableState> {
     // from an invalid view state to a valid one.
     if (
       (!this.state.isLoading && this.shouldRefetchData(prevProps)) ||
-      (prevProps.eventView.isValid() === false && this.props.eventView.isValid()) ||
+      (!prevProps.eventView.isValid() && this.props.eventView.isValid()) ||
       (prevProps.confirmedQuery !== this.props.confirmedQuery && this.didViewChange())
     ) {
       this.fetchData();
@@ -160,6 +161,7 @@ class Table extends PureComponent<TableProps, TableState> {
     // Note: Event ID or 'id' is added to the fields in the API payload response by default for all non-aggregate queries.
     if (!eventView.hasAggregateField() || apiPayload.field.includes('id')) {
       apiPayload.field.push('trace');
+      apiPayload.field.push('issue.id');
 
       // We need to include the event.type field because we want to
       // route to issue details for error and default event types.
@@ -253,7 +255,7 @@ class Table extends PureComponent<TableProps, TableState> {
           setSplitDecision?.(splitDecision);
         }
       })
-      .catch(err => {
+      .catch((err: any) => {
         metric.measure({
           name: 'app.api.discover-query',
           start: `discover-events-start-${apiPayload.query}`,

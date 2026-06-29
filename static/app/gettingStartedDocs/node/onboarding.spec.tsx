@@ -200,7 +200,7 @@ describe('node onboarding docs', () => {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.METRICS],
     });
 
-    expect(screen.getByText('Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Application Metrics')).toBeInTheDocument();
   });
 
   it('does not display Metrics in next steps when metrics are not selected', () => {
@@ -208,6 +208,6 @@ describe('node onboarding docs', () => {
       selectedProducts: [ProductSolution.ERROR_MONITORING],
     });
 
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    expect(screen.queryByText('Application Metrics')).not.toBeInTheDocument();
   });
 });

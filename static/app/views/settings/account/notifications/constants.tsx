@@ -55,10 +55,3 @@ export const NOTIFICATION_SETTINGS_PATHNAMES: Record<NotificationSettingsType, s
   spikeProtection: 'spike-protection',
   brokenMonitors: 'broken-monitors',
 };
-
-export const NOTIFICATION_FEATURE_MAP: Partial<
-  Record<NotificationSettingsType, string | string[]>
-> = {
-  quota: ['spend-visibility-notifications', 'user-spend-notifications-settings'],
-  spikeProtection: 'spike-projections',
-};

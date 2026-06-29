@@ -11,6 +11,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 describe('PageFiltersContainer', () => {
@@ -556,6 +557,129 @@ describe('PageFiltersContainer', () => {
           },
           environments: [],
           projects: [],
+        })
+      );
+    });
+  });
+
+  describe('maxDateRange param', () => {
+    it('resets period when maxDateRange appears and current selection exceeds it', async () => {
+      const {rerender} = render(<PageFiltersContainer maxPickableDays={30} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {statsPeriod: '14d'},
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: '14d',
+          utc: null,
+          start: null,
+          end: null,
+        })
+      );
+
+      rerender(<PageFiltersContainer maxPickableDays={30} maxDateRange={7} />);
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: '7d',
+          utc: null,
+          start: null,
+          end: null,
+        })
+      );
+    });
+
+    it('does not reset period when maxDateRange appears but selection is within it', async () => {
+      const {rerender} = render(<PageFiltersContainer maxPickableDays={30} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {statsPeriod: '7d'},
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: '7d',
+          utc: null,
+          start: null,
+          end: null,
+        })
+      );
+
+      rerender(<PageFiltersContainer maxPickableDays={30} maxDateRange={14} />);
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: '7d',
+          utc: null,
+          start: null,
+          end: null,
+        })
+      );
+    });
+
+    it('does not reset period when selection is within maxPickableDays and maxDateRange', async () => {
+      const start = moment().subtract(14, 'days').format('YYYY-MM-DDTHH:mm:ss');
+      const end = moment().subtract(8, 'days').format('YYYY-MM-DDTHH:mm:ss');
+      render(<PageFiltersContainer maxPickableDays={30} maxDateRange={7} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {start, end},
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: null,
+          utc: null,
+          start: getUtcToLocalDateObject(start),
+          end: getUtcToLocalDateObject(end),
+        })
+      );
+    });
+
+    it('resets absolute range when maxDateRange appears and range exceeds it', async () => {
+      const start = moment().subtract(10, 'days').format('YYYY-MM-DDTHH:mm:ss');
+      const end = moment().subtract(1, 'days').format('YYYY-MM-DDTHH:mm:ss');
+
+      const {rerender} = render(<PageFiltersContainer maxPickableDays={30} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {start, end},
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime.period).toBeNull()
+      );
+
+      rerender(<PageFiltersContainer maxPickableDays={30} maxDateRange={7} />);
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: '7d',
+          utc: null,
+          start: null,
+          end: null,
         })
       );
     });

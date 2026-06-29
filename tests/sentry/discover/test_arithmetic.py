@@ -248,6 +248,7 @@ def test_field_values(a, op, b) -> None:
         (100, "-", 'count_if(some_tag,notEquals,"something(really)annoying,like\\"this\\"")'),
         ("p50_if(span.duration,is_transaction,equals,true)", "/", 2),
         ("tpm()", "+", "failure_rate_if(is_transaction,equals,true)"),
+        ("failure_count_if(is_transaction,equals,true)", "+", 0),
         ("avg_if(span.duration,is_transaction,equals,true)", "*", 100),
         ("ttid_contribution_rate()", "+", "ttfd_contribution_rate()"),
         (100, "*", "ttid_contribution_rate()"),
@@ -263,6 +264,9 @@ def test_field_values(a, op, b) -> None:
             "opportunity_score(measurements.score.fcp)",
         ),
         (100, "*", "opportunity_score(measurements.score.cls)"),
+        ("count_if(`test:foo`)", "+", "ttfd_contribution_rate()"),
+        ('count_if(`test:"blah blah"`)', "+", "ttfd_contribution_rate()"),
+        ('count_if(`test:"blah blah"`,test, test)', "+", "sum_if(`test:\"blah'blah'blah\"`)"),
     ],
 )
 def test_function_values(lhs, op, rhs) -> None:

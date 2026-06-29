@@ -9,11 +9,11 @@ import {useDeadRageSelectors} from 'sentry/utils/replays/hooks/useDeadRageSelect
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {SelectorLink} from 'sentry/views/explore/replays/selectors/selectorLink';
+import {transformSelectorQuery} from 'sentry/views/explore/replays/selectors/utils';
+import type {DeadRageSelectorItem} from 'sentry/views/explore/replays/types';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
-import {SelectorLink} from 'sentry/views/replays/selectors/selectorLink';
-import {transformSelectorQuery} from 'sentry/views/replays/selectors/utils';
-import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
 export function DeadRageClicksWidget({visulizationOnly}: {visulizationOnly?: boolean}) {
   const organization = useOrganization();

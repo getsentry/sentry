@@ -25,9 +25,10 @@ import type {
   SentryAppSchemaIssueLink,
   SentryAppWebhookRequest,
 } from 'sentry/types/integrations';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
-import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
@@ -128,7 +129,7 @@ function makeRequestLogQueryKey(
   query: Record<string, string>
 ): ApiQueryKey {
   return [
-    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/webhook-requests/`, {
+    getApiUrl('/sentry-apps/$sentryAppIdOrSlug/webhook-requests/', {
       path: {sentryAppIdOrSlug: slug},
     }),
     {query},
@@ -170,14 +171,11 @@ export function RequestLog({app}: RequestLogProps) {
 
   const hasPrevPage = useMemo(() => currentPage > 0, [currentPage]);
 
-  const handleChangeEventType = useCallback(
-    (newEventType: string) => {
-      setEventType(newEventType);
-      setCurrentPage(0);
-      refetch();
-    },
-    [refetch]
-  );
+  const handleChangeEventType = (newEventType: string) => {
+    setEventType(newEventType);
+    setCurrentPage(0);
+    refetch();
+  };
 
   const handleChangeErrorsOnly = useCallback(() => {
     setErrorsOnly(!errorsOnly);
@@ -185,13 +183,13 @@ export function RequestLog({app}: RequestLogProps) {
     refetch();
   }, [errorsOnly, refetch]);
 
-  const handleNextPage = useCallback(() => {
+  const handleNextPage = () => {
     setCurrentPage(currentPage + 1);
-  }, [currentPage]);
+  };
 
-  const handlePrevPage = useCallback(() => {
+  const handlePrevPage = () => {
     setCurrentPage(currentPage - 1);
-  }, [currentPage]);
+  };
 
   return (
     <Fragment>

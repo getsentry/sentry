@@ -1,3 +1,4 @@
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import set_tag
@@ -100,6 +101,7 @@ class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
                 metrics_count = sum_metrics["data"][0].get("count")
                 if metrics_count == 0:
                     set_tag("empty_metrics", True)
+                    sentry_sdk.set_attribute("empty_metrics", True)
 
                 data["sum"].update(
                     {

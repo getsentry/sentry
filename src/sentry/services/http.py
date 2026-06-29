@@ -21,6 +21,7 @@ def _run_server(options: dict[str, Any]):
         blocking_threads=options["threads"],
         respawn_failed_workers=True,
         reload=options["reload"],
+        reload_ignore_dirs=options.get("reload-ignore-dirs"),
         reload_ignore_worker_failure=options["reload-ignore-worker-failure"],
         process_name=options["proc-name"],
         workers_lifetime=options["max-worker-lifetime"],
@@ -44,7 +45,6 @@ class SentryHTTPServer(Service):
     ) -> None:
         from django.conf import settings
 
-        from sentry import options as sentry_options
         from sentry.logging import LoggingFormat
 
         host = host or settings.SENTRY_WEB_HOST
@@ -68,6 +68,7 @@ class SentryHTTPServer(Service):
         options.setdefault("log-enabled", True)
         options.setdefault("proc-name", "sentry")
         options.setdefault("reload", reload)
+        options.setdefault("reload-ignore-dirs", [".artifacts"])
         options.setdefault("reload-ignore-worker-failure", reload)
         options.setdefault("workers-kill-timeout", 3 if reload else 30)
         options.setdefault("max-worker-lifetime", None)
@@ -85,7 +86,7 @@ class SentryHTTPServer(Service):
         # also an assumption that anyone operating at the scale of needing
         # machine formatted logs, they are also using nginx in front which
         # has it's own logs that can be formatted correctly.
-        if sentry_options.get("system.logging-format") == LoggingFormat.MACHINE:
+        if settings.SENTRY_LOGGING_FORMAT == LoggingFormat.MACHINE:
             options["disable-logging"] = True
 
         # Old options from uwsgi

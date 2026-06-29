@@ -1,4 +1,5 @@
 import {Container} from '@sentry/scraps/layout';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import SelectMembers from 'sentry/components/selectMembers';
 import {TeamSelector} from 'sentry/components/teamSelector';
@@ -6,8 +7,8 @@ import {
   AutomationBuilderSelect,
   selectControlStyles,
 } from 'sentry/components/workflowEngine/form/automationBuilderSelect';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionTarget} from 'sentry/types/workflowEngine/actions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -101,6 +102,7 @@ function IdentifierField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
   const organization = useOrganization();
+  const projectIds = useFormField<string[]>('projectIds');
 
   if (action.config.targetType === ActionTarget.TEAM) {
     return (
@@ -130,8 +132,9 @@ function IdentifierField() {
     return (
       <Container width="200px">
         <SelectMembers
-          ariaLabel={t('User')}
+          aria-label={t('User')}
           organization={organization}
+          projectIds={projectIds}
           key={`${actionId}.config.targetIdentifier`}
           value={action.config.targetIdentifier}
           onChange={(value: any) => {

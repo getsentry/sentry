@@ -8,12 +8,20 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {getFilterValueType} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import type {SearchKeyItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
-import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {
+  getInitialFilterText,
+  resolveFilterKey,
+} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
   ParseResultToken,
   Token,
@@ -42,14 +50,11 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     inputValue,
     includeSuggestions: false,
   });
-  const {
-    dispatch,
-    getFieldDefinition,
-    getSuggestedFilterKey,
-    setDisplayAskSeer,
-    currentInputValueRef,
-    setAutoSubmitSeer,
-  } = useSearchQueryBuilder();
+  const {filterKeys, getFieldDefinition, getSuggestedFilterKey} =
+    useSearchQueryBuilderConfig();
+  const {dispatch} = useSearchQueryBuilderState();
+  const {setDisplayAskSeer, setAutoSubmitSeer} = useSearchQueryBuilderAI();
+  const {currentInputValueRef} = useSearchQueryBuilderLayout();
 
   const analyticsArea = useAnalyticsArea();
 
@@ -64,10 +69,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       const newFilterValueType = getFilterValueType(token, newFieldDef);
 
       if (keyName === ASK_SEER_ITEM_KEY) {
-        trackAnalytics('trace.explorer.ai_query_interface', {
-          organization,
-          action: 'opened',
-        });
         trackAnalytics('ai_query.interface', {
           organization,
           area: analyticsArea,
@@ -85,10 +86,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       }
 
       if (keyName === ASK_SEER_CONSENT_ITEM_KEY) {
-        trackAnalytics('trace.explorer.ai_query_interface', {
-          organization,
-          action: 'consent_accepted',
-        });
         trackAnalytics('ai_query.interface', {
           organization,
           area: analyticsArea,
@@ -163,9 +160,16 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         return;
       }
 
-      handleSelectKey(getSuggestedFilterKey(trimmedKeyName) ?? trimmedKeyName);
+      handleSelectKey(
+        resolveFilterKey({
+          key: trimmedKeyName,
+          filterKeys,
+          getSuggestedFilterKey,
+          loadedItems: sortedFilterKeys,
+        })
+      );
     },
-    [handleSelectKey, getSuggestedFilterKey, onCommit]
+    [filterKeys, getSuggestedFilterKey, handleSelectKey, onCommit, sortedFilterKeys]
   );
 
   const onCustomValueBlurred = useCallback(() => {

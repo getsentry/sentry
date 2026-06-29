@@ -1,10 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {Flex, Grid, Stack, Container} from '@sentry/scraps/layout';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -24,9 +22,8 @@ import {MissingProjectMembership} from 'sentry/components/projects/missingProjec
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
-import {t, tctCode} from 'sentry/locale';
-import {defined} from 'sentry/utils';
-import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
@@ -35,6 +32,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
@@ -79,28 +77,6 @@ export function ProjectDetail() {
     }
     return ['chart1'];
   }, [hasTransactions, hasSessions]);
-
-  const {setPageInfo, pageAlert} = usePageAlert();
-  const {orgId, projectId: projectSlug} = params;
-  const msg = useMemo(
-    () =>
-      tctCode(
-        'Project Details will be removed soon. Find this project’s settings under [settingsLink:Settings]. Similar charts are available on the [sessionHealth:Session Health] and [backendOverview:Backend Overview] dashboards.',
-        {
-          settingsLink: <Link to={`/settings/${orgId}/projects/${projectSlug}/`} />,
-          sessionHealth: (
-            <Link to={`/organizations/${orgId}/insights/mobile/sessions/`} />
-          ),
-          backendOverview: <Link to={`/organizations/${orgId}/insights/backend/`} />,
-        }
-      ),
-    [orgId, projectSlug]
-  );
-  useEffect(() => {
-    if (pageAlert?.message !== msg) {
-      setPageInfo(msg);
-    }
-  }, [msg, pageAlert, setPageInfo]);
 
   const onRetryProjects = useCallback(() => {
     fetchOrganizationDetails(api, params.orgId);
@@ -179,33 +155,43 @@ export function ProjectDetail() {
         <Stack flex={1}>
           <NoProjectMessage organization={organization}>
             <Layout.Header unified>
-              <Layout.HeaderContent unified>
+              <TopBar.Slot name="title">
                 <Breadcrumbs
                   crumbs={[
                     {
                       to: makeProjectsPathname({path: '/', organization}),
                       label: t('Projects'),
                     },
-                    {label: t('Project Details')},
+                    {
+                      label: (
+                        <Flex align="center" gap="xs">
+                          {project ? (
+                            <IdBadge
+                              project={project}
+                              avatarSize={16}
+                              hideOverflow="100%"
+                              disableLink
+                              hideName
+                            />
+                          ) : null}
+                          {project?.slug}
+                        </Flex>
+                      ),
+                    },
                   ]}
                 />
-                <Layout.Title>
-                  {project ? (
-                    <IdBadge
-                      project={project}
-                      avatarSize={28}
-                      hideOverflow="100%"
-                      disableLink
-                      hideName
-                    />
-                  ) : null}
-                  {project?.slug}
-                </Layout.Title>
-              </Layout.HeaderContent>
+              </TopBar.Slot>
 
               <Layout.HeaderActions>
-                <Grid flow="column" align="center" gap="md">
-                  <FeedbackButton />
+                <Grid flow="column" align="center" justify="end" gap="md">
+                  <TopBar.Slot name="feedback">
+                    <FeedbackButton
+                      aria-label={t('Give Feedback')}
+                      tooltipProps={{title: t('Give Feedback')}}
+                    >
+                      {null}
+                    </FeedbackButton>
+                  </TopBar.Slot>
                   <LinkButton
                     size="sm"
                     to={
@@ -235,8 +221,7 @@ export function ProjectDetail() {
 
             <Layout.Body noRowGap>
               <Layout.Main>
-                <PageAlert />
-                <ProjectFiltersWrapper>
+                <Container marginBottom="xl">
                   <ProjectFilters
                     query={query}
                     onSearch={handleSearch}
@@ -247,7 +232,7 @@ export function ProjectDetail() {
                     }
                     tagValueLoader={tagValueLoader}
                   />
-                </ProjectFiltersWrapper>
+                </Container>
 
                 <ProjectScoreCards
                   organization={organization}
@@ -313,7 +298,3 @@ export function ProjectDetail() {
     </SentryDocumentTitle>
   );
 }
-
-const ProjectFiltersWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;

@@ -9,7 +9,7 @@ const StickyFooterBase = styled('div')`
   bottom: 0;
   right: 0;
   width: 100%;
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
+  padding: ${p => `${p.theme.space.xl} ${p.theme.space.xl}`};
   background: ${p => p.theme.tokens.background.primary};
   border-top: 1px solid ${p => p.theme.colors.gray200};
   box-shadow: none;
@@ -18,7 +18,10 @@ const StickyFooterBase = styled('div')`
   z-index: ${p => p.theme.zIndex.initial};
 
   &[data-stuck] {
-    box-shadow: ${p => p.theme.dropShadowHeavyTop};
+    /* TODO(design-engineering): Replace with a directional shadow token when one exists */
+    box-shadow:
+      0px -4px 0px 2px ${p => p.theme.tokens.elevation.high},
+      0px -1px 0px 1px ${p => p.theme.tokens.elevation.high};
   }
 `;
 

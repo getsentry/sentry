@@ -159,7 +159,7 @@ function QuotaExceededContent({
           </Description>
           <Flex justify="between" align="center">
             <LinkButton
-              priority="primary"
+              variant="primary"
               href="mailto:sales@sentry.io"
               external
               size="xs"
@@ -204,7 +204,7 @@ function QuotaExceededContent({
           </Description>
           <Flex justify="start" align="center">
             <LinkButton
-              priority="primary"
+              variant="primary"
               href="mailto:sales@sentry.io"
               external
               size="xs"
@@ -370,7 +370,7 @@ export function PrimaryNavigationQuotaExceeded({
       ([category]) =>
         category !== DataCategory.SPANS_INDEXED || subscription?.hadCustomDynamicSampling
     )
-    .reduce((acc, [category, currentHistory]) => {
+    .reduce<DataCategory[]>((acc, [category, currentHistory]) => {
       if (currentHistory.usageExceeded) {
         const designatedBudget =
           subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
@@ -390,7 +390,7 @@ export function PrimaryNavigationQuotaExceeded({
         acc.push(category);
       }
       return acc;
-    }, [] as DataCategory[]);
+    }, []);
   const promptsToCheck = exceededCategories
     .map(category => {
       return `${snakeCase(category)}_overage_alert`;
@@ -480,11 +480,7 @@ export function PrimaryNavigationQuotaExceeded({
     subscription?.onDemandPeriodStart,
   ]);
 
-  const shouldShow =
-    exceededCategories.length > 0 &&
-    subscription &&
-    subscription.canSelfServe &&
-    !subscription.hasOverageNotificationsDisabled;
+  const shouldShow = exceededCategories.length > 0 && subscription?.canSelfServe;
   if (!shouldShow || isLoading || isError) {
     return null;
   }
@@ -567,7 +563,7 @@ const Title = styled('h2')`
 `;
 
 const Body = styled('div')`
-  margin: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.md};
   display: flex;
   flex-direction: column;

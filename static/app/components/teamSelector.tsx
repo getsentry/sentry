@@ -193,7 +193,7 @@ export function TeamSelector(props: Props) {
       }
 
       // Copy old value
-      const oldValue = multiple ? [...(value ?? [])] : {value};
+      const oldValue = multiple ? [...((value as unknown[] | undefined) ?? [])] : {value};
       // Optimistic update
       onChange?.(createTeamOption(team));
 
@@ -279,7 +279,7 @@ export function TeamSelector(props: Props) {
           >
             <Button
               size="zero"
-              priority="transparent"
+              variant="transparent"
               disabled={!canAddTeam}
               onClick={() => handleAddTeamToProject(team)}
               icon={<IconAdd />}

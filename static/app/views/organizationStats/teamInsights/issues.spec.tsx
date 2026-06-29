@@ -61,7 +61,7 @@ describe('TeamStatsIssues', () => {
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/projects/`,
+      url: '/organizations/org-slug/projects/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -71,10 +71,6 @@ describe('TeamStatsIssues', () => {
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/issue-breakdown/`,
       body: TeamIssuesBreakdownFixture(),
-    });
-    MockApiClient.addMockResponse({
-      url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,

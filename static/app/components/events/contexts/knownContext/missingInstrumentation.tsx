@@ -16,7 +16,7 @@ export interface MissingInstrumentationContext {
 }
 
 export function getMissingInstrumentationContextData({
-  data = {},
+  data,
   meta,
 }: {
   data: MissingInstrumentationContext;

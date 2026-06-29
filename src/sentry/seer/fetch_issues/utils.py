@@ -2,9 +2,10 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, TypedDict
+from typing import Any
 
 import sentry_sdk
+from pydantic import BaseModel
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import EventSerializer
@@ -13,7 +14,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.constants import SeerSCMProvider
-from sentry.seer.sentry_data_models import IssueDetails
+from sentry.seer.sentry_data_models import EmptyResponse, IssueDetails
 from sentry.seer.utils import filter_repo_by_provider
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ class NoProjectsForRepoError(Exception):
     """Raised when a repo exists but has no Sentry projects via code mappings."""
 
 
-class SeerResponseError(TypedDict):
+class SeerResponseError(BaseModel):
     error: str
 
 
@@ -59,7 +60,7 @@ class RepoProjects(RepoInfo):
     projects: list[Project]
 
 
-class SeerResponse(TypedDict):
+class SeerResponse(BaseModel):
     issues: list[int]
     issues_full: list[dict[str, Any]]
 
@@ -92,15 +93,15 @@ def get_repo_and_projects(
     repo_configs = list(
         RepositoryProjectPathConfig.objects.filter(
             organization_id=organization_id,
-            repository_id=repo.id,
-        )
+            project_repository__repository_id=repo.id,
+        ).select_related("project_repository__project")
     )
 
     projects = []
     valid_configs = []
     for config in repo_configs:
         try:
-            project = config.project
+            project = config.project_repository.project
         except Project.DoesNotExist:
             continue
         else:
@@ -148,22 +149,27 @@ def bulk_serialize_for_seer(groups: list[Group]) -> SeerResponse:
     issue_ids = [issue["id"] for issue in issues_full]
     for issue in issues_full:
         issue["id"] = str(issue["id"])
-    return {
-        "issues": issue_ids,
-        "issues_full": issues_full,
-    }
+    return SeerResponse(issues=issue_ids, issues_full=issues_full)
 
 
 def _group_by_short_id(short_id: str, organization_id: int) -> Group | None:
+    # Intentionally org-scoped only (project_ids=None): reached via the Seer RPC
+    # (get_latest_issue_event), which operates organization-wide on behalf of the system.
+    # There is no narrower authorized-project set available at this layer to enforce.
     try:
-        return Group.objects.by_qualified_short_id(organization_id, short_id)
+        return Group.objects.by_qualified_short_id(organization_id, short_id, project_ids=None)
     except Group.DoesNotExist:
         return None
 
 
-def get_latest_issue_event(group_id: int | str, organization_id: int) -> dict[str, Any]:
+def get_latest_issue_event(
+    group_id: int | str, organization_id: int
+) -> IssueDetails | EmptyResponse:
     """
-    Get an issue's latest event as a dict, matching the Seer IssueDetails model.
+    Get an issue's latest event as an IssueDetails model.
+
+    Returns `EmptyResponse` when the group / event isn't found. This serializes
+    to `{}` via `.dict()`, matching the pre-Pydantic wire shape byte-for-byte.
     """
     if isinstance(group_id, str) and not group_id.isdigit():
         group = _group_by_short_id(group_id, organization_id)
@@ -176,7 +182,7 @@ def get_latest_issue_event(group_id: int | str, organization_id: int) -> dict[st
         logger.warning(
             "Group not found", extra={"group_id": group_id, "organization_id": organization_id}
         )
-        return {}
+        return EmptyResponse()
 
     if group.organization.id != organization_id:
         logger.warning(
@@ -187,7 +193,7 @@ def get_latest_issue_event(group_id: int | str, organization_id: int) -> dict[st
                 "actual_organization_id": group.organization.id,
             },
         )
-        return {}
+        return EmptyResponse()
 
     event = group.get_latest_event()
     if not event:
@@ -195,11 +201,11 @@ def get_latest_issue_event(group_id: int | str, organization_id: int) -> dict[st
             "No event found",
             extra={"group_id": group_id},
         )
-        return {}
+        return EmptyResponse()
 
     serialized_event = serialize(event, user=None, serializer=EventSerializer())
     return IssueDetails(
         id=int(serialized_event["groupID"]),
         title=serialized_event["title"],
         events=[serialized_event],
-    ).dict()
+    )

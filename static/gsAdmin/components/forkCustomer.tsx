@@ -3,12 +3,13 @@ import {Component, Fragment} from 'react';
 import {Client} from 'sentry/api';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {
-  getRegionChoices,
-  getRegionDataFromOrganization,
-  getRegions,
-} from 'sentry/utils/regions';
+  getLocalityUrlOptions,
+  getLocalityDataFromOrganization,
+  getLocalities,
+} from 'sentry/utils/cells';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {
   AdminConfirmParams,
@@ -16,6 +17,7 @@ import type {
 } from 'admin/components/adminConfirmationModal';
 
 type Props = AdminConfirmRenderProps & {
+  navigate: ReactRouter3Navigate;
   organization: Organization;
 };
 
@@ -26,7 +28,7 @@ type State = {
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-export class ForkCustomerAction extends Component<Props> {
+class ForkCustomerActionImpl extends Component<Props> {
   state: State = {
     regionUrl: '',
   };
@@ -39,19 +41,19 @@ export class ForkCustomerAction extends Component<Props> {
     const api = new Client({headers: {Accept: 'application/json; charset=utf-8'}});
     const {organization} = this.props;
     const {regionUrl} = this.state;
-    const regions = getRegions();
-    const region = regions.find(r => r.url === regionUrl);
+    const localities = getLocalities();
+    const locality = localities.find(r => r.url === regionUrl);
 
     try {
       const response = await api.requestPromise(
         `/organizations/${organization.slug}/fork/`,
         {
           method: 'POST',
-          host: region?.url,
+          host: locality?.url,
         }
       );
 
-      browserHistory.push(`/_admin/relocations/${region?.name}/${response.uuid}/`);
+      this.props.navigate(`/_admin/relocations/${locality?.name}/${response.uuid}/`);
       this.props.onConfirm?.({regionUrl, ...params});
     } catch (error: any) {
       if (error.responseJSON) {
@@ -62,15 +64,17 @@ export class ForkCustomerAction extends Component<Props> {
 
   render() {
     const {organization} = this.props;
-    const currentRegionData = getRegionDataFromOrganization(organization);
-    const regionChoices = getRegionChoices(currentRegionData ? [currentRegionData] : []);
+    const currentRegionData = getLocalityDataFromOrganization(organization);
+    const localityOptions = getLocalityUrlOptions(
+      currentRegionData ? [currentRegionData] : []
+    );
     return (
       <Fragment>
         <SelectField
           name="regionUrl"
           label="Duplicate into Region"
           help="Choose which region to duplicate this organization's low volume metadata into. This will kick off a SAAS->SAAS relocation job, but the source organization will not be affected."
-          choices={regionChoices}
+          options={localityOptions}
           inline={false}
           stacked
           required
@@ -80,4 +84,9 @@ export class ForkCustomerAction extends Component<Props> {
       </Fragment>
     );
   }
+}
+
+export function ForkCustomerAction(props: Omit<Props, 'navigate'>) {
+  const navigate = useNavigate();
+  return <ForkCustomerActionImpl {...props} navigate={navigate} />;
 }

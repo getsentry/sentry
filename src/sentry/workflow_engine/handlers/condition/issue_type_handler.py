@@ -8,20 +8,6 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
-
-def get_type_choices() -> OrderedDict[str, str]:
-    """Generate choices from all registered group types."""
-    type_choices = OrderedDict()
-    for group_type_cls in grouptype.registry.all():
-        if not group_type_cls.released:
-            continue
-        # Use slug as key, description for display
-        display_name = getattr(group_type_cls, "description", None) or group_type_cls.slug
-        type_choices[group_type_cls.slug] = display_name
-    return type_choices
-
-
-TYPE_CHOICES = get_type_choices()
 INCLUDE_CHOICES = OrderedDict([("true", "equal to"), ("false", "not equal to")])
 
 
@@ -65,9 +51,9 @@ class IssueTypeConditionHandler(DataConditionHandler[WorkflowEventData]):
         return group.issue_type == value if include else group.issue_type != value
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         value = condition_data["value"]
-        title = TYPE_CHOICES.get(value)
-        issue_type_name = title if title else ""
+        group_type = grouptype.registry.get_by_slug(value)
+        issue_type_name = (getattr(group_type, "description", None) or value) if group_type else ""
         include_label = INCLUDE_CHOICES.get(condition_data.get("include", "true"), "equal to")
         return cls.label_template.format(include=include_label, value=issue_type_name)

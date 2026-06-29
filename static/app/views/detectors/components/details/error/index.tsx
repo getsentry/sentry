@@ -1,6 +1,9 @@
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -15,10 +18,15 @@ import {EditDetectorAction} from 'sentry/views/detectors/components/details/comm
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DisabledAlert} from 'sentry/views/detectors/components/details/common/disabledAlert';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
-import {DetectorDetailsDefaultHeaderContent} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
+import {
+  makeMonitorBasePathname,
+  makeMonitorTypePathname,
+} from 'sentry/views/detectors/pathnames';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 type ErrorDetectorDetailsProps = {
   detector: Detector;
@@ -75,20 +83,36 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
 
   return (
     <DetailLayout>
-      <DetailLayout.Header>
-        <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
-        <DetailLayout.Actions>
-          <MonitorFeedbackButton />
-          <EditDetectorAction detector={detector} canEdit={canEdit} />
-        </DetailLayout.Actions>
-      </DetailLayout.Header>
+      <TopBar.Slot name="title">
+        <Breadcrumbs
+          crumbs={[
+            {
+              label: t('Monitors'),
+              to: makeMonitorBasePathname(organization.slug),
+            },
+            {
+              label: getDetectorTypeLabel(detector.type),
+              to: makeMonitorTypePathname(organization.slug, detector.type),
+            },
+            {
+              label: <ProjectBadge disableLink project={project} avatarSize={16} />,
+            },
+          ]}
+        />
+      </TopBar.Slot>
+      <MonitorFeedbackButton />
       <DetailLayout.Body>
         <DetailLayout.Main>
           <DisabledAlert
             detector={detector}
             message={t('This monitor is disabled and not creating issues.')}
           />
-          <DatePageFilter />
+          <Flex align="center" justify="between" gap="md">
+            <DatePageFilter />
+            <Flex flex={1} justify="end" gap="md">
+              <EditDetectorAction detector={detector} canEdit={canEdit} />
+            </Flex>
+          </Flex>
           <DetectorDetailsOngoingIssues
             detector={detector}
             dateTimeSelection={selection.datetime}

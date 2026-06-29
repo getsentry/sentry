@@ -4,6 +4,7 @@ from typing import Any, Protocol
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.utils import get_date_range_from_params
+from sentry.data_export.base import ExportError
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -12,8 +13,6 @@ from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.utils import get_dataset
-
-from ..base import ExportError
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +57,11 @@ class DiscoverProcessor:
 
     @staticmethod
     def get_projects(organization_id: int, query: dict[str, Any]) -> list[Project]:
-        projects = list(Project.objects.filter(id__in=query.get("project")))
+        projects = list(
+            Project.objects.filter(
+                id__in=query.get("project") or [], organization_id=organization_id
+            )
+        )
         if len(projects) == 0:
             raise ExportError("Requested project does not exist")
         return projects

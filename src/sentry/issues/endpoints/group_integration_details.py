@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
@@ -15,7 +15,10 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.constants import CELL_API_DEPRECATION_DATE
-from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
+from sentry.integrations.api.serializers.models.integration import (
+    IntegrationSerializer,
+    IntegrationSerializerResponse,
+)
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -25,6 +28,16 @@ from sentry.integrations.project_management.metrics import (
     ProjectManagementEvent,
 )
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.issues.action_log import (
+    publish_action,
+    resolve_action_actor,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import (
+    CreateExternalIssueAction,
+    LinkExternalIssueAction,
+    UnlinkExternalIssueAction,
+)
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -43,14 +56,15 @@ from sentry.users.services.user.model import RpcUser
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
 
+class IntegrationIssueConfigResponse(IntegrationSerializerResponse, total=False):
+    # Exactly one of these is present on a given response, selected by the `action`
+    # query param: `linkIssueConfig` for `link`, `createIssueConfig` for `create`.
+    linkIssueConfig: list[dict[str, Any]]
+    createIssueConfig: list[dict[str, Any]]
+
+
 class IntegrationIssueConfigSerializer(IntegrationSerializer):
-    def __init__(
-        self,
-        group: Group,
-        action: str,
-        config: Mapping[str, Any],
-    ) -> None:
-        self.group = group
+    def __init__(self, action: str, config: list[dict[str, Any]]) -> None:
         self.action = action
         self.config = config
 
@@ -60,25 +74,21 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> MutableMapping[str, Any]:
-        data = super().serialize(obj, attrs, user)
-
+    ) -> IntegrationIssueConfigResponse:
+        base = super().serialize(obj, attrs, user)
         if self.action == "link":
-            data["linkIssueConfig"] = self.config
-        if self.action == "create":
-            data["createIssueConfig"] = self.config
-
-        return data
+            return {**base, "linkIssueConfig": self.config}
+        return {**base, "createIssueConfig": self.config}
 
 
 @cell_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
 
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
@@ -96,7 +106,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         # just linking
         action = request.GET.get("action")
         if action not in {"link", "create"}:
-            return Response({"detail": "Action is required and should be either link or create"})
+            return Response(
+                {"detail": "Action is required and should be either link or create"}, status=400
+            )
 
         organization_id = group.project.organization_id
         result = integration_service.organization_context(
@@ -129,7 +141,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             serialize(
                 integration,
                 request.user,
-                IntegrationIssueConfigSerializer(group, action, config),
+                IntegrationIssueConfigSerializer(action, config),
                 organization_id=organization_id,
             )
         )
@@ -225,6 +237,17 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         installation.store_issue_last_defaults(group.project, request.user, request.data)
 
         self.create_issue_activity(request, group, installation, external_issue, new=True)
+
+        publish_action(
+            CreateExternalIssueAction(
+                provider=integration.provider,
+                external_issue_key=external_issue.key,
+            ),
+            source=resolve_action_source(request),
+            group_id=group.id,
+            project=group.project,
+            actor=resolve_action_actor(request),
+        )
 
         # TODO(jess): return serialized issue
         url = data.get("url") or installation.get_issue_url(external_issue.key)
@@ -329,6 +352,17 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         self.create_issue_activity(request, group, installation, external_issue, new=False)
 
+        publish_action(
+            LinkExternalIssueAction(
+                provider=integration.provider,
+                external_issue_key=external_issue.key,
+            ),
+            source=resolve_action_source(request),
+            group_id=group.id,
+            project=group.project,
+            actor=resolve_action_actor(request),
+        )
+
         # TODO(jess): would be helpful to return serialized external issue
         # once we have description, title, etc
         url = data.get("url") or installation.get_issue_url(external_issue.key)
@@ -377,7 +411,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response(status=404)
 
         with transaction.atomic(router.db_for_write(GroupLink)):
-            GroupLink.objects.get_group_issues(group, external_issue_id).delete()
+            deleted, _ = GroupLink.objects.get_group_issues(group, external_issue_id).delete()
 
             # check if other groups reference this external issue
             # and delete if not
@@ -385,6 +419,20 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 linked_type=GroupLink.LinkedType.issue, linked_id=external_issue_id
             ).exists():
                 external_issue.delete()
+
+        # Only record the action when a link was actually removed; the endpoint still
+        # returns 204 when nothing was linked to this group.
+        if deleted:
+            publish_action(
+                UnlinkExternalIssueAction(
+                    provider=integration.provider,
+                    external_issue_key=external_issue.key,
+                ),
+                source=resolve_action_source(request),
+                group_id=group.id,
+                project=group.project,
+                actor=resolve_action_actor(request),
+            )
 
         return Response(status=204)
 

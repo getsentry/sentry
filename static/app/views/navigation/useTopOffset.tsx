@@ -1,0 +1,39 @@
+import {useTheme} from '@emotion/react';
+
+import {getOverride} from 'sentry/overrideRegistry';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  PRIMARY_HEADER_HEIGHT,
+  SUPERUSER_MARQUEE_HEIGHT,
+} from 'sentry/views/navigation/constants';
+
+interface TopOffset {
+  /** The `top` CSS value for the sticky bar itself */
+  barTop: string;
+  /** The total offset where content below the bar should start */
+  contentTop: string;
+}
+
+export function useTopOffset(): TopOffset {
+  const theme = useTheme();
+  const organization = useOrganization({allowNull: true});
+  const isMobile = !useMedia(`(min-width: ${theme.breakpoints.md})`);
+  const showSuperuserWarning =
+    isActiveSuperuser() &&
+    !ConfigStore.get('isSelfHosted') &&
+    !getOverride('component:superuser-warning-excluded')?.(organization);
+
+  const superuserOffset = showSuperuserWarning ? SUPERUSER_MARQUEE_HEIGHT : 0;
+  const headerHeight = isMobile
+    ? NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME
+    : PRIMARY_HEADER_HEIGHT;
+
+  return {
+    barTop: `${superuserOffset}px`,
+    contentTop: `${superuserOffset + headerHeight}px`,
+  };
+}

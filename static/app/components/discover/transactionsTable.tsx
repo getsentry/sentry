@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -21,6 +22,7 @@ import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {CellAction} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -64,6 +66,7 @@ export function TransactionsTable(props: Props) {
     isLoading,
     referrer,
   } = props;
+  const navigate = useNavigate();
   const theme = useTheme();
 
   const getTitles = () => {
@@ -72,7 +75,6 @@ export function TransactionsTable(props: Props) {
 
   const renderHeader = () => {
     const tableMeta = tableData?.meta;
-    const generateSortLink = () => undefined;
     const tableTitles = getTitles();
 
     const headers = tableTitles.map((title, index) => {
@@ -81,7 +83,7 @@ export function TransactionsTable(props: Props) {
 
       if (column.key === 'span_ops_breakdown.relative') {
         return (
-          <HeadCellContainer key={index}>
+          <Container padding="xl" key={index}>
             <SortLink
               align={align}
               title={
@@ -92,7 +94,7 @@ export function TransactionsTable(props: Props) {
                       size="xs"
                       position="top"
                       title={t(
-                        `Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.`
+                        'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.'
                       )}
                     />
                   </Fragment>
@@ -102,22 +104,15 @@ export function TransactionsTable(props: Props) {
               }
               direction={undefined}
               canSort={false}
-              generateSortLink={generateSortLink}
             />
-          </HeadCellContainer>
+          </Container>
         );
       }
 
       return (
-        <HeadCellContainer key={index}>
-          <SortLink
-            align={align}
-            title={title}
-            direction={undefined}
-            canSort={false}
-            generateSortLink={generateSortLink}
-          />
-        </HeadCellContainer>
+        <Container padding="xl" key={index}>
+          <SortLink align={align} title={title} direction={undefined} canSort={false} />
+        </Container>
       );
     });
 
@@ -144,15 +139,17 @@ export function TransactionsTable(props: Props) {
       const fieldType = tableMeta[fieldName];
 
       const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
-      let rendered = fieldRenderer(row, {organization, location, theme});
+      let rendered = fieldRenderer(row, {navigate, organization, location, theme});
 
       const target = generateLink?.[field]?.(organization, row, location);
+      const isEmptyTarget =
+        typeof target === 'object' && target !== null && isEmptyObject(target);
 
       if (fields[index] === 'profile.id') {
         rendered = (
           <LinkButton
             data-test-id={`view-${fields[index]}`}
-            disabled={!target || isEmptyObject(target)}
+            disabled={!target || isEmptyTarget}
             to={target || {}}
             onClick={getProfileAnalyticsHandler(organization, referrer)}
             size="xs"
@@ -160,7 +157,7 @@ export function TransactionsTable(props: Props) {
             <IconProfiling size="xs" />
           </LinkButton>
         );
-      } else if (target && !isEmptyObject(target)) {
+      } else if (target && !isEmptyTarget) {
         if (fields[index] === 'replayId') {
           rendered = (
             <ViewReplayLink replayId={row.replayId!} to={target}>
@@ -265,10 +262,6 @@ function getProfileAnalyticsHandler(organization: Organization, referrer?: strin
     });
   };
 }
-
-const HeadCellContainer = styled('div')`
-  padding: ${p => p.theme.space.xl};
-`;
 
 const BodyCellContainer = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};

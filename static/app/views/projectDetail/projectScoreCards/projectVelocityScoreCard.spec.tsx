@@ -29,6 +29,7 @@ describe('ProjectDetail > ProjectVelocity', () => {
         version: `0.0.${index + 100}`,
       })),
       status: 200,
+      match: [MockApiClient.matchQuery({statsPeriodStart: '28d'})],
     });
 
     const currentDataEndpointMock = MockApiClient.addMockResponse({
@@ -73,8 +74,8 @@ describe('ProjectDetail > ProjectVelocity', () => {
         query: {
           environment: [],
           project: 1,
-          start: '2017-09-19T02:41:20',
-          end: '2017-10-03T02:41:20',
+          statsPeriodStart: '28d',
+          statsPeriodEnd: '14d',
         },
       })
     );

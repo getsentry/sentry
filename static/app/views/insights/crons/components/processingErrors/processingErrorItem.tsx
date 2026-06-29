@@ -116,7 +116,7 @@ export function ProcessingErrorItem({error, checkinTooltip}: Props) {
     case ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED:
       return tct(
         'We have detected a problem with your organization and disabled check-in ingestion. Contact [link:support] for details.',
-        {link: <ExternalLink href="https://sentry.zendesk.com/hc/en-us/requests/new/" />}
+        {link: <ExternalLink href="https://www.sentry.help/" />}
       );
     default:
       return tct(

@@ -9,8 +9,8 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {defined} from 'sentry/utils/defined';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 export function ProfileDetails({
   organization,
@@ -30,15 +30,15 @@ export function ProfileDetails({
   }
 
   return (
-    <InterimSection
+    <FoldSection
+      sectionKey="span_profile_details"
       title={t('Profile')}
-      type="span_profile_details"
       disableCollapsePersistence
     >
       <EmbededContentWrapper>
         <SpanProfileDetails span={span} event={event} />
       </EmbededContentWrapper>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

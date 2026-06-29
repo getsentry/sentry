@@ -7,7 +7,7 @@ from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_discover_saved_queries import DiscoverSavedQueryBase
 
-FEATURES = ("organizations:discover-query", "organizations:performance-use-metrics")
+FEATURES = ("organizations:discover-query",)
 
 
 pytestmark = pytest.mark.sentry_metrics

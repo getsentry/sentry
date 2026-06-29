@@ -7,9 +7,12 @@ import {Stacked} from 'sentry/components/container/stacked';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import {SplitDivider} from 'sentry/views/replays/detail/layout/splitDivider';
+import {SplitDivider} from 'sentry/views/explore/replays/detail/layout/splitDivider';
 
-interface Props extends Omit<ReturnType<typeof useResizableDrawer>, 'size' | 'setSize'> {
+interface Props extends Omit<
+  ReturnType<typeof useResizableDrawer>,
+  'onPointerDown' | 'setSize' | 'size'
+> {
   onClose: () => void;
   children?: ReactNode;
 }
@@ -33,7 +36,7 @@ export function DetailsSplitDivider({
       <CloseButtonWrapper>
         <Button
           aria-label={t('Hide details')}
-          priority="transparent"
+          variant="transparent"
           icon={<IconClose size="sm" variant="muted" />}
           onClick={(e: MouseEvent) => {
             e.preventDefault();

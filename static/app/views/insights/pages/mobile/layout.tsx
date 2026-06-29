@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {Outlet, useMatches} from 'react-router-dom';
 
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {
@@ -15,7 +15,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 function MobileVitalsHeader() {
   const {isProjectCrossPlatform} = useCrossPlatformProject();
-  const hasPlatformizedInsights = useHasPlatformizedInsights();
+  const isEap = useInsightsEap();
 
   return (
     <MobileHeader
@@ -28,9 +28,7 @@ function MobileVitalsHeader() {
           />
         </Fragment>
       }
-      headerActions={
-        isProjectCrossPlatform && !hasPlatformizedInsights && <PlatformSelector />
-      }
+      headerActions={isProjectCrossPlatform && !isEap && <PlatformSelector />}
       module={ModuleName.MOBILE_VITALS}
     />
   );

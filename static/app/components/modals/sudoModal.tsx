@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import trimEnd from 'lodash/trimEnd';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -15,15 +16,15 @@ import {
 } from 'sentry/bootstrap/bootstrapRequests';
 import {SecretField} from 'sentry/components/forms/fields/secretField';
 import {Form} from 'sentry/components/forms/form';
-import Hook from 'sentry/components/hook';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Override} from 'sentry/components/override';
 import {WebAuthn} from 'sentry/components/webAuthn';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Authenticator} from 'sentry/types/auth';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -300,7 +301,7 @@ function SudoModal({
                       {t('COPS/CSM')}
                     </Button>
                   ) : (
-                    <Button priority="transparent" size="sm" onClick={handleChangeReason}>
+                    <Button variant="transparent" size="sm" onClick={handleChangeReason}>
                       {t('Change reason')}
                     </Button>
                   )}
@@ -309,7 +310,7 @@ function SudoModal({
               resetOnError
             >
               {!isSelfHosted && showAccessForms && (
-                <Hook name="component:superuser-access-category" />
+                <Override name="component:superuser-access-category" />
               )}
               {!isSelfHosted && !showAccessForms && (
                 <WebAuthn
@@ -320,7 +321,7 @@ function SudoModal({
               )}
             </Form>
           ) : (
-            <LinkButton priority="primary" href={getAuthLoginPath()}>
+            <LinkButton variant="primary" href={getAuthLoginPath()}>
               {t('Continue')}
             </LinkButton>
           )}

@@ -20,7 +20,7 @@ import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
 import type {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
-import RuleForm from './ruleForm';
+import {RuleForm} from './ruleForm';
 
 interface MetricRuleDuplicateProps extends RouteComponentProps {
   project: Project;
@@ -63,7 +63,7 @@ export function MetricRuleDuplicate({
         }
       : {
           pathname: makeAlertsPathname({
-            path: `/rules/`,
+            path: '/rules/',
             organization,
           }),
           query: {project: project.id},

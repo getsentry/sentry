@@ -18,7 +18,7 @@ import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Organization} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -184,7 +184,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   );
 }
 
-function makeOrganizationMenuItem(org: Organization): MenuItemProps {
+function makeOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
   return {
     key: org.id,
     label: <OrganizationBadge organization={org} />,
@@ -193,7 +193,7 @@ function makeOrganizationMenuItem(org: Organization): MenuItemProps {
   };
 }
 
-function makeInactiveOrganizationMenuItem(org: Organization): MenuItemProps {
+function makeInactiveOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
   return {
     ...makeOrganizationMenuItem(org),
     trailingItems: <QuestionTooltip size="sm" title={org.status.name} />,

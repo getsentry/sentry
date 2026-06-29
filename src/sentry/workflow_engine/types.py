@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import random
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeAlias, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Sequence, TypeAlias, TypedDict, TypeVar
 
 from django.db.models import Q
 from sentry_sdk import logger as sentry_logger
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from sentry.models.activity import Activity
     from sentry.models.environment import Environment
     from sentry.models.group import Group
+    from sentry.models.groupassignee import GroupAssignee
     from sentry.models.organization import Organization
     from sentry.services.eventstore.models import GroupEvent
     from sentry.snuba.dataset import Dataset
@@ -41,9 +43,15 @@ T = TypeVar("T")
 ERROR_DETECTOR_NAME = "Error Monitor"
 ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
 
-GroupId: TypeAlias = int
+ActionId: TypeAlias = int
 DataConditionGroupId: TypeAlias = int
+DetectorId: TypeAlias = int
+GroupId: TypeAlias = int
 WorkflowId: TypeAlias = int
+
+
+class AlertRuleNotDualWritten(Exception):
+    pass
 
 
 class DetectorException(Exception):
@@ -93,6 +101,10 @@ class DetectorEvaluationResult:
     event_data: dict[str, Any] | None = None
 
 
+class _WorkflowEventLocalCache(TypedDict, total=False):
+    group_assignees: Sequence[GroupAssignee]
+
+
 @dataclass(frozen=True)
 class WorkflowEventData:
     event: GroupEvent | Activity
@@ -101,6 +113,14 @@ class WorkflowEventData:
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
+
+    # The cache field is used to deduplicate repeated work within the context
+    # of a single event. This field violates the "frozen" requirement of the
+    # "WorkflowEventData" type but it enables tightly scoped caching which does
+    # not leak across workflow events.
+    _cache: _WorkflowEventLocalCache = field(
+        default_factory=lambda: _WorkflowEventLocalCache(), repr=False, compare=False, hash=False
+    )
 
 
 @dataclass(frozen=True)
@@ -114,6 +134,9 @@ class ActionInvocation:
     action: Action
     detector: Detector
     notification_uuid: str
+    # The workflow that triggered this action. An action may be associated
+    # with multiple workflows; this is an arbitrary choice among them.
+    workflow_id: WorkflowId
 
 
 class WorkflowEvaluationSnapshot(TypedDict):
@@ -297,6 +320,15 @@ class ActionHandler:
     def get_config_transformer(cls) -> ConfigTransformer | None:
         return None
 
+    @classmethod
+    def serialize_data(cls, data: dict[str, Any]) -> dict[str, Any]:
+        from sentry.api.serializers.rest_framework.base import (
+            convert_dict_key_case,
+            snake_to_camel_case,
+        )
+
+        return convert_dict_key_case(data, snake_to_camel_case)
+
     @staticmethod
     def execute(invocation: ActionInvocation) -> None:
         # TODO - do we need to pass all of this data to an action?
@@ -379,8 +411,19 @@ class DataConditionHandler(Generic[T]):
         raise NotImplementedError
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         return cls.label_template.format(**condition_data)
+
+    @classmethod
+    def validate_comparison(
+        cls, comparison: dict[str, Any], organization: Organization
+    ) -> dict[str, Any]:
+        """
+        Validate a comparison value beyond what `comparison_json_schema` can express.
+        Runs at save time after schema validation.
+        Raise `rest_framework.serializers.ValidationError` to reject.
+        """
+        return comparison
 
 
 class DataConditionType(TypedDict):
@@ -392,7 +435,7 @@ class DataConditionType(TypedDict):
 
 
 # TODO - Move this to snuba module
-class SnubaQueryDataSourceType(TypedDict):
+class SnubaQueryDataSourceType(TypedDict, total=False):
     query_type: SnubaQuery.Type
     dataset: Dataset
     query: str
@@ -410,3 +453,6 @@ class DetectorSettings:
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
     filter: Q | None = None
+
+
+WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity", DetectorId | None], None]

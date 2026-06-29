@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Badge} from '@sentry/scraps/badge';
 import {
@@ -20,18 +20,52 @@ import {
   useSetMetricVisualizes,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
+import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 
 const MULTI_SELECT_GROUP_KEYS = new Set(['percentiles', 'stats']);
 
-export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
+export function AggregateDropdown({
+  traceMetric,
+  singleSelect = false,
+  disabledReason,
+  disabledAggregates,
+}: {
+  traceMetric: TraceMetric;
+  disabledAggregates?: Record<string, string>;
+  disabledReason?: string;
+  singleSelect?: boolean;
+}) {
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
   const setMetricVisualizes = useSetMetricVisualizes();
+  const isDisabled = disabledReason !== undefined;
 
-  const groups = GROUPED_OPTIONS_BY_TYPE[traceMetric.type] ?? [];
-  const selectedNames = new Set(visualizes.map(v => v.parsedFunction?.name ?? ''));
+  const groups = useMemo(() => {
+    const allGroups = GROUPED_OPTIONS_BY_TYPE[traceMetric.type] ?? [];
+    if (!disabledAggregates) {
+      return allGroups;
+    }
+    return allGroups.map(group => ({
+      ...group,
+      options: group.options.map(opt =>
+        disabledAggregates[opt.value]
+          ? {
+              ...opt,
+              disabled: true,
+              tooltip: disabledAggregates[opt.value],
+            }
+          : opt
+      ),
+    }));
+  }, [traceMetric.type, disabledAggregates]);
+  const selectedNames = new Set(
+    visualizes.map(v => (isVisualizeFunction(v) ? (v.parsedFunction?.name ?? '') : ''))
+  );
 
   function handleChange(selectedOptions: Array<SelectOption<string>>) {
+    if (!isVisualizeFunction(visualize)) {
+      return;
+    }
     if (selectedOptions.length === 0) {
       setMetricVisualizes([
         updateVisualizeYAxis(
@@ -54,7 +88,7 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
 
   return (
     <CompositeSelect
-      disabled={groups.length === 0}
+      disabled={isDisabled || groups.length === 0}
       menuHeaderTrailingItems={
         isDefaultSelection
           ? undefined
@@ -64,6 +98,7 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
+          tooltipProps={{title: disabledReason}}
           prefix={t('Agg')}
           style={{width: '100%'}}
         >
@@ -87,7 +122,7 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
     >
       {groups.map(group => {
         const groupKey = String(group.key);
-        const isMulti = MULTI_SELECT_GROUP_KEYS.has(groupKey);
+        const isMulti = !singleSelect && MULTI_SELECT_GROUP_KEYS.has(groupKey);
         const activeValues = group.options
           .map(opt => String(opt.value))
           .filter(v => selectedNames.has(v));

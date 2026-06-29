@@ -18,7 +18,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-class TestGetSeerExplorerEnabledProjects(TestCase):
+class TestGetSeerAgentEnabledProjects(TestCase):
     @freeze_time("2024-01-15 12:00:00")
     def test_returns_projects_with_feature_flag(self) -> None:
         org1 = self.create_organization()
@@ -102,34 +102,6 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         if active_project.id % 23 == 12:
             assert active_project.id in project_ids
         assert inactive_project.id not in project_ids
-
-    @freeze_time("2024-01-15 12:00:00")
-    def test_returns_empty_without_feature_flag(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-
-        project.flags.has_transactions = True
-        project.save()
-
-        PromptsActivity.objects.create(
-            organization_id=org.id,
-            project_id=0,
-            user_id=self.user.id,
-            feature="seer_autofix_setup_acknowledged",
-        )
-
-        with self.feature(
-            {
-                "organizations:gen-ai-features": [org.slug],
-                "organizations:seat-based-seer-enabled": [org.slug],
-            }
-        ):
-            with mock.patch(
-                "sentry.tasks.seer.explorer_index.in_rollout_group", return_value=False
-            ):
-                result = list(get_seer_explorer_enabled_projects())
-
-        assert len(result) == 0
 
     def test_excludes_projects_with_hide_ai_features(self) -> None:
         org = self.create_organization()
@@ -260,7 +232,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         assert project.id not in [p[0] for p in result]
 
     @freeze_time("2024-01-15 12:00:00")
-    def test_includes_projects_with_legacy_seer_plan_via_rollout(self) -> None:
+    def test_includes_projects_with_legacy_seer_plan(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -280,15 +252,14 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
                 "organizations:seer-added": [org.slug],
             }
         ):
-            with mock.patch("sentry.tasks.seer.explorer_index.in_rollout_group", return_value=True):
-                result = list(get_seer_explorer_enabled_projects())
+            result = list(get_seer_explorer_enabled_projects())
 
         project_ids = [p[0] for p in result]
         if project.id % 23 == 12:
             assert project.id in project_ids
 
     @freeze_time("2024-01-15 12:00:00")
-    def test_includes_projects_with_seat_based_plan_via_rollout(self) -> None:
+    def test_includes_projects_with_seat_based_plan(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -308,47 +279,17 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
                 "organizations:seat-based-seer-enabled": [org.slug],
             }
         ):
-            with mock.patch("sentry.tasks.seer.explorer_index.in_rollout_group", return_value=True):
-                result = list(get_seer_explorer_enabled_projects())
+            result = list(get_seer_explorer_enabled_projects())
 
         project_ids = [p[0] for p in result]
         if project.id % 23 == 12:
             assert project.id in project_ids
-
-    @freeze_time("2024-01-15 12:00:00")
-    def test_excludes_projects_with_billing_plan_not_in_rollout(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-
-        project.flags.has_transactions = True
-        project.save()
-
-        PromptsActivity.objects.create(
-            organization_id=org.id,
-            project_id=0,
-            user_id=self.user.id,
-            feature="seer_autofix_setup_acknowledged",
-        )
-
-        with self.feature(
-            {
-                "organizations:gen-ai-features": [org.slug],
-                "organizations:seat-based-seer-enabled": [org.slug],
-            }
-        ):
-            with mock.patch(
-                "sentry.tasks.seer.explorer_index.in_rollout_group", return_value=False
-            ):
-                result = list(get_seer_explorer_enabled_projects())
-
-        assert len(result) == 0
-        assert project.id not in [p[0] for p in result]
 
 
 @django_db_all
 class TestScheduleExplorerIndex(TestCase):
-    def test_skips_when_option_disabled(self) -> None:
-        with self.options({"seer.explorer_index.enable": False}):
+    def test_skips_when_killswitch_enabled(self) -> None:
+        with self.options({"seer.explorer_index.killswitch.enable": True}):
             with mock.patch(
                 "sentry.tasks.seer.explorer_index.get_seer_explorer_enabled_projects"
             ) as mock_get_projects:
@@ -356,7 +297,7 @@ class TestScheduleExplorerIndex(TestCase):
                 mock_get_projects.assert_not_called()
 
     @freeze_time("2024-01-15 12:00:00")
-    def test_schedules_projects_with_option_enabled(self) -> None:
+    def test_schedules_projects(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -370,19 +311,18 @@ class TestScheduleExplorerIndex(TestCase):
             feature="seer_autofix_setup_acknowledged",
         )
 
-        with self.options({"seer.explorer_index.enable": True}):
-            with self.feature(
-                {
-                    "organizations:gen-ai-features": [org.slug],
-                    "organizations:seer-explorer-index": [org.slug],
-                }
-            ):
-                with mock.patch(
-                    "sentry.tasks.seer.explorer_index.dispatch_explorer_index_projects"
-                ) as mock_dispatch:
-                    mock_dispatch.return_value = iter([])
-                    schedule_explorer_index()
-                    mock_dispatch.assert_called_once()
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+                "organizations:seer-explorer-index": [org.slug],
+            }
+        ):
+            with mock.patch(
+                "sentry.tasks.seer.explorer_index.dispatch_explorer_index_projects"
+            ) as mock_dispatch:
+                mock_dispatch.return_value = iter([])
+                schedule_explorer_index()
+                mock_dispatch.assert_called_once()
 
 
 @django_db_all
@@ -410,7 +350,7 @@ class TestDispatchExplorerIndexProjects(TestCase):
 
 @django_db_all
 class TestRunExplorerIndexForProjects(TestCase):
-    @patch("sentry.tasks.seer.explorer_index.make_explorer_index_request")
+    @patch("sentry.tasks.seer.explorer_index.make_agent_index_request")
     def test_calls_seer_endpoint_successfully(self, mock_request):
         mock_request.return_value.status = 200
         mock_request.return_value.json.return_value = {"scheduled_count": 3, "projects": []}
@@ -418,8 +358,7 @@ class TestRunExplorerIndexForProjects(TestCase):
         projects = [(1, 100), (2, 100), (3, 200)]
         start = "2024-01-15T12:00:00+00:00"
 
-        with self.options({"seer.explorer_index.enable": True}):
-            run_explorer_index_for_projects(projects, start)
+        run_explorer_index_for_projects(projects, start)
 
         mock_request.assert_called_once()
         body = mock_request.call_args[0][0]
@@ -429,21 +368,20 @@ class TestRunExplorerIndexForProjects(TestCase):
             {"org_id": 200, "project_id": 3},
         ]
 
-    @patch("sentry.tasks.seer.explorer_index.make_explorer_index_request")
+    @patch("sentry.tasks.seer.explorer_index.make_agent_index_request")
     def test_handles_request_error(self, mock_request):
         mock_request.return_value.status = 500
 
         projects = [(1, 100)]
         start = "2024-01-15T12:00:00+00:00"
 
-        with self.options({"seer.explorer_index.enable": True}):
-            with pytest.raises(Exception):
-                run_explorer_index_for_projects(projects, start)
+        with pytest.raises(Exception):
+            run_explorer_index_for_projects(projects, start)
 
-    def test_skips_when_option_disabled(self) -> None:
-        with self.options({"seer.explorer_index.enable": False}):
+    def test_skips_when_killswitch_enabled(self) -> None:
+        with self.options({"seer.explorer_index.killswitch.enable": True}):
             with mock.patch(
-                "sentry.tasks.seer.explorer_index.make_explorer_index_request"
+                "sentry.tasks.seer.explorer_index.make_agent_index_request"
             ) as mock_request:
                 run_explorer_index_for_projects([(1, 100)], "2024-01-15T12:00:00+00:00")
                 mock_request.assert_not_called()

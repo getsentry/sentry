@@ -6,13 +6,21 @@ import time
 from collections import namedtuple
 from datetime import datetime, timedelta
 from enum import IntEnum
+from functools import partial
 from threading import Lock
+
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.types import Topic as ArroyoTopic
+from taskbroker_client.state import current_task
+from taskbroker_client.worker.producer import TaskProducer
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
+from sentry.options.rollout import in_random_rollout
+from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json, kafka_config, metrics
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.dates import to_datetime
-from sentry.utils.pubsub import KafkaPublisher
 
 # Aggregation key for grouping outcomes
 OutcomeKey = namedtuple(
@@ -156,8 +164,30 @@ class Outcome(IntEnum):
         return self in (Outcome.ACCEPTED, Outcome.RATE_LIMITED)
 
 
-outcomes_publisher: KafkaPublisher | None = None
-billing_publisher: KafkaPublisher | None = None
+def _get_outcomes_producer(name: str = "sentry.utils.outcomes") -> KafkaProducer:
+    return get_arroyo_producer(
+        name,
+        Topic.OUTCOMES,
+    )
+
+
+def _get_billing_producer(name: str = "sentry.utils.outcomes.billing") -> KafkaProducer:
+    return get_arroyo_producer(
+        name,
+        Topic.OUTCOMES_BILLING,
+    )
+
+
+outcomes_producer = SingletonProducer(_get_outcomes_producer)
+outcomes_tp_name = "sentry.utils.outcomes.taskproducer"
+outcomes_task_producer = get_task_producer(
+    outcomes_tp_name, partial(_get_outcomes_producer, outcomes_tp_name)
+)
+billing_producer = SingletonProducer(_get_billing_producer)
+billing_tp_name = "sentry.utils.outcomes.billing.taskproducer"
+billing_task_producer = get_task_producer(
+    billing_tp_name, partial(_get_billing_producer, billing_tp_name)
+)
 
 LATE_OUTCOME_THRESHOLD = timedelta(days=1)
 
@@ -183,9 +213,6 @@ def track_outcome(
     data for SnubaTSDB and RedisSnubaTSDB, such as # of rate-limited/filtered
     events.
     """
-    global outcomes_publisher
-    global billing_publisher
-
     if quantity is None:
         quantity = 1
 
@@ -205,20 +232,15 @@ def track_outcome(
     # Create a second producer instance only if the cluster differs. Otherwise,
     # reuse the same producer and just send to the other topic.
     if use_billing and billing_config["cluster"] != outcomes_config["cluster"]:
-        if billing_publisher is None:
-            cluster_name = billing_config["cluster"]
-            billing_publisher = KafkaPublisher(
-                kafka_config.get_kafka_producer_cluster_options(cluster_name)
-            )
-        publisher = billing_publisher
-
+        if current_task() is not None and in_random_rollout("tasks.producer.track_outcome.rollout"):
+            producer: SingletonProducer | TaskProducer = billing_task_producer
+        else:
+            producer = billing_producer
     else:
-        if outcomes_publisher is None:
-            cluster_name = outcomes_config["cluster"]
-            outcomes_publisher = KafkaPublisher(
-                kafka_config.get_kafka_producer_cluster_options(cluster_name)
-            )
-        publisher = outcomes_publisher
+        if current_task() is not None and in_random_rollout("tasks.producer.track_outcome.rollout"):
+            producer = outcomes_task_producer
+        else:
+            producer = outcomes_producer
 
     now = to_datetime(time.time())
     timestamp = timestamp or now
@@ -228,21 +250,24 @@ def track_outcome(
         billing_config["real_topic_name"] if use_billing else outcomes_config["real_topic_name"]
     )
 
-    # Send a snuba metrics payload.
-    publisher.publish(
-        topic_name,
-        json.dumps(
-            {
-                "timestamp": timestamp,
-                "org_id": org_id,
-                "project_id": project_id,
-                "key_id": key_id,
-                "outcome": outcome.value,
-                "reason": reason,
-                "event_id": event_id,
-                "category": category,
-                "quantity": quantity,
-            }
+    producer.produce(
+        ArroyoTopic(topic_name),
+        KafkaPayload(
+            None,
+            json.dumps(
+                {
+                    "timestamp": timestamp,
+                    "org_id": org_id,
+                    "project_id": project_id,
+                    "key_id": key_id,
+                    "outcome": outcome.value,
+                    "reason": reason,
+                    "event_id": event_id,
+                    "category": category,
+                    "quantity": quantity,
+                }
+            ).encode("utf-8"),
+            [],
         ),
     )
 

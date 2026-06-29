@@ -42,8 +42,8 @@ export function TagDrawerContent({
   });
 
   const highlightTagKeys = useMemo(() => {
-    return detailedProject?.highlightTags ?? project?.highlightTags ?? [];
-  }, [detailedProject, project]);
+    return detailedProject?.highlightTags ?? [];
+  }, [detailedProject]);
 
   const tagValues = useMemo(
     () =>

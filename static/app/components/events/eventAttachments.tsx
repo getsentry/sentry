@@ -18,9 +18,9 @@ import type {Group, IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachments/inlineEventAttachment';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -86,12 +86,12 @@ function EventAttachmentsContent({
 
   if (isError) {
     return (
-      <InterimSection type={SectionKey.ATTACHMENTS} title={t('Attachments')}>
+      <FoldSection sectionKey={SectionKey.ATTACHMENTS} title={t('Attachments')}>
         <LoadingError
           onRetry={refetch}
           message={t('An error occurred while fetching attachments')}
         />
-      </InterimSection>
+      </FoldSection>
     );
   }
 
@@ -113,8 +113,8 @@ function EventAttachmentsContent({
   };
 
   return (
-    <InterimSection
-      type={SectionKey.ATTACHMENTS}
+    <FoldSection
+      sectionKey={SectionKey.ATTACHMENTS}
       title={title}
       actions={project && group ? <ViewAllGroupAttachmentsButton /> : null}
       disableCollapsePersistence={disableCollapsePersistence}
@@ -179,7 +179,7 @@ function EventAttachmentsContent({
           ))}
         </StyledPanelTable>
       )}
-    </InterimSection>
+    </FoldSection>
   );
 }
 

@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Grid} from '@sentry/scraps/layout';
 import type {TabListItemProps} from '@sentry/scraps/tabs';
 import {TabList} from '@sentry/scraps/tabs';
 
@@ -11,6 +10,7 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconBusiness} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
@@ -29,6 +29,7 @@ import {
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
 import {ModuleName} from 'sentry/views/insights/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 export type Props = {
   domainBaseUrl: string;
@@ -129,16 +130,24 @@ export function DomainViewHeader({
   return (
     <Fragment>
       <Layout.Header unified={unified}>
-        <Layout.HeaderContent>
-          {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
-          <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
-            <FeedbackButton feedbackOptions={feedbackOptions} />
-            {additonalHeaderActions}
-          </Grid>
-        </Layout.HeaderActions>
+        {crumbs.length > 1 && (
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
+          </Layout.HeaderContent>
+        )}
+        <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
+        {additonalHeaderActions && (
+          <TopBar.Slot name="actions">{additonalHeaderActions}</TopBar.Slot>
+        )}
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            feedbackOptions={feedbackOptions}
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
         <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
             <TabList>

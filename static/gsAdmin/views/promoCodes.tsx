@@ -3,12 +3,11 @@ import moment from 'moment-timezone';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
-
-import {openModal} from 'sentry/actionCreators/modal';
+import {useModal} from '@sentry/scraps/modal';
 
 import {PageHeader} from 'admin/components/pageHeader';
 import {AddPromoCodeModal as PromoCodeModal} from 'admin/components/promoCodes/promoCodeModal';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import {titleCase} from 'getsentry/utils/titleCase';
 
 const getRow = (row: any) => [
@@ -44,12 +43,14 @@ const getRow = (row: any) => [
 ];
 
 export function PromoCodes() {
+  const {openModal} = useModal();
+
   return (
     <div>
       <PageHeader title="Promo Codes">
         <Button
           onClick={() => openModal(deps => <PromoCodeModal {...deps} />)}
-          priority="primary"
+          variant="primary"
           size="sm"
         >
           Create Promo Code

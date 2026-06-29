@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {DetectorIssuePreview} from 'sentry/views/detectors/components/forms/common/detectorIssuePreview';
 import {IssuePreviewSection} from 'sentry/views/detectors/components/forms/common/issuePreviewSection';
 import {ownerToActor} from 'sentry/views/detectors/components/forms/common/ownerToActor';
-import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
+import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 import {useCronDetectorFormField} from 'sentry/views/detectors/components/forms/cron/fields';
 
 const FALLBACK_ISSUE_TITLE = t('Cron failure: …');
@@ -22,7 +22,7 @@ export function CronIssuePreview({step}: {step?: number}) {
   const owner = useCronDetectorFormField('owner');
   const issueTitle = useCronIssueTitle();
   const assignee = ownerToActor(owner);
-  const {project} = useDetectorFormContext();
+  const project = useDetectorFormProject();
 
   return (
     <IssuePreviewSection step={step}>

@@ -15,8 +15,8 @@ import {
   type NotificationTemplateRegistration,
 } from 'sentry/debug/notifications/types';
 import {IconCheckmark, IconCopy} from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 const MSTEAMS_PREVIEW_URL = 'https://adaptivecards.microsoft.com/designer.html';
@@ -50,10 +50,10 @@ export function TeamsPreview({
             Copy JSON
           </Button>
           <LinkButton
-            to={MSTEAMS_PREVIEW_URL}
+            href={MSTEAMS_PREVIEW_URL}
             size="xs"
             icon={<PluginIcon pluginId="msteams" size={24} />}
-            target="_blank"
+            external
           >
             Designer
           </LinkButton>

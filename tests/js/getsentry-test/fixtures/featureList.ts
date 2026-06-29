@@ -92,9 +92,5 @@ export function FeatureListFixture(): Record<string, Feature> {
       description:
         'Configure custom Symbol Servers, Amazon S3 buckets, or GCS buckets for debug files.',
     },
-    'app-store-connect-multiple': {
-      name: 'Multiple App Store Connect apps',
-      description: 'Add multiple Apple App Store Connect apps per project',
-    },
   };
 }

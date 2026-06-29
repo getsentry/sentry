@@ -13,9 +13,9 @@ import {t} from 'sentry/locale';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
   onClick: () => void;

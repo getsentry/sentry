@@ -6,7 +6,7 @@ export const Container = styled('div')`
   gap: ${p => p.theme.space.xl};
   justify-content: flex-start;
   background-color: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};
 

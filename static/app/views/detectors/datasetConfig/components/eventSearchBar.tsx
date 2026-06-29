@@ -3,6 +3,7 @@ import {useEffect} from 'react';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {DetectorSearchBarProps} from 'sentry/views/detectors/datasetConfig/base';
 import {useCustomMeasurements} from 'sentry/views/detectors/datasetConfig/useCustomMeasurements';
@@ -18,6 +19,7 @@ export function EventsSearchBar({
 }: DetectorSearchBarProps) {
   const api = useApi();
   const organization = useOrganization();
+  const {addAlert} = useGlobalAlerts();
   const {customMeasurements} = useCustomMeasurements();
 
   useEffect(() => {
@@ -31,8 +33,8 @@ export function EventsSearchBar({
       },
       environments: [environment],
     };
-    loadOrganizationTags(api, organization.slug, selection);
-  }, [api, organization.slug, environment, projectIds]);
+    loadOrganizationTags(api, organization.slug, selection, addAlert);
+  }, [api, organization.slug, environment, projectIds, addAlert]);
 
   return (
     <ResultsSearchQueryBuilder

@@ -5,7 +5,7 @@
 // decide between server (sync) and browser (useInsertionEffect) code paths.
 // If document is defined, Emotion uses useInsertionEffect which doesn't fire
 // during renderToString, and CSS extraction silently produces empty styles.
-if (typeof globalThis.window === 'undefined') {
+if (globalThis.window === undefined) {
   const makeStorage = () => {
     const store = new Map<string, string>();
     return {
@@ -35,4 +35,12 @@ if (typeof globalThis.window === 'undefined') {
   } as any;
 
   globalThis.localStorage = localStorageShim as unknown as Storage;
+}
+
+// CompactSelect and other core components call `CSS.escape` during render, but
+// the node SSR environment has no `CSS` global. Shim a minimal escape.
+if ((globalThis as any).CSS === undefined) {
+  (globalThis as any).CSS = {
+    escape: (value: string) => String(value).replace(/[^\w-]/g, '\\$&'),
+  };
 }

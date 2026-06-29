@@ -108,8 +108,8 @@ class BitbucketIssueTest(APITestCase):
             "https://api.bitbucket.org/2.0/repositories/myaccount",
             body=b"""{
                 "values": [
-                    {"full_name": "myaccount/repo1"},
-                    {"full_name": "myaccount/repo2"}
+                    {"full_name": "myaccount/repo1", "uuid": "{repo-1}"},
+                    {"full_name": "myaccount/repo2", "uuid": "{repo-2}"}
                 ]
             }""",
             content_type="application/json",
@@ -132,8 +132,8 @@ class BitbucketIssueTest(APITestCase):
             "https://api.bitbucket.org/2.0/repositories/myaccount",
             body=b"""{
                 "values": [
-                    {"full_name": "myaccount/repo1"},
-                    {"full_name": "myaccount/repo2"}
+                    {"full_name": "myaccount/repo1", "uuid": "{repo-1}"},
+                    {"full_name": "myaccount/repo2", "uuid": "{repo-2}"}
                 ]
             }""",
             content_type="application/json",
@@ -191,7 +191,12 @@ class BitbucketIssueTest(APITestCase):
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/myaccount",
-            json={"values": [{"full_name": "myaccount/repo1"}, {"full_name": "myaccount/repo2"}]},
+            json={
+                "values": [
+                    {"full_name": "myaccount/repo1", "uuid": "{repo-1}"},
+                    {"full_name": "myaccount/repo2", "uuid": "{repo-2}"},
+                ]
+            },
         )
 
         installation = self.integration.get_installation(self.organization.id)
@@ -244,7 +249,12 @@ class BitbucketIssueTest(APITestCase):
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/myaccount",
-            json={"values": [{"full_name": "myaccount/repo1"}, {"full_name": "myaccount/repo2"}]},
+            json={
+                "values": [
+                    {"full_name": "myaccount/repo1", "uuid": "{repo-1}"},
+                    {"full_name": "myaccount/repo2", "uuid": "{repo-2}"},
+                ]
+            },
         )
         installation = self.integration.get_installation(self.organization.id)
         event = self.store_event(
@@ -268,8 +278,8 @@ class BitbucketIssueTest(APITestCase):
             "https://api.bitbucket.org/2.0/repositories/myaccount",
             json={
                 "values": [
-                    {"full_name": "myaccount/repo1"},
-                    {"full_name": "myaccount/repo2"},
+                    {"full_name": "myaccount/repo1", "uuid": "{repo-1}"},
+                    {"full_name": "myaccount/repo2", "uuid": "{repo-2}"},
                 ],
             },
         )
@@ -298,7 +308,12 @@ class BitbucketIssueTest(APITestCase):
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/myaccount",
-            json={"values": [{"full_name": "myaccount/repo1"}, {"full_name": "myaccount/repo2"}]},
+            json={
+                "values": [
+                    {"full_name": "myaccount/repo1", "uuid": "{repo-1}"},
+                    {"full_name": "myaccount/repo2", "uuid": "{repo-2}"},
+                ]
+            },
         )
         installation = self.integration.get_installation(self.organization.id)
         assert installation.get_link_issue_config(self.group) == [

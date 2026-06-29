@@ -27,7 +27,7 @@ import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {FieldKind, FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
 
 interface ArithmeticTokenFunctionProps {
@@ -85,7 +85,7 @@ function ArgumentsGrid({
   token: functionToken,
   rowRef,
 }: ArgumentsGridProps) {
-  const [args, setArguments] = useState<Argument[]>(
+  const [args, setArguments] = useState(
     functionToken.attributes.map(attr => {
       return {
         label: attr.attribute,

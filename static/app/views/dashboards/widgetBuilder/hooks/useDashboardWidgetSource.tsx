@@ -1,6 +1,6 @@
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 
 export function useDashboardWidgetSource(): DashboardWidgetSource | '' {

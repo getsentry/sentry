@@ -3,9 +3,9 @@ import {Fragment} from 'react';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {WidgetContainer} from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
@@ -31,7 +31,7 @@ function WrappedComponent({data, ...rest}: any) {
   return (
     <OrganizationContext value={data.organization}>
       <MEPSettingProvider>
-        <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
+        <PerformanceDisplayContext value={{performanceType: ProjectPerformanceType.ANY}}>
           <WidgetContainer
             chartHeight={100}
             allowedCharts={[
@@ -44,7 +44,7 @@ function WrappedComponent({data, ...rest}: any) {
             {...data}
             {...rest}
           />
-        </PerformanceDisplayProvider>
+        </PerformanceDisplayContext>
       </MEPSettingProvider>
     </OrganizationContext>
   );
@@ -74,7 +74,7 @@ describe('Performance > Widgets > Query Batching', () => {
 
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
+      url: '/organizations/org-slug/events-stats/',
       body: {
         'epm()': {
           data: [
@@ -82,7 +82,7 @@ describe('Performance > Widgets > Query Batching', () => {
               1636822800,
               [
                 {
-                  count: 30.0,
+                  count: 30,
                 },
               ],
             ],

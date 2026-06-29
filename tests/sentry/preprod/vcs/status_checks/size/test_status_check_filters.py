@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest import mock
+
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import (
@@ -7,12 +9,12 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
+from sentry.preprod.vcs.status_checks.size.rules import get_status_check_rules
 from sentry.preprod.vcs.status_checks.size.tasks import (
     _compute_overall_status,
     _evaluate_rule_threshold,
     _fetch_base_size_metrics,
     _get_artifact_filter_context,
-    _get_status_check_rules,
     _rule_matches_artifact,
 )
 from sentry.preprod.vcs.status_checks.size.types import RuleArtifactType, StatusCheckRule
@@ -208,6 +210,43 @@ class StatusCheckFiltersTest(TestCase):
         assert _rule_matches_artifact(rule_android_release, context) is False
         assert _rule_matches_artifact(rule_ios_debug, context) is False
 
+    def test_rule_matches_same_key_positive_and_negated_filters(self) -> None:
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            app_id="com.example.app",
+            commit_comparison=self.commit_comparison,
+        )
+
+        context = _get_artifact_filter_context(artifact)
+
+        satisfiable_rule = StatusCheckRule(
+            id="rule1",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="app_id:com.example.app !app_id:bad* platform_name:apple",
+        )
+        contradictory_rule = StatusCheckRule(
+            id="rule2",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="app_id:com.example.app !app_id:com.example.app platform_name:apple",
+        )
+        platform_mismatch_rule = StatusCheckRule(
+            id="rule3",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="app_id:com.example.app !app_id:bad* platform_name:android",
+        )
+
+        assert _rule_matches_artifact(satisfiable_rule, context) is True
+        assert _rule_matches_artifact(contradictory_rule, context) is False
+        assert _rule_matches_artifact(platform_mismatch_rule, context) is False
+
     def test_status_check_fails_when_rule_matches_and_exceeds_threshold(self) -> None:
         artifact = PreprodArtifact.objects.create(
             project=self.project,
@@ -335,7 +374,7 @@ class StatusCheckFiltersTest(TestCase):
             '"artifactType": "watch_artifact"}]',
         )
 
-        rules = _get_status_check_rules(self.project)
+        rules = get_status_check_rules(self.project)
 
         assert len(rules) == 1
         assert rules[0].id == "rule1"
@@ -351,7 +390,7 @@ class StatusCheckFiltersTest(TestCase):
             '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 100}]',
         )
 
-        rules = _get_status_check_rules(self.project)
+        rules = get_status_check_rules(self.project)
 
         assert len(rules) == 1
         assert rules[0].artifact_type == "main_artifact"
@@ -363,10 +402,86 @@ class StatusCheckFiltersTest(TestCase):
             '"value": 100, "artifactType": "app_clip_artifact"}]',
         )
 
-        rules = _get_status_check_rules(self.project)
+        rules = get_status_check_rules(self.project)
 
         assert len(rules) == 1
         assert rules[0].artifact_type == RuleArtifactType.APP_CLIP_ARTIFACT
+
+    def test_parse_rules_from_bytes_project_option(self) -> None:
+        with mock.patch.object(
+            self.project,
+            "get_option",
+            return_value=(
+                b'[{"id": "rule1", "metric": "download_size", "measurement": "relative_diff", '
+                b'"value": 10.5}]'
+            ),
+        ):
+            rules = get_status_check_rules(self.project)
+
+        assert len(rules) == 1
+        assert rules[0].id == "rule1"
+        assert rules[0].metric == "download_size"
+        assert rules[0].measurement == "relative_diff"
+        assert rules[0].value == 10.5
+
+    def test_parse_rules_from_list_project_option_skips_invalid_dict_entries(self) -> None:
+        self.project.update_option(
+            "sentry:preprod_size_status_checks_rules",
+            [
+                {
+                    "id": "bad-value",
+                    "metric": "install_size",
+                    "measurement": "absolute",
+                    "value": "1",
+                },
+                {"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 100},
+            ],
+        )
+
+        rules = get_status_check_rules(self.project)
+
+        assert len(rules) == 1
+        assert rules[0].id == "rule1"
+
+    def test_parse_rules_preserves_unknown_metric_and_measurement_for_task_compatibility(
+        self,
+    ) -> None:
+        self.project.update_option(
+            "sentry:preprod_size_status_checks_rules",
+            [
+                {
+                    "id": "unknown-metric",
+                    "metric": "unknown",
+                    "measurement": "absolute",
+                    "value": 1,
+                },
+                {
+                    "id": "unknown-measurement",
+                    "metric": "install_size",
+                    "measurement": "unknown",
+                    "value": 2,
+                },
+            ],
+        )
+
+        rules = get_status_check_rules(self.project)
+
+        assert [rule.id for rule in rules] == ["unknown-metric", "unknown-measurement"]
+        assert rules[0].metric == "unknown"
+        assert rules[1].measurement == "unknown"
+
+    def test_parse_rules_non_dict_entry_returns_empty_rules_for_task_compatibility(self) -> None:
+        self.project.update_option(
+            "sentry:preprod_size_status_checks_rules",
+            [
+                "not-a-rule",
+                {"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 100},
+            ],
+        )
+
+        rules = get_status_check_rules(self.project)
+
+        assert rules == []
 
     def test_evaluate_absolute_diff_threshold_exceeds(self) -> None:
         head_artifact = self.create_preprod_artifact(

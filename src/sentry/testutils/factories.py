@@ -57,9 +57,7 @@ from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentProject,
-    IncidentTrigger,
     IncidentType,
-    TriggerStatus,
 )
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.doc_integration import DocIntegration
@@ -77,7 +75,9 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.grouptype import get_group_type_by_type_id
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -102,6 +102,7 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
@@ -113,6 +114,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.pullrequest import PullRequestCommit
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releasecommit import ReleaseCommit
@@ -141,7 +143,12 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
+    PreprodComparisonApproval,
+    PreprodSnapshotComparison,
+    PreprodSnapshotMetrics,
 )
+from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -157,7 +164,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -174,7 +181,12 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
-from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.users.models.identity import (
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    OrganizationIdentity,
+)
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.user_option import UserOption
@@ -203,6 +215,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from social_auth.models import UserSocialAuth
 
@@ -618,10 +631,6 @@ class Factories:
         if not allow_no_action_data:
             action_data = action_data or [
                 {
-                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                    "name": "Send a notification (for all legacy integrations)",
-                },
-                {
                     "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
                     "service": "webhooks",
                     "name": "Send a notification via webhooks",
@@ -887,12 +896,33 @@ class Factories:
 
         if not repo:
             repo = Factories.create_repo(project=project)
+        if "project_repository" not in kwargs:
+            project_repo, _ = ProjectRepository.objects.get_or_create(
+                project=project,
+                repository=repo,
+                defaults={"source": ProjectRepositorySource.MANUAL},
+            )
+            kwargs["project_repository"] = project_repo
         return RepositoryProjectPathConfig.objects.create(
-            project=project,
-            repository=repo,
             organization_integration_id=organization_integration.id,
             integration_id=organization_integration.integration_id,
             organization_id=organization_integration.organization_id,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_project_repository(project, repository=None, repository_id=None, **kwargs):
+        if repository is None and repository_id is not None:
+            repository = Repository.objects.get(id=repository_id)
+        assert repository is not None, "repository or repository_id is required"
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repository,
+            defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+        )
+        return SeerProjectRepository.objects.create(
+            project_repository=project_repo,
             **kwargs,
         )
 
@@ -1241,6 +1271,53 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_group_activity(group, *args, **kwargs):
         return Activity.objects.create(group=group, project=group.project, *args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_owner(
+        group,
+        type=GroupOwnerType.OWNERSHIP_RULE.value,
+        user_id=None,
+        team=None,
+        **kwargs,
+    ) -> GroupOwner:
+        return GroupOwner.objects.create(
+            group=group,
+            project=group.project,
+            organization=group.project.organization,
+            type=type,
+            user_id=user_id,
+            team=team,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_action_log_entry(
+        group, type=None, actor_type=None, actor_id=None, source=None, data=None, *args, **kwargs
+    ) -> GroupActionLogEntry:
+        if type is None:
+            type = GroupActionType.VIEW
+        if actor_type is None:
+            actor_type = GroupActorType.SYSTEM
+        if actor_id is None:
+            actor_id = 1234
+        if source is None:
+            source = "testutils.factories"
+        if data is None:
+            data = {}
+
+        return GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project.id,
+            type=type,
+            actor_type=actor_type,
+            actor_id=actor_id,
+            source=source,
+            data=data,
+            *args,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -1849,16 +1926,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_incident_trigger(incident, alert_rule_trigger, status=None):
-        if status is None:
-            status = TriggerStatus.ACTIVE.value
-
-        return IncidentTrigger.objects.create(
-            alert_rule_trigger=alert_rule_trigger, incident=incident, status=status
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_alert_rule_trigger_action(
         trigger,
         type=AlertRuleTriggerAction.Type.EMAIL,
@@ -2015,6 +2082,17 @@ class Factories:
             status=IdentityStatus.VALID,
             scopes=[],
             **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_organization_identity(
+        organization: Organization,
+        identity: Identity,
+    ) -> OrganizationIdentity:
+        return OrganizationIdentity.objects.create(
+            organization_id=organization.id,
+            identity=identity,
         )
 
     @staticmethod
@@ -2405,6 +2483,27 @@ class Factories:
         return Action.objects.create(type=type, config=config, data=data, **kwargs)
 
     @staticmethod
+    def create_action_invocation(
+        event: GroupEvent | Activity,
+        group: Group,
+        action: Action,
+        detector: Detector,
+        workflow_id: int | None = None,
+        notification_uuid: str | None = None,
+        **kwargs,
+    ) -> ActionInvocation:
+        import uuid
+
+        return ActionInvocation(
+            event_data=WorkflowEventData(event=event, group=group),
+            action=action,
+            detector=detector,
+            notification_uuid=notification_uuid or str(uuid.uuid4()),
+            workflow_id=workflow_id or 0,
+            **kwargs,
+        )
+
+    @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
     def create_detector_workflow(
         detector: Detector | None = None,
@@ -2559,6 +2658,63 @@ class Factories:
             error_code=error_code,
             error_message=error_message,
             analysis_file_id=analysis_file_id,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_preprod_snapshot_metrics(
+        preprod_artifact: PreprodArtifact,
+        image_count: int = 0,
+        is_selective: bool = False,
+    ) -> PreprodSnapshotMetrics:
+        return PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            image_count=image_count,
+            is_selective=is_selective,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_preprod_snapshot_comparison(
+        head_snapshot_metrics: PreprodSnapshotMetrics,
+        base_snapshot_metrics: PreprodSnapshotMetrics,
+        state: int = PreprodSnapshotComparison.State.SUCCESS,
+        images_added: int = 0,
+        images_removed: int = 0,
+        images_changed: int = 0,
+        images_unchanged: int = 0,
+        images_renamed: int = 0,
+        images_skipped: int = 0,
+    ) -> PreprodSnapshotComparison:
+        return PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=head_snapshot_metrics,
+            base_snapshot_metrics=base_snapshot_metrics,
+            state=state,
+            images_added=images_added,
+            images_removed=images_removed,
+            images_changed=images_changed,
+            images_unchanged=images_unchanged,
+            images_renamed=images_renamed,
+            images_skipped=images_skipped,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_preprod_comparison_approval(
+        preprod_artifact: PreprodArtifact,
+        preprod_feature_type: int = PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+        approval_status: int = PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        approved_at: datetime | None = None,
+        approved_by_id: int | None = None,
+        extras: dict | None = None,
+    ) -> PreprodComparisonApproval:
+        return PreprodComparisonApproval.objects.create(
+            preprod_artifact=preprod_artifact,
+            preprod_feature_type=preprod_feature_type,
+            approval_status=approval_status,
+            approved_at=approved_at,
+            approved_by_id=approved_by_id,
+            extras=extras,
         )
 
     @staticmethod
@@ -2807,3 +2963,9 @@ class Factories:
             type="github", external_id="github-app", defaults=kwargs
         )
         return identity_provider
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_run(organization, type: str = SeerRunType.EXPLORER, **kwargs) -> SeerRun:
+        kwargs.setdefault("last_triggered_at", timezone.now())
+        return SeerRun.objects.create(organization=organization, type=type, **kwargs)

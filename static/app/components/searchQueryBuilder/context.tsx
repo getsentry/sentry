@@ -9,6 +9,7 @@ import {
   type Dispatch,
 } from 'react';
 import * as Sentry from '@sentry/react';
+import {useQuery, type QueryKey} from '@tanstack/react-query';
 
 import type {
   GetTagKeys,
@@ -16,88 +17,145 @@ import type {
   SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import {useFilterKeyRegistry} from 'sentry/components/searchQueryBuilder/hooks/useFilterKeyRegistry';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
   useQueryBuilderState,
   type QueryBuilderActions,
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import type {
+  FieldDefinitionGetter,
   FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
-import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {defined} from 'sentry/utils/defined';
+import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
-interface SearchQueryBuilderContextData {
-  actionBarRef: React.RefObject<HTMLDivElement | null>;
-  aiSearchBadgeType: 'alpha' | 'beta';
-  askSeerNLQueryRef: React.RefObject<string | null>;
-  askSeerSuggestedQueryRef: React.RefObject<string | null>;
-  autoSubmitSeer: boolean;
+interface SearchQueryBuilderStateContextData {
+  clearSearchQuery: (options?: {reopenDropdown?: boolean}) => void;
   committedQuery: string;
-  currentInputValueRef: React.RefObject<string>;
+  dispatch: Dispatch<QueryBuilderActions>;
+  focusOverride: FocusOverride | null;
+  handleSearch: (query: string) => void;
+  parseQuery: (query: string) => ParseResult | null;
+  parsedQuery: ParseResult | null;
+  query: string;
+}
+
+interface SearchQueryBuilderConfigContextData {
+  caseInsensitive: CaseInsensitive | undefined;
   disabled: boolean;
   disallowFreeText: boolean;
   disallowLogicalOperators: boolean;
   disallowWildcard: boolean;
-  dispatch: Dispatch<QueryBuilderActions>;
+  filterKeyAliases: TagCollection | undefined;
+  filterKeyRegistryQueryKey: QueryKey;
+  filterKeySections: FilterKeySection[];
+  filterKeys: TagCollection;
+  getFieldDefinition: FieldDefinitionGetter;
+  getSuggestedFilterKey: (key: string) => string | null;
+  getTagKeys: GetTagKeys | undefined;
+  getTagValues: GetTagValues;
+  invalidFilterKeys: string[];
+  matchKeySuggestions: Array<{key: string; valuePattern: RegExp}> | undefined;
+  namespace: string | undefined;
+  onCaseInsensitiveClick: ((value: CaseInsensitive) => void) | undefined;
+  placeholder: string | undefined;
+  recentSearches: SavedSearchType | undefined;
+  replaceRawSearchKeys: string[] | undefined;
+  searchSource: string;
+}
+
+interface SearchQueryBuilderLayoutContextData {
+  actionBarRef: React.RefObject<HTMLDivElement | null>;
+  currentInputValueRef: React.RefObject<string>;
+  filterKeyMenuWidth: number;
+  portalTarget: HTMLElement | null | undefined;
+  size: 'small' | 'normal';
+  wrapperRef: React.RefObject<HTMLDivElement | null>;
+}
+
+interface SearchQueryBuilderAIContextData {
+  aiSearchBadgeType: 'alpha' | 'beta';
+  askSeerNLQueryRef: React.RefObject<string | null>;
+  askSeerSuggestedQueryRef: React.RefObject<string | null>;
+  autoSubmitSeer: boolean;
   displayAskSeer: boolean;
   displayAskSeerFeedback: boolean;
   enableAISearch: boolean;
-  filterKeyMenuWidth: number;
-  filterKeySections: FilterKeySection[];
-  filterKeys: TagCollection;
-  focusOverride: FocusOverride | null;
-  // @deprecated: remove this, it's constant now
-  gaveSeerConsent: true;
-  getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
-  getSuggestedFilterKey: (key: string) => string | null;
-  getTagValues: GetTagValues;
-  handleSearch: (query: string) => void;
-  invalidFilterKeys: string[];
-  parseQuery: (query: string) => ParseResult | null;
-  parsedQuery: ParseResult | null;
-  query: string;
-  searchSource: string;
   setAutoSubmitSeer: (enabled: boolean) => void;
   setDisplayAskSeer: (enabled: boolean) => void;
   setDisplayAskSeerFeedback: (enabled: boolean) => void;
-  size: 'small' | 'normal';
-  wrapperRef: React.RefObject<HTMLDivElement | null>;
-  caseInsensitive?: CaseInsensitive;
-  filterKeyAliases?: TagCollection;
-  getTagKeys?: GetTagKeys;
-  matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
-  namespace?: string;
-  onCaseInsensitiveClick?: (value: CaseInsensitive) => void;
-  placeholder?: string;
-  /**
-   * The element to render the combobox popovers into.
-   */
-  portalTarget?: HTMLElement | null;
-  recentSearches?: SavedSearchType;
-  replaceRawSearchKeys?: string[];
 }
 
-export function useSearchQueryBuilder() {
-  const context = useContext(SearchQueryBuilderContext);
-  if (!context) {
-    throw new Error(
-      'useSearchQueryBuilder must be used within a SearchQueryBuilderProvider'
-    );
+interface SearchQueryBuilderInteractionContextData {
+  consumeReopenDropdownOnQueryClear: () => void;
+  reopenDropdownOnQueryClear: boolean;
+}
+
+function useRequiredContext<T>(context: React.Context<T | null>, hookName: string) {
+  const contextValue = useContext(context);
+  if (!contextValue) {
+    throw new Error(`${hookName} must be used within a SearchQueryBuilderProvider`);
   }
-  return context;
+  return contextValue;
 }
 
-export const SearchQueryBuilderContext =
-  createContext<SearchQueryBuilderContextData | null>(null);
+export function useSearchQueryBuilderState() {
+  return useRequiredContext(SearchQueryBuilderStateContext, 'useSearchQueryBuilderState');
+}
+
+export function useSearchQueryBuilderConfig() {
+  return useRequiredContext(
+    SearchQueryBuilderConfigContext,
+    'useSearchQueryBuilderConfig'
+  );
+}
+
+export function useSearchQueryBuilderLayout() {
+  return useRequiredContext(
+    SearchQueryBuilderLayoutContext,
+    'useSearchQueryBuilderLayout'
+  );
+}
+
+export function useSearchQueryBuilderAI() {
+  return useRequiredContext(SearchQueryBuilderAIContext, 'useSearchQueryBuilderAI');
+}
+
+export function useSearchQueryBuilderInteraction() {
+  return useRequiredContext(
+    SearchQueryBuilderInteractionContext,
+    'useSearchQueryBuilderInteraction'
+  );
+}
+
+export function useHasSearchQueryBuilderProvider() {
+  return useContext(SearchQueryBuilderProviderContext);
+}
+
+const defaultFieldDefinitionGetter: FieldDefinitionGetter = key =>
+  defaultGetFieldDefinition(key);
+
+const SearchQueryBuilderStateContext =
+  createContext<SearchQueryBuilderStateContextData | null>(null);
+const SearchQueryBuilderConfigContext =
+  createContext<SearchQueryBuilderConfigContextData | null>(null);
+const SearchQueryBuilderLayoutContext =
+  createContext<SearchQueryBuilderLayoutContextData | null>(null);
+const SearchQueryBuilderAIContext = createContext<SearchQueryBuilderAIContextData | null>(
+  null
+);
+const SearchQueryBuilderInteractionContext =
+  createContext<SearchQueryBuilderInteractionContextData | null>(null);
+const SearchQueryBuilderProviderContext = createContext(false);
 
 export function SearchQueryBuilderProvider({
   children,
@@ -110,7 +168,7 @@ export function SearchQueryBuilderProvider({
   enableAISearch: enableAISearchProp,
   invalidMessages,
   initialQuery,
-  fieldDefinitionGetter = getFieldDefinition,
+  fieldDefinitionGetter = defaultFieldDefinitionGetter,
   filterKeys,
   filterKeyMenuWidth = 460,
   filterKeySections,
@@ -130,13 +188,15 @@ export function SearchQueryBuilderProvider({
   caseInsensitive,
   onCaseInsensitiveClick,
   invalidFilterKeys,
+  asyncFilterKeyRegistryQueryKey,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
 
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
   const [displayAskSeerFeedback, setDisplayAskSeerFeedback] = useState(false);
-  const currentInputValueRef = useRef<string>('');
+  const [reopenDropdownOnQueryClear, setReopenDropdownOnQueryClear] = useState(false);
+  const currentInputValueRef = useRef('');
   const askSeerNLQueryRef = useRef<string | null>(null);
   const askSeerSuggestedQueryRef = useRef<string | null>(null);
 
@@ -149,30 +209,66 @@ export function SearchQueryBuilderProvider({
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
 
-  const stableFieldDefinitionGetter = useMemo(
-    () => fieldDefinitionGetter,
-    [fieldDefinitionGetter]
+  const {filterKeyRegistryQueryOptions, registerFilterKeys} = useFilterKeyRegistry({
+    asyncFilterKeyRegistryQueryKey,
+  });
+
+  const {data: asyncFilterKeys = {}} = useQuery(filterKeyRegistryQueryOptions);
+
+  const registeredGetTagKeys = useCallback<GetTagKeys>(
+    async searchQuery => {
+      if (!getTagKeys) {
+        return [];
+      }
+
+      const registryQueryKey = filterKeyRegistryQueryOptions.queryKey;
+      const tags = await getTagKeys(searchQuery);
+      registerFilterKeys(tags, registryQueryKey);
+      return tags;
+    },
+    [filterKeyRegistryQueryOptions.queryKey, getTagKeys, registerFilterKeys]
   );
 
-  const stableFilterKeys = useMemo(() => filterKeys, [filterKeys]);
+  const mergedFilterKeys = useMemo(() => {
+    if (isEmptyObject(asyncFilterKeys)) {
+      return filterKeys;
+    }
+
+    return {...asyncFilterKeys, ...filterKeys};
+  }, [asyncFilterKeys, filterKeys]);
+
+  const getFieldDefinitionWithTagMetadata = useCallback<FieldDefinitionGetter>(
+    (key, options) =>
+      fieldDefinitionGetter(key, {
+        ...options,
+        kind: options?.kind ?? mergedFilterKeys[key]?.kind,
+      }),
+    [mergedFilterKeys, fieldDefinitionGetter]
+  );
 
   const stableGetSuggestedFilterKey = useCallback(
     (key: string) => {
-      return getSuggestedFilterKey ? getSuggestedFilterKey(key) : key;
+      return getSuggestedFilterKey ? getSuggestedFilterKey(key) : null;
     },
     [getSuggestedFilterKey]
   );
 
+  const stableInvalidFilterKeys = useMemo(
+    () => invalidFilterKeys ?? [],
+    [invalidFilterKeys]
+  );
+
   const parseQuery = useCallback(
     (query: string) =>
-      parseQueryBuilderValue(query, stableFieldDefinitionGetter, {
+      parseQueryBuilderValue(query, getFieldDefinitionWithTagMetadata, {
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
         disallowUnsupportedFilters,
         disallowWildcard,
-        filterKeys: stableFilterKeys,
+        filterKeys: mergedFilterKeys,
         invalidMessages,
+        invalidFilterKeys: stableInvalidFilterKeys,
         filterKeyAliases,
       }),
     [
@@ -180,30 +276,27 @@ export function SearchQueryBuilderProvider({
       disallowLogicalOperators,
       disallowUnsupportedFilters,
       disallowWildcard,
-      stableFieldDefinitionGetter,
-      stableFilterKeys,
+      getFieldDefinitionWithTagMetadata,
+      mergedFilterKeys,
       getFilterTokenWarning,
       invalidMessages,
+      stableInvalidFilterKeys,
       filterKeyAliases,
     ]
   );
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
-    getFieldDefinition: fieldDefinitionGetter,
+    getFieldDefinition: getFieldDefinitionWithTagMetadata,
     disabled,
     displayAskSeerFeedback,
     setDisplayAskSeerFeedback,
     replaceRawSearchKeys,
     parseQuery,
+    searchSource,
   });
 
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
-
-  const stableInvalidFilterKeys = useMemo(
-    () => invalidFilterKeys ?? [],
-    [invalidFilterKeys]
-  );
 
   const previousQuery = usePrevious(state.query);
   const firstRender = useRef(true);
@@ -241,94 +334,161 @@ export function SearchQueryBuilderProvider({
     searchSource,
     onSearch,
   });
+
+  const clearSearchQuery = useCallback(
+    ({reopenDropdown = false}: {reopenDropdown?: boolean} = {}) => {
+      currentInputValueRef.current = '';
+      askSeerNLQueryRef.current = null;
+      askSeerSuggestedQueryRef.current = null;
+      setDisplayAskSeerFeedback(false);
+      setReopenDropdownOnQueryClear(reopenDropdown);
+      dispatch({type: 'CLEAR'});
+      handleSearch('');
+    },
+    [dispatch, handleSearch]
+  );
+
+  const consumeReopenDropdownOnQueryClear = useCallback(() => {
+    setReopenDropdownOnQueryClear(false);
+  }, []);
+
   const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
   const size =
     searchBarWidth && searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
 
-  const contextValue = useMemo((): SearchQueryBuilderContextData => {
+  const stateValue = useMemo((): SearchQueryBuilderStateContextData => {
     return {
-      ...state,
-      aiSearchBadgeType,
-      invalidFilterKeys: stableInvalidFilterKeys,
+      clearSearchQuery,
+      committedQuery: state.committedQuery,
+      dispatch,
+      focusOverride: state.focusOverride,
+      handleSearch,
+      parseQuery,
+      parsedQuery,
+      query: state.query,
+    };
+  }, [
+    clearSearchQuery,
+    dispatch,
+    handleSearch,
+    parseQuery,
+    parsedQuery,
+    state.committedQuery,
+    state.focusOverride,
+    state.query,
+  ]);
+
+  const configValue = useMemo((): SearchQueryBuilderConfigContextData => {
+    return {
+      caseInsensitive,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
       disallowWildcard: Boolean(disallowWildcard),
-      enableAISearch,
-      parseQuery,
-      parsedQuery,
+      filterKeyAliases,
+      filterKeyRegistryQueryKey: filterKeyRegistryQueryOptions.queryKey,
       filterKeySections: filterKeySections ?? [],
-      filterKeyMenuWidth,
-      filterKeys: stableFilterKeys,
+      filterKeys: mergedFilterKeys,
+      getFieldDefinition: getFieldDefinitionWithTagMetadata,
       getSuggestedFilterKey: stableGetSuggestedFilterKey,
+      getTagKeys: getTagKeys ? registeredGetTagKeys : undefined,
       getTagValues,
-      getTagKeys,
-      getFieldDefinition: stableFieldDefinitionGetter,
-      dispatch,
-      wrapperRef,
-      actionBarRef,
-      handleSearch,
+      invalidFilterKeys: stableInvalidFilterKeys,
+      matchKeySuggestions,
+      namespace,
+      onCaseInsensitiveClick,
       placeholder,
       recentSearches,
-      namespace,
-      searchSource,
-      size,
-      portalTarget,
-      autoSubmitSeer,
-      setAutoSubmitSeer,
-      displayAskSeer,
-      setDisplayAskSeer: setDisplayAskSeerState,
       replaceRawSearchKeys,
-      matchKeySuggestions,
-      filterKeyAliases,
-      gaveSeerConsent: true,
-      currentInputValueRef,
-      displayAskSeerFeedback,
-      setDisplayAskSeerFeedback,
-      askSeerNLQueryRef,
-      askSeerSuggestedQueryRef,
-      caseInsensitive,
-      onCaseInsensitiveClick,
+      searchSource,
     };
   }, [
-    aiSearchBadgeType,
-    autoSubmitSeer,
     caseInsensitive,
     disabled,
     disallowFreeText,
     disallowLogicalOperators,
     disallowWildcard,
-    dispatch,
+    filterKeyAliases,
+    filterKeyRegistryQueryOptions.queryKey,
+    filterKeySections,
+    getTagKeys,
+    registeredGetTagKeys,
+    getTagValues,
+    stableInvalidFilterKeys,
+    matchKeySuggestions,
+    namespace,
+    onCaseInsensitiveClick,
+    placeholder,
+    recentSearches,
+    replaceRawSearchKeys,
+    searchSource,
+    mergedFilterKeys,
+    getFieldDefinitionWithTagMetadata,
+    stableGetSuggestedFilterKey,
+  ]);
+
+  const layoutValue = useMemo((): SearchQueryBuilderLayoutContextData => {
+    return {
+      actionBarRef,
+      currentInputValueRef,
+      filterKeyMenuWidth,
+      portalTarget,
+      size,
+      wrapperRef,
+    };
+  }, [
+    actionBarRef,
+    currentInputValueRef,
+    filterKeyMenuWidth,
+    portalTarget,
+    size,
+    wrapperRef,
+  ]);
+
+  const aiValue = useMemo((): SearchQueryBuilderAIContextData => {
+    return {
+      aiSearchBadgeType,
+      askSeerNLQueryRef,
+      askSeerSuggestedQueryRef,
+      autoSubmitSeer,
+      displayAskSeer,
+      displayAskSeerFeedback,
+      enableAISearch,
+      setAutoSubmitSeer,
+      setDisplayAskSeer: setDisplayAskSeerState,
+      setDisplayAskSeerFeedback,
+    };
+  }, [
+    aiSearchBadgeType,
+    askSeerNLQueryRef,
+    askSeerSuggestedQueryRef,
+    autoSubmitSeer,
     displayAskSeer,
     displayAskSeerFeedback,
     enableAISearch,
-    filterKeyAliases,
-    filterKeyMenuWidth,
-    filterKeySections,
-    getTagKeys,
-    getTagValues,
-    handleSearch,
-    stableInvalidFilterKeys,
-    matchKeySuggestions,
-    onCaseInsensitiveClick,
-    parseQuery,
-    parsedQuery,
-    placeholder,
-    portalTarget,
-    recentSearches,
-    namespace,
-    replaceRawSearchKeys,
-    searchSource,
-    size,
-    stableFieldDefinitionGetter,
-    stableFilterKeys,
-    stableGetSuggestedFilterKey,
-    state,
+    setDisplayAskSeerFeedback,
   ]);
 
+  const interactionValue = useMemo((): SearchQueryBuilderInteractionContextData => {
+    return {
+      consumeReopenDropdownOnQueryClear,
+      reopenDropdownOnQueryClear,
+    };
+  }, [consumeReopenDropdownOnQueryClear, reopenDropdownOnQueryClear]);
+
   return (
-    <SearchQueryBuilderContext.Provider value={contextValue}>
-      {children}
-    </SearchQueryBuilderContext.Provider>
+    <SearchQueryBuilderProviderContext.Provider value>
+      <SearchQueryBuilderConfigContext.Provider value={configValue}>
+        <SearchQueryBuilderStateContext.Provider value={stateValue}>
+          <SearchQueryBuilderLayoutContext.Provider value={layoutValue}>
+            <SearchQueryBuilderAIContext.Provider value={aiValue}>
+              <SearchQueryBuilderInteractionContext.Provider value={interactionValue}>
+                {children}
+              </SearchQueryBuilderInteractionContext.Provider>
+            </SearchQueryBuilderAIContext.Provider>
+          </SearchQueryBuilderLayoutContext.Provider>
+        </SearchQueryBuilderStateContext.Provider>
+      </SearchQueryBuilderConfigContext.Provider>
+    </SearchQueryBuilderProviderContext.Provider>
   );
 }

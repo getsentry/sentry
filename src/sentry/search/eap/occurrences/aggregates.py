@@ -113,6 +113,24 @@ OCCURRENCE_AGGREGATE_DEFINITIONS = {
         ],
     ),
     "count_unique": count_unique_aggregate_definition(default_arg="group_id"),
+    "first_seen": AggregateDefinition(
+        internal_function=Function.FUNCTION_MIN,
+        default_search_type="integer",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "integer",
+                    "string",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                default_arg="timestamp",
+            )
+        ],
+    ),
     "last_seen": AggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
         default_search_type="integer",

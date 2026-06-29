@@ -19,7 +19,25 @@ _mod = importlib.util.module_from_spec(_spec)
 sys.modules["compute_sentry_selected_tests"] = _mod
 _spec.loader.exec_module(_mod)
 
-from compute_sentry_selected_tests import _query_coverage, main
+from compute_sentry_selected_tests import (
+    ALWAYS_RUN_TESTS,
+    EXTRA_DIR_TO_TEST_MAPPING,
+    EXTRA_FILE_TO_TEST_MAPPING,
+    FULL_SUITE_TRIGGERS,
+    _query_coverage,
+    main,
+)
+
+# Repo root — used to resolve config paths, which are all repo-relative.
+_REPO_ROOT = Path(__file__).parents[3]
+
+
+def _stale_msg(path: str, kind: str = "file") -> str:
+    return (
+        f"{path!r} no longer exists on disk.\n"
+        f"  If this {kind} was renamed, update this path in the selective testing config.\n"
+        f"  If it was deleted, remove this entry from the config too."
+    )
 
 
 def _create_coverage_db(path: str, file_to_contexts: dict[str, list[str]]) -> None:
@@ -63,8 +81,9 @@ class TestQueryCoverage:
                 ],
             },
         )
-        result = _query_coverage(db, ["../sentry/src/sentry/models/organization.py"])
-        assert result == {"tests/sentry/api/test_organization.py"}
+        assert _query_coverage(db, ["../sentry/src/sentry/models/organization.py"]) == {
+            "tests/sentry/api/test_organization.py"
+        }
 
     def test_getsentry_tests_excluded(self, tmp_path):
         """Coverage contexts pointing to getsentry tests should be dropped."""
@@ -77,8 +96,7 @@ class TestQueryCoverage:
                 ],
             },
         )
-        result = _query_coverage(db, ["../sentry/src/sentry/models/organization.py"])
-        assert result == set()
+        assert _query_coverage(db, ["../sentry/src/sentry/models/organization.py"]) == set()
 
     def test_missing_tables_raises(self, tmp_path):
         db = str(tmp_path / "coverage.db")
@@ -106,6 +124,11 @@ class TestQueryCoverage:
 
 
 class TestMain:
+    @pytest.fixture(autouse=True)
+    def _patch_find_test_imports(self):
+        with mock.patch("compute_sentry_selected_tests.find_test_imports", return_value=set()):
+            yield
+
     def test_no_changed_files_falls_back_to_full_suite(self, tmp_path):
         db_path = tmp_path / "coverage.db"
         _create_coverage_db(str(db_path), {})
@@ -178,8 +201,9 @@ class TestMain:
 
         gh = gh_output.read_text()
         assert "has-selected-tests=true" in gh
-        assert "test-count=1" in gh
-        assert output.read_text().strip() == "tests/sentry/test_org.py"
+        assert f"test-count={1 + len(ALWAYS_RUN_TESTS)}" in gh
+        expected_output = sorted({"tests/sentry/test_org.py"} | ALWAYS_RUN_TESTS)
+        assert output.read_text().splitlines() == expected_output
 
     def test_getsentry_tests_filtered_out(self, tmp_path):
         """Coverage may return getsentry tests — they should be filtered."""
@@ -211,8 +235,9 @@ class TestMain:
                 {"GITHUB_OUTPUT": str(gh_output)},
             )
 
-        assert "test-count=1" in gh_output.read_text()
-        assert output.read_text().strip() == "tests/sentry/test_org.py"
+        assert f"test-count={1 + len(ALWAYS_RUN_TESTS)}" in gh_output.read_text()
+        expected_output = sorted({"tests/sentry/test_org.py"} | ALWAYS_RUN_TESTS)
+        assert output.read_text().splitlines() == expected_output
 
     def test_changed_test_file_included(self, tmp_path):
         db_path = tmp_path / "coverage.db"
@@ -236,7 +261,7 @@ class TestMain:
 
         gh = gh_output.read_text()
         assert "has-selected-tests=true" in gh
-        assert "test-count=1" in gh
+        assert f"test-count={1 + len(ALWAYS_RUN_TESTS)}" in gh
 
     def test_excluded_test_dirs_skipped(self, tmp_path):
         """Tests in acceptance/apidocs/js/tools should not be selected."""
@@ -257,10 +282,10 @@ class TestMain:
                 {"GITHUB_OUTPUT": str(gh_output)},
             )
 
-        assert "test-count=0" in gh_output.read_text()
+        assert f"test-count={len(ALWAYS_RUN_TESTS)}" in gh_output.read_text()
 
-    def test_zero_tests_signals_selective_applied(self, tmp_path):
-        """0 tests after filtering should signal 'run nothing', not full suite."""
+    def test_zero_coverage_matches_still_runs_always_run_tests(self, tmp_path):
+        """No coverage matches should still run ALWAYS_RUN_TESTS, not the full suite."""
         db_path = tmp_path / "coverage.db"
         _create_coverage_db(str(db_path), {})
         output = tmp_path / "output.txt"
@@ -282,8 +307,8 @@ class TestMain:
 
         gh = gh_output.read_text()
         assert "has-selected-tests=true" in gh
-        assert "test-count=0" in gh
-        assert output.read_text() == ""
+        assert f"test-count={len(ALWAYS_RUN_TESTS)}" in gh
+        assert set(output.read_text().splitlines()) == ALWAYS_RUN_TESTS
 
     def test_renamed_file_queries_old_path(self, tmp_path):
         """When a file is renamed, the old path should be queried against the coverage DB."""
@@ -319,8 +344,9 @@ class TestMain:
 
         gh = gh_output.read_text()
         assert "has-selected-tests=true" in gh
-        assert "test-count=1" in gh
-        assert output.read_text().strip() == "tests/sentry/test_old_name.py"
+        assert f"test-count={1 + len(ALWAYS_RUN_TESTS)}" in gh
+        expected_output = sorted({"tests/sentry/test_old_name.py"} | ALWAYS_RUN_TESTS)
+        assert output.read_text().splitlines() == expected_output
 
     def test_renamed_file_without_previous_misses_coverage(self, tmp_path):
         """Without --previous-filenames, a renamed file gets no coverage hits."""
@@ -349,8 +375,97 @@ class TestMain:
 
         gh = gh_output.read_text()
         assert "has-selected-tests=true" in gh
-        assert "test-count=0" in gh
+        assert f"test-count={len(ALWAYS_RUN_TESTS)}" in gh
+
+    def test_static_import_results_unioned_with_coverage(self, tmp_path):
+        """Static import results are unioned with coverage regardless of whether coverage found anything."""
+        db_path = tmp_path / "coverage.db"
+        _create_coverage_db(
+            str(db_path),
+            {
+                "../sentry/src/sentry/seer/explorer/client_models.py": [
+                    "../sentry/tests/sentry/seer/explorer/test_explorer_client.py::T::test|run",
+                ],
+            },
+        )
+        output = tmp_path / "output.txt"
+        gh_output = tmp_path / "gh_output"
+        gh_output.write_text("")
+
+        static_result = {"tests/sentry/seer/endpoints/test_group_ai_autofix.py"}
+
+        with mock.patch(
+            "compute_sentry_selected_tests.find_test_imports", return_value=static_result
+        ):
+            with mock.patch("compute_sentry_selected_tests.Path.exists", return_value=True):
+                _run(
+                    [
+                        "--coverage-db",
+                        str(db_path),
+                        "--changed-files",
+                        "src/sentry/seer/explorer/client_models.py",
+                        "--output",
+                        str(output),
+                        "--github-output",
+                    ],
+                    {"GITHUB_OUTPUT": str(gh_output)},
+                )
+
+        gh = gh_output.read_text()
+        assert "has-selected-tests=true" in gh
+        assert f"test-count={2 + len(ALWAYS_RUN_TESTS)}" in gh
+        expected = sorted(
+            {
+                "tests/sentry/seer/explorer/test_explorer_client.py",
+                "tests/sentry/seer/endpoints/test_group_ai_autofix.py",
+            }
+            | ALWAYS_RUN_TESTS
+        )
+        assert output.read_text().splitlines() == expected
 
     def test_missing_db_returns_error(self):
         ret = _run(["--coverage-db", "/nonexistent/coverage.db", "--changed-files", "foo.py"])
         assert ret == 1
+
+
+class TestConfigPaths:
+    """Assert every literal path in the selective testing config still exists on disk.
+
+    Catches renames and deletions that would silently make a trigger or mapping
+    entry dead — a renamed trigger file stops triggering the full suite; a renamed
+    mapping source stops selecting its associated tests.
+    """
+
+    @pytest.mark.parametrize("trigger", [t for t in FULL_SUITE_TRIGGERS if isinstance(t, str)])
+    def test_full_suite_triggers_exist(self, trigger: str) -> None:
+        assert (_REPO_ROOT / trigger).exists(), _stale_msg(trigger)
+
+    @pytest.mark.parametrize("path", sorted(ALWAYS_RUN_TESTS))
+    def test_always_run_tests_exist(self, path: str) -> None:
+        assert (_REPO_ROOT / path).exists(), _stale_msg(path, "test file")
+
+    @pytest.mark.parametrize("path", sorted(EXTRA_FILE_TO_TEST_MAPPING))
+    def test_extra_file_mapping_sources_exist(self, path: str) -> None:
+        assert (_REPO_ROOT / path).exists(), _stale_msg(path)
+
+    @pytest.mark.parametrize(
+        "path",
+        sorted({p for paths in EXTRA_FILE_TO_TEST_MAPPING.values() for p in paths}),
+    )
+    def test_extra_file_mapping_targets_exist(self, path: str) -> None:
+        assert (_REPO_ROOT / path).exists(), _stale_msg(path, "test file")
+
+    @pytest.mark.parametrize("prefix", sorted(EXTRA_DIR_TO_TEST_MAPPING))
+    def test_extra_dir_mapping_prefixes_exist(self, prefix: str) -> None:
+        assert (_REPO_ROOT / prefix).is_dir(), (
+            f"Directory {prefix!r} no longer exists on disk.\n"
+            f"  If this directory was renamed, update this prefix in the selective testing config.\n"
+            f"  If it was deleted, remove this entry from the config too."
+        )
+
+    @pytest.mark.parametrize(
+        "path",
+        sorted({p for paths in EXTRA_DIR_TO_TEST_MAPPING.values() for p in paths}),
+    )
+    def test_extra_dir_mapping_targets_exist(self, path: str) -> None:
+        assert (_REPO_ROOT / path).exists(), _stale_msg(path, "test file")
