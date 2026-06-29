@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
@@ -20,10 +20,12 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {FieldKind} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,6 +37,7 @@ import {
   ExploreControlSection,
 } from 'sentry/views/explore/components/styles';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
+import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
@@ -92,6 +95,7 @@ import {
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
+import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -225,6 +229,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
   const setFields = useSetQueryParamsFields();
+  const lastValidatedFieldsCleanupRef = useRef<string | null>(null);
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const searchQuery = useQueryParamsSearch().formatString();
@@ -292,6 +297,25 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     'boolean',
     HiddenLogSearchFields
   );
+  const {data: validatedColumnsData, isFetching: isValidatingColumns} =
+    useValidateLogsTab();
+  const {
+    invalidFields,
+    validatedBooleanAttributes,
+    validatedFields,
+    validatedNumberAttributes,
+    validatedStringAttributes,
+  } = useMemo(
+    () =>
+      getValidatedColumnEditorData({
+        booleanAttributes,
+        fields,
+        numberAttributes,
+        stringAttributes,
+        validatedColumnsData,
+      }),
+    [booleanAttributes, fields, numberAttributes, stringAttributes, validatedColumnsData]
+  );
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
@@ -334,16 +358,40 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     [setFields, setPersistentParams]
   );
 
+  useEffect(() => {
+    if (isValidatingColumns) {
+      return;
+    }
+
+    const fieldsChanged = fields.some(field => invalidFields.has(field));
+
+    if (fieldsChanged) {
+      const nextFields = fields.filter(field => !invalidFields.has(field));
+      const cleanupKey = nextFields.join('\0');
+
+      if (lastValidatedFieldsCleanupRef.current !== cleanupKey) {
+        lastValidatedFieldsCleanupRef.current = cleanupKey;
+        setPersistentParams(prev => ({
+          ...prev,
+          fields: nextFields,
+        }));
+        setFields(nextFields);
+      }
+    } else {
+      lastValidatedFieldsCleanupRef.current = null;
+    }
+  }, [fields, invalidFields, isValidatingColumns, setFields, setPersistentParams]);
+
   const openColumnEditor = () => {
     openModal(
       modalProps => (
         <ColumnEditorModal
           {...modalProps}
-          columns={fields.slice()}
+          columns={validatedFields.slice()}
           onColumnsChange={onColumnsChange}
-          stringTags={stringAttributes}
-          numberTags={numberAttributes}
-          booleanTags={booleanAttributes}
+          stringTags={validatedStringAttributes}
+          numberTags={validatedNumberAttributes}
+          booleanTags={validatedBooleanAttributes}
           hiddenKeys={HiddenColumnEditorLogFields}
           traceItemType={TraceItemDataset.LOGS}
           handleReset={() => {
@@ -528,6 +576,68 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 }
 
 export const LogsTabContent = registerLLMContext('logs-explorer', LogsTabContentInner);
+
+function getValidatedColumnEditorData({
+  booleanAttributes,
+  fields,
+  numberAttributes,
+  stringAttributes,
+  validatedColumnsData,
+}: {
+  booleanAttributes: TagCollection;
+  fields: readonly string[];
+  numberAttributes: TagCollection;
+  stringAttributes: TagCollection;
+  validatedColumnsData?: EventValidationData;
+}) {
+  const validatedBooleanAttributes = {...booleanAttributes};
+  const validatedNumberAttributes = {...numberAttributes};
+  const validatedStringAttributes = {...stringAttributes};
+  const invalidFields = new Set<string>();
+
+  for (const item of validatedColumnsData?.field ?? []) {
+    if (!item.name) {
+      continue;
+    }
+
+    if (!item.valid) {
+      invalidFields.add(item.name);
+      continue;
+    }
+
+    if (item.attrType === 'boolean') {
+      validatedBooleanAttributes[item.name] ??= {
+        key: item.name,
+        name: prettifyAttributeName(item.name),
+        kind: FieldKind.BOOLEAN,
+      };
+    }
+
+    if (item.attrType === 'number') {
+      validatedNumberAttributes[item.name] ??= {
+        key: item.name,
+        name: prettifyAttributeName(item.name),
+        kind: FieldKind.MEASUREMENT,
+      };
+    }
+
+    if (item.attrType === 'string') {
+      validatedStringAttributes[item.name] ??= {
+        key: item.name,
+        name: prettifyAttributeName(item.name),
+        kind: FieldKind.TAG,
+      };
+    }
+  }
+
+  return {
+    invalidFields,
+    validatedBooleanAttributes,
+    validatedFields: fields.filter(field => !invalidFields.has(field)),
+    validatedNumberAttributes,
+    validatedStringAttributes,
+  };
+}
 
 const ViewportConstrainedBody = styled(ExploreBodyContent)`
   flex-direction: row;

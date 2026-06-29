@@ -28,7 +28,7 @@ export function useValidateLogsTab({enabled = true}: UseValidateLogsTabArgs = {}
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
 
-  const {data, isLoading} = useQuery({
+  const {data, isFetching, isLoading} = useQuery({
     ...validateEventParamsOptions({
       organization,
       selection,
@@ -53,6 +53,7 @@ export function useValidateLogsTab({enabled = true}: UseValidateLogsTabArgs = {}
 
   return {
     data,
+    isFetching,
     isLoading,
   };
 }

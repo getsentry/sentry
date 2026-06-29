@@ -6,6 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {mockGetBoundingClientRect} from 'sentry/utils/fixtures/virtualization';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
@@ -17,6 +18,7 @@ import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 function LogsTabContentHarness({
   datePageFilterProps,
@@ -243,6 +245,70 @@ describe('LogsTabContent', () => {
     await screen.findByText('some log message1');
     expect(table).toHaveTextContent(/some log message1/);
     expect(table).toHaveTextContent(/some log message2/);
+  });
+
+  it('removes invalid selected columns after validation', async () => {
+    const validationBody: EventValidationData = {
+      dataset: [],
+      environment: [],
+      field: [
+        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {attrType: 'boolean', error: null, name: 'custom.enabled', valid: true},
+        {
+          attrType: null,
+          error: 'unknown attribute',
+          name: 'invalid.attribute',
+          valid: false,
+        },
+      ],
+      orderby: [],
+      projects: [],
+      query: {error: null, fields: [], valid: true},
+      valid: false,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validationBody,
+    });
+
+    const customColumnsRouterConfig = structuredClone(initialRouterConfig);
+    customColumnsRouterConfig.location.query[LOGS_FIELDS_KEY] = [
+      'custom.duration',
+      'custom.enabled',
+      'invalid.attribute',
+    ];
+    customColumnsRouterConfig.location.query[LOGS_SORT_BYS_KEY] = 'custom.duration';
+
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig: customColumnsRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_FIELDS_KEY]).toEqual([
+        'custom.duration',
+        'custom.enabled',
+      ]);
+    });
+    expect(JSON.parse(localStorageWrapper.getItem('logs-params-v2')!)).toMatchObject({
+      fields: ['custom.duration', 'custom.enabled'],
+    });
+
+    await waitFor(() => {
+      expect(eventTableMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: expect.not.arrayContaining(['invalid.attribute']),
+          }),
+        })
+      );
+    });
   });
 
   it('should switch between modes', async () => {
