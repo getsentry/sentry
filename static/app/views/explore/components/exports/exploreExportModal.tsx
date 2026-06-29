@@ -110,9 +110,8 @@ export function ExploreExportModal({
       } else {
         localDownload({format, limit: value.limit});
         addSuccessMessage(t('Downloading file to your browser.'));
+        closeModal();
       }
-
-      closeModal();
     },
   });
 
