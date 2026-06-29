@@ -136,7 +136,7 @@ class IdentityPipelineFinishTest(TestCase):
             request=self.request,
             provider_key="dummy",
             provider_model=idp,
-            config={"redirect_url": "/organizations/test-org/explorer/?explorerRunId=5"},
+            config={"return_url": "/organizations/test-org/explorer/?explorerRunId=5"},
         )
         pipeline.initialize()
 
@@ -156,7 +156,7 @@ class IdentityPipelineFinishTest(TestCase):
             request=self.request,
             provider_key="dummy",
             provider_model=idp,
-            config={"redirect_url": "https://evil.example.com/phish"},
+            config={"return_url": "https://evil.example.com/phish"},
         )
         pipeline.initialize()
 

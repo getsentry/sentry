@@ -121,14 +121,14 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
                 skip_internal=False,
             )
 
-            redirect_url = self.config.get("redirect_url")
+            return_url = self.config.get("return_url")
 
             self.state.clear()
 
-            if redirect_url and is_valid_redirect(
-                redirect_url, allowed_hosts=(self.request.get_host(),)
+            if return_url and is_valid_redirect(
+                return_url, allowed_hosts=(self.request.get_host(),)
             ):
-                return HttpResponseRedirect(redirect_url)
+                return HttpResponseRedirect(return_url)
 
             # TODO(epurkhiser): When we have more identities and have built out an
             # identity management page that supports these new identities (not
