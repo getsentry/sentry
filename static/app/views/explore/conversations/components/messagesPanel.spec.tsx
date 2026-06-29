@@ -501,7 +501,7 @@ describe('MessagesPanel', () => {
     expect(screen.getByText('weather_api')).toBeInTheDocument();
   });
 
-  it('keeps reasoning text in the DOM and hidden until found while collapsed', async () => {
+  it('keeps reasoning text in the DOM inside a collapsed details element', () => {
     const requestMessages = JSON.stringify([{role: 'user', content: 'User message'}]);
     const outputMessages = JSON.stringify([
       {
@@ -529,19 +529,14 @@ describe('MessagesPanel', () => {
       />
     );
 
-    // Reasoning text is rendered in the DOM even though the disclosure is
-    // collapsed, so the browser's find-in-page (Ctrl-F) can locate it.
+    // Reasoning text is rendered in the DOM even though the <details> is
+    // collapsed, so the browser's find-in-page (Ctrl-F) can locate it and
+    // natively open the section.
     const reasoning = screen.getByText('My secret thinking text');
     expect(reasoning).toBeInTheDocument();
-
-    // While collapsed, its container carries `hidden="until-found"` so it stays
-    // visually hidden but findable.
-    const collapsedContainer = reasoning.closest('[hidden]');
-    expect(collapsedContainer).toHaveAttribute('hidden', 'until-found');
-
-    // Expanding via the toggle reveals it (removes the hidden attribute).
-    await userEvent.click(screen.getByRole('button', {name: /Thinking/}));
-    expect(reasoning.closest('[hidden]')).toBeNull();
+    const details = reasoning.closest('details');
+    expect(details).not.toBeNull();
+    expect(details).not.toHaveAttribute('open');
   });
 
   it('handles output messages as a JSON object with content key', () => {

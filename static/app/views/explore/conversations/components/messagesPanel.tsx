@@ -1,16 +1,7 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -256,84 +247,46 @@ const MessageBubble = styled('div')<{
 
 function ReasoningSection({reasoning}: {reasoning: string}) {
   const organization = useOrganization();
-  const [isExpanded, setIsExpanded] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
-  // Collapse via `hidden="until-found"` so the text stays in the DOM and
-  // find-in-page (Ctrl-F) can locate it.
-  useLayoutEffect(() => {
-    const el = contentRef.current;
-    if (!el) {
-      return;
-    }
-    if (isExpanded) {
-      el.removeAttribute('hidden');
-    } else {
-      el.setAttribute('hidden', 'until-found');
-    }
-  }, [isExpanded]);
-
-  // Find-in-page fires `beforematch` when it reveals the section; keep state in sync.
-  useEffect(() => {
-    const el = contentRef.current;
-    if (!el) {
-      return () => {};
-    }
-    const handleBeforeMatch = () => setIsExpanded(true);
-    el.addEventListener('beforematch', handleBeforeMatch);
-    return () => el.removeEventListener('beforematch', handleBeforeMatch);
-  }, []);
-
-  const handleToggleExpanded = () => {
-    const newState = !isExpanded;
-    setIsExpanded(newState);
+  const handleToggle = (open: boolean) => {
+    setIsOpen(open);
     trackAnalytics('conversations.detail.expand-thinking', {
       organization,
-      expanded: newState,
+      expanded: open,
     });
   };
 
+  // A collapsed <details> keeps its text in the DOM so find-in-page can reveal it.
   return (
-    <Fragment>
-      <Button
-        size="zero"
-        variant="link"
-        onClick={e => {
-          e.stopPropagation();
-          handleToggleExpanded();
-        }}
-        aria-expanded={isExpanded}
-      >
+    <ReasoningDetails onToggle={e => handleToggle(e.currentTarget.open)}>
+      <ReasoningSummary onClick={e => e.stopPropagation()}>
         <Flex align="center" gap="xs" padding="sm md 0" width="100%" justify="start">
           <Text size="xs" variant="muted" monospace italic>
             {t('Thinking...')}
           </Text>
-          <IconChevron
-            direction={isExpanded ? 'down' : 'right'}
-            size="xs"
-            variant="muted"
-          />
+          <IconChevron direction={isOpen ? 'down' : 'right'} size="xs" variant="muted" />
         </Flex>
-      </Button>
-      <ReasoningContent ref={contentRef}>
+      </ReasoningSummary>
+      <Container padding="md">
         <MessageText size="sm" align="left" variant="muted" monospace italic>
           <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
         </MessageText>
-      </ReasoningContent>
-    </Fragment>
+      </Container>
+    </ReasoningDetails>
   );
 }
 
-// Override the global `[hidden] { display: none }` reset so the collapsed
-// `hidden="until-found"` state keeps `content-visibility: hidden`, which
-// find-in-page can reveal.
-const ReasoningContent = styled('div')`
-  padding: ${p => p.theme.space.md};
+const ReasoningDetails = styled('details')`
+  width: 100%;
+`;
 
-  &[hidden='until-found'] {
-    display: block;
-    content-visibility: hidden;
-    padding: 0;
+const ReasoningSummary = styled('summary')`
+  cursor: pointer;
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
   }
 `;
 
