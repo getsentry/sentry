@@ -259,10 +259,8 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
   const [isExpanded, setIsExpanded] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Keep the reasoning text in the DOM while collapsed, using the native
-  // `hidden="until-found"` attribute. The content stays collapsed/invisible but
-  // remains exposed to the browser's find-in-page (Ctrl-F), which auto-reveals
-  // the matching section instead of skipping it.
+  // Collapse via `hidden="until-found"` so the text stays in the DOM and
+  // find-in-page (Ctrl-F) can locate it.
   useLayoutEffect(() => {
     const el = contentRef.current;
     if (!el) {
@@ -275,9 +273,7 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
     }
   }, [isExpanded]);
 
-  // When find-in-page reveals a `hidden="until-found"` element, the browser
-  // removes the attribute and fires `beforematch`. Sync our state so the
-  // section stays expanded and the chevron points down.
+  // Find-in-page fires `beforematch` when it reveals the section; keep state in sync.
   useEffect(() => {
     const el = contentRef.current;
     if (!el) {
@@ -319,14 +315,27 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
           />
         </Flex>
       </Button>
-      <Container ref={contentRef} padding="md">
+      <ReasoningContent ref={contentRef}>
         <MessageText size="sm" align="left" variant="muted" monospace italic>
           <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
         </MessageText>
-      </Container>
+      </ReasoningContent>
     </Fragment>
   );
 }
+
+// Override the global `[hidden] { display: none }` reset so the collapsed
+// `hidden="until-found"` state keeps `content-visibility: hidden`, which
+// find-in-page can reveal.
+const ReasoningContent = styled('div')`
+  padding: ${p => p.theme.space.md};
+
+  &[hidden='until-found'] {
+    display: block;
+    content-visibility: hidden;
+    padding: 0;
+  }
+`;
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;

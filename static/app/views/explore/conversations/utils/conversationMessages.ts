@@ -359,10 +359,7 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
-/**
- * Formats text as a Markdown blockquote, prefixing every line with `> ` so
- * multi-line content (e.g. reasoning) stays inside the quote.
- */
+// Prefix every line with `> ` so multi-line content forms one blockquote.
 function toBlockquote(text: string): string {
   return text
     .split('\n')
