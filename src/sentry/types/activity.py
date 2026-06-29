@@ -44,6 +44,9 @@ class ActivityType(Enum):
     SEER_ITERATION_STARTED = 36
     SEER_ITERATION_COMPLETED = 37
 
+    # A pull request linked to the group was closed without merging
+    PULL_REQUEST_CLOSED = 38
+
 
 # Warning: This must remain in this EXACT order.
 CHOICES = tuple(
@@ -86,6 +89,7 @@ CHOICES = tuple(
         ActivityType.SEER_PR_CREATED,  # 35
         ActivityType.SEER_ITERATION_STARTED,  # 36
         ActivityType.SEER_ITERATION_COMPLETED,  # 37
+        ActivityType.PULL_REQUEST_CLOSED,  # 38
     ]
 )
 

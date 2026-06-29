@@ -7,7 +7,7 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 discover: 0003_discover_json_field
 
-explore: 0009_add_trace_item_attribute_value_context
+explore: 0010_remove_last_received_from_attribute_context
 
 feedback: 0007_cleanup_failed_safe_deletes
 
@@ -29,9 +29,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0022_drop_night_shift_run_seer_run_column
+seer: 0023_add_seer_run_pull_request
 
-sentry: 1122_profilechunkattachment
+sentry: 1123_pending_user
 
 social_auth: 0003_social_auth_json_field
 

@@ -253,6 +253,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
@@ -453,6 +454,7 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
@@ -1042,6 +1044,7 @@ class HandleCommentForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.ISSUE_COMMENT,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
@@ -1226,6 +1229,7 @@ class HandleReviewForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST_REVIEW,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
@@ -1331,6 +1335,7 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
@@ -1429,6 +1434,7 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST_REVIEW_THREAD,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
@@ -1457,6 +1463,24 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
             key="42",
         )
 
+    def _pull_request_refs(
+        self,
+        pr_numbers: tuple[int, ...],
+        foreign_pr_numbers: tuple[int, ...] = (),
+    ) -> list[dict[str, Any]]:
+        """Build a check payload's ``pull_requests`` array.
+
+        Same-repo entries carry this repo's id as ``base.repo.id``. Foreign
+        entries (a PR that lives in another repo but merges this repo's branch —
+        e.g. a fork syncing from upstream) carry a different ``base.repo.id`` and
+        must be skipped by the handler.
+        """
+        same = [
+            {"number": n, "base": {"repo": {"id": int(self.repo.external_id)}}} for n in pr_numbers
+        ]
+        foreign = [{"number": n, "base": {"repo": {"id": 999999}}} for n in foreign_pr_numbers]
+        return same + foreign
+
     def _call_suite(
         self,
         action: str = "completed",
@@ -1465,6 +1489,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         app_slug: str = "github-actions",
         check_runs_count: int = 4,
         pr_numbers: tuple[int, ...] = (42,),
+        foreign_pr_numbers: tuple[int, ...] = (),
         webhook_id: str | None = "delivery-1",
     ) -> None:
         event: dict[str, Any] = {
@@ -1475,7 +1500,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
                 "conclusion": conclusion,
                 "app": {"slug": app_slug},
                 "latest_check_runs_count": check_runs_count,
-                "pull_requests": [{"number": n} for n in pr_numbers],
+                "pull_requests": self._pull_request_refs(pr_numbers, foreign_pr_numbers),
             },
             "sender": {"id": 5, "login": "ci-bot", "type": "Bot"},
         }
@@ -1495,6 +1520,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         head_sha: str = "headsha1",
         app_slug: str = "github-actions",
         pr_numbers: tuple[int, ...] = (42,),
+        foreign_pr_numbers: tuple[int, ...] = (),
         webhook_id: str | None = "delivery-1",
     ) -> None:
         event: dict[str, Any] = {
@@ -1505,7 +1531,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
                 "status": "completed",
                 "conclusion": conclusion,
                 "app": {"slug": app_slug},
-                "pull_requests": [{"number": n} for n in pr_numbers],
+                "pull_requests": self._pull_request_refs(pr_numbers, foreign_pr_numbers),
             },
             "sender": {"id": 5, "login": "ci-bot", "type": "Bot"},
         }
@@ -1563,6 +1589,23 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_check_suite_skips_pull_request_from_other_repo(self) -> None:
+        # GitHub lists a PR on our check when their heads match (head_sha +
+        # head_branch). A PR that merges this repo's default branch into another
+        # repo (head here, base elsewhere — e.g. a fork syncing from upstream)
+        # rides along on every default-branch check, but its number belongs to the
+        # other repo. It must not resolve against ours, even when the number
+        # collides with one of our PRs (here, key "42").
+        self._call_suite(pr_numbers=(), foreign_pr_numbers=(42,))
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_suite_resolves_only_same_repo_pull_requests(self) -> None:
+        self._call_suite(pr_numbers=(42,), foreign_pr_numbers=(77,))
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).count() == 1
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="77").exists()
+
     def test_check_suite_no_activity_without_webhook_id(self) -> None:
         self._call_suite(webhook_id=None)
 
@@ -1606,6 +1649,11 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
 
     def test_check_run_without_prs_writes_nothing(self) -> None:
         self._call_run(pr_numbers=())
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_run_skips_pull_request_from_other_repo(self) -> None:
+        self._call_run(pr_numbers=(), foreign_pr_numbers=(42,))
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 

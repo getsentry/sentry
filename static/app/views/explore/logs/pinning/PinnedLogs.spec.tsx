@@ -163,6 +163,97 @@ describe('PinnedLogs', () => {
     expect(screen.queryByTestId('pinned-row-missing-log')).not.toBeInTheDocument();
   });
 
+  it('renders an unavailable row when a pinned log cannot be resolved and the scan was partial', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {id: 'string'}, units: {}, dataScanned: 'partial'}},
+    });
+
+    renderPinnedLogs({
+      initialRouterConfig: {
+        location: {pathname: '/', query: {logsPinned: 'missing-log'}},
+      },
+    });
+
+    expect(
+      await screen.findByText('Pinned log unavailable in the selected time range')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Collapse 1 pinned'})).toBeInTheDocument();
+  });
+
+  it('keeps the pin in the url when a partial scan cannot resolve it', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {id: 'string'}, units: {}, dataScanned: 'partial'}},
+    });
+
+    const {router} = renderPinnedLogs({
+      initialRouterConfig: {
+        location: {pathname: '/', query: {logsPinned: 'missing-log'}},
+      },
+    });
+
+    expect(
+      await screen.findByText('Pinned log unavailable in the selected time range')
+    ).toBeInTheDocument();
+    expect(router.location.query.logsPinned).toBe('missing-log');
+  });
+
+  it('renders a count matching the rendered rows when some pins are unavailable', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {id: 'string'}, units: {}, dataScanned: 'partial'}},
+    });
+
+    renderPinnedLogs({
+      initialRouterConfig: {
+        location: {pathname: '/', query: {logsPinned: 'log-1,missing-log'}},
+      },
+    });
+
+    expect(
+      await screen.findByText('Pinned log unavailable in the selected time range')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('pinned-row-log-1')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Collapse 2 pinned'})).toBeInTheDocument();
+  });
+
+  it('renders a retry control and recovers when the pinned logs query errors', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+    });
+
+    renderPinnedLogs({
+      initialRouterConfig: {
+        location: {pathname: '/', query: {logsPinned: 'missing-log'}},
+      },
+    });
+
+    expect(await screen.findByText('Could not load pinned log')).toBeInTheDocument();
+
+    const fetchedRow = LogFixture({
+      [OurLogKnownFieldKey.ID]: 'missing-log',
+      [OurLogKnownFieldKey.PROJECT_ID]: '1',
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: 1,
+      [OurLogKnownFieldKey.MESSAGE]: 'recovered pinned log',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [fetchedRow], meta: {fields: {id: 'string'}, units: {}}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    expect(await screen.findByTestId('pinned-row-missing-log')).toBeInTheDocument();
+  });
+
   it('shows the count of pinned rows in the collapse toggle label', () => {
     renderPinnedLogs({
       initialRouterConfig: {
