@@ -1,0 +1,59 @@
+from collections.abc import Mapping
+from typing import Any, TypedDict
+
+from sentry import options
+
+GITHUB_APP_REQUIRED_PERMISSIONS_OPTION = "github-app.required-permissions"
+
+
+class GitHubAppPermission(TypedDict):
+    scope: str
+    level: int
+
+
+class MissingGithubAppPermission(TypedDict):
+    expected: GitHubAppPermission
+    actual: GitHubAppPermission | None
+
+
+PERMISSION_LEVELS = {
+    "read": 1,
+    "write": 2,
+    "admin": 3,
+}
+
+
+def _quantify_github_app_permissions(
+    permissions: Mapping[str, str],
+) -> dict[str, int]:
+    return {scope: PERMISSION_LEVELS[level] for scope, level in permissions.items()}
+
+
+def get_missing_github_app_permissions(
+    metadata: Mapping[str, Any],
+) -> list[MissingGithubAppPermission] | None:
+    required_permissions = options.get(GITHUB_APP_REQUIRED_PERMISSIONS_OPTION)
+    if not required_permissions:
+        return None
+
+    expected_permissions = _quantify_github_app_permissions(required_permissions)
+    actual_permissions = _quantify_github_app_permissions(metadata.get("permissions", {}))
+
+    missing_permissions: list[MissingGithubAppPermission] = []
+
+    for scope, expected_level in expected_permissions.items():
+        actual_level = actual_permissions.get(scope)
+
+        if actual_level is None or actual_level < expected_level:
+            missing_permissions.append(
+                {
+                    "expected": {"scope": scope, "level": expected_level},
+                    "actual": (
+                        {"scope": scope, "level": actual_level}
+                        if actual_level is not None
+                        else None
+                    ),
+                }
+            )
+
+    return missing_permissions or None
