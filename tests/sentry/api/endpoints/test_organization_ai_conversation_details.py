@@ -6,8 +6,12 @@ from uuid import uuid4
 from django.urls import reverse
 from urllib3.exceptions import ReadTimeoutError
 
+from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
+from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.samples import load_data
 from sentry.utils.snuba_rpc import SnubaRPCTimeout
 
 from .test_organization_ai_conversations_base import BaseAIConversationsTestCase
@@ -476,3 +480,209 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             response = self.do_request(conversation_id, {"project": [self.project.id]})
 
         assert response.status_code == 504
+
+    def _store_error_on_span(self, trace_id, span_id, timestamp, project=None):
+        project = project or self.project
+        error_data = load_data("javascript", timestamp=timestamp)
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": trace_id,
+            "span_id": span_id,
+        }
+        return self.store_event(error_data, project_id=project.id)
+
+    def test_spans_without_issues_have_empty_arrays(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["errors"] == []
+        assert response.data[0]["occurrences"] == []
+
+    def test_links_error_issue_to_span(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        span = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            status="error",
+            trace_id=trace_id,
+        )
+        span_id = span["span_id"]
+
+        error = self._store_error_on_span(trace_id, span_id, now)
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        span_data = response.data[0]
+        assert span_data["span_id"] == span_id
+        assert span_data["occurrences"] == []
+        assert len(span_data["errors"]) == 1
+
+        error_issue = span_data["errors"][0]
+        assert error_issue["event_id"] == error.event_id
+        assert error_issue["issue_id"] == error.group_id
+        assert error_issue["level"] == "error"
+        assert error_issue["event_type"] == "error"
+
+    def test_error_only_attached_to_matching_span(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        failing_span = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            status="error",
+            trace_id=trace_id,
+        )
+        healthy_span = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+        )
+
+        self._store_error_on_span(trace_id, failing_span["span_id"], now)
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+        by_span = {span["span_id"]: span for span in response.data}
+        assert len(by_span[failing_span["span_id"]]["errors"]) == 1
+        assert by_span[healthy_span["span_id"]]["errors"] == []
+
+    def test_links_errors_across_multiple_traces(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id_1 = uuid4().hex
+        trace_id_2 = uuid4().hex
+
+        span_1 = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            status="error",
+            trace_id=trace_id_1,
+        )
+        span_2 = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            status="error",
+            trace_id=trace_id_2,
+        )
+
+        self._store_error_on_span(trace_id_1, span_1["span_id"], now)
+        self._store_error_on_span(trace_id_2, span_2["span_id"], now)
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+        by_span = {span["span_id"]: span for span in response.data}
+        assert len(by_span[span_1["span_id"]]["errors"]) == 1
+        assert len(by_span[span_2["span_id"]]["errors"]) == 1
+
+    def test_links_occurrence_issue_to_span(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        span = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            trace_id=trace_id,
+        )
+        span_id = span["span_id"]
+
+        event_data = load_data("transaction", timestamp=now)
+        event_data["contexts"]["trace"]["trace_id"] = trace_id
+        event_data["contexts"]["trace"]["span_id"] = span_id
+        event = self.store_event(event_data, project_id=self.project.id)
+
+        occurrence = IssueOccurrence(
+            id=uuid4().hex,
+            resource_id=None,
+            project_id=self.project.id,
+            event_id=event.event_id,
+            fingerprint=[uuid4().hex],
+            type=PerformanceFileIOMainThreadGroupType,
+            issue_title="File IO on Main Thread",
+            subtitle="",
+            evidence_display=[],
+            evidence_data={"offender_span_ids": [span_id]},
+            culprit="",
+            detection_time=now,
+            level="info",
+        )
+        with patch("sentry.issues.ingest.should_create_group", return_value=True):
+            _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        span_data = response.data[0]
+        assert span_data["span_id"] == span_id
+        assert len(span_data["occurrences"]) == 1
+        occurrence_issue = span_data["occurrences"][0]
+        assert occurrence_issue["event_type"] == "occurrence"
+        assert occurrence_issue["issue_id"] == group_info.group.id
+        assert occurrence_issue["description"] == "File IO on Main Thread"
