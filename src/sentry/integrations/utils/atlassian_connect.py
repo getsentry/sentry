@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 
 import requests
 from django.http import HttpRequest
-from jwt import ExpiredSignatureError, InvalidSignatureError
+from jwt import ExpiredSignatureError, InvalidAlgorithmError, InvalidSignatureError
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -108,6 +108,8 @@ def get_integration_from_jwt(
         raise AtlassianConnectValidationError("Signature is invalid") from e
     except ExpiredSignatureError as e:
         raise AtlassianConnectValidationError("Signature is expired") from e
+    except InvalidAlgorithmError as e:
+        raise AtlassianConnectValidationError("Algorithm is invalid") from e
 
     verify_claims(decoded_claims, path, query_params, method)
 
