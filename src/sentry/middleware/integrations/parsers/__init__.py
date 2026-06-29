@@ -8,7 +8,6 @@ from .google import GoogleRequestParser
 from .jira import JiraRequestParser
 from .jira_server import JiraServerRequestParser
 from .msteams import MsTeamsRequestParser
-from .plugin import PluginRequestParser
 from .slack import SlackRequestParser
 from .slack_staging import SlackStagingRequestParser
 from .vercel import VercelRequestParser
@@ -25,7 +24,6 @@ __all__ = (
     "JiraRequestParser",
     "JiraServerRequestParser",
     "MsTeamsRequestParser",
-    "PluginRequestParser",
     "SlackRequestParser",
     "SlackStagingRequestParser",
     "VercelRequestParser",

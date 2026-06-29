@@ -1195,8 +1195,6 @@ static/app/makeLazyloadComponent.spec.tsx
 static/app/makeLazyloadComponent.tsx
 static/app/plugins/basePlugin.tsx
 static/app/plugins/components/issueActions.tsx
-static/app/plugins/components/pluginIcon.spec.tsx
-static/app/plugins/components/pluginIcon.tsx
 static/app/plugins/components/settings.tsx
 static/app/plugins/defaultIssuePlugin.tsx
 static/app/plugins/defaultPlugin.tsx

@@ -6,7 +6,7 @@ from typing import Any
 
 import sentry_sdk
 from redis.client import StrictRedis
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import features
 from sentry.integrations.github.webhook_types import GithubWebhookType
