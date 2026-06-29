@@ -66,7 +66,7 @@ class RedisRuleStore:
             # to be consistent with other stores, clear previous hash entries:
             p.delete(key)
             if len(rules) > 0:
-                p.hmset(name=key, mapping=rules)  # type: ignore[arg-type]
+                p.hmset(name=key, mapping=rules)
             p.execute()
 
     def update_rule(self, project: Project, rule: str, last_used: int) -> None:

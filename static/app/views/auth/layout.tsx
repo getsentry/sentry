@@ -6,7 +6,6 @@ import {Link} from '@sentry/scraps/link';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {IconSentry} from 'sentry/icons';
-import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 
 const BODY_CLASSES = ['narrow'];
 
@@ -21,17 +20,15 @@ export function AuthLayoutContent({children}: {children: React.ReactNode}) {
 
   return (
     <div className="app">
-      <AppBodyContent>
-        <AuthContainer>
-          <div className="pattern-bg" />
-          <AuthPanel>
-            <AuthSidebar>
-              <SentryButton />
-            </AuthSidebar>
-            <div>{children}</div>
-          </AuthPanel>
-        </AuthContainer>
-      </AppBodyContent>
+      <AuthContainer>
+        <div className="pattern-bg" />
+        <AuthPanel>
+          <AuthSidebar>
+            <SentryButton />
+          </AuthSidebar>
+          <div>{children}</div>
+        </AuthPanel>
+      </AuthContainer>
     </div>
   );
 }

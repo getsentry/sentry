@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -17,7 +17,11 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.pr_metrics.attribution import record_attribution_signal
-from sentry.pr_metrics.judge import forward_pr_to_seer_judge, update_pr_metrics
+from sentry.pr_metrics.judge import (
+    _MAX_FORWARDED_CHECK_ROWS,
+    forward_pr_to_seer_judge,
+    update_pr_metrics,
+)
 from sentry.seer.sentry_data_models import (
     UpdatePrMetricsErrorResponse,
     UpdatePrMetricsSuccessResponse,
@@ -518,6 +522,70 @@ class ForwardPrToSeerJudgeTest(TestCase):
         assert len(activity) == 2
         assert by_type["synchronized"]["sender_type"] == "Bot"
         assert by_type["review_submitted"]["review_state"] == "changes_requested"
+
+    @patch("sentry.pr_metrics.judge.logger")
+    @patch("sentry.pr_metrics.judge.metrics")
+    @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
+    def test_forwarded_check_rows_are_capped(
+        self, mock_request: Any, mock_metrics: Any, mock_logger: Any
+    ) -> None:
+        # check_run fires per check per push, so a busy PR's CI noise must not
+        # balloon the request: lifecycle rows ride along in full, check rows are
+        # capped to the most recent _MAX_FORWARDED_CHECK_ROWS.
+        mock_request.return_value = self._response(202)
+        base = datetime(2023, 1, 1, tzinfo=timezone.utc)
+        dropped = 5
+        total_checks = _MAX_FORWARDED_CHECK_ROWS + dropped
+
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="opened",
+            event_type=PullRequestActivityType.OPENED,
+            payload={},
+            date_added=base,
+        )
+        for i in range(total_checks):
+            PullRequestActivity.objects.create(
+                pull_request=self.pull_request,
+                webhook_id=f"check-{i}",
+                event_type=PullRequestActivityType.CHECK_RUN_COMPLETED,
+                payload={"index": i},
+                date_added=base + timedelta(minutes=i + 1),
+            )
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="merged",
+            event_type=PullRequestActivityType.MERGED,
+            payload={},
+            date_added=base + timedelta(hours=10),
+        )
+
+        forward_pr_to_seer_judge(self.pull_request, self.repo)
+
+        activity = orjson.loads(mock_request.call_args.kwargs["body"])["activity"]
+        check_events = [e for e in activity if e["event_type"] == "check_run_completed"]
+        lifecycle = [e for e in activity if e["event_type"] != "check_run_completed"]
+
+        # All lifecycle rows kept; check rows capped to the most recent N.
+        assert {e["event_type"] for e in lifecycle} == {"opened", "merged"}
+        assert len(check_events) == _MAX_FORWARDED_CHECK_ROWS
+        # The oldest `dropped` check rows are trimmed; the most recent N remain.
+        kept_indexes = {e["payload"]["index"] for e in check_events}
+        assert kept_indexes == set(range(dropped, total_checks))
+        # Overall chronological order is preserved.
+        timestamps = [e["timestamp"] for e in activity]
+        assert timestamps == sorted(timestamps)
+        # Hitting the cap is observable: it emits a metric and a warning so a
+        # persistently high rate can argue for raising the cap.
+        mock_metrics.incr.assert_any_call("pr_metrics.judge.check_rows_capped")
+        mock_logger.warning.assert_any_call(
+            "pr_metrics.judge.check_rows_capped",
+            extra={
+                "pull_request_id": self.pull_request.id,
+                "check_rows": total_checks,
+                "dropped": dropped,
+            },
+        )
 
     @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
     def test_close_action_is_closed_when_unmerged(self, mock_request: Any) -> None:

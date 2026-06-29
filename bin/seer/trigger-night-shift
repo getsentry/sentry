@@ -67,9 +67,9 @@ def main(org_id: int, max_candidates: int | None, drain: bool) -> None:
         sys.stdout.write("> Draining outbox to dispatch the run to Seer...\n")
         _drain_outbox()
 
-    nsr = SeerNightShiftRun.objects.select_related("seer_run").get(id=run_id)
-    seer_run = nsr.seer_run
-    if seer_run is None:
+    nsr = SeerNightShiftRun.objects.prefetch_related("shards__seer_run").get(id=run_id)
+    shard_runs = [shard.seer_run for shard in nsr.shards.all() if shard.seer_run is not None]
+    if not shard_runs:
         error_message = (nsr.extras or {}).get("error_message")
         if error_message:
             sys.stdout.write(f"> Not dispatched: {error_message}\n")
@@ -77,21 +77,27 @@ def main(org_id: int, max_candidates: int | None, drain: bool) -> None:
             sys.stdout.write("> No candidates were dispatched.\n")
         return
 
-    if seer_run.seer_run_state_id is None:
-        if seer_run.mirror_status == SeerRunMirrorStatus.FAILED:
-            sys.stdout.write(f"> SeerRun {seer_run.uuid} failed to dispatch to Seer.\n")
-        else:
-            sys.stdout.write(
-                f"> SeerRun {seer_run.uuid} is {seer_run.mirror_status}; "
-                "it dispatches to Seer once the outbox drains.\n"
-            )
-        return
+    error_message = (nsr.extras or {}).get("error_message")
+    if error_message:
+        sys.stdout.write(f"> {error_message}\n")
 
-    explorer_url = _get_explorer_url(org_id, seer_run.seer_run_state_id)
-    if explorer_url:
-        sys.stdout.write(f"> Explorer run: {explorer_url}\n")
-    else:
-        sys.stdout.write(f"> Explorer run ID: {seer_run.seer_run_state_id}\n")
+    sys.stdout.write(f"> Dispatched {len(shard_runs)} shard(s):\n")
+    for seer_run in shard_runs:
+        if seer_run.seer_run_state_id is None:
+            if seer_run.mirror_status == SeerRunMirrorStatus.FAILED:
+                sys.stdout.write(f">   SeerRun {seer_run.uuid} failed to dispatch to Seer.\n")
+            else:
+                sys.stdout.write(
+                    f">   SeerRun {seer_run.uuid} is {seer_run.mirror_status}; "
+                    "it dispatches to Seer once the outbox drains.\n"
+                )
+            continue
+
+        explorer_url = _get_explorer_url(org_id, seer_run.seer_run_state_id)
+        if explorer_url:
+            sys.stdout.write(f">   Explorer run: {explorer_url}\n")
+        else:
+            sys.stdout.write(f">   Explorer run ID: {seer_run.seer_run_state_id}\n")
 
 
 if __name__ == "__main__":

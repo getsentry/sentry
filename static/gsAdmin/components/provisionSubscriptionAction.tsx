@@ -197,7 +197,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
             // Legacy errors-only enterprise plans (e1, mm2) can no longer be
             // provisioned.
             hasPerformance(plan) &&
-            plan.contractInterval === MONTHLY &&
+            plan.billingInterval === MONTHLY &&
             !plan.isTestPlan
           ) {
             acc[plan.id] = plan;

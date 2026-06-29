@@ -49,7 +49,7 @@ def image_metadata_extras(
     metadata: ImageMetadata, exclude: Set[str] | None = None
 ) -> dict[str, Any]:
     skip = _SCHEMA_FIELDS | exclude if exclude else _SCHEMA_FIELDS
-    return {k: v for k, v in metadata.dict().items() if k not in skip}
+    return {k: v for k, v in metadata if k not in skip}
 
 
 class SnapshotManifest(BaseModel):

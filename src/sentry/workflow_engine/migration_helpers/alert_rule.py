@@ -40,7 +40,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import AlertRuleNotDualWritten, DetectorPriorityLevel
 from sentry.workflow_engine.typings.notification_action import OnCallDataBlob, SentryAppDataBlob
 
 logger = logging.getLogger(__name__)
@@ -201,7 +201,12 @@ def get_action_filter(
     Raises an exception if the action filter cannot be found.
     """
     alert_rule = alert_rule_trigger.alert_rule
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
+
+    try:
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
+    except AlertRuleWorkflow.DoesNotExist:
+        raise AlertRuleNotDualWritten()
+
     workflow = alert_rule_workflow.workflow
     workflow_dcgs = DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow=workflow)
     action_filter = DataCondition.objects.get(
