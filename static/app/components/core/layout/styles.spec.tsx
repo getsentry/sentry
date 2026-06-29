@@ -140,10 +140,8 @@ describe('rc', () => {
     assert(output);
     expect(output).toContain('@media');
     expect(output).not.toContain('@container');
-    // Both @media and @container OR the first breakpoint's bounds via `or`.
-    expect(output).toContain(
-      `@media (min-width: ${theme.breakpoints.xs}) or (max-width: ${theme.breakpoints.xs})`
-    );
+    // Larger breakpoints use min-width @media rules.
+    expect(output).toContain(`@media (min-width: ${theme.breakpoints.md})`);
   });
 
   it('emits @container queries when mode is "container"', () => {
@@ -152,19 +150,22 @@ describe('rc', () => {
     expect(output).toContain('@container');
     expect(output).not.toContain('@media');
     // The thresholds are reused verbatim from the theme breakpoints.
-    expect(output).toContain(`(min-width: ${theme.breakpoints.md})`);
+    expect(output).toContain(`@container (min-width: ${theme.breakpoints.md})`);
   });
 
-  it('container mode keeps the dual min/max prelude for the first breakpoint', () => {
-    const output = rc('flex-direction', {xs: 'column', md: 'row'}, theme, 'container');
-    assert(output);
-    // First defined breakpoint (xs) gets both min-width and max-width, ORed
-    // with the `or` keyword — container queries don't support comma lists.
-    expect(output).toContain(
-      `@container (min-width: ${theme.breakpoints.xs}) or (max-width: ${theme.breakpoints.xs})`
-    );
-    // A comma list here would be invalid container-query syntax.
-    expect(output).not.toContain(`@container (min-width: ${theme.breakpoints.xs}),`);
+  it('emits the first defined breakpoint as a plain declaration', () => {
+    // The base value applies unconditionally (not wrapped in a query) so it
+    // still applies when no container is present — and the same plain output is
+    // produced for both modes.
+    const container = rc('flex-direction', {xs: 'column', md: 'row'}, theme, 'container');
+    const viewport = rc('flex-direction', {xs: 'column', md: 'row'}, theme, 'viewport');
+    assert(container);
+    assert(viewport);
+    // xs (the base) is a bare declaration, not inside an at-rule.
+    expect(container).toContain('flex-direction: column;');
+    expect(container).not.toContain(`(min-width: ${theme.breakpoints.xs})`);
+    expect(viewport).toContain('flex-direction: column;');
+    expect(viewport).not.toContain(`(min-width: ${theme.breakpoints.xs})`);
   });
 
   it('returns a plain declaration (no at-rule) for non-responsive container values', () => {
@@ -212,6 +213,17 @@ describe('useResponsivePropValue', () => {
     const {result} = renderHookWithProviders(() => useResponsivePropValue('hello'));
 
     expect(result.current).toBe('hello');
+  });
+
+  it('falls back to the base breakpoint in container mode with no container ancestor', () => {
+    // No ContainerQueryProvider in the tree → resolve to the base ('2xs'), the
+    // only value the CSS applies (the plain base declaration) when there's no
+    // container, so JS and CSS agree instead of JS drifting to the viewport.
+    const {result} = renderHookWithProviders(() =>
+      useResponsivePropValue({'2xs': 'base', md: 'medium'}, {mode: 'container'})
+    );
+
+    expect(result.current).toBe('base');
   });
 
   it('window matches breakpoint = breakpoint value', () => {

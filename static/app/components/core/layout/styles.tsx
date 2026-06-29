@@ -68,16 +68,18 @@ export function rc<T>(
 
     if (first) {
       first = false;
-      return `
-          ${atRule} (min-width: ${theme.breakpoints[breakpoint]}) or (max-width: ${theme.breakpoints[breakpoint]}) {
-            ${property}: ${resolver ? resolver(v, breakpoint, theme) : (v as string)};
-          }
-        `;
+      // The smallest defined breakpoint is the always-applied base. Emit it as a
+      // plain declaration (no @media/@container wrapper) so it applies even when
+      // no query container is present: container-mode props then degrade to the
+      // base value instead of the property's initial value, matching the JS
+      // resolver (which also falls back to the base). Larger breakpoints override
+      // it via min-width rules.
+      return `${property}: ${resolvedValue as string};`;
     }
 
     return `
         ${atRule} (min-width: ${theme.breakpoints[breakpoint]}) {
-          ${property}: ${resolver ? resolver(v, breakpoint, theme) : (v as string)};
+          ${property}: ${resolvedValue as string};
         }
       `;
   })
@@ -247,17 +249,17 @@ type ResponsiveValue<T> = T extends Responsive<infer U> ? U : never;
 export function useResponsivePropValue<T extends Responsive<any>>(
   prop: T,
   // When mode is 'container', the value resolves against the nearest ancestor
-  // query container (via ContainerQueryContext) instead of the viewport. If no
-  // container ancestor is present, it falls back to the viewport breakpoint.
+  // query container (via ContainerQueryContext) instead of the viewport. With no
+  // container ancestor it falls back to the base breakpoint ('2xs') — the only
+  // value CSS applies in that case (the plain base declaration), so JS and the
+  // @container rules stay in agreement.
   opts?: {mode?: ResponsiveMode}
 ): T | ResponsiveValue<T> {
   const viewportBreakpoint = useActiveBreakpoint();
   const containerBreakpoint = useContext(ContainerQueryContext);
 
   const activeBreakpoint =
-    opts?.mode === 'container' && containerBreakpoint !== null
-      ? containerBreakpoint
-      : viewportBreakpoint;
+    opts?.mode === 'container' ? (containerBreakpoint ?? '2xs') : viewportBreakpoint;
 
   // Only resolve the active breakpoint if the prop is responsive, else ignore it.
   if (!isResponsive(prop)) {
