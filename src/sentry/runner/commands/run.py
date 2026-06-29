@@ -10,6 +10,7 @@ from typing import Any
 import click
 import taskbroker_client.constants as taskworker_constants
 
+from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
@@ -246,6 +247,7 @@ def run_taskworker(
     from taskbroker_client.worker import BatchPushTaskWorker, PushTaskWorker, TaskWorker
     from taskbroker_client.worker.client import make_broker_hosts
 
+    skip_awaiting_futures = sentry_options.get("taskworker.skip.awaiting.futures")
     with managed_bgtasks(role="taskworker"):
         if push_mode:
             worker: PushTaskWorker | TaskWorker = PushTaskWorker(
@@ -263,6 +265,7 @@ def run_taskworker(
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 grpc_port=worker_rpc_port,
                 push_task_timeout=push_timeout_sec,
+                skip_awaiting_futures=skip_awaiting_futures,
             )
         elif batch_push_mode:
             worker = BatchPushTaskWorker(
@@ -280,6 +283,7 @@ def run_taskworker(
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 grpc_port=worker_rpc_port,
                 update_in_batches=True,
+                skip_awaiting_futures=skip_awaiting_futures,
             )
         else:
             worker = TaskWorker(
@@ -296,6 +300,7 @@ def run_taskworker(
                 processing_pool_name=processing_pool_name,
                 health_check_file_path=health_check_file_path,
                 health_check_sec_per_touch=health_check_sec_per_touch,
+                skip_awaiting_futures=skip_awaiting_futures,
             )
         exitcode = worker.start()
         raise SystemExit(exitcode)
@@ -544,9 +549,9 @@ def basic_consumer(
 
     Example:
 
-        sentry run consumer ingest-profiles --consumer-group ingest-profiles
+        sentry run consumer ingest-occurrences --consumer-group ingest-occurrences
 
-    runs the ingest-profiles consumer with the consumer group ingest-profiles.
+    runs the ingest-occurrences consumer with the consumer group ingest-occurrences.
 
     Consumers are defined in 'sentry.consumers'. Each consumer can take
     additional CLI options. Those can be passed after '--':

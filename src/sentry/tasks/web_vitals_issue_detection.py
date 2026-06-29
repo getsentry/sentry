@@ -13,7 +13,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.agent.utils import normalize_description
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.tasks.base import instrumented_task
@@ -338,7 +338,7 @@ def get_highest_opportunity_page_vitals_for_project(
 def check_seer_setup_for_project(project: Project) -> bool:
     """
     Checks if a project and it's organization have the necessary Seer setup to detect web vitals issues.
-    The project must have seer feature flags, seer acknowledgement, and a github code mapping.
+    The project must have seer feature flags, seer acknowledgement, and a supported SCM code mapping.
     """
     if not features.has("organizations:gen-ai-features", project.organization):
         return False
@@ -347,8 +347,12 @@ def check_seer_setup_for_project(project: Project) -> bool:
         return False
 
     repos = get_autofix_repos_from_project_code_mappings(project)
-    github_repos = [repo for repo in repos if repo.get("provider") in SEER_SUPPORTED_SCM_PROVIDERS]
-    if not github_repos:
+    supported_repos = [
+        repo
+        for repo in repos
+        if repo.get("provider") in get_supported_scm_providers(project.organization)
+    ]
+    if not supported_repos:
         return False
 
     return True

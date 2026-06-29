@@ -12,7 +12,7 @@ export default function SubscriptionSettingsLayout() {
   return (
     <SettingsColumn>
       <TopBar.Slot name="title">
-        <StyledSettingsBreadcrumb params={params} />
+        <SettingsBreadcrumb params={params} />
       </TopBar.Slot>
 
       <Container flex="1" minWidth="0" background="primary">
@@ -30,8 +30,4 @@ const SettingsColumn = styled('div')`
   footer {
     margin-top: 0;
   }
-`;
-
-const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
-  flex: 1;
 `;

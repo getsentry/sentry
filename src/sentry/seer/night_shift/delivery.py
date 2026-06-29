@@ -13,7 +13,11 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
-from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunResult
+from sentry.seer.models.night_shift import (
+    SeerNightShiftRun,
+    SeerNightShiftRunResult,
+    SeerNightShiftRunShard,
+)
 from sentry.seer.night_shift.models import TriageResponse
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
@@ -29,20 +33,25 @@ def deliver_night_shift_result(
     error: str | None,
 ) -> None:
     """Process a night_shift result from Seer."""
-    try:
-        run = SeerNightShiftRun.objects.select_related("organization", "seer_run").get(
-            organization_id=organization_id,
-            seer_run__uuid=run_uuid,
+    shard = (
+        SeerNightShiftRunShard.objects.filter(
+            seer_run__uuid=run_uuid, run__organization_id=organization_id
         )
-    except SeerNightShiftRun.DoesNotExist:
+        .select_related("run", "run__organization")
+        .first()
+    )
+    if shard is None:
         logger.warning(
             "night_shift.delivery.missing_run",
             extra={"organization_id": organization_id, "run_uuid": run_uuid},
         )
         return
+    run = shard.run
 
+    # Per-delivery error_message lives on the shard so a sibling shard's success
+    # can't clear it.
     if error:
-        run.update(extras={**(run.extras or {}), "error_message": error})
+        shard.update(extras={**(shard.extras or {}), "error_message": error})
 
     log_extra: dict[str, object] = {
         "organization_id": run.organization_id,
@@ -70,13 +79,11 @@ def deliver_night_shift_result(
     options = (run.extras or {}).get("options") or {}
     dry_run = bool(options.get("dry_run", False))
 
-    # A failed dispatch may have left a stale error_message even though Seer went
-    # on to process the run and is now delivering verdicts. Clear it so the run's
-    # state reflects the successful delivery.
-    if (run.extras or {}).get("error_message"):
-        extras = {**run.extras}
+    # Clear any stale error_message now that this delivery has succeeded.
+    if (shard.extras or {}).get("error_message"):
+        extras = {**shard.extras}
         del extras["error_message"]
-        run.update(extras=extras)
+        shard.update(extras=extras)
 
     _process_verdicts(
         run=run,

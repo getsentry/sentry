@@ -34,7 +34,7 @@ export function UnsupportedOp({type}: {type: 'headers' | 'bodies'}) {
 
   return (
     <StyledInstructions data-test-id="network-op-unsupported">
-      <h1>{title}</h1>
+      <h2>{title}</h2>
       <p>
         {tct(
           'This feature is only compatible with [fetch] and [xhr] request types. [link].',
@@ -159,7 +159,7 @@ function SetupInstructions({
 
   return (
     <StyledInstructions data-test-id="network-setup-steps">
-      <h1>{title}</h1>
+      <h2>{title}</h2>
       <p>
         {tct(
           'To protect user privacy, Session Replay defaults to not capturing the request or response headers. However, we provide the option to do so, if it’s critical to your debugging process. [link].',
@@ -192,7 +192,7 @@ function SetupInstructions({
           </Alert>
         </Alert.Container>
       )}
-      <h1>{t('Prerequisites')}</h1>
+      <h2>{t('Prerequisites')}</h2>
       <ol>
         {sdkNeedsUpdate ? (
           <li>
@@ -232,7 +232,7 @@ const StyledInstructions = styled('div')`
     border-top: none;
   }
 
-  h1 {
+  h2 {
     font-size: inherit;
     margin-bottom: ${p => p.theme.space.md};
   }

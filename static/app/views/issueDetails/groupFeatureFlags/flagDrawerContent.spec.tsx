@@ -6,6 +6,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {OrderBy} from 'sentry/components/events/featureFlags/utils';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {FlagDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 
 describe('GroupFeatureFlagsDrawerContent', () => {
@@ -32,13 +33,16 @@ describe('GroupFeatureFlagsDrawerContent', () => {
       body: FeatureFlagTagsFixture(),
     });
 
+    const group = GroupFixture();
     render(
-      <FlagDrawerContent
-        environments={[]}
-        group={GroupFixture()}
-        search=""
-        orderBy={OrderBy.NEWEST}
-      />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <FlagDrawerContent
+          environments={[]}
+          group={group}
+          search=""
+          orderBy={OrderBy.NEWEST}
+        />
+      </GroupDataContextProvider>
     );
 
     await waitFor(() => {
@@ -65,13 +69,16 @@ describe('GroupFeatureFlagsDrawerContent', () => {
       },
     });
 
+    const group = GroupFixture();
     render(
-      <FlagDrawerContent
-        environments={[]}
-        group={GroupFixture()}
-        search=""
-        orderBy={OrderBy.NEWEST}
-      />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <FlagDrawerContent
+          environments={[]}
+          group={group}
+          search=""
+          orderBy={OrderBy.NEWEST}
+        />
+      </GroupDataContextProvider>
     );
 
     await waitFor(() => {
@@ -85,13 +92,16 @@ describe('GroupFeatureFlagsDrawerContent', () => {
       body: FeatureFlagTagsFixture(),
     });
 
+    const group = GroupFixture();
     render(
-      <FlagDrawerContent
-        environments={[]}
-        group={GroupFixture()}
-        search="zxf"
-        orderBy={OrderBy.NEWEST}
-      />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <FlagDrawerContent
+          environments={[]}
+          group={group}
+          search="zxf"
+          orderBy={OrderBy.NEWEST}
+        />
+      </GroupDataContextProvider>
     );
 
     await waitFor(() => {
@@ -109,13 +119,16 @@ describe('GroupFeatureFlagsDrawerContent', () => {
       ProjectFixture({platform: 'javascript', hasFlags: true}),
     ]);
 
+    const group = GroupFixture();
     render(
-      <FlagDrawerContent
-        environments={[]}
-        group={GroupFixture()}
-        search=""
-        orderBy={OrderBy.NEWEST}
-      />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <FlagDrawerContent
+          environments={[]}
+          group={group}
+          search=""
+          orderBy={OrderBy.NEWEST}
+        />
+      </GroupDataContextProvider>
     );
 
     await waitFor(() => {
@@ -128,13 +141,16 @@ describe('GroupFeatureFlagsDrawerContent', () => {
   });
 
   it('renders CTA when no flags returned and hasFlags is false', async () => {
+    const group = GroupFixture();
     render(
-      <FlagDrawerContent
-        environments={[]}
-        group={GroupFixture()}
-        search=""
-        orderBy={OrderBy.NEWEST}
-      />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <FlagDrawerContent
+          environments={[]}
+          group={group}
+          search=""
+          orderBy={OrderBy.NEWEST}
+        />
+      </GroupDataContextProvider>
     );
 
     await waitFor(() => {
@@ -150,13 +166,16 @@ describe('GroupFeatureFlagsDrawerContent', () => {
       ProjectFixture({platform: 'dotnet-awslambda', hasFlags: false}),
     ]);
 
+    const group = GroupFixture();
     render(
-      <FlagDrawerContent
-        environments={[]}
-        group={GroupFixture()}
-        search=""
-        orderBy={OrderBy.NEWEST}
-      />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <FlagDrawerContent
+          environments={[]}
+          group={group}
+          search=""
+          orderBy={OrderBy.NEWEST}
+        />
+      </GroupDataContextProvider>
     );
 
     await waitFor(() => {
@@ -169,13 +188,16 @@ describe('GroupFeatureFlagsDrawerContent', () => {
   it('does not render CTA when project not found', async () => {
     ProjectsStore.reset();
 
+    const group = GroupFixture();
     render(
-      <FlagDrawerContent
-        environments={[]}
-        group={GroupFixture()}
-        search=""
-        orderBy={OrderBy.NEWEST}
-      />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <FlagDrawerContent
+          environments={[]}
+          group={group}
+          search=""
+          orderBy={OrderBy.NEWEST}
+        />
+      </GroupDataContextProvider>
     );
 
     await waitFor(() => {

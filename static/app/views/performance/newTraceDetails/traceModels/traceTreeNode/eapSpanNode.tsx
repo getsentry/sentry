@@ -16,6 +16,21 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {HTTP_ERROR_STATUSES} from './constants';
 import {traceChronologicalSort} from './utils';
 
+const BROWSER_WEB_VITAL_MEASUREMENTS: Record<string, string> = {
+  'browser.web_vital.cls.value': 'cls',
+  'browser.web_vital.fcp.value': 'fcp',
+  'browser.web_vital.inp.value': 'inp',
+  'browser.web_vital.lcp.value': 'lcp',
+  'browser.web_vital.ttfb.value': 'ttfb',
+};
+
+const MOBILE_VITAL_MEASUREMENTS: Record<string, string> = {
+  'app.vitals.start.cold.value': 'app_start_cold',
+  'app.vitals.start.warm.value': 'app_start_warm',
+  'app.vitals.ttfd.value': 'time_to_full_display',
+  'app.vitals.ttid.value': 'time_to_initial_display',
+};
+
 export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   id: string;
   type: TraceTree.NodeType;
@@ -143,6 +158,35 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
         result[normalizedKey] = {value};
       }
     }
+
+    if (this.value.mobile_app_vital) {
+      for (const key in this.value.mobile_app_vital) {
+        const normalizedKey = MOBILE_VITAL_MEASUREMENTS[key];
+        const value = this.value.mobile_app_vital[key];
+        if (
+          normalizedKey &&
+          typeof value === 'number' &&
+          (!result[normalizedKey] || result[normalizedKey].value === 0)
+        ) {
+          result[normalizedKey] = {value};
+        }
+      }
+    }
+
+    if (this.value.browser_web_vital) {
+      for (const key in this.value.browser_web_vital) {
+        const normalizedKey = BROWSER_WEB_VITAL_MEASUREMENTS[key];
+        const value = this.value.browser_web_vital[key];
+        if (
+          normalizedKey &&
+          typeof value === 'number' &&
+          result[normalizedKey]?.value === 0
+        ) {
+          result[normalizedKey] = {value};
+        }
+      }
+    }
+
     return result;
   }
 

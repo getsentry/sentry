@@ -8,7 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
 
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 interface BlockVariantProps {
   block: Block;
@@ -20,7 +20,7 @@ export interface AssistantBlockProps extends BlockVariantProps {
   blockIndex: number;
   interactionPending?: boolean;
   readOnly?: boolean;
-  runId?: number;
+  runId?: SeerExplorerRunId;
 }
 
 export interface ToolUseBlockProps extends BlockVariantProps {

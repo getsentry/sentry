@@ -1,3 +1,4 @@
+import uuid
 from typing import Any, cast
 
 import orjson
@@ -18,7 +19,6 @@ from sentry_protos.snuba.v1.trace_item_pb2 import (
 
 from sentry.constants import DataCategory
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
-from sentry.utils import metrics
 from sentry.utils.eap import hex_to_item_id
 
 I64_MAX = 2**63 - 1
@@ -33,6 +33,13 @@ FIELD_TO_ATTRIBUTE = {
     "start_timestamp": "sentry.start_timestamp_precise",
 }
 
+# Like FIELD_TO_ATTRIBUTE, but does not overwrite existing attribute values.
+FIELD_TO_MISSING_ATTRIBUTE = {
+    # Keep backwards compatibility for v1 spans, which write their own
+    # sentry.status values upstream.
+    "status": "sentry.status",
+}
+
 RENAME_ATTRIBUTES = {
     ATTRIBUTE_NAMES.SENTRY_DESCRIPTION: "sentry.raw_description",
     ATTRIBUTE_NAMES.SENTRY_SEGMENT_ID: "sentry.segment_id",
@@ -44,6 +51,8 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
 
     client_sample_rate = 1.0
     server_sample_rate = 1.0
+    conversation_id = ""
+    session_id = ""
 
     for k, attribute in (span.get("attributes") or {}).items():
         if attribute is None:
@@ -66,6 +75,11 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
                     server_sample_rate = float(value)  # type:ignore[arg-type]
                 except ValueError:
                     pass
+            elif k == ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID:
+                if isinstance(value, str):
+                    conversation_id = value
+            elif k == ATTRIBUTE_NAMES.SESSION_ID:
+                session_id = _uuid_or_empty(value)
 
     # For `is_segment`, we trust the value written by `flush_segments` over a pre-existing attribute:
     if (is_segment := span.get("is_segment")) is not None:
@@ -75,6 +89,12 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         attribute = span.get(field_name)  # type:ignore[assignment]
         if attribute is not None:
             attributes[attribute_name] = _anyvalue(attribute)
+
+    for field_name, attribute_name in FIELD_TO_MISSING_ATTRIBUTE.items():
+        if attribute_name not in attributes:
+            attribute = span.get(field_name)  # type:ignore[assignment]
+            if attribute is not None:
+                attributes[attribute_name] = _anyvalue(attribute)
 
     # Rename some attributes from their sentry-conventions name to what the product currently expects.
     # Eventually this should all be handled by deprecation policies in sentry-conventions.
@@ -110,21 +130,15 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
             sentry_sdk.capture_exception()
             attributes["sentry.dropped_links_count"] = AnyValue(int_value=len(links))
 
-    metrics.incr(
-        "spans.consumers.process_segments.outcome_emitted",
-        tags={"already_emitted": str(span.get("accepted_outcome_emitted"))},
+    outcomes = Outcomes(
+        key_id=int(span.get("key_id") or 0),
+        category_count=[
+            CategoryCount(
+                data_category=int(DataCategory.SPAN_INDEXED),
+                quantity=1,
+            ),
+        ],
     )
-    outcomes = None
-    if span.get("accepted_outcome_emitted") is False:
-        outcomes = Outcomes(
-            key_id=int(span.get("key_id") or 0),
-            category_count=[
-                CategoryCount(
-                    data_category=int(DataCategory.SPAN_INDEXED),
-                    quantity=1,
-                ),
-            ],
-        )
 
     return TraceItem(
         organization_id=span["organization_id"],
@@ -136,11 +150,24 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         attributes=attributes,
         client_sample_rate=client_sample_rate,
         server_sample_rate=server_sample_rate,
+        conversation_id=conversation_id,
+        session_id=session_id,
         retention_days=span["retention_days"],
         downsampled_retention_days=span.get("downsampled_retention_days", 0),
         received=_timestamp(span["received"]),
         outcomes=outcomes,
     )
+
+
+def _uuid_or_empty(value: Any) -> str:
+    """Return the value if it is a valid UUID string, otherwise an empty string."""
+    if not isinstance(value, str):
+        return ""
+    try:
+        uuid.UUID(value)
+    except ValueError:
+        return ""
+    return value
 
 
 def _anyvalue(value: Any) -> AnyValue:

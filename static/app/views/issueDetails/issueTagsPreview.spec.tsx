@@ -4,6 +4,8 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+
 import {IssueTagsPreview} from './issueTagsPreview';
 
 describe('IssueTagsPreview', () => {
@@ -22,7 +24,9 @@ describe('IssueTagsPreview', () => {
       body: TagsFixture(),
     });
     render(
-      <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('prod')).toBeInTheDocument();
@@ -38,7 +42,9 @@ describe('IssueTagsPreview', () => {
       body: [],
     });
     render(
-      <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      </GroupDataContextProvider>
     );
 
     expect(
@@ -50,7 +56,9 @@ describe('IssueTagsPreview', () => {
     const group = GroupFixture();
     mockTagResponses(group.id, [2, 1], 3);
     render(
-      <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('Chrome0')).toBeInTheDocument();
@@ -67,7 +75,9 @@ describe('IssueTagsPreview', () => {
     const group = GroupFixture();
     mockTagResponses(group.id, [500, 490, 5], 1000);
     render(
-      <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('Chrome0')).toBeInTheDocument();
@@ -86,7 +96,9 @@ describe('IssueTagsPreview', () => {
     const group = GroupFixture();
     mockTagResponses(group.id, [500, 490, 3], 1000);
     render(
-      <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('Chrome0')).toBeInTheDocument();
@@ -105,7 +117,9 @@ describe('IssueTagsPreview', () => {
     const group = GroupFixture();
     mockTagResponses(group.id, [500, 480, 15], 1000);
     render(
-      <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('Chrome0')).toBeInTheDocument();
@@ -124,7 +138,9 @@ describe('IssueTagsPreview', () => {
     const group = GroupFixture();
     mockTagResponses(group.id, [2, 1], 3, ['', 'Chrome1']);
     render(
-      <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      <GroupDataContextProvider group={group} project={group.project}>
+        <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('(empty)')).toBeInTheDocument();

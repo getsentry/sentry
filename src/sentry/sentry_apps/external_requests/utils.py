@@ -19,6 +19,17 @@ from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
 logger = logging.getLogger(__name__)
 
+
+def integrator_error_message(response: Response | None, fallback: str) -> str:
+    # Shown to the submitting user only — never add this to logs; it may echo their input.
+    if response is None:
+        return fallback
+    try:
+        return response.json().get("message") or fallback
+    except Exception:
+        return fallback
+
+
 SELECT_OPTIONS_SCHEMA = {
     "type": "array",
     "definitions": {

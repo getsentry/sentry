@@ -56,8 +56,9 @@ describe('SentryAppExternalIssueForm', () => {
         />
       );
 
-      // renders each required_fields field
+      // renders each required_fields field (once the mount-time cascade resolves)
       expect(component.schema.create.required_fields).toHaveLength(3);
+      await screen.findByRole('textbox', {name: 'Title'});
       for (const field of component.schema.create.required_fields) {
         expect(screen.getByRole('textbox', {name: field.label})).toBeInTheDocument();
       }
@@ -95,7 +96,7 @@ describe('SentryAppExternalIssueForm', () => {
       );
     });
 
-    it('renders prepopulated defaults', () => {
+    it('renders prepopulated defaults', async () => {
       render(
         <SentryAppExternalIssueForm
           event={EventFixture()}
@@ -107,7 +108,9 @@ describe('SentryAppExternalIssueForm', () => {
           action="create"
         />
       );
-      expect(screen.getByRole('textbox', {name: 'Title'})).toHaveValue(group.title);
+      expect(await screen.findByRole('textbox', {name: 'Title'})).toHaveValue(
+        group.title
+      );
 
       const url = addQueryParamsToExistingUrl(group.permalink, {
         referrer: sentryApp.name,
@@ -269,7 +272,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
       />
     );
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Project'}), 'p');
+    await userEvent.type(await screen.findByRole('textbox', {name: 'Project'}), 'p');
 
     expect(await screen.findByText('project A')).toBeInTheDocument();
     expect(screen.getByText('project B')).toBeInTheDocument();

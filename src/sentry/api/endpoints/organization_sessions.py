@@ -1,6 +1,5 @@
 from contextlib import contextmanager
 
-import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -28,6 +27,7 @@ from sentry.models.organization import Organization
 from sentry.release_health.base import SessionsQueryResult
 from sentry.snuba.sessions_v2 import SNUBA_LIMIT, InvalidField, QueryDefinition
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.tracing import start_span
 
 
 @extend_schema(tags=["Releases"])
@@ -82,7 +82,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
 
         def data_fn(offset: int, limit: int) -> SessionsQueryResult:
             with self.handle_query_errors():
-                with sentry_sdk.start_span(op="sessions.endpoint", name="build_sessions_query"):
+                with start_span(op="sessions.endpoint", name="build_sessions_query"):
                     request_limit = None
                     if request.GET.get("per_page") is not None:
                         request_limit = limit
