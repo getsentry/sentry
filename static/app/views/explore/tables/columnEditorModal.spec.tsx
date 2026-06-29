@@ -50,6 +50,24 @@ const booleanTags: TagCollection = {
   },
 };
 
+const enrichedNumberTags: TagCollection = {
+  ...numberTags,
+  'custom.duration': {
+    key: 'custom.duration',
+    name: 'custom.duration',
+    kind: FieldKind.MEASUREMENT,
+  },
+};
+
+const enrichedBooleanTags: TagCollection = {
+  ...booleanTags,
+  'custom.enabled': {
+    key: 'custom.enabled',
+    name: 'custom.enabled',
+    kind: FieldKind.BOOLEAN,
+  },
+};
+
 describe('ColumnEditorModal', () => {
   it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
@@ -370,5 +388,33 @@ describe('ColumnEditorModal', () => {
     expect(columns[0]).toHaveTextContent('boolean');
     expect(columns[1]).toHaveTextContent('id');
     expect(columns[1]).toHaveTextContent('string');
+  });
+
+  it('renders existing columns with types from supplied tags', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['custom.duration', 'custom.enabled']}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={enrichedNumberTags}
+            booleanTags={enrichedBooleanTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
+
+    const columns = screen.getAllByTestId('editor-column');
+    expect(columns[0]).toHaveTextContent('custom.duration');
+    expect(columns[0]).toHaveTextContent('number');
+    expect(columns[1]).toHaveTextContent('custom.enabled');
+    expect(columns[1]).toHaveTextContent('boolean');
   });
 });
