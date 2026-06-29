@@ -10,9 +10,9 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
 )
 from sentry.notifications.platform.types import (
     CodeBlock,
-    NotificationBodyFormattingBlock,
     NotificationCategory,
     NotificationRenderedTemplate,
+    NotificationSection,
     NotificationSource,
     NotificationTemplate,
     PlainTextBlock,
@@ -56,9 +56,7 @@ class SeerSolutionCompletedActivityTemplate(NotificationTemplate[WorkflowEngineA
             activity_id=data.activity_id
         )
         fallback = "View the details in Sentry."
-        body: list[NotificationBodyFormattingBlock] = [
-            *get_issue_description(group),
-        ]
+        body: list[NotificationSection] = [*get_issue_description(group)]
         if activity.data:
             summary_block = PlainTextBlock(text=activity.data.get("summary", fallback))
             body.append(CodeBlock(blocks=[summary_block]))
