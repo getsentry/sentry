@@ -49,6 +49,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models.run import SeerRun
 from sentry.seer.models.seer_api_models import SeerPermissionError
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
@@ -501,6 +502,7 @@ def trigger_autofix_agent(
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
+    run: SeerRun | None = None
     if run_id is None:
         metadata: dict[str, Any] = {
             "group_id": group.id,
@@ -508,13 +510,14 @@ def trigger_autofix_agent(
         }
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
-        run_id = client.start_run(
+        run = client.start_run(
             prompt=prompt,
             prompt_metadata=prompt_metadata,
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             metadata=metadata,
-        ).seer_run_state_id
+        )
+        run_id = run.seer_run_state_id
 
         # Make sure to log billing event for seer autofix whenever a new run is started
         quotas.backend.record_seer_run(
@@ -529,6 +532,12 @@ def trigger_autofix_agent(
             artifact_schema=artifact_schema,
             insert_index=insert_index,
         )
+
+    if run is None:
+        run = SeerRun.objects.filter(
+            organization_id=group.organization.id,
+            seer_run_state_id=run_id,
+        ).first()
 
     # Emit the started event after run_id is resolved so it can be joined to
     # downstream completed/PR events.
@@ -546,6 +555,7 @@ def trigger_autofix_agent(
 
     payload: dict[str, Any] = {
         "run_id": run_id,
+        "sentry_run_id": str(run.uuid) if run is not None else None,
         "group_id": group.id,
     }
     if iteration_index is not None:

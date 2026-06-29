@@ -151,7 +151,13 @@ def handle_attribution(
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    pr = _get_pull_request(organization, repo, pull_request, kwargs.get("github_delivery_id"))
+    pr = _get_pull_request(
+        organization,
+        repo,
+        pull_request,
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
+    )
     if pr is None:
         return
 
@@ -320,7 +326,11 @@ def handle_emission(
         return
 
     pr = _get_pull_request(
-        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+        organization,
+        repo,
+        event.get("pull_request"),
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
     )
     if pr is None:
         return
@@ -370,7 +380,13 @@ def handle_metrics(
     if not features.has("organizations:pr-metrics-emit", organization):
         return
 
-    pr = _get_pull_request(organization, repo, pull_request, kwargs.get("github_delivery_id"))
+    pr = _get_pull_request(
+        organization,
+        repo,
+        pull_request,
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
+    )
     if pr is None:
         return
 
@@ -395,7 +411,13 @@ def handle_activity(
     if not action or action not in _ACTIVITY_ACTIONS:
         return
 
-    pr = _get_pull_request(organization, repo, pull_request_data, kwargs.get("github_delivery_id"))
+    pr = _get_pull_request(
+        organization,
+        repo,
+        pull_request_data,
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
+    )
     if pr is None:
         return
 
@@ -440,6 +462,7 @@ def handle_comment(
         opened_at=parse_datetime(issue_created_at) if issue_created_at else None,
         title=issue.get("title"),
         github_delivery_id=webhook_id,
+        github_event=github_event,
     )
     if pr is None:
         return
@@ -491,7 +514,11 @@ def handle_review(
         return
 
     pr = _get_pull_request(
-        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+        organization,
+        repo,
+        event.get("pull_request"),
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
     )
     if pr is None:
         return
@@ -543,7 +570,11 @@ def handle_review_comment(
         return
 
     pr = _get_pull_request(
-        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+        organization,
+        repo,
+        event.get("pull_request"),
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
     )
     if pr is None:
         return
@@ -594,7 +625,11 @@ def handle_review_thread(
         return
 
     pr = _get_pull_request(
-        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+        organization,
+        repo,
+        event.get("pull_request"),
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
     )
     if pr is None:
         return
@@ -663,7 +698,7 @@ def handle_check_suite(
         )
     )
 
-    for pr in _prs_from_check_payload(organization, repo, check_suite, webhook_id):
+    for pr in _prs_from_check_payload(organization, repo, check_suite, webhook_id, github_event):
         _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload)
 
 
@@ -706,7 +741,7 @@ def handle_check_run(
         )
     )
 
-    for pr in _prs_from_check_payload(organization, repo, check_run, webhook_id):
+    for pr in _prs_from_check_payload(organization, repo, check_run, webhook_id, github_event):
         _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload)
 
 
@@ -715,6 +750,7 @@ def _prs_from_check_payload(
     repo: Repository,
     container: Mapping[str, Any],
     webhook_id: str,
+    github_event: GithubWebhookType,
 ) -> list[PullRequest]:
     """Resolve the tracked PRs a check_suite/check_run payload references.
 
@@ -746,7 +782,9 @@ def _prs_from_check_payload(
             metrics.incr("pr_metrics.check.foreign_pull_request")
             continue
         seen.add(str(number))
-        pr = _get_pull_request(organization, repo, {"number": number}, webhook_id)
+        pr = _get_pull_request(
+            organization, repo, {"number": number}, webhook_id, github_event=github_event
+        )
         if pr is not None:
             prs.append(pr)
     return prs
@@ -770,6 +808,7 @@ def _resolve_or_stub_pull_request(
     opened_at: datetime | None,
     title: str | None,
     github_delivery_id: str | None,
+    github_event: GithubWebhookType,
 ) -> PullRequest | None:
     """Return the PullRequest row, creating a minimal stub for a recent miss.
 
@@ -791,6 +830,7 @@ def _resolve_or_stub_pull_request(
         pass
 
     log_extra = {
+        "github_event": github_event,
         "organization_id": organization.id,
         "repository_id": repo.id,
         "repo_name": repo.name,
@@ -822,6 +862,8 @@ def _get_pull_request(
     repo: Repository,
     pull_request: dict[str, Any] | None,
     github_delivery_id: str | None = None,
+    *,
+    github_event: GithubWebhookType,
 ) -> PullRequest | None:
     """Resolve the PullRequest row for a ``pull_request``-shaped payload.
 
@@ -840,6 +882,7 @@ def _get_pull_request(
         opened_at=parse_datetime(created_at) if created_at else None,
         title=pull_request.get("title"),
         github_delivery_id=github_delivery_id,
+        github_event=github_event,
     )
 
 
