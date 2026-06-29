@@ -1,15 +1,18 @@
-import {useContext, useLayoutEffect} from 'react';
+import {useLayoutEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {QueryKey} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
-  SearchQueryBuilderContext,
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useHasSearchQueryBuilderProvider,
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {useOnChange} from 'sentry/components/searchQueryBuilder/hooks/useOnChange';
@@ -26,15 +29,30 @@ import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FieldKind} from 'sentry/utils/fields';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
+export interface GetTagValuesParams {
+  /**
+   * The search query to use to fetch tag values.
+   */
+  searchQuery: string;
+  /**
+   * The tag to fetch values for.
+   */
+  tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined};
+}
+
+export interface TagValueWithCount {
+  value: string;
+  count?: number;
+}
+
 export type GetTagValues = (
-  tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined},
-  searchQuery: string
-) => Promise<string[]>;
+  params: GetTagValuesParams
+) => Promise<Array<string | TagValueWithCount>>;
 
 export type GetTagKeys = (searchQuery: string) => Promise<Tag[]>;
 
@@ -56,6 +74,11 @@ export interface SearchQueryBuilderProps {
    * Defaults to 'beta'.
    */
   aiSearchBadgeType?: 'alpha' | 'beta';
+  /**
+   * Query key used to scope async filter key metadata. When omitted, metadata is
+   * scoped to this query builder instance.
+   */
+  asyncFilterKeyRegistryQueryKey?: QueryKey;
   autoFocus?: boolean;
   /**
    * Controls the state of the case sensitivity toggle.
@@ -209,15 +232,9 @@ function ActionButtons({
   ref?: React.Ref<HTMLDivElement>;
   trailingItems?: React.ReactNode;
 }) {
-  const {
-    dispatch,
-    handleSearch,
-    disabled,
-    query,
-    setDisplayAskSeerFeedback,
-    caseInsensitive,
-    onCaseInsensitiveClick,
-  } = useSearchQueryBuilder();
+  const {clearSearchQuery, query} = useSearchQueryBuilderState();
+  const {disabled, caseInsensitive, onCaseInsensitiveClick} =
+    useSearchQueryBuilderConfig();
 
   if (disabled) {
     return null;
@@ -236,7 +253,7 @@ function ActionButtons({
             aria-pressed={isCaseInsensitive}
             size="zero"
             icon={<IconCase variant={isCaseInsensitive ? 'muted' : 'accent'} />}
-            priority="transparent"
+            variant="transparent"
             active={!isCaseInsensitive}
             onClick={() => {
               onCaseInsensitiveClick?.(isCaseInsensitive ? null : true);
@@ -249,12 +266,8 @@ function ActionButtons({
           aria-label={t('Clear search query')}
           size="zero"
           icon={<IconClose />}
-          priority="transparent"
-          onClick={() => {
-            setDisplayAskSeerFeedback(false);
-            dispatch({type: 'CLEAR'});
-            handleSearch('');
-          }}
+          variant="transparent"
+          onClick={() => clearSearchQuery()}
         />
       )}
     </ButtonsWrapper>
@@ -272,12 +285,12 @@ function SearchQueryBuilderUI({
   trailingItems,
   onChange,
 }: SearchQueryBuilderProps) {
-  const {parsedQuery, query, dispatch, wrapperRef, actionBarRef, size} =
-    useSearchQueryBuilder();
+  const {parsedQuery, query, dispatch} = useSearchQueryBuilderState();
+  const {wrapperRef, actionBarRef, size} = useSearchQueryBuilderLayout();
 
   useOnChange({onChange});
   useLayoutEffect(() => {
-    dispatch({type: 'UPDATE_QUERY', query: initialQuery});
+    dispatch({type: 'UPDATE_QUERY', query: initialQuery, ignoreDisabled: true});
   }, [dispatch, initialQuery]);
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
@@ -314,9 +327,9 @@ function SearchQueryBuilderUI({
 }
 
 export function SearchQueryBuilder({...props}: SearchQueryBuilderProps) {
-  const contextValue = useContext(SearchQueryBuilderContext);
+  const hasProvider = useHasSearchQueryBuilderProvider();
 
-  if (contextValue) {
+  if (hasProvider) {
     return <SearchQueryBuilderUI {...props} />;
   }
   return (

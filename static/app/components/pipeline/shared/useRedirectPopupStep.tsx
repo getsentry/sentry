@@ -10,7 +10,7 @@ export interface PopupOptions {
   width?: number;
 }
 
-export type PopupStatus = 'not-open' | 'popup-open' | 'failed-to-open';
+type PopupStatus = 'not-open' | 'popup-open' | 'failed-to-open';
 
 interface UseRedirectPopupStepOptions {
   /**

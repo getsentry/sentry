@@ -28,6 +28,7 @@ describe('AttributesTreeValue', () => {
     },
     rendererExtra: {
       organization,
+      navigate: jest.fn(),
       location,
       theme,
     },

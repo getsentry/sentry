@@ -25,7 +25,7 @@ export function LoadingError({
         className={className}
         trailingItems={
           onRetry && (
-            <Alert.Button onClick={onRetry} priority="default">
+            <Alert.Button onClick={onRetry} variant="secondary">
               {t('Retry')}
             </Alert.Button>
           )

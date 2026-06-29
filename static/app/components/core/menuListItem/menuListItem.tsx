@@ -87,7 +87,7 @@ const StyledInnerWrap = styled('div', {
     box-shadow: none;
     outline: none;
   }
-  ${p => p.disabled && `cursor: default;`}
+  ${p => p.disabled && 'cursor: default;'}
 
   &::before {
     content: '';
@@ -105,7 +105,7 @@ const StyledInnerWrap = styled('div', {
       z-index: 1;
       /* Background to hide the previous item's divider */
       ::before {
-        background: ${p.theme.tokens.background.primary};
+        background: ${p.theme.tokens.background.overlay};
       }
     `}
 `;
@@ -134,7 +134,7 @@ const StyledLeadingItems = styled('div')<{
   flex-shrink: 0;
   align-items: flex-start;
 
-  ${p => p.disabled && `opacity: 0.5;`}
+  ${p => p.disabled && 'opacity: 0.5;'}
 `;
 
 const StyledLabel = styled('div')`
@@ -154,7 +154,11 @@ const StyledDetails = styled('div')<{disabled: boolean; priority: Priority}>`
   line-height: 1.4;
   margin-bottom: 0;
 
-  ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
+  ${p =>
+    p.priority !== 'default' &&
+    css`
+      color: ${getTextColor(p)};
+    `}
 `;
 
 /**
@@ -249,7 +253,7 @@ function BaseMenuListItem({
   detailsProps = {},
   showDetailsInOverlay = false,
   tooltip,
-  tooltipOptions = {delay: 500},
+  tooltipOptions,
   ref,
   ...props
 }: Props) {
@@ -273,6 +277,7 @@ function BaseMenuListItem({
             ? tooltip({disabled, isFocused, isSelected})
             : tooltip
         }
+        delay={500}
         {...tooltipOptions}
       >
         <StyledInnerWrap
@@ -431,7 +436,7 @@ const TrailingItems = styled('div')<{disabled: boolean}>`
   gap: ${p => p.theme.space.md};
   margin-right: ${p => p.theme.space.xs};
 
-  ${p => p.disabled && `opacity: 0.5;`}
+  ${p => p.disabled && 'opacity: 0.5;'}
 `;
 
 export const LeadingItems = StyledLeadingItems;

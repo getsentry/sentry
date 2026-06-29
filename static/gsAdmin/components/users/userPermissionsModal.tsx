@@ -31,7 +31,7 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
     isError: availablePermissionsError,
   } = useApiQuery<string[]>(
     [
-      getApiUrl(`/users/$userId/permissions/config/`, {
+      getApiUrl('/users/$userId/permissions/config/', {
         path: {userId: user.id},
       }),
     ],
@@ -43,7 +43,7 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
     isError: permissionListError,
   } = useApiQuery<string[]>(
     [
-      getApiUrl(`/users/$userId/permissions/`, {
+      getApiUrl('/users/$userId/permissions/', {
         path: {userId: user.id},
       }),
     ],

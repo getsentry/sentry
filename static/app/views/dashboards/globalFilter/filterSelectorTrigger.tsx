@@ -1,23 +1,20 @@
-import styled from '@emotion/styled';
-
 import {Badge} from '@sentry/scraps/badge';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import type {UseQueryResult} from 'sentry/utils/queryClient';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
+import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
 type FilterSelectorTriggerProps = {
   activeFilterValues: string[];
   globalFilter: GlobalFilter;
   operator: TermOperator;
   options: Array<SelectOption<string>>;
-  queryResult: UseQueryResult<string[], Error>;
 };
 
 export function FilterSelectorTrigger({
@@ -25,12 +22,11 @@ export function FilterSelectorTrigger({
   activeFilterValues,
   operator,
   options,
-  queryResult,
 }: FilterSelectorTriggerProps) {
-  const {isFetching} = queryResult;
   const {tag} = globalFilter;
 
-  const shouldShowBadge = !isFetching && activeFilterValues.length > 1;
+  const shouldShowBadge = activeFilterValues.length > 1;
+
   // "All" means no filter is applied (empty selection). We intentionally avoid
   // comparing against options.length because when tag values fail to load,
   // options only contains the already-selected values — making a length
@@ -45,53 +41,39 @@ export function FilterSelectorTrigger({
     options.find(option => option.value === filterValue)?.label || filterValue;
 
   return (
-    <ButtonLabelWrapper gap="xs">
-      <Flex align="center" gap={isDefaultOperator ? '0' : 'xs'}>
-        <FilterValueTruncated>{tagKey}</FilterValueTruncated>
-        <SubText>{opLabel}</SubText>
-      </Flex>
-      {!isFetching && (
-        <span style={{fontWeight: 'normal'}}>
-          {isAllSelected ? (
-            t('All')
-          ) : (
-            <FilterValueTruncated>{label}</FilterValueTruncated>
-          )}
-        </span>
+    <Flex
+      gap="xs"
+      align="center"
+      minWidth={0}
+      maxWidth={FILTER_SELECTOR_TRIGGER_MAX_WIDTH}
+    >
+      <Container minWidth={0} flexShrink={1} flexGrow={0} overflow="hidden">
+        <Text variant="primary" ellipsis>
+          {tagKey}
+        </Text>
+      </Container>
+
+      <Text variant="muted" bold={false}>
+        {opLabel}
+      </Text>
+
+      {isAllSelected ? (
+        <Text variant="primary" bold={false}>
+          {t('All')}
+        </Text>
+      ) : (
+        <Container minWidth={0} flexShrink={1} flexGrow={0} overflow="hidden">
+          <Text variant="primary" bold={false} ellipsis>
+            {label}
+          </Text>
+        </Container>
       )}
-      {isFetching && <StyledLoadingIndicator size={14} />}
+
       {shouldShowBadge && (
-        <StyledBadge variant="muted">{`+${activeFilterValues.length - 1}`}</StyledBadge>
+        <Container>
+          <Badge variant="muted">{`+${activeFilterValues.length - 1}`}</Badge>
+        </Container>
       )}
-    </ButtonLabelWrapper>
+    </Flex>
   );
 }
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  && {
-    margin: 0;
-    margin-left: ${p => p.theme.space.xs};
-  }
-`;
-
-const StyledBadge = styled(Badge)`
-  flex-shrink: 0;
-`;
-
-const ButtonLabelWrapper = styled(Flex)`
-  align-items: center;
-`;
-
-export const FilterValueTruncated = styled('div')`
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 300px;
-  width: min-content;
-`;
-
-const SubText = styled('span')`
-  color: ${p => p.theme.colors.gray500};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-`;

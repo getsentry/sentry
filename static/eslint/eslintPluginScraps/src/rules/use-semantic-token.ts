@@ -45,7 +45,7 @@ export const useSemanticToken = ESLintUtils.RuleCreator.withoutDocs<
     },
   },
   defaultOptions: [{}],
-  create(context, [options = {}]) {
+  create(context, [options]) {
     // Fast bailout: skip files without emotion/styled patterns
     if (!shouldAnalyze(context)) {
       return {};

@@ -34,7 +34,7 @@ export function useMonitorsScheduleSampleWindow({
 
   return useApiQuery<ScheduleSampleWindowResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/monitors-schedule-window/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/monitors-schedule-window/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query},

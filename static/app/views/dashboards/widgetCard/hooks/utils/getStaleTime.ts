@@ -1,6 +1,6 @@
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {RangeMap} from 'sentry/utils/number/rangeMap';
 
 export function getWidgetStaleTime(pageFilters: PageFilters) {

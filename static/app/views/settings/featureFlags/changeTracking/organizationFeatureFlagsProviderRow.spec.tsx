@@ -1,3 +1,4 @@
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {SecretFixture} from 'sentry-fixture/secret';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -12,7 +13,7 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsProviderRow';
 
 describe('OrganizationFeatureFlagsProviderRow', () => {
-  const {organization, router} = initializeOrg();
+  const {organization} = initializeOrg();
 
   const removeSecret = jest.fn();
 
@@ -23,12 +24,8 @@ describe('OrganizationFeatureFlagsProviderRow', () => {
     isRemoving: false,
     secret,
     removeSecret,
-    router,
-    location: router.location,
-    params: {orgId: organization.slug},
-    routes: router.routes,
+    ...RouteComponentPropsFixture({params: {orgId: organization.slug}}),
     route: {},
-    routeParams: router.params,
   };
 
   beforeEach(() => {

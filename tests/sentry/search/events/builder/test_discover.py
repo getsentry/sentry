@@ -13,7 +13,7 @@ from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import constants
-from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder, TopEventsQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -527,6 +527,50 @@ class DiscoverQueryBuilderTest(TestCase):
                 ),
             ],
         )
+
+    def test_issue_id_filter_on_transactions_is_coerced_to_string(self) -> None:
+        # Transactions has no group_id column, so issue.id is a tag and the
+        # value must be a string (Snuba rejects non-string tag conditions).
+        query = DiscoverQueryBuilder(
+            Dataset.Transactions,
+            self.params,
+            query="issue.id:123456",
+            selected_columns=["count()"],
+        )
+        assert Condition(Column("tags[issue.id]"), Op.EQ, "123456") in query.where
+        query.get_snql_query().validate()
+
+    def test_issue_id_in_filter_on_transactions_is_coerced_to_string(self) -> None:
+        query = DiscoverQueryBuilder(
+            Dataset.Transactions,
+            self.params,
+            query="issue.id:[123,456]",
+            selected_columns=["count()"],
+        )
+        assert Condition(Column("tags[issue.id]"), Op.IN, ["123", "456"]) in query.where
+        query.get_snql_query().validate()
+
+    def test_has_issue_id_filter_on_transactions_compares_tag_to_empty_string(self) -> None:
+        # `has:issue.id` compares the tag to '' (matches no transactions), not
+        # the numeric 0 used for group_id -- which would re-trigger the error.
+        query = DiscoverQueryBuilder(
+            Dataset.Transactions,
+            self.params,
+            query="has:issue.id",
+            selected_columns=["count()"],
+        )
+        assert Condition(Column("tags[issue.id]"), Op.NEQ, "") in query.where
+        query.get_snql_query().validate()
+
+    def test_issue_id_filter_on_discover_uses_group_id_column(self) -> None:
+        # On datasets with a real group_id column the value stays numeric.
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="issue.id:123456",
+            selected_columns=["count()"],
+        )
+        assert Condition(Column("group_id"), Op.EQ, 123456.0) in query.where
 
     def test_not_empty_measurement(self) -> None:
         query = DiscoverQueryBuilder(
@@ -1054,3 +1098,35 @@ class DiscoverQueryBuilderTest(TestCase):
             ],
         )
         query.get_snql_query().validate()
+
+
+class TopEventsQueryBuilderTest(TestCase):
+    def setUp(self) -> None:
+        self.start = datetime.datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        self.end = self.start + datetime.timedelta(days=1)
+        self.projects = [self.project.id]
+        self.params: ParamsType = {
+            "project_id": self.projects,
+            "start": self.start,
+            "end": self.end,
+        }
+
+    @pytest.mark.querybuilder
+    def test_resolve_top_event_conditions_duplicate_list_values(self) -> None:
+        """Regression test: duplicate list values in top events must not raise TypeError."""
+        # When the same list value appears in multiple top-event rows, the old
+        # code fell into the `else` branch and called set.add() on a list,
+        # raising TypeError: unhashable type: 'list'.
+        top_events = [
+            {"tags[foo]": ["a", "b"]},
+            {"tags[foo]": ["a", "b"]},
+        ]
+        # Should not raise TypeError
+        builder = TopEventsQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            interval=3600,
+            top_events=top_events,
+            selected_columns=["tags[foo]"],
+        )
+        assert builder is not None

@@ -7,7 +7,8 @@ import {
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {makeCloseButton} from 'sentry/components/globalModal/components';
+import {makeCloseButton} from '@sentry/scraps/modal';
+
 import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal';
 
 describe('RecoveryOptionsModal', () => {

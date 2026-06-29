@@ -1,7 +1,5 @@
-from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import start_span
 
 from sentry import search
 from sentry.api.api_owners import ApiOwner
@@ -11,7 +9,6 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.group_index import validate_search_filter_permissions
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.utils import get_date_range_from_params
-from sentry.exceptions import InvalidParams
 from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -19,6 +16,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba import discover
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.tracing import set_span_data, start_span
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -46,7 +44,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     def _count(
         self, request: Request, query, organization, projects, environments, extra_query_kwargs=None
     ):
-        with start_span(op="_count"):
+        with start_span(op="_count", name="_count"):
             query_kwargs = {
                 "projects": projects,
                 "referrer": Referrer.API_ORGANIZATION_ISSUES_COUNT,
@@ -69,17 +67,14 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
             query_kwargs["max_hits"] = ISSUES_COUNT_MAX_HITS_LIMIT
 
             query_kwargs["actor"] = request.user
-        with start_span(op="start_search") as span:
-            span.set_data("query_kwargs", query_kwargs)
+        with start_span(op="start_search", name="start_search") as span:
+            set_span_data(span, "query_kwargs", query_kwargs)
             result = search.backend.query(**query_kwargs)
             return result.hits
 
     def get(self, request: Request, organization: Organization | RpcOrganization) -> Response:
         stats_period = request.GET.get("groupStatsPeriod")
-        try:
-            start, end = get_date_range_from_params(request.GET)
-        except InvalidParams as e:
-            raise ParseError(detail=str(e))
+        start, end = get_date_range_from_params(request.GET)
 
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)

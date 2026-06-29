@@ -1,5 +1,6 @@
 import {Component, Fragment, isValidElement} from 'react';
-import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import type {
   ConfirmMessageRenderProps,
@@ -178,7 +179,7 @@ class AdminConfirmMessage extends Component<ConfirmMessageProps, State> {
         {bodyTopHalf}
 
         {showAuditFields && (
-          <AuditFields>
+          <Container marginTop="xl">
             <InputField
               data-test-id="url-field"
               name="ticket-url"
@@ -206,13 +207,9 @@ class AdminConfirmMessage extends Component<ConfirmMessageProps, State> {
               flexibleControlStateSize
               onChange={(notes: any) => this.setState({notes})}
             />
-          </AuditFields>
+          </Container>
         )}
       </Fragment>
     );
   }
 }
-
-const AuditFields = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-`;

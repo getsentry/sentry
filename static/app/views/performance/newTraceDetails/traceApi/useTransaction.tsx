@@ -13,7 +13,7 @@ export function useTransaction(props: UseTransactionProps) {
   return useApiQuery<EventTransaction>(
     [
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/`,
+        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
         {
           path: {
             organizationIdOrSlug: props.organization.slug,

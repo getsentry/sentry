@@ -7,7 +7,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 export function useUserFromId({id}: {id: number | undefined}) {
   const organization = useOrganization();
 
-  const {isPending, isError, data} = useApiQuery<User>(
+  return useApiQuery<User>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/users/$userId/', {
         path: {organizationIdOrSlug: organization.slug, userId: id!},
@@ -19,10 +19,4 @@ export function useUserFromId({id}: {id: number | undefined}) {
       enabled: typeof id === 'number',
     }
   );
-
-  if (isError) {
-    return {isPending: false, data: {name: id}};
-  }
-
-  return {isPending, data};
 }

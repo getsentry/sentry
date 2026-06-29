@@ -27,7 +27,7 @@ export function PartnerPlanEndingBanner({
   const daysLeft = getContractDaysLeft(subscription);
   const hasPendingUpgrade =
     subscription.pendingChanges !== null &&
-    subscription.pendingChanges?.planDetails.price > 0;
+    subscription.pendingChanges?.planDetails.totalPrice > 0;
   if (
     hasPendingUpgrade ||
     !subscription.partner ||
@@ -76,7 +76,7 @@ export function PartnerPlanEndingBanner({
             )}
           </div>
           <LinkButton
-            priority="primary"
+            variant="primary"
             analyticsEventKey="partner_plan_ending_banner.manage_subscription"
             analyticsEventName="Partner Plan Ending Banner: Manage Subscription"
             size="md"

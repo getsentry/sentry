@@ -53,7 +53,7 @@ export function MetricCard(props: MetricCardProps) {
         {action && (
           <Button
             size="xs"
-            priority="link"
+            variant="link"
             icon={action.icon}
             aria-label={action.ariaLabel}
             tooltipProps={{title: action.tooltip}}

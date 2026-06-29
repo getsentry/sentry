@@ -3,14 +3,30 @@ from datetime import datetime
 from typing import Any, TypedDict, cast
 from unittest.mock import Mock, patch
 
-from rest_framework.response import Response
-
 from fixtures.seer.webhooks import MOCK_RUN_ID
+from sentry.models.activity import Activity
 from sentry.models.organization import Organization
-from sentry.seer.autofix.constants import AutofixStatus
-from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestAttribution,
+    PullRequestAttributionSignalType,
+)
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.agent.client_models import (
+    CodingAgentState,
+    MemoryBlock,
+    Message,
+    RepoPRState,
+    SeerRunState,
+)
+from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    CodingAgentProviderType,
+)
 from sentry.seer.entrypoints.operator import (
-    AUTOFIX_FALLBACK_CAUSE_ID,
+    SEER_EVENT_TO_ACTIVITY_TYPE,
+    SeerAgentOperator,
     SeerAutofixOperator,
     SeerOperatorCompletionHook,
     get_autofix_explorer_status,
@@ -18,15 +34,17 @@ from sentry.seer.entrypoints.operator import (
 )
 from sentry.seer.entrypoints.registry import autofix_entrypoint_registry
 from sentry.seer.entrypoints.types import (
+    SeerAgentEntrypoint,
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
-    SeerExplorerEntrypoint,
     SeerOperatorCacheResult,
 )
-from sentry.seer.explorer.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
+from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
+from sentry.types.activity import ActivityType
 
 
 class MockCachePayload(TypedDict):
@@ -44,6 +62,9 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
         self.autofix_run_ids = []
         self.autofix_update_cache_payloads = []
         self.autofix_already_exists_states: list[tuple[int, bool]] = []
+        self.handoff_errors: list[str] = []
+        self.handoff_successes: list[tuple[int, CodingAgentProviderType]] = []
+        self.handoff_already_exists: list[tuple[int, CodingAgentProviderType, bool]] = []
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
@@ -57,6 +78,17 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
         self.autofix_run_ids.append(run_id)
+
+    def on_trigger_handoff_already_exists(
+        self, *, run_id: int, target: CodingAgentProviderType, has_complete_stage: bool
+    ) -> None:
+        self.handoff_already_exists.append((run_id, target, has_complete_stage))
+
+    def on_trigger_handoff_error(self, *, error: str) -> None:
+        self.handoff_errors.append(error)
+
+    def on_trigger_handoff_success(self, *, run_id: int, target: CodingAgentProviderType) -> None:
+        self.handoff_successes.append((run_id, target))
 
     def create_autofix_cache_payload(self) -> MockCachePayload:
         return {"thread_id": self.thread_id}
@@ -74,6 +106,13 @@ class SeerOperatorTest(TestCase):
     def setUp(self) -> None:
         self.entrypoint = MockAutofixEntrypoint()
         self.operator = SeerAutofixOperator(self.entrypoint)
+
+    def _set_automation_handoff(
+        self, target: CodingAgentProviderType = CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
+    ) -> None:
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option("sentry:seer_automation_handoff_target", target.value)
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 789)
 
     @patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True)
     def test_has_access_with_seer(self, _mock_has_seer_access):
@@ -109,172 +148,138 @@ class SeerOperatorTest(TestCase):
                 entrypoint_key=cast(SeerEntrypointKey, entrypoint_key),
             )
 
+    @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
+    def test_trigger_handoff_no_config_is_silent_halt(self, mock_trigger_handoff_helper):
+        self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
+        mock_trigger_handoff_helper.assert_not_called()
+        assert self.entrypoint.handoff_successes == []
+        assert self.entrypoint.handoff_already_exists == []
+        assert self.entrypoint.handoff_errors == []
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status", return_value=None)
     @patch(
-        "sentry.seer.entrypoints.operator.update_autofix",
-        return_value=Response({"run_id": MOCK_RUN_ID}, status=202),
+        "sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff",
+        side_effect=RuntimeError("boom"),
     )
-    @patch(
-        "sentry.seer.entrypoints.operator.trigger_autofix",
-        return_value=Response({"run_id": MOCK_RUN_ID}, status=202),
-    )
-    @patch("sentry.seer.entrypoints.operator.get_autofix_state", return_value=None)
-    def test_trigger_autofix_pathway(
-        self,
-        mock_get_autofix_state,
-        mock_trigger_autofix_helper,
-        mock_update_autofix_helper,
+    def test_trigger_handoff_launch_error_calls_error_hook(
+        self, mock_trigger_handoff_helper, mock_fetch_status
     ):
-        self.operator.trigger_autofix(
-            group=self.group,
-            user=self.user,
-            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
-        )
-        assert mock_trigger_autofix_helper.call_count == 1
-        assert mock_update_autofix_helper.call_count == 0
-        mock_trigger_autofix_helper.reset_mock()
-
-        self.operator.trigger_autofix(
-            group=self.group,
-            user=self.user,
-            stopping_point=AutofixStoppingPoint.SOLUTION,
-            run_id=MOCK_RUN_ID,
-        )
-        assert mock_trigger_autofix_helper.call_count == 0
-        assert mock_update_autofix_helper.call_count == 1
-
-    @patch(
-        "sentry.seer.entrypoints.operator.trigger_autofix",
-        return_value=Response({"run_id": MOCK_RUN_ID}, status=202),
-    )
-    @patch("sentry.seer.entrypoints.operator.get_autofix_state", return_value=None)
-    def test_trigger_autofix_success(self, mock_get_autofix_state, mock_trigger_autofix_helper):
-        self.operator.trigger_autofix(
-            group=self.group,
-            user=self.user,
-            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
-        )
-        assert mock_trigger_autofix_helper.call_count == 1
-        assert self.entrypoint.autofix_errors == []
-        assert self.entrypoint.autofix_run_ids == [MOCK_RUN_ID]
-
-    @patch("sentry.seer.entrypoints.operator.trigger_autofix")
-    @patch("sentry.seer.entrypoints.operator.get_autofix_state")
-    def test_trigger_autofix_already_exists(
-        self, mock_get_autofix_state, mock_trigger_autofix_helper
-    ):
-        existing_rca_step_state = {
-            "key": "root_cause_analysis",
-            "status": AutofixStatus.COMPLETED,
-        }
-        existing_state = AutofixState(
-            run_id=MOCK_RUN_ID,
-            request={
-                "organization_id": self.organization.id,
-                "project_id": self.project.id,
-                "issue": {"id": self.group.id, "title": "test"},
-                "repos": [],
-            },
-            updated_at=datetime.now(),
-            status=AutofixStatus.PROCESSING,
-            steps=[existing_rca_step_state],
-        )
-        mock_get_autofix_state.return_value = existing_state
-
-        self.operator.trigger_autofix(
-            group=self.group,
-            user=self.user,
-            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
-        )
-
-        mock_trigger_autofix_helper.assert_not_called()
-        assert self.entrypoint.autofix_already_exists_states == [(existing_state.run_id, True)]
-        assert self.entrypoint.autofix_run_ids == []
-        assert self.entrypoint.autofix_errors == []
-
-    @patch(
-        "sentry.seer.entrypoints.operator.trigger_autofix",
-        return_value=Response({"run_id": MOCK_RUN_ID}, status=202),
-    )
-    @patch("sentry.seer.entrypoints.operator.get_autofix_state")
-    def test_trigger_autofix_proceeds_when_completed(
-        self, mock_get_autofix_state, mock_trigger_autofix_helper
-    ):
-        existing_state = AutofixState(
-            run_id=MOCK_RUN_ID,
-            request={
-                "organization_id": self.organization.id,
-                "project_id": self.project.id,
-                "issue": {"id": self.group.id, "title": "test"},
-                "repos": [],
-            },
-            updated_at=datetime.now(),
-            status=AutofixStatus.COMPLETED,
-        )
-        mock_get_autofix_state.return_value = existing_state
-
-        self.operator.trigger_autofix(
-            group=self.group,
-            user=self.user,
-            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
-        )
-
-        mock_trigger_autofix_helper.assert_called_once()
-        assert self.entrypoint.autofix_already_exists_states == []
-        assert self.entrypoint.autofix_run_ids == [MOCK_RUN_ID]
-
-    @patch("sentry.seer.entrypoints.operator.trigger_autofix")
-    @patch("sentry.seer.entrypoints.operator.get_autofix_state", return_value=None)
-    def test_trigger_autofix_error(self, mock_get_autofix_state, mock_trigger_autofix_helper):
-        mock_trigger_autofix_helper.return_value = Response(
-            {"detail": "Invalid request"}, status=400
-        )
-        self.operator.trigger_autofix(
-            group=self.group,
-            user=self.user,
-            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
-        )
-        mock_trigger_autofix_helper.return_value = Response({"run_id": None}, status=202)
-        self.operator.trigger_autofix(
-            group=self.group,
-            user=self.user,
-            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
-        )
-        assert mock_trigger_autofix_helper.call_count == 2
-        self.operator.trigger_autofix(
-            group=self.group,
-            user=self.user,
-            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
-            run_id=MOCK_RUN_ID,
-        )
-        assert self.entrypoint.autofix_errors == [
-            "Invalid request",
-            "An unknown error has occurred",
-            "Invalid stopping point provided",
+        self._set_automation_handoff()
+        mock_fetch_status.return_value = self._build_explorer_state_with_agents({})
+        self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
+        assert self.entrypoint.handoff_errors == [
+            "Encountered an error while launching the coding agent"
         ]
-        assert self.entrypoint.autofix_run_ids == []
+        assert self.entrypoint.handoff_successes == []
+
+    def _build_explorer_state_with_agents(
+        self, agents: dict[str, CodingAgentState]
+    ) -> SeerRunState:
+        return SeerRunState(
+            run_id=MOCK_RUN_ID,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            coding_agents=agents,
+        )
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
+    def test_trigger_handoff_success(self, mock_trigger_handoff_helper, mock_fetch_status):
+        self._set_automation_handoff()
+        mock_fetch_status.return_value = self._build_explorer_state_with_agents({})
+        self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
+        mock_trigger_handoff_helper.assert_called_once()
+        assert mock_trigger_handoff_helper.call_args.kwargs["referrer"] == AutofixReferrer.SLACK
+        assert self.entrypoint.handoff_successes == [
+            (MOCK_RUN_ID, CodingAgentProviderType.CURSOR_BACKGROUND_AGENT)
+        ]
+        assert self.entrypoint.handoff_already_exists == []
+        assert self.entrypoint.handoff_errors == []
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
+    def test_trigger_handoff_already_exists_running(
+        self, mock_trigger_handoff_helper, mock_fetch_status
+    ):
+        self._set_automation_handoff()
+        mock_fetch_status.return_value = self._build_explorer_state_with_agents(
+            {
+                "agent-1": CodingAgentState(
+                    id="agent-1",
+                    status="running",
+                    provider="cursor_background_agent",
+                    name="Cursor",
+                    started_at=datetime.now(),
+                )
+            }
+        )
+        self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
+        mock_trigger_handoff_helper.assert_not_called()
+        assert self.entrypoint.handoff_already_exists == [
+            (MOCK_RUN_ID, CodingAgentProviderType.CURSOR_BACKGROUND_AGENT, False)
+        ]
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
+    def test_trigger_handoff_already_exists_completed(
+        self, mock_trigger_handoff_helper, mock_fetch_status
+    ):
+        self._set_automation_handoff()
+        mock_fetch_status.return_value = self._build_explorer_state_with_agents(
+            {
+                "agent-1": CodingAgentState(
+                    id="agent-1",
+                    status="completed",
+                    provider="cursor_background_agent",
+                    name="Cursor",
+                    started_at=datetime.now(),
+                )
+            }
+        )
+        self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
+        mock_trigger_handoff_helper.assert_not_called()
+        assert self.entrypoint.handoff_already_exists == [
+            (MOCK_RUN_ID, CodingAgentProviderType.CURSOR_BACKGROUND_AGENT, True)
+        ]
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
+    def test_trigger_handoff_proceeds_when_all_agents_failed(
+        self, mock_trigger_handoff_helper, mock_fetch_status
+    ):
+        self._set_automation_handoff()
+        mock_fetch_status.return_value = self._build_explorer_state_with_agents(
+            {
+                "agent-1": CodingAgentState(
+                    id="agent-1",
+                    status="failed",
+                    provider="cursor_background_agent",
+                    name="Cursor",
+                    started_at=datetime.now(),
+                )
+            }
+        )
+        self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
+        mock_trigger_handoff_helper.assert_called_once()
+        assert self.entrypoint.handoff_successes == [
+            (MOCK_RUN_ID, CodingAgentProviderType.CURSOR_BACKGROUND_AGENT)
+        ]
+        assert self.entrypoint.handoff_already_exists == []
 
     @patch(
-        "sentry.seer.entrypoints.operator.trigger_autofix",
-        return_value=Response({"run_id": MOCK_RUN_ID}, status=202),
+        "sentry.seer.entrypoints.operator.fetch_run_status",
+        side_effect=Exception("seer down"),
     )
-    @patch("sentry.seer.entrypoints.operator.get_autofix_state", return_value=None)
-    @patch("sentry.seer.entrypoints.cache.SeerOperatorAutofixCache.populate_post_autofix_cache")
-    def test_trigger_autofix_creates_cache_payload(
-        self,
-        mock_populate_post_autofix_cache,
-        mock_get_autofix_state,
-        mock_trigger_autofix_helper,
+    @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
+    def test_trigger_handoff_state_fetch_error_calls_error_hook(
+        self, mock_trigger_handoff_helper, mock_fetch_status
     ):
-        self.operator.trigger_autofix(
-            group=self.group,
-            user=self.user,
-            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
-        )
-        mock_populate_post_autofix_cache.assert_called_with(
-            entrypoint_key=MockAutofixEntrypoint.key,
-            run_id=MOCK_RUN_ID,
-            cache_payload=self.entrypoint.create_autofix_cache_payload(),
-        )
+        self._set_automation_handoff()
+        self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
+        mock_trigger_handoff_helper.assert_not_called()
+        assert self.entrypoint.handoff_errors == ["Encountered an error while talking to Seer"]
+        assert self.entrypoint.handoff_successes == []
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     @patch.dict(
@@ -345,6 +350,121 @@ class SeerOperatorTest(TestCase):
             cache_payload=cache_payload,
         )
 
+    def _pr_created_event_payload(self) -> dict:
+        return {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "pull_requests": [
+                {
+                    "provider": "unknown",
+                    "repo_name": "getsentry/sentry",
+                    "pull_request": {"pr_id": 1, "pr_number": 99, "pr_url": "https://x/99"},
+                }
+            ],
+        }
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_process_autofix_updates_records_pr_attribution(self, _mock_has_access):
+        repo = self.create_repo(self.project, name="getsentry/sentry")
+
+        with (
+            self.feature("organizations:pr-metrics-attribution"),
+            override_options({"issues.record-seer-actions-as-activities": False}),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
+                {},
+                clear=True,
+            ),
+        ):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_PR_CREATED,
+                event_payload=self._pr_created_event_payload(),
+                organization_id=self.organization.id,
+            )
+
+        pull_request = PullRequest.objects.get(repository_id=repo.id, key="99")
+        attribution = PullRequestAttribution.objects.get(pull_request=pull_request)
+        assert attribution.signal_type == PullRequestAttributionSignalType.SENTRY_APP
+        assert attribution.signal_details is not None
+        assert attribution.signal_details["run_id"] == MOCK_RUN_ID
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_process_autofix_updates_pr_attribution_disabled(self, _mock_has_access):
+        repo = self.create_repo(self.project, name="getsentry/sentry")
+
+        # Feature flag off (default) — the attribution block must not run.
+        with (
+            override_options({"issues.record-seer-actions-as-activities": False}),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
+                {},
+                clear=True,
+            ),
+        ):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_PR_CREATED,
+                event_payload=self._pr_created_event_payload(),
+                organization_id=self.organization.id,
+            )
+
+        assert not PullRequest.objects.filter(repository_id=repo.id).exists()
+        assert not PullRequestAttribution.objects.exists()
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_process_autofix_updates_links_pull_requests(self, _mock_has_access):
+        repo = self.create_repo(self.project, name="getsentry/sentry")
+        seer_run = self.create_seer_run(
+            self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=MOCK_RUN_ID
+        )
+
+        with (
+            override_options({"issues.record-seer-actions-as-activities": False}),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
+                {},
+                clear=True,
+            ),
+        ):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_PR_CREATED,
+                event_payload=self._pr_created_event_payload(),
+                organization_id=self.organization.id,
+            )
+
+        pull_request = PullRequest.objects.get(repository_id=repo.id, key="99")
+        link = SeerRunPullRequest.objects.get(pull_request=pull_request)
+        assert link.seer_run_id == seer_run.id
+        assert not PullRequestAttribution.objects.exists()
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_process_autofix_updates_link_killswitch(self, _mock_has_access):
+        repo = self.create_repo(self.project, name="getsentry/sentry")
+        self.create_seer_run(
+            self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=MOCK_RUN_ID
+        )
+
+        with (
+            override_options(
+                {
+                    "issues.record-seer-actions-as-activities": False,
+                    "seer.pull-request-linking.killswitch.enabled": True,
+                }
+            ),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
+                {},
+                clear=True,
+            ),
+        ):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_PR_CREATED,
+                event_payload=self._pr_created_event_payload(),
+                organization_id=self.organization.id,
+            )
+
+        assert not SeerRunPullRequest.objects.exists()
+        assert not PullRequest.objects.filter(repository_id=repo.id).exists()
+
     def test_process_autofix_updates_no_operator_access(self) -> None:
         mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
@@ -404,66 +524,6 @@ class SeerOperatorTest(TestCase):
             cache_payload=cache_payload,
         )
 
-    @patch("sentry.seer.entrypoints.operator.update_autofix")
-    @patch("sentry.seer.entrypoints.operator.get_autofix_state", return_value=None)
-    def test_solution_stopping_point_sends_select_root_cause(
-        self, _mock_get_autofix_state, mock_update_autofix
-    ):
-        mock_update_autofix.return_value = Response({"run_id": MOCK_RUN_ID}, status=202)
-
-        self.operator.trigger_autofix(
-            group=self.group,
-            user=self.user,
-            stopping_point=AutofixStoppingPoint.SOLUTION,
-            run_id=MOCK_RUN_ID,
-        )
-
-        mock_update_autofix.assert_called_once()
-        call_kwargs = mock_update_autofix.call_args.kwargs
-        assert call_kwargs["organization_id"] == self.group.organization.id
-        payload = call_kwargs["payload"]
-        assert payload["type"] == "select_root_cause"
-        assert payload["cause_id"] == AUTOFIX_FALLBACK_CAUSE_ID
-
-    @patch("sentry.seer.entrypoints.operator.update_autofix")
-    @patch("sentry.seer.entrypoints.operator.get_autofix_state")
-    def test_solution_stopping_point_uses_cause_id_from_state(
-        self, mock_get_autofix_state, mock_update_autofix
-    ):
-        mock_update_autofix.return_value = Response({"run_id": MOCK_RUN_ID}, status=202)
-        existing_state = AutofixState(
-            run_id=MOCK_RUN_ID,
-            request={
-                "organization_id": self.organization.id,
-                "project_id": self.project.id,
-                "issue": {"id": self.group.id, "title": "test"},
-                "repos": [],
-            },
-            updated_at=datetime.now(),
-            status=AutofixStatus.PROCESSING,
-            steps=[
-                {
-                    "key": "root_cause_analysis",
-                    "status": AutofixStatus.COMPLETED,
-                    "causes": [{"id": 12}, {"id": 34}],
-                },
-            ],
-        )
-        mock_get_autofix_state.return_value = existing_state
-
-        self.operator.trigger_autofix(
-            group=self.group,
-            user=self.user,
-            stopping_point=AutofixStoppingPoint.SOLUTION,
-            run_id=MOCK_RUN_ID,
-        )
-
-        mock_update_autofix.assert_called_once()
-        call_kwargs = mock_update_autofix.call_args.kwargs
-        payload = call_kwargs["payload"]
-        assert payload["type"] == "select_root_cause"
-        assert payload["cause_id"] == 34
-
     def test_can_trigger_autofix_returns_false_without_seer_access(self) -> None:
         assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
@@ -496,6 +556,197 @@ class SeerOperatorTest(TestCase):
             }
         ):
             assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_seer_event_creates_activity_rca_completed(self, _mock_has_access):
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "root_cause": {
+                "one_line_description": "Test root cause summary",
+                "five_whys": ["why1", "why2"],
+                "reproduction_steps": ["step1"],
+                "relevant_repo": "getsentry/sentry",
+            },
+        }
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_RCA_COMPLETED.value
+        )
+        assert activity.data["run_id"] == MOCK_RUN_ID
+        assert activity.data["summary"] == "Test root cause summary"
+        assert "root_cause" not in activity.data
+        assert "five_whys" not in activity.data
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_seer_event_creates_activity_solution_completed(self, _mock_has_access):
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "solution": {
+                "one_line_summary": "Test solution summary",
+                "steps": [{"title": "Fix the bug", "description": "Change X to Y"}],
+            },
+        }
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_SOLUTION_COMPLETED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_SOLUTION_COMPLETED.value
+        )
+        assert activity.data["run_id"] == MOCK_RUN_ID
+        assert activity.data["summary"] == "Test solution summary"
+        assert "solution" not in activity.data
+        assert "steps" not in activity.data
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_seer_event_creates_activity_coding_completed(self, _mock_has_access):
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "code_changes": {"getsentry/sentry": [{"diff": "...", "path": "foo.py"}]},
+        }
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_CODING_COMPLETED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_CODING_COMPLETED.value
+        )
+        assert activity.data["run_id"] == MOCK_RUN_ID
+        assert "changes" not in activity.data
+        assert "code_changes" not in activity.data
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_all_mapped_event_types(self, _mock_has_access):
+        for seer_event, expected_activity_type in SEER_EVENT_TO_ACTIVITY_TYPE.items():
+            event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+            process_autofix_updates(
+                event_type=seer_event,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
+            assert Activity.objects.filter(
+                group=self.group, type=expected_activity_type.value
+            ).exists(), f"Activity not created for {seer_event}"
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_skips_non_seer_events(self, _mock_has_access):
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.ISSUE_CREATED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        seer_type_values = [t.value for t in SEER_EVENT_TO_ACTIVITY_TYPE.values()]
+        assert not Activity.objects.filter(group=self.group, type__in=seer_type_values).exists()
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_option_disabled(self, _mock_has_access):
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+
+        with override_options({"issues.record-seer-actions-as-activities": False}):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
+
+        seer_type_values = [t.value for t in SEER_EVENT_TO_ACTIVITY_TYPE.values()]
+        assert not Activity.objects.filter(group=self.group, type__in=seer_type_values).exists()
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_pr_created_with_pull_requests(self, _mock_has_access):
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "pull_requests": [
+                {
+                    "pull_request": {
+                        "pr_number": 42,
+                        "pr_url": "https://github.com/owner/repo/pull/42",
+                    },
+                    "repo_name": "owner/repo",
+                    "provider": "github",
+                }
+            ],
+        }
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_PR_CREATED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_PR_CREATED.value)
+        assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
+        assert (
+            activity.data["pull_requests"][0]["pull_request"]["pr_url"]
+            == "https://github.com/owner/repo/pull/42"
+        )
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_iteration_completed(self, _mock_has_access):
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "code_changes": {"owner/repo": [{"diff": "...", "path": "foo.py"}]},
+            "pull_requests": [
+                {
+                    "pull_request": {
+                        "pr_number": 42,
+                        "pr_url": "https://github.com/owner/repo/pull/42",
+                    },
+                    "repo_name": "owner/repo",
+                    "provider": "github",
+                }
+            ],
+        }
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_ITERATION_COMPLETED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_ITERATION_COMPLETED.value
+        )
+        assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
+        assert activity.data["code_changes"]["owner/repo"][0]["path"] == "foo.py"
+
+    @patch("sentry.models.activity.invoke_workflow_activity_handlers")
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_invokes_workflow_activity_handlers(
+        self, _mock_has_access, mock_invoke
+    ):
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        mock_invoke.assert_called_once()
+        group, activity = mock_invoke.call_args[0][:2]
+        assert group == self.group
+        assert activity.type == ActivityType.SEER_RCA_STARTED.value
 
 
 class TestGetAutofixExplorerStatus(TestCase):
@@ -614,34 +865,72 @@ class TestGetAutofixExplorerStatus(TestCase):
         assert get_autofix_explorer_status(AutofixStoppingPoint.CODE_CHANGES, state) is False
 
 
-class MockExplorerEntrypoint(SeerExplorerEntrypoint[MockCachePayload]):
-    """Mock explorer entrypoint for testing."""
+class MockAgentEntrypoint(SeerAgentEntrypoint[MockCachePayload]):
+    """Mock agent entrypoint for testing."""
 
-    key = cast(SeerEntrypointKey, "MOCK_EXPLORER")
+    key = cast(SeerEntrypointKey, "MOCK_AGENT")
 
     def __init__(self):
         self.thread_id = str(uuid.uuid4())
-        self.explorer_errors: list[str] = []
-        self.explorer_run_ids: list[int] = []
+        self.agent_errors: list[str] = []
+        self.agent_run_ids: list[int] = []
 
     @staticmethod
-    def has_access(organization: Organization) -> bool:
+    def has_access(organization: Organization | RpcOrganization) -> bool:
         return True
 
-    def on_trigger_explorer_error(self, *, error: str) -> None:
-        self.explorer_errors.append(error)
+    def on_trigger_agent_error(self, *, error: str) -> None:
+        self.agent_errors.append(error)
 
-    def on_trigger_explorer_success(self, *, run_id: int) -> None:
-        self.explorer_run_ids.append(run_id)
+    def on_trigger_agent_success(self, *, run_id: int) -> None:
+        self.agent_run_ids.append(run_id)
 
-    def create_explorer_cache_payload(self) -> MockCachePayload:
+    def create_agent_cache_payload(self) -> MockCachePayload:
         return {"thread_id": self.thread_id}
 
     @staticmethod
-    def on_explorer_update(
-        cache_payload: MockCachePayload, summary: str | None, run_id: int
-    ) -> None:
+    def on_agent_update(cache_payload: MockCachePayload, summary: str | None, run_id: int) -> None:
         return None
+
+
+class TestSeerAgentOperatorAccess(TestCase):
+    def setUp(self) -> None:
+        self.entrypoint = MockAgentEntrypoint()
+        self.operator = SeerAgentOperator(self.entrypoint)
+
+    def test_has_access_with_seer_agent(self):
+        MockNoAccessEntrypoint = Mock(spec=SeerAgentEntrypoint)
+        MockNoAccessEntrypoint.key = cast(SeerEntrypointKey, "MOCK_NO_ACCESS")
+        MockNoAccessEntrypoint.has_access.return_value = False
+        with (
+            self.feature(
+                {
+                    "organizations:gen-ai-features": True,
+                    "organizations:seer-explorer": True,
+                }
+            ),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.agent_entrypoint_registry.registrations",
+                {
+                    MockAgentEntrypoint.key: MockAgentEntrypoint,
+                    MockNoAccessEntrypoint.key: MockNoAccessEntrypoint,
+                },
+                clear=True,
+            ),
+        ):
+            assert SeerAgentOperator.has_access(organization=self.organization)
+            assert SeerAgentOperator.has_access(
+                organization=self.organization,
+                entrypoint_key=MockAgentEntrypoint.key,
+            )
+            assert not SeerAgentOperator.has_access(
+                organization=self.organization,
+                entrypoint_key=MockNoAccessEntrypoint.key,
+            )
+
+    def test_has_access_without_seer_agent(self):
+        with self.feature({"organizations:gen-ai-features": False}):
+            assert not SeerAgentOperator.has_access(organization=self.organization)
 
 
 class TestSeerOperatorCompletionHook(TestCase):
@@ -671,28 +960,32 @@ class TestSeerOperatorCompletionHook(TestCase):
             cache_return_value = {"thread_id": "abc", "organization_id": self.organization.id}
 
         mock_fetch.return_value = state
-        mock_entrypoint_cls = Mock(spec=SeerExplorerEntrypoint)
+        mock_entrypoint_cls = Mock(spec=SeerAgentEntrypoint)
         mock_entrypoint_cls.has_access.return_value = True
 
         if registrations is None:
-            registrations = {MockExplorerEntrypoint.key: mock_entrypoint_cls}
+            registrations = {MockAgentEntrypoint.key: mock_entrypoint_cls}
 
         with (
             patch.dict(
-                "sentry.seer.entrypoints.operator.explorer_entrypoint_registry.registrations",
+                "sentry.seer.entrypoints.operator.agent_entrypoint_registry.registrations",
                 registrations,
                 clear=True,
             ),
             patch(
-                "sentry.seer.entrypoints.operator.SeerOperatorExplorerCache.get",
+                "sentry.seer.entrypoints.operator.SeerOperatorAgentCache.get",
                 return_value=cache_return_value,
+            ),
+            patch(
+                "sentry.seer.entrypoints.operator.SeerAgentOperator.has_access",
+                return_value=True,
             ),
         ):
             SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
 
         return mock_entrypoint_cls
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_fetches_summary_from_last_assistant_block(self, mock_fetch):
         state = self._make_state(
             blocks=[
@@ -715,13 +1008,13 @@ class TestSeerOperatorCompletionHook(TestCase):
         )
         mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
 
-        mock_entrypoint_cls.on_explorer_update.assert_called_once_with(
+        mock_entrypoint_cls.on_agent_update.assert_called_once_with(
             cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
             summary="last assistant",
             run_id=MOCK_RUN_ID,
         )
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_uses_default_summary_when_no_assistant_content(self, mock_fetch):
         state = self._make_state(
             blocks=[
@@ -739,28 +1032,30 @@ class TestSeerOperatorCompletionHook(TestCase):
         )
         mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
 
-        mock_entrypoint_cls.on_explorer_update.assert_called_once_with(
+        mock_entrypoint_cls.on_agent_update.assert_called_once_with(
             cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
             summary=None,
             run_id=MOCK_RUN_ID,
         )
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
-    def test_execute_returns_early_on_fetch_error(self, mock_fetch):
+    @patch("sentry.seer.entrypoints.operator.SeerAgentOperator.has_access", return_value=True)
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    def test_execute_returns_early_on_fetch_error(self, mock_fetch, _mock_access):
         mock_fetch.side_effect = Exception("Seer is down")
-        mock_entrypoint_cls = Mock(spec=SeerExplorerEntrypoint)
+        mock_entrypoint_cls = Mock(spec=SeerAgentEntrypoint)
 
         with patch.dict(
-            "sentry.seer.entrypoints.operator.explorer_entrypoint_registry.registrations",
-            {MockExplorerEntrypoint.key: mock_entrypoint_cls},
+            "sentry.seer.entrypoints.operator.agent_entrypoint_registry.registrations",
+            {MockAgentEntrypoint.key: mock_entrypoint_cls},
             clear=True,
         ):
             SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
 
-        mock_entrypoint_cls.on_explorer_update.assert_not_called()
+        mock_entrypoint_cls.on_agent_update.assert_not_called()
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
-    def test_execute_skips_entrypoint_without_access(self, mock_fetch):
+    @patch("sentry.seer.entrypoints.operator.SeerAgentOperator.has_access", return_value=True)
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    def test_execute_skips_entrypoint_without_access(self, mock_fetch, _mock_access):
         state = self._make_state(
             blocks=[
                 MemoryBlock(
@@ -771,15 +1066,15 @@ class TestSeerOperatorCompletionHook(TestCase):
             ]
         )
         mock_fetch.return_value = state
-        mock_no_access = Mock(spec=SeerExplorerEntrypoint)
+        mock_no_access = Mock(spec=SeerAgentEntrypoint)
         mock_no_access.has_access.return_value = False
-        mock_has_access = Mock(spec=SeerExplorerEntrypoint)
+        mock_has_access = Mock(spec=SeerAgentEntrypoint)
         mock_has_access.has_access.return_value = True
         cache_payload = {"thread_id": "abc", "organization_id": self.organization.id}
 
         with (
             patch.dict(
-                "sentry.seer.entrypoints.operator.explorer_entrypoint_registry.registrations",
+                "sentry.seer.entrypoints.operator.agent_entrypoint_registry.registrations",
                 {
                     cast(SeerEntrypointKey, "NO_ACCESS"): mock_no_access,
                     cast(SeerEntrypointKey, "HAS_ACCESS"): mock_has_access,
@@ -787,20 +1082,20 @@ class TestSeerOperatorCompletionHook(TestCase):
                 clear=True,
             ),
             patch(
-                "sentry.seer.entrypoints.operator.SeerOperatorExplorerCache.get",
+                "sentry.seer.entrypoints.operator.SeerOperatorAgentCache.get",
                 return_value=cache_payload,
             ),
         ):
             SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
 
-        mock_no_access.on_explorer_update.assert_not_called()
-        mock_has_access.on_explorer_update.assert_called_once_with(
+        mock_no_access.on_agent_update.assert_not_called()
+        mock_has_access.on_agent_update.assert_called_once_with(
             cache_payload=cache_payload,
             summary="summary",
             run_id=MOCK_RUN_ID,
         )
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_skips_entrypoint_without_cache(self, mock_fetch):
         state = self._make_state(
             blocks=[
@@ -815,10 +1110,10 @@ class TestSeerOperatorCompletionHook(TestCase):
             mock_fetch, state, cache_return_value=None
         )
 
-        mock_entrypoint_cls.on_explorer_update.assert_not_called()
+        mock_entrypoint_cls.on_agent_update.assert_not_called()
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_records_failure_on_org_mismatch(self, mock_fetch, mock_record):
         state = self._make_state(
             blocks=[
@@ -836,16 +1131,78 @@ class TestSeerOperatorCompletionHook(TestCase):
             cache_return_value={"thread_id": "abc", "organization_id": other_org.id},
         )
 
-        mock_entrypoint_cls.on_explorer_update.assert_not_called()
+        mock_entrypoint_cls.on_agent_update.assert_not_called()
         assert_failure_metric(mock_record, "org_mismatch")
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_with_empty_blocks(self, mock_fetch):
         state = self._make_state(blocks=[])
         mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
 
-        mock_entrypoint_cls.on_explorer_update.assert_called_once_with(
+        mock_entrypoint_cls.on_agent_update.assert_called_once_with(
             cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
             summary=None,
             run_id=MOCK_RUN_ID,
         )
+
+
+class TestSeerAgentOperatorCodeMode(TestCase):
+    def setUp(self) -> None:
+        self.entrypoint = MockAgentEntrypoint()
+        self.operator = SeerAgentOperator(self.entrypoint)
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_slack_code_mode_enabled(self, mock_client_cls):
+        mock_client = Mock()
+        mock_client.get_runs.return_value = []
+        mock_client.start_run.return_value = Mock(seer_run_state_id=1)
+        mock_client_cls.return_value = mock_client
+
+        with self.feature("organizations:seer-slack-code-mode"):
+            self.operator.trigger_agent(
+                organization=self.organization,
+                user=self.user,
+                prompt="hi",
+                category_key="slack_thread",
+                category_value="thread-123",
+            )
+
+        mock_client_cls.assert_called_once()
+        assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "only"
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_slack_code_mode_disabled(self, mock_client_cls):
+        mock_client = Mock()
+        mock_client.get_runs.return_value = []
+        mock_client.start_run.return_value = Mock(seer_run_state_id=1)
+        mock_client_cls.return_value = mock_client
+
+        self.operator.trigger_agent(
+            organization=self.organization,
+            user=self.user,
+            prompt="hi",
+            category_key="slack_thread",
+            category_value="thread-123",
+        )
+
+        mock_client_cls.assert_called_once()
+        assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_non_slack_category_ignores_flag(self, mock_client_cls):
+        mock_client = Mock()
+        mock_client.get_runs.return_value = []
+        mock_client.start_run.return_value = Mock(seer_run_state_id=1)
+        mock_client_cls.return_value = mock_client
+
+        with self.feature("organizations:seer-slack-code-mode"):
+            self.operator.trigger_agent(
+                organization=self.organization,
+                user=self.user,
+                prompt="hi",
+                category_key="other_category",
+                category_value="val-123",
+            )
+
+        mock_client_cls.assert_called_once()
+        assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"

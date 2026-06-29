@@ -23,7 +23,7 @@ export function ReplayTimeline() {
   const [timelineScale] = useTimelineScale();
 
   const stackedRef = useRef<HTMLDivElement>(null);
-  const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
+  const {width} = useDimensions({elementRef: stackedRef});
 
   if (!replay) {
     return <Placeholder height="20px" />;

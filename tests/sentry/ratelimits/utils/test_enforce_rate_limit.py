@@ -2,6 +2,7 @@ from django.test import override_settings
 from django.urls import re_path
 from rest_framework import status
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -18,7 +19,7 @@ class RateLimitTestEndpoint(Endpoint):
         limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=1, window=100)}}
     )
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         return Response({"ok": True})
 
 

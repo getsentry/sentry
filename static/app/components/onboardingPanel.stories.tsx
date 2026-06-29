@@ -30,7 +30,7 @@ export default Storybook.story('OnboardingPanel', story => {
             impact of their crashes or bugs and you shall receive.
           </p>
           <ButtonList>
-            <Button priority="primary">Read the Docs</Button>
+            <Button variant="primary">Read the Docs</Button>
             <Button>See an Example</Button>
           </ButtonList>
         </OnboardingPanel>
@@ -74,7 +74,7 @@ export default Storybook.story('OnboardingPanel', story => {
             impact of their crashes or bugs and you shall receive.
           </p>
           <ButtonList>
-            <Button priority="primary">Read the Docs</Button>
+            <Button variant="primary">Read the Docs</Button>
             <Button>See an Example</Button>
           </ButtonList>
         </OnboardingPanel>

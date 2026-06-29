@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -9,9 +10,8 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery, fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseScmRepoSelectionOptions {
@@ -26,12 +26,18 @@ function buildOptimisticRepo(
 ): Repository {
   return {
     id: '',
-    externalId: repo.identifier,
+    externalId: repo.externalId,
     name: repo.name,
     externalSlug: repo.identifier,
     url: '',
     provider: {
-      id: integration.provider.key,
+      // Match the format the backend returns for real Repository records
+      // (see the create call below — `integrations:<provider.key>`). Without
+      // the prefix, downstream consumers that compare against
+      // `'integrations:github'` (e.g. useScmPlatformDetection) fail to
+      // recognize the optimistic repo during the brief window before the
+      // resolved record replaces it.
+      id: `integrations:${integration.provider.key}`,
       name: integration.provider.name,
     },
     status: RepositoryStatus.ACTIVE,
@@ -64,30 +70,24 @@ export function useScmRepoSelection({
     // pagination issues with the full list.
     setBusy(true);
     try {
-      const queryKey: ApiQueryKey = [
-        getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
+      const reposQueryOptions = apiOptions.as<Repository[]>()(
+        '/organizations/$organizationIdOrSlug/repos/',
         {
+          path: {organizationIdOrSlug: organization.slug},
           query: {
             status: 'active',
             integration_id: integration.id,
             query: repo.identifier,
           },
-        },
-      ];
-      const [matches] = await queryClient.fetchQuery({
-        queryKey,
-        queryFn: fetchDataQuery<Repository[]>,
-        staleTime: 0,
-      });
-      // The query param above is an icontains filter to narrow results
-      // and avoid pagination. The exact match here uses Repository.name
-      // against IntegrationRepository.identifier — the same comparison the
-      // backend uses in organization_integration_repos.py:61,80 to determine
-      // isInstalled. Can't use externalSlug because it varies by provider
-      // (e.g. GitLab returns a numeric project ID).
-      const existing = matches?.find(r => r.name === repo.identifier);
+          staleTime: 0,
+        }
+      );
+      const matches = (await queryClient.fetchQuery(reposQueryOptions)).json;
+      // Match on externalId — the same field the backend uses to compute
+      // IntegrationRepository.isInstalled in organization_integration_repos.py.
+      // repo.name and repo.identifier diverge across providers (GitLab's
+      // identifier is a numeric project ID), but externalId is stable.
+      const existing = matches?.find(r => r.externalId === repo.externalId);
 
       if (existing) {
         onSelect({...optimistic, ...existing});

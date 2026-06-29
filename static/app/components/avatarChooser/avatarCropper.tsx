@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 export function getDiffNW(yDiff: number, xDiff: number) {
@@ -70,7 +71,7 @@ function AvatarCropper({maxDimension, minDimension, updateDataUrlState, dataUrl}
   const [offsets, setOffsets] = useState({top: 0, left: 0});
   const [mouseDown, setMouseDown] = useState(false);
   const [mousePosition, setMousePosition] = useState({pageX: 0, pageY: 0});
-  const [resizeDimensions, setResizeDimensions] = useState<Rect>({
+  const [resizeDimensions, setResizeDimensions] = useState({
     top: 0,
     left: 0,
     size: 0,
@@ -475,7 +476,13 @@ const ResizeHandle = styled('div')<{position: Position}>`
   position: absolute;
   background-color: ${p => p.theme.colors.gray400};
   cursor: ${p => `${p.position}-resize`};
-  ${p => RESIZER_POSITIONS[p.position].map(pos => `${pos}: -5px;`)}
+  ${p =>
+    RESIZER_POSITIONS[p.position].map(
+      pos =>
+        css`
+          ${pos}: -5px;
+        `
+    )}
 `;
 
 const HiddenCanvas = styled('canvas')`

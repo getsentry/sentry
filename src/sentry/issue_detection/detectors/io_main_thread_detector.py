@@ -4,7 +4,6 @@ import hashlib
 from collections import defaultdict
 from typing import Any
 
-import sentry_sdk
 from symbolic.proguard import ProguardMapper
 
 from sentry.issues.grouptype import (
@@ -15,8 +14,8 @@ from sentry.issues.grouptype import (
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
-from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils.tracing import start_span
 
 from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
@@ -42,10 +41,9 @@ class BaseIOMainThreadDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.mapper: ProguardMapper | None = None
         self.parent_to_blocked_span: dict[str, list[Span]] = defaultdict(list)
@@ -110,7 +108,7 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                     ],
                 )
 
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
 
@@ -119,7 +117,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     Checks for a file io span on the main thread
     """
 
-    IGNORED_SUFFIXES = [".nib", ".plist", "kblayout_iphone.dat"]
+    IGNORED_SUFFIXES = [".nib", ".plist", "kblayout_iphone.dat", "kblayouts_iphone.dat"]
     SPAN_PREFIX = "file"
     type = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
@@ -139,7 +137,9 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
             for image in images:
                 if image.get("type") == "proguard":
-                    with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
+                    with start_span(
+                        op="proguard.fetch_debug_files", name="proguard.fetch_debug_files"
+                    ):
                         uuid = image.get("uuid")
                         dif_paths = ProjectDebugFile.difcache.fetch_difs(
                             project, [uuid], features=["mapping"]
@@ -201,9 +201,6 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         # doing is True since the value can be any type
         return data.get("blocked_main_thread", False) is True
 
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
-
 
 class DBMainThreadDetector(BaseIOMainThreadDetector):
     """
@@ -219,10 +216,9 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.mapper = None
         self.parent_to_blocked_span = defaultdict(list)
@@ -244,6 +240,3 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
             return False
         # doing is True since the value can be any type
         return data.get("blocked_main_thread", False) is True
-
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True

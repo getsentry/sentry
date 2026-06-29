@@ -10,7 +10,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {AlertVariant} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -256,7 +256,7 @@ export function Alert({
           <Flex align="center" alignSelf="flex-start">
             <Button
               size="zero"
-              priority="transparent"
+              variant="transparent"
               icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
               aria-label={isExpanded ? t('Collapse') : t('Expand')}
               onClick={() => {
@@ -273,7 +273,7 @@ export function Alert({
               showIcon={!!showIcon}
               showTrailingItems={!!trailingItems}
             >
-              {Array.isArray(expand) ? expand.map(item => item) : expand}
+              {expand}
             </StyledExpandContainer>
           </Fragment>
         )}

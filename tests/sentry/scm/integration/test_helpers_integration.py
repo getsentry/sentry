@@ -1,20 +1,9 @@
-from unittest.mock import MagicMock
-
-import pytest
+from scm.providers.github.provider import GitHubProvider
+from scm.types import Repository
 
 from sentry.constants import ObjectStatus
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.errors import SCMCodedError, SCMProviderException, SCMUnhandledException
-from sentry.scm.private.helpers import (
-    exec_provider_fn,
-    fetch_repository,
-    fetch_service_provider,
-    initialize_provider,
-    map_integration_to_provider,
-    map_repository_model_to_repository,
-)
-from sentry.scm.private.providers.github import GitHubProvider
-from sentry.scm.types import Repository
+from sentry.scm.private.helpers import fetch_repository, fetch_service_provider
 from sentry.testutils.cases import TestCase
 
 
@@ -26,6 +15,7 @@ class TestFetchRepository(TestCase):
             provider="integrations:github",
             external_id="12345",
             status=ObjectStatus.ACTIVE,
+            integration_id=1,
         )
 
         result = fetch_repository(self.organization.id, repo.id)
@@ -36,9 +26,7 @@ class TestFetchRepository(TestCase):
         assert result["is_active"] is True
 
     def test_fetch_by_id_returns_none_for_nonexistent(self) -> None:
-        result = fetch_repository(self.organization.id, 99999)
-
-        assert result is None
+        assert fetch_repository(self.organization.id, 99999) is None
 
     def test_fetch_by_id_returns_none_for_wrong_organization(self) -> None:
         other_org = self.create_organization()
@@ -48,11 +36,9 @@ class TestFetchRepository(TestCase):
             provider="integrations:github",
             external_id="67890",
             status=ObjectStatus.ACTIVE,
+            integration_id=1,
         )
-
-        result = fetch_repository(self.organization.id, repo.id)
-
-        assert result is None
+        assert fetch_repository(self.organization.id, repo.id) is None
 
     def test_fetch_by_provider_and_external_id_returns_repository(self) -> None:
         RepositoryModel.objects.create(
@@ -61,6 +47,7 @@ class TestFetchRepository(TestCase):
             provider="integrations:github",
             external_id="12345",
             status=ObjectStatus.ACTIVE,
+            integration_id=1,
         )
 
         result = fetch_repository(self.organization.id, ("github", "12345"))
@@ -68,86 +55,91 @@ class TestFetchRepository(TestCase):
         assert result is not None
         assert result["name"] == "test-org/test-repo"
 
-    def test_fetch_by_provider_and_external_id_returns_none_for_nonexistent(self) -> None:
-        result = fetch_repository(self.organization.id, ("github", "nonexistent"))
-
-        assert result is None
-
-
-class TestMapRepositoryModelToRepository(TestCase):
-    def test_maps_all_fields_correctly(self) -> None:
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="Github Test Org",
-            external_id="1",
-        )
-        repo = RepositoryModel.objects.create(
+    def test_fetch_by_provider_and_name_returns_repository(self) -> None:
+        RepositoryModel.objects.create(
             organization_id=self.organization.id,
             name="test-org/test-repo",
             provider="integrations:github",
-            external_id="12345",
+            external_id="99999",
+            status=ObjectStatus.ACTIVE,
+            integration_id=1,
+        )
+
+        result = fetch_repository(self.organization.id, ("github", "test-org/test-repo"))
+
+        assert result is not None
+        assert result["name"] == "test-org/test-repo"
+
+    def test_fetch_by_provider_and_external_id_returns_none_for_nonexistent(self) -> None:
+        assert fetch_repository(self.organization.id, ("github", "nonexistent")) is None
+
+    def test_fetch_ghe_repo_populates_web_base_url(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="GHE Acme",
+            external_id="ghe-acme-1",
+            metadata={
+                "domain_name": "github.acme.com/installations/1",
+                "installation_id": "1",
+                "installation": {"id": "1", "private_key": "x", "verify_ssl": True},
+            },
+        )
+        RepositoryModel.objects.create(
+            organization_id=self.organization.id,
+            name="acme/widget",
+            provider="integrations:github_enterprise",
+            external_id="9001",
             status=ObjectStatus.ACTIVE,
             integration_id=integration.id,
         )
 
-        result = map_repository_model_to_repository(repo)
+        result = fetch_repository(self.organization.id, ("github_enterprise", "9001"))
 
-        assert result["integration_id"] == integration.id
-        assert result["name"] == "test-org/test-repo"
-        assert result["organization_id"] == self.organization.id
-        assert result["is_active"] is True
+        assert result is not None
+        assert result["provider_name"] == "github_enterprise"
+        assert result["web_base_url"] == "https://github.acme.com"
 
-
-class TestMapIntegrationToProvider(TestCase):
-    def test_returns_github_provider_for_github_integration(self) -> None:
+    def test_fetch_ghe_cloud_repo_populates_web_base_url(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
-            provider="github",
-            name="Github Test Org",
-            external_id="1",
+            provider="github_enterprise",
+            name="GHE Cloud Acme",
+            external_id="ghe-cloud-acme-1",
+            metadata={
+                "domain_name": "acme-corp.ghe.com",
+                "installation_id": "2",
+                "installation": {"id": "2", "private_key": "x", "verify_ssl": True},
+            },
         )
-        repository: Repository = {
-            "integration_id": integration.id,
-            "name": "test-org/test-repo",
-            "organization_id": self.organization.id,
-            "is_active": False,
-            "external_id": None,
-        }
-
-        provider = map_integration_to_provider(
-            self.organization.id,
-            integration,
-            repository,
-            get_installation=lambda _, oid: MagicMock(),
+        RepositoryModel.objects.create(
+            organization_id=self.organization.id,
+            name="acme/widget",
+            provider="integrations:github_enterprise",
+            external_id="9002",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
         )
 
-        assert isinstance(provider, GitHubProvider)
+        result = fetch_repository(self.organization.id, ("github_enterprise", "9002"))
 
-    def test_raises_error_for_unsupported_provider(self) -> None:
-        integration = self.create_integration(
-            organization=self.organization,
+        assert result is not None
+        assert result["web_base_url"] == "https://acme-corp.ghe.com"
+
+    def test_fetch_non_ghe_repo_web_base_url_is_none(self) -> None:
+        repo = RepositoryModel.objects.create(
+            organization_id=self.organization.id,
+            name="test-org/test-repo",
             provider="integrations:github",
-            name="Unsupported Provider Test",
-            external_id="1",
+            external_id="11111",
+            status=ObjectStatus.ACTIVE,
+            integration_id=1,
         )
-        repository: Repository = {
-            "integration_id": integration.id,
-            "name": "test-org/test-repo",
-            "organization_id": self.organization.id,
-            "is_active": False,
-            "external_id": None,
-        }
 
-        with pytest.raises(SCMCodedError) as exc_info:
-            map_integration_to_provider(
-                self.organization.id,
-                integration,
-                repository,
-                get_installation=lambda _, oid: MagicMock(),
-            )
+        result = fetch_repository(self.organization.id, repo.id)
 
-        assert exc_info.value.code == "unsupported_integration"
+        assert result is not None
+        assert result["web_base_url"] is None
 
 
 class TestFetchServiceProvider(TestCase):
@@ -160,181 +152,112 @@ class TestFetchServiceProvider(TestCase):
         )
 
         repository: Repository = {
+            "id": 1,
             "integration_id": integration.id,
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,
             "is_active": True,
             "external_id": None,
+            "provider_name": "github",
+            "web_base_url": None,
         }
         provider = fetch_service_provider(
             self.organization.id,
             repository,
-            map_to_provider=lambda i, oid, r: map_integration_to_provider(
-                oid, i, r, get_installation=lambda _, __: MagicMock()
-            ),
         )
 
         assert isinstance(provider, GitHubProvider)
 
     def test_returns_none_for_nonexistent_integration(self) -> None:
         repository: Repository = {
+            "id": 1,
             "integration_id": 99999,
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,
             "is_active": True,
             "external_id": None,
+            "provider_name": "github",
+            "web_base_url": None,
         }
         result = fetch_service_provider(self.organization.id, repository)
         assert result is None
 
-
-def _make_active_repository(organization_id: int) -> Repository:
-    return {
-        "integration_id": 1,
-        "name": "test-org/test-repo",
-        "organization_id": organization_id,
-        "is_active": True,
-        "external_id": None,
-    }
-
-
-def _make_provider(is_rate_limited: bool = False):
-    provider = MagicMock()
-    provider.is_rate_limited.return_value = is_rate_limited
-    return provider
-
-
-class TestInitializeProvider(TestCase):
-    def test_raises_repository_not_found(self) -> None:
-        with pytest.raises(SCMCodedError) as exc_info:
-            initialize_provider(
-                self.organization.id,
-                99999,
-                fetch_repository=lambda _, __: None,
-            )
-        assert exc_info.value.code == "repository_not_found"
-
-    def test_raises_repository_inactive(self) -> None:
-        repository: Repository = {
-            "integration_id": 1,
-            "name": "test-org/test-repo",
-            "organization_id": self.organization.id,
-            "is_active": False,
-            "external_id": None,
-        }
-
-        with pytest.raises(SCMCodedError) as exc_info:
-            initialize_provider(
-                self.organization.id,
-                1,
-                fetch_repository=lambda _, __: repository,
-            )
-        assert exc_info.value.code == "repository_inactive"
-
-    def test_raises_repository_organization_mismatch(self) -> None:
-        repository = _make_active_repository(organization_id=99999)
-
-        with pytest.raises(SCMCodedError) as exc_info:
-            initialize_provider(
-                self.organization.id,
-                1,
-                fetch_repository=lambda _, __: repository,
-            )
-        assert exc_info.value.code == "repository_organization_mismatch"
-
-    def test_raises_integration_not_found(self) -> None:
-        repository = _make_active_repository(self.organization.id)
-
-        with pytest.raises(SCMCodedError) as exc_info:
-            initialize_provider(
-                self.organization.id,
-                1,
-                fetch_repository=lambda _, __: repository,
-                fetch_service_provider=lambda _, __: None,
-            )
-        assert exc_info.value.code == "integration_not_found"
-
-
-class TestExecProviderFn(TestCase):
-    def test_returns_provider_fn_result(self) -> None:
-        provider = _make_provider()
-
-        result = exec_provider_fn(
-            provider,
-            provider_fn=lambda: "success",
+    def test_github_enterprise_returns_github_provider(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="GHE Acme",
+            external_id="ghe-dispatch-1",
+            metadata={
+                "domain_name": "github.acme.com",
+                "installation_id": "1",
+                "installation": {"id": "1", "private_key": "x", "verify_ssl": True},
+            },
         )
 
-        assert result == "success"
+        repository: Repository = {
+            "id": 1,
+            "integration_id": integration.id,
+            "name": "acme/widget",
+            "organization_id": self.organization.id,
+            "is_active": True,
+            "external_id": "9001",
+            "provider_name": "github_enterprise",
+            "web_base_url": "https://github.acme.com",
+        }
+        provider = fetch_service_provider(self.organization.id, repository)
 
-    def test_raises_rate_limit_exceeded(self) -> None:
-        with pytest.raises(SCMCodedError) as exc_info:
-            exec_provider_fn(
-                _make_provider(is_rate_limited=True),
-                provider_fn=lambda: None,
-            )
-        assert exc_info.value.code == "rate_limit_exceeded"
+        assert isinstance(provider, GitHubProvider)
 
-    def test_scm_provider_exception_is_reraised(self) -> None:
-        """SCMError subclasses from provider_fn should pass through unwrapped."""
+    def test_github_enterprise_without_integration_returns_none(self) -> None:
+        repository: Repository = {
+            "id": 1,
+            "integration_id": 99999,
+            "name": "acme/widget",
+            "organization_id": self.organization.id,
+            "is_active": True,
+            "external_id": "9001",
+            "provider_name": "github_enterprise",
+            "web_base_url": "https://github.acme.com",
+        }
+        assert fetch_service_provider(self.organization.id, repository) is None
 
-        def raise_scm_provider_exception():
-            raise SCMProviderException("API failure")
+    def test_github_enterprise_client_error_returns_none(self) -> None:
+        from unittest.mock import patch
 
-        with pytest.raises(SCMProviderException, match="API failure"):
-            exec_provider_fn(
-                _make_provider(),
-                provider_fn=raise_scm_provider_exception,
-            )
+        from sentry.shared_integrations.exceptions import IntegrationError
 
-    def test_scm_coded_error_is_reraised(self) -> None:
-        """SCMCodedError from provider_fn should pass through unwrapped."""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="GHE Acme",
+            external_id="ghe-clienterror-1",
+            metadata={
+                "domain_name": "github.acme.com",
+                "installation_id": "1",
+                "installation": {"id": "1", "private_key": "x", "verify_ssl": True},
+            },
+        )
+        repository: Repository = {
+            "id": 1,
+            "integration_id": integration.id,
+            "name": "acme/widget",
+            "organization_id": self.organization.id,
+            "is_active": True,
+            "external_id": "9001",
+            "provider_name": "github_enterprise",
+            "web_base_url": "https://github.acme.com",
+        }
 
-        def raise_scm_coded_error():
-            raise SCMCodedError(code="unsupported_integration")
-
-        with pytest.raises(SCMCodedError) as exc_info:
-            exec_provider_fn(
-                _make_provider(),
-                provider_fn=raise_scm_coded_error,
-            )
-        assert exc_info.value.code == "unsupported_integration"
-
-    def test_generic_exception_wrapped_in_scm_unhandled_exception(self) -> None:
-        """Non-SCMError exceptions should be wrapped in SCMUnhandledException."""
-
-        def raise_value_error():
-            raise ValueError("something unexpected")
-
-        with pytest.raises(SCMUnhandledException) as exc_info:
-            exec_provider_fn(
-                _make_provider(),
-                provider_fn=raise_value_error,
-            )
-        assert isinstance(exc_info.value.__cause__, ValueError)
-        assert "something unexpected" in str(exc_info.value.__cause__)
-
-    def test_key_error_wrapped_in_scm_unhandled_exception(self) -> None:
-        """KeyError (e.g. from malformed response) should be wrapped."""
-
-        def raise_key_error():
-            raise KeyError("missing_field")
-
-        with pytest.raises(SCMUnhandledException) as exc_info:
-            exec_provider_fn(
-                _make_provider(),
-                provider_fn=raise_key_error,
-            )
-        assert isinstance(exc_info.value.__cause__, KeyError)
-
-    def test_runtime_error_wrapped_in_scm_unhandled_exception(self) -> None:
-        """RuntimeError should be wrapped in SCMUnhandledException."""
-
-        def raise_runtime_error():
-            raise RuntimeError("unexpected state")
-
-        with pytest.raises(SCMUnhandledException) as exc_info:
-            exec_provider_fn(
-                _make_provider(),
-                provider_fn=raise_runtime_error,
-            )
-        assert isinstance(exc_info.value.__cause__, RuntimeError)
+        with (
+            patch(
+                "sentry.scm.private.helpers.integration_service.get_integration",
+                return_value=integration,
+            ),
+            patch.object(
+                type(integration.get_installation(organization_id=self.organization.id)),
+                "get_client",
+                side_effect=IntegrationError("boom"),
+            ),
+        ):
+            assert fetch_service_provider(self.organization.id, repository) is None

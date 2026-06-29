@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -18,12 +19,12 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IdentityIcon} from 'sentry/icons/identityIcon';
 import {t, tct} from 'sentry/locale';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import {IdentityIcon} from 'sentry/views/settings/components/identityIcon';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 

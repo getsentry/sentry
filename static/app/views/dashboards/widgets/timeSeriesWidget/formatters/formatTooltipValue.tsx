@@ -7,7 +7,7 @@ import {
   type RateUnit,
 } from 'sentry/utils/discover/fields';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {formatDollars, formatRate} from 'sentry/utils/formatters';
+import {formatDollars, formatRate, MICROSECOND} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
@@ -57,7 +57,7 @@ export function formatTooltipValue(
       const durationUnit = isADurationUnit(unit) ? unit : DurationUnit.MILLISECOND;
       const durationInSeconds = convertDuration(value, durationUnit, DurationUnit.SECOND);
 
-      return getDuration(durationInSeconds, 2, true);
+      return getDuration(durationInSeconds, 2, true, false, false, MICROSECOND);
     }
     case 'size': {
       const sizeUnit = isASizeUnit(unit) ? unit : SizeUnit.BYTE;

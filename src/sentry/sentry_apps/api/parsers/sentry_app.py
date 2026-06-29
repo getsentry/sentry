@@ -1,3 +1,6 @@
+import logging
+import re
+
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from jsonschema.exceptions import ValidationError as SchemaValidationError
@@ -11,6 +14,34 @@ from sentry.models.apiscopes import ApiScopes
 from sentry.sentry_apps.api.parsers.schema import validate_ui_element_schema
 from sentry.sentry_apps.models.sentry_app import REQUIRED_EVENT_PERMISSIONS, UUID_CHARS_IN_SLUG
 from sentry.sentry_apps.utils.webhooks import VALID_EVENT_RESOURCES
+from sentry.utils.display_name_filter import is_spam_display_name
+
+# Custom webhook headers are intentionally limited to the below list and "X-*"
+# custom headers. Names are compared case-insensitively.
+ALLOWED_WEBHOOK_HEADERS = frozenset(
+    {
+        "authorization",
+        "anthropic-version",
+        "anthropic-beta",
+    }
+)
+
+# RFC 7230 §3.2.6 — header field names are "tokens": letters, digits, and
+# the limited punctuation set below. Excludes separators and control chars.
+_HTTP_TOKEN_RE = re.compile(r"^[!#$%&'*+\-.^_`|~A-Za-z0-9]+$")
+
+# X-* headers Sentry owns, or transport/proxy identity headers that must not be
+# user-controlled. These are the exceptions carved out of the X-* allowance
+# below — every other non-allowed header is already rejected by the allow list,
+# so only X-* names need to be reserved here.
+RESERVED_WEBHOOK_HEADERS = frozenset(
+    {
+        "x-forwarded",
+        "x-real-ip",
+        "x-sentry",
+    }
+)
+RESERVED_WEBHOOK_HEADER_PREFIXES = ("x-forwarded-", "x-sentry-")
 
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))
@@ -69,7 +100,7 @@ class URLField(serializers.URLField):
         return url
 
 
-@extend_schema_serializer(exclude_fields=["popularity", "features", "status"])
+@extend_schema_serializer(exclude_fields=["popularity", "features", "status", "isDisabled"])
 class SentryAppParser(Serializer):
     name = serializers.CharField(help_text="The name of the custom integration.")
     author = serializers.CharField(
@@ -120,8 +151,16 @@ class SentryAppParser(Serializer):
         default=False,
         help_text="Marks whether or not the custom integration can be used in an alert rule.",
     )
+    isDisabled = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        default=None,
+    )
     overview = serializers.CharField(
-        required=False, allow_null=True, help_text="The custom integration's description."
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The custom integration's description.",
     )
     verifyInstall = serializers.BooleanField(
         required=False,
@@ -132,6 +171,14 @@ class SentryAppParser(Serializer):
         child=serializers.CharField(max_length=255),
         required=False,
         help_text="The list of allowed origins for CORS.",
+    )
+    webhookHeaders = serializers.ListField(
+        child=serializers.CharField(max_length=1024),
+        required=False,
+        help_text=(
+            "Custom headers sent with every webhook request. Each entry is a single "
+            "'Header-Name: value' pair."
+        ),
     )
     # Bounds chosen to match PositiveSmallIntegerField (https://docs.djangoproject.com/en/3.2/ref/models/fields/#positivesmallintegerfield)
     popularity = serializers.IntegerField(
@@ -164,12 +211,67 @@ class SentryAppParser(Serializer):
         max_length = 64 - UUID_CHARS_IN_SLUG - 1  # -1 comes from the - before the UUID bit
         if len(value) > max_length:
             raise ValidationError("Cannot exceed %d characters" % max_length)
+
+        if is_spam_display_name(value):
+            extra: dict[str, object] = {"attempted_name": value, "reason": "spam_filter"}
+            request = self.context.get("request")
+            if request is not None:
+                extra["user_id"] = getattr(request.user, "id", None)
+                extra["user_ip"] = request.META.get("REMOTE_ADDR")
+                extra["user_agent"] = request.META.get("HTTP_USER_AGENT")
+            if self.instance:
+                extra["sentry_app_id"] = self.instance.id
+                extra["sentry_app_slug"] = self.instance.slug
+            logging.getLogger("sentry.security").warning("spam.display-name-blocked", extra=extra)
+            raise ValidationError(
+                "This name contains disallowed content. Please choose a different name."
+            )
+
         return value
 
     def validate_allowedOrigins(self, value):
         for allowed_origin in value:
             if "*" in allowed_origin:
                 raise ValidationError("'*' not allowed in origin")
+        return value
+
+    def validate_webhookHeaders(self, value):
+        if len(value) > 20:
+            raise ValidationError("Cannot configure more than 20 custom webhook headers.")
+        seen_names = set()
+        for header in value:
+            # Reject CR/LF to prevent header injection / request splitting.
+            if "\n" in header or "\r" in header:
+                raise ValidationError("Webhook headers cannot contain newlines.")
+            name, separator, _header_value = header.partition(":")
+            name = name.strip()
+            if not separator or not name:
+                raise ValidationError(
+                    f"Invalid webhook header '{header}'. Use the format 'Header-Name: value'."
+                )
+            if not _HTTP_TOKEN_RE.match(name):
+                raise ValidationError(
+                    f"'{name}' contains invalid characters. Header names must only use "
+                    "letters, digits, and the punctuation characters !#$%&'*+-.^_`|~"
+                )
+            normalized = name.lower()
+            if normalized in RESERVED_WEBHOOK_HEADERS or normalized.startswith(
+                RESERVED_WEBHOOK_HEADER_PREFIXES
+            ):
+                raise ValidationError(f"'{name}' is a reserved header and cannot be overridden.")
+            if normalized not in ALLOWED_WEBHOOK_HEADERS and not normalized.startswith("x-"):
+                raise ValidationError(
+                    f"'{name}' is not an allowed webhook header. Use Authorization "
+                    "or X-* custom headers."
+                )
+            # Reject duplicate names (case-insensitive). This keeps the masked-value
+            # round-trip unambiguous: the updater re-pairs masked entries to stored
+            # values by header name, which only works if names are unique.
+            if normalized in seen_names:
+                raise ValidationError(
+                    f"Duplicate webhook header '{name}'. Each header may only be set once."
+                )
+            seen_names.add(normalized)
         return value
 
     def validate_scopes(self, value):

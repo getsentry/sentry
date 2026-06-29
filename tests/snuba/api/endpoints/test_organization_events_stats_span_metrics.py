@@ -27,9 +27,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
-        self.features = {
-            "organizations:performance-use-metrics": True,
-        }
+        self.features = {}
 
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
     @pytest.mark.querybuilder

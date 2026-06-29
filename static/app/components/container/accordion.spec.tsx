@@ -22,4 +22,27 @@ describe('Accordion', () => {
     await userEvent.click(screen.getByRole('button', {expanded: false}));
     expect(spy).toHaveBeenCalled();
   });
+
+  it('supports custom chevron directions', () => {
+    render(
+      <Accordion
+        expandedIndex={0}
+        setExpandedIndex={() => {}}
+        items={items}
+        collapsedChevronDirection="right"
+        expandedChevronDirection="down"
+      />
+    );
+
+    expect(screen.getByRole('button', {expanded: true}).querySelector('svg')).toHaveStyle(
+      {
+        transform: 'rotate(180deg)',
+      }
+    );
+    expect(
+      screen.getByRole('button', {expanded: false}).querySelector('svg')
+    ).toHaveStyle({
+      transform: 'rotate(90deg)',
+    });
+  });
 });

@@ -1,7 +1,8 @@
+import {Fragment} from 'react';
+
 import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -16,6 +17,7 @@ import {
 } from 'sentry/views/explore/errors/body';
 import {ErrorsFilterSection} from 'sentry/views/explore/errors/filterContent';
 import {useControlSectionExpanded} from 'sentry/views/explore/hooks/useControlSectionExpanded';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 export default function ErrorsContent() {
   const organization = useOrganization();
@@ -23,31 +25,32 @@ export default function ErrorsContent() {
 
   return (
     <SentryDocumentTitle title={t('Errors')} orgSlug={organization?.slug}>
-      <Layout.Page>
-        <ErrorsHeader />
-        <PageFiltersContainer>
-          <ExploreBodySearch>
-            <ErrorsFilterSection />
-          </ExploreBodySearch>
-        </PageFiltersContainer>
-        <ErrorsBody />
-      </Layout.Page>
+      <ErrorsHeader />
+      <PageFiltersContainer>
+        <ExploreBodySearch>
+          <ErrorsFilterSection />
+        </ExploreBodySearch>
+      </PageFiltersContainer>
+      <ErrorsBody />
     </SentryDocumentTitle>
   );
 }
 
 function ErrorsHeader() {
   return (
-    <Layout.Header unified>
-      <Layout.HeaderContent unified>
-        <Layout.Title>
-          {t('Errors')} <FeatureBadge type="alpha" />
-        </Layout.Title>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <FeedbackButton />
-      </Layout.HeaderActions>
-    </Layout.Header>
+    <Fragment>
+      <TopBar.Slot name="title">
+        {t('Errors')} <FeatureBadge type="alpha" />
+      </TopBar.Slot>
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
+    </Fragment>
   );
 }
 

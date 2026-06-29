@@ -40,9 +40,11 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
+        max_string_length: int | None = None,
     ) -> EAPResponse:
         """timestamp_precise is always displayed in the UI in lieu of timestamp but since the TraceItem table isn't a DateTime64
-        so we need to always order by it regardless of what is actually passed to the orderby."""
+        so we need to always order by it regardless of what is actually passed to the orderby.
+        """
         if (
             orderby is not None
             and len(orderby) == 1
@@ -59,6 +61,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
             rpc_dataset_common.TableQuery(
                 query_string=query_string,
                 selected_columns=selected_columns,
+                equations=equations,
                 orderby=orderby,
                 offset=offset,
                 limit=limit,
@@ -67,6 +70,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
                 resolver=search_resolver,
                 page_token=page_token,
                 additional_queries=additional_queries,
+                max_string_length=max_string_length,
             ),
             debug=params.debug,
         )

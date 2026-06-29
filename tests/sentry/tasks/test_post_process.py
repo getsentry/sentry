@@ -16,7 +16,6 @@ from django.utils import timezone
 
 from sentry import buffer
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
-from sentry.autopilot.grouptype import InstrumentationIssueExperimentalGroupType
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
@@ -48,8 +47,6 @@ from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.userreport import UserReport
-from sentry.replays.lib import kafka as replays_kafka
-from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.seer.autofix.constants import (
     AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
     FixabilityScoreThresholds,
@@ -59,14 +56,18 @@ from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.tasks import post_process as post_process_module
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
+    GROUP_CATEGORY_POST_PROCESS_PIPELINE,
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     feedback_filter_decorator,
     locks,
     post_process_group,
+    process_siem_security_logging,
     run_post_process_job,
+    set_siem_security_log_hook,
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
@@ -155,6 +156,29 @@ class ProcessWorkflowsKwargsMatcher:
             return False
 
         return True
+
+
+class SiemSecurityLoggingTest(TestCase):
+    def test_registered_in_error_pipeline(self) -> None:
+        assert (
+            process_siem_security_logging
+            in GROUP_CATEGORY_POST_PROCESS_PIPELINE[GroupCategory.ERROR]
+        )
+
+    def test_noop(self) -> None:
+        # Default hook is a no-op: the call must complete without touching the job.
+        process_siem_security_logging({})
+
+    def test_hook_swap_takes_effect(self) -> None:
+        original = post_process_module._siem_security_log_hook
+        calls = []
+        try:
+            set_siem_security_log_hook(lambda job: calls.append(job))
+            process_siem_security_logging({})
+        finally:
+            set_siem_security_log_hook(original)
+
+        assert calls == [{}]
 
 
 class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
@@ -438,7 +462,7 @@ class ResourceChangeBoundsTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
 
-        delay.assert_called_once_with(action="created", sender="Group", instance_id=group.id)
+        delay.assert_called_once_with(action="created", sender="Group", instance_id=str(group.id))
 
     @with_feature("organizations:integrations-event-hooks")
     @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
@@ -550,6 +574,71 @@ class ResourceChangeBoundsTestMixin(BasePostProcessGroupMixin):
         )
 
         assert not delay.called
+
+
+class MaliciousIssueDetectionTestMixin(BasePostProcessGroupMixin):
+    def test_malicious_issue_detection_calls_registered_processor(self) -> None:
+        from sentry.tasks.post_process import (
+            _noop_malicious_issue_detection_hook,
+            set_malicious_issue_detection_hook,
+        )
+
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        calls = []
+
+        def hook(job: Any) -> bool:
+            calls.append(
+                (job["event"].event_id, job["group_state"]["is_new"], job["is_reprocessed"])
+            )
+            return False
+
+        set_malicious_issue_detection_hook(hook)
+        try:
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+        finally:
+            set_malicious_issue_detection_hook(_noop_malicious_issue_detection_hook)
+
+        assert calls == [(event.event_id, False, False)]
+        event.group.refresh_from_db()
+        assert event.group.status == GroupStatus.UNRESOLVED
+
+    def test_malicious_issue_detection_halts_when_processor_returns_true(self) -> None:
+        from sentry.tasks.post_process import (
+            _noop_malicious_issue_detection_hook,
+            set_malicious_issue_detection_hook,
+        )
+
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        def hook(job: Any) -> bool:
+            return True
+
+        set_malicious_issue_detection_hook(hook)
+        try:
+            with (
+                patch(
+                    "sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay"
+                ) as mock_resource_change,
+                patch(
+                    "sentry.workflow_engine.tasks.workflows.process_workflows_event"
+                ) as mock_process_workflows_event,
+            ):
+                self.call_post_process_group(
+                    is_new=True,
+                    is_regression=False,
+                    is_new_group_environment=True,
+                    event=event,
+                )
+        finally:
+            set_malicious_issue_detection_hook(_noop_malicious_issue_detection_hook)
+
+        mock_resource_change.assert_not_called()
+        mock_process_workflows_event.apply_async.assert_not_called()
 
 
 class InboxTestMixin(BasePostProcessGroupMixin):
@@ -2081,7 +2170,6 @@ class SDKCrashMonitoringTestMixin(BasePostProcessGroupMixin):
 
 @patch("sentry.processing_errors.eap.producer.produce_processing_errors_to_eap")
 class ProcessingErrorsEAPTestMixin(BasePostProcessGroupMixin):
-    @with_feature("organizations:processing-errors-eap")
     def test_processing_errors_eap_called_with_errors(self, mock_produce: MagicMock) -> None:
         event = self.create_event(
             data={
@@ -2106,26 +2194,6 @@ class ProcessingErrorsEAPTestMixin(BasePostProcessGroupMixin):
         assert args[0].id == self.project.id
         assert args[2] == [{"type": "js_no_source", "symbolicator_type": "missing_sourcemap"}]
 
-    def test_processing_errors_eap_not_called_without_feature(
-        self, mock_produce: MagicMock
-    ) -> None:
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-            assert_no_errors=False,
-        )
-        event.data["errors"] = [{"type": "js_no_source"}]
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-
-        mock_produce.assert_not_called()
-
-    @with_feature("organizations:processing-errors-eap")
     def test_processing_errors_eap_not_called_without_errors(self, mock_produce: MagicMock) -> None:
         event = self.create_event(
             data={"message": "testing"},
@@ -2142,13 +2210,10 @@ class ProcessingErrorsEAPTestMixin(BasePostProcessGroupMixin):
         mock_produce.assert_not_called()
 
 
-@mock.patch.object(replays_kafka, "get_kafka_producer_cluster_options")
-@mock.patch.object(replays_kafka, "KafkaPublisher")
+@mock.patch("sentry.tasks.post_process.publish_replay_event")
 @mock.patch("sentry.utils.metrics.incr")
 class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
-    def test_replay_linkage(
-        self, incr: MagicMock, kafka_producer: MagicMock, kafka_publisher: MagicMock
-    ) -> None:
+    def test_replay_linkage(self, incr: MagicMock, publish_replay_event: MagicMock) -> None:
         replay_id = uuid.uuid4().hex
         event = self.create_event(
             data={"message": "testing", "contexts": {"replay": {"replay_id": replay_id}}},
@@ -2161,10 +2226,9 @@ class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
             is_new_group_environment=True,
             event=event,
         )
-        assert kafka_producer.return_value.publish.call_count == 1
-        assert kafka_producer.return_value.publish.call_args[0][0] == "ingest-replay-events"
+        assert publish_replay_event.call_count == 1
 
-        ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
+        ret_value = json.loads(publish_replay_event.call_args[0][0])
 
         assert ret_value["type"] == "replay_event"
         assert ret_value["start_time"]
@@ -2184,7 +2248,7 @@ class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
         incr.assert_any_call("post_process.process_replay_link.id_exists")
 
     def test_replay_linkage_with_tag(
-        self, incr: MagicMock, kafka_producer: MagicMock, kafka_publisher: MagicMock
+        self, incr: MagicMock, publish_replay_event: MagicMock
     ) -> None:
         replay_id = uuid.uuid4().hex
         event = self.create_event(
@@ -2198,10 +2262,9 @@ class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
             is_new_group_environment=True,
             event=event,
         )
-        assert kafka_producer.return_value.publish.call_count == 1
-        assert kafka_producer.return_value.publish.call_args[0][0] == "ingest-replay-events"
+        assert publish_replay_event.call_count == 1
 
-        ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
+        ret_value = json.loads(publish_replay_event.call_args[0][0])
 
         assert ret_value["type"] == "replay_event"
         assert ret_value["start_time"]
@@ -2221,7 +2284,7 @@ class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
         incr.assert_any_call("post_process.process_replay_link.id_exists")
 
     def test_replay_linkage_with_tag_pii_scrubbed(
-        self, incr: MagicMock, kafka_producer: MagicMock, kafka_publisher: MagicMock
+        self, incr: MagicMock, publish_replay_event: MagicMock
     ) -> None:
         event = self.create_event(
             data={"message": "testing", "tags": {"replayId": "***"}},
@@ -2234,11 +2297,9 @@ class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
             is_new_group_environment=True,
             event=event,
         )
-        assert kafka_producer.return_value.publish.call_count == 0
+        assert publish_replay_event.call_count == 0
 
-    def test_no_replay(
-        self, incr: MagicMock, kafka_producer: MagicMock, kafka_publisher: MagicMock
-    ) -> None:
+    def test_no_replay(self, incr: MagicMock, publish_replay_event: MagicMock) -> None:
         event = self.create_event(
             data={"message": "testing"},
             project_id=self.project.id,
@@ -2250,7 +2311,7 @@ class ReplayLinkageTestMixin(BasePostProcessGroupMixin):
             is_new_group_environment=True,
             event=event,
         )
-        assert kafka_producer.return_value.publish.call_count == 0
+        assert publish_replay_event.call_count == 0
         incr.assert_any_call("post_process.process_replay_link.id_sampled")
 
 
@@ -3070,6 +3131,58 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
 
+class KickOffLightweightRCAClusterTestMixin(BasePostProcessGroupMixin):
+    @patch("sentry.tasks.seer.lightweight_rca_cluster.trigger_lightweight_rca_cluster_task.delay")
+    def test_kick_off_lightweight_rca_cluster_when_enabled(self, mock_task):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        with self.feature("organizations:supergroups-lightweight-rca-clustering-write"):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+
+        mock_task.assert_called_once_with(event.group.id)
+
+    @patch("sentry.tasks.seer.lightweight_rca_cluster.trigger_lightweight_rca_cluster_task.delay")
+    def test_kick_off_lightweight_rca_cluster_skips_when_not_enabled(self, mock_task):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_task.assert_not_called()
+
+    @patch("sentry.tasks.seer.lightweight_rca_cluster.trigger_lightweight_rca_cluster_task.delay")
+    def test_kick_off_lightweight_rca_cluster_skips_when_not_new(self, mock_task):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        with self.feature("organizations:supergroups-lightweight-rca-clustering-write"):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+
+        mock_task.assert_not_called()
+
+
 @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
 class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
     """Tests for the triage signals V0 flow."""
@@ -3494,9 +3607,11 @@ class PostProcessGroupErrorTest(
     ProcessCommitsTestMixin,
     CorePostProcessGroupTestMixin,
     DeriveCodeMappingsProcessGroupTestMixin,
+    MaliciousIssueDetectionTestMixin,
     InboxTestMixin,
     ResourceChangeBoundsTestMixin,
     KickOffSeerAutomationTestMixin,
+    KickOffLightweightRCAClusterTestMixin,
     TriageSignalsV0TestMixin,
     SeerAutomationHelperFunctionsTestMixin,
     WorkflowEngineTestMixin,
@@ -3513,7 +3628,6 @@ class PostProcessGroupErrorTest(
 ):
     def setUp(self) -> None:
         super().setUp()
-        clear_replay_publisher()
 
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
@@ -3571,7 +3685,7 @@ class PostProcessGroupPerformanceTest(
 
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")
-    @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
+    @patch("sentry.tasks.post_process.process_workflow_engine")
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
     @patch("sentry.signals.transaction_processed.send_robust")
@@ -3582,7 +3696,7 @@ class PostProcessGroupPerformanceTest(
         transaction_processed_signal_mock,
         mock_process_workflows_event,
         run_post_process_job_mock,
-        mock_process_workflow_engine_issue_alerts,
+        mock_process_workflow_engine,
         mock_handle_auto_assignment,
         mock_handle_owner_assignment,
     ):
@@ -3595,11 +3709,11 @@ class PostProcessGroupPerformanceTest(
         call_order = [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
-            mock_process_workflow_engine_issue_alerts,
+            mock_process_workflow_engine,
         ]
         mock_handle_owner_assignment.side_effect = None
         mock_handle_auto_assignment.side_effect = None
-        mock_process_workflow_engine_issue_alerts.side_effect = None
+        mock_process_workflow_engine.side_effect = None
 
         post_process_group(
             is_new=True,
@@ -3618,7 +3732,7 @@ class PostProcessGroupPerformanceTest(
         assert call_order == [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
-            mock_process_workflow_engine_issue_alerts,
+            mock_process_workflow_engine,
         ]
 
 
@@ -3733,7 +3847,7 @@ class PostProcessGroupGenericTest(
 
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")
-    @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
+    @patch("sentry.tasks.post_process.process_workflow_engine")
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
     @patch("sentry.signals.event_processed.send_robust")
@@ -3744,7 +3858,7 @@ class PostProcessGroupGenericTest(
         event_processed_signal_mock,
         mock_process_workflows_event,
         run_post_process_job_mock,
-        mock_process_workflow_engine_issue_alerts,
+        mock_process_workflow_engine,
         mock_handle_auto_assignment,
         mock_handle_owner_assignment,
     ):
@@ -3752,11 +3866,11 @@ class PostProcessGroupGenericTest(
         call_order = [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
-            mock_process_workflow_engine_issue_alerts,
+            mock_process_workflow_engine,
         ]
         mock_handle_owner_assignment.side_effect = None
         mock_handle_auto_assignment.side_effect = None
-        mock_process_workflow_engine_issue_alerts.side_effect = None
+        mock_process_workflow_engine.side_effect = None
         self.call_post_process_group(
             is_new=False,
             is_regression=True,
@@ -3769,7 +3883,7 @@ class PostProcessGroupGenericTest(
         assert call_order == [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
-            mock_process_workflow_engine_issue_alerts,
+            mock_process_workflow_engine,
         ]
         assert snuba_raw_query_mock.call_count == 0
 
@@ -4091,7 +4205,7 @@ class PostProcessGroupFeedbackTest(
         )
 
         mock_delay.assert_called_once_with(
-            action="created", sender="Group", instance_id=event.group.id
+            action="created", sender="Group", instance_id=str(event.group.id)
         )
 
 
@@ -4307,82 +4421,3 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
         # Both forwarders should be called despite SQS failure
         assert mock_sqs_forward.call_count == 1
         assert mock_splunk_forward.call_count == 1
-
-
-class PostProcessGroupInstrumentationIssueTest(
-    TestCase,
-    SnubaTestCase,
-    OccurrenceTestMixin,
-):
-    """Tests that instrumentation issues do not trigger alerts."""
-
-    def create_event(
-        self,
-        data,
-        project_id,
-        assert_no_errors=True,
-    ):
-        data["type"] = "generic"
-
-        event = self.store_event(
-            data=data, project_id=project_id, assert_no_errors=assert_no_errors
-        )
-
-        occurrence_data = self.build_occurrence_data(
-            event_id=event.event_id,
-            project_id=project_id,
-            id=uuid.uuid4().hex,
-            fingerprint=["instrumentation-" + uuid.uuid4().hex],
-            issue_title="Missing Instrumentation",
-            subtitle="Database query not instrumented",
-            culprit="api/endpoint",
-            resource_id="1234",
-            evidence_data={"test": "data"},
-            evidence_display=[
-                {"name": "issue", "value": "missing span", "important": True},
-            ],
-            type=InstrumentationIssueExperimentalGroupType.type_id,
-            detection_time=datetime.now().timestamp(),
-            level="info",
-        )
-        occurrence, group_info = save_issue_occurrence(occurrence_data, event)
-        assert group_info is not None
-
-        group_event = event.for_group(group_info.group)
-        group_event.occurrence = occurrence
-        return group_event
-
-    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
-        with self.feature(
-            InstrumentationIssueExperimentalGroupType.build_post_process_group_feature_name()
-        ):
-            post_process_group(
-                is_new=is_new,
-                is_regression=is_regression,
-                is_new_group_environment=is_new_group_environment,
-                cache_key=None,
-                group_id=event.group_id,
-                occurrence_id=event.occurrence.id,
-                project_id=event.group.project_id,
-                eventstream_type=EventStreamEventType.Generic.value,
-            )
-
-    @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
-    def test_instrumentation_issues_do_not_trigger_alerts(
-        self,
-        mock_process_workflow_engine_issue_alerts,
-    ):
-        """Instrumentation issues should not trigger process_rules or process_workflow_engine_issue_alerts."""
-        event = self.create_event(
-            data={},
-            project_id=self.project.id,
-        )
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-
-        mock_process_workflow_engine_issue_alerts.assert_not_called()

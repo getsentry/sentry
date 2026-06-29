@@ -3,12 +3,18 @@ import {
   ActionFixture,
   AutomationFixture,
 } from 'sentry-fixture/automations';
-import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  IssueStreamDetectorFixture,
+  MetricDetectorFixture,
+} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationDetail from 'sentry/views/automations/detail';
 
 describe('AutomationDetail', () => {
@@ -27,6 +33,13 @@ describe('AutomationDetail', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {period: '14d', start: null, end: null, utc: null},
+    });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
       body: user,
@@ -40,7 +53,13 @@ describe('AutomationDetail', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       body: detectors,
-      match: [MockApiClient.matchQuery({id: ['1', '2']})],
+      match: [MockApiClient.matchQuery({query: '!type:issue_stream workflow:123'})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [],
+      match: [MockApiClient.matchQuery({query: 'type:issue_stream workflow:123'})],
     });
 
     MockApiClient.addMockResponse({
@@ -70,7 +89,7 @@ describe('AutomationDetail', () => {
     });
 
     expect(
-      await screen.findByRole('heading', {name: 'Test Automation'})
+      await screen.findByRole('heading', {name: /Test Automation/i})
     ).toBeInTheDocument();
 
     // Check sidebar sections
@@ -140,7 +159,7 @@ describe('AutomationDetail', () => {
         },
       });
 
-      await screen.findByRole('heading', {name: 'Test Automation'});
+      await screen.findByRole('heading', {name: /Test Automation/i});
 
       expect(
         screen.getByText('You must add an action for this alert to run.')
@@ -170,7 +189,7 @@ describe('AutomationDetail', () => {
         },
       });
 
-      await screen.findByRole('heading', {name: 'Test Automation'});
+      await screen.findByRole('heading', {name: /Test Automation/i});
 
       expect(
         screen.getByText(
@@ -202,11 +221,118 @@ describe('AutomationDetail', () => {
         },
       });
 
-      await screen.findByRole('heading', {name: 'Test Automation'});
+      await screen.findByRole('heading', {name: /Test Automation/i});
 
       expect(
         screen.getByText('One or more actions need to be reconfigured in order to run.')
       ).toBeInTheDocument();
     });
+  });
+
+  it('displays no connections warning when detectorIds is empty', async () => {
+    const automationWithNoConnections = AutomationFixture({
+      ...automation,
+      detectorIds: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/123/',
+      body: automationWithNoConnections,
+    });
+
+    render(<AutomationDetail />, {
+      organization,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    await screen.findByRole('heading', {name: /Test Automation/i});
+
+    expect(
+      screen.getByText(
+        'This alert is not connected to a project or monitor and will not trigger.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not display no connections warning when detectorIds exist', async () => {
+    render(<AutomationDetail />, {
+      organization,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    await screen.findByRole('heading', {name: /Test Automation/i});
+
+    expect(
+      screen.queryByText(
+        'This alert is not connected to a project or monitor and will not trigger.'
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it('disables action buttons without alerts:write permission', async () => {
+    const noWriteOrg = OrganizationFixture({
+      features: ['workflow-engine-ui'],
+      access: ['org:read', 'alerts:read'],
+    });
+
+    render(<AutomationDetail />, {
+      organization: noWriteOrg,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    await screen.findByRole('heading', {name: /Test Automation/i});
+
+    expect(screen.getByRole('button', {name: 'Disable'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it('displays connected projects and monitors', async () => {
+    const project = ProjectFixture({id: '10', slug: 'my-project', name: 'My Project'});
+    ProjectsStore.loadInitialData([project]);
+
+    const monitor = MetricDetectorFixture({
+      id: '50',
+      name: 'CPU Usage Monitor',
+      projectId: '10',
+    });
+    const issueStreamDetector = IssueStreamDetectorFixture({
+      id: '60',
+      projectId: '10',
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [monitor],
+      match: [MockApiClient.matchQuery({query: '!type:issue_stream workflow:123'})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [issueStreamDetector],
+      match: [MockApiClient.matchQuery({query: 'type:issue_stream workflow:123'})],
+    });
+
+    render(<AutomationDetail />, {
+      organization,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    expect(await screen.findByText('my-project')).toBeInTheDocument();
+    expect(await screen.findByText('CPU Usage Monitor')).toBeInTheDocument();
   });
 });

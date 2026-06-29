@@ -6,8 +6,10 @@ from sentry.integrations.types import IntegrationProviderSlug
 SeerSCMProvider = Literal[
     "integrations:github",
     "integrations:github_enterprise",
+    "integrations:gitlab",
     "github",
     "github_enterprise",
+    "gitlab",
 ]
 
 # Supported repository providers for Seer features
@@ -16,4 +18,9 @@ SEER_SUPPORTED_SCM_PROVIDERS = [
     "integrations:github_enterprise",
     IntegrationProviderSlug.GITHUB.value,
     IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+]
+
+SEER_GITLAB_SCM_PROVIDERS = [
+    "integrations:gitlab",
+    IntegrationProviderSlug.GITLAB.value,
 ]

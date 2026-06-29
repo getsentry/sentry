@@ -10,6 +10,7 @@ import {IconCheckmark, IconSeer, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AddOnCategory} from 'getsentry/types';
 import {getReservedBudgetCategoryForAddOn} from 'getsentry/utils/billing';
@@ -44,6 +45,8 @@ export function ProductSelect({
   onUpdate,
   subscription,
 }: Pick<StepProps, 'activePlan' | 'onUpdate' | 'formData' | 'subscription'>) {
+  const organization = useOrganization();
+
   const availableAddOns = Object.values(activePlan.addOnCategories).filter(
     addOnInfo =>
       // if the add-on is not available, don't show it
@@ -208,6 +211,7 @@ export function ProductSelect({
         }
 
         if (apiName === AddOnCategory.SEER) {
+          const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
           return (
             <Flex direction="column" gap="xl" key={apiName}>
               <Flex gap="sm" align="start">
@@ -254,9 +258,13 @@ export function ProductSelect({
                     data-test-id="product-option-description"
                   >
                     <Text variant="muted">
-                      {t(
-                        'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
-                      )}
+                      {hasGitLabSupport
+                        ? t(
+                            'An active contributor is anyone who opens 2 or more PRs in a connected GitHub or GitLab repository. Count resets each month.'
+                          )
+                        : t(
+                            'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
+                          )}
                     </Text>
                     <Flex direction="column" gap="xs">
                       <Text variant="muted">

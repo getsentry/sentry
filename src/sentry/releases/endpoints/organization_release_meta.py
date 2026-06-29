@@ -6,6 +6,7 @@ from typing import TypedDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -31,6 +32,7 @@ class _ProjectDict(TypedDict):
 
 @cell_silo_endpoint
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -120,7 +122,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "version": release.version,
                 "versionInfo": expose_version_info(release.version_info),
                 "projects": projects,
-                "newGroups": sum(project["newGroups"] for project in projects),
+                "newGroups": sum(project["newGroups"] or 0 for project in projects),
                 "deployCount": release.total_deploys,
                 "commitCount": release.commit_count,
                 "released": release.date_released or release.date_added,

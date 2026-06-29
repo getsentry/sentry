@@ -42,7 +42,7 @@ describe('Frame', () => {
           name: 'foo',
           line: undefined,
           column: undefined,
-          file: `bar.js`,
+          file: 'bar.js',
         },
         'javascript'
       ).is_browser_extension

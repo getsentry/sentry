@@ -62,8 +62,12 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
         for smatch in _short_id_re.finditer(fmatch.group(1)):
             short_id = smatch.group(1)
             try:
+                # Intentionally org-scoped only (project_ids=None): this runs while processing
+                # commit/PR text (see Commit/PullRequest.find_referenced_groups), which
+                # legitimately links to any issue in the organization. There is no narrower
+                # authorized-project set to enforce here.
                 group = Group.objects.by_qualified_short_id(
-                    organization_id=org_id, short_id=short_id
+                    organization_id=org_id, short_id=short_id, project_ids=None
                 )
             except Group.DoesNotExist:
                 continue

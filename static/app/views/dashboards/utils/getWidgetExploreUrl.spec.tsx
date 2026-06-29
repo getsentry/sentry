@@ -316,9 +316,10 @@ describe('getWidgetExploreUrl', () => {
     });
 
     const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+    expect(url).not.toBeNull();
 
     // Provide a fake base URL to allow parsing the relative URL
-    const urlObject = new URL(url, 'https://www.example.com');
+    const urlObject = new URL(url!, 'https://www.example.com');
     expect(urlObject.pathname).toBe('/organizations/org-slug/explore/traces/compare/');
 
     expect(urlObject.searchParams.get('interval')).toBe('30m');
@@ -338,6 +339,30 @@ describe('getWidgetExploreUrl', () => {
     expect(query2.fields).toEqual([]);
     expect(query2.groupBys).toEqual(['span.description']);
     expect(query2.query).toBe('is_transaction:false');
+  });
+
+  it('returns null for log widgets with multiple queries', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.LOGS,
+      queries: [
+        WidgetQueryFixture({
+          aggregates: ['count()'],
+          columns: [],
+          conditions: 'level:error',
+          orderby: '',
+        }),
+        WidgetQueryFixture({
+          aggregates: ['count()'],
+          columns: [],
+          conditions: 'level:warning',
+          orderby: '',
+        }),
+      ],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+    expect(url).toBeNull();
   });
 
   it('adds referrer query parameter if provided', () => {
@@ -431,11 +456,12 @@ describe('getWidgetTableRowExploreUrlFunction', () => {
   });
 });
 
-function expectUrl(url: string) {
+function expectUrl(url: string | null) {
   return {
     toMatch({path, params}: {params: Array<[string, string]>; path: string}) {
+      expect(url).not.toBeNull();
       expect(url).toMatch(new RegExp(`^${path}\\?`));
-      const urlParams = new URLSearchParams(url.substring(path.length));
+      const urlParams = new URLSearchParams(url!.substring(path.length));
       function compareFn(a: [string, string], b: [string, string]) {
         if (a[0] < b[0]) {
           return -1;

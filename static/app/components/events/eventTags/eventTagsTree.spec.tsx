@@ -150,7 +150,7 @@ describe('EventTagsTree', () => {
       validateLink: () => {
         const linkElement = screen.getByRole('link', {name: 'abc123'});
         const href = linkElement.attributes.getNamedItem('href');
-        expect(href?.value).toContain(`/organizations/org-slug/insights/summary/`);
+        expect(href?.value).toContain('/organizations/org-slug/insights/summary/');
         expect(href?.value).toContain(`project=${project.id}`);
         expect(href?.value).toContain('transaction=abc123');
         expect(href?.value).toContain(`referrer=${referrer}`);
@@ -256,6 +256,21 @@ describe('EventTagsTree', () => {
     expect(screen.queryByText('undefined tag')).not.toBeInTheDocument();
   });
 
+  it('renders tags rooted at object prototype property names', async () => {
+    const prototypeTagEvent = EventFixture({
+      tags: [{key: 'constructor.name', value: 'Event'}],
+    });
+
+    render(<EventTags projectSlug={project.slug} event={prototypeTagEvent} />, {
+      organization,
+    });
+
+    expect(mockDetailedProject).toHaveBeenCalled();
+    expect(await screen.findByText('constructor', {selector: 'div'})).toBeInTheDocument();
+    expect(screen.getByText('name', {selector: 'div'})).toBeInTheDocument();
+    expect(screen.getByText('Event')).toBeInTheDocument();
+  });
+
   it("renders 'Add to event highlights' option based on highlights", async () => {
     const highlightsEvent = EventFixture({
       tags: [
@@ -273,6 +288,9 @@ describe('EventTagsTree', () => {
       organization,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
+
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const normalTagRow = (
       await screen.findByText('useless-tag', {selector: 'div'})
     ).closest('div[data-test-id=tag-tree-row]') as HTMLElement;
@@ -280,6 +298,8 @@ describe('EventTagsTree', () => {
     await userEvent.click(normalTagDropdown);
     expect(screen.getByLabelText('Add to event highlights')).toBeInTheDocument();
 
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const highlightTagRow = screen
       .getByText('highlighted-tag', {selector: 'div'})
       .closest('div[data-test-id=tag-tree-row]') as HTMLElement;
@@ -310,6 +330,8 @@ describe('EventTagsTree', () => {
       organization: readAccessOrganization,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const normalTagRow = (
       await screen.findByText('useless-tag', {selector: 'div'})
     ).closest('div[data-test-id=tag-tree-row]') as HTMLElement;
@@ -333,6 +355,8 @@ describe('EventTagsTree', () => {
         route: '/organizations/:orgId/issues/:groupId/',
       },
     });
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const normalTagRow = (
       await screen.findByText('useless-tag', {selector: 'div'})
     ).closest('div[data-test-id=tag-tree-row]') as HTMLElement;

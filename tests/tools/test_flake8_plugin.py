@@ -289,6 +289,54 @@ def test_S016() -> None:
     assert _run(src) == []
 
 
+def test_S018() -> None:
+    expected_msg = (
+        "S018 Use `sentry.cache.backends.reconnectingmemcache.ReconnectingMemcache` "
+        "instead of `django.core.cache.backends.memcached.PyMemcacheCache`."
+    )
+
+    src = """\
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+        "LOCATION": ["127.0.0.1:11211"],
+    }
+}
+"""
+    errors = _run(src)
+    assert errors == [f"t.py:3:19: {expected_msg}"]
+
+    src = 'BACKEND = "django.core.cache.backends.memcached.PyMemcacheCache"\n'
+    errors = _run(src)
+    assert errors == [f"t.py:1:10: {expected_msg}"]
+
+    src = "from django.core.cache.backends.memcached import PyMemcacheCache\n"
+    errors = _run(src)
+    assert errors == [f"t.py:1:0: {expected_msg}"]
+
+    src = "from django.core.cache.backends.memcached import PyMemcacheCache, PyLibMCCache\n"
+    errors = _run(src)
+    assert errors == [f"t.py:1:0: {expected_msg}"]
+
+    src = "from django.core.cache.backends.memcached import PyLibMCCache\n"
+    assert _run(src) == []
+
+    src = "from sentry.cache.backends.reconnectingmemcache import ReconnectingMemcache\n"
+    assert _run(src) == []
+
+    src = """\
+CACHES = {
+    "default": {
+        "BACKEND": "sentry.cache.backends.reconnectingmemcache.ReconnectingMemcache",
+    }
+}
+"""
+    assert _run(src) == []
+
+    src = '"PyMemcacheCache is a Django backend"\n'
+    assert _run(src) == []
+
+
 def test_S015_current_or_future_year() -> None:
     cy = datetime.now(timezone.utc).year
     msg = _s015_msg()
@@ -345,3 +393,23 @@ def test_S015_current_or_future_year() -> None:
         )
         == []
     )
+
+
+def test_S019() -> None:
+    src = """\
+import logging
+
+logger = logging.getLogger(__name__)
+
+logger.info("m", extra={"name": 1})
+logger.warning("m", extra={"message": "x"})
+logger.info("m", extra={"ok_key": 1})
+logger.info("m", extra=other)
+"""
+    expected = [
+        "t.py:5:24: S019 'name' is a reserved LogRecord attribute; using it as a key in "
+        "logging extra= raises KeyError at runtime",
+        "t.py:6:27: S019 'message' is a reserved LogRecord attribute; using it as a key in "
+        "logging extra= raises KeyError at runtime",
+    ]
+    assert _run(src) == expected

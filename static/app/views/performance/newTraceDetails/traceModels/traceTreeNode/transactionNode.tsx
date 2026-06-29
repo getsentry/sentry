@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {getStylingSliceName} from 'sentry/views/explore/tables/tracesTable/utils';
+import {getTraceMetaTransactionChildCountMap} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {isBrowserRequestNode} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TransactionNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -41,7 +42,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     this.type = 'txn';
 
     this.extra = extra;
-    const spanChildrenCount = extra.meta?.transaction_child_count_map[this.id];
+    const spanChildrenCount = getTraceMetaTransactionChildCountMap(extra.meta)?.[this.id];
 
     // We check for >1 events, as the first one is the transaction node itself
     this.canFetchChildren =

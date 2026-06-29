@@ -35,9 +35,9 @@ class HTTPServiceTest(TestCase):
             assert server.options["proc-name"] == "LOL"
 
     def test_format_logs(self) -> None:
-        with self.options({"system.logging-format": "human"}):
+        with override_settings(SENTRY_LOGGING_FORMAT="human"):
             server = SentryHTTPServer()
             assert server.options["log-enabled"] is True
-        with self.options({"system.logging-format": "machine"}):
+        with override_settings(SENTRY_LOGGING_FORMAT="machine"):
             server = SentryHTTPServer()
             assert server.options["log-enabled"] is False

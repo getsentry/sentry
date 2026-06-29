@@ -53,6 +53,7 @@ function SelectedProjectMultiValueLabel({
             project={data.project}
             avatarSize={14}
             avatarProps={{consistentWidth: true}}
+            disableLink
             hideName
           />
         ) : null}
@@ -81,6 +82,7 @@ export function SentryProjectSelectorField({
           project={project}
           avatarSize={avatarSize}
           avatarProps={{consistentWidth: true}}
+          disableLink
           hideName
         />
       ),

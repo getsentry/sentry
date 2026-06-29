@@ -74,7 +74,7 @@ class ThreadingLookup(TypedDict):
     key_type: NotificationSource
 
     # Dictionary of identifying data for this thread
-    # e.g for issue alerts {"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"}
+    # e.g for NOA: {"action_id": ..., "group_id": ..., "open_period_start": ...}
     key_data: dict[str, Any]
 
     # The notification provider

@@ -25,7 +25,7 @@ export const sampleCrashFreeRateTimeSeries: TimeSeries = {
       timestamp: 1729801800000, // '2024-10-24T16:30:00-04:00'
     },
     {
-      value: 1.0,
+      value: 1,
       timestamp: 1729803600000, // '2024-10-24T17:00:00-04:00'
     },
     {
@@ -73,7 +73,7 @@ export const sampleCrashFreeRateTimeSeries: TimeSeries = {
       timestamp: 1729823400000, // '2024-10-24T22:30:00-04:00'
     },
     {
-      value: 1.0,
+      value: 1,
       timestamp: 1729825200000, // '2024-10-24T23:00:00-04:00'
     },
     {
@@ -97,7 +97,7 @@ export const sampleCrashFreeRateTimeSeries: TimeSeries = {
       timestamp: 1729834200000, // '2024-10-25T01:30:00-04:00'
     },
     {
-      value: 1.0,
+      value: 1,
       timestamp: 1729836000000, // '2024-10-25T02:00:00-04:00'
     },
     {
@@ -141,7 +141,7 @@ export const sampleCrashFreeRateTimeSeries: TimeSeries = {
       timestamp: 1729854000000, // '2024-10-25T07:00:00-04:00'
     },
     {
-      value: 1.0,
+      value: 1,
       timestamp: 1729855800000, // '2024-10-25T07:30:00-04:00'
     },
     {

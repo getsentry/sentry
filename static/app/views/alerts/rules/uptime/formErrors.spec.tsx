@@ -194,10 +194,12 @@ describe('AssertionFormError', () => {
     function Setter() {
       const previewCheckResult = usePreviewCheckResult();
       useEffect(() => {
-        if ('data' in initial)
+        if ('data' in initial) {
           previewCheckResult?.setPreviewCheckData(initial.data ?? null);
-        if ('error' in initial)
+        }
+        if ('error' in initial) {
           previewCheckResult?.setPreviewCheckError(initial.error ?? null);
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, []);
       return null;

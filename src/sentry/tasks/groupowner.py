@@ -15,7 +15,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitSt
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.utils import metrics
@@ -187,10 +187,9 @@ def _process_suspect_commits(
     name="sentry.tasks.process_suspect_commits",
     namespace=issues_tasks,
     processing_deadline_duration=TASK_DURATION_S,
-    retry=Retry(times=5, delay=5),
+    retry=Retry(times=5, delay=5, on=(Exception,)),
     silo_mode=SiloMode.CELL,
 )
-@retry
 def process_suspect_commits(
     event_id,
     event_platform,

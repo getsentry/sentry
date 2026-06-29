@@ -22,7 +22,7 @@ export function LinksCard({organization}: {organization: Organization}) {
           {hasBillingPerms ? (
             <Fragment>
               <LinkButton
-                priority="link"
+                variant="link"
                 icon={<IconList />}
                 to={`/settings/${organization.slug}/billing/receipts/`}
                 size="xs"
@@ -30,7 +30,7 @@ export function LinksCard({organization}: {organization: Organization}) {
                 {t('View all receipts')}
               </LinkButton>
               <LinkButton
-                priority="link"
+                variant="link"
                 icon={<IconTimer />}
                 to={`/settings/${organization.slug}/billing/activity-logs/`}
                 size="xs"
@@ -39,7 +39,7 @@ export function LinksCard({organization}: {organization: Organization}) {
               </LinkButton>
               {hasSpendNotifications && (
                 <LinkButton
-                  priority="link"
+                  variant="link"
                   icon={<IconSubscribed />}
                   to={`/settings/${organization.slug}/billing/notifications/`}
                   size="xs"
@@ -50,7 +50,7 @@ export function LinksCard({organization}: {organization: Organization}) {
             </Fragment>
           ) : (
             <LinkButton
-              priority="link"
+              variant="link"
               icon={<IconTimer />}
               to={`/settings/${organization.slug}/billing/activity-logs/`}
               size="xs"

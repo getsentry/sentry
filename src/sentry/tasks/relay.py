@@ -5,6 +5,8 @@ import sentry_sdk
 from django.db import connections, router, transaction
 
 from sentry import options
+from sentry.constants import DataCategory
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.silo.base import SiloMode
@@ -13,8 +15,19 @@ from sentry.taskworker.namespaces import relay_tasks
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.sdk import set_current_event_project
+from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
+
+# Project options that don't trigger a project config invalidation.
+NON_INVALIDATING_PROJECT_OPTIONS = [
+    "sentry:_last_auto_resolve",
+    # This option is updated very often, but only keeps track of transaction clusterer internal metadata.
+    "sentry:transaction_name_cluster_meta",
+    # This project option is used in getsentry:
+    # https://github.com/getsentry/getsentry/blob/cb3a1a43999e920e4023f8ee7236e121960caea0/getsentry/consumers/outcomes_consumer.py#L399
+    *[f"quotas:{category.value}-spike-protection-currently-active" for category in DataCategory],
+]
 
 
 # The time_limit here should match the `debounce_ttl` of the projectconfig_debounce_cache
@@ -37,6 +50,7 @@ def build_project_config(public_key=None, **kwargs):
     Do not invoke this task directly, instead use :func:`schedule_build_project_config`.
     """
     sentry_sdk.set_tag("public_key", public_key)
+    sentry_sdk.set_attribute("public_key", public_key)
 
     try:
         from sentry.models.projectkey import ProjectKey
@@ -191,6 +205,9 @@ def compute_projectkey_config(key):
     if key.status != ProjectKeyStatus.ACTIVE:
         return {"disabled": True}
     else:
+        # Clear the local options cache; if any of them changed, we may need to get the latest values,
+        OrganizationOption.objects.reload_task_local_cache(key.project.organization_id)
+
         return get_project_config(key.project, project_keys=[key]).to_dict()
 
 
@@ -239,11 +256,16 @@ def invalidate_project_config(
         # Cannot use bind_organization_context here because we do not have a
         # model and don't want to fetch one
         sentry_sdk.set_tag("organization_id", organization_id)
+        sentry_sdk.set_attribute("organization_id", organization_id)
     if public_key:
         sentry_sdk.set_tag("public_key", public_key)
+        sentry_sdk.set_attribute("public_key", public_key)
     sentry_sdk.set_tag("trigger", trigger)
+    sentry_sdk.set_attribute("trigger", trigger)
     sentry_sdk.set_tag("trigger_details", trigger_details)
+    sentry_sdk.set_attribute("trigger_details", trigger_details)
     sentry_sdk.set_context("kwargs", kwargs)
+    sentry_sdk.set_attribute("kwargs", str(kwargs))
 
     updated_configs = compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key
@@ -302,6 +324,18 @@ def schedule_invalidate_project_config(
 
     from sentry.models.project import Project
 
+    if (
+        trigger
+        in [
+            "projectoption.post_delete",
+            "projectoption.post_save",
+            "projectoption.set_value",
+            "projectoption.unset_value",
+        ]
+        and trigger_details in NON_INVALIDATING_PROJECT_OPTIONS
+    ):
+        return
+
     if transaction_db is None:
         transaction_db = router.db_for_write(Project)
 
@@ -315,10 +349,11 @@ def schedule_invalidate_project_config(
             countdown=countdown,
         )
 
-    with sentry_sdk.start_span(
+    with start_span(
         op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
+        name="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
     ) as span:
-        span.set_tag("transaction_db", transaction_db)
+        set_span_tag(span, "transaction_db", transaction_db)
         if (
             options.get("relay.invalidation-direct-outside-atomic")
             and not connections[transaction_db].in_atomic_block

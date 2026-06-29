@@ -53,7 +53,7 @@ export class AddGiftEventsAction extends Component<Props, State> {
     const intValue = parseInt(value, 10);
 
     if (isNaN(intValue) || intValue < 0) {
-      return undefined;
+      return;
     }
 
     return intValue;

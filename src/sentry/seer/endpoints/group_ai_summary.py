@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 @cell_silo_endpoint
 class GroupAiSummaryEndpoint(GroupAiEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True

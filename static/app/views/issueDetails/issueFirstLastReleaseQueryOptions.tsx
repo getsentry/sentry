@@ -2,19 +2,19 @@ import type {Release} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 interface GroupRelease {
-  firstRelease: Release;
-  lastRelease: Release;
+  firstRelease: Release | null;
+  lastRelease: Release | null;
 }
 
-interface FirstLastReleaseQueryOptions {
+type FirstLastReleaseQueryOptions = {
   environment?: string[];
-}
+};
 
-interface GetIssueFirstLastReleaseQueryOptions {
+type GetIssueFirstLastReleaseQueryOptions = {
   groupId: string;
   organizationSlug: string;
   query?: FirstLastReleaseQueryOptions;
-}
+};
 
 export function issueFirstLastReleaseQueryOptions({
   groupId,

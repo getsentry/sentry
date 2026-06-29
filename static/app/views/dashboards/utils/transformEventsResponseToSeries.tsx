@@ -24,7 +24,11 @@ export function transformEventsResponseToSeries(
   const queryAlias = widgetQuery.name;
 
   if (isEventsStats(data)) {
-    const field = widgetQuery.aggregates[0]!;
+    // Widgets with no aggregates can exist due to API bugs (see DAIN-1712)
+    const field = widgetQuery.aggregates[0];
+    if (!field) {
+      return [];
+    }
     const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
 
     seriesWithOrdering.push([0, transformEventsStatsToSeries(data, prefixedName, field)]);
@@ -48,7 +52,7 @@ export function transformEventsResponseToSeries(
           return;
         }
 
-        const seriesData = groupData[seriesName] as EventsStats;
+        const seriesData = groupData[seriesName]!;
         const prefixedName = queryAlias
           ? `${queryAlias}${SERIES_QUERY_DELIMITER}${groupName} : ${seriesName}`
           : `${groupName} : ${seriesName}`;

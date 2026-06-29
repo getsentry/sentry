@@ -1,7 +1,7 @@
 import {createContext, useContext, useMemo, useState} from 'react';
 
 import {StackType, StackView} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -101,12 +101,11 @@ export function StacktraceContext({
   defaultIsNewestFramesFirst = true,
 }: StackTraceContextOptions) {
   const organization = useOrganization();
-  const hasScmFeature = organization.features.includes('scm-source-context');
   const {data: detailedProject} = useDetailedProject(
     {orgSlug: organization.slug, projectSlug: projectSlug ?? ''},
-    {enabled: hasScmFeature && defined(projectSlug)}
+    {enabled: defined(projectSlug)}
   );
-  const hasScmSourceContext = hasScmFeature && !!detailedProject?.scmSourceContextEnabled;
+  const hasScmSourceContext = !!detailedProject?.scmSourceContextEnabled;
 
   const [isFullStackTrace, setIsFullStackTrace] = useState(false);
   const [isNewestFramesFirst, setIsNewestFramesFirst] = useState(

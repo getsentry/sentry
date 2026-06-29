@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import OpenPeriodContext
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.slack.renderers.metric_alert import SlackMetricAlertRenderer
@@ -32,7 +33,7 @@ def _make_notification_data(**overrides: Any) -> MetricAlertNotificationData:
             id=1,
             date_started=datetime(2024, 1, 1, tzinfo=timezone.utc),
         ),
-        new_status=20,  # IncidentStatus.CRITICAL
+        new_status=IncidentStatus.CRITICAL.value,
         title="Critical: Test Alert",
         title_link="https://sentry.io/alerts/1/",
         text="123 events in the last 5 minutes",
@@ -96,7 +97,10 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         )
 
         # Without a chart: exactly one section block
-        blocks: list[Any] = result["blocks"]
+        assert result.get("attachments") is not None
+        attachments: list[Any] = result["attachments"]
+        assert len(attachments) == 1
+        blocks: list[Any] = attachments[0]["blocks"]
         assert len(blocks) == 1
         assert blocks[0]["type"] == "section"
         assert blocks[0]["text"]["type"] == "mrkdwn"
@@ -120,8 +124,10 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             rendered_template=self.rendered_template,
         )
 
+        assert result.get("attachments") is not None
+
         # With a chart: section block + image block
-        blocks: list[Any] = result["blocks"]
+        blocks: list[Any] = result["attachments"][0]["blocks"]
         assert len(blocks) == 2
         assert blocks[0]["type"] == "section"
         assert "123.45 events in the last minute" in blocks[0]["text"]["text"]
@@ -135,7 +141,10 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             rendered_template=self.rendered_template,
         )
 
-        blocks: list[Any] = result["blocks"]
+        assert result.get("attachments") is not None
+        attachments: list[Any] = result["attachments"]
+        assert len(attachments) == 1
+        blocks: list[Any] = attachments[0]["blocks"]
         assert len(blocks) == 1
         assert blocks[0]["type"] == "section"
 
@@ -147,7 +156,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             title=f"Resolved: {self.detector.name}",
             title_link="https://sentry.io/alerts/1/",
             text="",
-            new_status=2,  # IncidentStatus.CLOSED
+            new_status=IncidentStatus.CLOSED.value,
         )
 
         result = SlackMetricAlertRenderer.render(

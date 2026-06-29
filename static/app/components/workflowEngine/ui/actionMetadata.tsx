@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {IconMail} from 'sentry/icons';
+import {PluginIcon, type PluginIconProps} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 const ICON_SIZE = 20;
@@ -66,6 +66,10 @@ export const ActionMetadata: Partial<
   },
   [ActionType.SLACK]: {
     name: t('Slack'),
+    icon: <StyledPluginIcon pluginId="slack" size={ICON_SIZE} />,
+  },
+  [ActionType.SLACK_STAGING]: {
+    name: t('Slack (Staging)'),
     icon: <StyledPluginIcon pluginId="slack" size={ICON_SIZE} />,
   },
   [ActionType.WEBHOOK]: {

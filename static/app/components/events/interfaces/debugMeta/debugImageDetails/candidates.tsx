@@ -16,7 +16,7 @@ import type {Image} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageStatus} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {Status} from './candidate/status';
 import {Candidate} from './candidate';
@@ -244,11 +244,11 @@ export class Candidates extends Component<Props, State> {
       return {
         emptyMessage: t('Sorry, no debug files match your search query'),
         emptyAction: hasActiveFilter ? (
-          <Button onClick={this.handleResetFilter} priority="primary">
+          <Button onClick={this.handleResetFilter} variant="primary">
             {t('Reset filter')}
           </Button>
         ) : (
-          <Button onClick={this.handleResetSearchBar} priority="primary">
+          <Button onClick={this.handleResetSearchBar} variant="primary">
             {t('Clear search bar')}
           </Button>
         ),

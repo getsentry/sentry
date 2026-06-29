@@ -3,12 +3,7 @@
 import '@testing-library/jest-dom';
 
 import {webcrypto} from 'node:crypto';
-import {
-  // @ts-expect-error structuredClone is available in Node 17+ but types don't like it
-  structuredClone as nodeStructuredClone,
-  TextDecoder,
-  TextEncoder,
-} from 'node:util';
+import {TextDecoder, TextEncoder} from 'node:util';
 
 import {type ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
@@ -24,7 +19,6 @@ import {closeModal} from 'sentry/actionCreators/modal';
 // eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
 /**
@@ -81,12 +75,21 @@ jest
   .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
 
+jest.mock('@sentry-internal/global-search', () => ({
+  SentryGlobalSearch: jest.fn().mockImplementation(() => ({
+    query: jest.fn().mockResolvedValue([]),
+  })),
+}));
+
 jest.mock('@stripe/stripe-js', () => ({
   loadStripe: jest.fn(() =>
     Promise.resolve({
       createToken: jest.fn(() => Promise.resolve({token: {id: 'test-token'}})),
       confirmCardPayment: jest.fn(() =>
-        Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
+        Promise.resolve({
+          error: undefined,
+          paymentIntent: {id: 'test-payment'},
+        })
       ),
       confirmCardSetup: jest.fn((secretKey: string) => {
         if (secretKey === 'ERROR') {
@@ -144,7 +147,10 @@ jest.mock('@stripe/react-stripe-js', () => {
     }),
     useStripe: jest.fn(() => ({
       confirmCardPayment: jest.fn(() =>
-        Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
+        Promise.resolve({
+          error: undefined,
+          paymentIntent: {id: 'test-payment'},
+        })
       ),
       confirmCardSetup: jest.fn((secretKey: string) => {
         if (secretKey === 'ERROR') {
@@ -198,20 +204,11 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
   },
 }));
 
-DANGEROUS_SET_TEST_HISTORY({
-  goBack: jest.fn(),
-  push: jest.fn(),
-  replace: jest.fn(),
-  listen: jest.fn(() => {}),
-  listenBefore: jest.fn(),
-  getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
-});
-
 // Close any open modals before each test
 beforeEach(closeModal);
 
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
-  // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
+  // We need to do this because `jest.mock` gets hoisted before imports and `React` is not
   // guaranteed to be in scope
   const ReactActual = require('react');
 
@@ -231,6 +228,7 @@ jest.mock('@sentry/react', function sentryReact() {
     init: jest.fn(),
     setTag: jest.fn(),
     setTags: jest.fn(),
+    getReplay: jest.fn(),
     setExtra: jest.fn(),
     setExtras: jest.fn(),
     captureBreadcrumb: jest.fn(),
@@ -265,6 +263,10 @@ jest.mock('@sentry/react', function sentryReact() {
       setStatus: jest.fn(),
       startChild: jest.fn().mockReturnValue({
         end: jest.fn(),
+      }),
+      spanContext: jest.fn().mockReturnValue({
+        spanId: 'test-span-id',
+        traceId: 'test-trace-id',
       }),
     }),
     logger: {
@@ -385,13 +387,45 @@ Object.defineProperty(global.self, 'crypto', {
   },
 });
 
-if (typeof globalThis.structuredClone === 'undefined') {
-  globalThis.structuredClone = nodeStructuredClone;
+if (typeof globalThis.structuredClone !== 'function') {
+  const nodeUtil = require('node:util') as {
+    structuredClone?: typeof globalThis.structuredClone;
+  };
+  globalThis.structuredClone =
+    nodeUtil.structuredClone ?? ((value: unknown) => JSON.parse(JSON.stringify(value)));
 }
 
-if (typeof globalThis.setImmediate === 'undefined') {
+if (globalThis.setImmediate === undefined) {
   // @ts-expect-error setImmediate is not defined in jsdom, but we can use setTimeout as a polyfill
   globalThis.setImmediate = setTimeout;
   // @ts-expect-error clearImmediate is not defined in jsdom, but we can use clearTimeout as a polyfill
   globalThis.clearImmediate = clearTimeout;
 }
+
+/**
+ * it.isKnownFlake — wraps a known-flaky test for stress-testing in CI.
+ *
+ * When RERUN_KNOWN_FLAKY_TESTS is "true" (set by the "Frontend: Rerun Flaky
+ * Tests" PR label), the test runs 50x inside a describe block. Otherwise it
+ * runs once, behaving identically to a normal `it()`.
+ */
+const FLAKY_RERUN_COUNT = 50;
+
+/* eslint-disable jest/valid-title */
+it.isKnownFlake = function isKnownFlake(
+  name: string,
+  fn: jest.ProvidesCallback,
+  timeout?: number
+) {
+  if (process.env.RERUN_KNOWN_FLAKY_TESTS !== 'true') {
+    it(name, fn, timeout);
+    return;
+  }
+
+  describe(`[flaky rerun x${FLAKY_RERUN_COUNT}] ${name}`, () => {
+    for (let i = 1; i <= FLAKY_RERUN_COUNT; i++) {
+      it(`run ${i}/${FLAKY_RERUN_COUNT}`, fn, timeout);
+    }
+  });
+};
+/* eslint-enable jest/valid-title */

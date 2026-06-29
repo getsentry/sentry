@@ -113,7 +113,7 @@ export const logs: OnboardingConfig = {
               label: 'XML',
               language: 'xml',
               filename: 'AndroidManifest.xml',
-              code: `<meta-data android:name="io.sentry.logs.enabled" android:value="true" />`,
+              code: '<meta-data android:name="io.sentry.logs.enabled" android:value="true" />',
             },
             {
               label: 'Java',

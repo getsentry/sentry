@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ModalBody} from 'sentry/components/globalModal/components';
+import {ModalBody} from '@sentry/scraps/modal';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import InvoiceDetailsPaymentForm from 'getsentry/views/invoiceDetails/paymentForm';

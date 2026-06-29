@@ -23,7 +23,7 @@ from urllib3 import Retry
 
 from sentry.api.event_search import parse_search_query
 from sentry.models.organization import Organization
-from sentry.replays.lib.kafka import initialize_replays_publisher
+from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.lib.seer_api import ReplayDeleteSeerDataRequest, make_replay_delete_request
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
@@ -69,10 +69,8 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
 
 def delete_replays(project_id: int, replay_ids: list[str]) -> None:
     """Set the archived bit flag to true on each replay."""
-    publisher = initialize_replays_publisher(is_async=True)
     for replay_id in replay_ids:
-        publisher.publish("ingest-replay-events", archive_event(project_id, replay_id))
-    publisher.flush()
+        publish_replay_event(archive_event(project_id, replay_id))
 
 
 def delete_replay_recordings(project_id: int, row: MatchedRow) -> None:

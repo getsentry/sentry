@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -18,6 +19,7 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbound
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
+from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
@@ -74,21 +76,24 @@ def _get_affected_groups(
 
 
 def _handle_deassign(
-    groups: QuerySet[Group], integration: RpcIntegration | Integration
-) -> QuerySet[Group]:
+    groups: Iterable[Group], integration: RpcIntegration | Integration
+) -> list[Group]:
+    groups_deassigned: list[Group] = []
     for group in groups:
         if not should_sync_assignee_inbound(group.organization, integration.provider):
             continue
 
-        GroupAssignee.objects.deassign(
-            group,
-            assignment_source=AssignmentSource.from_integration(integration),
-        )
-    return groups
+        with action_context_scope(source=integration.provider, actor=SYSTEM_ACTOR):
+            GroupAssignee.objects.deassign(
+                group,
+                assignment_source=AssignmentSource.from_integration(integration),
+            )
+        groups_deassigned.append(group)
+    return groups_deassigned
 
 
 def _handle_assign(
-    affected_groups: QuerySet[Group],
+    affected_groups: Iterable[Group],
     integration: RpcIntegration | Integration,
     users: list[RpcUser],
 ) -> list[Group]:
@@ -113,11 +118,12 @@ def _handle_assign(
                     "user_id": user.id,
                 },
             )
-            GroupAssignee.objects.assign(
-                group,
-                user,
-                assignment_source=AssignmentSource.from_integration(integration),
-            )
+            with action_context_scope(source=integration.provider, actor=SYSTEM_ACTOR):
+                GroupAssignee.objects.assign(
+                    group,
+                    user,
+                    assignment_source=AssignmentSource.from_integration(integration),
+                )
             groups_assigned.append(group)
         else:
             logger.info(
@@ -137,45 +143,64 @@ def sync_group_assignee_inbound_by_external_actor(
     external_user_name: str,
     external_issue_key: str | None,
     assign: bool = True,
+    external_user_id: str | int | None = None,
 ) -> QuerySet[Group] | list[Group]:
     logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
 
     with ProjectManagementEvent(
         action_type=ProjectManagementActionType.INBOUND_ASSIGNMENT_SYNC, integration=integration
     ).capture() as lifecycle:
-        affected_groups = _get_affected_groups(integration, external_issue_key)
+        affected_groups = list(_get_affected_groups(integration, external_issue_key))
+        external_user_id_str = str(external_user_id) if external_user_id is not None else None
         log_context = {
             "integration_id": integration.id,
             "external_user_name": external_user_name,
+            "external_user_id": external_user_id_str,
             "issue_key": external_issue_key,
             "method": AssigneeInboundSyncMethod.EXTERNAL_ACTOR.value,
             "assign": assign,
+            "affected_group_ids": [group.id for group in affected_groups],
         }
+        lifecycle.add_extras(log_context)
 
         if not affected_groups:
             logger.info("no-affected-groups", extra=log_context)
             return []
 
         if not assign:
-            return _handle_deassign(affected_groups, integration)
+            groups_deassigned = _handle_deassign(affected_groups, integration)
+            log_context["unassigned_group_ids"] = [group.id for group in groups_deassigned]
+            lifecycle.add_extras(log_context)
+            return groups_deassigned
 
-        external_actors = ExternalActor.objects.filter(
+        base_external_actors = ExternalActor.objects.filter(
             provider=EXTERNAL_PROVIDERS_REVERSE[ExternalProviderEnum(integration.provider)].value,
-            external_name__iexact=external_user_name,
             integration_id=integration.id,
             user_id__isnull=False,
-        ).values_list("user_id", flat=True)
+        )
 
+        match_method = "external_name"
+        external_actors = base_external_actors.filter(external_name__iexact=external_user_name)
+
+        external_actor_user_ids = list(external_actors.values_list("user_id", flat=True))
         user_ids = [
-            external_actor for external_actor in external_actors if external_actor is not None
+            external_actor_user_id
+            for external_actor_user_id in external_actor_user_ids
+            if external_actor_user_id is not None
         ]
 
+        log_context["match_method"] = match_method
+        log_context["external_actor_count"] = len(user_ids)
+        log_context["matched_user_ids"] = user_ids
         log_context["user_ids"] = user_ids
         logger.info("sync_group_assignee_inbound_by_external_actor.user_ids", extra=log_context)
+        lifecycle.add_extras(log_context)
 
         users = user_service.get_many_by_id(ids=user_ids)
 
         groups_assigned = _handle_assign(affected_groups, integration, users)
+        log_context["assigned_group_ids"] = [group.id for group in groups_assigned]
+        lifecycle.add_extras(log_context)
 
         if len(groups_assigned) != len(affected_groups):
             log_context["groups_assigned_count"] = len(groups_assigned)

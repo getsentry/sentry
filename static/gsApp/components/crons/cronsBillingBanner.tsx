@@ -48,12 +48,12 @@ export function CronsBillingBanner({organization, subscription}: Props) {
   const trialDaysLeft = getTrialDaysLeft(subscription);
   const daysSinceTrial = getDaysSinceDate(subscription.lastTrialEnd ?? '');
 
-  const {data: billingConfig} = useBillingConfig({organization, subscription});
+  const {data: billingConfig} = useBillingConfig({organization});
   const {onDemandPrice, reserved} = getCronsPricingInfo(billingConfig);
 
   const {data, isPending} = useApiQuery<MonitorCountResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/monitor-count/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/monitor-count/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

@@ -34,7 +34,7 @@ const WIDGET_OPTIONS: Record<
     title: t('Duration Percentiles'),
     spanCategoryTitle: t('Span Category Percentiles'),
     description: t(
-      `Compare the duration at each percentile. Compare with Latency Histogram to see transaction volume at duration intervals.`
+      'Compare the duration at each percentile. Compare with Latency Histogram to see transaction volume at duration intervals.'
     ),
     disabled: false,
   },
@@ -127,7 +127,7 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
           value={selectedChart}
           onChange={handleChartChange}
           trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
+            <OverlayTrigger.Button {...triggerProps} variant="transparent" size="zero" />
           )}
         />
       }

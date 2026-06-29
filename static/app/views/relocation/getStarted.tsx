@@ -7,7 +7,7 @@ import {Select} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
+import {getSignupLocalities} from 'sentry/utils/cells';
 import {useApi} from 'sentry/utils/useApi';
 import {ContinueButton} from 'sentry/views/relocation/components/continueButton';
 import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
@@ -18,29 +18,15 @@ const PROMO_CODE_ERROR_MSG = t(
   'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
 );
 
-// Best-effort region name prettification.
-function prettyRegionName(name: string): string {
-  if (name === 'de') {
-    return '🇪🇺 European Union (EU)';
-  }
-  if (name === 'us') {
-    return '🇺🇸 United States of America (US)';
-  }
-  return name;
-}
-
 export function GetStarted({
   relocationState,
   onUpdateRelocationState,
   onComplete,
 }: StepProps) {
   const api = useApi();
-  const {orgSlugs, regionUrl, promoCode} = relocationState;
+  const {orgSlugs, localityName, promoCode} = relocationState;
   const [showPromoCode, setShowPromoCode] = useState(!!promoCode);
-  const selectableRegions = ConfigStore.get('relocationConfig')?.selectableRegions || [];
-  const regions = ConfigStore.get('regions').filter(region =>
-    selectableRegions.includes(region.name)
-  );
+  const localityOptions = getSignupLocalities();
 
   const handleContinue = async (event: any) => {
     event.preventDefault();
@@ -88,16 +74,16 @@ export function GetStarted({
           />
           <Label>{t('Choose a datacenter location')}</Label>
           <RegionSelect
-            value={regionUrl}
+            value={localityName}
             name="region"
             aria-label={t('region')}
             placeholder="Select Location"
-            options={regions.map(r => ({label: prettyRegionName(r.name), value: r.url}))}
+            options={localityOptions}
             onChange={(opt: any) => {
-              onUpdateRelocationState({regionUrl: opt.value});
+              onUpdateRelocationState({localityName: opt.value});
             }}
           />
-          {regionUrl && (
+          {localityName && (
             <p>{t('This is an important decision and cannot be changed.')}</p>
           )}
           <DatacenterTextBlock>
@@ -133,8 +119,8 @@ export function GetStarted({
             </TogglePromoCode>
           )}
           <ContinueButton
-            disabled={!orgSlugs || !regionUrl}
-            priority="primary"
+            disabled={!orgSlugs || !localityName}
+            variant="primary"
             type="submit"
           />
         </Form>

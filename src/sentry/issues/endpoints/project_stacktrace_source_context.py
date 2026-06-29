@@ -5,7 +5,6 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -40,13 +39,6 @@ class ProjectStacktraceSourceContextEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
 
     def get(self, request: Request, project: Project) -> Response:
-        if not features.has(
-            "organizations:scm-source-context",
-            project.organization,
-            actor=request.user,
-        ):
-            return Response(status=404)
-
         if not project.get_option("sentry:scm_source_context_enabled", False):
             return Response(status=404)
 

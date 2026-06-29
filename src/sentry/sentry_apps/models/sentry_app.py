@@ -25,6 +25,7 @@ from sentry.db.models import (
     Model,
     control_silo_model,
 )
+from sentry.db.models.fields.encryption import EncryptedTextField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
@@ -118,6 +119,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     # does the application subscribe to `event.alert`,
     # meaning can it be used in alert rules as a {service} ?
     is_alertable = models.BooleanField(default=False)
+    is_disabled = models.BooleanField(default=False, db_default=False)
 
     # does the application need to wait for verification
     # on behalf of the external service to know if its installations
@@ -125,6 +127,11 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     verify_install = models.BooleanField(default=True)
 
     events = ArrayField(models.TextField(), default=list)
+
+    # Custom headers (each entry is a "Header-Name: value" string) sent alongside
+    # every outgoing webhook request. Values may contain secrets (e.g. bearer
+    # tokens), so they are masked on read and scrubbed from logs/audit/relocation.
+    webhook_headers = ArrayField(EncryptedTextField(), default=list, db_default=[])
 
     overview = models.TextField(null=True)
     schema = models.JSONField(default=dict)
@@ -257,10 +264,6 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
 
             return super().delete(*args, **kwargs)
 
-    def _disable(self):
-        self.events = []
-        self.save(update_fields=["events"])
-
     @classmethod
     def sanitize_relocation_json(
         cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
@@ -274,3 +277,5 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
         sanitizer.set_string(json, SanitizableField(model_name, "overview"))
         sanitizer.set_json(json, SanitizableField(model_name, "schema"), {})
         json["fields"]["events"] = "[]"
+        # webhook_headers may contain secrets (auth tokens); never export them.
+        json["fields"]["webhook_headers"] = "[]"

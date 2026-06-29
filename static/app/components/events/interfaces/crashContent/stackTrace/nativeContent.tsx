@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import NativeFrame from 'sentry/components/events/interfaces/nativeFrame';
+import {NativeFrame} from 'sentry/components/events/interfaces/nativeFrame';
 import {
   findImageForAddress,
   getHiddenFrameIndices,
@@ -12,9 +12,9 @@ import {
 import {Panel} from 'sentry/components/panels/panel';
 import type {Event, Frame} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {OmittedFrames} from './omittedFrames';
 

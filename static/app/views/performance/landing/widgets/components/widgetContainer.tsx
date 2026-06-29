@@ -14,13 +14,11 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {encodeSort} from 'sentry/utils/discover/eventView';
-import type {Field} from 'sentry/utils/discover/fields';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {withOrganization} from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -54,7 +52,6 @@ interface Props extends ChartRowProps {
   defaultChartSetting: PerformanceWidgetSetting;
   eventView: EventView;
   index: number;
-  organization: Organization;
   rowChartSettings: PerformanceWidgetSetting[];
   setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;
   withStaticFilters: boolean;
@@ -76,15 +73,9 @@ function trackChartSettingChange(
   });
 }
 
-function WidgetContainerInner(props: Props) {
-  const {
-    organization,
-    index,
-    chartHeight,
-    rowChartSettings,
-    setRowChartSettings,
-    ...rest
-  } = props;
+export function WidgetContainer(props: Props) {
+  const organization = useOrganization();
+  const {index, chartHeight, rowChartSettings, setRowChartSettings, ...rest} = props;
   const theme = useTheme();
   const performanceType = usePerformanceDisplayType();
   let _chartSetting = getChartSetting(
@@ -96,7 +87,7 @@ function WidgetContainerInner(props: Props) {
   );
   const mepSetting = useMEPSettingContext();
   const allowedCharts = filterAllowedChartsMetrics(
-    props.organization,
+    organization,
     props.allowedCharts,
     mepSetting
   );
@@ -152,13 +143,10 @@ function WidgetContainerInner(props: Props) {
         : null,
   };
 
-  const passedProps = pick(props, [
-    'eventView',
-    'location',
-    'organization',
-    'chartHeight',
-    'withStaticFilters',
-  ]);
+  const passedProps = {
+    ...pick(props, ['eventView', 'location', 'chartHeight', 'withStaticFilters']),
+    organization,
+  };
 
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.TRENDS:
@@ -255,7 +243,7 @@ function WidgetInteractiveTitle({
       value={chartSetting}
       onChange={handleChange}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
+        <OverlayTrigger.Button {...triggerProps} variant="transparent" size="zero" />
       )}
       offset={4}
     />
@@ -309,10 +297,8 @@ const makeEventViewForWidget = (
   widgetEventView.yAxis = chartDefinition.fields[0]; // All current widgets only have one field
   widgetEventView.display = DisplayModes.PREVIOUS;
   widgetEventView.fields = ['transaction', 'project', ...chartDefinition.fields].map(
-    fieldName => ({field: fieldName}) as Field
+    fieldName => ({field: fieldName})
   );
 
   return widgetEventView;
 };
-
-export const WidgetContainer = withOrganization(WidgetContainerInner);

@@ -26,7 +26,10 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
+    OrganizationSerializerResponse,
+    OrganizationSummarySerializerResponse,
     OrganizationWithProjectsAndTeamsSerializer,
+    OrganizationWithProjectsAndTeamsSerializerResponse,
     TrustedRelaySerializer,
 )
 from sentry.apidocs.constants import (
@@ -38,6 +41,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
@@ -45,18 +49,15 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
+    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
     DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
-    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
-    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
-    GITHUB_COMMENT_BOT_DEFAULT,
-    GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
@@ -89,7 +90,6 @@ from sentry.dynamic_sampling.utils import (
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
     STORE_CRASH_REPORTS_MAX,
@@ -121,7 +121,6 @@ ERR_NO_USER = "This request requires an authenticated user."
 ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
-ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
 
 
 ORG_OPTIONS = (
@@ -187,24 +186,6 @@ ORG_OPTIONS = (
         HIDE_AI_FEATURES_DEFAULT,
     ),
     (
-        "githubPRBot",
-        "sentry:github_pr_bot",
-        bool,
-        GITHUB_COMMENT_BOT_DEFAULT,
-    ),
-    (
-        "githubNudgeInvite",
-        "sentry:github_nudge_invite",
-        bool,
-        GITHUB_COMMENT_BOT_DEFAULT,
-    ),
-    (
-        "gitlabPRBot",
-        "sentry:gitlab_pr_bot",
-        bool,
-        GITLAB_COMMENT_BOT_DEFAULT,
-    ),
-    (
         "issueAlertsThreadFlag",
         "sentry:issue_alerts_thread_flag",
         bool,
@@ -224,19 +205,13 @@ ORG_OPTIONS = (
         "defaultAutofixAutomationTuning",
         "sentry:default_autofix_automation_tuning",
         str,
-        DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+        AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     ),
     (
         "defaultSeerScannerAutomation",
         "sentry:default_seer_scanner_automation",
         bool,
         DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-    ),
-    (
-        "enableSeerEnhancedAlerts",
-        "sentry:enable_seer_enhanced_alerts",
-        bool,
-        ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ),
     (
         "enableSeerCoding",
@@ -349,10 +324,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
-    codecovAccess = serializers.BooleanField(required=False)
-    githubNudgeInvite = serializers.BooleanField(required=False)
-    githubPRBot = serializers.BooleanField(required=False)
-    gitlabPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -377,7 +348,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     consoleSdkInviteQuota = serializers.IntegerField(required=False, min_value=0)
     dashboardsAsyncQueueParallelLimit = serializers.IntegerField(required=False, min_value=1)
-    enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     defaultCodingAgent = serializers.ChoiceField(
         choices=["seer", "cursor", "claude_code", "cursor_background_agent", "claude_code_agent"],
@@ -485,18 +455,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     raise serializers.ValidationError(f"Duplicated key in Trusted Relays: '{key}'")
                 public_keys.add(key)
 
-        return value
-
-    def validate_ingestThroughTrustedRelaysOnly(self, value):
-        organization = self.context["organization"]
-        request = self.context["request"]
-        if not features.has(
-            "organizations:ingest-through-trusted-relays-only", organization, actor=request.user
-        ):
-            # NOTE (vgrozdanic): For now allow access to this setting only to orgs with the feature flag enabled
-            raise serializers.ValidationError(
-                "Organization does not have the ingest through trusted relays only feature enabled."
-            )
         return value
 
     def validate_enabledConsolePlatforms(self, value):
@@ -757,8 +715,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.flags.enhanced_privacy = data["enhancedPrivacy"]
         if "isEarlyAdopter" in data:
             org.flags.early_adopter = data["isEarlyAdopter"]
-        if "codecovAccess" in data:
-            org.flags.codecov_access = data["codecovAccess"]
         if "require2FA" in data:
             org.flags.require_2fa = data["require2FA"]
         if "allowMemberProjectCreation" in data:
@@ -782,7 +738,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "disable_shared_issues": org.flags.disable_shared_issues.is_set,
                 "early_adopter": org.flags.early_adopter.is_set,
                 "require_2fa": org.flags.require_2fa.is_set,
-                "codecov_access": org.flags.codecov_access.is_set,
                 "disable_member_project_creation": org.flags.disable_member_project_creation.is_set,
                 "prevent_superuser_access": org.flags.prevent_superuser_access.is_set,
                 "disable_member_invite": org.flags.disable_member_invite.is_set,
@@ -936,10 +891,6 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
         help_text="Specify `true` to hide AI features from the organization.",
         required=False,
     )
-    codecovAccess = serializers.BooleanField(
-        help_text="Specify `true` to enable Code Coverage Insights. This feature is only available for organizations on the Team plan and above. Learn more about Codecov [here](/product/codecov/).",
-        required=False,
-    )
 
     # membership
     defaultRole = serializers.ChoiceField(
@@ -1086,22 +1037,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         required=False,
     )
 
-    # github features
-    githubPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitHub integration.",
-        required=False,
-    )
-    githubNudgeInvite = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization. Requires a GitHub integration.",
-        required=False,
-    )
-
-    # gitlab features
-    gitlabPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitLab integration.",
-        required=False,
-    )
-
     # slack features
     issueAlertsThreadFlag = serializers.BooleanField(
         help_text="Specify `true` to allow the Sentry Slack integration to post replies in threads for an Issue Alert notification. Requires a Slack integration.",
@@ -1134,7 +1069,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve an Organization",
+        operation_id="getOrganization",
+        summary="Retrieve an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrganizationParams.DETAILED],
         request=None,
         responses={
@@ -1145,7 +1081,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.RETRIEVE_ORGANIZATION,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[OrganizationSummarySerializerResponse]
+        | Response[OrganizationSerializerResponse]
+        | Response[OrganizationWithProjectsAndTeamsSerializerResponse]
+    ):
         """
         Return details on an individual organization, including various details
         such as membership access and teams.
@@ -1173,7 +1115,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(context)
 
     @extend_schema(
-        operation_id="Update an Organization",
+        operation_id="updateOrganization",
+        summary="Update an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
@@ -1189,12 +1132,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.UPDATE_ORGANIZATION,
     )
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[OrganizationWithProjectsAndTeamsSerializerResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Update various attributes and configurable settings for the given organization.
         """
-        from sentry import features
-
         # This param will be used to determine if we should include feature flags in the response
         include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
 
@@ -1206,18 +1152,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         )
 
         was_pending_deletion = organization.status in DELETION_STATUSES
-
-        enabling_codecov = "codecovAccess" in request.data and request.data["codecovAccess"]
-        if enabling_codecov:
-            if not features.has("organizations:codecov-integration", organization):
-                return self.respond({"detail": ERR_PLAN_REQUIRED}, status=status.HTTP_403_FORBIDDEN)
-
-            has_integration, error = has_codecov_integration(organization)
-            if not has_integration:
-                return self.respond(
-                    {"codecovAccess": [error]},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
 
         serializer = serializer_cls(
             data=request.data,
@@ -1242,10 +1176,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         organization_id=organization.id, slug=slug
                     )
                 except RpcValidationException:
-                    return self.respond(
-                        {"slug": [f'The slug "{slug}" is in use by another organization.']},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                    slug_err: ValidationErrorResponse = {
+                        "slug": [f'The slug "{slug}" is in use by another organization.'],
+                    }
+                    return self.respond(slug_err, status=status.HTTP_400_BAD_REQUEST)
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
 
@@ -1350,7 +1284,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             )
 
             return self.respond(context)
-        return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return self.respond(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
     def _compute_project_target_sample_rates(self, request: Request, organization: Organization):
         # TODO: this will take a long time for organizations with a lot of projects

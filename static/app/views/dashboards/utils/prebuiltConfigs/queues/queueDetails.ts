@@ -1,6 +1,9 @@
 import {t} from 'sentry/locale';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueCharts';
 import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -127,7 +130,7 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
 
 const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow([...QUEUE_CHARTS], 1);
 
-const PRODUCER_TABLE: Widget = {
+const PRODUCER_TABLE: PrebuiltWidget = {
   id: 'producer-table',
   title: t('Producer Transactions'),
   displayType: DisplayType.TABLE,
@@ -162,7 +165,7 @@ const PRODUCER_TABLE: Widget = {
   },
 };
 
-const CONSUMER_TABLE: Widget = {
+const CONSUMER_TABLE: PrebuiltWidget = {
   id: 'consumer-table',
   title: t('Consumer Transactions'),
   displayType: DisplayType.TABLE,

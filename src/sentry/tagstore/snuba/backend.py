@@ -9,7 +9,6 @@ from collections.abc import Iterable, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any, Never, Protocol, TypedDict
 
-import sentry_sdk
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
@@ -75,6 +74,7 @@ from sentry.utils.snuba import (
     nest_groups,
     raw_snql_query,
 )
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -240,7 +240,7 @@ class _KeyCallable[T, U](Protocol):
 
 class _ValueCallable[U](Protocol):
     def __call__(
-        self, *, key: str, value: object, times_seen: int, first_seen: datetime, last_seen: datetime
+        self, *, key: str, value: str, times_seen: int, first_seen: datetime, last_seen: datetime
     ) -> U: ...
 
 
@@ -508,7 +508,7 @@ class SnubaTagStorage(TagStorage):
                     snuba_output,
                     eap_output,
                     eap_callsite,
-                    is_experimental_data_a_null_result=eap_output.count == 0,
+                    is_experimental_data_nullish=eap_output.count == 0,
                     reasonable_match_comparator=reasonable_group_tag_key_match,
                     debug_context={
                         "group_id": group.id,
@@ -625,19 +625,19 @@ class SnubaTagStorage(TagStorage):
             end = snuba.quantize_time(end, key_hash)
             cache_key += f":{duration}@{end.isoformat()}"
 
-            with sentry_sdk.start_span(
+            with start_span(
                 op="cache.get", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
             ) as span:
                 result = cache.get(cache_key, None)
 
-                span.set_data("cache.key", [cache_key])
+                set_span_data(span, "cache.key", [cache_key])
 
                 if result is not None:
-                    span.set_data("cache.hit", True)
-                    span.set_data("cache.item_size", len(str(result)))
+                    set_span_data(span, "cache.hit", True)
+                    set_span_data(span, "cache.item_size", len(str(result)))
                     metrics.incr("testing.tagstore.cache_tag_key.hit")
                 else:
-                    span.set_data("cache.hit", False)
+                    set_span_data(span, "cache.hit", False)
                     metrics.incr("testing.tagstore.cache_tag_key.miss")
 
         if result is None:
@@ -655,12 +655,12 @@ class SnubaTagStorage(TagStorage):
                 **kwargs,
             )
             if should_cache:
-                with sentry_sdk.start_span(
+                with start_span(
                     op="cache.put", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
                 ) as span:
                     cache.set(cache_key, result, 300)
-                    span.set_data("cache.key", [cache_key])
-                    span.set_data("cache.item_size", len(str(result)))
+                    set_span_data(span, "cache.key", [cache_key])
+                    set_span_data(span, "cache.item_size", len(str(result)))
                     metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
 
         ctor: _KeyCallable[TagKey, Never] | _KeyCallable[GroupTagKey, Never]
@@ -804,7 +804,7 @@ class SnubaTagStorage(TagStorage):
         key,
         tenant_ids=None,
         **kwargs,
-    ):
+    ) -> GroupTagKey | TagKey:
         return self.__get_tag_key_and_top_values(
             group.project_id,
             group,
@@ -917,7 +917,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=len(eap_result) == 0,
+                is_experimental_data_nullish=len(eap_result) == 0,
                 reasonable_match_comparator=_reasonable_group_list_tag_value_match,
                 debug_context={
                     "project_ids": list(project_ids),
@@ -1005,7 +1005,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=len(eap_result) == 0,
+                is_experimental_data_nullish=len(eap_result) == 0,
                 reasonable_match_comparator=_reasonable_group_list_tag_value_match,
                 debug_context={
                     "project_ids": list(project_ids),
@@ -1171,7 +1171,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=eap_result == 0,
+                is_experimental_data_nullish=eap_result == 0,
                 reasonable_match_comparator=lambda control, experimental: experimental <= control,
                 debug_context={
                     "group_id": group.id,
@@ -1401,7 +1401,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=len(eap_result) == 0,
+                is_experimental_data_nullish=len(eap_result) == 0,
                 reasonable_match_comparator=_reasonable_release_tags_match,
                 debug_context={
                     "organization_id": organization_id,
@@ -1596,7 +1596,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=len(eap_result) == 0,
+                is_experimental_data_nullish=len(eap_result) == 0,
                 reasonable_match_comparator=_reasonable_user_counts_match,
                 debug_context={
                     "project_ids": list(project_ids),
@@ -1747,7 +1747,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=len(eap_result) == 0,
+                is_experimental_data_nullish=len(eap_result) == 0,
                 reasonable_match_comparator=_reasonable_user_counts_match,
                 debug_context={
                     "project_ids": list(project_ids),
@@ -2038,10 +2038,16 @@ class SnubaTagStorage(TagStorage):
         # time:         This is a column computed from timestamp so it suffers the same issues
         if snuba_key in {"group_id"}:
             snuba_key = f"tags[{snuba_key}]"
+        # tags.key/tags.value are array meta-columns (the list of all tag keys/values on an
+        # event). They have no arrayjoin (see snuba.get_arrayjoin), so grouping by them returns
+        # an array per row which is unhashable in snuba.nest_groups. They are not real tags and
+        # have no meaningful values to suggest, so we disable them here.
         if snuba_key in {"event_id", "timestamp", "time", "profile_id", "replay_id"} or key in {
             "trace",
             "trace.span",
             "trace.parent_span",
+            "tags.key",
+            "tags.value",
         }:
             return SequencePaginator([])
 
@@ -2286,7 +2292,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=len(eap_result) == 0,
+                is_experimental_data_nullish=len(eap_result) == 0,
                 reasonable_match_comparator=_reasonable_group_tag_value_iter_match,
                 debug_context={
                     "group_id": group.id,

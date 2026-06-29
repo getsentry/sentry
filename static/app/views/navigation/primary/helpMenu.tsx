@@ -2,7 +2,6 @@ import {useEffect} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {
   IconBuilding,
@@ -27,166 +26,24 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 import {
   NavigationTourReminder,
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-
-function getContactSupportItem(organization: Organization): MenuItemProps | null {
-  const supportEmail = ConfigStore.get('supportEmail');
-
-  if (!supportEmail) {
-    return null;
-  }
-
-  const hasIntercom = organization.features.includes('intercom-support');
-
-  // Use Intercom if feature flag is enabled (lazily initialized on first click)
-  if (hasIntercom) {
-    return {
-      key: 'support',
-      label: t('Contact Support'),
-      async onAction() {
-        trackAnalytics('intercom_link.clicked', {
-          organization,
-          source: 'sidebar',
-        });
-        try {
-          await showIntercom(organization.slug);
-        } catch {
-          // Fall back to mailto
-          window.location.href = `mailto:${supportEmail}`;
-        }
-      },
-    };
-  }
-
-  // Fall back to Zendesk if available
-  if (hasZendesk()) {
-    return {
-      key: 'support',
-      label: t('Contact Support'),
-      onAction() {
-        activateZendesk();
-        trackAnalytics('zendesk_link.clicked', {
-          organization,
-          source: 'sidebar',
-        });
-      },
-    };
-  }
-
-  // Fall back to mailto
-  return {
-    key: 'support',
-    label: t('Contact Support'),
-    externalHref: `mailto:${supportEmail}`,
-  };
-}
 
 export function PrimaryNavigationHelpMenu() {
   const organization = useOrganization();
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
-  const {startTour} = useNavigationTour();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
-  const hasPageFrame = useHasPageFrameFeature();
-  const hasIntercom = organization.features.includes('intercom-support');
+  const {startTour} = useNavigationTour();
 
   useEffect(() => {
-    if (hasIntercom) {
-      trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
-    }
-  }, [hasIntercom, organization]);
+    trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
+  }, [organization]);
 
-  const items = hasPageFrame
-    ? getPageFrameItems({contactSupportItem, privacyUrl, termsUrl})
-    : getLegacyItems({contactSupportItem});
-
-  return (
-    <PrimaryNavigation.Menu
-      triggerWrap={NavigationTourReminder}
-      items={[
-        ...(hasPageFrame
-          ? // When page frame feature flag is enabled, the search menu is
-            // rendered as part of the footer items and is always visible
-            // to the user.
-            []
-          : [
-              {
-                key: 'search',
-                label: t('Search support, docs and more'),
-                onAction() {
-                  openHelpSearchModal({organization});
-                },
-              },
-            ]),
-        ...items,
-        {
-          key: 'actions',
-          children: [
-            {
-              key: 'give-feedback',
-              label: t('Give feedback'),
-              leadingItems: hasPageFrame ? (
-                <MenuIcon>
-                  <IconMegaphone />
-                </MenuIcon>
-              ) : undefined,
-              onAction() {
-                openForm?.({
-                  tags: {
-                    ['feedback.source']: 'navigation_sidebar',
-                  },
-                });
-              },
-              hidden: !openForm,
-            },
-            {
-              key: 'tour',
-              label: t('Tour the new navigation'),
-              leadingItems: hasPageFrame ? (
-                <MenuIcon>
-                  <IconGlobe />
-                </MenuIcon>
-              ) : undefined,
-              onAction() {
-                startTour();
-              },
-            },
-          ].filter(n => !!n),
-        },
-      ]}
-      analyticsKey="help"
-      label={t('Help')}
-      icon={<IconEllipsis />}
-    />
-  );
-}
-
-function MenuIcon({children}: {children: React.ReactNode}) {
-  return (
-    <IconDefaultsProvider size="sm">
-      <Flex width="100%" height="100%" align="center">
-        {children}
-      </Flex>
-    </IconDefaultsProvider>
-  );
-}
-
-function getPageFrameItems({
-  contactSupportItem,
-  privacyUrl,
-  termsUrl,
-}: {
-  contactSupportItem: MenuItemProps | null;
-  privacyUrl: string | null;
-  termsUrl: string | null;
-}): MenuItemProps[] {
-  return [
+  const items: MenuItemProps[] = [
     {
       key: 'resources',
       label: t('Resources'),
@@ -230,25 +87,24 @@ function getPageFrameItems({
         {
           key: 'help-center',
           label: t('Help Center'),
-          externalHref: 'https://sentry.zendesk.com/hc/en-us',
+          externalHref: 'https://www.sentry.help/',
           leadingItems: (
             <MenuIcon>
               <IconQuestion />
             </MenuIcon>
           ),
         },
-        ...(contactSupportItem
-          ? [
-              {
-                ...contactSupportItem,
-                leadingItems: (
-                  <MenuIcon>
-                    <IconSupport />
-                  </MenuIcon>
-                ),
-              },
-            ]
-          : []),
+        {
+          key: 'support',
+          label: t('Contact Support'),
+          ...contactSupportItem,
+          leadingItems: (
+            <MenuIcon>
+              <IconSupport />
+            </MenuIcon>
+          ),
+          hidden: !contactSupportItem,
+        },
       ],
     },
     {
@@ -283,91 +139,121 @@ function getPageFrameItems({
         },
       ],
     },
-    ...(privacyUrl || termsUrl
-      ? [
-          {
-            key: 'legal',
-            label: t('Legal'),
-            isSubmenu: true,
-            leadingItems: (
-              <MenuIcon>
-                <IconBuilding />
-              </MenuIcon>
-            ),
-            children: [
-              ...(privacyUrl
-                ? [
-                    {
-                      key: 'privacy',
-                      label: t('Privacy Policy'),
-                      externalHref: privacyUrl,
-                      leadingItems: (
-                        <MenuIcon>
-                          <IconOpen />
-                        </MenuIcon>
-                      ),
-                    },
-                  ]
-                : []),
-              ...(termsUrl
-                ? [
-                    {
-                      key: 'terms',
-                      label: t('Terms of Use'),
-                      externalHref: termsUrl,
-                      leadingItems: (
-                        <MenuIcon>
-                          <IconOpen />
-                        </MenuIcon>
-                      ),
-                    },
-                  ]
-                : []),
-            ],
+    {
+      key: 'legal',
+      label: t('Legal'),
+      isSubmenu: true,
+      hidden: !privacyUrl && !termsUrl,
+      leadingItems: (
+        <MenuIcon>
+          <IconBuilding />
+        </MenuIcon>
+      ),
+      children: [
+        {
+          key: 'privacy',
+          label: t('Privacy Policy'),
+          externalHref: privacyUrl ?? '',
+          hidden: !privacyUrl,
+          leadingItems: (
+            <MenuIcon>
+              <IconOpen />
+            </MenuIcon>
+          ),
+        },
+        {
+          key: 'terms',
+          label: t('Terms of Use'),
+          externalHref: termsUrl ?? '',
+          hidden: !termsUrl,
+          leadingItems: (
+            <MenuIcon>
+              <IconOpen />
+            </MenuIcon>
+          ),
+        },
+      ],
+    },
+    {
+      key: 'actions',
+      hidden: !openForm,
+      children: [
+        {
+          key: 'give-feedback',
+          label: t('Give feedback'),
+          leadingItems: (
+            <MenuIcon>
+              <IconMegaphone />
+            </MenuIcon>
+          ),
+          onAction() {
+            openForm?.({
+              tags: {
+                ['feedback.source']: 'navigation_sidebar',
+              },
+            });
           },
-        ]
-      : []),
+          hidden: !openForm,
+        },
+        {
+          key: 'tour',
+          label: t('Tour the new navigation'),
+          leadingItems: (
+            <MenuIcon>
+              <IconGlobe />
+            </MenuIcon>
+          ),
+          onAction() {
+            startTour();
+          },
+        },
+      ],
+    },
   ];
+
+  return (
+    <PrimaryNavigation.Menu
+      triggerWrap={NavigationTourReminder}
+      items={items}
+      analyticsKey="help"
+      label={t('Help')}
+      icon={<IconEllipsis />}
+    />
+  );
 }
 
-function getLegacyItems({
-  contactSupportItem,
-}: {
-  contactSupportItem: MenuItemProps | null;
-}): MenuItemProps[] {
-  return [
-    {
-      key: 'resources',
-      label: t('Resources'),
-      children: [
-        {
-          key: 'help-center',
-          label: t('Help Center'),
-          externalHref: 'https://sentry.zendesk.com/hc/en-us',
-        },
-        {
-          key: 'docs',
-          label: t('Documentation'),
-          externalHref: 'https://docs.sentry.io',
-        },
-      ],
+function getContactSupportItem(organization: Organization): MenuItemProps | null {
+  const supportEmail = ConfigStore.get('supportEmail');
+
+  if (!supportEmail) {
+    return null;
+  }
+
+  // Use Intercom (lazily initialized on first click)
+  return {
+    key: 'support',
+    label: t('Contact Support'),
+    async onAction() {
+      trackAnalytics('intercom_link.clicked', {
+        organization,
+        source: 'sidebar',
+      });
+      try {
+        await showIntercom(organization.slug);
+      } catch {
+        // Fall back to mailto
+        window.location.href = `mailto:${supportEmail}`;
+      }
     },
-    {
-      key: 'help',
-      label: t('Get Help'),
-      children: [
-        ...(contactSupportItem ? [contactSupportItem] : []),
-        {
-          key: 'github',
-          label: t('Sentry on GitHub'),
-          externalHref: 'https://github.com/getsentry/sentry/issues',
-        },
-        {
-          key: 'discord',
-          label: t('Join our Discord'),
-          externalHref: 'https://discord.com/invite/sentry',
-        },
-      ],
-    },
-  ];
+  };
+}
+
+function MenuIcon({children}: React.PropsWithChildren) {
+  return (
+    <IconDefaultsProvider size="sm">
+      <Flex width="1em" height="1lh" align="center" justify="center">
+        {children}
+      </Flex>
+    </IconDefaultsProvider>
+  );
 }

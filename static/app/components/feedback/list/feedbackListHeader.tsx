@@ -6,36 +6,22 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {FeedbackListBulkSelection} from 'sentry/components/feedback/list/feedbackListBulkSelection';
 import {MailboxPicker} from 'sentry/components/feedback/list/mailboxPicker';
+import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
 import {useFeedbackHasNewItems} from 'sentry/components/feedback/useFeedbackHasNewItems';
-import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import {useMailbox} from 'sentry/components/feedback/useMailbox';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
+import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 
-interface Props extends Pick<
-  ReturnType<typeof useListItemCheckboxContext>,
-  | 'countSelected'
-  | 'deselectAll'
-  | 'isAllSelected'
-  | 'isAnySelected'
-  | 'selectAll'
-  | 'selectedIds'
-> {}
-
-export function FeedbackListHeader({
-  countSelected,
-  deselectAll,
-  isAllSelected,
-  isAnySelected,
-  selectAll,
-  selectedIds,
-}: Props) {
+export function FeedbackListHeader() {
+  const {countSelected, deselectAll, isAllSelected, selectAll, selectedIds} =
+    useListItemCheckboxContext();
   const [mailbox, setMailbox] = useMailbox();
 
-  const {listPrefetchQueryKey, resetListHeadTime} = useFeedbackQueryKeys();
-  const hasNewItems = useFeedbackHasNewItems({listPrefetchQueryKey});
+  const {listPrefetchApiOptions, resetListHeadTime} = useFeedbackApiOptions();
+  const hasNewItems = useFeedbackHasNewItems({listPrefetchApiOptions});
   const {invalidateListCache} = useFeedbackCache();
 
   return (
@@ -51,21 +37,22 @@ export function FeedbackListHeader({
             }
           }}
         />
-        {isAnySelected ? (
+        <ListItemSelectedState selected="none">
+          <MailboxPicker value={mailbox} onChange={setMailbox} />
+        </ListItemSelectedState>
+        <ListItemSelectedState selected="indeterminate-or-all">
           <FeedbackListBulkSelection
             mailbox={mailbox}
             countSelected={countSelected}
             selectedIds={selectedIds}
             deselectAll={deselectAll}
           />
-        ) : (
-          <MailboxPicker value={mailbox} onChange={setMailbox} />
-        )}
+        </ListItemSelectedState>
       </HeaderPanelItem>
       {hasNewItems ? (
         <Flex justify="center" align="center" flexGrow={1} padding="xs">
           <Button
-            priority="primary"
+            variant="primary"
             size="xs"
             icon={<IconRefresh />}
             onClick={() => {

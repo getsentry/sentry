@@ -2,15 +2,36 @@ import {Fragment} from 'react';
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {createMockTraceItemAttributesResponse} from 'sentry-fixture/traceItemAttributeKeys';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {GlobalModal} from 'sentry/components/globalModal';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {GlobalModal} from '@sentry/scraps/modal';
+
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
+import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
 
 const relayPiiConfig = JSON.stringify(DataScrubbingRelayPiiConfigFixture());
+const relayPiiConfigWithConstructorSource = JSON.stringify({
+  rules: {
+    0: {
+      type: RuleType.PASSWORD,
+      redaction: {method: MethodType.REPLACE, text: 'Scrubbed'},
+    },
+    1: {type: RuleType.EMAIL, redaction: {method: MethodType.MASK}},
+  },
+  applications: {password: ['0'], constructor: ['1']},
+});
+const passwordRuleDescription =
+  '[Replace] [Password fields] with [Scrubbed] from [password]';
 
 describe('Data Scrubbing', () => {
   describe('Organization level', () => {
@@ -48,7 +69,7 @@ describe('Data Scrubbing', () => {
         screen.getByRole('link', {name: 'full documentation on data scrubbing'})
       ).toHaveAttribute(
         'href',
-        `https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/`
+        'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/'
       );
 
       // Body
@@ -57,7 +78,7 @@ describe('Data Scrubbing', () => {
       // Actions
       expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
         'href',
-        `https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/`
+        'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/'
       );
       expect(screen.getByRole('button', {name: 'Add Rule'})).toBeEnabled();
     });
@@ -184,6 +205,53 @@ describe('Data Scrubbing', () => {
       ).toBeInTheDocument();
     });
 
+    it('submits rules with sources that match Object prototype properties', async () => {
+      const organization = OrganizationFixture();
+      const project = ProjectFixture();
+      const endpoint = `/projects/${organization.slug}/foo/`;
+      const updateMock = MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'PUT',
+        body: {relayPiiConfig: JSON.stringify({rules: {}, applications: {}})},
+      });
+
+      render(
+        <Fragment>
+          <GlobalModal />
+          <DataScrubbing
+            endpoint={endpoint}
+            project={project}
+            relayPiiConfig={relayPiiConfigWithConstructorSource}
+            disabled={false}
+            organization={organization}
+            onSubmitSuccess={jest.fn()}
+          />
+        </Fragment>,
+        {
+          organization,
+        }
+      );
+
+      const deleteButtons = await screen.findAllByLabelText('Delete Rule');
+      await userEvent.click(deleteButtons[0]!);
+      fireEvent.change(await screen.findByPlaceholderText(passwordRuleDescription), {
+        target: {value: passwordRuleDescription},
+      });
+      await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
+
+      await waitFor(() => expect(updateMock).toHaveBeenCalled());
+
+      const requestPayload = updateMock.mock.calls[0]![1].data;
+      const submittedRelayPiiConfig = JSON.parse(requestPayload.relayPiiConfig);
+
+      expect(submittedRelayPiiConfig).toEqual({
+        rules: {
+          0: {type: RuleType.EMAIL, redaction: {method: MethodType.MASK}},
+        },
+        applications: {constructor: ['0']},
+      });
+    });
+
     it('Open Add Rule Modal', async () => {
       const organization = OrganizationFixture();
       const project = ProjectFixture();
@@ -260,13 +328,7 @@ describe('Data Scrubbing', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/trace-items/attributes/`,
         method: 'GET',
-        body: [
-          {key: 'user.email', name: 'user.email', kind: 'tag'},
-          {key: 'user.id', name: 'user.id', kind: 'tag'},
-          {key: 'custom.field', name: 'custom.field', kind: 'tag'},
-          {key: 'request.method', name: 'request.method', kind: 'tag'},
-          {key: 'response.status', name: 'response.status', kind: 'tag'},
-        ],
+        body: createMockTraceItemAttributesResponse(),
       });
     });
 

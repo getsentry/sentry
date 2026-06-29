@@ -3,6 +3,7 @@ from unittest import mock
 import msgspec
 import pytest
 
+from sentry.scm.errors import SCMProviderEventNotSupported
 from sentry.scm.private.event_stream import SourceCodeManagerEventStream
 from sentry.scm.private.ipc import (
     AuthorParser,
@@ -183,6 +184,8 @@ def test_run_pull_request_listener() -> None:
             base=PullRequestBranchParser(ref="main", sha="def456"),
             is_private_repo=False,
             author=AuthorParser(id="456", username="testuser"),
+            draft=False,
+            repository_id="repo-1",
         ),
         subscription_event=SubscriptionEventParser(None, "", {}, 0, [], "github"),
     )
@@ -464,6 +467,8 @@ def test_serialize_deserialize_pull_request_event() -> None:
             "base": {"ref": "main", "sha": "fedcba654321"},
             "is_private_repo": True,
             "author": {"id": "user-789", "username": "contributor"},
+            "draft": False,
+            "repository_id": "repo-1",
         },
         subscription_event={
             "event": "raw_event_data",
@@ -501,6 +506,8 @@ def test_serialize_deserialize_pull_request_event_no_author() -> None:
             "base": {"ref": "develop", "sha": "bbb"},
             "is_private_repo": False,
             "author": None,
+            "draft": False,
+            "repository_id": "repo-1",
         },
         subscription_event={
             "event": "",
@@ -560,6 +567,8 @@ def test_serialize_event_dispatches_correctly() -> None:
             "base": {"ref": "c", "sha": "d"},
             "is_private_repo": False,
             "author": None,
+            "draft": False,
+            "repository_id": "repo-1",
         },
         subscription_event={
             "event": "",
@@ -614,6 +623,8 @@ def test_deserialize_event_dispatches_correctly() -> None:
             PullRequestBranchParser("c", "d"),
             False,
             None,
+            False,
+            "repo-1",
         ),
         subscription_event=SubscriptionEventParser(None, "", {}, 0, None, "github"),
     )
@@ -738,6 +749,8 @@ def test_produce_to_listeners_pull_request() -> None:
                 "base": {"ref": "c", "sha": "d"},
                 "is_private_repo": False,
                 "author": None,
+                "draft": False,
+                "repository_id": "repo-1",
             },
             subscription_event=event,
         )
@@ -774,6 +787,7 @@ def test_produce_to_listeners_returns_none_for_unsupported_events() -> None:
         "type": "github",
     }
 
-    with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", lambda e: None):
+    with pytest.raises(SCMProviderEventNotSupported):
         produce_to_listeners(subscription_event, "region", mock_produce)
-        assert len(produced_messages) == 0
+
+    assert len(produced_messages) == 0

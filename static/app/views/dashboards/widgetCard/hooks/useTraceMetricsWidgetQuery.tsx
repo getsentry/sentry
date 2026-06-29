@@ -1,31 +1,51 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useMemo, useRef} from 'react';
+import {
+  keepPreviousData,
+  queryOptions,
+  useQueries,
+  useQuery,
+} from '@tanstack/react-query';
 
-import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import {
+  getEquationAliasIndex,
+  isEquation,
+  isEquationAlias,
+  type AggregationOutputType,
+  type DataUnit,
+} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
+import {decodeSorts} from 'sentry/utils/queryString';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
+import type {
+  HeatmapWidgetQueryParams,
+  WidgetQueryParams,
+} from 'sentry/views/dashboards/datasetConfig/base';
 import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
+import {metricHeatmapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatmapApiOptions';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type TraceMetricsSeriesResponse = EventsTimeSeriesResponse;
@@ -40,7 +60,7 @@ export function useTraceMetricsSeriesQuery(
     widget,
     organization,
     pageFilters,
-    enabled = true,
+    enabled,
     samplingMode,
     dashboardFilters,
     skipDashboardFilterParens,
@@ -56,8 +76,12 @@ export function useTraceMetricsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryKeys = useMemo(() => {
-    const keys = filteredWidget.queries.map((_, queryIndex) => {
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
         filteredWidget,
         queryIndex,
@@ -115,65 +139,44 @@ export function useTraceMetricsSeriesQuery(
         queryParams.end = getUtcDateString(queryParams.end);
       }
 
-      // Build the API query key for events-timeseries endpoint
-      return [
-        getApiUrl(`/organizations/$organizationIdOrSlug/events-timeseries/`, {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET' as const,
-          query: queryParams,
+      return queryOptions({
+        ...apiOptions.as<TraceMetricsSeriesResponse>()(
+          '/organizations/$organizationIdOrSlug/events-timeseries/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            query: queryParams,
+            staleTime: getWidgetStaleTime(pageFilters),
+          }
+        ),
+        queryFn: (context): Promise<ApiResponse<TraceMetricsSeriesResponse>> => {
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: () =>
+                  apiFetch<TraceMetricsSeriesResponse>(context).then(resolve, reject),
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<TraceMetricsSeriesResponse>(context);
         },
-      ] satisfies ApiQueryKey;
-    });
-    return keys;
-  }, [filteredWidget, organization, pageFilters, samplingMode, widgetInterval]);
-
-  const createQueryFn = useCallback(
-    () =>
-      async (context: any): Promise<ApiResult<TraceMetricsSeriesResponse>> => {
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: () =>
-                fetchDataQuery<TraceMetricsSeriesResponse>(context).then(resolve, reject),
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-
-        return fetchDataQuery<TraceMetricsSeriesResponse>(context);
-      },
-    [queue]
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: createQueryFn(),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            // Retry up to 10 times on rate limit errors
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-      placeholderData: (previousData: unknown) => previousData,
-    })),
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        placeholderData: keepPreviousData,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data);
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
     if (!allHaveData || isFetching) {
@@ -191,11 +194,11 @@ export function useTraceMetricsSeriesQuery(
     const rawData: TraceMetricsSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = q.data;
       rawData[requestIndex] = responseData;
 
       const transformedResult = TraceMetricsConfig.transformSeries!(
@@ -264,7 +267,7 @@ export function useTraceMetricsTableQuery(
     widget,
     organization,
     pageFilters,
-    enabled = true,
+    enabled,
     samplingMode,
     cursor,
     limit,
@@ -281,8 +284,12 @@ export function useTraceMetricsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryKeys = useMemo(() => {
-    return filteredWidget.queries.map(query => {
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map(query => {
       const eventView = eventViewFromWidget('', query, pageFilters);
 
       const requestParams: DiscoverQueryRequestParams = {
@@ -293,7 +300,23 @@ export function useTraceMetricsTableQuery(
       };
 
       if (query.orderby) {
-        requestParams.sort = toArray(query.orderby);
+        const baseSort = decodeSorts(query.orderby)[0];
+        if (isEquationAlias(baseSort?.field ?? '')) {
+          const fields = query.fields ?? [...query.columns, ...query.aggregates];
+          const equations = fields.filter(isEquation);
+          const equationIndex = getEquationAliasIndex(baseSort?.field ?? '');
+          const equation = equations[equationIndex];
+          if (equation) {
+            requestParams.sort = toArray(
+              baseSort?.kind === 'desc' ? `-${equation}` : equation
+            );
+          } else {
+            // In case we failed to find an equation by its index, reset the sort
+            requestParams.sort = undefined;
+          }
+        } else {
+          requestParams.sort = toArray(query.orderby);
+        }
       }
 
       const queryParams = {
@@ -302,63 +325,45 @@ export function useTraceMetricsTableQuery(
         ...(samplingMode ? {sampling: samplingMode} : {}),
       };
 
-      const baseQueryKey: ApiQueryKey = [
-        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET' as const,
-          query: queryParams,
+      return queryOptions({
+        ...apiOptions.as<TraceMetricsTableResponse>()(
+          '/organizations/$organizationIdOrSlug/events/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            method: 'GET' as const,
+            query: queryParams,
+            staleTime: getWidgetStaleTime(pageFilters),
+          }
+        ),
+        queryFn: (context): Promise<ApiResponse<TraceMetricsTableResponse>> => {
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: () =>
+                  apiFetch<TraceMetricsTableResponse>(context).then(resolve, reject),
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<TraceMetricsTableResponse>(context);
         },
-      ];
-
-      return baseQueryKey;
-    });
-  }, [filteredWidget, organization, pageFilters, samplingMode, cursor, limit]);
-
-  const createQueryFnTable = useCallback(
-    () =>
-      async (context: any): Promise<ApiResult<TraceMetricsTableResponse>> => {
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: () =>
-                fetchDataQuery<TraceMetricsTableResponse>(context).then(resolve, reject),
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-        return fetchDataQuery<TraceMetricsTableResponse>(context);
-      },
-    [queue]
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: createQueryFnTable(),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            // Retry up to 10 times on rate limit errors
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-    })),
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        select: selectJsonWithHeaders,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data?.json);
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
     if (!allHaveData || isFetching) {
@@ -375,12 +380,11 @@ export function useTraceMetricsTableQuery(
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data?.json) {
         return;
       }
 
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
+      const responseData = q.data.json;
       rawData[i] = responseData;
 
       const transformedDataItem = {
@@ -395,7 +399,7 @@ export function useTraceMetricsTableQuery(
 
       tableResults.push(transformedDataItem);
 
-      responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
+      responsePageLinks = q.data.headers.Link;
     });
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
@@ -422,4 +426,92 @@ export function useTraceMetricsTableQuery(
   })();
 
   return transformedData;
+}
+
+/**
+ * Fetches heat map data for a trace metrics widget. Heat maps render a
+ * time (X) x value-bucket (Y) grid colored by count (Z), so they use the
+ * dedicated `/events-heatmap/` endpoint rather than the timeseries/table flow.
+ *
+ * The X-axis `widgetInterval` and Y-axis `yBuckets` are derived from the
+ * widget's rendered dimensions and passed in from the chart container, since
+ * the query layer has no access to the rendered size.
+ */
+export function useTraceMetricsHeatmapQuery(
+  params: HeatmapWidgetQueryParams
+): HookWidgetQueryResult {
+  const {
+    widget,
+    organization,
+    pageFilters,
+    enabled,
+    dashboardFilters,
+    skipDashboardFilterParens,
+    widgetInterval = '',
+    yBuckets = 0,
+  } = params;
+
+  const filteredWidget = useMemo(
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
+    [widget, dashboardFilters, skipDashboardFilterParens]
+  );
+
+  const query = filteredWidget.queries[0];
+  const selectedAggregate = getSelectedAggregate(widget);
+  const traceMetric = selectedAggregate
+    ? extractTraceMetricFromColumn(selectedAggregate)
+    : undefined;
+
+  // Don't fetch until the widget's aggregate resolves to a real metric —
+  // otherwise we'd request with an empty `metric.name` filter.
+  const heatmapEnabled =
+    enabled && yBuckets > 0 && Boolean(widgetInterval) && Boolean(traceMetric?.name);
+
+  const heatmapApiOptions = metricHeatmapApiOptions({
+    traceMetric: traceMetric ?? {name: '', type: '', unit: NONE_UNIT},
+    enabled: heatmapEnabled,
+    organization,
+    selection: pageFilters,
+    query: query?.conditions ?? '',
+    interval: widgetInterval,
+    yBuckets,
+  });
+
+  // The heatmap API returns the Y axis as the generic `value` field with no
+  // unit, so patch it with the selected metric's unit in `select` (mirroring
+  // Explore). react-query keeps the selected result referentially stable.
+  const {data: heatmapResults, error} = useQuery({
+    ...heatmapApiOptions,
+    select: rawHeatmapData =>
+      mergeMetricUnit(
+        heatmapApiOptions.select!(rawHeatmapData),
+        traceMetric?.unit ?? undefined
+      ),
+  });
+
+  // `genericWidgetQueries` guards its `onDataFetched` effect by reference
+  // (`rawData === prev`); wrapping the single series in a fresh array each
+  // render would defeat that guard and cause an update loop, so memoize it.
+  const rawData = useMemo(
+    () => (heatmapResults ? [heatmapResults] : EMPTY_ARRAY),
+    [heatmapResults]
+  );
+
+  if (error) {
+    return {loading: false, errorMessage: error.message, rawData: EMPTY_ARRAY};
+  }
+
+  // No data yet: the request is in flight, or the chart hasn't been measured
+  // (so the query is still disabled). Report loading like the series/table
+  // hooks do, so the chart container needs no heat-map-specific loading branch.
+  if (!heatmapResults) {
+    return {loading: true, rawData: EMPTY_ARRAY};
+  }
+
+  return {
+    loading: false,
+    heatmapResults,
+    rawData,
+  };
 }

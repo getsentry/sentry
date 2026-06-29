@@ -11,10 +11,12 @@ import type {
 } from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import {emptyStringValue} from 'sentry/utils/discover/emptyFieldValues';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
+  AGGREGATIONS,
   stripEquationPrefix,
   type Aggregation,
   type AggregationOutputType,
@@ -67,7 +69,7 @@ import {
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -116,7 +118,12 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
           },
         ],
       };
-    } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate as AggregationKey)) {
+    } else if (
+      aggregate === AggregationKey.PERFORMANCE_SCORE ||
+      aggregate === AggregationKey.OPPORTUNITY_SCORE
+    ) {
+      acc[aggregate] = AGGREGATIONS[aggregate];
+    } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate)) {
       acc[aggregate] = {
         isSortable: true,
         outputType: null,
@@ -141,7 +148,8 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
   {} as Record<AggregationKey, Aggregation>
 );
 
-const INTERNAL_ERROR_COUNT_FIELD = 'count_if(span.status,equals,internal_error)';
+const INTERNAL_ERROR_COUNT_FIELD =
+  'count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)';
 
 function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
   const {pageFilters, widgetQuery} = props;
@@ -337,8 +345,7 @@ export const SpansConfig: DatasetConfig<
       data,
       widgetQuery,
       getFieldMetaValue: meta => meta?.valueType as AggregationOutputType,
-      getMetaField: (seriesMeta, aggregate) =>
-        seriesMeta?.fields?.[aggregate] as AggregationOutputType,
+      getMetaField: (seriesMeta, aggregate) => seriesMeta?.fields?.[aggregate]!,
     });
   },
 };
@@ -468,16 +475,11 @@ function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBag
 
   const filters = new MutableSearch('');
 
-  // Filters on the transaction summary page won't match the dashboard because transaction summary isn't on eap yet.
   if (data[SpanFields.SPAN_OP]) {
-    filters.addFilterValue('transaction.op', data[SpanFields.SPAN_OP]);
+    filters.addFilterValue(SpanFields.SPAN_OP, data[SpanFields.SPAN_OP]);
   }
   if (data[SpanFields.REQUEST_METHOD]) {
-    const isEap = organization.features.includes('performance-transaction-summary-eap');
-    filters.addFilterValue(
-      isEap ? 'request.method' : 'http.method',
-      data[SpanFields.REQUEST_METHOD]
-    );
+    filters.addFilterValue('request.method', data[SpanFields.REQUEST_METHOD]);
   }
 
   const target = transactionSummaryRouteWithQuery({
@@ -516,7 +518,7 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
 
     const baseConditions = widget.queries[0]?.conditions ?? '';
     const errorQuery = new MutableSearch(baseConditions);
-    errorQuery.addStringFilter('span.status:internal_error');
+    errorQuery.addStringFilter('span.status:[internal_error,error]');
     const widgetWithErrorFilter: Widget = {
       ...widget,
       queries: widget.queries.map(q => ({

@@ -5,7 +5,12 @@ import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderInteraction,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
@@ -14,6 +19,7 @@ import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/toke
 import {
   getInitialFilterText,
   itemIsSection,
+  resolveFilterKey,
   useShiftFocusToChild,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
@@ -122,6 +128,8 @@ function countPreviousItemsOfType({
   }
   const currentIndex = itemKeys.indexOf(focusedKey);
 
+  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   return itemKeys.slice(0, currentIndex).reduce<number>((count, next) => {
     if (next.toString().includes(type)) {
       return count + 1;
@@ -258,18 +266,18 @@ function SearchQueryBuilderInputInternal({
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
+  const {query, dispatch, handleSearch} = useSearchQueryBuilderState();
   const {
-    query,
     filterKeys,
-    dispatch,
     getFieldDefinition,
     getSuggestedFilterKey,
-    handleSearch,
     placeholder,
     searchSource,
     recentSearches,
-    currentInputValueRef,
-  } = useSearchQueryBuilder();
+  } = useSearchQueryBuilderConfig();
+  const {currentInputValueRef} = useSearchQueryBuilderLayout();
+  const {consumeReopenDropdownOnQueryClear, reopenDropdownOnQueryClear} =
+    useSearchQueryBuilderInteraction();
 
   const resetInputValue = useCallback(() => {
     setInputValue(trimmedTokenValue);
@@ -288,6 +296,15 @@ function SearchQueryBuilderInputInternal({
     });
 
   const items = customMenu ? sectionItems : sortedFilteredItems;
+  const shouldReopenDropdownOnFocus =
+    reopenDropdownOnQueryClear && query === '' && trimmedTokenValue === '';
+
+  useEffect(() => {
+    if (shouldReopenDropdownOnFocus && inputRef.current === document.activeElement) {
+      consumeReopenDropdownOnQueryClear();
+      setIsOpen(true);
+    }
+  }, [shouldReopenDropdownOnFocus, consumeReopenDropdownOnQueryClear]);
 
   // When token value changes, reset the input value
   const [prevValue, setPrevValue] = useState(inputValue);
@@ -618,12 +635,21 @@ function SearchQueryBuilderInputInternal({
 
           if (
             parsedText?.some(textToken => {
-              if (textToken.type !== Token.FILTER) return false;
-              if (textToken.negated) return `!${textToken.key.text}` === filterValue;
+              if (textToken.type !== Token.FILTER) {
+                return false;
+              }
+              if (textToken.negated) {
+                return `!${textToken.key.text}` === filterValue;
+              }
               return textToken.key.text === filterValue;
             })
           ) {
-            const filterKey = getSuggestedFilterKey(filterValue) ?? filterValue;
+            const filterKey = resolveFilterKey({
+              key: filterValue,
+              filterKeys,
+              getSuggestedFilterKey,
+              loadedItems: sortedFilteredItems,
+            });
             const key = filterKeys[filterKey];
             dispatch({
               type: 'UPDATE_FREE_TEXT_ON_COLON',
@@ -660,6 +686,13 @@ function SearchQueryBuilderInputInternal({
         onKeyDown={onKeyDown}
         onKeyDownCapture={onKeyDownCapture}
         onOpenChange={setIsOpen}
+        onSearchQueryClear={() => setInputValue('')}
+        openOnFocus={shouldReopenDropdownOnFocus}
+        onFocus={() => {
+          if (shouldReopenDropdownOnFocus) {
+            consumeReopenDropdownOnQueryClear();
+          }
+        }}
         tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
         maxOptions={maxOptions}
         onPaste={onPaste}

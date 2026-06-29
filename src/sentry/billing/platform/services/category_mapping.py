@@ -13,6 +13,7 @@ SENTRY_TO_PROTO_CATEGORY: dict[int, int] = {
     int(DataCategory.REPLAY): ProtoDataCategory.DATA_CATEGORY_REPLAY,
     int(DataCategory.MONITOR): ProtoDataCategory.DATA_CATEGORY_MONITOR,
     int(DataCategory.SPAN): ProtoDataCategory.DATA_CATEGORY_SPAN,
+    int(DataCategory.SPAN_INDEXED): ProtoDataCategory.DATA_CATEGORY_SPAN_INDEXED,
     int(DataCategory.USER_REPORT_V2): ProtoDataCategory.DATA_CATEGORY_USER_REPORT_V2,
     int(DataCategory.PROFILE_DURATION): ProtoDataCategory.DATA_CATEGORY_PROFILE_DURATION,
     int(DataCategory.LOG_BYTE): ProtoDataCategory.DATA_CATEGORY_LOG_BYTE,
@@ -26,6 +27,15 @@ SENTRY_TO_PROTO_CATEGORY: dict[int, int] = {
     int(DataCategory.SECURITY): ProtoDataCategory.DATA_CATEGORY_SECURITY,
     int(DataCategory.PROFILE_CHUNK): ProtoDataCategory.DATA_CATEGORY_PROFILE_CHUNK,
     int(DataCategory.PROFILE_CHUNK_UI): ProtoDataCategory.DATA_CATEGORY_PROFILE_CHUNK_UI,
+    int(DataCategory.TRANSACTION_PROCESSED): ProtoDataCategory.DATA_CATEGORY_TRANSACTION_PROCESSED,
+    int(DataCategory.TRANSACTION_INDEXED): ProtoDataCategory.DATA_CATEGORY_TRANSACTION_INDEXED,
+    int(DataCategory.PROFILE_INDEXED): ProtoDataCategory.DATA_CATEGORY_PROFILE_INDEXED,
+    int(DataCategory.METRIC_BUCKET): ProtoDataCategory.DATA_CATEGORY_METRIC_BUCKET,
+    int(DataCategory.ATTACHMENT_ITEM): ProtoDataCategory.DATA_CATEGORY_ATTACHMENT_ITEM,
+    int(DataCategory.LOG_ITEM): ProtoDataCategory.DATA_CATEGORY_LOG_ITEM,
+    int(DataCategory.PROFILE_BACKEND): ProtoDataCategory.DATA_CATEGORY_PROFILE_BACKEND,
+    int(DataCategory.PROFILE_UI): ProtoDataCategory.DATA_CATEGORY_PROFILE_UI,
+    int(DataCategory.TRACE_METRIC_BYTE): ProtoDataCategory.DATA_CATEGORY_TRACE_METRIC_BYTE,
 }
 
 
@@ -53,8 +63,10 @@ def sentry_to_proto_category(category: int | DataCategory) -> ProtoDataCategory.
     """Convert a Sentry DataCategory to its proto equivalent.
 
     For categories with a known mapping, returns the proto enum value.
-    For unmapped categories, passes through the original int value and
-    emits a metric so we can track how often this happens.
+    For unmapped categories, returns DATA_CATEGORY_UNKNOWN — the sentry and
+    proto enums use different int values for the same logical categories
+    (e.g. sentry SESSION=5 vs proto REPLAY=5), so passing the int through
+    would silently land the row in the wrong proto bucket.
     """
     cat_int = int(category)
     result = SENTRY_TO_PROTO_CATEGORY.get(cat_int)
@@ -63,5 +75,5 @@ def sentry_to_proto_category(category: int | DataCategory) -> ProtoDataCategory.
             "billing.proto_category_mapping.unmapped",
             tags={"sentry_category": str(cat_int)},
         )
-        return ProtoDataCategory.ValueType(cat_int)
+        return ProtoDataCategory.DATA_CATEGORY_UNKNOWN
     return ProtoDataCategory.ValueType(result)

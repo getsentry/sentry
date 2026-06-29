@@ -5,7 +5,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 import {getStructuredDataConfig} from './getStructuredDataConfig';
 

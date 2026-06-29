@@ -17,7 +17,7 @@ export function FloatingFeedbackButton() {
 
   useEffect(() => {
     if (!feedback) {
-      return undefined;
+      return;
     }
 
     const widget = feedback.createWidget(defaultOptions);

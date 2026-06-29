@@ -16,7 +16,8 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import no_silo_test
 
-replacement_api = "replacement-api"
+replacement_api = "sentry-api-0-organization-projects"
+replacement_api_resolved = "/api/0/organizations/:organization_id_or_slug/projects/"
 test_date = datetime.fromisoformat("2020-01-01T00:00:00+00:00:00")
 timeiter = CronSim("0 12 * * *", test_date)
 default_duration = timedelta(minutes=1)
@@ -43,6 +44,14 @@ class DummyEndpoint(Endpoint):
     def delete(self, request):
         return Response({"ok": True})
 
+    @deprecated(test_date, suggested_api="sentry-api-0-organization-projects")
+    def put(self, request):
+        return Response({"ok": True})
+
+    @deprecated(test_date, suggested_api="sentry-api-0-organization-workflow-details")
+    def patch(self, request):
+        return Response({"ok": True})
+
 
 dummy_endpoint = DummyEndpoint.as_view()
 
@@ -56,7 +65,7 @@ class TestDeprecationDecorator(APITestCase):
         assert "X-Sentry-Deprecation-Date" in response
         assert "X-Sentry-Replacement-Endpoint" in response
         assert response["X-Sentry-Deprecation-Date"] == test_date.isoformat()
-        assert response["X-Sentry-Replacement-Endpoint"] == replacement_api
+        assert response["X-Sentry-Replacement-Endpoint"] == replacement_api_resolved
 
     def assert_not_deprecated(self, method):
         request = self.make_request(method=method)
@@ -283,3 +292,69 @@ class TestDeprecationDecorator(APITestCase):
             resp = dummy_endpoint(request)
             assert resp.status_code == HTTP_200_OK
             assert "X-Sentry-Deprecation-Date" not in resp
+
+    def test_suggested_api_route_name_resolves(self) -> None:
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(test_date - timedelta(seconds=1)):
+            request = self.make_request(method="PUT")
+            request.resolver_match = ResolverMatch(
+                func=dummy_endpoint,
+                args=tuple(),
+                kwargs={"organization_id_or_slug": "my-org"},
+                url_name="sentry-api-0-project-index",
+            )
+
+            resp = dummy_endpoint(request)
+            assert resp.status_code == HTTP_200_OK
+            assert resp["X-Sentry-Replacement-Endpoint"] == "/api/0/organizations/my-org/projects/"
+
+    def test_suggested_api_route_name_missing_params(self) -> None:
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(test_date - timedelta(seconds=1)):
+            request = self.make_request(method="PATCH")
+            request.resolver_match = ResolverMatch(
+                func=dummy_endpoint,
+                args=tuple(),
+                kwargs={"organization_id_or_slug": "my-org"},
+                url_name="sentry-api-0-some-endpoint",
+            )
+
+            resp = dummy_endpoint(request)
+            assert resp.status_code == HTTP_200_OK
+            assert (
+                resp["X-Sentry-Replacement-Endpoint"]
+                == "/api/0/organizations/my-org/workflows/:workflow_id/"
+            )
+
+    def test_suggested_api_route_name_no_resolver_match(self) -> None:
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(test_date - timedelta(seconds=1)):
+            request = self.make_request(method="PUT")
+
+            resp = dummy_endpoint(request)
+            assert resp.status_code == HTTP_200_OK
+            assert (
+                resp["X-Sentry-Replacement-Endpoint"]
+                == "/api/0/organizations/:organization_id_or_slug/projects/"
+            )
+
+    def test_suggested_api_unknown_route_name(self) -> None:
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(test_date - timedelta(seconds=1)):
+
+            class UnknownRouteEndpoint(Endpoint):
+                permission_classes = ()
+
+                @deprecated(test_date, suggested_api="nonexistent-route-name")
+                def get(self, request):
+                    return Response({"ok": True})
+
+            endpoint = UnknownRouteEndpoint.as_view()
+            request = self.make_request(method="GET")
+            resp = endpoint(request)
+            assert resp.status_code == HTTP_200_OK
+            assert "X-Sentry-Deprecation-Date" in resp
+            assert "X-Sentry-Replacement-Endpoint" not in resp
+
+    def test_suggested_api_route_name_resolved_in_header(self) -> None:
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(test_date - timedelta(seconds=1)):
+            request = self.make_request(method="GET")
+            resp = dummy_endpoint(request)
+            assert resp.status_code == HTTP_200_OK
+            assert resp["X-Sentry-Replacement-Endpoint"] == replacement_api_resolved

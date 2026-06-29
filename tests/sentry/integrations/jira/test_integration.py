@@ -1,4 +1,4 @@
-from functools import cached_property
+from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
@@ -16,16 +16,15 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
-from sentry.models.grouplink import GroupLink
-from sentry.models.groupmeta import GroupMeta
 from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
 )
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import APITestCase, IntegrationTestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
@@ -33,7 +32,6 @@ from sentry.testutils.skips import requires_snuba
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
 from sentry.utils.signing import sign
-from sentry_plugins.jira.plugin import JiraPlugin
 
 pytestmark = [requires_snuba]
 
@@ -1260,6 +1258,65 @@ class JiraIntegrationTest(APITestCase):
         }
 
     @responses.activate
+    def test_get_config_data_filters_via_paginated_endpoint_with_flag(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        org_integration.config = {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": True,
+        }
+        org_integration.save()
+
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="12345",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="67890",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={"values": [{"id": "12345", "name": "Active Project"}]},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_config_data()
+
+        assert config["sync_status_forward"] == {
+            "12345": {"on_resolve": "done", "on_unresolve": "in_progress"},
+        }
+        assert len(responses.calls) == 1
+        assert "rest/api/2/project/search" in responses.calls[0].request.url
+        assert "id=12345" in responses.calls[0].request.url
+        assert "id=67890" in responses.calls[0].request.url
+
+    @responses.activate
     def test_get_config_data_issue_keys(self) -> None:
         integration = self.create_provider_integration(
             provider="jira",
@@ -1296,6 +1353,112 @@ class JiraIntegrationTest(APITestCase):
             installation.get_config_data().get("issues_ignored_fields")
             == "hello world, goodnight, moon"
         )
+
+    @responses.activate
+    def test_get_organization_config_uses_projects_list_without_flag(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            json=[{"id": "10000", "name": "Project A"}],
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={"values": []},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        config = installation.get_organization_config()
+
+        assert config[0]["addDropdown"]["items"] == [
+            {"value": "10000", "label": "Project A"},
+        ]
+        assert any(
+            "rest/api/2/project" in call.request.url and "search" not in call.request.url
+            for call in responses.calls
+        )
+
+    @responses.activate
+    def test_get_organization_config_uses_paginated_endpoint_with_flag(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "name": "Project A"},
+                    {"id": "10001", "name": "Project B"},
+                ],
+                "maxResults": 50,
+                "total": 2,
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={"values": []},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_organization_config()
+
+        assert config[0]["addDropdown"]["items"] == [
+            {"value": "10000", "label": "Project A"},
+            {"value": "10001", "label": "Project B"},
+        ]
+        assert any("rest/api/2/project/search" in call.request.url for call in responses.calls)
+
+    @responses.activate
+    def test_get_organization_config_paginated_api_error_disables_config(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={"errorMessages": ["Something went wrong"]},
+            status=500,
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_organization_config()
+
+        assert config[0]["disabled"] is True
+        assert "Unable to communicate" in config[0]["disabledReason"]
 
     def test_error_fields_from_json_issue_not_found(self) -> None:
         integration = self.create_provider_integration(provider="jira", name="Example Jira")
@@ -1339,160 +1502,86 @@ class JiraIntegrationTest(APITestCase):
         assert exc_info.value.field_errors == {"Issue": [msg]}
 
 
-class JiraMigrationIntegrationTest(APITestCase):
-    @cached_property
-    def integration(self):
-        integration = self.create_provider_integration(
-            provider="jira",
-            name="Jira Cloud",
-            metadata={
-                "oauth_client_id": "oauth-client-id",
-                "shared_secret": "a-super-secret-key-from-atlassian",
-                "base_url": "https://example.atlassian.net",
-                "domain_name": "example.atlassian.net",
-            },
-        )
-        integration.add_organization(self.organization, self.user)
-        return integration
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.plugin = JiraPlugin()
-        self.plugin.set_option("enabled", True, self.project)
-        self.plugin.set_option("default_project", "SEN", self.project)
-        self.plugin.set_option("instance_url", "https://example.atlassian.net", self.project)
-        self.plugin.set_option("ignored_fields", "hellboy, meow", self.project)
-        with assume_test_silo_mode_of(Integration):
-            self.installation = self.integration.get_installation(self.organization.id)
-        self.login_as(self.user)
-
-    def test_migrate_plugin(self) -> None:
-        """Test that 2 projects with the Jira plugin enabled that each have an issue created
-        from the plugin are migrated along with the ignored fields
-        """
-        project2 = self.create_project(
-            name="hellbar", organization=self.organization, teams=[self.team]
-        )
-        plugin2 = JiraPlugin()
-        plugin2.set_option("enabled", True, project2)
-        plugin2.set_option("default_project", "BAR", project2)
-        plugin2.set_option("instance_url", "https://example.atlassian.net", project2)
-
-        group = self.create_group(message="Hello world", culprit="foo.bar")
-        plugin_issue = GroupMeta.objects.create(
-            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
-        )
-        group2 = self.create_group(message="Hello world", culprit="foo.bar")
-        plugin2_issue = GroupMeta.objects.create(
-            key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1"
-        )
-        with assume_test_silo_mode_of(OrganizationIntegration):
-            org_integration = OrganizationIntegration.objects.get(
-                integration_id=self.integration.id
-            )
-            org_integration.config.update({"issues_ignored_fields": ["reporter", "test"]})
-            org_integration.save()
-
-        with self.tasks():
-            self.installation.migrate_issues()
-
-        assert ExternalIssue.objects.filter(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            key=plugin_issue.value,
-        ).exists()
-        assert ExternalIssue.objects.filter(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            key=plugin2_issue.value,
-        ).exists()
-        assert not GroupMeta.objects.filter(
-            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
-        ).exists()
-        assert not GroupMeta.objects.filter(
-            key=f"{self.plugin.slug}:tid", group_id=group.id, value="BAR-1"
-        ).exists()
-
-        with assume_test_silo_mode_of(OrganizationIntegration):
-            oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-            assert len(oi.config["issues_ignored_fields"]) == 4
-
-        assert self.plugin.get_option("enabled", self.project) is False
-        assert plugin2.get_option("enabled", project2) is False
-
-    def test_instance_url_mismatch(self) -> None:
-        """Test that if the plugin's instance URL does not match the integration's base URL, we don't migrate the issues"""
-        self.plugin.set_option("instance_url", "https://hellboy.atlassian.net", self.project)
-        group = self.create_group(message="Hello world", culprit="foo.bar")
-        plugin_issue = GroupMeta.objects.create(
-            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
-        )
-        with self.tasks():
-            self.installation.migrate_issues()
-
-        assert not ExternalIssue.objects.filter(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            key=plugin_issue.value,
-        ).exists()
-        assert GroupMeta.objects.filter(
-            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
-        ).exists()
-
-    def test_external_issue_already_exists(self) -> None:
-        """Test that if an issue already exists during migration, we continue with no issue"""
-
-        group = self.create_group(message="Hello world", culprit="foo.bar")
-        GroupMeta.objects.create(key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1")
-        group2 = self.create_group(message="Hello world", culprit="foo.bar")
-        GroupMeta.objects.create(key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1")
-        integration_issue = ExternalIssue.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            key="BAR-1",
-        )
-        GroupLink.objects.create(
-            group_id=group2.id,
-            project_id=self.project.id,
-            linked_type=GroupLink.LinkedType.issue,
-            linked_id=integration_issue.id,
-            relationship=GroupLink.Relationship.references,
-        )
-
-        with self.tasks():
-            self.installation.migrate_issues()
-
-
 @control_silo_test
-class JiraInstallationTest(IntegrationTestCase):
+class JiraApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
     provider = JiraIntegrationProvider
 
     def setUp(self) -> None:
         super().setUp()
+        self.login_as(self.user)
+        self.external_id = "my-external-id"
         self.metadata = {
             "oauth_client_id": "oauth-client-id",
             "shared_secret": "a-super-secret-key-from-atlassian",
             "base_url": "https://example.atlassian.net",
             "domain_name": "example.atlassian.net",
         }
-        self.integration = self.create_provider_integration(
-            provider="jira",
-            name="Jira Cloud",
-            external_id="my-external-id",
-            metadata=self.metadata,
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
         )
 
-    def assert_setup_flow(self):
-        self.login_as(self.user)
-        signed_data = {"external_id": "my-external-id", "metadata": json.dumps(self.metadata)}
-        params = {"signed_params": sign(salt=SALT, **signed_data)}
-        resp = self.client.get(self.configure_path, params)
-        assert resp.status_code == 302
-        integration = Integration.objects.get(external_id="my-external-id")
+    def _initialize_pipeline(self, initial_data: dict[str, Any] | None = None) -> Any:
+        payload: dict[str, Any] = {"action": "initialize", "provider": self.provider.key}
+        if initial_data is not None:
+            payload["initialData"] = initial_data
+        return self.client.post(self._get_pipeline_url(), data=payload, format="json")
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _signed_params(self) -> str:
+        return sign(salt=SALT, external_id=self.external_id, metadata=json.dumps(self.metadata))
+
+    def test_initialize_returns_confirmation_data(self) -> None:
+        resp = self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
+        assert resp.status_code == 200
+        assert resp.data["step"] == "jira_confirm_install"
+        data = resp.data["data"]
+        assert data["baseUrl"] == "https://example.atlassian.net"
+        assert data["organization"] == self.organization.name
+        assert "state" in data
+        # Confirmation step does not auto-advance.
+        assert "appDirectoryInstall" not in data
+        assert not Integration.objects.filter(provider=self.provider.key).exists()
+
+    def test_initialize_expired_signature(self) -> None:
+        with patch("sentry.integrations.jira.integration.INSTALL_EXPIRATION_TIME", -1):
+            resp = self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
+        assert resp.status_code == 400
+
+    def test_initialize_tampered_signature(self) -> None:
+        # Signed with a different salt, so unsigning with SALT raises
+        # BadSignature rather than SignatureExpired.
+        tampered = sign(
+            salt="not-the-jira-salt",
+            external_id=self.external_id,
+            metadata=json.dumps(self.metadata),
+        )
+        resp = self._initialize_pipeline(initial_data={"signedParams": tampered})
+        assert resp.status_code == 400
+
+    def test_advance_with_invalid_state_errors(self) -> None:
+        self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
+        resp = self._advance_step({"state": "not-the-pipeline-signature"})
+        assert resp.status_code == 400
+        assert not Integration.objects.filter(provider=self.provider.key).exists()
+
+    def test_install(self) -> None:
+        resp = self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
+        pipeline_signature = resp.data["data"]["state"]
+
+        resp = self._advance_step({"state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        assert integration.external_id == self.external_id
         assert integration.metadata == self.metadata
         assert OrganizationIntegration.objects.filter(
             integration=integration, organization_id=self.organization.id
         ).exists()
-
-    def test_installation(self) -> None:
-        self.assert_setup_flow()

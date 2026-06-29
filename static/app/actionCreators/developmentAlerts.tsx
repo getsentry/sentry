@@ -2,9 +2,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {AlertStore} from 'sentry/stores/alertStore';
+import type {AddAlert} from 'sentry/views/app/globalAlerts';
 
-export function displayDeployPreviewAlert() {
+export function displayDeployPreviewAlert(addAlert: AddAlert) {
   if (!DEPLOY_PREVIEW_CONFIG) {
     return;
   }
@@ -22,7 +22,7 @@ export function displayDeployPreviewAlert() {
     <ExternalLink href={`${repoUrl}/tree/${branch}`}>{branch}</ExternalLink>
   );
 
-  AlertStore.addAlert({
+  addAlert({
     id: 'deploy-preview',
     message: tct(
       'You are viewing a frontend deploy preview of [commitLink] ([branchLink])',
@@ -34,12 +34,14 @@ export function displayDeployPreviewAlert() {
   });
 }
 
-export function displayExperimentalSpaAlert() {
-  if (!EXPERIMENTAL_SPA) {
+export function displayExperimentalSpaAlert(addAlert: AddAlert) {
+  // Suppress when running as a deploy preview — the deploy preview banner
+  // takes precedence (see displayDeployPreviewAlert).
+  if (DEPLOY_PREVIEW_CONFIG || !EXPERIMENTAL_SPA) {
     return;
   }
 
-  AlertStore.addAlert({
+  addAlert({
     id: 'develop-proxy',
     message: t(
       'You are developing against production Sentry API, please BE CAREFUL, as your changes will affect production data.'

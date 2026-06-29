@@ -5,12 +5,19 @@ from typing import NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.pullrequest import PullRequestSerializerResponse
-from sentry.api.serializers.models.release import Author, get_users_for_authors
+from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.api.serializers.models.repository import RepositorySerializerResponse
+from sentry.api.serializers.release_details_types import Author
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+
+
+class EmptyAuthor(TypedDict):
+    """The commit serializer emits ``{}`` for ``author`` when the commit has no
+    mapped author, so the published schema must allow an empty object alongside a
+    populated ``Author``."""
 
 
 class CommitSerializerResponse(TypedDict):
@@ -21,15 +28,15 @@ class CommitSerializerResponse(TypedDict):
     suspectCommitType: str
 
     repository: NotRequired[RepositorySerializerResponse]
-    author: NotRequired[Author]
+    author: NotRequired[Author | EmptyAuthor]
 
 
 class CommitReleaseSerializerResponse(TypedDict):
     version: str
     shortVersion: str
-    ref: str
-    url: str
-    dateReleased: datetime
+    ref: str | None
+    url: str | None
+    dateReleased: datetime | None
     dateCreated: datetime
 
 

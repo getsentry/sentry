@@ -52,7 +52,9 @@ class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[OrganizationSamplingEffectiveSampleRateResponse]:
         if not features.has("organizations:dynamic-sampling", organization, actor=request.user):
             raise ResourceDoesNotExist
 

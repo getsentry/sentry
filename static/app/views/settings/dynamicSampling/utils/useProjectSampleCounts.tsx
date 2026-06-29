@@ -35,7 +35,7 @@ export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod
 
   const {data, isPending, isError, refetch} = useApiQuery<MetricsQueryApiResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sampling/project-root-counts/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sampling/project-root-counts/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

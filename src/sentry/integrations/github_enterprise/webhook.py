@@ -8,6 +8,7 @@ import time
 
 import orjson
 import sentry_sdk
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
@@ -21,13 +22,15 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.webhook import (
     GitHubWebhook,
     InstallationEventWebhook,
+    InstallationRepositoriesEventWebhook,
     IssuesEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
     get_github_external_id,
 )
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
-from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.integrations.utils.scope import clear_organization_info
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.utils import metrics
 
@@ -36,6 +39,7 @@ from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.utils.tracing import set_span_tag, start_span
 
 SHA1_PATTERN = r"^sha1=[0-9a-fA-F]{40}$"
 SHA256_PATTERN = r"^sha256=[0-9a-fA-F]{64}$"
@@ -44,7 +48,7 @@ INVALID_SIGNATURE_ERROR = "Provided signature does not match the computed body s
 MALFORMED_SIGNATURE_ERROR = "Signature value does not match the expected format"
 UNSUPPORTED_SIGNATURE_ALGORITHM_ERROR = "Signature algorithm is unsupported"
 MISSING_WEBHOOK_PAYLOAD_ERROR = "Webhook payload not found"
-MISSING_GITHUB_ENTERPRISE_HOST_ERROR = "Missing X-GitHub-Enterprise-Host header"
+MISSING_GITHUB_ENTERPRISE_HOST_ERROR = "Missing X-GitHub-Enterprise-Host header (GitHub Enterprise Server) or X-Github-Tenant header (GitHub Enterprise Cloud)"
 MISSING_GITHUB_EVENT_HEADER_ERROR = "Missing X-GitHub-Event header"
 MISSING_SIGNATURE_HEADERS_ERROR = "Missing headers X-Hub-Signature-256 or X-Hub-Signature"
 
@@ -72,7 +76,13 @@ class UnsupportedSignatureAlgorithmError(Exception):
 def get_host(request: HttpRequest) -> str | None:
     # XXX: There's lots of customers that are giving us an IP rather than a host name
     # Use HTTP_X_REAL_IP in a follow up PR (#42405)
-    return request.headers.get("x-github-enterprise-host")
+    host = request.headers.get("x-github-enterprise-host")
+    if host:
+        return host
+    tenant = request.headers.get("x-github-tenant")
+    if tenant:
+        return f"{tenant}.ghe.com"
+    return None
 
 
 def get_installation_metadata(event, host):
@@ -106,6 +116,12 @@ class GitHubEnterpriseInstallationEventWebhook(GitHubEnterpriseWebhook, Installa
     pass
 
 
+class GitHubEnterpriseInstallationRepositoriesEventWebhook(
+    GitHubEnterpriseWebhook, InstallationRepositoriesEventWebhook
+):
+    pass
+
+
 class GitHubEnterprisePushEventWebhook(GitHubEnterpriseWebhook, PushEventWebhook):
     pass
 
@@ -122,7 +138,17 @@ class GitHubEnterpriseWebhookBase(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    _handlers: dict[str, type[GitHubWebhook]] = {}
+    _handlers: dict[str, type[GitHubWebhook]] = {
+        "push": GitHubEnterprisePushEventWebhook,
+        "pull_request": GitHubEnterprisePullRequestEventWebhook,
+        "installation": GitHubEnterpriseInstallationEventWebhook,
+        "installation_repositories": GitHubEnterpriseInstallationRepositoriesEventWebhook,
+        "issues": GitHubEnterpriseIssuesEventWebhook,
+    }
+
+    def _get_host(self, request: HttpRequest) -> str | None:
+        """Resolve the host this webhook belongs to. Default: header-based (GHES + GHE Cloud)."""
+        return get_host(request)
 
     # https://developer.github.com/webhooks/
     def get_handler(self, event_type):
@@ -158,11 +184,11 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             return None
 
     def _handle(self, request: HttpRequest) -> HttpResponse:
-        clear_tags_and_context()
+        clear_organization_info()
         scope = sentry_sdk.get_isolation_scope()
 
         try:
-            host = get_host(request=request)
+            host = self._get_host(request)
             if not host:
                 raise MissingRequiredHeaderError()
         except MissingRequiredHeaderError as e:
@@ -173,6 +199,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         extra: dict[str, str | None] = {"host": host}
         # If we do tag the host early we can't even investigate
         scope.set_tag("host", host)
+        scope.set_attribute("host", host)
 
         try:
             body = bytes(request.body)
@@ -292,23 +319,26 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             sentry_sdk.capture_exception(e)
             return HttpResponse(MALFORMED_SIGNATURE_ERROR, status=400)
 
+        try:
+            webhook_type = GithubWebhookType(github_event)
+        except ValueError:
+            return HttpResponse(status=204)
+
         event_handler = handler()
 
         # Create a new transaction for each webhook event to ensure separate traces
         transaction_name = f"github_enterprise.webhook.{github_event}"
-        with sentry_sdk.start_transaction(
-            op="webhook",
-            name=transaction_name,
-            source="component",
-        ) as transaction:
-            transaction.set_tag("github_event", github_event)
+        with start_span(
+            op="webhook", name=transaction_name, source="component", transaction=True
+        ) as span:
+            set_span_tag(span, "github_event", github_event)
 
             with IntegrationWebhookEvent(
                 interaction_type=event_handler.event_type,
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                 provider_key=event_handler.provider,
             ).capture():
-                event_handler(event, host=host, github_event=github_event)
+                event_handler(event, host=host, github_event=webhook_type)
 
         # Publish the request to the unified SCM (source control management) subscription's
         # platform. This is a replacement for the handlers defined above. Handlers should be
@@ -333,6 +363,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 "type": IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
             },
             silo="region",
+            is_dev=settings.IS_DEV,
         )
 
         return HttpResponse(status=204)
@@ -340,15 +371,9 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
 @cell_silo_endpoint
 class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
-    }
-    _handlers = {
-        "push": GitHubEnterprisePushEventWebhook,
-        "pull_request": GitHubEnterprisePullRequestEventWebhook,
-        "installation": GitHubEnterpriseInstallationEventWebhook,
-        "issues": GitHubEnterpriseIssuesEventWebhook,
     }
 
     @method_decorator(csrf_exempt)
@@ -360,4 +385,29 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
 
     @method_decorator(csrf_exempt)
     def post(self, request: HttpRequest) -> HttpResponse:
+        return self._handle(request)
+
+
+@cell_silo_endpoint
+class GitHubEnterpriseGitHubComWebhookEndpoint(GitHubEnterpriseWebhookBase):
+    owner = ApiOwner.CODING_WORKFLOWS
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+
+    def _get_host(self, request: HttpRequest) -> str:
+        return "github.com"
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        if request.method != "POST":
+            return HttpResponse(status=405)
+        return super().dispatch(request, *args, **kwargs)
+
+    @method_decorator(csrf_exempt)
+    def post(self, request: HttpRequest) -> HttpResponse:
+        metrics.incr(
+            "integrations.github_enterprise.webhook.routed",
+            tags={"variant": "github_com"},
+        )
         return self._handle(request)

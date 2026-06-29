@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {FieldKind} from 'sentry/utils/fields';
@@ -194,39 +194,47 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.recentSearches).toBeDefined();
   });
 
+  it('passes disabled through to search query builder provider props', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        disabled: true,
+      },
+      organization,
+    });
+
+    expect(result.current.disabled).toBe(true);
+  });
+
+  it('passes invalid filter keys through to search query builder provider props', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        invalidFilterKeys: ['missing.key'],
+      },
+      organization,
+    });
+
+    expect(result.current.invalidFilterKeys).toEqual(['missing.key']);
+  });
+
   it('getTagKeys fetches keys across string, number, and boolean attributes', async () => {
-    const stringMock = MockApiClient.addMockResponse({
+    const traceItemAttributesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
-      body: [{key: 'log.message', name: 'log.message'}],
-      match: [
-        (_url, options) => {
-          const query = options?.query || {};
-          return (
-            query.attributeType === 'string' && query.itemType === TraceItemDataset.SPANS
-          );
-        },
+      body: [
+        {attributeType: 'string', key: 'log.message', name: 'log.message'},
+        {attributeType: 'number', key: 'log.duration', name: 'log.duration'},
+        {attributeType: 'boolean', key: 'log.flag', name: 'log.flag'},
       ],
-    });
-    const numberMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/',
-      body: [{key: 'log.duration', name: 'log.duration'}],
       match: [
         (_url, options) => {
           const query = options?.query || {};
           return (
-            query.attributeType === 'number' && query.itemType === TraceItemDataset.SPANS
-          );
-        },
-      ],
-    });
-    const booleanMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/',
-      body: [{key: 'log.flag', name: 'log.flag'}],
-      match: [
-        (_url, options) => {
-          const query = options?.query || {};
-          return (
-            query.attributeType === 'boolean' && query.itemType === TraceItemDataset.SPANS
+            query.itemType === TraceItemDataset.SPANS &&
+            Array.isArray(query.attributeType) &&
+            query.attributeType.includes('string') &&
+            query.attributeType.includes('number') &&
+            query.attributeType.includes('boolean')
           );
         },
       ],
@@ -238,9 +246,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     });
     const tags = await result.current.getTagKeys?.('search-query');
 
-    expect(stringMock).toHaveBeenCalled();
-    expect(numberMock).toHaveBeenCalled();
-    expect(booleanMock).toHaveBeenCalled();
+    expect(traceItemAttributesMock).toHaveBeenCalled();
     expect(tags?.map(tag => tag.key)).toEqual([
       'log.message',
       'log.duration',
@@ -248,87 +254,27 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     ]);
   });
 
-  it('calls validateQuery when filter keys change', async () => {
-    const validateMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/validate/',
-      method: 'POST',
-      body: {attributes: {'span.op': {valid: true}}},
-    });
-
-    renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+  it('uses a custom placeholder when provided', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {
         ...defaultInitialProps,
-        initialQuery: 'span.op:db',
+        placeholder: 'Custom placeholder text',
       },
       organization,
     });
 
-    await waitFor(() => {
-      expect(validateMock).toHaveBeenCalledTimes(1);
-    });
+    expect(result.current.placeholder).toBe('Custom placeholder text');
   });
 
-  it('does not call validateQuery when only filter values change', async () => {
-    const validateMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/validate/',
-      method: 'POST',
-      body: {attributes: {'span.op': {valid: true}}},
-    });
-
-    const {rerender} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+  it('falls back to the default placeholder for logs when no placeholder is provided', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {
         ...defaultInitialProps,
-        initialQuery: 'span.op:db',
+        itemType: TraceItemDataset.LOGS,
       },
       organization,
     });
 
-    await waitFor(() => {
-      expect(validateMock).toHaveBeenCalledTimes(1);
-    });
-
-    rerender({
-      ...defaultInitialProps,
-      initialQuery: 'span.op:web',
-    });
-
-    // Still only 1 call — value changed but keys didn't (React Query deduplicates)
-    await waitFor(() => {
-      expect(validateMock).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  it('calls validateQuery when a new filter key is added', async () => {
-    const validateMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/validate/',
-      method: 'POST',
-      body: {
-        attributes: {
-          'span.op': {valid: true},
-          'other.key': {valid: true},
-        },
-      },
-    });
-
-    const {rerender} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        initialQuery: 'span.op:db',
-      },
-      organization,
-    });
-
-    await waitFor(() => {
-      expect(validateMock).toHaveBeenCalledTimes(1);
-    });
-
-    rerender({
-      ...defaultInitialProps,
-      initialQuery: 'span.op:db other.key:val',
-    });
-
-    await waitFor(() => {
-      expect(validateMock).toHaveBeenCalledTimes(2);
-    });
+    expect(result.current.placeholder).toBe('Search for logs, users, tags, and more');
   });
 });

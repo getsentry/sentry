@@ -93,7 +93,8 @@ class WorkflowEngineDetectorSerializer(Serializer):
         for serialized in serialized_data_conditions:
             errors = []
             alert_rule_id = serialized.get("alertRuleId")
-            assert alert_rule_id
+            if not alert_rule_id:
+                continue
             detector_id = detector_ids_by_alert_rule_id.get(
                 int(alert_rule_id),
                 get_object_id_from_fake_id(int(alert_rule_id)),
@@ -242,7 +243,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         detector_trigger_data_conditions = DataCondition.objects.filter(
             condition_group__in=detector_workflow_condition_group_ids,
             condition_result__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
-        )
+        ).order_by("-condition_result")
         workflow_dcg_ids = DataConditionGroup.objects.filter(
             workflowdataconditiongroup__workflow__in=Subquery(
                 DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(
@@ -317,7 +318,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
                     else:
                         result[detector]["thresholdType"] = (
                             AlertRuleThresholdType.ABOVE.value
-                            if trigger_dc.type == Condition.GREATER
+                            if trigger_dc.type in (Condition.GREATER, Condition.GREATER_OR_EQUAL)
                             else AlertRuleThresholdType.BELOW.value
                         )
                         result[detector]["sensitivity"] = None
@@ -378,7 +379,12 @@ class WorkflowEngineDetectorSerializer(Serializer):
             snuba_query = query_subscription.snuba_query
             snuba_query_ids.append(snuba_query.id)
             result[detector]["query"] = snuba_query.query
-            result[detector]["aggregate"] = snuba_query.aggregate
+            # Apply transparency: Convert upsampled_count() back to count() for user-facing responses
+            # This hides the internal upsampling implementation from users
+            aggregate = snuba_query.aggregate
+            if aggregate == "upsampled_count()":
+                aggregate = "count()"
+            result[detector]["aggregate"] = aggregate
             result[detector]["timeWindow"] = snuba_query.time_window / 60
             result[detector]["resolution"] = snuba_query.resolution / 60
             env = snuba_query.environment

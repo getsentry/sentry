@@ -10,6 +10,7 @@ from typing import Any
 import click
 import taskbroker_client.constants as taskworker_constants
 
+from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
@@ -136,9 +137,21 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
 @run.command()
 @click.option(
+    "--push-mode", help="Whether to run in PUSH or PULL mode.", default=False, is_flag=True
+)
+@click.option(
+    "--batch-push-mode", help="Whether to run in BATCH PUSH mode.", default=False, is_flag=True
+)
+@click.option(
     "--rpc-host",
-    help="The hostname and port for the taskworker-rpc. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
+    help="The hostname and port for the taskbroker gRPC server. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
     default="127.0.0.1:50051",
+)
+@click.option(
+    "--worker-rpc-port",
+    help="Port for the taskworker gRPC server to listen on when it is running in push mode.",
+    default=50052,
+    type=int,
 )
 @click.option(
     "--num-brokers", help="Number of brokers available to connect to", default=None, type=int
@@ -178,6 +191,11 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     default="unknown",
 )
 @click.option(
+    "--pod-name",
+    help="The name of the pod running this worker",
+    default="unknown",
+)
+@click.option(
     "--health-check-file-path",
     help="Full path of the health check file if health check is to be enabled",
 )
@@ -185,6 +203,12 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     "--health-check-sec-per-touch",
     help="The number of seconds before touching the health check file",
     default=taskworker_constants.DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
+)
+@click.option(
+    "--push-timeout-sec",
+    help="The timeout in seconds for the worker to wait to push a task into the child queue",
+    default=5.0,
+    type=float,
 )
 @log_options()
 @configuration
@@ -198,6 +222,9 @@ def taskworker(**options: Any) -> None:
 
 
 def run_taskworker(
+    push_mode: bool,
+    batch_push_mode: bool,
+    worker_rpc_port: int,
     rpc_host: str,
     num_brokers: int | None,
     rpc_host_list: str | None,
@@ -208,33 +235,73 @@ def run_taskworker(
     result_queue_maxsize: int,
     rebalance_after: int,
     processing_pool_name: str,
+    pod_name: str,
     health_check_file_path: str | None,
     health_check_sec_per_touch: float,
+    push_timeout_sec: float,
     **options: Any,
 ) -> None:
     """
     taskworker factory that can be reloaded
     """
-    from taskbroker_client.worker import TaskWorker
+    from taskbroker_client.worker import BatchPushTaskWorker, PushTaskWorker, TaskWorker
     from taskbroker_client.worker.client import make_broker_hosts
 
+    skip_awaiting_futures = sentry_options.get("taskworker.skip.awaiting.futures")
     with managed_bgtasks(role="taskworker"):
-        worker = TaskWorker(
-            app_module="sentry.taskworker.bootstrap:app",
-            broker_hosts=make_broker_hosts(
-                host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
-            ),
-            max_child_task_count=max_child_task_count,
-            namespace=namespace,
-            concurrency=concurrency,
-            child_tasks_queue_maxsize=child_tasks_queue_maxsize,
-            result_queue_maxsize=result_queue_maxsize,
-            rebalance_after=rebalance_after,
-            processing_pool_name=processing_pool_name,
-            health_check_file_path=health_check_file_path,
-            health_check_sec_per_touch=health_check_sec_per_touch,
-            **options,
-        )
+        if push_mode:
+            worker: PushTaskWorker | TaskWorker = PushTaskWorker(
+                app_module="sentry.taskworker.bootstrap:app",
+                broker_service=rpc_host,
+                max_child_task_count=max_child_task_count,
+                namespace=namespace,
+                concurrency=concurrency,
+                child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+                result_queue_maxsize=result_queue_maxsize,
+                rebalance_after=rebalance_after,
+                processing_pool_name=processing_pool_name,
+                pod_name=pod_name,
+                health_check_file_path=health_check_file_path,
+                health_check_sec_per_touch=health_check_sec_per_touch,
+                grpc_port=worker_rpc_port,
+                push_task_timeout=push_timeout_sec,
+                skip_awaiting_futures=skip_awaiting_futures,
+            )
+        elif batch_push_mode:
+            worker = BatchPushTaskWorker(
+                app_module="sentry.taskworker.bootstrap:app",
+                broker_service=rpc_host,
+                max_child_task_count=max_child_task_count,
+                namespace=namespace,
+                concurrency=concurrency,
+                child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+                result_queue_maxsize=result_queue_maxsize,
+                rebalance_after=rebalance_after,
+                processing_pool_name=processing_pool_name,
+                pod_name=pod_name,
+                health_check_file_path=health_check_file_path,
+                health_check_sec_per_touch=health_check_sec_per_touch,
+                grpc_port=worker_rpc_port,
+                update_in_batches=True,
+                skip_awaiting_futures=skip_awaiting_futures,
+            )
+        else:
+            worker = TaskWorker(
+                app_module="sentry.taskworker.bootstrap:app",
+                broker_hosts=make_broker_hosts(
+                    host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
+                ),
+                max_child_task_count=max_child_task_count,
+                namespace=namespace,
+                concurrency=concurrency,
+                child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+                result_queue_maxsize=result_queue_maxsize,
+                rebalance_after=rebalance_after,
+                processing_pool_name=processing_pool_name,
+                health_check_file_path=health_check_file_path,
+                health_check_sec_per_touch=health_check_sec_per_touch,
+                skip_awaiting_futures=skip_awaiting_futures,
+            )
         exitcode = worker.start()
         raise SystemExit(exitcode)
 
@@ -313,15 +380,15 @@ def taskbroker_send_tasks(
     namespace: str,
     extra_arg_bytes: int | None,
 ) -> None:
-    from sentry import options
     from sentry.conf.server import KAFKA_CLUSTERS
+    from sentry.taskworker.adapters import set_route_overrides
     from sentry.utils.imports import import_string
 
     if bootstrap_servers:
         KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
 
     if kafka_topic and namespace:
-        options.set("taskworker.route.overrides", {namespace: kafka_topic})
+        set_route_overrides({namespace: kafka_topic})
 
     try:
         func = import_string(task_function_path)
@@ -380,9 +447,6 @@ def taskbroker_send_tasks(
     "--kafka-slice-id",
     type=int,
     help="Which sliced kafka topic to use. This only applies if the target topic is configured in SLICED_KAFKA_TOPICS.",
-)
-@click.option(
-    "--cluster", type=str, help="Which cluster definition from settings to use for this consumer."
 )
 @click.option(
     "--consumer-group",
@@ -485,9 +549,9 @@ def basic_consumer(
 
     Example:
 
-        sentry run consumer ingest-profiles --consumer-group ingest-profiles
+        sentry run consumer ingest-occurrences --consumer-group ingest-occurrences
 
-    runs the ingest-profiles consumer with the consumer group ingest-profiles.
+    runs the ingest-occurrences consumer with the consumer group ingest-occurrences.
 
     Consumers are defined in 'sentry.consumers'. Each consumer can take
     additional CLI options. Those can be passed after '--':
@@ -559,7 +623,6 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
             consumer_name,
             [],
             topic=None,
-            cluster=None,
             group_id="sentry-consumer",
             auto_offset_reset="latest",
             strict_offset_reset=False,

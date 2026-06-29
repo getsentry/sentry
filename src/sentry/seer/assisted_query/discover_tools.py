@@ -2,10 +2,16 @@ import logging
 import re
 from typing import Any
 
-from sentry.api import client
+from sentry.api.client import ApiClient
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.seer.sentry_data_models import (
+    EventFilterKeyEntry,
+    EventFilterKeysResponse,
+    EventFilterKeyValue,
+    EventFilterKeyValuesResponse,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 
@@ -93,7 +99,7 @@ def _get_tag_and_feature_flag_keys(
 
     # Get custom tags
     event_params = {**base_params, "dataset": Dataset.Events.value}
-    event_resp = client.get(
+    event_resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{org_slug}/tags/",
@@ -112,7 +118,7 @@ def _get_tag_and_feature_flag_keys(
             "dataset": Dataset.Events.value,
             "useFlagsBackend": "1",
         }
-        flags_resp = client.get(
+        flags_resp = ApiClient().get(
             auth=api_key,
             user=None,
             path=f"/organizations/{org_slug}/tags/",
@@ -165,7 +171,7 @@ def get_event_filter_keys(
     start: str | None = None,
     end: str | None = None,
     include_feature_flags: bool = False,
-) -> dict[str, dict[str, Any]] | None:
+) -> EventFilterKeysResponse | None:
     """
     Get available event filter keys for the "errors" dataset (tags, feature flags, and static fields). This mirrors the
     behavior of Discover search bar suggestions in the frontend.
@@ -197,14 +203,14 @@ def get_event_filter_keys(
         include_feature_flags=include_feature_flags,
     )
 
-    result = {}
+    result: dict[str, EventFilterKeyEntry] = {}
     for k in tag_keys | always_fields:  # deduplicate
-        result[k] = {"type": _SPECIAL_FIELD_VALUE_TYPES.get(k, "tag")}
+        result[k] = EventFilterKeyEntry(type=_SPECIAL_FIELD_VALUE_TYPES.get(k, "tag"))
 
     for k in flag_keys:
-        result[k] = {"type": "feature_flag"}
+        result[k] = EventFilterKeyEntry(type="feature_flag")
 
-    return result
+    return EventFilterKeysResponse(__root__=result)
 
 
 def get_event_filter_key_values(
@@ -216,7 +222,7 @@ def get_event_filter_key_values(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-) -> list[dict[str, Any]] | None:
+) -> EventFilterKeyValuesResponse | None:
     """
     Get values for a specific filter key.
 
@@ -255,7 +261,9 @@ def get_event_filter_key_values(
 
     predefined_values = _get_static_values(filter_key)
     if predefined_values is not None:
-        return predefined_values
+        return EventFilterKeyValuesResponse(
+            __root__=[EventFilterKeyValue(**v) for v in predefined_values]
+        )
 
     if filter_key == "has":
         tag_keys, _ = _get_tag_and_feature_flag_keys(
@@ -267,7 +275,9 @@ def get_event_filter_key_values(
             end=end,
             include_feature_flags=False,
         )
-        return [{"value": t} for t in tag_keys]
+        return EventFilterKeyValuesResponse(
+            __root__=[EventFilterKeyValue(value=t) for t in tag_keys]
+        )
 
     api_key = ApiKey(
         organization_id=organization.id, scope_list=["org:read", "project:read", "event:read"]
@@ -287,7 +297,7 @@ def get_event_filter_key_values(
         base_params["query"] = substring
 
     # Try tags query
-    resp = client.get(
+    resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/tags/{filter_key}/values/",
@@ -297,7 +307,7 @@ def get_event_filter_key_values(
     # Try ff query. In the case of collisions we use tag values as we deem them more important.
     # TODO: Pass in an explicit is_feature_flag param if the agent can produce it.
     if not resp.data:
-        resp = client.get(
+        resp = ApiClient().get(
             auth=api_key,
             user=None,
             path=f"/organizations/{organization.slug}/tags/{filter_key}/values/",
@@ -306,7 +316,11 @@ def get_event_filter_key_values(
 
     data = resp.data or []
 
-    return [
-        {k: item[k] for k in item if k in ["value", "count", "lastSeen", "firstSeen"]}
-        for item in data
-    ]
+    return EventFilterKeyValuesResponse(
+        __root__=[
+            EventFilterKeyValue(
+                **{k: item[k] for k in item if k in ["value", "count", "lastSeen", "firstSeen"]}
+            )
+            for item in data
+        ]
+    )

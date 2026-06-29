@@ -34,7 +34,7 @@ export function useTraceWaterfallScroll({
   const previouslyScrolledToNodeRef = useRef<BaseNode | null>(null);
   const traceState = useTraceState();
 
-  const traceStateRef = useRef<TraceReducerState>(traceState);
+  const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
   const traceStatePreferencesRef = useRef<

@@ -1,20 +1,23 @@
-import {AlertStore} from 'sentry/stores/alertStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {Container} from '@sentry/scraps/layout';
 
 import {AlertMessage} from './alertMessage';
+import {useGlobalAlerts} from './globalAlerts';
 
 type Props = {className?: string};
 
-function SystemAlerts(props: Props) {
-  const alerts = useLegacyStore(AlertStore);
+export function SystemAlerts(props: Props) {
+  const {alerts, closeAlert} = useGlobalAlerts();
 
   return (
-    <div {...props}>
-      {alerts.map((alert, index) => (
-        <AlertMessage alert={alert} key={`${alert.id}-${index}`} system />
+    <Container {...props}>
+      {alerts.map(alert => (
+        <AlertMessage
+          alert={alert}
+          key={alert.key}
+          onClose={() => closeAlert(alert)}
+          system
+        />
       ))}
-    </div>
+    </Container>
   );
 }
-
-export default SystemAlerts;

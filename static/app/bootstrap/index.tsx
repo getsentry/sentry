@@ -1,4 +1,4 @@
-import type {ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {Config} from 'sentry/types/system';
 import {extractSlug} from 'sentry/utils/extractSlug';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';

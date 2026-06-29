@@ -1,3 +1,4 @@
+import {QueryClientProvider} from '@tanstack/react-query';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
@@ -10,20 +11,21 @@ import * as modal from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {DisplayType} from 'sentry/views/dashboards/types';
+import * as discoverUtils from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
 jest.mock('sentry/components/pageFilters/usePageFilters');
-jest.mock('sentry/utils/useRouter');
 jest.mock('sentry/actionCreators/modal');
 
 const mockedUseLocation = jest.mocked(useLocation);
@@ -210,6 +212,39 @@ describe('useSaveAsItems', () => {
 
     expect(saveAsItems.some(item => item.key === 'update-query')).toBe(false);
     expect(saveAsItems.some(item => item.key === 'save-query')).toBe(true);
+  });
+
+  it('preserves the chart type when adding a dashboard widget', () => {
+    const handleAddQueryToDashboard = jest
+      .spyOn(discoverUtils, 'handleAddQueryToDashboard')
+      .mockImplementation(() => {});
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useSaveAsItems({
+          visualizes: [
+            new VisualizeFunction('count(message)', {chartType: ChartType.LINE}),
+          ],
+          groupBys: ['message.template'],
+          interval: '5m',
+          mode: Mode.AGGREGATE,
+          search: new MutableSearch('message:"test error"'),
+          sortBys: [{field: 'timestamp', kind: 'desc'}],
+        }),
+      {additionalWrapper: createWrapper()}
+    );
+
+    const saveAsDashboard = result.current.find(
+      item => item.key === 'add-to-dashboard'
+    ) as {children: Array<{onAction: () => void}>};
+
+    saveAsDashboard.children[0]!.onAction();
+
+    expect(handleAddQueryToDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventView: expect.objectContaining({display: DisplayType.LINE}),
+      })
+    );
   });
 
   it('should call saveQuery with correct parameters when modal saves', async () => {

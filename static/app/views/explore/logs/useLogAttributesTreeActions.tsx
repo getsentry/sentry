@@ -3,19 +3,26 @@ import {useCallback} from 'react';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {useLogsSidebar} from 'sentry/views/explore/logs/logsSidebarContext';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   useQueryParamsFields,
+  useQueryParamsGroupBys,
   useQueryParamsSearch,
   useSetQueryParamsFields,
+  useSetQueryParamsGroupBys,
   useSetQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
   const setLogsSearch = useSetQueryParamsSearch();
   const search = useQueryParamsSearch();
   const fields = useQueryParamsFields();
   const setLogFields = useSetQueryParamsFields();
+  const groupBys = useQueryParamsGroupBys();
+  const setGroupBys = useSetQueryParamsGroupBys();
+  const sidebar = useLogsSidebar();
 
   const addSearchFilter = useCallback(
     (content: AttributesTreeContent, negated?: boolean) => {
@@ -50,6 +57,24 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
     [setLogFields, fields]
   );
 
+  const addGroupBy = useCallback(
+    (content: AttributesTreeContent) => {
+      if (!content.originalAttribute) {
+        return;
+      }
+      const key = content.originalAttribute.original_attribute_key;
+      // Drop empty placeholder group bys, dedupe, then append the new key.
+      const newGroupBys = groupBys.filter(Boolean);
+      if (!newGroupBys.includes(key)) {
+        newGroupBys.push(key);
+      }
+      setGroupBys(newGroupBys, Mode.AGGREGATE);
+      // Reveal the Group By controls so the user can see the grouping they just added.
+      sidebar?.(true);
+    },
+    [setGroupBys, groupBys, sidebar]
+  );
+
   return (content: AttributesTreeContent) => {
     if (!content.originalAttribute) {
       return [];
@@ -72,6 +97,13 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
         hidden: embedded,
         disabled: fields.includes(content.originalAttribute.original_attribute_key),
         onAction: () => addColumn(content),
+      },
+      {
+        key: 'add-group-by',
+        label: t('Group by attribute'),
+        hidden: embedded,
+        disabled: groupBys.includes(content.originalAttribute.original_attribute_key),
+        onAction: () => addGroupBy(content),
       },
     ];
 

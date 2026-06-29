@@ -28,7 +28,7 @@ describe('Tooltip', () => {
   it('renders', async () => {
     render(
       <Tooltip title="test">
-        <span>My Button</span>
+        <button>My Button</button>
       </Tooltip>
     );
 
@@ -47,14 +47,14 @@ describe('Tooltip', () => {
   it('updates title', async () => {
     const {rerender} = render(
       <Tooltip title="test">
-        <span>My Button</span>
+        <button>My Button</button>
       </Tooltip>
     );
 
     // Change title
     rerender(
       <Tooltip title="bar">
-        <span>My Button</span>
+        <button>My Button</button>
       </Tooltip>
     );
 
@@ -70,7 +70,7 @@ describe('Tooltip', () => {
   it('disables and does not render', async () => {
     render(
       <Tooltip title="test" disabled>
-        <span>My Button</span>
+        <button>My Button</button>
       </Tooltip>
     );
 
@@ -84,7 +84,7 @@ describe('Tooltip', () => {
   it('resets visibility when becoming disabled', async () => {
     const {rerender} = render(
       <Tooltip title="test" disabled={false}>
-        <span>My Button</span>
+        <button>My Button</button>
       </Tooltip>
     );
 
@@ -93,7 +93,7 @@ describe('Tooltip', () => {
 
     rerender(
       <Tooltip title="test" disabled>
-        <span>My Button</span>
+        <button>My Button</button>
       </Tooltip>
     );
     expect(screen.queryByText('test')).not.toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('Tooltip', () => {
     // Becomes enabled again
     rerender(
       <Tooltip title="test" disabled={false}>
-        <span>My Button</span>
+        <button>My Button</button>
       </Tooltip>
     );
     expect(screen.queryByText('test')).not.toBeInTheDocument();
@@ -110,7 +110,7 @@ describe('Tooltip', () => {
   it('does not render an empty tooltip', async () => {
     render(
       <Tooltip title="">
-        <span>My Button</span>
+        <button>My Button</button>
       </Tooltip>
     );
     await userEvent.hover(screen.getByText('My Button'));

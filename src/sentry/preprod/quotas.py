@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import Any
 
 import sentry_sdk
@@ -15,10 +16,15 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.preprod.artifact_search import artifact_matches_query
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.producer import PreprodFeature
 from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
+
+
+class PreprodFeature(Enum):
+    SIZE_ANALYSIS = "size_analysis"
+    BUILD_DISTRIBUTION = "build_distribution"
+
 
 DEFAULT_SIZE_RETENTION_DAYS = 90
 
@@ -40,12 +46,6 @@ DISTRIBUTION_ENABLED_QUERY_KEY = "sentry:preprod_distribution_enabled_query"
 
 
 def has_size_quota(organization: Organization, actor: User | AnonymousUser | None = None) -> bool:
-    if not features.has("organizations:preprod-enforce-size-quota", organization, actor=actor):
-        logger.info(
-            "has_size_quota",
-            extra={"organization_id": organization.id, "result": True, "reason": "not_enforced"},
-        )
-        return True
     result = quotas.backend.has_usage_quota(organization.id, DataCategory.SIZE_ANALYSIS)
     logger.info(
         "has_size_quota",

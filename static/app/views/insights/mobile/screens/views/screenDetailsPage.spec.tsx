@@ -7,6 +7,10 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import ScreenDetailsPage from 'sentry/views/insights/mobile/screens/views/screenDetailsPage';
 
+jest.mock('sentry/views/dashboards/prebuiltDashboardRenderer', () => ({
+  PrebuiltDashboardRenderer: () => <div data-test-id="prebuilt-dashboard" />,
+}));
+
 describe('ScreenDetailsPage', () => {
   const organization = OrganizationFixture({
     features: ['insight-modules'],

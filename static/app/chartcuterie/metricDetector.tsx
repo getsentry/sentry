@@ -25,7 +25,7 @@ function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
         width: 0.4,
       },
       areaStyle: {
-        opacity: 1.0,
+        opacity: 1,
       },
       animation: false,
       animationThreshold: 1,

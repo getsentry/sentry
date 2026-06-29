@@ -50,7 +50,7 @@ export const feedback: OnboardingConfig = {
               language: 'javascript',
               label: 'JavaScript',
               code: getFeedbackSDKSetupSnippet({
-                importStatement: `import * as Sentry from "@sentry/electron/renderer";`,
+                importStatement: 'import * as Sentry from "@sentry/electron/renderer";',
                 dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),

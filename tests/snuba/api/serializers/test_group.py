@@ -99,6 +99,51 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "ignored"
         assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
+    def test_is_ignored_with_inactive_snooze_actor(self) -> None:
+        now = timezone.now()
+
+        # An inactive (e.g. deleted/deactivated) actor is dropped by
+        # user_service.serialize_many, so the actor must resolve to None.
+        inactive_actor = self.create_user(is_active=False)
+        group = self.create_group(status=GroupStatus.IGNORED)
+        GroupSnooze.objects.create(
+            group=group, until=now + timedelta(minutes=1), actor_id=inactive_actor.id
+        )
+
+        result = serialize(group, self.user, serializer=GroupSerializerSnuba())
+        assert result["status"] == "ignored"
+        assert result["statusDetails"]["actor"] is None
+
+    def test_is_ignored_actor_not_misaligned_across_groups(self) -> None:
+        now = timezone.now()
+
+        # Regression test: when the set of actor user_ids contains a user that
+        # serialize_many drops (inactive), the remaining serialized users must
+        # still be keyed by their own id rather than positionally zipped, so an
+        # active user's data never leaks onto a group with a dropped actor.
+        active_actor = self.create_user()
+        inactive_actor = self.create_user(is_active=False)
+
+        group_active = self.create_group(status=GroupStatus.IGNORED)
+        GroupSnooze.objects.create(
+            group=group_active, until=now + timedelta(minutes=1), actor_id=active_actor.id
+        )
+        group_inactive = self.create_group(status=GroupStatus.IGNORED)
+        GroupSnooze.objects.create(
+            group=group_inactive, until=now + timedelta(minutes=1), actor_id=inactive_actor.id
+        )
+
+        result = serialize(
+            [group_active, group_inactive], self.user, serializer=GroupSerializerSnuba()
+        )
+        result_by_group_id = {item["id"]: item for item in result}
+
+        active_result = result_by_group_id[str(group_active.id)]
+        assert active_result["statusDetails"]["actor"]["id"] == str(active_actor.id)
+
+        inactive_result = result_by_group_id[str(group_inactive.id)]
+        assert inactive_result["statusDetails"]["actor"] is None
+
     def test_resolved_in_next_release(self) -> None:
         release = self.create_release(project=self.project, version="a")
         user = self.create_user()
@@ -134,6 +179,59 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert result["status"] == "resolved"
         assert result["statusDetails"]["actor"]["id"] == str(user.id)
+
+    def test_resolved_with_inactive_actor(self) -> None:
+        release = self.create_release(project=self.project, version="a")
+        # An inactive (e.g. deleted/deactivated) actor is dropped by
+        # user_service.serialize_many, so the actor must resolve to None.
+        inactive_actor = self.create_user(is_active=False)
+        group = self.create_group(status=GroupStatus.RESOLVED)
+        GroupResolution.objects.create(
+            group=group,
+            release=release,
+            type=GroupResolution.Type.in_release,
+            actor_id=inactive_actor.id,
+        )
+
+        result = serialize(group, self.user, serializer=GroupSerializerSnuba())
+        assert result["status"] == "resolved"
+        assert result["statusDetails"]["actor"] is None
+
+    def test_resolved_actor_not_misaligned_across_groups(self) -> None:
+        # Ensure inactive or deleted users don't result in misaligned
+        # actor assignments when serializing multiple groups.
+        release = self.create_release(project=self.project, version="a")
+
+        active_actor = self.create_user()
+        inactive_actor = self.create_user(is_active=False)
+
+        group_active = self.create_group(status=GroupStatus.RESOLVED)
+        GroupResolution.objects.create(
+            group=group_active,
+            release=release,
+            type=GroupResolution.Type.in_release,
+            actor_id=active_actor.id,
+        )
+        group_inactive = self.create_group(status=GroupStatus.RESOLVED)
+        GroupResolution.objects.create(
+            group=group_inactive,
+            release=release,
+            type=GroupResolution.Type.in_release,
+            actor_id=inactive_actor.id,
+        )
+
+        result = serialize(
+            [group_active, group_inactive], self.user, serializer=GroupSerializerSnuba()
+        )
+        result_by_group_id = {item["id"]: item for item in result}
+
+        active_result = result_by_group_id[str(group_active.id)]
+        assert active_result["statusDetails"]["actor"]["id"] == str(active_actor.id)
+
+        # None may not be the best result, but it beats returning a completely
+        # invalid entry.
+        inactive_result = result_by_group_id[str(group_inactive.id)]
+        assert inactive_result["statusDetails"]["actor"] is None
 
     def test_resolved_in_commit(self) -> None:
         repo = self.create_repo(project=self.project)

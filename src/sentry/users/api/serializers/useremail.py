@@ -16,7 +16,7 @@ class UserEmailSerializerResponse(TypedDict):
 
 
 @register(UserEmail)
-class UserEmailSerializer(Serializer):
+class UserEmailSerializer(Serializer[UserEmailSerializerResponse]):
     def serialize(
         self,
         obj: UserEmail,

@@ -221,6 +221,6 @@ const Footer = styled('div')`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-const FooterParagraph = styled(`p`)`
+const FooterParagraph = styled('p')`
   margin-bottom: ${p => p.theme.space.md};
 `;

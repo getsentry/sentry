@@ -106,19 +106,18 @@ export class UserEmailLog extends Component<Props, State> {
       return (
         <tr key={idx}>
           <td>{data.event}</td>
-          <td>
+          <td data-label="Email">
             {data.email}
             {data.event === 'bounce' && !this.state.hideButton && (
-              <Button
-                priority="danger"
-                onClick={this.removeBounce.bind(this, data.email)}
-              >
+              <Button variant="danger" onClick={this.removeBounce.bind(this, data.email)}>
                 remove bounce
               </Button>
             )}
           </td>
-          <td>{date.toDateString()}</td>
-          <td style={{textAlign: 'right'}}>{date.toLocaleTimeString()}</td>
+          <td data-label="Date">{date.toDateString()}</td>
+          <td data-label="Time" style={{textAlign: 'right'}}>
+            {date.toLocaleTimeString()}
+          </td>
         </tr>
       );
     });

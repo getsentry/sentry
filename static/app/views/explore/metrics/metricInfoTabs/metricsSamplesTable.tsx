@@ -6,13 +6,13 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {
+  getTraceSamplesTableFields,
   TraceSamplesTableColumns,
   TraceSamplesTableEmbeddedColumns,
 } from 'sentry/views/explore/metrics/constants';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
-import {useTraceTelemetry} from 'sentry/views/explore/metrics/hooks/useTraceTelemetry';
 import {
   StyledSimpleTable,
   StyledSimpleTableBody,
@@ -21,49 +21,38 @@ import {
 import {MetricsSamplesTableHeader} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTableHeader';
 import {SampleTableRow} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTableRow';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {
+  DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
+  isEmbeddedMetricsSamplesTableSource,
+  type MetricsSamplesTableSource,
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
-import {
-  getMetricTableColumnType,
-  mapMetricUnitToFieldType,
-} from 'sentry/views/explore/metrics/utils';
+import {mapMetricUnitToFieldType} from 'sentry/views/explore/metrics/utils';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const RESULT_LIMIT = 50;
 const EMBEDDED_RESULT_LIMIT = 100;
 const TWO_MINUTE_DELAY = 120;
-const MAX_TELEMETRY_WIDTH = 40;
-
-export const SAMPLES_PANEL_MIN_WIDTH = 350;
-export const WIDTH_WITH_TELEMETRY_ICONS_VISIBLE =
-  SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 3;
 
 interface MetricsSamplesTableProps {
-  embedded?: boolean;
   isMetricOptionsEmpty?: boolean;
   overrideTableData?: TraceMetricEventsResponseItem[];
+  source?: MetricsSamplesTableSource;
   traceMetric?: TraceMetric;
 }
 
 export function MetricsSamplesTable({
   traceMetric,
-  embedded = false,
+  source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
   isMetricOptionsEmpty,
   overrideTableData,
 }: MetricsSamplesTableProps) {
-  const organization = useOrganization();
-  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
-
-  const allColumns = embedded
+  const isEmbedded = isEmbeddedMetricsSamplesTableSource(source);
+  const columns = isEmbedded
     ? TraceSamplesTableEmbeddedColumns
     : TraceSamplesTableColumns;
-  const columns = hasMetricsUIRefresh
-    ? allColumns.filter(c => getMetricTableColumnType(c) !== 'stat')
-    : allColumns;
-  const fields = allColumns.filter(c => getMetricTableColumnType(c) !== 'stat');
+  const fields = getTraceSamplesTableFields(columns);
 
   const {
     result: {data},
@@ -71,27 +60,14 @@ export function MetricsSamplesTable({
     error,
     isFetching,
   } = useMetricSamplesTable({
-    disabled: embedded ? !!overrideTableData : !traceMetric?.name || isMetricOptionsEmpty,
-    limit: embedded ? EMBEDDED_RESULT_LIMIT : RESULT_LIMIT,
+    disabled: isEmbedded
+      ? !!overrideTableData
+      : !traceMetric?.name || isMetricOptionsEmpty,
+    limit: isEmbedded ? EMBEDDED_RESULT_LIMIT : RESULT_LIMIT,
     traceMetric,
     fields,
     ingestionDelaySeconds: TWO_MINUTE_DELAY,
-  });
-
-  const traceIds = useMemo(() => {
-    if (!data || embedded || hasMetricsUIRefresh) {
-      return [];
-    }
-    return data.map(row => row[TraceMetricKnownFieldKey.TRACE]).filter(Boolean);
-  }, [data, embedded, hasMetricsUIRefresh]);
-
-  const {data: telemetryData} = useTraceTelemetry({
-    enabled:
-      Boolean(traceMetric?.name) &&
-      traceIds.length > 0 &&
-      !embedded &&
-      !hasMetricsUIRefresh,
-    traceIds,
+    staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });
 
   const metaWithValueUnit = useMemo<EventsMetaType>(() => {
@@ -109,14 +85,10 @@ export function MetricsSamplesTable({
     };
   }, [meta, traceMetric?.unit]);
 
-  const TableWrapper = hasMetricsUIRefresh
-    ? SimpleTableGrid
-    : SimpleTableWithHiddenColumns;
-
   return (
-    <TableWrapper numColumns={columns.length - 1} embedded={embedded}>
+    <SimpleTableGrid source={source}>
       {isFetching && <TransparentLoadingMask />}
-      <MetricsSamplesTableHeader columns={columns} embedded={embedded} />
+      <MetricsSamplesTableHeader columns={columns} source={source} />
       <StyledSimpleTableBody>
         {!overrideTableData?.length && error ? (
           <SimpleTable.Empty style={{minHeight: '140px'}}>
@@ -127,10 +99,9 @@ export function MetricsSamplesTable({
             <SampleTableRow
               key={i}
               row={row}
-              telemetryData={telemetryData}
               columns={columns}
               meta={metaWithValueUnit}
-              embedded={embedded}
+              source={source}
             />
           ))
         ) : isFetching ? (
@@ -143,50 +114,16 @@ export function MetricsSamplesTable({
           </SimpleTable.Empty>
         )}
       </StyledSimpleTableBody>
-    </TableWrapper>
+    </SimpleTableGrid>
   );
 }
 
 const SimpleTableGrid = styled(StyledSimpleTable)<{
-  embedded: boolean;
-  numColumns: number;
+  source: MetricsSamplesTableSource;
 }>`
-  grid-template-columns: repeat(${p => p.numColumns}, min-content) 1fr;
+  grid-template-columns: ${p =>
+    isEmbeddedMetricsSamplesTableSource(p.source)
+      ? `${p.theme.space['3xl']} min-content min-content minmax(0, 1fr) min-content min-content`
+      : `${p.theme.space['3xl']} min-content minmax(0, 1fr) min-content min-content`};
   grid-column: 1 / -1;
-`;
-
-const SimpleTableWithHiddenColumns = styled(StyledSimpleTable)<{
-  embedded: boolean;
-  numColumns: number;
-}>`
-  grid-template-columns: repeat(${p => p.numColumns}, min-content) 1fr;
-  grid-column: 1 / -1;
-
-  ${p =>
-    !p.embedded &&
-    `
-    @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 3}px) {
-      grid-template-columns: repeat(${p.numColumns - 1}, min-content) 1fr;
-
-      [data-column-name='errors'] {
-        display: none;
-      }
-    }
-
-    @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 2}px) {
-      grid-template-columns: repeat(${p.numColumns - 2}, min-content) 1fr;
-
-      [data-column-name='spans'] {
-        display: none;
-      }
-    }
-
-    @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 1}px) {
-      grid-template-columns: repeat(${p.numColumns - 3}, min-content) 1fr;
-
-      [data-column-name='logs'] {
-        display: none;
-      }
-    }
-  `}
 `;

@@ -26,6 +26,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
+from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.grouphistory import STATUS_TO_STRING_LOOKUP, GroupHistoryStatus
@@ -254,9 +255,15 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
-            update_groups(
-                request=self.request.request, groups=[self.group], user=self.user, data=data
-            )
+            with action_context_scope(
+                source=ActionSource.DISCORD, actor=GroupActionActor.user(self.user.id)
+            ):
+                update_groups(
+                    request=self.request.request,
+                    groups=[self.group],
+                    user=self.user,
+                    data=data,
+                )
 
 
 def get_assign_selector_options(group: Group) -> list[DiscordSelectMenuOption]:

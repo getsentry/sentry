@@ -1,12 +1,12 @@
 import {Fragment, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
+import {removeSentryApp, sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -20,16 +20,14 @@ import {
   platformEventLinkMap,
   PlatformEvents,
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {SentryApplicationRow} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
-import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
+import {ExampleIntegrationButton} from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
 
 type Tab = 'public' | 'internal';
 
@@ -39,7 +37,6 @@ const TAB_LABELS: Record<Tab, string> = {
 };
 
 function OrganizationDeveloperSettings() {
-  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
@@ -58,16 +55,7 @@ function OrganizationDeveloperSettings() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<SentryApp[]>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-apps/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+  } = useQuery(sentryAppsApiOptions({orgSlug: organization.slug}));
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -151,12 +139,19 @@ function OrganizationDeveloperSettings() {
     }
   };
 
+  const inlineActions = (
+    <Flex gap="md">
+      <ExampleIntegrationButton analyticsView={analyticsView} size="md" />
+      <CreateIntegrationButton analyticsView={analyticsView} size="md" />
+    </Flex>
+  );
+
   return (
     <div>
       <SentryDocumentTitle title={t('Custom Integrations')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Custom Integrations')}
-        body={
+        subtitle={
           <Fragment>
             {t(
               'Create integrations that interact with Sentry using the REST API and webhooks. '
@@ -177,24 +172,18 @@ function OrganizationDeveloperSettings() {
             })}
           </Fragment>
         }
-        action={
-          <Flex>
-            <ExampleIntegrationButton
-              analyticsView={analyticsView}
-              style={{marginRight: theme.space.md}}
-            />
-            <CreateIntegrationButton analyticsView={analyticsView} />
-          </Flex>
-        }
       />
       <TabsContainer>
-        <Tabs value={tab} onChange={setTab}>
-          <TabList>
-            {Object.entries(TAB_LABELS).map(([key, label]) => (
-              <TabList.Item key={key}>{label}</TabList.Item>
-            ))}
-          </TabList>
-        </Tabs>
+        <Flex align="center" justify="between" gap="md">
+          <Tabs value={tab} onChange={setTab}>
+            <TabList>
+              {Object.entries(TAB_LABELS).map(([key, label]) => (
+                <TabList.Item key={key}>{label}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
+          {inlineActions}
+        </Flex>
       </TabsContainer>
       {renderTabContent()}
     </div>

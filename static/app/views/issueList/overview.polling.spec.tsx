@@ -151,9 +151,9 @@ describe('IssueList -> Polling', () => {
     );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
-    jest.advanceTimersByTime(3001);
+    await jest.advanceTimersByTimeAsync(3001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
-    jest.advanceTimersByTime(6001);
+    await jest.advanceTimersByTimeAsync(6001);
     expect(pollRequest).toHaveBeenCalledTimes(2);
 
     // Pauses
@@ -161,7 +161,7 @@ describe('IssueList -> Polling', () => {
       delay: null,
     });
 
-    jest.advanceTimersByTime(12001);
+    await jest.advanceTimersByTimeAsync(12001);
     expect(pollRequest).toHaveBeenCalledTimes(2);
   });
 
@@ -186,7 +186,7 @@ describe('IssueList -> Polling', () => {
       {delay: null}
     );
 
-    jest.advanceTimersByTime(3001);
+    await jest.advanceTimersByTimeAsync(3001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
 
     // We mock out the stream group component and only render the ID as a testid
@@ -211,9 +211,9 @@ describe('IssueList -> Polling', () => {
     );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
-    jest.advanceTimersByTime(3001);
+    await jest.advanceTimersByTimeAsync(3001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
-    jest.advanceTimersByTime(9001);
+    await jest.advanceTimersByTimeAsync(9001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 
@@ -233,9 +233,9 @@ describe('IssueList -> Polling', () => {
     );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
-    jest.advanceTimersByTime(3001);
+    await jest.advanceTimersByTimeAsync(3001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
-    jest.advanceTimersByTime(9001);
+    await jest.advanceTimersByTimeAsync(9001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 
@@ -255,9 +255,9 @@ describe('IssueList -> Polling', () => {
     );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
-    jest.advanceTimersByTime(3001);
+    await jest.advanceTimersByTimeAsync(3001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
-    jest.advanceTimersByTime(9001);
+    await jest.advanceTimersByTimeAsync(9001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 });

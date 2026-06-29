@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.urls import reverse
 
 from sentry.preprod.models import PreprodArtifact
@@ -27,13 +29,6 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
             build_number=42,
         )
 
-        self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
-        self.feature_context.__enter__()
-
-    def tearDown(self):
-        self.feature_context.__exit__(None, None, None)
-        super().tearDown()
-
     def _get_url(self, artifact_id=None):
         artifact_id = artifact_id or self.preprod_artifact.id
         return reverse(
@@ -41,16 +36,36 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
             args=[self.organization.slug, artifact_id],
         )
 
-    def test_feature_flag_disabled(self) -> None:
-        with self.feature({"organizations:preprod-frontend-routes": False}):
-            response = self.client.get(self._get_url())
-            assert response.status_code == 403
-            assert response.json()["detail"] == "Feature not enabled"
-
     def test_artifact_not_found(self) -> None:
         response = self.client.get(self._get_url(artifact_id=999999))
         assert response.status_code == 404
         assert "The requested preprod artifact does not exist" in response.json()["detail"]
+
+    def test_same_org_artifact_without_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        limited_user = self.create_user()
+        accessible_team = self.create_team(organization=self.organization)
+        self.project.add_team(accessible_team)
+        self.create_member(
+            user=limited_user,
+            organization=self.organization,
+            teams=[accessible_team],
+            has_global_access=False,
+        )
+        restricted_project = self.create_project(organization=self.organization)
+        restricted_file = self.create_file(name="restricted.apk", type="application/octet-stream")
+        restricted_artifact = self.create_preprod_artifact(
+            project=restricted_project,
+            file_id=restricted_file.id,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.restricted.app",
+        )
+
+        self.login_as(user=limited_user)
+        response = self.client.get(self._get_url(artifact_id=restricted_artifact.id))
+
+        assert response.status_code == 404
 
     def test_cross_org_artifact_access(self) -> None:
         other_org = self.create_organization(owner=self.user)
@@ -78,6 +93,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["buildConfiguration"] is None
         assert data["isInstallable"] is False
         assert data["installUrl"] is None
+        assert data["installUrlExpiresAt"] is None
         assert data["downloadCount"] == 0
 
         app_info = data["appInfo"]
@@ -110,6 +126,8 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         data = response.json()
         assert data["isInstallable"] is True
         assert data["installUrl"] is not None
+        assert data["installUrlExpiresAt"] is not None
+        datetime.fromisoformat(data["installUrlExpiresAt"])
         assert data["platform"] == "ANDROID"
         assert data["releaseNotes"] == "Bug fixes and improvements"
         assert data["isCodeSignatureValid"] is None
@@ -137,6 +155,8 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         data = response.json()
         assert data["isInstallable"] is True
         assert data["installUrl"] is not None
+        assert data["installUrlExpiresAt"] is not None
+        datetime.fromisoformat(data["installUrlExpiresAt"])
         assert data["platform"] == "APPLE"
         assert data["isCodeSignatureValid"] is True
         assert data["profileName"] == "iOS Team Provisioning Profile"
@@ -161,4 +181,5 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         data = response.json()
         assert data["isInstallable"] is False
         assert data["installUrl"] is None
+        assert data["installUrlExpiresAt"] is None
         assert data["isCodeSignatureValid"] is False

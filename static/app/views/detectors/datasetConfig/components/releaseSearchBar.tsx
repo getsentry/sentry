@@ -43,7 +43,7 @@ export function ReleaseSearchBar({
   const organization = useOrganization();
   const api = useApi();
 
-  const getTagValues: GetTagValues = (tag, searchQuery) => {
+  const getTagValues: GetTagValues = ({tag, searchQuery}) => {
     if (tag.name === 'session.status') {
       return Promise.resolve(SESSION_STATUSES);
     }

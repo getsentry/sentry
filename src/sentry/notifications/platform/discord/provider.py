@@ -17,6 +17,7 @@ from sentry.notifications.platform.target import (
 )
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
+    LinkTextBlock,
     NotificationBodyFormattingBlock,
     NotificationBodyFormattingBlockType,
     NotificationBodyTextBlock,
@@ -119,6 +120,10 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
                 texts.append(f"**{block.text}**")
             elif block.type == NotificationBodyTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
+            elif block.type == NotificationBodyTextBlockType.LINK and isinstance(
+                block, LinkTextBlock
+            ):
+                texts.append(f"[{block.text}]({block.url})")
         return " ".join(texts)
 
 
@@ -142,9 +147,14 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
         cls, *, data: NotificationData, category: NotificationCategory
     ) -> type[NotificationRenderer[DiscordRenderable]]:
         from sentry.notifications.platform.discord.renderers.issue import IssueDiscordRenderer
+        from sentry.notifications.platform.discord.renderers.metric_alert import (
+            DiscordMetricAlertRenderer,
+        )
 
         if category == NotificationCategory.ISSUE:
             return IssueDiscordRenderer
+        if category == NotificationCategory.METRIC_ALERT:
+            return DiscordMetricAlertRenderer
         return cls.default_renderer
 
     @classmethod

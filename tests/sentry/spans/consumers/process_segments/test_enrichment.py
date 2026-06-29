@@ -1,5 +1,6 @@
 from typing import cast
 
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process_segments.enrichment import (
@@ -512,6 +513,77 @@ def _mock_performance_issue_span(is_segment, attributes, **fields) -> SpanEvent:
             **fields,
         },
     )
+
+
+def test_conventional_user_attributes_propagated_to_child_spans() -> None:
+    """New conventional user attributes (user.email, user.id, etc.) are propagated
+    from the segment span to child spans that don't already have them."""
+    user_attrs = {
+        ATTRIBUTE_NAMES.USER_EMAIL: {"type": "string", "value": "user@example.com"},
+        ATTRIBUTE_NAMES.USER_ID: {"type": "string", "value": "12345"},
+        ATTRIBUTE_NAMES.USER_IP_ADDRESS: {"type": "string", "value": "203.0.113.1"},
+        ATTRIBUTE_NAMES.USER_NAME: {"type": "string", "value": "testuser"},
+        ATTRIBUTE_NAMES.USER_GEO_CITY: {"type": "string", "value": "San Francisco"},
+        ATTRIBUTE_NAMES.USER_GEO_COUNTRY_CODE: {"type": "string", "value": "US"},
+        ATTRIBUTE_NAMES.USER_GEO_REGION: {"type": "string", "value": "CA"},
+        ATTRIBUTE_NAMES.USER_GEO_SUBDIVISION: {"type": "string", "value": "San Francisco"},
+    }
+
+    segment = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        attributes=user_attrs,
+    )
+    child = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+    )
+
+    _, enriched = TreeEnricher.enrich_spans([segment, child])
+
+    enriched_child = enriched[1]
+    for attr_name, attr in user_attrs.items():
+        assert attribute_value(enriched_child, attr_name) == attr["value"], (
+            f"{attr_name} not propagated to child"
+        )
+
+
+def test_conventional_user_attributes_not_overwritten_on_child() -> None:
+    """If a child span already has a conventional user attribute, the segment
+    value must not overwrite it."""
+    segment = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        attributes={
+            ATTRIBUTE_NAMES.USER_EMAIL: {"type": "string", "value": "segment@example.com"},
+            ATTRIBUTE_NAMES.USER_ID: {"type": "string", "value": "111"},
+        },
+    )
+    child = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+        attributes={
+            ATTRIBUTE_NAMES.USER_EMAIL: {"type": "string", "value": "child@example.com"},
+        },
+    )
+
+    _, enriched = TreeEnricher.enrich_spans([segment, child])
+
+    enriched_child = enriched[1]
+    assert attribute_value(enriched_child, ATTRIBUTE_NAMES.USER_EMAIL) == "child@example.com"
+    assert attribute_value(enriched_child, ATTRIBUTE_NAMES.USER_ID) == "111"
 
 
 def test_enrich_gen_ai_agent_name_from_immediate_parent() -> None:

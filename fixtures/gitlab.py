@@ -709,3 +709,62 @@ GET_COMMIT_RESPONSE = """
   "status": "running",
   "web_url": "https://gitlab.example.com/thedude/gitlab-foss/-/commit/6104942438c14ec7bd21c6cd5bd995272b3faff6"
 }"""
+
+MERGE_REQUEST_NOTE_EVENT = b"""{
+  "object_kind": "note",
+  "user": {
+    "id": 1,
+    "name": "Administrator",
+    "username": "root",
+    "avatar_url": "http://www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=80&d=identicon"
+  },
+  "project": {
+    "id": 15,
+    "name": "Sentry",
+    "description": "",
+    "web_url": "http://example.com/cool-group/sentry",
+    "avatar_url": null,
+    "git_ssh_url": "git@example.com:cool-group/sentry.git",
+    "git_http_url": "http://example.com/cool-group/sentry.git",
+    "namespace": "cool-group",
+    "visibility_level": 0,
+    "path_with_namespace": "cool-group/sentry",
+    "default_branch": "master",
+    "ci_config_path": "",
+    "homepage": "http://example.com/cool-group/sentry",
+    "url": "git@example.com:cool-group/sentry.git",
+    "ssh_url": "git@example.com:cool-group/sentry.git",
+    "http_url": "http://example.com/cool-group/sentry.git"
+  },
+  "object_attributes": {
+    "id": 1243,
+    "note": "@sentry review",
+    "noteable_type": "MergeRequest",
+    "author_id": 1,
+    "created_at": "2015-05-17T18:35:50.000Z",
+    "updated_at": "2015-05-17T18:35:50.000Z",
+    "noteable_id": 90,
+    "action": "create"
+  },
+  "merge_request": {
+    "id": 90,
+    "iid": 1,
+    "title": "chore: Add math",
+    "author_id": 51,
+    "description": "Create a viewport for things",
+    "state": "opened",
+    "last_commit": {
+      "id": "5937ac0a7beb003549fc5fd26055f4b3015baf74",
+      "message": "Add math",
+      "timestamp": "2015-05-17T18:31:50.000Z",
+      "url": "http://example.com/cool-group/sentry/commit/5937ac0a7beb003549fc5fd26055f4b3015baf74",
+      "author": {
+        "name": "Administrator",
+        "email": "admin@example.com"
+      }
+    },
+    "url": "http://example.com/cool-group/sentry/merge_requests/1",
+    "source_branch": "ms-viewport",
+    "target_branch": "master"
+  }
+}"""

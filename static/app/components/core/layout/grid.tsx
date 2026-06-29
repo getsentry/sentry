@@ -97,7 +97,7 @@ export type GridPropsWithRenderFunction<T extends ContainerElement = 'div'> =
 
 export const Grid = styled(Container, {
   shouldForwardProp: prop => {
-    return !omitGridProps.has(prop as any);
+    return !omitGridProps.has(prop as keyof GridLayoutProps | 'as');
   },
 })<GridProps<any> | GridPropsWithRenderFunction<any>>`
   ${p => rc('display', p.display ?? 'grid', p.theme, v => v ?? 'grid')}

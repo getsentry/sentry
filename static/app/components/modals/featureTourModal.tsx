@@ -160,7 +160,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
     return (
       <Body data-test-id="feature-tour">
         <CloseButton
-          priority="transparent"
+          variant="transparent"
           size="zero"
           onClick={closeModal}
           icon={<IconClose />}
@@ -173,7 +173,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
           <TourButtonBar>
             {step.actions && step.actions}
             {hasNext && (
-              <Button priority="primary" onClick={this.handleAdvance}>
+              <Button variant="primary" onClick={this.handleAdvance}>
                 {t('Next')}
               </Button>
             )}
@@ -182,7 +182,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
                 external
                 href={doneUrl}
                 onClick={closeModal}
-                priority="primary"
+                variant="primary"
                 aria-label={t('Complete tour')}
               >
                 {doneText}

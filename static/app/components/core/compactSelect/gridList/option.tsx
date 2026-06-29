@@ -9,14 +9,21 @@ import type {Node} from '@react-types/shared';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {LeadWrap} from '@sentry/scraps/compactSelect';
-import {InnerWrap, MenuListItem} from '@sentry/scraps/menuListItem';
+import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
+import {
+  InnerWrap,
+  MenuListItem,
+  type MenuListItemProps,
+} from '@sentry/scraps/menuListItem';
 
 import {IconCheckmark} from 'sentry/icons';
 import type {FormSize} from 'sentry/utils/theme';
 
-export interface GridListOptionProps extends AriaGridListItemOptions {
-  listState: ListState<any>;
-  node: Node<any>;
+export interface GridListOptionProps<
+  T extends ListItemBase,
+> extends AriaGridListItemOptions {
+  listState: ListState<T>;
+  node: Node<T>;
   size: FormSize;
 }
 
@@ -24,12 +31,15 @@ export interface GridListOptionProps extends AriaGridListItemOptions {
  * A <li /> element with accessibile behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
-export function GridListOption({node, listState, size}: GridListOptionProps) {
+export function GridListOption<T extends ListItemBase>({
+  node,
+  listState,
+  size,
+}: GridListOptionProps<T>) {
   const ref = useRef<HTMLLIElement>(null);
   const {
     label,
     details,
-    leadingItems,
     trailingItems,
     priority,
     hideCheck,
@@ -70,6 +80,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
     [label]
   );
 
+  const leadingItems = (node.props as MenuListItemProps).leadingItems;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 

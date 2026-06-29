@@ -93,7 +93,7 @@ class OpsgenieClientTest(APITestCase):
         payload = orjson.loads(request.body)
         group_id = str(group.id)
         assert payload == {
-            "tags": ["level:warning"],
+            "tags": ["interface_type:logentry", "level:warning"],
             "entity": "foo.bar",
             "alias": "sentry: %s" % group_id,
             "priority": "P2",
@@ -160,7 +160,7 @@ class OpsgenieClientTest(APITestCase):
         payload = orjson.loads(request.body)
         group_id = str(group.id)
         assert payload == {
-            "tags": ["level:warning"],
+            "tags": ["interface_type:logentry", "level:warning"],
             "entity": "foo.bar",
             "alias": "sentry: %s" % group_id,
             "priority": "P2",
@@ -226,7 +226,7 @@ class OpsgenieClientTest(APITestCase):
         payload = orjson.loads(request.body)
         group_id = str(group.id)
         assert payload == {
-            "tags": ["level:warning"],
+            "tags": ["interface_type:logentry", "level:warning"],
             "entity": "foo.bar",
             "alias": "sentry: %s" % group_id,
             "priority": "P2",

@@ -8,9 +8,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory, IssueType} from 'sentry/types/group';
+import {IssueDetailsContext} from 'sentry/views/issueDetails/context';
 import {MetricIssueChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
-import {IssueDetailsContext} from 'sentry/views/issueDetails/streamline/context';
-import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
+import {getDetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorSection';
 
 describe('MetricIssueChart', () => {
   const organization = OrganizationFixture();

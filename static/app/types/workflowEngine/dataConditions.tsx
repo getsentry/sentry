@@ -53,6 +53,9 @@ export enum DataConditionType {
   EVENT_UNIQUE_USER_FREQUENCY = 'event_unique_user_frequency',
   PERCENT_SESSIONS = 'percent_sessions',
   ANOMALY_DETECTION = 'anomaly_detection',
+
+  // activity trigger conditions
+  SEER_ACTIVITY_TRIGGER = 'seer_activity_trigger',
 }
 
 export enum DataConditionGroupLogicType {

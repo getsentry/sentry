@@ -15,7 +15,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
@@ -38,7 +38,8 @@ class ShortIdLookupEndpoint(GroupEndpoint):
     }
 
     @extend_schema(
-        operation_id="Resolve a Short ID",
+        operation_id="resolveOrganizationShortId",
+        summary="Resolve a Short ID",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -48,6 +49,7 @@ class ShortIdLookupEndpoint(GroupEndpoint):
                 type=str,
                 location="path",
             ),
+            IssueParams.GROUP_INDEX_COLLAPSE,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -117,7 +119,7 @@ class ShortIdLookupEndpoint(GroupEndpoint):
             )
         ],
     )
-    def get(self, request: Request, group: Group) -> Response:
+    def get(self, request: Request, group: Group) -> Response[ShortIdLookupResponse]:
         """
         Resolve a short ID to the project slug and group details.
         """

@@ -1,11 +1,13 @@
-import {Fragment, useMemo} from 'react';
-import partition from 'lodash/partition';
+import {Fragment} from 'react';
+
+import {Badge} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
-import {useUser} from 'sentry/utils/useUser';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {
   AGENTS_LANDING_SUB_PATH,
@@ -29,25 +31,16 @@ import {
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {ProjectsNavigationItems} from 'sentry/views/navigation/secondary/sections/projects/starredProjectsList';
 
 export function InsightsSecondaryNavigation() {
-  const user = useUser();
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
 
-  const {projects} = useProjects();
-
-  const [starredProjects, nonStarredProjects] = useMemo(() => {
-    return partition(projects, project => project.isBookmarked);
-  }, [projects]);
-
-  const displayStarredProjects = starredProjects.length > 0;
-  const projectsToDisplay = displayStarredProjects
-    ? starredProjects.slice(0, 8)
-    : nonStarredProjects.filter(project => project.isMember).slice(0, 8);
-
-  const shouldRedirectToMonitors =
-    organization.features.includes('workflow-engine-ui') && !user?.isStaff;
+  const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
+  const hasInsightsToDashboards = organization.features.includes(
+    'insights-to-dashboards-ui-rollout'
+  );
 
   return (
     <Fragment>
@@ -108,11 +101,34 @@ export function InsightsSecondaryNavigation() {
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={
-                  shouldRedirectToMonitors
+                  hasWorkflowEngineUI
                     ? `${makeMonitorBasePathname(organization.slug)}crons/?insightsRedirect=true`
                     : `${baseUrl}/crons/`
                 }
                 analyticsItemName="insights_crons"
+                trailingItems={
+                  hasWorkflowEngineUI ? (
+                    <Tooltip
+                      isHoverable
+                      title={
+                        <Fragment>
+                          <Text as="p">{t('Crons now live under Monitors.')}</Text>
+                          <Text as="p">
+                            {tct('See the [link:new Crons page here.]', {
+                              link: (
+                                <Link
+                                  to={`${makeMonitorBasePathname(organization.slug)}crons/`}
+                                />
+                              ),
+                            })}
+                          </Text>
+                        </Fragment>
+                      }
+                    >
+                      <Badge variant="muted">{t('Moved')}</Badge>
+                    </Tooltip>
+                  ) : null
+                }
               >
                 {t('Crons')}
               </SecondaryNavigation.Link>
@@ -121,11 +137,34 @@ export function InsightsSecondaryNavigation() {
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
                   to={
-                    shouldRedirectToMonitors
+                    hasWorkflowEngineUI
                       ? `${makeMonitorBasePathname(organization.slug)}uptime/?insightsRedirect=true`
                       : `${baseUrl}/uptime/`
                   }
                   analyticsItemName="insights_uptime"
+                  trailingItems={
+                    hasWorkflowEngineUI ? (
+                      <Tooltip
+                        isHoverable
+                        title={
+                          <Fragment>
+                            <Text as="p">{t('Uptime now lives under Monitors.')}</Text>
+                            <Text as="p">
+                              {tct('See the [link:new Uptime page here.]', {
+                                link: (
+                                  <Link
+                                    to={`${makeMonitorBasePathname(organization.slug)}uptime/`}
+                                  />
+                                ),
+                              })}
+                            </Text>
+                          </Fragment>
+                        }
+                      >
+                        <Badge variant="muted">{t('Moved')}</Badge>
+                      </Tooltip>
+                    ) : null
+                  }
                 >
                   {t('Uptime')}
                 </SecondaryNavigation.Link>
@@ -133,49 +172,15 @@ export function InsightsSecondaryNavigation() {
             </Feature>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        <SecondaryNavigation.Separator />
-        <SecondaryNavigation.Section id="insights-projects-all">
-          <SecondaryNavigation.List>
-            <SecondaryNavigation.ListItem>
-              <SecondaryNavigation.Link
-                to={`${baseUrl}/projects/`}
-                end
-                analyticsItemName="insights_projects_all"
-              >
-                {t('All Projects')}
-              </SecondaryNavigation.Link>
-            </SecondaryNavigation.ListItem>
-          </SecondaryNavigation.List>
-        </SecondaryNavigation.Section>
-        {projectsToDisplay.length > 0 ? (
+        {!hasInsightsToDashboards && (
           <Fragment>
             <SecondaryNavigation.Separator />
-            <SecondaryNavigation.Section
-              id="insights-starred-projects"
-              title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
-            >
-              <SecondaryNavigation.List>
-                {projectsToDisplay.map(project => (
-                  <SecondaryNavigation.ListItem key={project.id}>
-                    <SecondaryNavigation.Link
-                      to={`${baseUrl}/projects/${project.slug}/`}
-                      leadingItems={
-                        <SecondaryNavigation.ProjectIcon
-                          projectPlatforms={
-                            project.platform ? [project.platform] : ['default']
-                          }
-                        />
-                      }
-                      analyticsItemName="insights_project_starred"
-                    >
-                      {project.slug}
-                    </SecondaryNavigation.Link>
-                  </SecondaryNavigation.ListItem>
-                ))}
-              </SecondaryNavigation.List>
-            </SecondaryNavigation.Section>
+            <ProjectsNavigationItems
+              allProjectsAnalyticsItemName="insights_projects_all"
+              starredAnalyticsItemName="insights_project_starred"
+            />
           </Fragment>
-        ) : null}
+        )}
       </SecondaryNavigation.Body>
     </Fragment>
   );

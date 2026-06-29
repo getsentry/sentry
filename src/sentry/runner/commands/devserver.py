@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import threading
 from collections.abc import MutableSequence, Sequence
+from pathlib import Path
 from typing import NoReturn
 
 import click
@@ -10,6 +11,7 @@ import sentry_sdk
 
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
+from sentry.utils.tracing import start_span
 
 # NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
 # in `devserver()` like so:
@@ -22,14 +24,6 @@ _DEFAULT_DAEMONS = {
     "taskworker": ["sentry", "run", "taskworker"],
     "taskworker-scheduler": ["sentry", "run", "taskworker-scheduler"],
 }
-
-_SUBSCRIPTION_RESULTS_CONSUMERS = [
-    "events-subscription-results",
-    "transactions-subscription-results",
-    "generic-metrics-subscription-results",
-    "metrics-subscription-results",
-    "subscription-results-eap-items",
-]
 
 
 def add_daemon(name: str, command: list[str]) -> None:
@@ -120,6 +114,12 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     help="The silo mode to run this devserver instance in. Choices are control, region, none",
 )
 @click.option(
+    "--apigw/--no-apigw",
+    default=False,
+    required=False,
+    help="Use api-gateway service to proxy requests.",
+)
+@click.option(
     "--workers/--no-workers",
     default=False,
     help="Run a taskworker instance with 1 child process.",
@@ -155,6 +155,7 @@ def devserver(
     client_hostname: str,
     ngrok: str | None,
     silo: str | None,
+    apigw: bool,
     workers: bool,
     task_scheduler: bool,
 ) -> NoReturn:
@@ -163,7 +164,7 @@ def devserver(
         dsn=os.environ.get("SENTRY_DEVSERVICES_DSN", ""),
         traces_sample_rate=1.0,
     )
-    with sentry_sdk.start_transaction(op="command", name="sentry.devserver"):
+    with start_span(op="command", name="sentry.devserver", transaction=True):
         passed_options = {
             p.name: ctx.params[p.name]
             for p in ctx.command.params
@@ -173,6 +174,7 @@ def devserver(
 
         for option_name, option_value in passed_options.items():
             sentry_sdk.set_tag(f"devserver.{option_name}", option_value)
+            sentry_sdk.set_attribute(f"devserver.{option_name}", option_value)
 
         if bind is None:
             bind = "127.0.0.1:8000"
@@ -303,9 +305,6 @@ def devserver(
 
             daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
 
-            if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
-                kafka_consumers.update(_SUBSCRIPTION_RESULTS_CONSUMERS)
-
             if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
                 kafka_consumers.add("ingest-metrics")
                 kafka_consumers.add("ingest-generic-metrics")
@@ -325,8 +324,8 @@ def devserver(
                 kafka_consumers.add("monitors-clock-tasks")
                 kafka_consumers.add("monitors-incident-occurrences")
 
-                if settings.SENTRY_USE_PROFILING:
-                    kafka_consumers.add("ingest-profiles")
+                # ingest-profiles is now handled by taskbroker passthrough mode
+                # via devservices (STREAM-1041)
 
                 if settings.SENTRY_USE_SPANS_BUFFER:
                     kafka_consumers.add("process-spans")
@@ -454,9 +453,17 @@ def devserver(
 
         cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
-        from sentry.runner.formatting import get_honcho_printer
+        from sentry.runner.formatting import TeeStream, get_honcho_printer
 
-        honcho_printer = get_honcho_printer(prefix=prefix, pretty=pretty)
+        log_path = Path(
+            os.environ.get("SENTRY_DEV_LOG_FILE", os.path.join(cwd, ".artifacts", "dev.log"))
+        )
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_file = open(log_path, "w", encoding="utf-8")
+
+        honcho_printer = get_honcho_printer(
+            prefix=prefix, pretty=pretty, output=TeeStream(sys.stdout, log_file)
+        )
 
         manager = Manager(honcho_printer)
         for name, cmd in daemons:
@@ -479,6 +486,13 @@ def devserver(
                 "SENTRY_GRANIAN_PORT": str(ports["server"]),
                 "SENTRY_GRANIAN_WORKERS": "2",
             }
+            if apigw:
+                control_environ["SENTRY_CONTROL_SILO_PORT"] = str(int(server_port) + 1)
+                control_environ["SENTRY_DEVSERVER_BIND"] = f"127.0.0.1:{int(server_port) + 1}"
+                control_environ["SENTRY_GRANIAN_PORT"] = str(ports["server"] + 1)
+                control_environ.pop("SENTRY_APIGW_ASYNC")
+                control_environ.pop("SENTRY_GRANIAN_IFACE")
+
             merged_env = os.environ.copy()
             merged_env.update(control_environ)
             control_services = ["server"]

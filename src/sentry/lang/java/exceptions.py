@@ -33,7 +33,7 @@ class Exceptions:
         self._processable_exceptions_with_values: list[tuple[Any, list[Any]]] = []
 
         for exc in get_path(data, "exception", "values", filter=True, default=()):
-            if exc.get("type", None) and exc.get("module", None):
+            if exc.get("type", None):
                 self._processable_exceptions.append(exc)
             if value := exc.get("value", None):
                 class_matches = _JAVA_CLASS_IN_TEXT_RE.findall(value)
@@ -64,8 +64,8 @@ class Exceptions:
         """
         # Deobfuscate exception module and type first
         for raw_exc, exc in zip(self._processable_exceptions, mapped_exceptions):
-            raw_exc["raw_module"] = raw_exc["module"]
-            raw_exc["raw_type"] = raw_exc["type"]
+            raw_exc["raw_module"] = raw_exc.get("module")
+            raw_exc["raw_type"] = raw_exc.get("type")
             raw_exc["module"] = exc["module"]
             raw_exc["type"] = exc["type"]
 

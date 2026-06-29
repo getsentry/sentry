@@ -40,7 +40,7 @@ export function SeerAutomationAlert({organization}: SeerAutomationAlertProps) {
             icon={<IconClose />}
             onClick={dismiss}
             size="zero"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Dismiss banner')}
           />
         }

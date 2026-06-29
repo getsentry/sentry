@@ -3,11 +3,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -56,7 +55,7 @@ export function OtherTeamsTable({
         <Flex gap="sm">
           {t("You're a member of all teams.")}
           {canCreateTeams && (
-            <Button priority="link" onClick={() => openCreateTeamModal({organization})}>
+            <Button variant="link" onClick={() => openCreateTeamModal({organization})}>
               {t('Create another team')}
             </Button>
           )}
@@ -193,16 +192,15 @@ function TeamAction({
 
   if (isPending) {
     return (
-      <Tooltip
+      <InfoText
+        variant="muted"
+        wrap="nowrap"
         title={t(
           'Your request to join this team is being reviewed by organization owners'
         )}
-        skipWrapper
       >
-        <Text variant="muted" wrap="nowrap">
-          {t('Request Pending')}
-        </Text>
-      </Tooltip>
+        {t('Request Pending')}
+      </InfoText>
     );
   }
 

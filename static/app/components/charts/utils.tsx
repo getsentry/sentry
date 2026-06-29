@@ -6,14 +6,15 @@ import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
-import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {ECharts, ReactEchartsRef, Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {defined, escape} from 'sentry/utils';
+import {escape} from 'sentry/utils';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {decodeList} from 'sentry/utils/queryString';
@@ -27,8 +28,10 @@ export const SIXTY_DAYS = 86400;
 export const THIRTY_DAYS = 43200;
 export const TWO_WEEKS = 20160;
 export const ONE_WEEK = 10080;
+export const FOUR_DAYS = 5760;
 export const FORTY_EIGHT_HOURS = 2880;
 export const TWENTY_FOUR_HOURS = 1440;
+export const TWELVE_HOURS = 720;
 export const SIX_HOURS = 360;
 const THREE_HOURS = 180;
 export const ONE_HOUR = 60;
@@ -106,12 +109,12 @@ export class GranularityLadder {
         fmt`Invalid duration supplied to interval function. (minutes: ${String(minutes)})`
       );
 
-      return (this.steps.at(-1) as GranularityStep)[1];
+      return this.steps.at(-1)![1];
     }
 
     const step = this.steps.find(([threshold]) => {
       return minutes >= threshold;
-    }) as GranularityStep;
+    })!;
 
     return step[1];
   }
@@ -282,13 +285,10 @@ export function getSeriesSelection(
   location: Location
 ): LegendComponentOption['selected'] {
   const unselectedSeries = decodeList(location?.query.unselectedSeries);
-  return unselectedSeries.reduce(
-    (selection, series) => {
-      selection[series] = false;
-      return selection;
-    },
-    {} as Record<string, boolean>
-  );
+  return unselectedSeries.reduce<Record<string, boolean>>((selection, series) => {
+    selection[series] = false;
+    return selection;
+  }, {});
 }
 
 /**
@@ -331,7 +331,7 @@ export const getDimensionValue = (dimension?: number | string | null) => {
   }
 
   if (dimension === null) {
-    return undefined;
+    return;
   }
 
   return dimension;
@@ -459,4 +459,25 @@ export function isEmptySeries(series: Series) {
 export function isChartHovered(chartRef: ReactEchartsRef | null) {
   const hoveredEchartElement = document.querySelector('.echarts-for-react:hover');
   return hoveredEchartElement === chartRef?.ele;
+}
+
+/**
+ * Chart event when *any* rendering+animation finishes.
+ *
+ * Auto-activates the toolbox area-zoom cursor so users can drag-to-select a range
+ * without first clicking the (hidden) toolbox icon.
+ */
+export function activateZoomAreaSelect(chart: ECharts) {
+  const toolboxView = (chart as any)._componentsViews?.find((view: any) =>
+    view._features?.get?.('dataZoom')
+  );
+  const dataZoomFeature = toolboxView?._features.get('dataZoom');
+  if (dataZoomFeature && !dataZoomFeature._isZoomActive) {
+    // Calling dispatchAction will re-trigger handleChartFinished
+    chart.dispatchAction({
+      type: 'takeGlobalCursor',
+      key: 'dataZoomSelect',
+      dataZoomSelectActive: true,
+    });
+  }
 }

@@ -2,18 +2,20 @@ import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
 import {FrameFixture} from 'sentry-fixture/frame';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
 };
+
+const DISPLAY_OPTIONS_STORAGE_KEY =
+  'issue-details-stracktrace-display-org-slug-project-slug';
 
 function makeStackTraceData(): {
   event: ReturnType<typeof EventFixture>;
@@ -65,6 +67,7 @@ function makeCopyTestData() {
 
 describe('IssueStackTrace', () => {
   beforeEach(() => {
+    localStorage.clear();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {dismissed_ts: undefined, snoozed_ts: undefined},
@@ -72,6 +75,10 @@ describe('IssueStackTrace', () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/stacktrace-link/',
       body: {config: null, sourceUrl: null, integrations: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: DetailedProjectFixture({id: '1', slug: 'project-slug'}),
     });
     Object.assign(navigator, {
       clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
@@ -109,6 +116,97 @@ describe('IssueStackTrace', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('persists raw and minified display selections per project', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const minifiedStacktrace = {
+      ...stacktrace,
+      frames: stacktrace.frames.map((frame, index) => ({
+        ...frame,
+        filename: `minified/${index}.js`,
+        function: frame.rawFunction ?? `raw_fn_${index}`,
+      })),
+    };
+
+    const {unmount} = render(
+      <IssueStackTrace
+        event={event}
+        projectSlug="project-slug"
+        values={[
+          {
+            type: 'ValueError',
+            value: 'list index out of range',
+            module: 'raven.base',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: minifiedStacktrace,
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Raw Stack Trace'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Unsymbolicated'}));
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem(DISPLAY_OPTIONS_STORAGE_KEY)!);
+      expect(stored).toEqual(expect.arrayContaining(['raw-stack-trace', 'minified']));
+    });
+
+    unmount();
+
+    render(
+      <IssueStackTrace
+        event={event}
+        projectSlug="project-slug"
+        values={[
+          {
+            type: 'ValueError',
+            value: 'list index out of range',
+            module: 'raven.base',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: minifiedStacktrace,
+          },
+        ]}
+      />
+    );
+
+    expect(await screen.findByText(/File "minified\/\d+\.js"/)).toBeInTheDocument();
+  });
+
+  it('preserves minified preference when current event has no raw stacktrace', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    localStorage.setItem(DISPLAY_OPTIONS_STORAGE_KEY, JSON.stringify(['minified']));
+
+    render(
+      <IssueStackTrace
+        event={event}
+        projectSlug="project-slug"
+        values={[
+          {
+            type: 'ValueError',
+            value: 'list index out of range',
+            module: 'raven.base',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+        ]}
+      />
+    );
+
+    await waitFor(() => {
+      expect(JSON.parse(localStorage.getItem(DISPLAY_OPTIONS_STORAGE_KEY)!)).toEqual([
+        'minified',
+      ]);
+    });
   });
 
   it('shares display options across chained issue exceptions', async () => {
@@ -196,59 +294,6 @@ describe('IssueStackTrace', () => {
     expect(reorderedHeadings[0]).toHaveTextContent('RootError');
     expect(reorderedHeadings[1]).toHaveTextContent('MiddleError');
     expect(reorderedHeadings[2]).toHaveTextContent('LeafError');
-  });
-
-  it('renders coverage tooltip from issue-level coverage request', async () => {
-    const {event, stacktrace} = makeStackTraceData();
-    const organization = OrganizationFixture({
-      slug: 'org-slug',
-      codecovAccess: true,
-    });
-    const project = ProjectFixture({
-      id: event.projectID,
-      slug: 'project-slug',
-    });
-    ProjectsStore.loadInitialData([project]);
-    const coverageRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/stacktrace-coverage/`,
-      body: {
-        status: CodecovStatusCode.COVERAGE_EXISTS,
-        lineCoverage: [
-          [110, Coverage.COVERED],
-          [111, Coverage.PARTIAL],
-          [112, Coverage.NOT_COVERED],
-        ],
-      },
-    });
-
-    render(
-      <IssueStackTrace
-        event={event}
-        values={[
-          {
-            type: 'ValueError',
-            value: 'list index out of range',
-            module: 'raven.base',
-            mechanism: {handled: false, type: 'generic'},
-            stacktrace,
-            threadId: null,
-            rawStacktrace: null,
-          },
-        ]}
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByTestId('core-stacktrace-frame-context')
-    ).toBeInTheDocument();
-    expect(coverageRequest).toHaveBeenCalled();
-
-    await userEvent.hover(screen.getByLabelText('Line 112'));
-
-    await waitFor(() =>
-      expect(screen.getAllByText('Line uncovered by tests')).toHaveLength(2)
-    );
   });
 
   it('renders annotated text when exception value has PII scrubbing metadata', async () => {
@@ -662,6 +707,49 @@ describe('IssueStackTrace', () => {
 
       expect(container).toBeEmptyDOMElement();
     });
+  });
+
+  it('fetches and renders SCM source context for frames without embedded context', async () => {
+    const {event, stacktrace} = makeCopyTestData();
+    const organization = OrganizationFixture();
+    const project = DetailedProjectFixture({
+      id: '1',
+      slug: 'project-slug',
+      scmSourceContextEnabled: true,
+    });
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: project,
+    });
+
+    const sourceContextRequest = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/stacktrace-source-context/',
+      body: {context: [[42, 'def handle():']], sourceUrl: null, error: null},
+    });
+
+    render(
+      <IssueStackTrace
+        event={event}
+        projectSlug="project-slug"
+        values={[
+          {
+            type: 'RuntimeError',
+            value: 'broke',
+            module: null,
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('def handle():')).toBeInTheDocument();
+    expect(sourceContextRequest).toHaveBeenCalled();
   });
 
   describe('exception groups', () => {

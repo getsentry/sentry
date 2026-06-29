@@ -3,7 +3,6 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
-import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 
@@ -13,16 +12,21 @@ import {
   getLogoImage,
   type ContextIconProps,
 } from 'sentry/components/events/contexts/contextIcon';
+import {getAccessibilityContextData} from 'sentry/components/events/contexts/knownContext/accessibility';
 import {getAppContextData} from 'sentry/components/events/contexts/knownContext/app';
+import {getARTContextData} from 'sentry/components/events/contexts/knownContext/art';
 import {getBrowserContextData} from 'sentry/components/events/contexts/knownContext/browser';
 import {getCloudResourceContextData} from 'sentry/components/events/contexts/knownContext/cloudResource';
 import {getCultureContextData} from 'sentry/components/events/contexts/knownContext/culture';
+import {getDartContextData} from 'sentry/components/events/contexts/knownContext/dartContext';
 import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
+import {getFlutterContextData} from 'sentry/components/events/contexts/knownContext/flutterContext';
 import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/gpu';
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
 import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
 import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
+import {getReactNativeContextData} from 'sentry/components/events/contexts/knownContext/reactNativeContext';
 import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
 import {getRuntimeContextData} from 'sentry/components/events/contexts/knownContext/runtime';
 import {getStateContextData} from 'sentry/components/events/contexts/knownContext/state';
@@ -43,7 +47,7 @@ import type {Event} from 'sentry/types/event';
 import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 /**
  * Generates the class name used for contexts
@@ -133,6 +137,7 @@ export function getRelativeTimeFromEventDateCreated(
 
 type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function getKnownData<Data, DataType>({
   data,
   knownDataTypes,
@@ -246,6 +251,8 @@ export function getContextTitle({
   switch (contextType) {
     case 'app':
       return t('App');
+    case 'art':
+      return t('Android Runtime');
     case 'device':
       return t('Device');
     case 'browser':
@@ -293,6 +300,12 @@ export function getContextTitle({
       return t('OTA Updates');
     case 'react_native_context':
       return t('React Native');
+    case 'accessibility':
+      return t('Accessibility');
+    case 'flutter_context':
+      return t('Flutter');
+    case 'dart_context':
+      return t('Dart');
     default:
       return contextType;
   }
@@ -360,8 +373,7 @@ export function getContextIcon({
     return null;
   }
 
-  const imageName = getLogoImage(iconName);
-  if (imageName === logoUnknown) {
+  if (getLogoImage(iconName) === null) {
     return null;
   }
   return <ContextIcon name={iconName} {...contextIconProps} />;
@@ -391,6 +403,8 @@ export function getFormattedContextData({
   switch (contextType) {
     case 'app':
       return getAppContextData({data: contextValue, event, meta});
+    case 'art':
+      return getARTContextData({data: contextValue, meta});
     case 'device':
       return getDeviceContextData({data: contextValue, event, meta});
     case 'memory_info': // Current
@@ -436,6 +450,14 @@ export function getFormattedContextData({
       return getCultureContextData({data: contextValue, meta});
     case 'missing_instrumentation':
       return getMissingInstrumentationContextData({data: contextValue, meta});
+    case 'accessibility':
+      return getAccessibilityContextData({data: contextValue, meta});
+    case 'react_native_context':
+      return getReactNativeContextData({data: contextValue, meta});
+    case 'flutter_context':
+      return getFlutterContextData({data: contextValue, meta});
+    case 'dart_context':
+      return getDartContextData({data: contextValue, meta});
     default:
       return getContextKeys({data: contextValue}).map(ctxKey => ({
         key: ctxKey,
@@ -579,4 +601,5 @@ const RelativeTime = styled('span')`
   margin-left: ${p => p.theme.space.xs};
 `;
 
-export const CONTEXT_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/`;
+export const CONTEXT_DOCS_LINK =
+  'https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/';

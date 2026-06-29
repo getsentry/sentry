@@ -2,10 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {InsightsDateRangeQueryLimitFooter} from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
-import {PlanTier} from 'getsentry/types';
 
 describe('InsightsUpsellPage', () => {
   const organization = OrganizationFixture();
@@ -13,7 +13,6 @@ describe('InsightsUpsellPage', () => {
     organization,
     plan: 'am3_team',
     isFree: true,
-    planTier: PlanTier.AM3,
   });
 
   beforeEach(() => {
@@ -23,7 +22,7 @@ describe('InsightsUpsellPage', () => {
       body: BillingConfigFixture(PlanTier.AM3),
     });
     MockApiClient.addMockResponse({
-      url: `/customers/org-slug/`,
+      url: '/customers/org-slug/',
       body: {},
     });
 
@@ -33,12 +32,9 @@ describe('InsightsUpsellPage', () => {
   it('renders if plan includes feature', async () => {
     subscription.planDetails.features = ['insights-query-date-range-limit'];
 
-    render(
-      <InsightsDateRangeQueryLimitFooter
-        organization={organization}
-        subscription={subscription}
-      />
-    );
+    render(<InsightsDateRangeQueryLimitFooter subscription={subscription} />, {
+      organization,
+    });
 
     expect(
       await screen.findByText(
@@ -48,12 +44,9 @@ describe('InsightsUpsellPage', () => {
   });
 
   it('does not render if feature is not included', () => {
-    render(
-      <InsightsDateRangeQueryLimitFooter
-        organization={organization}
-        subscription={subscription}
-      />
-    );
+    render(<InsightsDateRangeQueryLimitFooter subscription={subscription} />, {
+      organization,
+    });
 
     expect(
       screen.queryByText(

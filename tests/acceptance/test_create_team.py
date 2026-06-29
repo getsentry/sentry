@@ -24,7 +24,7 @@ class CreateTeamTest(AcceptanceTestCase):
         # Open the modal
         self.browser.click('button[aria-label="Create Team"]')
         self.browser.wait_until("[role='dialog']")
-        self.browser.element('input[id="slug"]').send_keys("new-team")
+        self.browser.element('input[name="slug"]').send_keys("new-team")
         self.browser.click("[role='dialog'] button[aria-label='Create Team']")
 
         # Wait for modal to go away.

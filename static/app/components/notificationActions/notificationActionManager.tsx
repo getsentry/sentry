@@ -212,7 +212,7 @@ export function NotificationActionManager({
     return dropdownMenuItems;
   }, [actionsMap, availableServices, notificationActions]);
 
-  let toolTipText: undefined | string = undefined;
+  let toolTipText: undefined | string;
   if (disabled) {
     toolTipText = t(
       'You do not have permission to add notification actions for this project'

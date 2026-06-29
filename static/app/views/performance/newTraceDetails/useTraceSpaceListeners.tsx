@@ -24,10 +24,15 @@ export function useTraceSpaceListeners(props: {
 
     const onPhysicalSpaceChange: TraceEvents['set container physical space'] =
       container => {
+        // Subtract the scrollbar width from the container width so that the
+        // physical space matches the actual renderable column width. When a
+        // vertical scrollbar is visible, the rows inside the scroll container
+        // are narrower than the outer container measured by ResizeObserver.
+        const adjustedWidth = container[2] - props.viewManager.scrollbar_width;
         props.view.setTracePhysicalSpace(container, [
           0,
           0,
-          container[2] * props.viewManager.columns.span_list.width,
+          adjustedWidth * props.viewManager.columns.span_list.width,
           container[3],
         ]);
       };

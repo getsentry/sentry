@@ -1,11 +1,11 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
 import Select from 'sentry/components/forms/controls/reactSelectWrapper';
 import {t} from 'sentry/locale';
-import {useQuery} from 'sentry/utils/queryClient';
 
 type RegionData = {region: string; version: string};
 

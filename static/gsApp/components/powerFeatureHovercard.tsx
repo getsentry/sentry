@@ -7,13 +7,12 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -26,7 +25,6 @@ interface PowerFeatureHovercardProps {
    * is up to the parent component to decide whether this should be rendered.
    */
   features: Organization['features'];
-  organization: Organization;
 
   subscription: Subscription;
   children?: React.ReactNode;
@@ -58,12 +56,12 @@ function PowerFeatureHovercard({
   id,
   containerClassName,
   containerDisplayMode,
-  organization,
   subscription,
   partial,
   features,
   children,
 }: PowerFeatureHovercardProps) {
+  const organization = useOrganization();
   const recordAnalytics = () => {
     trackGetsentryAnalytics('power_icon.clicked', {
       organization,
@@ -88,12 +86,8 @@ function PowerFeatureHovercard({
       organization={organization}
       subscription={subscription}
     >
-      {({plan, tierChange}) => {
-        let planName = displayPlanName(plan);
-
-        if (tierChange === PlanTier.AM1) {
-          planName = `Performance ${planName}`;
-        }
+      {({plan}) => {
+        const planName = displayPlanName(plan);
 
         return (
           <LearnMoreTextBody data-test-id="power-hovercard">
@@ -104,7 +98,7 @@ function PowerFeatureHovercard({
                   : t('Requires %s Plan', planName)}
               </div>
               <Button
-                priority="primary"
+                variant="primary"
                 onClick={handleClick}
                 data-test-id="power-learn-more"
                 size="xs"
@@ -146,6 +140,4 @@ const StyledHovercard = styled(Hovercard)`
   }
 `;
 
-export default withOrganization(
-  withSubscription(PowerFeatureHovercard, {noLoader: true})
-);
+export default withSubscription(PowerFeatureHovercard, {noLoader: true});

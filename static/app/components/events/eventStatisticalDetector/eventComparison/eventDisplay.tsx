@@ -26,8 +26,8 @@ import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -149,7 +149,7 @@ function EventDisplay({
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const [selectedEventId, setSelectedEventId] = useState('');
 
   const {data, isPending, isError} = useFetchSampleEvents({
     start,
@@ -183,7 +183,7 @@ function EventDisplay({
     }
   }, [eventIds, selectedEventId]);
 
-  const eventIdIndex = eventIds?.findIndex(eventId => eventId === selectedEventId);
+  const eventIdIndex = eventIds?.indexOf(selectedEventId);
   const hasNext =
     defined(eventIdIndex) && defined(eventIds) && eventIdIndex + 1 < eventIds.length;
   const hasPrev = defined(eventIdIndex) && eventIdIndex - 1 >= 0;

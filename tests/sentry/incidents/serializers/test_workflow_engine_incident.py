@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any
 
 from sentry.api.serializers import serialize
@@ -6,7 +7,12 @@ from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
     WorkflowEngineDetailedIncidentSerializer,
     WorkflowEngineIncidentSerializer,
 )
-from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod, IncidentType
+from sentry.incidents.models.incident import (
+    IncidentActivityType,
+    IncidentStatus,
+    IncidentStatusMethod,
+    IncidentType,
+)
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.types.group import PriorityLevel
@@ -49,14 +55,14 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         }
 
     @staticmethod
-    def _sort_triggers(incident: dict[str, Any]) -> dict[str, Any]:
+    def _sort_triggers(incident: Mapping[str, Any]) -> dict[str, Any]:
         """Sort triggers by label for order-independent comparison."""
-        incident = dict(incident)
-        incident["alertRule"] = dict(incident["alertRule"])
-        incident["alertRule"]["triggers"] = sorted(
-            incident["alertRule"]["triggers"], key=lambda t: t["label"]
+        out = dict(incident)
+        out["alertRule"] = dict(out["alertRule"])
+        out["alertRule"]["triggers"] = sorted(
+            out["alertRule"]["triggers"], key=lambda t: t["label"]
         )
-        return incident
+        return out
 
     def test_simple(self) -> None:
         serialized_incident = serialize(
@@ -139,12 +145,82 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
             self.user,
             WorkflowEngineIncidentSerializer(expand=["activities"]),
         )
-        assert len(serialized_incident["activities"]) == 1
-        serialized_activity = serialized_incident["activities"][0]
-        assert serialized_activity == {
+        activities = serialized_incident["activities"]
+        assert activities is not None
+        assert len(activities) == 1
+        assert activities[0] == {
             "id": str(gopa.id),
-            "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "type": IncidentActivityType.STATUS_CHANGE.value,
+            "value": str(IncidentStatus.CRITICAL.value),
+            "previousValue": None,
             "dateCreated": gopa.date_added,
-            "eventId": "a" * 32,
         }
+
+    def test_with_activities_tracks_previous_value(self) -> None:
+        GroupOpenPeriodActivity.objects.create(
+            date_added=self.group_open_period.date_added,
+            group_open_period=self.group_open_period,
+            type=OpenPeriodActivityType.OPENED,
+            value=self.group.priority,
+        )
+        gopa_status_change = GroupOpenPeriodActivity.objects.create(
+            date_added=self.group_open_period.date_added,
+            group_open_period=self.group_open_period,
+            type=OpenPeriodActivityType.STATUS_CHANGE,
+            value=PriorityLevel.MEDIUM,
+        )
+        serialized_incident = serialize(
+            self.group_open_period,
+            self.user,
+            WorkflowEngineIncidentSerializer(expand=["activities"]),
+        )
+        activities = serialized_incident["activities"]
+        assert activities is not None
+        assert len(activities) == 2
+        assert activities[0]["value"] == str(IncidentStatus.CRITICAL.value)
+        assert activities[0]["previousValue"] is None
+        assert activities[1]["value"] == str(IncidentStatus.WARNING.value)
+        assert activities[1]["previousValue"] == str(IncidentStatus.CRITICAL.value)
+        assert activities[1]["id"] == str(gopa_status_change.id)
+
+    def test_with_activities_closed_maps_to_closed_status(self) -> None:
+        GroupOpenPeriodActivity.objects.create(
+            date_added=self.group_open_period.date_added,
+            group_open_period=self.group_open_period,
+            type=OpenPeriodActivityType.OPENED,
+            value=self.group.priority,
+        )
+        gopa_closed = GroupOpenPeriodActivity.objects.create(
+            date_added=self.group_open_period.date_added,
+            group_open_period=self.group_open_period,
+            type=OpenPeriodActivityType.CLOSED,
+            value=None,
+        )
+        serialized_incident = serialize(
+            self.group_open_period,
+            self.user,
+            WorkflowEngineIncidentSerializer(expand=["activities"]),
+        )
+        activities = serialized_incident["activities"]
+        assert activities is not None
+        assert len(activities) == 2
+        assert activities[1]["id"] == str(gopa_closed.id)
+        assert activities[1]["value"] == str(IncidentStatus.CLOSED.value)
+        assert activities[1]["previousValue"] == str(IncidentStatus.CRITICAL.value)
+
+    def test_with_activities_skips_null_value_non_closed(self) -> None:
+        gopa_malformed = GroupOpenPeriodActivity.objects.create(
+            date_added=self.group_open_period.date_added,
+            group_open_period=self.group_open_period,
+            type=OpenPeriodActivityType.STATUS_CHANGE,
+            value=None,
+        )
+        serialized_incident = serialize(
+            self.group_open_period,
+            self.user,
+            WorkflowEngineIncidentSerializer(expand=["activities"]),
+        )
+        activities = serialized_incident["activities"]
+        assert activities is not None
+        activity_ids = [a["id"] for a in activities]
+        assert str(gopa_malformed.id) not in activity_ids

@@ -19,7 +19,7 @@ import {
   type Token,
   type TokenParenthesis,
 } from 'sentry/components/arithmeticBuilder/token';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {parse} from './grammar.pegjs';
 
@@ -80,13 +80,11 @@ export function tokenizeExpression(
       const [op, lit] = token.split();
 
       // make sure to inject a free text token before the operator
-      tokens.push(space(loc, op.location));
-      tokens.push(op);
+      tokens.push(space(loc, op.location), op);
       loc = op.location;
 
       // make sure to inject a free text token before the literal
-      tokens.push(space(loc, lit.location));
-      tokens.push(lit);
+      tokens.push(space(loc, lit.location), lit);
       loc = lit.location;
     } else {
       // make sure to inject a free text token between every pair of non free space

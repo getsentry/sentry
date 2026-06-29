@@ -4,9 +4,9 @@ from rest_framework import serializers
 
 
 class AlertRuleWorkflowValidator(serializers.Serializer[Any]):
-    rule_id = serializers.CharField(required=False)
-    alert_rule_id = serializers.CharField(required=False)
-    workflow_id = serializers.CharField(required=False)
+    rule_id = serializers.IntegerField(required=False, min_value=1)
+    alert_rule_id = serializers.IntegerField(required=False, min_value=1)
+    workflow_id = serializers.IntegerField(required=False, min_value=1)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         super().validate(attrs)

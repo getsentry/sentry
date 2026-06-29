@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -284,20 +286,21 @@ export function GridLineOverlay({
   const overlayRef = mergeRefs(cursorContainerRef, selectionContainerRef);
 
   return (
-    <Overlay aria-hidden ref={overlayRef} className={className}>
+    <Container
+      width="100%"
+      height="100%"
+      position="absolute"
+      aria-hidden
+      ref={overlayRef}
+      className={className}
+    >
       {timelineCursor}
       {timelineSelector}
       {additionalUi}
       <GridLines timeWindowConfig={timeWindowConfig} labelPosition={labelPosition} />
-    </Overlay>
+    </Container>
   );
 }
-
-const Overlay = styled('div')`
-  height: 100%;
-  width: 100%;
-  position: absolute;
-`;
 
 const GridLineContainer = styled('div')`
   position: relative;

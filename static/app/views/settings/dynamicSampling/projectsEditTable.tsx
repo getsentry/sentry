@@ -50,7 +50,7 @@ export function ProjectsEditTable({
 }: Props) {
   const {projects, fetching} = useProjects();
   const [isBulkEditEnabled, setIsBulkEditEnabled] = useState(false);
-  const [orgRate, setOrgRate] = useState<string>('');
+  const [orgRate, setOrgRate] = useState('');
 
   const projectRateSnapshotRef = useRef<Record<string, string>>({});
 
@@ -113,7 +113,7 @@ export function ProjectsEditTable({
     setIsBulkEditEnabled(newIsActive);
 
     // On exiting the bulk edit mode, we need to ensure the displayed org rate is a valid percentage
-    if (newIsActive === false) {
+    if (!newIsActive) {
       setOrgRate(rate => (parsePercent(rate, 1) * 100).toString());
     }
   }, []);

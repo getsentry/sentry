@@ -6,5 +6,6 @@ from .data_source_detector import *  # NOQA
 from .detector import *  # NOQA
 from .detector_workflow import *  # NOQA
 from .project_detectors import *  # noqa: F401,F403
+from .project_workflows import *  # noqa: F401,F403
 from .workflow import *  # NOQA
 from .workflow_data_condition_group import *  # NOQA

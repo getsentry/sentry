@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import upperFirst from 'lodash/upperFirst';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import type {Field} from 'sentry/components/forms/types';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
@@ -267,7 +267,7 @@ const CATEGORY_QUOTA_FIELDS = Object.values(DATA_CATEGORY_INFO)
       name: 'quota' + upperFirst(categoryInfo.plural),
       label: categoryInfo.titleName,
       help: tct(
-        `Receive notifications about your [displayName] quotas. [learnMore:Learn more]`,
+        'Receive notifications about your [displayName] quotas. [learnMore:Learn more]',
         {
           displayName: categoryInfo.displayName,
           learnMore: (
@@ -287,7 +287,7 @@ const quotaSeerBudgetField = {
   // This maps to NotificationSettingEnum.QUOTA_SEER_BUDGET
   name: 'quotaSeerBudget',
   label: t('Seer Budget'),
-  help: tct(`Receive notifications for your Seer budget. [learnMore:Learn more]`, {
+  help: tct('Receive notifications for your Seer budget. [learnMore:Learn more]', {
     learnMore: (
       <ExternalLink
         href={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)}
@@ -318,7 +318,11 @@ export const QUOTA_FIELDS = [
     label: (
       <Fragment>
         {t('Spend Allocations')}{' '}
-        <QuestionTooltip position="top" title="Business plan only" size="xs" />
+        <QuestionTooltip
+          position="top"
+          title="Notification settings only apply to data categories and features included in your plan. Check your subscription overview for details."
+          size="xs"
+        />
       </Fragment>
     ),
     help: t('Receive notifications about your spend allocations.'),
@@ -327,24 +331,4 @@ export const QUOTA_FIELDS = [
       ['never', t('Off')],
     ] as const,
   },
-];
-
-export const SPEND_FIELDS = [
-  {
-    name: 'quota',
-    label: t('Spend Notifications'),
-    help: tct(
-      'Receive notifications when your spend crosses predefined or custom thresholds. [learnMore:Learn more]',
-      {
-        learnMore: (
-          <ExternalLink href="https://docs.sentry.io/product/alerts/notifications/#spend-notifications" />
-        ),
-      }
-    ),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
-  ...QUOTA_FIELDS.slice(1),
 ];

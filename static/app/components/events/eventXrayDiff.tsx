@@ -10,8 +10,8 @@ import {
   type MetricIds,
   useSizeAnalysisComparison,
 } from 'sentry/utils/preprod/useSizeAnalysisComparison';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TreemapDiffSection} from 'sentry/views/preprod/buildComparison/main/treemapDiffSection';
 
 type SectionProps = MetricIds & {project: Project};
@@ -43,7 +43,7 @@ function EventXrayDiffContent({baseMetricId, headMetricId, project}: SectionProp
 
 function EventXrayDiffSection({baseMetricId, headMetricId, project}: SectionProps) {
   return (
-    <InterimSection title={t('X-Ray diff')} type={SectionKey.XRAY_DIFF}>
+    <FoldSection title={t('X-Ray diff')} sectionKey={SectionKey.XRAY_DIFF}>
       <ErrorBoundary mini>
         <EventXrayDiffContent
           project={project}
@@ -51,7 +51,7 @@ function EventXrayDiffSection({baseMetricId, headMetricId, project}: SectionProp
           baseMetricId={baseMetricId}
         />
       </ErrorBoundary>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

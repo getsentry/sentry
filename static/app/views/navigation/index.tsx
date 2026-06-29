@@ -4,16 +4,15 @@ import styled from '@emotion/styled';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
+import {GlobalCommandPaletteActions} from 'sentry/components/commandPalette/ui/commandPaletteGlobalActions';
+import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {t} from 'sentry/locale';
+import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  MobileNavigation,
-  MobilePageFrameNavigation,
-} from 'sentry/views/navigation/mobileNavigation';
+import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
 import {
   NavigationTourProvider,
@@ -26,23 +25,43 @@ import {
   MobileSecondaryNavigationContextProvider,
   useSecondaryNavigation,
 } from 'sentry/views/navigation/secondaryNavigationContext';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
+
+/**
+ * Renders the CMDK slot outlet elements in task → page → global DOM order so
+ * that presortBySlotRef's compareDocumentPosition sorting works correctly.
+ * Keeping these in the navigation (rather than in CommandPaletteProvider)
+ * means they only exist when the full nav is mounted — tests that assert an
+ * empty container are unaffected.
+ */
+function CommandPaletteSlotOutlets() {
+  return (
+    <div style={{display: 'none'}}>
+      <CommandPaletteSlot.Outlet name="task">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="page">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="global">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+    </div>
+  );
+}
 
 function UserAndOrganizationNavigation() {
   const {layout} = usePrimaryNavigation();
-  const {visible} = useGlobalModal();
+  const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
-
-  useGlobalCommandPaletteActions();
-  const hasPageFrame = useHasPageFrameFeature();
 
   useHotkeys(
     visible
       ? []
       : [
           {
-            match: ['command+b', 'ctrl+b'],
+            match: 'mod+b',
             callback: () => setView(view === 'expanded' ? 'collapsed' : 'expanded'),
           },
         ]
@@ -51,9 +70,11 @@ function UserAndOrganizationNavigation() {
   return (
     <NavigationLayout>
       <CommandPaletteHotkeys />
+      <CommandPaletteSlotOutlets />
+      <GlobalCommandPaletteActions />
       {layout === 'mobile' ? (
         <MobileSecondaryNavigationContextProvider>
-          {hasPageFrame ? <MobilePageFrameNavigation /> : <MobileNavigation />}
+          <MobileNavigation />
         </MobileSecondaryNavigationContextProvider>
       ) : (
         <DesktopNavigation />
@@ -75,14 +96,15 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
   const hoverProps = useResetActiveNavigationGroup();
+  const {barTop} = useTopOffset();
 
   return (
     <Flex
-      top={0}
+      top={barTop}
       left={0}
       position={currentStepId ? undefined : 'sticky'}
       bottom={layout === 'mobile' ? undefined : 0}
-      height={layout === 'mobile' ? undefined : '100dvh'}
+      height={layout === 'mobile' ? undefined : `calc(100dvh - ${barTop})`}
       style={{
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
         userSelect: 'none',
@@ -99,14 +121,20 @@ export function Navigation() {
 
   if (!organization) {
     // @TODO(JonasBadalic): When this page gets any content, we should add the skip link back in.
-    return <UserOnlyNavigation />;
+    return (
+      <HoverOverlayGroupProvider>
+        <UserOnlyNavigation />
+      </HoverOverlayGroupProvider>
+    );
   }
 
   return (
-    <NavigationTourProvider>
-      <SkipLink />
-      <UserAndOrganizationNavigation />
-    </NavigationTourProvider>
+    <HoverOverlayGroupProvider>
+      <NavigationTourProvider>
+        <SkipLink />
+        <UserAndOrganizationNavigation />
+      </NavigationTourProvider>
+    </HoverOverlayGroupProvider>
   );
 }
 

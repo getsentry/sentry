@@ -89,7 +89,7 @@ describe('DisabledAlert', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'You do not have permission to edit this alert. Ask your organization owner or manager to enable alert access for you.'
+          'You do not have permission to create or edit alerts. Ask your organization owner or manager to enable alert access for you.'
         )
       )
     ).toBeInTheDocument();

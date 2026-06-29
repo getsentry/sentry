@@ -498,6 +498,76 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert len(response.data) == 1
 
+    def test_query_by_created_by_me(self) -> None:
+        self.workflow.update(created_by_id=self.user.id)
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "created_by:me"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+    def test_query_by_created_by_email(self) -> None:
+        other_user = self.create_user(email="other@example.com")
+        self.workflow.update(created_by_id=self.user.id)
+        self.workflow_two.update(created_by_id=other_user.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"created_by:{self.user.email}"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+        response2 = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"created_by:{other_user.email}"}
+        )
+        assert len(response2.data) == 1
+        assert response2.data[0]["id"] == str(self.workflow_two.id)
+
+    def test_query_by_created_by_negation(self) -> None:
+        self.workflow.update(created_by_id=self.user.id)
+        self.workflow_two.update(created_by_id=self.user.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"!created_by:{self.user.email}"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow_three.id)
+
+    def test_query_by_created_by_multiple(self) -> None:
+        other_user = self.create_user(email="other@example.com")
+        self.workflow.update(created_by_id=self.user.id)
+        self.workflow_two.update(created_by_id=other_user.id)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": f"created_by:[{self.user.email},{other_user.email}]"},
+        )
+        assert len(response.data) == 2
+        assert {w["id"] for w in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_two.id),
+        }
+
+    def test_query_by_created_by_negated_list(self) -> None:
+        other_user = self.create_user(email="other@example.com")
+        self.workflow.update(created_by_id=self.user.id)
+        self.workflow_two.update(created_by_id=other_user.id)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": f"!created_by:[{self.user.email},{other_user.email}]"},
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow_three.id)
+
+    def test_query_by_created_by_invalid_user(self) -> None:
+        self.workflow.update(created_by_id=self.user.id)
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": "created_by:nonexistent@example.com"},
+        )
+        assert len(response.data) == 0
+
 
 @cell_silo_test
 class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkflowTest):
@@ -601,6 +671,17 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         new_workflow = Workflow.objects.get(id=response.data["id"])
         assert response.data == serialize(new_workflow)
 
+    def test_create_workflow__no_config(self) -> None:
+        del self.valid_workflow["config"]
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 201
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(new_workflow)
+
     def test_create_workflow__with_triggers(self) -> None:
         # TODO: the basic condition is not actually a trigger, it's an actionFilter
         # we should restrict the Condition types to be passed through a trigger
@@ -643,6 +724,91 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             self.organization.slug, raw_data=self.valid_workflow, status_code=400
         )
         assert "logic type must be 'any-short'" in str(response.data).lower()
+
+    def test_create_workflow__assigned_to_in_org(self) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.ASSIGNED_TO.value,
+                        "comparison": {"targetType": "Team", "targetIdentifier": self.team.id},
+                        "conditionResult": True,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+        assert response.status_code == 201
+
+    def test_create_workflow__assigned_to_foreign_team(self) -> None:
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.ASSIGNED_TO.value,
+                        "comparison": {"targetType": "Team", "targetIdentifier": other_team.id},
+                        "conditionResult": True,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+        assert "not part of the organization" in str(response.data).lower()
+
+    def test_create_workflow__assigned_to_foreign_member(self) -> None:
+        other_org = self.create_organization()
+        other_user = self.create_user()
+        self.create_member(organization=other_org, user=other_user)
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.ASSIGNED_TO.value,
+                        "comparison": {"targetType": "Member", "targetIdentifier": other_user.id},
+                        "conditionResult": True,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+        assert "not part of the organization" in str(response.data).lower()
+
+    def test_create_workflow__assigned_to_foreign_team_in_trigger(self) -> None:
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+        self.valid_workflow["triggers"] = {
+            "logicType": "any",
+            "conditions": [
+                {
+                    "type": Condition.ASSIGNED_TO.value,
+                    "comparison": {"targetType": "Team", "targetIdentifier": other_team.id},
+                    "conditionResult": True,
+                }
+            ],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+        assert "not part of the organization" in str(response.data).lower()
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.action_validator_registry.get",
@@ -1107,6 +1273,49 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         # Verify the other org's condition group was not modified
         other_dcg.refresh_from_db()
         assert other_dcg.conditions.count() == original_condition_count
+
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_create_workflow__activity_trigger_rejects_unsupported_action(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "any",
+            "conditions": [
+                {
+                    "type": Condition.SEER_ACTIVITY_TRIGGER,
+                    "comparison": ["rca_started"],
+                    "conditionResult": True,
+                }
+            ],
+        }
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [
+                    {
+                        "type": Action.Type.PAGERDUTY,
+                        "config": {
+                            "targetIdentifier": "test",
+                            "targetDisplay": "Test",
+                            "targetType": "specific",
+                        },
+                        "data": {},
+                        "integrationId": self.integration.id,
+                    },
+                ],
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+            status_code=400,
+        )
+        assert "not supported for activity triggers" in str(response.data)
 
 
 @cell_silo_test

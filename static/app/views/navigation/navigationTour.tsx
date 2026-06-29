@@ -10,7 +10,8 @@ import {
 
 import NavigationTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {useModal} from '@sentry/scraps/modal';
+
 import {
   TourAction,
   TourContextProvider,
@@ -29,6 +30,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
+import {DashboardFilter} from 'sentry/views/dashboards/types';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
@@ -181,24 +184,34 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
             navigate(target, {replace: true});
           }
           break;
-        case NavigationTour.DASHBOARDS:
-          if (activeGroup !== 'dashboards') {
-            const target = normalizeUrl({
-              pathname: `/${prefix}/dashboards/`,
-              query: {referrer: NAVIGATION_TOUR_REFERRER},
-            });
-            navigate(target, {replace: true});
-          }
+        case NavigationTour.DASHBOARDS: {
+          const target = normalizeUrl({
+            pathname: `/${prefix}/dashboards/`,
+            query: {referrer: NAVIGATION_TOUR_REFERRER},
+          });
+          navigate(target, {replace: true});
           break;
-        case NavigationTour.INSIGHTS:
-          if (activeGroup !== 'insights') {
-            const target = normalizeUrl({
-              pathname: `/${prefix}/insights/frontend/`,
-              query: {referrer: NAVIGATION_TOUR_REFERRER},
-            });
-            navigate(target, {replace: true});
-          }
+        }
+        case NavigationTour.INSIGHTS: {
+          const hasPrebuiltDashboards = organization.features.includes(
+            'dashboards-prebuilt-insights-dashboards'
+          );
+          const target = hasPrebuiltDashboards
+            ? normalizeUrl({
+                pathname: `/${prefix}/dashboards/`,
+                query: {
+                  filter: DashboardFilter.ONLY_PREBUILT,
+                  sort: DEFAULT_PREBUILT_SORT,
+                  referrer: NAVIGATION_TOUR_REFERRER,
+                },
+              })
+            : normalizeUrl({
+                pathname: `/${prefix}/insights/frontend/`,
+                query: {referrer: NAVIGATION_TOUR_REFERRER},
+              });
+          navigate(target, {replace: true});
           break;
+        }
         case NavigationTour.SETTINGS:
           if (activeGroup !== 'settings') {
             const target = normalizeUrl({
@@ -301,6 +314,8 @@ export function NavigationTourReminder(props: NavigationTourReminderProps) {
 
 // Displays the introductory tour modal when a user is entering the experience for the first time.
 export function useNavigationTourModal() {
+  const {openModal} = useModal();
+
   const user = useUser();
   const organization = useOrganization();
   const hasOpenedTourModal = useRef(false);
@@ -371,6 +386,7 @@ export function useNavigationTourModal() {
     endTour,
     organization,
     dismissTour,
+    openModal,
   ]);
 }
 

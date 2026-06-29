@@ -19,6 +19,9 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.notification_action.grouptype import get_test_notification_event_data
 from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.plugins import HIDDEN_PLUGINS
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.workflow_engine.endpoints.organization_workflow_index import (
     OrganizationWorkflowPermission,
 )
@@ -32,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 class TestActionsValidator(CamelSnakeSerializer[Any]):
     actions = serializers.ListField(required=True)
+    project_slug = serializers.CharField(required=False)
 
     def validate_actions(self, value: Any) -> Any:
         validated_actions = []
@@ -54,8 +58,17 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.ALERTS_MONITORS
     permission_classes = (OrganizationWorkflowPermission,)
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.USER: RateLimit(limit=10, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=50, window=60),
+            }
+        }
+    )
 
     @extend_schema(
         operation_id="Test Fire Actions",
@@ -85,17 +98,17 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return Response(status=HTTP_401_UNAUTHORIZED)
 
-        # Get the alphabetically first project associated with the organization
-        # This is because we don't have a project when test firing actions
-        project = (
-            Project.objects.filter(
-                organization=organization,
-                teams__organizationmember__user_id=request.user.id,
-                status=ObjectStatus.ACTIVE,
-            )
-            .order_by("name")
-            .first()
-        )
+        qs = Project.objects.filter(
+            organization=organization,
+            teams__organizationmember__user_id=request.user.id,
+            status=ObjectStatus.ACTIVE,
+        ).order_by("slug")
+
+        project_slug = data.get("project_slug")
+        if project_slug:
+            qs = qs.filter(slug=project_slug)
+
+        project = qs.first()
 
         if not project:
             return Response(
@@ -123,6 +136,13 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project) -> tuple[
     )
 
     for action_data in actions:
+        target_identifier = action_data.get("config", {}).get("target_identifier")
+        if action_data.get("type") == Action.Type.WEBHOOK and target_identifier in HIDDEN_PLUGINS:
+            action_exceptions.append(
+                f"The {target_identifier} plugin has been deprecated and cannot send notifications."
+            )
+            continue
+
         # Create a temporary Action object (not saved to database)
         action = Action(
             id=TEST_NOTIFICATION_ID,
@@ -132,11 +152,8 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project) -> tuple[
             config=action_data.get("config", {}),
         )
 
-        # Annotate the action with the workflow id
-        setattr(action, "workflow_id", workflow_id)
-
         # Test fire the action and collect any exceptions
-        exceptions = test_fire_action(action, workflow_event_data)
+        exceptions = test_fire_action(action, workflow_event_data, workflow_id=workflow_id)
         if exceptions:
             action_exceptions.extend(exceptions)
 

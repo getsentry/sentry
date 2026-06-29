@@ -12,8 +12,8 @@ import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment, IssueCategory, IssueType} from './group';
-import type {PlatformKey} from './project';
+import type {IssueAttachment, IssueCategory, IssueType, UserReport} from './group';
+import type {PlatformKey} from './platform';
 import type {Release} from './release';
 import type {StackTraceMechanism, StacktraceType} from './stacktrace';
 
@@ -29,13 +29,6 @@ export type EventGroupComponent = {
   name: string | null;
   values: EventGroupComponent[] | string[];
 };
-export type EventGroupingConfig = {
-  base: string | null;
-  delegates: string[];
-  id: string;
-  strategies: string[];
-};
-
 type VariantEvidence = {
   desc: string;
   fingerprint: string;
@@ -78,7 +71,6 @@ interface ChecksumVariant extends BaseVariant {
 interface HasComponentGrouping {
   client_values?: string[];
   component?: EventGroupComponent;
-  config?: EventGroupingConfig;
   matched_rule?: string;
   values?: string[];
 }
@@ -280,7 +272,7 @@ export type EntryDebugMeta = {
   type: EntryType.DEBUGMETA;
 };
 
-export type EntryBreadcrumbs = {
+type EntryBreadcrumbs = {
   data: {
     values: RawCrumb[];
   };
@@ -441,6 +433,13 @@ export enum DeviceContextKey {
   SUPPORTS_LOCATION_SERVICE = 'supports_location_service',
   SUPPORTS_VIBRATION = 'supports_vibration',
   USABLE_MEMORY = 'usable_memory',
+  TIMEZONE = 'timezone',
+  LOCALE = 'locale',
+  ARCHS = 'archs',
+  CHIPSET = 'chipset',
+  CONNECTION_TYPE = 'connection_type',
+  LOW_POWER_MODE = 'low_power_mode',
+  THERMAL_STATE = 'thermal_state',
 }
 
 // https://develop.sentry.dev/sdk/event-payloads/contexts/#device-context
@@ -486,10 +485,16 @@ export interface DeviceContext
   [DeviceContextKey.SUPPORTS_LOCATION_SERVICE]?: boolean;
   [DeviceContextKey.SUPPORTS_VIBRATION]?: boolean;
   [DeviceContextKey.USABLE_MEMORY]?: number;
+  [DeviceContextKey.LOCALE]?: string;
+  [DeviceContextKey.ARCHS]?: string[];
+  [DeviceContextKey.CHIPSET]?: string;
+  [DeviceContextKey.CONNECTION_TYPE]?: string;
+  [DeviceContextKey.LOW_POWER_MODE]?: boolean;
+  // This field is deprecated in favour of timezone field in culture context
+  [DeviceContextKey.TIMEZONE]?: string;
+  [DeviceContextKey.THERMAL_STATE]?: string;
   // This field is deprecated in favour of locale field in culture context
   language?: string;
-  // This field is deprecated in favour of timezone field in culture context
-  timezone?: string;
 }
 
 enum RuntimeContextKey {
@@ -797,7 +802,7 @@ interface EventBase {
     version: string | null;
   } | null;
   sdkUpdates?: SDKUpdatesSuggestion[];
-  userReport?: any;
+  userReport?: UserReport | null;
 }
 
 interface TraceEventContexts extends EventContexts {

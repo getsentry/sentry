@@ -6,16 +6,9 @@ import {Stack} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
-import {toggleCommandPalette} from 'sentry/actionCreators/modal';
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {
-  useCommandPaletteState,
-  useCommandPaletteDispatch,
-} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import Hook from 'sentry/components/hook';
-import {IconSearch} from 'sentry/icons';
+import {Override} from 'sentry/components/override';
 import {
   IconCompass,
   IconDashboard,
@@ -54,17 +47,14 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components'
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function Navigation() {
   const collapsedNavigation = useCollapsedNavigation();
-  const hasPageFrame = useHasPageFrameFeature();
   const {view} = useSecondaryNavigation();
 
   const ref = useRef<HTMLUListElement | null>(null);
 
   const {layout} = usePrimaryNavigation();
-  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   useNavigationTourModal();
 
@@ -95,22 +85,20 @@ export function Navigation() {
           <PrimaryNavigationItems listRef={ref} />
         </PrimaryNavigation.List>
 
-        {!isMobilePageFrame && layout === 'mobile' ? null : (
-          <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
-            <Stack
-              gap={layout === 'mobile' ? undefined : 'md'}
-              marginTop="auto"
-              paddingBottom="md"
-            >
-              <PrimaryNavigation.FooterItems>
-                <PrimaryNavigationFooterItems />
-              </PrimaryNavigation.FooterItems>
-              <PrimaryNavigation.FooterItems>
-                <PrimaryNavigationFooterItemsUserDropdown />
-              </PrimaryNavigation.FooterItems>
-            </Stack>
-          </SizeProvider>
-        )}
+        <SizeProvider size="sm">
+          <Stack
+            gap={layout === 'mobile' ? undefined : 'md'}
+            marginTop="auto"
+            paddingBottom="md"
+          >
+            <PrimaryNavigation.FooterItems>
+              <PrimaryNavigationFooterItems />
+            </PrimaryNavigation.FooterItems>
+            <PrimaryNavigation.FooterItems>
+              <PrimaryNavigationFooterItemsUserDropdown />
+            </PrimaryNavigation.FooterItems>
+          </Stack>
+        </SizeProvider>
       </PrimaryNavigation.Sidebar>
 
       {isCollapsed ? (
@@ -146,7 +134,6 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const prefix = `organizations/${organization.slug}`;
 
   const fallbackRef = useRef<HTMLUListElement>(null);
-  const hasPageFrame = useHasPageFrameFeature();
 
   const makeNavigationItemProps = useActivateNavigationGroupOnHover({
     ref: listRef ?? fallbackRef,
@@ -196,7 +183,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
 
       <Feature
         features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
-        hookName="feature-disabled:dashboards-sidebar-item"
+        overrideName="feature-disabled:dashboards-sidebar-item"
         requireAll={false}
       >
         <NavigationTourElement
@@ -226,38 +213,34 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         </NavigationTourElement>
       </Feature>
 
-      <Feature features={['performance-view']}>
-        <NavigationTourElement
-          id={NavigationTour.INSIGHTS}
-          title={null}
-          description={null}
-        >
-          {tourProps => (
-            <PrimaryNavigation.ListItem>
-              <PrimaryNavigation.Link
-                to={`/${prefix}/insights/`}
-                analyticsKey="insights"
-                label={t('Insights')}
-                {...mergeProps(
-                  makeNavigationItemProps(
-                    'insights',
-                    `/${prefix}/insights/`,
-                    `/${prefix}/insights`
-                  ),
-                  tourProps
-                )}
-              >
-                <IconGraph type="area" />
-              </PrimaryNavigation.Link>
-            </PrimaryNavigation.ListItem>
-          )}
-        </NavigationTourElement>
-      </Feature>
-
-      {hasPageFrame ? null : (
-        <PrimaryNavigation.ListItem padding="0 md">
-          <PrimaryNavigation.Separator />
-        </PrimaryNavigation.ListItem>
+      {!organization.features.includes('insights-to-dashboards-ui-rollout') && (
+        <Feature features={['performance-view']}>
+          <NavigationTourElement
+            id={NavigationTour.INSIGHTS}
+            title={null}
+            description={null}
+          >
+            {tourProps => (
+              <PrimaryNavigation.ListItem>
+                <PrimaryNavigation.Link
+                  to={`/${prefix}/insights/`}
+                  analyticsKey="insights"
+                  label={t('Insights')}
+                  {...mergeProps(
+                    makeNavigationItemProps(
+                      'insights',
+                      `/${prefix}/insights/`,
+                      `/${prefix}/insights`
+                    ),
+                    tourProps
+                  )}
+                >
+                  <IconGraph type="area" />
+                </PrimaryNavigation.Link>
+              </PrimaryNavigation.ListItem>
+            )}
+          </NavigationTourElement>
+        </Feature>
       )}
 
       <Feature features={['workflow-engine-ui']}>
@@ -269,7 +252,6 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
             {...makeNavigationItemProps('monitors', `/${prefix}/monitors/`)}
           >
             <IconSiren />
-            <PrimaryNavigation.ButtonFeatureBadge type="alpha" />
           </PrimaryNavigation.Link>
         </PrimaryNavigation.ListItem>
       </Feature>
@@ -304,40 +286,20 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
  */
 export function PrimaryNavigationFooterItems() {
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
-
-  const state = useCommandPaletteState();
-  const dispatch = useCommandPaletteDispatch();
 
   return (
     <Fragment>
-      {hasPageFrame ? (
-        <PrimaryNavigation.Button
-          label={t('Search support, docs and more')}
-          analyticsKey="search"
-          buttonProps={{
-            icon: <IconSearch />,
-            onClick: () => {
-              if (organization.features.includes('cmd-k-supercharged')) {
-                toggleCommandPalette({}, organization, state, dispatch, 'button');
-              } else {
-                openHelpSearchModal({organization});
-              }
-            },
-          }}
-        />
-      ) : null}
       <ErrorBoundary customComponent={null}>
         <PrimaryNavigationOnboarding />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
-        <Hook name="sidebar:try-business" organization={organization} />
+        <Override name="sidebar:try-business" organization={organization} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
-        <Hook name="sidebar:seer-config-reminder" organization={organization} />
+        <Override name="sidebar:seer-config-reminder" organization={organization} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
-        <Hook name="sidebar:billing-status" organization={organization} />
+        <Override name="sidebar:billing-status" organization={organization} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
         <PrimaryNavigationServiceIncidents />

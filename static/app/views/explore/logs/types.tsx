@@ -78,7 +78,7 @@ type OurLogsKnownFieldResponseMap = Record<
   [OurLogKnownFieldKey.PROJECT_ID]: string;
   [OurLogKnownFieldKey.TIMESTAMP]: string;
   [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: string | number;
-  [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: string | number;
+  [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]?: string | number;
 };
 
 type OurLogsCustomFieldResponseMap = Record<OurLogCustomFieldKey, string | number>;

@@ -21,6 +21,7 @@ import {
 import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import {
   isSizeInfoCompleted,
@@ -41,6 +42,12 @@ interface BuildCompareHeaderContentProps {
   isRerunning?: boolean;
   onRerunComparison?: () => void;
 }
+
+const buildCompareFeedbackOptions = {
+  tags: {
+    'feedback.source': 'preprod.buildDetails',
+  },
+};
 
 export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
   const {buildDetails, headArtifactId, baseArtifactId, onRerunComparison, isRerunning} =
@@ -141,13 +148,15 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
         </Flex>
       </Stack>
       <Flex align="center" gap="sm">
-        <FeedbackButton
-          feedbackOptions={{
-            tags: {
-              'feedback.source': 'preprod.buildDetails',
-            },
-          }}
-        />
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            feedbackOptions={buildCompareFeedbackOptions}
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
         {isSentryEmployee &&
           headArtifactId &&
           baseArtifactId &&

@@ -191,7 +191,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
         sdk_span_mock = Mock()
         _detect_performance_problems(event, sdk_span_mock, self.create_project())
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+        sdk_span_mock.set_tag.assert_has_calls(
             [
                 call("_pi_all_issue_count", 1),
                 call("_pi_sdk_name", "sentry.javascript.node"),
@@ -222,7 +222,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         settings = get_detection_settings(project)
         detector = self.detector(settings[self.detector.settings_key], event)
 
-        assert detector.is_creation_allowed_for_project(project)
+        assert detector.is_creation_allowed()
 
         ProjectOption.objects.set_value(
             project=project,
@@ -233,7 +233,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         settings = get_detection_settings(project)
         detector = self.detector(settings[self.detector.settings_key], event)
 
-        assert not detector.is_creation_allowed_for_project(project)
+        assert not detector.is_creation_allowed()
 
     def test_respects_n_plus_one_db_duration_threshold(self) -> None:
         project = self.create_project()

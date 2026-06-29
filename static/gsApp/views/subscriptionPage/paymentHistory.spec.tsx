@@ -3,37 +3,31 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 import PaymentHistory from 'getsentry/views/subscriptionPage/paymentHistory';
 
 describe('Subscription > PaymentHistory', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/customers/dogz-rule/billing-config/`,
+      url: '/customers/dogz-rule/billing-config/',
       method: 'GET',
       body: BillingConfigFixture(PlanTier.AM1),
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/dogz-rule/promotions/trigger-check/`,
+      url: '/organizations/dogz-rule/promotions/trigger-check/',
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/customers/dogz-rule/plan-migrations/`,
-      query: {scheduled: 1, applied: 0},
+      url: '/customers/dogz-rule/recurring-credits/',
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/customers/dogz-rule/recurring-credits/`,
-      method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/dogz-rule/prompts-activity/`,
+      url: '/organizations/dogz-rule/prompts-activity/',
       body: {},
     });
   });
@@ -54,7 +48,6 @@ describe('Subscription > PaymentHistory', () => {
 
     render(<PaymentHistory />, {organization});
 
-    await screen.findByText('Receipts');
     expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
   });
 

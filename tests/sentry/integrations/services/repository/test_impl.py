@@ -160,3 +160,99 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
 
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.ACTIVE
+
+
+@cell_silo_test
+class DisableRepositoriesForIntegrationTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="1",
+            provider="github",
+        )
+        self.provider = "integrations:github"
+
+    def test_disables_matching_active_repos(self) -> None:
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/sentry",
+            external_id="100",
+            provider=self.provider,
+            integration_id=self.integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        repository_service.disable_repositories_for_integration(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            provider=self.provider,
+        )
+
+        repo.refresh_from_db()
+        assert repo.status == ObjectStatus.DISABLED
+
+
+@cell_silo_test
+class DisassociateOrganizationIntegrationTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="1",
+            provider="github",
+        )
+        self.provider = "integrations:github"
+        self.org_integration = self.integration.organizationintegration_set.first()
+
+    def test_disassociates_repos(self) -> None:
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/sentry",
+            external_id="100",
+            provider=self.provider,
+            integration_id=self.integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        repository_service.disassociate_organization_integration(
+            organization_id=self.organization.id,
+            organization_integration_id=self.org_integration.id,
+            integration_id=self.integration.id,
+        )
+
+        repo.refresh_from_db()
+        assert repo.integration_id is None
+
+
+@cell_silo_test
+class SerializeRepositoryTest(TestCase):
+    def test_returns_repository_in_same_organization(self) -> None:
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/sentry",
+            external_id="100",
+            provider="integrations:github",
+        )
+
+        result = repository_service.serialize_repository(
+            organization_id=self.organization.id,
+            id=repo.id,
+        )
+
+        assert result is not None
+        assert result["id"] == str(repo.id)
+
+    def test_returns_none_for_repository_in_other_organization(self) -> None:
+        other_org = self.create_organization()
+        repo = Repository.objects.create(
+            organization_id=other_org.id,
+            name="getsentry/sentry",
+            external_id="100",
+            provider="integrations:github",
+        )
+
+        result = repository_service.serialize_repository(
+            organization_id=self.organization.id,
+            id=repo.id,
+        )
+
+        assert result is None

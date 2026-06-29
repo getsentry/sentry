@@ -1,7 +1,10 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {AI_AGENTS_TOOLS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -41,7 +44,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          conditions: `${TOOL_SPANS_FILTER} ${SpanFields.SPAN_STATUS}:internal_error`,
+          conditions: `${TOOL_SPANS_FILTER} ${SpanFields.SPAN_STATUS}:[internal_error,error]`,
           fields: [SpanFields.GEN_AI_TOOL_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.GEN_AI_TOOL_NAME],
@@ -56,7 +59,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
-const TOOLS_TABLE = {
+const TOOLS_TABLE: PrebuiltWidget = {
   id: 'ai-agents-tools-table',
   title: t('Tools'),
   displayType: DisplayType.TABLE,
@@ -69,13 +72,13 @@ const TOOLS_TABLE = {
       fields: [
         SpanFields.GEN_AI_TOOL_NAME,
         'count()',
-        'equation|count_if(span.status,equals,internal_error)',
+        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
-        'equation|count_if(span.status,equals,internal_error)',
+        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],

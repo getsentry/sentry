@@ -13,6 +13,7 @@ import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
 import type {Project} from './project';
 import type {Relay} from './relay';
+import type {BaseRole, OrgRole, TeamRole} from './roles';
 import type {CodeReviewTrigger} from './seer';
 import type {User} from './user';
 
@@ -21,12 +22,7 @@ import type {User} from './user';
  */
 export interface OrganizationSummary {
   avatar: Avatar;
-  codecovAccess: boolean;
   dateCreated: string;
-  features: string[];
-  githubNudgeInvite: boolean;
-  githubPRBot: boolean;
-  gitlabPRBot: boolean;
   hideAiFeatures: boolean;
   id: string;
   isEarlyAdopter: boolean;
@@ -72,6 +68,7 @@ export interface Organization extends OrganizationSummary {
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
+  features: string[];
   hasGranularReplayPermissions: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;
@@ -101,7 +98,6 @@ export interface Organization extends OrganizationSummary {
   streamlineOnly: boolean | null;
   targetSampleRate: number;
   teamRoleList: TeamRole[];
-  trustedRelays: Relay[];
   consoleSdkInviteQuota?: number;
   dashboardsAsyncQueueParallelLimit?: number;
   defaultAutofixAutomationTuning?:
@@ -115,7 +111,6 @@ export interface Organization extends OrganizationSummary {
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
   enableSeerCoding?: boolean;
-  enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];
   experiments?: Record<string, string>;
   extraOptions?: {
@@ -127,6 +122,7 @@ export interface Organization extends OrganizationSummary {
   ingestThroughTrustedRelaysOnly?: 'enabled' | 'disabled';
   orgRole?: string;
   planSampleRate?: number | null;
+  trustedRelays?: Relay[];
 }
 
 export interface Team {
@@ -150,25 +146,7 @@ export interface DetailedTeam extends Team {
   projects: Project[];
 }
 
-export interface BaseRole {
-  desc: string;
-  id: string;
-  name: string;
-  isAllowed?: boolean;
-  isRetired?: boolean;
-  isTeamRolesAllowed?: boolean;
-}
-export interface OrgRole extends BaseRole {
-  minimumTeamRole: string;
-  isGlobal?: boolean;
-  /**
-   * @deprecated use isGlobal
-   */
-  is_global?: boolean;
-}
-export interface TeamRole extends BaseRole {
-  isMinimumRoleFor: string;
-}
+export type {BaseRole, OrgRole, TeamRole};
 
 /**
  * Returned from /organizations/org/users/
@@ -418,29 +396,4 @@ export enum SessionStatus {
   ERRORED = 'errored',
   UNHANDLED = 'unhandled',
   CRASHED = 'crashed',
-}
-
-interface IssuesMetricsTimeseries {
-  axis: 'new_issues_count' | 'resolved_issues_count' | 'new_issues_count_by_release';
-  groupBy: string[];
-  meta: {
-    interval: number;
-    isOther: boolean;
-    order: number;
-    valueType: string;
-    valueUnit: null | string;
-  };
-  values: Array<{
-    timestamp: number;
-    value: number;
-  }>;
-}
-
-export interface IssuesMetricsApiResponse {
-  meta: {
-    dataset: string;
-    end: number;
-    start: number;
-  };
-  timeseries: IssuesMetricsTimeseries[];
 }

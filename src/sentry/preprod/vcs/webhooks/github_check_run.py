@@ -22,8 +22,8 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
 )
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
     APPROVE_SNAPSHOT_ACTION_IDENTIFIER,
-    create_preprod_snapshot_status_check_task,
 )
+from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -112,7 +112,7 @@ def handle_preprod_check_run_event(
     except PreprodArtifact.DoesNotExist:
         logger.warning(
             Log.ARTIFACT_NOT_FOUND,
-            extra={**extra, "artifact_id": artifact_id},
+            extra={**extra, "preprod_artifact_id": artifact_id},
         )
         metrics.incr(Log.ARTIFACT_NOT_FOUND)
         return
@@ -194,7 +194,7 @@ def handle_preprod_check_run_event(
         Log.APPROVALS_CREATED,
         extra={
             **extra,
-            "artifact_id": artifact_id,
+            "preprod_artifact_id": artifact_id,
             "sibling_count": len(sibling_artifacts),
             "approvals_created": approvals_created,
         },
@@ -211,6 +211,7 @@ def handle_preprod_check_run_event(
                 project_id=artifact.project_id,
                 artifact_id=artifact.id,
                 product=product_name,
+                source="vcs",
             )
         )
 
@@ -220,7 +221,7 @@ def handle_preprod_check_run_event(
             caller="github_approve_webhook",
         )
     elif identifier == APPROVE_SNAPSHOT_ACTION_IDENTIFIER:
-        create_preprod_snapshot_status_check_task(
+        update_preprod_snapshot_vcs(
             preprod_artifact_id=artifact.id,
             caller="github_approve_webhook",
         )

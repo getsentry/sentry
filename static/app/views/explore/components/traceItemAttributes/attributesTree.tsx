@@ -7,11 +7,11 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -418,7 +418,7 @@ function AttributesTreeRowDropdown({
   ];
 
   // Add external link option if the value is a URL
-  if (isUrl(String(content.value))) {
+  if (isValidUrl(String(content.value))) {
     items.push({
       key: 'external-link',
       label: t('Visit this external link'),
@@ -546,7 +546,7 @@ const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
   display: grid;
   height: 100%;
   align-items: center;
-  grid-template-columns: ${p => (p.spacerCount > 0 ? `auto 1rem 1fr` : '1fr')};
+  grid-template-columns: ${p => (p.spacerCount > 0 ? 'auto 1rem 1fr' : '1fr')};
 `;
 
 const TreeValueTrunk = styled('div')`
@@ -555,7 +555,7 @@ const TreeValueTrunk = styled('div')`
   height: 100%;
   align-items: center;
   min-height: 22px;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   grid-column-gap: ${p => p.theme.space.xs};
 `;
 

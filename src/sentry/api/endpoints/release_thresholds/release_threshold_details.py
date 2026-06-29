@@ -12,6 +12,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.models.project import Project
 from sentry.models.release_threshold.constants import (
     THRESHOLD_TYPE_STR_TO_INT,
@@ -52,7 +53,7 @@ class ReleaseThresholdPUTSerializer(serializers.Serializer[ReleaseThresholdPUTDa
 @cell_silo_endpoint
 class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
-    owner: ApiOwner = ApiOwner.ENTERPRISE
+    owner: ApiOwner = ApiOwner.REPLAY
     publish_status = {
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -66,9 +67,12 @@ class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
+        validated_id = to_valid_int_id(
+            "release_threshold", kwargs["release_threshold"], raise_404=True
+        )
         try:
             parsed_kwargs["release_threshold"] = ReleaseThreshold.objects.get(
-                id=kwargs["release_threshold"],
+                id=validated_id,
                 project=parsed_kwargs["project"],
             )
         except ReleaseThreshold.DoesNotExist:

@@ -97,7 +97,7 @@ function BoundTooltip({
     canvas.physicalToLogicalSpace
   );
 
-  const containerBoundsRef = useRef<Rect>(DEFAULT_BOUNDS);
+  const containerBoundsRef = useRef(DEFAULT_BOUNDS);
 
   if (containerBoundsRef.current.isEmpty()) {
     // using the innerWidth and innerHeight here because we only want the size of the visible portions

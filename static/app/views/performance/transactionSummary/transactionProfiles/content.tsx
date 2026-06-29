@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
@@ -27,15 +28,15 @@ import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {isEventedProfile, isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {
   FlamegraphProvider,
   useFlamegraph,
-} from 'sentry/views/profiling/flamegraphProvider';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
+} from 'sentry/views/explore/profiling/flamegraphProvider';
+import {ProfileGroupProvider} from 'sentry/views/explore/profiling/profileGroupProvider';
 
 const PROFILE_TYPE = 'transaction aggregate flamegraph';
 
@@ -78,24 +79,16 @@ interface TransactionProfilesContentProps {
 
 export function TransactionProfilesContent(props: TransactionProfilesContentProps) {
   const organization = useOrganization();
-  const isEAP = useTransactionSummaryEAP();
 
   const query = useMemo(() => {
-    if (!isEAP) {
-      return props.query;
-    }
-
-    // EAP and profiles disagree about the attribute for HTTP method. The
-    // transaction summary uses `request.method`, but profiles uses
-    // `http.method`.
     const search = new MutableSearch(props.query);
     search.renameFilter('request.method', 'http.method');
     return search.formatString();
-  }, [props.query, isEAP]);
+  }, [props.query]);
 
-  const {data, status} = useAggregateFlamegraphQuery({
+  const {data, error, status} = useAggregateFlamegraphQuery({
     query,
-    ...(isEAP ? {dataSource: 'spans' as const} : {}),
+    dataSource: 'spans',
   });
 
   const [frameFilter, setFrameFilter] = useLocalStorageState<
@@ -181,6 +174,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   {visualization === 'flamegraph' ? (
                     <AggregateFlamegraph
                       status={status}
+                      queryError={status === 'error' ? error : null}
                       filter={frameFilter}
                       onResetFilter={onResetFrameFilter}
                       canvasPoolManager={canvasPoolManager}
@@ -202,11 +196,19 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   <RequestStateMessageContainer>
                     <LoadingIndicator />
                   </RequestStateMessageContainer>
-                ) : status === 'error' ? (
+                ) : status === 'error' && visualization !== 'flamegraph' ? (
                   <RequestStateMessageContainer>
-                    {t('There was an error loading the flamegraph.')}
+                    <Stack align="center" gap="md" role="alert">
+                      <Text bold>{t('Error loading flamegraph')}</Text>
+                      <Text>
+                        {getRequestErrorUserMessage(
+                          error,
+                          t('There was an error loading the flamegraph.')
+                        )}
+                      </Text>
+                    </Stack>
                   </RequestStateMessageContainer>
-                ) : isEmpty(data) && visualization !== 'flamegraph' ? (
+                ) : data && isEmpty(data) && visualization !== 'flamegraph' ? (
                   <RequestStateMessageContainer>
                     {t('No profiling data found')}
                   </RequestStateMessageContainer>
@@ -251,13 +253,13 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
       ];
     }, []);
 
-  const onResetZoom = useCallback(() => {
+  const onResetZoom = () => {
     props.scheduler.dispatch('reset zoom');
     trackAnalytics('profiling_views.aggregate_flamegraph.zoom.reset', {
       organization,
       profile_type: 'transaction aggregate flamegraph',
     });
-  }, [props.scheduler, organization]);
+  };
 
   const onFrameFilterChange = useCallback(
     (value: {value: 'application' | 'system' | 'all'}) => {
@@ -322,8 +324,8 @@ const CollapseExpandButton = styled(Button)`
 function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
   return (
     <Flex>
-      <IconChevron style={{marginRight: `-3px`}} {...props} />
-      <IconChevron style={{marginLeft: `-3px`}} {...props} />
+      <IconChevron style={{marginRight: '-3px'}} {...props} />
+      <IconChevron style={{marginLeft: '-3px'}} {...props} />
     </Flex>
   );
 }

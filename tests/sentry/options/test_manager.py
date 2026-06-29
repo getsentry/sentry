@@ -17,6 +17,7 @@ from sentry.options.manager import (
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
     FLAG_STOREONLY,
+    READ_HOOK_FALLBACK,
     NotWritableReason,
     OptionsManager,
     UnknownOption,
@@ -401,3 +402,74 @@ class OptionsManagerTest(TestCase):
         assert opt.has_any_flag({FLAG_NOSTORE})
         assert opt.has_any_flag({FLAG_NOSTORE, FLAG_REQUIRED})
         assert not opt.has_any_flag({FLAG_REQUIRED})
+
+    @patch("sentry.utils.metrics.timer")
+    def test_get_metric_source_store(self, mock_timer) -> None:
+        self.manager.set("foo", "bar")
+        self.store.flush_local_cache()
+        self.manager.get("foo")
+
+        mock_timer.assert_called()
+        call_args = mock_timer.call_args
+        assert call_args[0][0] == "options.store.get"
+        assert "region" in call_args[1]["tags"]
+
+        ctx = mock_timer.return_value.__enter__.return_value
+        ctx.__setitem__.assert_any_call("source", "store")
+
+    @patch("sentry.utils.metrics.timer")
+    def test_get_metric_source_disk(self, mock_timer) -> None:
+        self.manager.register("disk_opt", flags=FLAG_PRIORITIZE_DISK)
+        with self.settings(SENTRY_OPTIONS={"disk_opt": "val"}):
+            self.manager.get("disk_opt")
+
+        ctx = mock_timer.return_value.__enter__.return_value
+        ctx.__setitem__.assert_any_call("source", "disk")
+
+    @patch("sentry.utils.metrics.timer")
+    def test_get_metric_source_default(self, mock_timer) -> None:
+        self.manager.delete("foo")
+        self.store.flush_local_cache()
+        self.manager.get("foo")
+
+        ctx = mock_timer.return_value.__enter__.return_value
+        ctx.__setitem__.assert_any_call("source", "default")
+
+    def test_read_hook_serves_get_and_isset(self) -> None:
+        # A value that lives only in the hook is served by get(), and isset() must
+        # agree — the option has a value, just from the new source.
+        self.manager.register("hooked", flags=FLAG_AUTOMATOR_MODIFIABLE)
+        self.manager.set_read_hook(
+            lambda key, opt: "served" if key == "hooked" else READ_HOOK_FALLBACK
+        )
+        try:
+            assert self.manager.get("hooked") == "served"
+            assert self.manager.isset("hooked") is True
+        finally:
+            self.manager.set_read_hook(None)
+            self.manager.unregister("hooked")
+
+    def test_read_hook_fallback_uses_legacy(self) -> None:
+        self.manager.set_read_hook(lambda key, opt: READ_HOOK_FALLBACK)
+        try:
+            # isset() before get(): get() would repopulate the cache and make
+            # isset() report True regardless (see its docstring).
+            assert self.manager.isset("foo") is False
+            assert self.manager.get("foo") == ""
+        finally:
+            self.manager.set_read_hook(None)
+
+    def test_read_hook_does_not_corrupt_can_update_drift(self) -> None:
+        # Writability/drift must be judged against the stored value, never a hook
+        # override. A CLI-set value re-asserted by the automator is allowed; if
+        # drift read the (different) hook value instead, it would falsely DRIFT.
+        self.manager.register("hooked", type=String, flags=FLAG_AUTOMATOR_MODIFIABLE)
+        self.manager.set("hooked", "stored", channel=UpdateChannel.CLI)
+        self.manager.set_read_hook(
+            lambda key, opt: "hook-value" if key == "hooked" else READ_HOOK_FALLBACK
+        )
+        try:
+            assert self.manager.can_update("hooked", "stored", UpdateChannel.AUTOMATOR) is None
+        finally:
+            self.manager.set_read_hook(None)
+            self.manager.unregister("hooked")

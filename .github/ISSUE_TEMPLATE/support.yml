@@ -5,7 +5,7 @@ body:
     attributes:
       value: |-
         ## Private Info?
-        Use our [private support channel](https://sentry.zendesk.com/hc/en-us/requests/new).
+        Use our [private support channel](https://www.sentry.help/).
     validations:
       required: false
   - type: markdown

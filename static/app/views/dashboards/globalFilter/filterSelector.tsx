@@ -1,5 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import xor from 'lodash/xor';
 
@@ -10,10 +12,11 @@ import {
   MenuComponents,
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {
@@ -22,7 +25,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {
-  escapeTagValue,
+  escapeTagValueForSearch,
   getFilterValueType,
   OP_LABELS,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -37,15 +40,11 @@ import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
-import {
-  FilterSelectorTrigger,
-  FilterValueTruncated,
-} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
+import {FilterSelectorTrigger} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import {
   getFieldDefinitionForDataset,
   getFilterToken,
@@ -95,7 +94,7 @@ export function FilterSelector({
     const initialValue = globalFilter.value
       ? getInitialInputValue(filterToken, true)
       : '';
-    const selectedValues = getSelectedValuesFromText(initialValue, {escaped: false});
+    const selectedValues = getSelectedValuesFromText(initialValue);
     return selectedValues.map(item => item.value);
   }, [filterToken, globalFilter.value]);
 
@@ -124,8 +123,8 @@ export function FilterSelector({
     };
   }, [filterToken, fieldDefinition]);
 
-  const [stagedOperator, setStagedOperator] = useState<TermOperator>(initialOperator);
-  const [activeFilterValues, setActiveFilterValues] = useState<string[]>(initialValues);
+  const [stagedOperator, setStagedOperator] = useState(initialOperator);
+  const [activeFilterValues, setActiveFilterValues] = useState(initialValues);
   const [stagedFilterValues, setStagedFilterValues] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -187,7 +186,10 @@ export function FilterSelector({
   const queryResult = useQuery({
     queryKey,
     queryFn: async ctx => {
-      const result = await searchBarData.getTagValues(ctx.queryKey[1], ctx.queryKey[3]);
+      const result = await searchBarData.getTagValues({
+        tag: ctx.queryKey[1],
+        searchQuery: ctx.queryKey[3],
+      });
       return result ?? [];
     },
     placeholderData: keepPreviousData,
@@ -210,9 +212,20 @@ export function FilterSelector({
     const optionMap = new Map<string, SelectOption<string>>();
     const fixedOptionMap = new Map<string, SelectOption<string>>();
     const addOption = (value: string, map: Map<string, SelectOption<string>>) => {
+      if (typeof value !== 'string') {
+        Sentry.withScope(scope => {
+          scope.setExtra('value', value);
+          scope.setExtra('filterKey', globalFilter.tag.key);
+          Sentry.captureException(
+            new Error('Dashboard filter addOption received a non-string value')
+          );
+        });
+        return;
+      }
       const option: SelectOption<string> = {
         label: middleEllipsis(value, 70, /[\s-_:]/),
         value,
+        textValue: value,
       };
 
       // Only add checkboxes for multi-select mode
@@ -240,7 +253,9 @@ export function FilterSelector({
       );
     });
     // Filter values fetched using getTagValues
-    fetchedFilterValues?.forEach(value => addOption(value, optionMap));
+    fetchedFilterValues?.forEach(value =>
+      addOption(typeof value === 'string' ? value : value.value, optionMap)
+    );
 
     // Allow setting a custom filter value based on search input
     if (searchQuery && !optionMap.has(searchQuery)) {
@@ -260,6 +275,7 @@ export function FilterSelector({
     stagedFilterValues,
     searchQuery,
     canSelectMultipleValues,
+    globalFilter.tag.key,
   ]);
 
   const translatedOptions = translateKnownFilterOptions(options, globalFilter);
@@ -286,7 +302,7 @@ export function FilterSelector({
     if (opts.length !== 0) {
       const cleanedValue = prepareInputValueForSaving(
         getFilterValueType(filterToken, fieldDefinition),
-        opts.map(opt => escapeTagValue(opt, {allowArrayValue: false})).join(',')
+        opts.map(opt => escapeTagValueForSearch(opt, {allowArrayValue: false})).join(',')
       );
       newValue = modifyFilterValue(filterToken.text, filterToken, cleanedValue);
     }
@@ -329,9 +345,14 @@ export function FilterSelector({
       activeFilterValues={filterValues}
       operator={stagedOperator}
       options={translatedOptions}
-      queryResult={queryResult}
     />
   );
+
+  const loadingFooter = isFetching ? (
+    <Flex justify="center" padding="xs">
+      <FooterLoadingIndicator size={14} />
+    </Flex>
+  ) : null;
 
   if (!canSelectMultipleValues) {
     return (
@@ -347,6 +368,7 @@ export function FilterSelector({
         onClose={() => {
           setStagedFilterValues([]);
         }}
+        menuFooter={loadingFooter}
         menuTitle={
           <MenuTitleWrapper>
             {t('%s Filter', getDatasetLabel(globalFilter.dataset))}
@@ -376,11 +398,9 @@ export function FilterSelector({
           </Flex>
         )}
         trigger={triggerProps => (
-          <Container maxWidth={FILTER_SELECTOR_MAX_WIDTH}>
-            <OverlayTrigger.Button {...triggerProps}>
-              {renderFilterSelectorTrigger(activeFilterValues)}
-            </OverlayTrigger.Button>
-          </Container>
+          <OverlayTrigger.Button {...triggerProps}>
+            {renderFilterSelectorTrigger(activeFilterValues)}
+          </OverlayTrigger.Button>
         )}
       />
     );
@@ -388,7 +408,7 @@ export function FilterSelector({
 
   return (
     <CompactSelect
-      grid
+      mode="grid"
       multiple
       {...stagedSelect.compactSelectProps}
       search={{
@@ -410,17 +430,22 @@ export function FilterSelector({
         isFetching ? t('Loading filter values...') : t('No filter values found')
       }
       menuFooter={
-        hasStagedChanges ? (
-          <Flex gap="md" align="center" justify="end">
-            <MenuComponents.CancelButton
-              onClick={() => dispatch({type: 'remove staged'})}
-            />
-            <MenuComponents.ApplyButton
-              onClick={() => {
-                dispatch({type: 'remove staged'});
-                handleChange(stagedSelect.value);
-              }}
-            />
+        hasStagedChanges || isFetching ? (
+          <Flex direction="column" gap="md">
+            {loadingFooter}
+            {hasStagedChanges && (
+              <Flex gap="md" align="center" justify="end">
+                <MenuComponents.CancelButton
+                  onClick={() => dispatch({type: 'remove staged'})}
+                />
+                <MenuComponents.ApplyButton
+                  onClick={() => {
+                    dispatch({type: 'remove staged'});
+                    handleChange(stagedSelect.value);
+                  }}
+                />
+              </Flex>
+            )}
           </Flex>
         ) : null
       }
@@ -434,7 +459,7 @@ export function FilterSelector({
                   <FilterValueTruncated>
                     {prettifyTagKey(globalFilter.tag.key)}
                   </FilterValueTruncated>
-                  <Button {...triggerProps} size="zero" priority="transparent">
+                  <Button {...triggerProps} size="zero" variant="transparent">
                     <Flex gap="xs" align="center">
                       <SubText>{OP_LABELS[stagedOperator]}</SubText>
                       <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
@@ -470,11 +495,9 @@ export function FilterSelector({
         </Flex>
       )}
       trigger={triggerProps => (
-        <Container maxWidth={FILTER_SELECTOR_MAX_WIDTH}>
-          <OverlayTrigger.Button {...triggerProps}>
-            {renderFilterSelectorTrigger(activeFilterValues)}
-          </OverlayTrigger.Button>
-        </Container>
+        <OverlayTrigger.Button {...triggerProps}>
+          {renderFilterSelectorTrigger(activeFilterValues)}
+        </OverlayTrigger.Button>
       )}
     />
   );
@@ -488,20 +511,30 @@ const translateKnownFilterOptions = (
   const dataset = globalFilter.dataset;
 
   if (key === SpanFields.USER_GEO_SUBREGION && dataset === WidgetType.SPANS) {
-    return options.map(option => ({
-      ...option,
-      label: subregionCodeToName[option.value as SubregionCode] || option.label,
-    }));
+    return options.map(option => {
+      const translatedLabel =
+        subregionCodeToName[option.value as SubregionCode] || option.label;
+      return {
+        ...option,
+        label: translatedLabel,
+        textValue:
+          typeof translatedLabel === 'string' ? translatedLabel : option.textValue,
+      };
+    });
   }
   return options;
 };
-
-export const FILTER_SELECTOR_MAX_WIDTH = '300px';
 
 export const MenuTitleWrapper = styled('span')`
   display: inline-block;
   padding-top: ${p => p.theme.space.xs};
   padding-bottom: ${p => p.theme.space.xs};
+`;
+
+const FooterLoadingIndicator = styled(LoadingIndicator)`
+  && {
+    margin: 0;
+  }
 `;
 
 const OperatorFlex = styled(Flex)`
@@ -515,4 +548,13 @@ const WildcardButton = styled(Flex)`
 const SubText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
+`;
+
+const FilterValueTruncated = styled('div')`
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+  width: min-content;
 `;

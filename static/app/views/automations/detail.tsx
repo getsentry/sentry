@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -22,8 +22,8 @@ import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -34,56 +34,74 @@ import {AutomationHistoryList} from 'sentry/views/automations/components/automat
 import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
 import {ConditionsPanel} from 'sentry/views/automations/components/conditionsPanel';
 import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
+import {ConnectedProjectsList} from 'sentry/views/automations/components/connectedProjectsList';
 import {DisabledAlert} from 'sentry/views/automations/components/disabledAlert';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
+import {
+  getNoAlertWritePermissionTooltip,
+  useCanEditAutomation,
+} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
 import {
   makeAutomationBasePathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
-
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
 
   const warning = getAutomationActionsWarning(automation);
-
   const [monitorListCursor, setMonitorListCursor] = useState<string | undefined>(
     undefined
   );
+  const breadcrumbs = (
+    <Breadcrumbs
+      crumbs={[
+        {
+          label: t('Alerts'),
+          to: makeAutomationBasePathname(organization.slug),
+        },
+        {label: automation.name},
+      ]}
+    />
+  );
+
+  const hasConnections = !!automation.detectorIds.length;
 
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
-        <DetailLayout.Header>
-          <DetailLayout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Alerts'),
-                  to: makeAutomationBasePathname(organization.slug),
-                },
-                {label: automation.name},
-              ]}
-            />
-            <DetailLayout.Title title={automation.name} />
-          </DetailLayout.HeaderContent>
-          <DetailLayout.Actions>
-            <Actions automation={automation} />
-          </DetailLayout.Actions>
-        </DetailLayout.Header>
+        <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
+        <AutomationFeedbackButton />
         <DetailLayout.Body>
           <DetailLayout.Main>
             <DisabledAlert automation={automation} />
+
             {automation.enabled && warning && (
               <Alert variant={warning.color === 'warning' ? 'warning' : 'danger'}>
                 {warning.message}
               </Alert>
             )}
+
+            {!hasConnections && (
+              <Alert variant="warning">
+                {t(
+                  'This alert is not connected to a project or monitor and will not trigger.'
+                )}
+              </Alert>
+            )}
+
             <PageFiltersContainer>
-              <DatePageFilter />
+              <Flex align="center" justify="between" gap="md">
+                <DatePageFilter />
+                <Flex flex={1} justify="end" gap="md">
+                  <Actions automation={automation} size="sm" />
+                </Flex>
+              </Flex>
+
               <ErrorBoundary>
                 <AutomationStatsChart
                   automationId={automation.id}
@@ -93,6 +111,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   utc={utc ?? null}
                 />
               </ErrorBoundary>
+
               <DetailSection title={t('History')}>
                 <ErrorBoundary mini>
                   <AutomationHistoryList
@@ -106,17 +125,36 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   />
                 </ErrorBoundary>
               </DetailSection>
-              <DetailSection title={t('Connected Monitors')}>
+
+              <DetailSection
+                title={t('Connected Projects')}
+                description={t(
+                  'All issues belonging to a connected project will trigger this alert when conditions are met.'
+                )}
+              >
+                <ErrorBoundary mini>
+                  <ConnectedProjectsList automationId={automation.id} />
+                </ErrorBoundary>
+              </DetailSection>
+
+              <DetailSection
+                title={t('Connected Monitors')}
+                description={t(
+                  'Issues created by a connected monitor will trigger this alert when conditions are met.'
+                )}
+              >
                 <ErrorBoundary mini>
                   <ConnectedMonitorsList
-                    detectorIds={automation.detectorIds}
+                    workflowId={automation.id}
                     cursor={monitorListCursor}
                     onCursor={setMonitorListCursor}
+                    query="!type:issue_stream"
                   />
                 </ErrorBoundary>
               </DetailSection>
             </PageFiltersContainer>
           </DetailLayout.Main>
+
           <DetailLayout.Sidebar>
             <DetailSection title={t('Last Triggered')}>
               {automation.lastTriggered ? (
@@ -212,11 +250,13 @@ export default function AutomationDetail() {
   );
 }
 
-function Actions({automation}: {automation: Automation}) {
+function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
   const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
+  const canEdit = useCanEditAutomation();
+  const permissionTooltipText = canEdit ? undefined : getNoAlertWritePermissionTooltip();
 
-  const toggleDisabled = useCallback(() => {
+  const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
     updateAutomation(
       {
@@ -230,19 +270,27 @@ function Actions({automation}: {automation: Automation}) {
         },
       }
     );
-  }, [updateAutomation, automation]);
+  };
 
   return (
     <Fragment>
-      <AutomationFeedbackButton />
-      <Button priority="default" size="sm" onClick={toggleDisabled} busy={isUpdating}>
+      <Button
+        variant="secondary"
+        size={size}
+        onClick={toggleDisabled}
+        busy={isUpdating}
+        disabled={!canEdit}
+        tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+      >
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
         to={makeAutomationEditPathname(organization.slug, automation.id)}
-        priority="primary"
+        disabled={!canEdit}
+        tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+        variant="primary"
         icon={<IconEdit />}
-        size="sm"
+        size={size}
       >
         {t('Edit')}
       </LinkButton>

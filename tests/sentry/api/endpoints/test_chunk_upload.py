@@ -1,7 +1,9 @@
+import gzip
 import math
 from hashlib import sha1
 
 import pytest
+import zstandard
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
@@ -11,6 +13,7 @@ from sentry import options
 from sentry.api.endpoints.chunk import (
     API_PREFIX,
     CHUNK_UPLOAD_ACCEPT,
+    CHUNK_UPLOAD_COMPRESSION,
     HASH_ALGORITHM,
     MAX_CHUNKS_PER_REQUEST,
     MAX_CONCURRENCY,
@@ -59,6 +62,9 @@ class ChunkUploadTest(APITestCase):
         assert response.data["hashAlgorithm"] == HASH_ALGORITHM
         assert response.data["url"] == generate_locality_url() + self.url
         assert response.data["accept"] == CHUNK_UPLOAD_ACCEPT
+        assert response.data["compression"] == list(CHUNK_UPLOAD_COMPRESSION)
+        assert "gzip" in response.data["compression"]
+        assert "zstd" in response.data["compression"]
 
         with override_options({"system.upload-url-prefix": "test"}):
             response = self.client.get(
@@ -432,3 +438,235 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
+
+    def test_chunk_parameters_no_compression_option(self) -> None:
+        with override_options({"chunk-upload.no-compression": [self.organization.id]}):
+            response = self.client.get(
+                self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["compression"] == []
+
+    def test_upload_content_encoding_zstd(self) -> None:
+        data1 = b"1 this is my testString"
+        data2 = b"2 this is my testString"
+        checksum1 = sha1(data1).hexdigest()
+        checksum2 = sha1(data2).hexdigest()
+        compressor = zstandard.ZstdCompressor()
+        blob1 = SimpleUploadedFile(
+            checksum1, compressor.compress(data1), content_type="multipart/form-data"
+        )
+        blob2 = SimpleUploadedFile(
+            checksum2, compressor.compress(data2), content_type="multipart/form-data"
+        )
+
+        response = self.client.post(
+            self.url,
+            data={"file": [blob1, blob2]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="zstd",
+            format="multipart",
+        )
+
+        assert response.status_code == 200, response.content
+
+        file_blobs = FileBlob.objects.all()
+        assert len(file_blobs) == 2
+        stored_checksums = {fb.checksum for fb in file_blobs}
+        assert stored_checksums == {checksum1, checksum2}
+
+    def test_upload_content_encoding_zstd_multi_frame(self) -> None:
+        """Multi-frame zstd payload should decode fully (read_across_frames)."""
+        part_a = b"first frame payload "
+        part_b = b"second frame payload"
+        data = part_a + part_b
+        compressor = zstandard.ZstdCompressor()
+        # Concatenate two independent zstd frames into one blob.
+        compressed = compressor.compress(part_a) + compressor.compress(part_b)
+        checksum = sha1(data).hexdigest()
+        blob = SimpleUploadedFile(checksum, compressed, content_type="multipart/form-data")
+
+        response = self.client.post(
+            self.url,
+            data={"file": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="zstd",
+            format="multipart",
+        )
+
+        assert response.status_code == 200, response.content
+        assert FileBlob.objects.filter(checksum=checksum).exists()
+
+    def test_upload_content_encoding_zstd_mixed_case(self) -> None:
+        """Content-Encoding should be normalized (case-insensitive per RFC 7231)."""
+        data = b"hello zstd"
+        checksum = sha1(data).hexdigest()
+        blob = SimpleUploadedFile(
+            checksum, zstandard.ZstdCompressor().compress(data), content_type="multipart/form-data"
+        )
+
+        response = self.client.post(
+            self.url,
+            data={"file": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="ZSTD",
+            format="multipart",
+        )
+
+        assert response.status_code == 200, response.content
+        assert FileBlob.objects.filter(checksum=checksum).exists()
+
+    def test_upload_content_encoding_gzip(self) -> None:
+        data = b"hello gzip"
+        checksum = sha1(data).hexdigest()
+        blob = SimpleUploadedFile(checksum, gzip.compress(data), content_type="multipart/form-data")
+
+        response = self.client.post(
+            self.url,
+            data={"file": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="gzip",
+            format="multipart",
+        )
+
+        assert response.status_code == 200, response.content
+        assert FileBlob.objects.filter(checksum=checksum).exists()
+
+    def test_upload_legacy_file_gzip_still_works(self) -> None:
+        data = b"legacy gzip field"
+        checksum = sha1(data).hexdigest()
+        blob = SimpleUploadedFile(checksum, gzip.compress(data), content_type="multipart/form-data")
+
+        response = self.client.post(
+            self.url,
+            data={"file_gzip": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            format="multipart",
+        )
+
+        assert response.status_code == 200, response.content
+        assert FileBlob.objects.filter(checksum=checksum).exists()
+
+    def test_upload_rejects_content_encoding_with_file_gzip(self) -> None:
+        data = b"ambiguous"
+        checksum = sha1(data).hexdigest()
+        blob = SimpleUploadedFile(checksum, gzip.compress(data), content_type="multipart/form-data")
+
+        response = self.client.post(
+            self.url,
+            data={"file_gzip": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="gzip",
+            format="multipart",
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.json() == {"error": "Cannot combine Content-Encoding with file_gzip field"}
+        assert not FileBlob.objects.exists()
+
+    def test_upload_rejects_unsupported_content_encoding(self) -> None:
+        data = b"brotli?"
+        checksum = sha1(data).hexdigest()
+        blob = SimpleUploadedFile(checksum, data, content_type="multipart/form-data")
+
+        response = self.client.post(
+            self.url,
+            data={"file": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="br",
+            format="multipart",
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.json() == {"error": "Unsupported Content-Encoding"}
+        assert not FileBlob.objects.exists()
+
+    def test_upload_zstd_decompression_bomb(self) -> None:
+        """A tiny zstd payload that would decompress to >chunkSize must be rejected."""
+        # Highly compressible payload: 8 MiB + 1 byte of the same character. Zstd
+        # compresses this to well under 1 KiB, so the compressed chunk easily
+        # passes the raw per-chunk size check, but decompression must still bail.
+        raw = b"a" * (settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE + 1)
+        compressed = zstandard.ZstdCompressor().compress(raw)
+        assert len(compressed) < settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE
+        blob = SimpleUploadedFile(
+            sha1(raw).hexdigest(), compressed, content_type="multipart/form-data"
+        )
+
+        response = self.client.post(
+            self.url,
+            data={"file": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="zstd",
+            format="multipart",
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.json() == {"error": "Chunk size too large"}
+        assert not FileBlob.objects.exists()
+
+    def test_upload_invalid_zstd_payload(self) -> None:
+        """Malformed zstd payload should return 400, not 500."""
+        blob = SimpleUploadedFile("0" * 40, b"not a zstd frame", content_type="multipart/form-data")
+
+        response = self.client.post(
+            self.url,
+            data={"file": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="zstd",
+            format="multipart",
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.json() == {"error": "Invalid zstd payload"}
+
+    def test_upload_invalid_gzip_payload_content_encoding(self) -> None:
+        """Malformed gzip payload via Content-Encoding should return 400, not 500."""
+        blob = SimpleUploadedFile(
+            "0" * 40, b"not a gzip stream", content_type="multipart/form-data"
+        )
+
+        response = self.client.post(
+            self.url,
+            data={"file": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="gzip",
+            format="multipart",
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.json() == {"error": "Invalid gzip payload"}
+
+    def test_upload_invalid_gzip_payload_legacy_field(self) -> None:
+        """Malformed gzip via legacy file_gzip field should return 400, not 500."""
+        blob = SimpleUploadedFile(
+            "0" * 40, b"not a gzip stream", content_type="multipart/form-data"
+        )
+
+        response = self.client.post(
+            self.url,
+            data={"file_gzip": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            format="multipart",
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.json() == {"error": "Invalid gzip payload"}
+
+    def test_upload_truncated_gzip_payload(self) -> None:
+        """Truncated gzip (valid header, missing tail) should return 400, not 500."""
+        # Keep only the first 6 bytes -- valid magic + method but no data
+        truncated = gzip.compress(b"some real data that gzip will compress")[:6]
+        blob = SimpleUploadedFile("0" * 40, truncated, content_type="multipart/form-data")
+
+        response = self.client.post(
+            self.url,
+            data={"file": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="gzip",
+            format="multipart",
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.json() == {"error": "Invalid gzip payload"}

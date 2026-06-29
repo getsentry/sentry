@@ -1,5 +1,4 @@
 import {EventFixture} from 'sentry-fixture/event';
-import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -8,7 +7,6 @@ import {ContextCard} from 'sentry/components/events/contexts/contextCard';
 import * as iconTools from 'sentry/components/events/contexts/contextIcon';
 
 describe('ContextCard', () => {
-  const group = GroupFixture();
   const project = ProjectFixture();
   it('renders the card with formatted context data', () => {
     const event = EventFixture();
@@ -37,7 +35,6 @@ describe('ContextCard', () => {
         alias={alias}
         value={customContext}
         event={event}
-        group={group}
         project={project}
       />
     );
@@ -72,7 +69,6 @@ describe('ContextCard', () => {
         alias="browser"
         value={browserContext}
         event={event}
-        group={group}
         project={project}
       />
     );
@@ -93,7 +89,6 @@ describe('ContextCard', () => {
         alias="organization"
         value={unknownContext}
         event={event}
-        group={group}
         project={project}
       />
     );
@@ -150,7 +145,6 @@ describe('ContextCard', () => {
         alias={alias}
         value={errorContext}
         event={event}
-        group={group}
         project={project}
       />
     );

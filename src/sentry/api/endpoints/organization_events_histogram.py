@@ -1,4 +1,3 @@
-import sentry_sdk
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +10,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.snuba import discover
+from sentry.utils.tracing import start_span
 
 # The maximum number of array columns allowed to be queried at at time
 MAX_ARRAY_COLS = 4
@@ -62,21 +62,13 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({})
 
-        use_metrics = features.has(
-            "organizations:performance-use-metrics", organization=organization, actor=request.user
-        )
-        dataset = self.get_dataset(request) if use_metrics else discover
-        metrics_enhanced = dataset != discover
-
-        sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
-
-        with sentry_sdk.start_span(op="discover.endpoint", name="histogram"):
+        with start_span(op="discover.endpoint", name="histogram"):
             serializer = HistogramSerializer(data=request.GET)
             if serializer.is_valid():
                 data = serializer.validated_data
 
                 with handle_query_errors():
-                    results = dataset.histogram_query(
+                    results = discover.histogram_query(
                         fields=data["field"],
                         user_query=data.get("query"),
                         snuba_params=snuba_params,

@@ -1,79 +1,84 @@
-import {OpsgenieIntegrationFixture} from 'sentry-fixture/opsgenieIntegration';
-import {OpsgenieIntegrationProviderFixture} from 'sentry-fixture/opsgenieIntegrationProvider';
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {
-  render,
-  renderGlobalModal,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
 
-describe('OpsgenieMigrationButton', () => {
+describe('ConfigureIntegration settings tab', () => {
   const org = OrganizationFixture({
     access: ['org:integrations', 'org:write'],
   });
   const integrationId = '1';
-  it('Migrate Plugin button hits migration endpoint', async () => {
+
+  function mockRequests(integration: ReturnType<typeof OrganizationIntegrationsFixture>) {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/`,
       body: {
-        providers: [OpsgenieIntegrationProviderFixture()],
+        providers: [GitHubIntegrationProviderFixture({features: ['stacktrace-link']})],
       },
     });
-
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/${integrationId}/`,
-      body: OpsgenieIntegrationFixture(),
+      body: integration,
     });
-
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/plugins/configs/`,
-      body: [
-        {
-          id: 'opsgenie',
-          name: 'Opsgenie',
-          slug: 'opsgenie',
-          projectList: [
-            {
-              projectId: 2,
-              projectSlug: 'python',
-              projectName: 'python',
-              enabled: true,
-              configured: true,
-              projectPlatform: 'python',
-            },
-          ],
-        },
-      ],
+      url: `/organizations/${org.slug}/code-mappings/`,
+      body: [],
     });
-
-    const onConfirmCall = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/integrations/${integrationId}/migrate-opsgenie/`,
-      method: 'PUT',
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/repos/`,
+      body: [],
     });
+  }
 
-    render(<ConfigureIntegration />, {
+  function renderConfigure() {
+    return render(<ConfigureIntegration />, {
       organization: org,
       initialRouterConfig: {
         location: {
-          pathname: `/settings/${org.slug}/integrations/opsgenie/${integrationId}/`,
+          pathname: `/settings/${org.slug}/integrations/github/${integrationId}/`,
           query: {},
         },
         route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
       },
     });
-    renderGlobalModal();
-    expect(await screen.findByRole('button', {name: 'Migrate Plugin'})).toBeEnabled();
+  }
 
-    await userEvent.click(screen.getByRole('button', {name: 'Migrate Plugin'}));
+  const githubProvider = OrganizationIntegrationsFixture().provider;
 
-    expect(screen.getByRole('button', {name: 'Confirm'})).toBeInTheDocument();
+  it('hides the Settings tab when there is no settings content', async () => {
+    mockRequests(
+      OrganizationIntegrationsFixture({
+        provider: {...githubProvider, key: 'github'},
+        configOrganization: [],
+      })
+    );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    renderConfigure();
 
-    expect(onConfirmCall).toHaveBeenCalled();
+    expect(await screen.findByRole('tab', {name: 'Code Mappings'})).toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Settings'})).not.toBeInTheDocument();
+  });
+
+  it('shows the Settings tab when there is organization config', async () => {
+    mockRequests(
+      OrganizationIntegrationsFixture({
+        provider: {...githubProvider, key: 'github'},
+        configOrganization: [
+          {
+            name: 'toggle',
+            type: 'boolean',
+            label: 'Toggle',
+          },
+        ],
+      })
+    );
+
+    renderConfigure();
+
+    expect(await screen.findByRole('tab', {name: 'Settings'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Code Mappings'})).toBeInTheDocument();
   });
 });

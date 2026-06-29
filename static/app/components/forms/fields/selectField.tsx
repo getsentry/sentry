@@ -2,6 +2,7 @@ import {Component} from 'react';
 
 import type {ControlProps} from '@sentry/scraps/select';
 import {Select, SelectOption} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -14,7 +15,7 @@ import {components as SelectComponents} from 'sentry/components/forms/controls/r
 import {FormField} from 'sentry/components/forms/formField';
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {t} from 'sentry/locale';
-import type {Choices, SelectValue} from 'sentry/types/core';
+import type {Choices} from 'sentry/types/core';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
@@ -23,7 +24,7 @@ const NONE_SELECTED_LABEL = t('None selected');
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
   extends
-    InputFieldProps,
+    Omit<InputFieldProps, 'value'>,
     Omit<
       ControlProps<OptionType>,
       | 'onChange'
@@ -101,7 +102,7 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
     onChange: InputFieldProps['onChange'],
     optionObj: ValueType<OptionType, boolean>
   ) => {
-    let value: any = undefined;
+    let value: any;
 
     // If optionObj is empty, then it probably means that the field was "cleared"
     if (!optionObj) {

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from logging import getLogger
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from django.db import IntegrityError, router, transaction
 from django.urls import reverse
@@ -31,10 +31,10 @@ class RepositoryProvider(ProviderMixin):
 
     name: ClassVar[str]
 
-    def __init__(self, id):
+    def __init__(self, id: str) -> None:
         self.id = id
 
-    def needs_auth(self, user, **kwargs):
+    def needs_auth(self, user: Any, **kwargs: Any) -> bool:
         """
         Return ``True`` if the authenticated user needs to associate an auth
         service before performing actions with this provider.
@@ -59,7 +59,7 @@ class RepositoryProvider(ProviderMixin):
         )
         return len(auths) == 0
 
-    def dispatch(self, request: Request, organization, **kwargs):
+    def dispatch(self, request: Request, organization: Any, **kwargs: Any) -> Response:
         if self.needs_auth(request.user):
             # TODO(dcramer): this should be a 401
             return Response(
@@ -127,28 +127,47 @@ class RepositoryProvider(ProviderMixin):
 
         return Response(serialize(repo, request.user), status=201)
 
-    def get_config(self):
+    def get_config(self) -> list[dict[str, Any]]:
         raise NotImplementedError
 
-    def validate_config(self, organization, config, actor=None):
+    def validate_config(
+        self, organization: Any, config: dict[str, Any], actor: Any | None = None
+    ) -> dict[str, Any]:
         return config
 
-    def create_repository(self, organization, data, actor=None):
+    def create_repository(
+        self, organization: Any, data: dict[str, Any], actor: Any | None = None
+    ) -> dict[str, Any]:
         raise NotImplementedError
 
-    def delete_repository(self, repo, actor=None):
+    def delete_repository(self, repo: Repository, actor: Any | None = None) -> None:
         pass
 
-    def compare_commits(self, repo, start_sha, end_sha, actor=None):
+    def compare_commits(
+        self, repo: Repository, start_sha: str | None, end_sha: str, actor: Any | None = None
+    ) -> list[dict[str, Any]]:
         raise NotImplementedError
 
-    def pull_request_url(self, repo, pull_request):
+    def fetch_recent_commits(
+        self, repo: Repository, end_sha: str, *, actor: Any | None = None
+    ) -> list[dict[str, Any]]:
+        return self.compare_commits(repo, None, end_sha, actor=actor)
+
+    def fetch_commits_for_compare_range(
+        self, repo: Repository, start_sha: str, end_sha: str, *, actor: Any | None = None
+    ) -> list[dict[str, Any]]:
+        return self.compare_commits(repo, start_sha, end_sha, actor=actor)
+
+    def get_scm_provider_key(self) -> str | None:
+        return self.auth_provider
+
+    def pull_request_url(self, repo: Repository, pull_request: Any) -> str | None:
         """
         Generate a URL to a pull request on the repository provider.
         """
         return None
 
-    def repository_external_slug(self, repo):
+    def repository_external_slug(self, repo: Repository) -> str | None:
         """
         Generate the public facing 'external_slug' for a repository
         The shape of this id must match the `identifier` returned by
@@ -157,5 +176,5 @@ class RepositoryProvider(ProviderMixin):
         return None
 
     @staticmethod
-    def should_ignore_commit(message):
+    def should_ignore_commit(message: str) -> bool:
         return "#skipsentry" in message

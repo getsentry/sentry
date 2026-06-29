@@ -1,0 +1,121 @@
+#!/usr/bin/env python
+
+from sentry.runner import configure
+
+configure()
+
+import argparse
+import sys
+
+from django.db.models import Max, Min
+
+from sentry import options
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.tasks.deliver_from_outbox import drain_outbox_shards
+from sentry.models.organization import Organization
+from sentry.seer.models.night_shift import SeerNightShiftRun
+from sentry.seer.models.run import SeerRunMirrorStatus
+from sentry.tasks.seer.night_shift.cron import (
+    SeerNightShiftRunOptionsPartial,
+    run_night_shift_for_org,
+)
+
+
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError(f"must be >= 1, got {parsed}")
+    return parsed
+
+
+def _get_explorer_url(org_id: int, run_id: int) -> str | None:
+    url_prefix = options.get("system.url-prefix")
+    if not url_prefix:
+        return None
+
+    try:
+        slug = Organization.objects.values_list("slug", flat=True).get(id=org_id)
+    except Organization.DoesNotExist:
+        return None
+
+    return f"{url_prefix}/organizations/{slug}/issues/?explorerRunId={run_id}"
+
+
+def _drain_outbox() -> None:
+    """Run the outbox drainer the */1 cron normally fires. Local dev only: the
+    taskworker scheduler usually isn't running, so a freshly created SeerRun
+    would otherwise sit PENDING (never dispatched to Seer) until drained."""
+    agg = CellOutbox.objects.aggregate(Min("id"), Max("id"))
+    lo, hi = agg["id__min"], agg["id__max"]
+    if lo is None:
+        return
+    drain_outbox_shards(outbox_identifier_low=lo, outbox_identifier_hi=hi + 1)
+
+
+def main(org_id: int, max_candidates: int | None, drain: bool) -> None:
+    sys.stdout.write(f"> Running night shift for organization {org_id}...\n")
+    run_options: SeerNightShiftRunOptionsPartial = {"source": "manual"}
+    if max_candidates is not None:
+        run_options["max_candidates"] = max_candidates
+    run_id = run_night_shift_for_org(org_id, options=run_options)
+    sys.stdout.write("> Done.\n")
+
+    if run_id is None:
+        return
+
+    if drain:
+        sys.stdout.write("> Draining outbox to dispatch the run to Seer...\n")
+        _drain_outbox()
+
+    nsr = SeerNightShiftRun.objects.prefetch_related("shards__seer_run").get(id=run_id)
+    shard_runs = [shard.seer_run for shard in nsr.shards.all() if shard.seer_run is not None]
+    if not shard_runs:
+        error_message = (nsr.extras or {}).get("error_message")
+        if error_message:
+            sys.stdout.write(f"> Not dispatched: {error_message}\n")
+        else:
+            sys.stdout.write("> No candidates were dispatched.\n")
+        return
+
+    error_message = (nsr.extras or {}).get("error_message")
+    if error_message:
+        sys.stdout.write(f"> {error_message}\n")
+
+    sys.stdout.write(f"> Dispatched {len(shard_runs)} shard(s):\n")
+    for seer_run in shard_runs:
+        if seer_run.seer_run_state_id is None:
+            if seer_run.mirror_status == SeerRunMirrorStatus.FAILED:
+                sys.stdout.write(f">   SeerRun {seer_run.uuid} failed to dispatch to Seer.\n")
+            else:
+                sys.stdout.write(
+                    f">   SeerRun {seer_run.uuid} is {seer_run.mirror_status}; "
+                    "it dispatches to Seer once the outbox drains.\n"
+                )
+            continue
+
+        explorer_url = _get_explorer_url(org_id, seer_run.seer_run_state_id)
+        if explorer_url:
+            sys.stdout.write(f">   Explorer run: {explorer_url}\n")
+        else:
+            sys.stdout.write(f">   Explorer run ID: {seer_run.seer_run_state_id}\n")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Trigger night shift for an organization.")
+    parser.add_argument(
+        "org_id", nargs="?", default=1, type=int, help="Organization ID (default: 1)"
+    )
+    parser.add_argument(
+        "--max-candidates",
+        type=_positive_int,
+        default=None,
+        help="Override the candidate cap (default: seer.night_shift.issues_per_org option)",
+    )
+    parser.add_argument(
+        "--no-drain",
+        action="store_false",
+        dest="drain",
+        help="Skip draining the outbox (leave the run PENDING for the cron to dispatch)",
+    )
+    args = parser.parse_args()
+    main(args.org_id, args.max_candidates, args.drain)

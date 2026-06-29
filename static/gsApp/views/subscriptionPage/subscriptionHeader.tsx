@@ -2,7 +2,7 @@ import {cloneElement, Fragment, isValidElement} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -45,11 +45,8 @@ export function SubscriptionHeader(props: Props) {
         gap="md"
         background="primary"
         borderBottom="primary"
-        padding="md 3xl 2xl"
+        padding="2xl 3xl"
       >
-        <Heading as="h1" size="md">
-          {t('Subscription')}
-        </Heading>
         <Flex
           justify="between"
           align={{xs: 'start', sm: 'center'}}
@@ -70,7 +67,7 @@ export function SubscriptionHeader(props: Props) {
                 size="md"
                 to={`/checkout/${organization.slug}/?referrer=manage_subscription`}
                 aria-label="Manage plan"
-                priority="primary"
+                variant="primary"
               >
                 {t('Manage plan')}
               </LinkButton>

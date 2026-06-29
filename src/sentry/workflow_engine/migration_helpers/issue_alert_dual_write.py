@@ -89,7 +89,10 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
     data = rule.data
 
     try:
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(
+            rule_id=rule.id,
+            workflow__organization_id=rule.project.organization_id,
+        )
     except AlertRuleWorkflow.DoesNotExist:
         # OK state, rule may not have been migrated
         logger.info(

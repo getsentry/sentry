@@ -177,10 +177,8 @@ describe('EditAutomation', () => {
       organization,
     });
 
-    expect(await screen.findAllByText(/Automation 1/i)).toHaveLength(2);
-
     // Update an existing filter value field
-    const valueInput = screen.getByRole('textbox', {name: 'Value'});
+    const valueInput = await screen.findByRole('textbox', {name: 'Value'});
     await userEvent.clear(valueInput);
     await userEvent.type(valueInput, 'updated value');
 

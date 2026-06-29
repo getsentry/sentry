@@ -264,6 +264,22 @@ describe('ArithmeticBuilder', () => {
     expect(screen.getAllByRole('row')).toHaveLength(1);
   });
 
+  it('deleting a middle literal does not shift remaining literal values', async () => {
+    const expression = 'A + 1 + 2 + 3';
+    render(
+      <ArithmeticBuilderWrapper expression={expression} references={new Set(['A'])} />
+    );
+
+    // Find the delete button for literal "1"
+    const deleteButton = screen.getByRole('button', {name: 'Remove literal 1'});
+    await userEvent.click(deleteButton);
+
+    // After deleting "1", the remaining literals should show "2" and "3"
+    expect(screen.getByDisplayValue('2')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('3')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('1')).not.toBeInTheDocument();
+  });
+
   it('throws when provided invalid references', () => {
     expect(() => {
       render(

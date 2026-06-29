@@ -1,9 +1,11 @@
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
+from sentry.conf.server import SENTRY_TOKEN_ONLY_SCOPES
 from sentry.models.apikey import ApiKey
 from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.apitoken import ApiToken
+from sentry.types.token import AuthTokenType
 
 
 @receiver(pre_save, sender=ApiKey, dispatch_uid="enforce_scope_hierarchy_api_key")
@@ -19,3 +21,8 @@ def enforce_scope_hierarchy(instance, **kwargs) -> None:
     where this pre_save signal is skipped when updating scopes.
     """
     instance.scope_list = add_scope_hierarchy(instance.scope_list)
+
+    if isinstance(instance, ApiToken) and instance.token_type == AuthTokenType.USER:
+        instance.scope_list = [
+            scope for scope in instance.scope_list if scope not in SENTRY_TOKEN_ONLY_SCOPES
+        ]

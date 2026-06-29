@@ -1,7 +1,7 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Project} from 'sentry/types/project';
 
@@ -71,7 +71,9 @@ describe('eventDisplay', () => {
       />
     );
 
-    expect(await screen.findByText('mock-tag', {selector: 'div'})).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('mock-tag', {selector: 'div'})).toBeInTheDocument();
+    });
     expect(screen.getByText('mock-value')).toBeInTheDocument();
   });
 

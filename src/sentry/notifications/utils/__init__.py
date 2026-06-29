@@ -37,7 +37,7 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.services.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.silo.base import cell_silo_function
 from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser
@@ -207,14 +207,10 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
 
 @cell_silo_function
 def has_integrations(organization: Organization, project: Project) -> bool:
-    from sentry.plugins.base import plugins
-
-    project_plugins = plugins.for_project(project, version=1)
     organization_integrations = integration_service.get_integrations(
         organization_id=organization.id, limit=1
     )
-    # TODO: fix because project_plugins is an iterator and thus always truthy
-    return bool(project_plugins or organization_integrations)
+    return bool(organization_integrations)
 
 
 def is_alert_rule_integration(provider: IntegrationProvider) -> bool:
@@ -231,14 +227,10 @@ def has_alert_integration(project: Project) -> bool:
     if integration_service.get_integrations(organization_id=org.id, providers=provider_keys):
         return True
 
-    # check plugins
-    from sentry.plugins.base import plugins
-
-    project_plugins = plugins.for_project(project, version=None)
-    return any(plugin.get_plugin_type() == "notification" for plugin in project_plugins)
+    return False
 
 
-def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
+def get_interface_list(event: BaseEvent) -> Sequence[tuple[str, str, str]]:
     interface_list = []
     for interface in event.interfaces.values():
         body = interface.to_email_html(event)
@@ -369,15 +361,15 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
 
 
 def get_replay_id(event: Event | GroupEvent) -> str | None:
-    replay_id = event.data.get("contexts", {}).get("replay", {}).get("replay_id", {})
+    contexts = event.data.get("contexts") or {}
+    replay_id = (contexts.get("replay") or {}).get("replay_id")
     if (
         isinstance(event, GroupEvent)
         and event.occurrence is not None
         and event.occurrence.evidence_data
     ):
-        evidence_replay_id = (
-            event.occurrence.evidence_data.get("contexts", {}).get("replay", {}).get("replay_id")
-        )
+        evidence_contexts = event.occurrence.evidence_data.get("contexts") or {}
+        evidence_replay_id = (evidence_contexts.get("replay") or {}).get("replay_id")
 
         if evidence_replay_id:
             return evidence_replay_id

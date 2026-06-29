@@ -1,5 +1,6 @@
 import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -7,6 +8,10 @@ import {useScmPlatformDetection} from './useScmPlatformDetection';
 
 describe('useScmPlatformDetection', () => {
   const organization = OrganizationFixture();
+  const githubRepo = RepositoryFixture({
+    id: '42',
+    provider: {id: 'integrations:github', name: 'GitHub'},
+  });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -29,7 +34,7 @@ describe('useScmPlatformDetection', () => {
       body: {platforms: mockPlatforms},
     });
 
-    const {result} = renderHookWithProviders(() => useScmPlatformDetection('42'), {
+    const {result} = renderHookWithProviders(() => useScmPlatformDetection(githubRepo), {
       organization,
     });
 
@@ -38,7 +43,7 @@ describe('useScmPlatformDetection', () => {
     });
   });
 
-  it('returns empty array when repoId is undefined', () => {
+  it('returns empty array when repository is undefined', () => {
     const apiMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/undefined/platforms/`,
       body: {platforms: []},
@@ -58,7 +63,7 @@ describe('useScmPlatformDetection', () => {
       body: {platforms: []},
     });
 
-    const {result} = renderHookWithProviders(() => useScmPlatformDetection('42'), {
+    const {result} = renderHookWithProviders(() => useScmPlatformDetection(githubRepo), {
       organization,
     });
 
@@ -72,12 +77,33 @@ describe('useScmPlatformDetection', () => {
       body: {detail: 'Internal Error'},
     });
 
-    const {result} = renderHookWithProviders(() => useScmPlatformDetection('42'), {
+    const {result} = renderHookWithProviders(() => useScmPlatformDetection(githubRepo), {
       organization,
     });
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
     });
+  });
+
+  it('skips detection for non-GitHub providers', () => {
+    const gitlabRepo = RepositoryFixture({
+      id: '99',
+      provider: {id: 'integrations:gitlab', name: 'GitLab'},
+    });
+
+    const apiMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/99/platforms/`,
+      body: {platforms: []},
+    });
+
+    const {result} = renderHookWithProviders(() => useScmPlatformDetection(gitlabRepo), {
+      organization,
+    });
+
+    expect(apiMock).not.toHaveBeenCalled();
+    expect(result.current.detectedPlatforms).toEqual([]);
+    expect(result.current.isPending).toBe(false);
+    expect(result.current.isError).toBe(false);
   });
 });

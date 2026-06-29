@@ -16,6 +16,7 @@ import {
   SIZE_UNITS,
 } from 'sentry/utils/discover/fieldRenderers';
 import {NumberContainer} from 'sentry/utils/discover/styles';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {
   TraceDrawerComponents,
@@ -40,6 +41,7 @@ export function hasMeasurements(event: EventTransaction) {
 }
 
 export function Measurements({event, location, organization}: MeasurementsProps) {
+  const navigate = useNavigate();
   const theme = useTheme();
   const measurementNames = Object.keys(event.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
@@ -62,7 +64,7 @@ export function Measurements({event, location, organization}: MeasurementsProps)
         ? FIELD_FORMATTERS[fieldType].renderFunc(
             name,
             {[name]: renderValue},
-            {location, organization, unit, theme}
+            {location, navigate, organization, unit, theme}
           )
         : renderValue;
 

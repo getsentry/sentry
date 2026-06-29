@@ -1,70 +1,54 @@
-import {useEffect} from 'react';
+import {useMemo} from 'react';
 
-import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
-import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
+import {useSourceContext} from 'sentry/components/events/interfaces/frame/useSourceContext';
+import {
+  hasContextSource,
+  hasPotentialSourceContext,
+} from 'sentry/components/events/interfaces/frame/utils';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import {
-  CodecovStatusCode,
-  type Coverage,
-  type LineCoverage,
-} from 'sentry/types/integrations';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-function getLineCoverage(
-  lines: Array<[number, string | null]>,
-  lineCoverage: LineCoverage[]
-): Array<Coverage | undefined> {
-  const coverageByLine = new Map<number, Coverage>(lineCoverage);
-  return lines.map(([lineNo]) => coverageByLine.get(lineNo));
-}
 
 export function IssueStackTraceFrameContext() {
   const {event, frame, isExpanded} = useStackTraceFrameContext();
-  const {project} = useStackTraceContext();
-  const {hasCoverageData, setHasCoverageData} = useLineCoverageContext();
-  const organization = useOrganization({allowNull: true});
+  const {hasScmSourceContext, project} = useStackTraceContext();
+  const organization = useOrganization();
 
-  const contextLines = isExpanded ? (frame.context ?? []) : [];
+  const hasEmbeddedContext = hasContextSource(frame);
+  const shouldFetchSourceContext =
+    hasScmSourceContext &&
+    defined(project) &&
+    !hasEmbeddedContext &&
+    isExpanded &&
+    hasPotentialSourceContext(frame);
 
-  const {data: coverageData, isPending: isLoadingCoverage} = useStacktraceCoverage(
+  const {data: sourceContextData, isPending: isLoadingSourceContext} = useSourceContext(
     {
       event,
       frame,
-      orgSlug: organization?.slug || '',
+      orgSlug: organization.slug,
       projectSlug: project?.slug,
     },
-    {
-      enabled:
-        isExpanded &&
-        defined(organization) &&
-        defined(project) &&
-        !!organization.codecovAccess,
-    }
+    {enabled: shouldFetchSourceContext}
   );
 
-  const sourceLineCoverage =
-    !isLoadingCoverage &&
-    coverageData?.status === CodecovStatusCode.COVERAGE_EXISTS &&
-    coverageData.lineCoverage
-      ? getLineCoverage(contextLines, coverageData.lineCoverage)
-      : [];
-
-  useEffect(() => {
-    if (hasCoverageData) {
+  const scmContext = useMemo(() => {
+    if (!sourceContextData?.context?.length) {
       return;
     }
+    return sourceContextData.context;
+  }, [sourceContextData]);
 
-    const frameHasCoverageData =
-      !isLoadingCoverage && coverageData?.status === CodecovStatusCode.COVERAGE_EXISTS;
-    if (frameHasCoverageData) {
-      setHasCoverageData(true);
-    }
-  }, [coverageData, hasCoverageData, isLoadingCoverage, setHasCoverageData]);
+  const effectiveContext = hasEmbeddedContext ? frame.context : scmContext;
 
-  return <FrameContent sourceLineCoverage={sourceLineCoverage} />;
+  return (
+    <FrameContent
+      effectiveContext={effectiveContext}
+      isLoadingSourceContext={shouldFetchSourceContext && isLoadingSourceContext}
+    />
+  );
 }

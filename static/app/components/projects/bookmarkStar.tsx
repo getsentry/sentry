@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
@@ -8,9 +9,7 @@ import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
-
 interface BookmarkStarProps extends Omit<ButtonProps, 'as' | 'onToggle'> {
   organization: Organization;
   project: Project;
@@ -56,7 +55,7 @@ export function BookmarkStar({
       busy={isBookmarking}
       onClick={() => handleBookmarkToggle({isBookmarked: !isBookmarked})}
       size="zero"
-      priority="transparent"
+      variant="transparent"
       icon={
         <IconStar variant={isBookmarked ? 'warning' : 'muted'} isSolid={isBookmarked} />
       }

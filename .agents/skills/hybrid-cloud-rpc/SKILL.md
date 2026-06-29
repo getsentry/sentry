@@ -5,7 +5,7 @@ description: Guide for creating, updating, and deprecating hybrid cloud RPC serv
 
 # Hybrid Cloud RPC Services
 
-This skill guides you through creating, modifying, and deprecating RPC services in Sentry's hybrid cloud architecture. RPC services enable cross-silo communication between the Control silo (user auth, billing, org management) and Cell silos (project data, events, issues).
+This skill guides you through creating, modifying, and deprecating RPC services in Sentry's hybrid cloud architecture. RPC services enable cross-silo communication between the Control silo (user auth, org management) and Cell silos (project data, events, issues, billing).
 
 ## Critical Constraints
 
@@ -39,10 +39,10 @@ Classify what the developer needs:
 
 The service's `local_mode` determines where the database-backed implementation runs:
 
-| Data lives in...                                  | `local_mode`       | Decorator on methods            | Example                            |
-| ------------------------------------------------- | ------------------ | ------------------------------- | ---------------------------------- |
-| Cell silo (projects, events, issues, org data)    | `SiloMode.CELL`    | `@cell_rpc_method(resolve=...)` | `OrganizationService`              |
-| Control silo (users, auth, billing, org mappings) | `SiloMode.CONTROL` | `@rpc_method`                   | `OrganizationMemberMappingService` |
+| Data lives in...                                        | `local_mode`       | Decorator on methods            | Example                            |
+| ------------------------------------------------------- | ------------------ | ------------------------------- | ---------------------------------- |
+| Cell silo (projects, events, issues, org data, billing) | `SiloMode.CELL`    | `@cell_rpc_method(resolve=...)` | `OrganizationService`              |
+| Control silo (users, auth, org mappings)                | `SiloMode.CONTROL` | `@rpc_method`                   | `OrganizationMemberMappingService` |
 
 **Decision rule**: If the Django models you need to query live in the cell database, use `SiloMode.CELL`. If they live in the control database, use `SiloMode.CONTROL`.
 

@@ -23,7 +23,7 @@ from sentry.testutils.cell import TestEnvCellDirectory
 from sentry.testutils.pytest import xdist
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import cell
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -82,11 +82,10 @@ def _configure_test_env_cells() -> None:
         cell_name,
         cell_snowflake_id,
         settings.SENTRY_OPTIONS["system.url-prefix"],
-        RegionCategory.MULTI_TENANT,
     )
 
     settings.SENTRY_LOCAL_CELL = cell_name
-    settings.SENTRY_MONOLITH_REGION = cell_name
+    settings.SENTRY_FALLBACK_CELL = cell_name
 
     # This not only populates the environment with the default cell, but also
     # ensures that a TestEnvCellDirectory instance is injected into global state.
@@ -104,6 +103,48 @@ def _configure_test_env_cells() -> None:
     settings.APIGATEWAY_PROXY_SKIP_RELAY = True
 
     monkey_patch_single_process_silo_mode_state()
+
+
+_COLLECT_ALLOWED_FILES: frozenset[str] | None = None
+
+
+def pytest_ignore_collect(collection_path: Path, config: pytest.Config) -> bool | None:
+    # Skip importing test files not in SELECTED_TESTS_FILE (selective CI runs only).
+    global _COLLECT_ALLOWED_FILES
+    selected_file = os.environ.get("SELECTED_TESTS_FILE")
+    if not selected_file:
+        return None
+
+    if _COLLECT_ALLOWED_FILES is None:
+        p = Path(selected_file)
+        if not p.exists():
+            _COLLECT_ALLOWED_FILES = frozenset()
+        else:
+            with p.open() as f:
+                _COLLECT_ALLOWED_FILES = frozenset(
+                    line.strip().split("::")[0] for line in f if line.strip()
+                )
+
+    if not _COLLECT_ALLOWED_FILES:
+        return None  # empty or missing file → run all tests
+
+    if (
+        collection_path.is_dir()
+        or collection_path.suffix != ".py"
+        or collection_path.name == "conftest.py"
+    ):
+        return None
+
+    try:
+        rel = str(collection_path.relative_to(config.rootpath))
+    except ValueError:
+        return None
+
+    if not rel.startswith("tests/"):
+        return None
+
+    # firstresult hook: True=ignore, None=defer; False short-circuits other ignore hooks.
+    return True if rel not in _COLLECT_ALLOWED_FILES else None
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -142,6 +183,13 @@ def pytest_configure(config: pytest.Config) -> None:
     from sentry.utils import integrationdocs
 
     integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
+
+    # Route postgres through Unix domain socket when available (CI optimization).
+    # Must be set before configure_split_db() so the HOST override propagates
+    # to the control and secondary database copies.
+    if _pg_socket := os.environ.get("SENTRY_DB_SOCKET"):
+        settings.DATABASES["default"]["HOST"] = _pg_socket
+        settings.DATABASES["default"]["PORT"] = ""
 
     configure_split_db()
 
@@ -224,15 +272,20 @@ def pytest_configure(config: pytest.Config) -> None:
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 
+    # These were migrated from options to Django settings. Set them directly so
+    # consumers (which now read the settings) see the test values; the
+    # option->setting bridge in bootstrap_options would otherwise let a deploy
+    # default (e.g. getsentry's dev.py) win over an option set here.
+    settings.SENTRY_BASE_HOSTNAME = "testserver"
+    settings.SENTRY_ORGANIZATION_BASE_HOSTNAME = "{slug}.testserver"
+    settings.SENTRY_ORGANIZATION_URL_TEMPLATE = "http://{hostname}"
+    settings.SENTRY_REGION_API_URL_TEMPLATE = "http://{region}.testserver"
+
     settings.SENTRY_OPTIONS.update(
         {
             "redis.clusters": {"default": {"hosts": {0: {"db": xdist.get_redis_db()}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
-            "system.base-hostname": "testserver",
-            "system.organization-base-hostname": "{slug}.testserver",
-            "system.organization-url-template": "http://{hostname}",
-            "system.region-api-url-template": "http://{region}.testserver",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",

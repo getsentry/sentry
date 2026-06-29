@@ -1,9 +1,11 @@
 import trimStart from 'lodash/trimStart';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import type {Client} from 'sentry/api';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -122,6 +124,24 @@ export type WidgetQueryParams = {
   widgetInterval?: string;
 };
 
+/**
+ * Parameters for the heat map query hook — the subset of `WidgetQueryParams`
+ * that applies to heat maps, plus `yBuckets` (the Y-axis bucket count derived
+ * from the rendered chart height).
+ */
+export type HeatmapWidgetQueryParams = Pick<
+  WidgetQueryParams,
+  | 'enabled'
+  | 'organization'
+  | 'pageFilters'
+  | 'widget'
+  | 'dashboardFilters'
+  | 'skipDashboardFilterParens'
+  | 'widgetInterval'
+> & {
+  yBuckets?: number;
+};
+
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
    * Dataset specific search bar for the 'Filter' step in the
@@ -151,6 +171,15 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     customMeasurements?: CustomMeasurementCollection,
     api?: Client,
     displayType?: DisplayType
+  ) => Record<string, SelectValue<FieldValue>>;
+  /**
+   * Generate the list of sort options for timeseries
+   * displays on the 'Sort by' step of the Widget Builder.
+   */
+  getTimeseriesSortOptions: (
+    organization: Organization,
+    widgetQuery: WidgetQuery,
+    tags?: TagCollection
   ) => Record<string, SelectValue<FieldValue>>;
   /**
    * List of supported display types for dataset.
@@ -275,15 +304,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     widgetQuery: WidgetQuery
   ) => Array<SelectValue<string>>;
   /**
-   * Generate the list of sort options for timeseries
-   * displays on the 'Sort by' step of the Widget Builder.
-   */
-  getTimeseriesSortOptions?: (
-    organization: Organization,
-    widgetQuery: WidgetQuery,
-    tags?: TagCollection
-  ) => Record<string, SelectValue<FieldValue>>;
-  /**
    * Apply dataset specific overrides to the logic that handles
    * column updates for tables in the Widget Builder.
    */
@@ -302,6 +322,13 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     widgetQuery: WidgetQuery,
     organization: Organization
   ) => Series[];
+  /**
+   * Hook-based approach for fetching heat map data. Heat maps fetch from a
+   * dedicated endpoint and need the rendered chart dimensions to size their
+   * X/Y buckets. Only datasets that expose `DisplayType.HEATMAP` in
+   * `supportedDisplayTypes` need to implement this.
+   */
+  useHeatmapQuery?: (params: HeatmapWidgetQueryParams) => HookWidgetQueryResult;
   /**
    * Data provider hook that provides methods
    * to retrieve tags and values for the search bar.

@@ -1,6 +1,7 @@
 .env
 /v10
 .cache/
+jest-test-files.json
 .code-workspace
 .coverage*
 .DS_Store

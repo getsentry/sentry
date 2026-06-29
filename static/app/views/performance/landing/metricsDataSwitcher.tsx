@@ -43,7 +43,7 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
     );
   }
 
-  if (metricsCardinality.isLoading && !props.hideLoadingIndicator) {
+  if (metricsCardinality?.isLoading && !props.hideLoadingIndicator) {
     return (
       <Fragment>
         <Flex justify="center">
@@ -60,7 +60,7 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
       <MetricsSwitchHandler
         eventView={props.eventView}
         location={props.location}
-        outcome={metricsCardinality.outcome ?? {forceTransactionsOnly: false}}
+        outcome={metricsCardinality?.outcome ?? {forceTransactionsOnly: false}}
         switcherChildren={props.children}
       />
     </Fragment>

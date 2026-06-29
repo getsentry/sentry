@@ -1,5 +1,6 @@
 import {Component, createRef, type ReactNode} from 'react';
 import {withTheme, type CSSObject, type Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -7,6 +8,7 @@ import type {InputProps} from '@sentry/scraps/input';
 import {Input} from '@sentry/scraps/input';
 import type {ControlProps} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -14,7 +16,6 @@ import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
-import type {SelectValue} from 'sentry/types/core';
 import type {
   AggregateParameter,
   AggregationKeyWithAlias,
@@ -631,7 +632,7 @@ class _QueryField extends Component<Props> {
       );
     });
 
-    const selectProps: ControlProps<FieldValueOption> = {
+    const selectProps: ControlProps = {
       name: 'field',
       options: Object.values(allFieldOptions),
       placeholder: placeholder ?? t('(Required)'),
@@ -678,7 +679,7 @@ class _QueryField extends Component<Props> {
     const containerColumns =
       parameters.length > 2 ? 2 : gridColumns ? gridColumns : parameters.length + 1;
 
-    let gridColumnsQuantity: undefined | number = undefined;
+    let gridColumnsQuantity: undefined | number;
 
     if (skipParameterPlaceholder) {
       // if the selected field is a function and has parameters, we would like to display each value in separate columns.
@@ -742,8 +743,10 @@ const Container = styled('div')<{
   display: grid;
   ${p =>
     p.tripleLayout
-      ? `grid-template-columns: 1fr 2fr;`
-      : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
+      ? 'grid-template-columns: 1fr 2fr;'
+      : css`
+          grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};
+        `}
   gap: ${p => p.theme.space.md};
   align-items: center;
 

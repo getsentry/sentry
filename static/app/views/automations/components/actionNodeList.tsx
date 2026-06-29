@@ -2,8 +2,12 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
+import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   ActionGroup,
@@ -11,16 +15,18 @@ import {
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ActionNodeContext,
   actionNodesMap,
   useActionNodeContext,
 } from 'sentry/views/automations/components/actionNodes';
+import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
-import {getIncompatibleActionWarning} from 'sentry/views/automations/utils/getIncompatibleActionWarning';
+import {getIncompatibleActionWarnings} from 'sentry/views/automations/utils/getIncompatibleActionWarning';
 
 interface ActionNodeListProps {
   actions: Action[];
@@ -62,9 +68,13 @@ export function ActionNodeList({
   onDeleteRow,
   updateAction,
 }: ActionNodeListProps) {
-  const {data: availableActions = []} = useAvailableActionsQuery();
+  const organization = useOrganization();
+  const {data: availableActions = [], isLoading: isLoadingActions} =
+    useAvailableActionsQuery();
   const {errors, removeError} = useAutomationBuilderErrorContext();
   const {connectedDetectors} = useConnectedDetectors();
+  const {state} = useAutomationBuilderContext();
+  const triggerConditions = state.triggers.conditions ?? [];
 
   const options = useMemo(() => {
     const notificationActions: Option[] = [];
@@ -72,6 +82,9 @@ export function ActionNodeList({
     const otherActions: Option[] = [];
 
     availableActions.forEach(action => {
+      if (action.type === ActionType.PLUGIN) {
+        return;
+      }
       const label =
         actionNodesMap.get(action.type)?.label || action.sentryApp?.name || action.type;
       const newAction = {
@@ -110,13 +123,38 @@ export function ActionNodeList({
   return (
     <Fragment>
       {actions.map(action => {
-        const handler = getActionHandler(action, availableActions);
-        if (!handler) {
+        if (isLoadingActions) {
           return null;
         }
+        const handler = getActionHandler(action, availableActions);
+        if (!handler) {
+          const actionLabel = actionNodesMap.get(action.type)?.label;
+          return (
+            <AutomationBuilderRow
+              key={`actionFilters.${conditionGroupId}.action.${action.id}`}
+              onDelete={() => {
+                onDeleteRow(action.id);
+              }}
+              hasError
+              errorMessage={
+                actionLabel
+                  ? t(
+                      'The %s action is no longer available. Please remove and reconfigure this action.',
+                      actionLabel
+                    )
+                  : t(
+                      'The integration is no longer available. Please remove and reconfigure this action.'
+                    )
+              }
+            >
+              {actionLabel ?? t('Unknown integration')}
+            </AutomationBuilderRow>
+          );
+        }
         const error = errors?.[action.id];
-        const warningMessage = getIncompatibleActionWarning(action, {
+        const warningMessages = getIncompatibleActionWarnings(action, {
           connectedDetectors,
+          triggerConditions,
         });
         return (
           <AutomationBuilderRow
@@ -126,7 +164,7 @@ export function ActionNodeList({
             }}
             hasError={!!error}
             errorMessage={error}
-            warningMessage={warningMessage}
+            warningMessages={warningMessages}
           >
             <ActionNodeContext.Provider
               value={{
@@ -150,6 +188,26 @@ export function ActionNodeList({
         }}
         placeholder={placeholder}
         value={null}
+        components={{
+          Menu: ({children, ...props}) => (
+            <selectComponents.Menu {...props}>
+              <Fragment>
+                {children}
+                <Container padding="md" borderTop="muted">
+                  <LinkButton
+                    size="xs"
+                    variant="secondary"
+                    icon={<IconAdd />}
+                    href={`/settings/${organization.slug}/integrations/`}
+                    external
+                  >
+                    {t('Add another integration')}
+                  </LinkButton>
+                </Container>
+              </Fragment>
+            </selectComponents.Menu>
+          ),
+        }}
       />
       {errors[conditionGroupId] && (
         <Alert variant="danger">{errors[conditionGroupId]}</Alert>
