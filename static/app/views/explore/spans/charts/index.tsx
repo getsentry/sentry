@@ -38,6 +38,7 @@ import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFoot
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
+  getSamplingWarningReason,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
 import {
@@ -229,13 +230,14 @@ function Chart({
     />
   );
 
-  const TitleBadges = (
-    <SamplingWarning
-      yAxis={visualize.yAxis}
-      series={chartInfo.series}
-      dataScanned={chartInfo.dataScanned}
-    />
+  const samplingWarningReason = getSamplingWarningReason(
+    visualize.yAxis,
+    chartInfo.series,
+    chartInfo.dataScanned
   );
+  const TitleBadges = samplingWarningReason ? (
+    <SamplingWarning yAxis={visualize.yAxis} reason={samplingWarningReason} />
+  ) : null;
 
   const Actions = visualize.visible ? (
     <Fragment>

@@ -4,21 +4,14 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {getSamplingWarningReason} from 'sentry/views/explore/utils';
+import type {SamplingWarningReason} from 'sentry/views/explore/utils';
 
 interface SamplingWarningProps {
-  series: TimeSeries[];
+  reason: SamplingWarningReason;
   yAxis: string;
-  dataScanned?: 'full' | 'partial';
 }
 
-export function SamplingWarning({yAxis, series, dataScanned}: SamplingWarningProps) {
-  const reason = getSamplingWarningReason(yAxis, series, dataScanned);
-  if (!reason) {
-    return null;
-  }
-
+export function SamplingWarning({yAxis, reason}: SamplingWarningProps) {
   const name = parseFunction(yAxis)?.name ?? yAxis;
   const nameNode = (
     <Text as="span" monospace>
