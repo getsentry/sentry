@@ -2,7 +2,7 @@ from datetime import datetime
 
 from drf_spectacular.utils import OpenApiExample
 
-from sentry.api.serializers.models.commit import CommitSerializerResponse
+from sentry.api.serializers.models.commit import CommitSerializerResponseWithReleases
 from sentry.api.serializers.types import ReleaseSerializerResponse
 
 RELEASE: ReleaseSerializerResponse = {
@@ -54,12 +54,22 @@ RELEASE: ReleaseSerializerResponse = {
 }
 
 
-COMMIT: CommitSerializerResponse = {
+COMMIT: CommitSerializerResponseWithReleases = {
     "id": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
     "message": "fix: handle empty release version",
     "dateCreated": datetime.fromisoformat("2024-01-01T00:00:00Z"),
     "pullRequest": None,
     "suspectCommitType": "",
+    "releases": [
+        {
+            "version": "frontend@1.0.0",
+            "shortVersion": "1.0.0",
+            "ref": None,
+            "url": None,
+            "dateReleased": None,
+            "dateCreated": datetime.fromisoformat("2024-01-01T00:00:00Z"),
+        }
+    ],
 }
 
 RELEASE_TIMESERIES = {

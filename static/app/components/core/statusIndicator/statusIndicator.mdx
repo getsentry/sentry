@@ -74,6 +74,21 @@ The background pulse repeats continuously by default. Pass `animationIterationCo
 
 When the user prefers reduced motion, the indicator renders in its settled static state.
 
+### Static
+
+Pass `animationIterationCount={0}` to render a static dot with no pulse. Reach for this when the indicator reflects a known, persistent value — such as a fixed `level` or `severity` from query parameters — rather than a change worth drawing attention to.
+
+<Storybook.Demo>
+  <Grid columns="8px 1fr" flow="row" gap="md" align="center">
+    <StatusIndicator variant="danger" aria-label="Error" animationIterationCount={0} />
+    <Text>error</Text>
+  </Grid>
+</Storybook.Demo>
+
+```jsx
+<StatusIndicator variant="danger" animationIterationCount={0} />
+```
+
 ## Accessibility
 
 The component handles three patterns based on the props provided:

@@ -68,7 +68,8 @@ import {
 } from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {LowValueSpanIssueDetails} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanIssueDetails';
+import {LowValueSpanProblemSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanProblemSection';
+import {LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanTroubleshootingSection';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
@@ -127,10 +128,6 @@ export function EventDetailsContent({
     return <SourceMapIssueDetails group={group} event={event} project={project} />;
   }
 
-  if (group.issueType === IssueType.LOW_VALUE_SPAN_CONFIGURATION) {
-    return <LowValueSpanIssueDetails group={group} event={event} project={project} />;
-  }
-
   return (
     <DebugMetaSearchProvider key={event.id}>
       <ErrorBoundary mini>
@@ -145,6 +142,25 @@ export function EventDetailsContent({
       {event.userReport && (
         <FoldSection title={t('User Feedback')} sectionKey={SectionKey.USER_FEEDBACK}>
           <EventUserFeedback report={event.userReport} />
+        </FoldSection>
+      )}
+      {issueTypeConfig.configurationProblem.enabled && (
+        <FoldSection sectionKey={SectionKey.CONFIGURATION_PROBLEM} title={t('Problem')}>
+          {/* Low-value spans is the only consumer of configurationProblem today;
+              the implementation will be generalized once more configuration
+              issues opt into this flag. */}
+          <LowValueSpanProblemSection event={event} project={project} />
+        </FoldSection>
+      )}
+      {issueTypeConfig.configurationTroubleshooting.enabled && (
+        <FoldSection
+          sectionKey={SectionKey.CONFIGURATION_TROUBLESHOOTING}
+          title={t('Troubleshooting')}
+        >
+          {/* Low-value spans is the only consumer of configurationTroubleshooting
+              today; the implementation will be generalized once more
+              configuration issues opt into this flag. */}
+          <LowValueSpanTroubleshootingSection event={event} project={project} />
         </FoldSection>
       )}
       <EventEvidence event={event} group={group} project={project} />
@@ -330,7 +346,8 @@ export function EventDetailsContent({
           <MetricsSection event={event} group={group} project={project} />
         </Feature>
       </ErrorBoundary>
-      {event.contexts.trace?.trace_id &&
+      {issueTypeConfig.trace.enabled &&
+        event.contexts.trace?.trace_id &&
         organization.features.includes('performance-view') && (
           <EventTraceView group={group} event={event} organization={organization} />
         )}
@@ -344,7 +361,7 @@ export function EventDetailsContent({
           <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
         </Fragment>
       ) : null}
-      <EventContexts event={event} />
+      {issueTypeConfig.contexts.enabled && <EventContexts event={event} />}
       <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
         <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>

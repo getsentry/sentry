@@ -49,6 +49,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import RPC_DATASETS
 from sentry.utils.snuba import SnubaError, SnubaTSResult
+from sentry.utils.tracing import set_span_data, start_span
 
 SENTRY_BACKEND_REFERRERS = [
     Referrer.API_ALERTS_CHARTCUTERIE.value,
@@ -133,8 +134,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             },
         )
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            span.set_data("organization", organization)
+        with start_span(op="discover.endpoint", name="filter_params") as span:
+            set_span_data(span, "organization", organization)
 
             top_events = 0
 

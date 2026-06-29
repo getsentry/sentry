@@ -53,7 +53,7 @@ export function SlackPreview({
           </Flex>
           <Flex direction="column" align="start" padding="sm 0" gap="md">
             <SlackBlackText size="xl" bold>
-              {subject}
+              {subject.map(block => block.text).join(' ')}
             </SlackBlackText>
             <SlackBodyText>
               <NotificationBodyRenderer
@@ -88,7 +88,7 @@ export function SlackPreview({
             )}
             {footer && (
               <SlackBlackText size="xs" variant="muted">
-                {footer}
+                {footer.map(block => block.text).join(' ')}
               </SlackBlackText>
             )}
           </Flex>
