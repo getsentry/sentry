@@ -52,6 +52,7 @@ from sentry.utils.options import sample_modulo
 # These features will be listed in the project config.
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
+    "organizations:continuous-profiling-perfetto",
     "organizations:profiling",
     "organizations:session-replay-recording-scrubbing",
     "organizations:session-replay-video-disabled",
@@ -73,6 +74,7 @@ EXPOSABLE_FEATURES = [
     "projects:relay-minidump-attachment-uploads",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
+    "projects:minidump-multi-exception",
 ]
 
 EXTRACT_METRICS_VERSION = 1

@@ -1,6 +1,8 @@
+import {createRef} from 'react';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {SplitPanel} from '@sentry/scraps/splitPanel';
+import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
 
 describe('SplitPanel', () => {
   it('renders both panes and a divider', () => {
@@ -99,6 +101,28 @@ describe('SplitPanel', () => {
     expect(separator).toHaveAttribute('aria-valuemax', '600');
     expect(separator).toHaveAttribute('aria-valuenow', '200');
     expect(separator).toHaveAttribute('tabindex', '0');
+  });
+
+  it('exposes a setSize handle that updates the sized pane', () => {
+    const ref = createRef<SplitPanelHandle>();
+    render(
+      <SplitPanel
+        ref={ref}
+        orientation="horizontal"
+        defaultSize={200}
+        minSize={100}
+        maxSize={600}
+        sized={<div>sized</div>}
+        fill={<div>fill</div>}
+      />
+    );
+
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '200');
+
+    // Lets a parent seed the size from a post-mount measurement without a remount.
+    act(() => ref.current?.setSize(350));
+
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '350');
   });
 
   describe('sizing', () => {

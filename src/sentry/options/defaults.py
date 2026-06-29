@@ -319,6 +319,27 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "unmerge.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "merge.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.merge-unmerge.max-group-times-seen",
+    default=0,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "cleanup.abort_execution",
@@ -522,15 +543,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Rollout rate for moving accepted outcome emission from Relay to EAP.
-register(
-    "relay.eap-outcomes.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Killswitch for fetching projects in the endpoints.
 register(
@@ -1127,6 +1139,12 @@ register(
 
 register(
     "seer.explorer_index.killswitch.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.pull-request-linking.killswitch.enabled",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2052,6 +2070,12 @@ register(
     0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
+register(
+    "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Stops dynamic sampling rules from being emitted in relay config.
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
@@ -2664,16 +2688,6 @@ register(
     "relocation.enabled",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Relocation: populates the target region drop down in the control silo. Note: this option has NO
-# EFFECT in region silos. However, the control silos `relocation.selectable-regions` array should be
-# a complete list of all regions where `relocation.enabled`. If a region is enabled/disabled, it
-# should also be added to/removed from this array in the control silo at the same time.
-register(
-    "relocation.selectable-regions",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Relocation: the step at which new relocations should be autopaused, requiring admin approval
@@ -3758,6 +3772,39 @@ register(
     "tasks.producer.profiles.rollout",
     type=Float,
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to replays tasks
+register(
+    "tasks.producer.replays.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to track_outcome in tasks
+register(
+    "tasks.producer.track_outcome.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to preprod tasks
+register(
+    "tasks.producer.preprod.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# If False, TaskWorkers will wait for a task's producer futures to complete
+# before marking a task as complete
+register(
+    "taskworker.skip.awaiting.futures",
+    type=Bool,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

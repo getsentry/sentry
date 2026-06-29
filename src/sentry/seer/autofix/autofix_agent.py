@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping, Sequence
+from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 
 from django.utils import timezone
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ValidationError, parse_raw_as
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
 
@@ -47,6 +49,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models.run import SeerRun
 from sentry.seer.models.seer_api_models import SeerPermissionError
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
@@ -81,14 +84,41 @@ class UserUIFeedbackSource(TypedDict):
     user: NotRequired[Any]
 
 
+class GithubPrCommentFeedbackSource(TypedDict):
+    """Feedback submitted as a GitHub PR comment (``@sentry <feedback>``)."""
+
+    type: Literal["github-pr-comment"]
+    # The raw GitHub ``issue_comment`` ``comment`` payload. We store it verbatim
+    # rather than cherry-picking fields so the UI can render whatever it needs
+    # (e.g. ``comment.user.login`` for attribution, ``comment.html_url`` to link
+    # back to the comment) without the backend threading each field through.
+    comment: Mapping[str, Any]
+
+
 # Discriminated on ``type``. Add new TypedDict variants to this union as more
 # feedback sources are introduced.
-FeedbackSource = UserUIFeedbackSource
+FeedbackSource = UserUIFeedbackSource | GithubPrCommentFeedbackSource
 
 
 class Feedback(BaseModel):
-    message: str
+    text: str
     source: FeedbackSource
+    timestamp: datetime = Field(default_factory=timezone.now)
+
+
+def parse_feedback(raw: str) -> list[Feedback]:
+    try:
+        return parse_raw_as(list[Feedback], raw)
+    except (ValidationError, ValueError):
+        pass
+    try:
+        return [parse_raw_as(Feedback, raw)]
+    except (ValidationError, ValueError):
+        return []
+
+
+def serialize_feedback(items: Sequence[Feedback]) -> str:
+    return json.dumps([item.dict() for item in items])
 
 
 class NoSeerQuotaException(Exception):
@@ -385,7 +415,7 @@ def trigger_autofix_agent(
     reasoning_effort: Literal["low", "medium", "high"] | None = _UNSET,
     user_context: str | None = None,
     insert_index: int | None = None,
-    feedback: Feedback | None = None,
+    feedback: Sequence[Feedback] | None = None,
 ) -> int:
     """
     Start or continue an agent-based autofix run.
@@ -457,16 +487,10 @@ def trigger_autofix_agent(
         "has_user_context": "no" if user_context is None else "yes",
         "is_retry": "no" if insert_index is None else "yes",
     }
-    if step == AutofixStep.PR_ITERATION and feedback is not None:
-        # Stored as a JSON object so the UI can attribute the feedback to its
-        # source and show when it was submitted.
-        prompt_metadata["feedback"] = json.dumps(
-            {
-                "text": feedback.message,
-                "source": feedback.source,
-                "timestamp": timezone.now().isoformat(),
-            }
-        )
+    feedback_items = list(feedback or [])
+    if step == AutofixStep.PR_ITERATION and feedback_items:
+        prompt_metadata["feedback"] = serialize_feedback(feedback_items)
+
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
 
@@ -478,6 +502,7 @@ def trigger_autofix_agent(
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
+    run: SeerRun | None = None
     if run_id is None:
         metadata: dict[str, Any] = {
             "group_id": group.id,
@@ -485,13 +510,14 @@ def trigger_autofix_agent(
         }
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
-        run_id = client.start_run(
+        run = client.start_run(
             prompt=prompt,
             prompt_metadata=prompt_metadata,
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             metadata=metadata,
-        ).seer_run_state_id
+        )
+        run_id = run.seer_run_state_id
 
         # Make sure to log billing event for seer autofix whenever a new run is started
         quotas.backend.record_seer_run(
@@ -506,6 +532,12 @@ def trigger_autofix_agent(
             artifact_schema=artifact_schema,
             insert_index=insert_index,
         )
+
+    if run is None:
+        run = SeerRun.objects.filter(
+            organization_id=group.organization.id,
+            seer_run_state_id=run_id,
+        ).first()
 
     # Emit the started event after run_id is resolved so it can be joined to
     # downstream completed/PR events.
@@ -523,6 +555,7 @@ def trigger_autofix_agent(
 
     payload: dict[str, Any] = {
         "run_id": run_id,
+        "sentry_run_id": str(run.uuid) if run is not None else None,
         "group_id": group.id,
     }
     if iteration_index is not None:
@@ -611,6 +644,7 @@ def generate_autofix_handoff_prompt(
     state: SeerRunState,
     instruction: str | None = None,
     short_id: str | None = None,
+    issue_url: str | None = None,
 ) -> str:
     """
     Generate a prompt for coding agents from autofix run state.
@@ -621,7 +655,12 @@ def generate_autofix_handoff_prompt(
     parts = ["Please fix the following issue. Ensure that your fix is fully working."]
 
     if short_id:
-        parts.append(f"Include 'Fixes {short_id}' in the commit message.")
+        if issue_url:
+            parts.append(
+                f"Include 'Fixes [{short_id}]({issue_url})' in the commit message and PR description."
+            )
+        else:
+            parts.append(f"Include 'Fixes {short_id}' in the commit message.")
 
     if instruction and instruction.strip():
         parts.append(instruction.strip())
@@ -762,8 +801,9 @@ def trigger_coding_agent_handoff(
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
 
     short_id = group.qualified_short_id
+    issue_url = group.get_absolute_url() if short_id else None
 
-    prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
+    prompt = generate_autofix_handoff_prompt(state, short_id=short_id, issue_url=issue_url)
 
     coding_agents = client.launch_coding_agents(
         run_id=run_id,
@@ -775,6 +815,7 @@ def trigger_coding_agent_handoff(
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
         issue_short_id=short_id,
+        issue_url=issue_url,
     )
 
     coding_agent_name = _resolve_coding_agent_name(group.organization.id, integration_id, provider)
@@ -871,6 +912,11 @@ def build_pr_description_suffix(group: Group) -> str | None:
                 continue
             linear_id = external_issue.display_name.replace("#", "-")
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
+
+    if features.has("organizations:autofix-pr-iteration", group.organization):
+        lines.append(
+            "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
+        )
 
     if lines:
         return "\n".join(lines)

@@ -211,6 +211,21 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="currency",
         ),
         ResolvedAttribute(
+            public_alias="gen_ai.conversation.id",
+            internal_name="gen_ai.conversation.id",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.operation.name",
+            internal_name="gen_ai.operation.name",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.operation.type",
+            internal_name="gen_ai.operation.type",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="gen_ai.usage.input_tokens",
             internal_name="gen_ai.usage.input_tokens",
             search_type="integer",
