@@ -22,6 +22,7 @@ from sentry.pipeline.store import PipelineSessionStore
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity, IdentityProvider, OrganizationIdentity
 from sentry.utils import metrics
+from sentry.utils.auth import is_valid_redirect
 
 from . import default_manager
 
@@ -120,7 +121,14 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
                 skip_internal=False,
             )
 
+            redirect_url = self.config.get("redirect_url")
+
             self.state.clear()
+
+            if redirect_url and is_valid_redirect(
+                redirect_url, allowed_hosts=(self.request.get_host(),)
+            ):
+                return HttpResponseRedirect(redirect_url)
 
             # TODO(epurkhiser): When we have more identities and have built out an
             # identity management page that supports these new identities (not

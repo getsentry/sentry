@@ -30,6 +30,7 @@ from sentry.users.models.identity import (
     OrganizationIdentity,
     link_provider_identity,
 )
+from sentry.utils.auth import is_valid_redirect
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +109,13 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
             config = provider_type.get_pipeline_config(data)
         except ValueError as e:
             return Response({"detail": str(e)}, status=400)
+
+        # Carry a validated post-OAuth return URL through the pipeline (open-redirect safe).
+        return_url = data.get("return_url")
+        if return_url and is_valid_redirect(
+            return_url, allowed_hosts=(request._request.get_host(),)
+        ):
+            config["redirect_url"] = return_url
 
         idp: IdentityProvider | None = None
         if not provider_type.auto_create_provider_model:

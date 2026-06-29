@@ -7,6 +7,7 @@ import pytest
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.base import SessionBase
 from django.test import RequestFactory
+from django.urls import reverse
 
 import sentry.identity
 from sentry.identity.pipeline import IdentityPipeline
@@ -122,6 +123,46 @@ class IdentityPipelineFinishTest(TestCase):
 
         identity = Identity.objects.get(idp=existing_idp, user=self.user)
         assert identity.external_id == "user-123"
+
+    @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
+    def test_redirects_to_valid_config_redirect_url(
+        self, mock_build: MagicMock, mock_record: MagicMock
+    ) -> None:
+        idp = IdentityProvider.objects.create(
+            type="dummy", external_id="org-456", config={"site": "example.com"}
+        )
+        pipeline = IdentityPipeline(
+            request=self.request,
+            provider_key="dummy",
+            provider_model=idp,
+            config={"redirect_url": "/organizations/test-org/explorer/?explorerRunId=5"},
+        )
+        pipeline.initialize()
+
+        response = pipeline.finish_pipeline()
+
+        assert response.status_code == 302
+        assert response.url == "/organizations/test-org/explorer/?explorerRunId=5"
+
+    @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
+    def test_ignores_external_redirect_url(
+        self, mock_build: MagicMock, mock_record: MagicMock
+    ) -> None:
+        idp = IdentityProvider.objects.create(
+            type="dummy", external_id="org-456", config={"site": "example.com"}
+        )
+        pipeline = IdentityPipeline(
+            request=self.request,
+            provider_key="dummy",
+            provider_model=idp,
+            config={"redirect_url": "https://evil.example.com/phish"},
+        )
+        pipeline.initialize()
+
+        response = pipeline.finish_pipeline()
+
+        assert response.status_code == 302
+        assert response.url == reverse("sentry-account-settings")
 
 
 @control_silo_test
