@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -249,6 +257,36 @@ const MessageBubble = styled('div')<{
 function ReasoningSection({reasoning}: {reasoning: string}) {
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Keep the reasoning text in the DOM while collapsed, using the native
+  // `hidden="until-found"` attribute. The content stays collapsed/invisible but
+  // remains exposed to the browser's find-in-page (Ctrl-F), which auto-reveals
+  // the matching section instead of skipping it.
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) {
+      return;
+    }
+    if (isExpanded) {
+      el.removeAttribute('hidden');
+    } else {
+      el.setAttribute('hidden', 'until-found');
+    }
+  }, [isExpanded]);
+
+  // When find-in-page reveals a `hidden="until-found"` element, the browser
+  // removes the attribute and fires `beforematch`. Sync our state so the
+  // section stays expanded and the chevron points down.
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) {
+      return () => {};
+    }
+    const handleBeforeMatch = () => setIsExpanded(true);
+    el.addEventListener('beforematch', handleBeforeMatch);
+    return () => el.removeEventListener('beforematch', handleBeforeMatch);
+  }, []);
 
   const handleToggleExpanded = () => {
     const newState = !isExpanded;
@@ -281,13 +319,11 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
           />
         </Flex>
       </Button>
-      {isExpanded && (
-        <Container padding="md">
-          <MessageText size="sm" align="left" variant="muted" monospace italic>
-            <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
-          </MessageText>
-        </Container>
-      )}
+      <Container ref={contentRef} padding="md">
+        <MessageText size="sm" align="left" variant="muted" monospace italic>
+          <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
+        </MessageText>
+      </Container>
     </Fragment>
   );
 }

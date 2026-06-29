@@ -359,6 +359,17 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
+/**
+ * Formats text as a Markdown blockquote, prefixing every line with `> ` so
+ * multi-line content (e.g. reasoning) stays inside the quote.
+ */
+function toBlockquote(text: string): string {
+  return text
+    .split('\n')
+    .map(line => `> ${line}`)
+    .join('\n');
+}
+
 export function messagesToMarkdown(messages: ConversationMessage[]): string {
   const blocks: string[] = [];
 
@@ -379,6 +390,10 @@ export function messagesToMarkdown(messages: ConversationMessage[]): string {
       if (message.toolCalls && message.toolCalls.length > 0) {
         const toolNames = message.toolCalls.map(tc => `\`${tc.name}\``).join(', ');
         lines.push(`> Called tools: ${toolNames}`);
+      }
+
+      if (message.reasoning) {
+        lines.push(toBlockquote(`Thinking:\n${message.reasoning}`));
       }
     }
 
