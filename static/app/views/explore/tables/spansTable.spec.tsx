@@ -1,3 +1,5 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+
 import {EventView} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
 import {addValidatedFieldTypesToMeta} from 'sentry/views/explore/tables/spansTable';
@@ -25,9 +27,9 @@ describe('addValidatedFieldTypesToMeta', () => {
   });
 
   it('passes validated field types to table column metadata', () => {
-    const eventView = new EventView({
-      fields: [{field: 'sentry.duration'}],
-    });
+    const eventView = EventView.fromLocation(
+      LocationFixture({query: {field: ['sentry.duration']}})
+    );
     const meta = addValidatedFieldTypesToMeta({
       meta: {fields: {'sentry.duration': FieldValueType.STRING}},
       validatedFieldTypes: {'sentry.duration': FieldValueType.NUMBER},

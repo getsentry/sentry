@@ -11,6 +11,7 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
 import {
@@ -191,8 +192,8 @@ export function addValidatedFieldTypesToMeta({
   meta,
   validatedFieldTypes,
 }: {
-  meta: SpansTableResult['result']['meta'];
+  meta: MetaType;
   validatedFieldTypes: Partial<Record<string, FieldValueType>>;
-}) {
+}): MetaType {
   return {...meta, fields: {...meta?.fields, ...validatedFieldTypes}};
 }
