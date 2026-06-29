@@ -51,7 +51,10 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.seer.code_review.contributor_seats import track_contributor_seat
+from sentry.seer.code_review.contributor_seats import (
+    record_contributor_action,
+    track_contributor_seat,
+)
 from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.utils.redis import redis_clusters
 
@@ -155,3 +158,46 @@ def track_gitlab_contributor_seat_processor(
         provider="gitlab",
     )
     debug_log(logger, organization, "contributor_seat_tracked", base_extra)
+
+
+def track_gitlab_contributor_action_processor(
+    *,
+    event: Mapping[str, Any],
+    organization: RpcOrganization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    if integration is None:
+        return
+
+    if not features.has("organizations:seer-gitlab-support", organization):
+        return
+
+    object_attributes = event.get("object_attributes") or {}
+    try:
+        user_id = object_attributes["author_id"]
+        user_username = event["user"]["username"]
+        iid = object_attributes["iid"]
+    except KeyError:
+        return
+
+    try:
+        org = Organization.objects.get_from_cache(id=organization.id)
+    except Organization.DoesNotExist:
+        return
+
+    # GitLab visibility_level: 0 = private, 10 = internal, 20 = public.
+    visibility_level = (event.get("project") or {}).get("visibility_level")
+
+    record_contributor_action(
+        organization=org,
+        repo=repo,
+        integration_id=integration.id,
+        user_id=user_id,
+        user_username=user_username,
+        provider="gitlab",
+        pr_number=iid,
+        is_opened=object_attributes.get("action") == "open",
+        tags={"is_private": visibility_level == 0},
+    )

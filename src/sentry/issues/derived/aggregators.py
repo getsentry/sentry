@@ -13,7 +13,7 @@ from sentry.issues.derived.framework import (
     aggregator,
     emit,
 )
-from sentry.issues.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.progress_state import IssueProgressState
 
 

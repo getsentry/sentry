@@ -11,6 +11,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
@@ -165,6 +166,8 @@ describe('ActivitySection', () => {
   });
 
   it('renders note and allows for delete', async () => {
+    jest.spyOn(indicators, 'addSuccessMessage');
+
     const deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/note-1/',
       method: 'DELETE',
@@ -188,9 +191,48 @@ describe('ActivitySection', () => {
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Remove comment'}));
 
-    expect(deleteMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(deleteMock).toHaveBeenCalledTimes(1));
+    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment removed');
+  });
 
-    expect(screen.queryByText('Test Note')).not.toBeInTheDocument();
+  it('keeps the comment and modal open when deletion fails', async () => {
+    const errorGroup = GroupFixture({
+      id: '1400',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: 'Undeletable Note'},
+          dateCreated: '2020-01-01T00:00:00',
+          user,
+        },
+      ],
+      project,
+    });
+    GroupStore.add([errorGroup]);
+    const deleteMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1400/comments/note-1/',
+      method: 'DELETE',
+      statusCode: 500,
+    });
+
+    render(
+      <GroupDataContextProvider group={errorGroup} project={errorGroup.project}>
+        <ActivitySection group={errorGroup} />
+      </GroupDataContextProvider>
+    );
+    renderGlobalModal();
+    expect(await screen.findByText('Undeletable Note')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Remove'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Remove comment'}));
+
+    await waitFor(() => expect(deleteMock).toHaveBeenCalledTimes(1));
+
+    // The modal stays open with an error, and the comment is still present.
+    expect(await screen.findByText('Failed to remove comment')).toBeInTheDocument();
+    expect(screen.getByText('Undeletable Note')).toBeInTheDocument();
   });
 
   it('renders note markdown', async () => {
@@ -495,8 +537,13 @@ describe('ActivitySection', () => {
     await userEvent.type(screen.getByDisplayValue('Group Test'), ' Updated');
     await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
-    expect(editMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(editMock).toHaveBeenCalledTimes(1));
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
+
+    // Editor closes only after the update succeeds.
+    await waitFor(() =>
+      expect(screen.queryByRole('button', {name: 'Save comment'})).not.toBeInTheDocument()
+    );
   });
 
   it('renders note from a sentry app', async () => {
@@ -890,6 +937,90 @@ describe('ActivitySection', () => {
       {organization: org}
     );
     expect(screen.queryByText('Pull Request Created')).not.toBeInTheDocument();
+  });
+
+  it('renders Seer PR iteration activity when feature flag is enabled', async () => {
+    const seerIterationGroup = GroupFixture({
+      id: '1346',
+      activity: [
+        {
+          type: GroupActivityType.SEER_ITERATION_COMPLETED,
+          id: 'seer-iteration-2',
+          dateCreated: '2020-01-01T00:00:01',
+          data: {
+            run_id: 456,
+            iteration_index: 1,
+            pull_requests: [
+              {
+                provider: 'github',
+                pull_request: {
+                  pr_number: 42,
+                  pr_url: 'https://github.com/org/repo/pull/42',
+                },
+                repo_name: 'org/repo',
+              },
+            ],
+          },
+          user: null,
+        },
+        {
+          type: GroupActivityType.SEER_ITERATION_STARTED,
+          id: 'seer-iteration-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 456, iteration_index: 1},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    const org = OrganizationFixture({
+      features: ['display-seer-actions-as-issue-activities'],
+    });
+
+    render(
+      <GroupDataContextProvider
+        group={seerIterationGroup}
+        project={seerIterationGroup.project}
+      >
+        <ActivitySection group={seerIterationGroup} />
+      </GroupDataContextProvider>,
+      {organization: org}
+    );
+    expect(await screen.findAllByText('PR Iteration')).toHaveLength(2);
+    expect(
+      screen.getByText('Seer started iterating on the pull request')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'pull request'})).toHaveAttribute(
+      'href',
+      'https://github.com/org/repo/pull/42'
+    );
+  });
+
+  it('hides Seer PR iteration activity when feature flag is disabled', () => {
+    const seerIterationGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.SEER_ITERATION_STARTED,
+          id: 'seer-iteration-3',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 456, iteration_index: 1},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider
+        group={seerIterationGroup}
+        project={seerIterationGroup.project}
+      >
+        <ActivitySection group={seerIterationGroup} />
+      </GroupDataContextProvider>
+    );
+    expect(screen.queryByText('PR Iteration')).not.toBeInTheDocument();
   });
 
   it('renders PR author name when activity user is null', async () => {

@@ -140,7 +140,7 @@ def create_deploy(
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
