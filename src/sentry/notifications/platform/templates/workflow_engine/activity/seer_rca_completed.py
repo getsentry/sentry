@@ -62,7 +62,7 @@ class SeerRcaCompletedActivityTemplate(NotificationTemplate[WorkflowEngineActivi
             body.append(CodeBlock(blocks=[summary_block]))
         return build_template(
             data=data,
-            subject=get_subject("Seer RCA Completed", group),
+            subject=get_subject("Root Cause Analysis Completed", group),
             body=body,
             extra_actions=[get_view_in_sentry_button(group)],
         )

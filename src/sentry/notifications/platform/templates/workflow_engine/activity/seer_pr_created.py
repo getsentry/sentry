@@ -74,7 +74,7 @@ class SeerPrCreatedActivityTemplate(NotificationTemplate[WorkflowEngineActivityA
 
         return build_template(
             data=data,
-            subject=get_subject("Seer PR Created", group),
+            subject=get_subject("Pull Request Created", group),
             body=body,
             extra_actions=[get_view_in_sentry_button(group)],
         )

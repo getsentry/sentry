@@ -89,7 +89,7 @@ class SeerIterationCompletedActivityTemplate(NotificationTemplate[WorkflowEngine
 
         return build_template(
             data=data,
-            subject=get_subject("Seer PR Iteration Completed", group),
+            subject=get_subject("PR Iteration Completed", group),
             body=body,
             extra_actions=[get_view_in_sentry_button(group)],
         )

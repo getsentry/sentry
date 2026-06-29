@@ -62,7 +62,7 @@ class SeerSolutionCompletedActivityTemplate(NotificationTemplate[WorkflowEngineA
             body.append(CodeBlock(blocks=[summary_block]))
         return build_template(
             data=data,
-            subject=get_subject("Seer Solution Completed", group),
+            subject=get_subject("Planning Completed", group),
             body=body,
             extra_actions=[get_view_in_sentry_button(group)],
         )

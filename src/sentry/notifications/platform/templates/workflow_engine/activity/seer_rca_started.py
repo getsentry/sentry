@@ -41,7 +41,7 @@ class SeerRcaStartedActivityTemplate(NotificationTemplate[WorkflowEngineActivity
         )
         return build_template(
             data=data,
-            subject=get_subject("Seer RCA Started", group),
+            subject=get_subject("Root Cause Analysis Started", group),
             body=get_issue_description(group),
             extra_actions=[get_view_in_sentry_button(group)],
         )

@@ -41,7 +41,7 @@ class SeerCodingStartedActivityTemplate(NotificationTemplate[WorkflowEngineActiv
         )
         return build_template(
             data=data,
-            subject=get_subject("Seer Coding Started", group),
+            subject=get_subject("Coding Started", group),
             body=get_issue_description(group),
             extra_actions=[get_view_in_sentry_button(group)],
         )
