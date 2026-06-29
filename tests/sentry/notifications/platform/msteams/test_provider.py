@@ -15,6 +15,8 @@ from sentry.notifications.platform.msteams.provider import (
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
+    BlockQuoteSection,
+    ItalicTextBlock,
     LinkTextBlock,
     NotificationCategory,
     NotificationProviderKey,
@@ -56,6 +58,47 @@ class MSTeamsRendererTest(TestCase):
             "[getsentry/sentry (#1234)](https://github.com/getsentry/sentry/pull/1234)"
             in body_text_block["text"]
         )
+
+    def test_italic_text_block_rendering(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Test Italic",
+            body=[
+                ParagraphBlock(
+                    blocks=[
+                        PlainTextBlock(text="This is"),
+                        ItalicTextBlock(text="important"),
+                    ],
+                )
+            ],
+        )
+
+        data = MockNotification(message="test")
+        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
+
+        body_blocks = renderable["body"]
+        body_text_block = body_blocks[1]
+        assert body_text_block["type"] == "TextBlock"
+        assert "*important*" in body_text_block["text"]
+
+    def test_block_quote_section_rendering(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Test Quote",
+            body=[
+                BlockQuoteSection(
+                    blocks=[
+                        PlainTextBlock(text="This is a quoted message"),
+                    ],
+                )
+            ],
+        )
+
+        data = MockNotification(message="test")
+        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
+
+        body_blocks = renderable["body"]
+        body_text_block = body_blocks[1]
+        assert body_text_block["type"] == "TextBlock"
+        assert "This is a quoted message" in body_text_block["text"]
 
     def test_default_renderer(self) -> None:
         data = MockNotification(message="test")

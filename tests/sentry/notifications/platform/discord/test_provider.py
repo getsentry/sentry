@@ -19,6 +19,8 @@ from sentry.notifications.platform.discord.provider import (
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
+    BlockQuoteSection,
+    ItalicTextBlock,
     LinkTextBlock,
     NotificationCategory,
     NotificationProviderKey,
@@ -77,6 +79,43 @@ class DiscordRendererTest(TestCase):
             "[getsentry/sentry (#1234)](https://github.com/getsentry/sentry/pull/1234)"
             in embed["description"]
         )
+
+    def test_italic_text_block_rendering(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Test Italic",
+            body=[
+                ParagraphBlock(
+                    blocks=[
+                        PlainTextBlock(text="This is"),
+                        ItalicTextBlock(text="important"),
+                    ],
+                )
+            ],
+        )
+
+        data = MockNotification(message="test")
+        renderable = DiscordRenderer.render(data=data, rendered_template=rendered_template)
+
+        embed = renderable["embeds"][0]
+        assert "*important*" in embed["description"]
+
+    def test_block_quote_section_rendering(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Test Quote",
+            body=[
+                BlockQuoteSection(
+                    blocks=[
+                        PlainTextBlock(text="This is a quoted message"),
+                    ],
+                )
+            ],
+        )
+
+        data = MockNotification(message="test")
+        renderable = DiscordRenderer.render(data=data, rendered_template=rendered_template)
+
+        embed = renderable["embeds"][0]
+        assert "> This is a quoted message" in embed["description"]
 
     def test_default_renderer(self) -> None:
         data = MockNotification(message="test")

@@ -6,7 +6,9 @@ from sentry import options
 from sentry.notifications.platform.email.provider import EmailNotificationProvider, EmailRenderer
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
+    BlockQuoteSection,
     BoldTextBlock,
+    ItalicTextBlock,
     LinkTextBlock,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -119,6 +121,49 @@ class EmailRendererTest(TestCase):
             "getsentry/sentry (#1234) (https://github.com/getsentry/sentry/pull/1234)"
             in text_content
         )
+
+    def test_italic_text_block_rendering(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Test Italic",
+            body=[
+                ParagraphBlock(
+                    blocks=[
+                        PlainTextBlock(text="This is"),
+                        ItalicTextBlock(text="important"),
+                    ],
+                )
+            ],
+        )
+
+        email = EmailRenderer.render(data=self.data, rendered_template=rendered_template)
+        [html_content, _] = email.alternatives[0]
+        text_content = email.body
+
+        html_str = str(html_content)
+        assert "<em" in html_str
+        assert "important</em>" in html_str
+        assert "_important_" in text_content
+
+    def test_block_quote_section_rendering(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Test Quote",
+            body=[
+                BlockQuoteSection(
+                    blocks=[
+                        PlainTextBlock(text="This is a quoted message"),
+                    ],
+                )
+            ],
+        )
+
+        email = EmailRenderer.render(data=self.data, rendered_template=rendered_template)
+        [html_content, _] = email.alternatives[0]
+        text_content = email.body
+
+        html_str = str(html_content)
+        assert "<blockquote" in html_str
+        assert "This is a quoted message</blockquote>" in html_str
+        assert "This is a quoted message" in text_content
 
     def test_xss_protection(self) -> None:
         xss_template = NotificationRenderedTemplate(
