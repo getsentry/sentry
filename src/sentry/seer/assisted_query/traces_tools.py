@@ -143,7 +143,9 @@ def get_attribute_names(
 
         Each built-in field's "context" is only populated when expand="context"
         is requested (and the attribute maps to a known convention); otherwise it
-        is None.
+        is None. Convention-backed attributes that aren't hardcoded built-ins
+        (e.g. http.route) are also appended to "built_in_fields" so their context
+        isn't lost.
     """
     organization = Organization.objects.get(id=org_id)
 
@@ -156,6 +158,9 @@ def get_attribute_names(
     # context comes from the sentry conventions, but custom attribute context is
     # planned, at which point user-defined attributes will be populated too.
     context_by_name: dict[str, dict[str, Any]] = {}
+    # Maps an attribute name to its type ("string"/"number"), so context-bearing
+    # attributes that aren't hardcoded built-ins can still be emitted as fields.
+    type_by_name: dict[str, str] = {}
 
     # Fetch both string and number attributes from the public API
     for attr_type in ["string", "number"]:
@@ -190,11 +195,23 @@ def get_attribute_names(
             # the built-in field's context stays None.
             if item.get("context"):
                 context_by_name[item["name"]] = item["context"]
+                type_by_name[item["name"]] = attr_type
 
+    hardcoded_fields = _get_built_in_fields(item_type)
     built_in_fields = [
-        BuiltInField(**f, context=context_by_name.get(f["key"]))
-        for f in _get_built_in_fields(item_type)
+        BuiltInField(**f, context=context_by_name.get(f["key"])) for f in hardcoded_fields
     ]
+
+    # Convention-backed attributes (e.g. http.route) aren't in the hardcoded
+    # list, so their context would otherwise be dropped. Surface them through
+    # built_in_fields too, since that's where Seer reads attribute context from.
+    # Only conventions are promoted (isConvention=True); user-authored custom
+    # context is intentionally left out.
+    hardcoded_keys = {f["key"] for f in hardcoded_fields}
+    for name, context in context_by_name.items():
+        if name in hardcoded_keys or not context.get("isConvention"):
+            continue
+        built_in_fields.append(BuiltInField(key=name, type=type_by_name[name], context=context))
 
     return AttributeNamesResponse(fields=fields, built_in_fields=built_in_fields)
 
