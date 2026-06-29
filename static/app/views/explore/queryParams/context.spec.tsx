@@ -11,6 +11,7 @@ import {
 import {
   QueryParamsContextProvider,
   useQueryParamsCrossEvents,
+  useSetQueryParams,
   useSetQueryParamsCrossEvents,
 } from 'sentry/views/explore/queryParams/context';
 import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
@@ -52,6 +53,29 @@ function Wrapper({children}: {children: ReactNode}) {
 }
 
 describe('QueryParamsContext', () => {
+  beforeEach(() => {
+    mockSetQueryParams.mockClear();
+  });
+
+  describe('useSetQueryParams', () => {
+    it('clears breakdown cursor when setting the query', () => {
+      renderHookWithProviders(
+        () => {
+          const setQueryParams = useSetQueryParams();
+          setQueryParams({query: 'span.op:db'});
+        },
+        {additionalWrapper: Wrapper}
+      );
+
+      expect(mockSetQueryParams).toHaveBeenCalledWith({
+        query: 'span.op:db',
+        cursor: null,
+        aggregateCursor: null,
+        breakdownCursor: null,
+      });
+    });
+  });
+
   describe('crossEvents', () => {
     describe('useQueryParamsCrossEvents', () => {
       it('should return the crossEvents', () => {

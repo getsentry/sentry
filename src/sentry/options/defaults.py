@@ -246,6 +246,13 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
+register(
+    "auth.email-verification-at-signup.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
 # User Settings
 register(
     "user-settings.signed-url-confirmation-emails-salt",
@@ -308,6 +315,27 @@ register(
 register(
     "deletions.group-hash-metadata.batch-size",
     default=1000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "unmerge.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "merge.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.merge-unmerge.max-group-times-seen",
+    default=0,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -515,15 +543,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Rollout rate for moving accepted outcome emission from Relay to EAP.
-register(
-    "relay.eap-outcomes.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Killswitch for fetching projects in the endpoints.
 register(
@@ -818,6 +837,31 @@ register(
     default=0.20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Additive boost for regressed issues (GroupSubStatus.REGRESSED). A regression that just
+# came back is worth surfacing again; new/escalating issues are already lifted by recency
+# and the spike factor, so they aren't boosted here.
+register(
+    "snuba.search.recommended.regressed-weight",
+    default=0.10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Additive boost for newly-seen issues, decayed on Group.first_seen. The base recency
+# factor decays on last_seen (recent activity), so it can't distinguish a brand-new issue
+# from an old chronic one that just fired; this rewards true first appearance. Boost is
+# newness-weight * 1/2^(hours_since_first_seen / newness-halflife-hours).
+register(
+    "snuba.search.recommended.newness-weight",
+    default=0.10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Halflife (hours) of the newness decay. Governs how far back "new" reaches: at 24h the
+# boost is ~spent within a day or two; raise it (e.g. 168 = 1 week) to keep distinguishing
+# week-old from month-old issues. Set to 0 to disable newness.
+register(
+    "snuba.search.recommended.newness-halflife-hours",
+    default=24.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -1095,6 +1139,12 @@ register(
 
 register(
     "seer.explorer_index.killswitch.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.pull-request-linking.killswitch.enabled",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2020,6 +2070,12 @@ register(
     0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
+register(
+    "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Stops dynamic sampling rules from being emitted in relay config.
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
@@ -2632,16 +2688,6 @@ register(
     "relocation.enabled",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Relocation: populates the target region drop down in the control silo. Note: this option has NO
-# EFFECT in region silos. However, the control silos `relocation.selectable-regions` array should be
-# a complete list of all regions where `relocation.enabled`. If a region is enabled/disabled, it
-# should also be added to/removed from this array in the control silo at the same time.
-register(
-    "relocation.selectable-regions",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Relocation: the step at which new relocations should be autopaused, requiring admin approval
@@ -3726,6 +3772,39 @@ register(
     "tasks.producer.profiles.rollout",
     type=Float,
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to replays tasks
+register(
+    "tasks.producer.replays.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to track_outcome in tasks
+register(
+    "tasks.producer.track_outcome.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to preprod tasks
+register(
+    "tasks.producer.preprod.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# If False, TaskWorkers will wait for a task's producer futures to complete
+# before marking a task as complete
+register(
+    "taskworker.skip.awaiting.futures",
+    type=Bool,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

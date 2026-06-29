@@ -85,7 +85,6 @@ export type IconSize = SizeRange<'xs', '2xl'>;
  *
  * Unless you are implementing a new component in the `@sentry/scraps`
  * directory, use `ComponentProps['size']` instead.
- * @internal
  */
 export type FormSize = SizeRange<'xs', 'md'>;
 

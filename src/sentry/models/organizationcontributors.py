@@ -51,3 +51,38 @@ class OrganizationContributors(DefaultFieldsModel):
         Check if the contributor is a bot (has a [bot] suffix) or is Copilot (special case without [bot] suffix)
         """
         return self.alias is not None and (self.alias.endswith("[bot]") or self.alias == "Copilot")
+
+
+@cell_silo_model
+class OrganizationContributorAction(DefaultFieldsModel):
+    """
+    Append-only record of a contributor's billable action: one row per pull request, written the
+    first time that PR is opened. Used to count and display a contributor's actions for a billing
+    period.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    organization_contributor = FlexibleForeignKey(
+        "sentry.OrganizationContributors", on_delete=models.CASCADE
+    )
+    # Ensure a durable PR identity by disabling cascade deletion.
+    repository = FlexibleForeignKey(
+        "sentry.Repository", on_delete=models.DO_NOTHING, db_constraint=False
+    )
+    pr_number = models.CharField(max_length=64)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_organizationcontributoraction"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["repository_id", "pr_number"], name="sentry_orgcontaction_unique_pr"
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["organization_contributor", "date_added"],
+                name="sentry_orgcontaction_date",
+            )
+        ]

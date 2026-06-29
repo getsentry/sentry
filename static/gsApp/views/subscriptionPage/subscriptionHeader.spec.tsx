@@ -57,7 +57,9 @@ describe('SubscriptionHeader', () => {
     organization: Organization;
   }) {
     const hasBillingPerms = organization.access?.includes('org:billing');
-    await screen.findByRole('heading', {name: 'Subscription'});
+    await screen.findByRole('heading', {
+      name: hasBillingPerms ? 'Receipts & notifications' : 'Activity log',
+    });
 
     if (hasNextBillCard) {
       await screen.findByRole('heading', {name: 'Next bill'});
@@ -369,7 +371,7 @@ describe('SubscriptionHeader', () => {
       <SubscriptionHeader organization={organization} subscription={subscription} />,
       {additionalWrapper: SecondaryNavigationContextProvider}
     );
-    await screen.findByText('Subscription');
+    await screen.findByRole('heading', {name: 'Receipts & notifications'});
     expect(
       screen.queryByText(
         'Automatic payment failed. Update your payment method to ensure uninterrupted access to Sentry.'
@@ -464,7 +466,7 @@ describe('SubscriptionHeader', () => {
         plan: 'am3_business',
         planDetails: PlanFixture({
           name: 'Business',
-          price: 100,
+          totalPrice: 100,
         }),
       }),
       organization,
@@ -503,7 +505,6 @@ describe('SubscriptionHeader', () => {
         plan: 'am3_f',
         planDetails: PlanFixture({
           name: 'Developer',
-          price: 0,
         }),
       }),
       organization,
