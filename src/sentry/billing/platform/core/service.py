@@ -6,11 +6,11 @@ import time
 from collections.abc import Callable
 from typing import Any, TypeVar
 
-import sentry_sdk
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import Message
 
 from sentry.utils import metrics
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -102,11 +102,9 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
                 extra=extras,
             )
 
-            with sentry_sdk.start_span(
-                op="function", name=f"{service_name}.{method_name}"
-            ) as cur_span:
+            with start_span(op="function", name=f"{service_name}.{method_name}") as cur_span:
                 for k, v in extras.items():
-                    cur_span.set_data(k, v)
+                    set_span_data(cur_span, k, v)
                 result = func(self, request)
 
             # Validate output is a protobuf message
