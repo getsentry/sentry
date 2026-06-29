@@ -1,6 +1,10 @@
 import jsonschema
 
-from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+from sentry.preprod.snapshots.manifest import (
+    ImageMetadata,
+    SnapshotManifest,
+    image_metadata_extras,
+)
 
 
 def _meta(**kwargs: object) -> dict:
@@ -134,3 +138,36 @@ def test_chunk_result_round_trip():
     restored = ChunkResult(**result.dict())
     assert restored.chunk_index == 3
     assert restored.images["a.png"].status == "changed"
+
+
+def _reference_extras(metadata: ImageMetadata, exclude: set[str] | None = None) -> dict:
+    schema_fields = frozenset(ImageMetadata.__fields__)
+    skip = schema_fields | exclude if exclude else schema_fields
+    return {k: v for k, v in metadata.dict().items() if k not in skip}
+
+
+class TestImageMetadataExtras:
+    def test_no_extras(self) -> None:
+        meta = ImageMetadata(**_meta())
+        assert image_metadata_extras(meta) == _reference_extras(meta)
+        assert image_metadata_extras(meta) == {}
+
+    def test_scalar_extras(self) -> None:
+        meta = ImageMetadata(**_meta(platform="ios", build=42, flagged=True))
+        assert image_metadata_extras(meta) == _reference_extras(meta)
+        assert image_metadata_extras(meta) == {"platform": "ios", "build": 42, "flagged": True}
+
+    def test_nested_extras(self) -> None:
+        meta = ImageMetadata(**_meta(meta_obj={"nested": {"x": 1}}, meta_list=[1, 2, 3]))
+        assert image_metadata_extras(meta) == _reference_extras(meta)
+
+    def test_with_exclude_schema_field(self) -> None:
+        meta = ImageMetadata(**_meta(platform="android"))
+        result = image_metadata_extras(meta, exclude={"key", "image_file_name"})
+        assert result == _reference_extras(meta, exclude={"key", "image_file_name"})
+        assert result == {"platform": "android"}
+
+    def test_exclude_removes_declared_field(self) -> None:
+        meta = ImageMetadata(**_meta(platform="ios"))
+        result = image_metadata_extras(meta, exclude={"width"})
+        assert result == _reference_extras(meta, exclude={"width"})

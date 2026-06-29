@@ -1,18 +1,32 @@
-// Color scale interpolated across three design stops: #EEEFFF (low) → #7553FF
-// (mid) → #990056 (high) Steps 1–5: segment 1, steps 6–10: segment 2 N.B.
-// Missing values are not part of the palette here, they are filled in by the
-// `HeatMapWidgetVisualization` component.
+// Heat map color ramp (low → high): magma, sampled at 10 stops. ECharts'
+// continuous `visualMap` interpolates between whatever stops it's given, so a
+// ramp is just an ordered list of hex stops.
+//
+// Magma is chosen for two properties that keep cells of different magnitude
+// distinguishable:
+//   1. Lightness climbs steadily from one end to the other, giving a "brighter =
+//      more" cue that's readable on its own (and survives greyscale).
+//   2. The high end is bright and high-contrast. Human brightness perception
+//      follows a power law — we resolve bright shades far better than dark ones
+//      — so a ramp that ends bright keeps the busiest cells legible instead of
+//      letting them blur together at a murky top end.
+// It also wanders through several hues (rather than a single hue getting
+// lighter), packing in more perceptually-distinct steps for the same lightness
+// range.
+//
+// Empty/zero buckets are NOT part of the palette — they're rendered transparent
+// by a piecewise `visualMap` in `HeatMapWidgetVisualization`.
 export const HEATMAP_COLORS = [
-  '#eeefff',
-  '#d0c8ff',
-  '#b2a1ff',
-  '#937aff',
-  '#7553ff',
-  '#7c42dd',
-  '#8332bb',
-  '#8b219a',
-  '#921178',
-  '#990056',
+  '#0a0a23',
+  '#231151',
+  '#410f75',
+  '#5f187f',
+  '#812581',
+  '#a3307e',
+  '#c83e73',
+  '#e95462',
+  '#f97a5d',
+  '#fea772',
 ] as const;
 
 /**
@@ -21,12 +35,6 @@ export const HEATMAP_COLORS = [
  * are roughly this size, keeping them approximately square.
  */
 export const PIXELS_PER_BUCKET = 15;
-
-/**
- * Scale used for the heat map's Z axis (the cell color). A logarithmic scale
- * handles the wide range of counts better than a linear one.
- */
-export const HEATMAP_Z_AXIS_SCALE = 'log' as const;
 
 /**
  * How long, in milliseconds, to debounce the measured chart dimensions before

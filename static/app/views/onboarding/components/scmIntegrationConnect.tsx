@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useRef} from 'react';
-import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, type StackProps} from '@sentry/scraps/layout';
@@ -19,11 +18,6 @@ import {ScmRepoSelector} from './scmRepoSelector';
 import {useMultiPlatformDetectionTest} from './useMultiPlatformDetectionTest';
 import {useScmPlatformDetection} from './useScmPlatformDetection';
 import {useScmProviders} from './useScmProviders';
-
-const STEP_VIEWED_EVENT = {
-  onboarding: 'onboarding.scm_connect_step_viewed',
-  'project-creation': 'project_creation.scm_connect_step_viewed',
-} as const;
 
 const INTEGRATION_SELECTED_EVENT = {
   onboarding: 'onboarding.scm_connect_integration_selected',
@@ -96,7 +90,13 @@ export function ScmIntegrationConnect({
   const defaultIntegrationTrackedRef = useRef(false);
 
   useEffect(() => {
-    trackAnalytics(STEP_VIEWED_EVENT[analyticsFlow], {organization});
+    // Onboarding views this as a discrete step. Single-view project creation
+    // shows all sections at once and fires one page-viewed event in
+    // scmCreateProject, so suppress the per-section step_viewed there.
+    if (analyticsFlow !== 'onboarding') {
+      return;
+    }
+    trackAnalytics('onboarding.scm_connect_step_viewed', {organization});
   }, [organization, analyticsFlow]);
 
   // Fire scm_connect_integration_selected once for the integration auto-selected
@@ -183,20 +183,14 @@ export function ScmIntegrationConnect({
   }
 
   return effectiveIntegration ? (
-    <MotionStack
+    <Stack
       key="with-integration"
       gap="md"
       width="100%"
       maxWidth={maxWidth}
       paddingTop={allowIntegrationSwitching ? undefined : '2xl'}
     >
-      {allowIntegrationSwitching ? (
-        <ScmIntegrationSelect
-          integrations={activeIntegrations}
-          selectedIntegration={effectiveIntegration}
-          onChange={handleIntegrationSelect}
-        />
-      ) : (
+      {allowIntegrationSwitching ? null : (
         <Text bold size="sm" density="compressed" uppercase>
           {t(
             'Connected to %s / %s',
@@ -205,19 +199,31 @@ export function ScmIntegrationConnect({
           )}
         </Text>
       )}
-      <ScmRepoSelector
-        analyticsFlow={analyticsFlow}
-        integration={effectiveIntegration}
-        selectedRepository={selectedRepository}
-        onRepositoryChange={onRepositoryChange}
-        onClearDerivedState={onClearDerivedState}
-      />
-    </MotionStack>
+      <Flex
+        direction={{sm: 'column-reverse', md: 'row'}}
+        width="100%"
+        gap="md"
+        align={{sm: 'start', md: 'center'}}
+      >
+        <ScmRepoSelector
+          analyticsFlow={analyticsFlow}
+          integration={effectiveIntegration}
+          selectedRepository={selectedRepository}
+          onRepositoryChange={onRepositoryChange}
+          onClearDerivedState={onClearDerivedState}
+        />
+        {allowIntegrationSwitching ? (
+          <ScmIntegrationSelect
+            integrations={activeIntegrations}
+            selectedIntegration={effectiveIntegration}
+            onChange={handleIntegrationSelect}
+          />
+        ) : null}
+      </Flex>
+    </Stack>
   ) : (
-    <MotionStack key="without-integration" gap="2xl" width="100%" maxWidth={maxWidth}>
+    <Stack key="without-integration" gap="2xl" width="100%" maxWidth={maxWidth}>
       <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
-    </MotionStack>
+    </Stack>
   );
 }
-
-const MotionStack = motion.create(Stack);

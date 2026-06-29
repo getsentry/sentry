@@ -107,6 +107,7 @@ export function ScmRepoSelector({
       clearable
       searchable
       components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
+      styles={{container: base => ({...base, width: '100%'})}}
     />
   );
 }
