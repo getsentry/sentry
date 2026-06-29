@@ -725,7 +725,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
     for job in jobs:
         data = job["data"]
         if not data.get("release"):
-            return
+            continue
 
         project = projects[job["project_id"]]
         date = job["event"].datetime
@@ -755,7 +755,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
         if not release:
             if not create_release:
                 metrics.incr("event_manager.release_autocreation_skipped")
-            return
+            continue
 
         # Don't allow a conflicting 'release' tag
         pop_tag(data, "release")

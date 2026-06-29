@@ -492,6 +492,7 @@ class Release(Model):
                 # Auto-creation is disabled and no release exists yet. Don't cache the
                 # miss so a release created later (e.g. via the CLI) is found next time.
                 metric_tags["created"] = "false"
+                metric_tags["cache_hit"] = "false"
                 return None
             else:
                 try:

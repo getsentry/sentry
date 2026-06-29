@@ -223,6 +223,7 @@ DETAILED_PROJECT = {
     "tempestFetchScreenshots": False,
     "debugFilesRole": None,
     "isDynamicallySampled": True,
+    "enableAutoReleaseCreation": True,
     "autofixAutomationTuning": "off",
     "seerScannerAutomation": True,
     "seerNightshiftTweaks": None,
