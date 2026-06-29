@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import secrets
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import orjson
 import sentry_sdk
@@ -23,13 +23,15 @@ from sentry.identity.oauth2 import (
     _redirect_url,
     record_event,
 )
-from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationPipelineViewType
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.identity.pipeline import IdentityPipeline
 
 DATADOG_VALID_SITES: dict[str, str] = {
     "datadoghq.com": "US1",
