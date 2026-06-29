@@ -11,9 +11,6 @@ import type {TraceEventResponse} from './useTraceTimelineEvents';
 
 describe('TraceLink', () => {
   const organization = OrganizationFixture();
-  const performanceViewOrganization = OrganizationFixture({
-    features: ['performance-view'],
-  });
   const event = EventFixture({
     contexts: {
       trace: {
@@ -81,7 +78,7 @@ describe('TraceLink', () => {
 
   it('does not carry issue list filters into the trace target', async () => {
     render(<TraceLink event={event} />, {
-      organization: performanceViewOrganization,
+      organization: {...organization, features: ['performance-view']},
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/issues/${event.groupID}/`,
