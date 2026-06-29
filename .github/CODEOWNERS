@@ -373,7 +373,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## Endof Visibility
 
 ## Data Browsing Migration Tests
-/tests/sentry/migrations/test_1064_transactions_to_spans_widgets_self_hosted.py @getsentry/data-browsing
+/tests/sentry/migrations/test_1124_transactions_to_spans_widgets_self_hosted.py @getsentry/data-browsing
 ## End of Data Browsing Migration Tests
 
 
