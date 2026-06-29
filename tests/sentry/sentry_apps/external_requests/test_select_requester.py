@@ -309,7 +309,7 @@ class TestSelectRequester(TestCase):
     ) -> None:
         mock_send_request.side_effect = Exception()
 
-        uri = "asdhbaljkdnaklskand"
+        uri = "/some-broken-endpoint"
         with pytest.raises(SentryAppSentryError) as exception_info:
             SelectRequester(
                 install=self.install,
@@ -326,7 +326,7 @@ class TestSelectRequester(TestCase):
             "sentry_app_slug": self.sentry_app.slug,
             "install_uuid": self.install.uuid,
             "project_slug": self.project.slug,
-            "url": f"https://example.com/{uri}?installationId={self.install.uuid}&projectSlug={self.project.slug}",
+            "url": f"https://example.com{uri}?installationId={self.install.uuid}&projectSlug={self.project.slug}",
         }
 
         # SLO assertions
