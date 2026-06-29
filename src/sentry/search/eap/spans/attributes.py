@@ -24,7 +24,7 @@ from sentry.search.events.constants import (
     SPAN_MODULE_CATEGORY_VALUES,
 )
 from sentry.search.events.types import SnubaParams
-from sentry.search.utils import DEVICE_CLASS, is_event_id_or_list, is_span_id_or_list
+from sentry.search.utils import DEVICE_CLASS, validate_event_id, validate_span_id
 from sentry.utils.validators import (
     is_empty_string,
     normalize_event_id_strict,
@@ -43,13 +43,13 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="id",
             internal_name="sentry.item_id",
             search_type="string",
-            validator=is_span_id_or_list,
+            validator=validate_span_id,
         ),
         ResolvedAttribute(
             public_alias="parent_span",
             internal_name="sentry.parent_span_id",
             search_type="string",
-            validator=[is_empty_string, is_span_id_or_list],
+            validator=[is_empty_string, validate_span_id],
         ),
         ResolvedAttribute(
             public_alias="span.name",
@@ -138,7 +138,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="trace",
             internal_name="sentry.trace_id",
             search_type="string",
-            validator=is_event_id_or_list,
+            validator=validate_event_id,
             normalizer=normalize_event_id_strict,
         ),
         ResolvedAttribute(

@@ -874,15 +874,15 @@ def validate_snuba_array_parameter(parameter: Sequence[str]) -> bool:
     return converted_length <= MAX_PARAMETERS_IN_ARRAY
 
 
-def is_span_id_or_list(value: str | list[str]) -> bool:
+def validate_span_id(value: str | list[str]) -> bool:
     result = _is_span_id_or_list(value)
     if not result:
         raise InvalidSearchQuery(INVALID_SPAN_ID.format(value))
-    return result
+    return True
 
 
-def is_event_id_or_list(value: str | list[str]) -> bool:
+def validate_event_id(value: str | list[str]) -> bool:
     result = _is_event_id_or_list(value)
     if not result:
         raise InvalidSearchQuery(INVALID_ID_DETAILS.format(value))
-    return result
+    return True
