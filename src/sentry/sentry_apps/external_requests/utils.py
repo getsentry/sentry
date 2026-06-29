@@ -23,7 +23,7 @@ from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
 logger = logging.getLogger(__name__)
 
-VALID_SENTRY_APP_URI_RE = re.compile(r"^/[^@]*$")
+VALID_SENTRY_APP_URI_RE = re.compile(r"^/(?!/)[^@]*$")
 
 
 def validate_sentry_app_uri(uri: str) -> None:
@@ -31,7 +31,13 @@ def validate_sentry_app_uri(uri: str) -> None:
         raise serializers.ValidationError("Invalid URI: must be a relative path starting with '/'.")
 
 
-def validate_outbound_url(url: str, expected_netloc: str) -> None:
+def validate_outbound_url(url: str, expected_netloc: str, uri: str = "") -> None:
+    if uri and not VALID_SENTRY_APP_URI_RE.match(uri):
+        raise SentryAppIntegratorError(
+            message="URI must not alter the webhook host",
+            webhook_context={"url": url, "expected_netloc": expected_netloc},
+            status_code=400,
+        )
     parsed = urlparse(url)
     if parsed.netloc != expected_netloc:
         raise SentryAppIntegratorError(

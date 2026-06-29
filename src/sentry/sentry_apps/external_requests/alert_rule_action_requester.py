@@ -131,7 +131,7 @@ class SentryAppAlertRuleActionRequester:
         expected_netloc = urlparts[1]
         urlparts[2] = self.uri
         url = urlunparse(urlparts)
-        validate_outbound_url(url, expected_netloc)
+        validate_outbound_url(url, expected_netloc, self.uri)
         return url
 
     def _build_headers(self) -> dict[str, str]:

@@ -86,13 +86,14 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         self.login_as(user=self.user)
         responses.add(
             method=responses.GET,
-            url=f"https://example.com/get-projects?installationId={self.install.uuid}",
+            url="https://example.com/get-projects",
+            match=[query_string_matcher(f"installationId={self.install.uuid}")],
             status=500,
             content_type="application/json",
         )
         url = self.url + "?uri=/get-projects"
         response = self.client.get(url, format="json")
-        assert response.status_code == 502
+        assert response.status_code == 500
 
     def test_invalid_project_id_returns_400(self) -> None:
         self.login_as(user=self.user)

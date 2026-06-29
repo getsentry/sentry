@@ -169,7 +169,7 @@ class IssueLinkRequester:
 
         urlparts = urlparse(self.sentry_app.webhook_url)
         url = f"{urlparts.scheme}://{urlparts.netloc}{self.uri}"
-        validate_outbound_url(url, urlparts.netloc)
+        validate_outbound_url(url, urlparts.netloc, self.uri)
         return url
 
     def _validate_response(self, resp: dict[str, str]) -> bool:

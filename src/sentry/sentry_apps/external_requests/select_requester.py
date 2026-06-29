@@ -175,7 +175,7 @@ class SelectRequester:
 
         urlparts[4] = urlencode(query)
         url = str(urlunparse(urlparts))
-        validate_outbound_url(url, expected_netloc)
+        validate_outbound_url(url, expected_netloc, self.uri)
         return url
 
     # response format must be:
