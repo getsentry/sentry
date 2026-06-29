@@ -135,7 +135,7 @@ def produce_processing_errors_to_eap(
 
             payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
             if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
-                "tasks.producer.processing_errors.rollout"
+                "tasks.producer.processing-errors.rollout"
             ):
                 _eap_task_producer.produce(ArroyoTopic(topic), payload)
             else:
