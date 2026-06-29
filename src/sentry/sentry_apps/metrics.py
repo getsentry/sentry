@@ -81,6 +81,7 @@ class SentryAppExternalRequestFailureReason(StrEnum):
     """Reasons why sentry app external request processes can fail"""
 
     MISSING_URL = "missing_url"
+    INVALID_URI = "invalid_uri"
     UNEXPECTED_ERROR = "unexpected_error"
     INVALID_EVENT = "invalid_event"
 

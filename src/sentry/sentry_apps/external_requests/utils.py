@@ -12,6 +12,7 @@ from rest_framework import serializers
 from sentry.http import safe_urlopen
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
+    SentryAppExternalRequestFailureReason,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )
@@ -32,17 +33,26 @@ def validate_sentry_app_uri(uri: str) -> None:
 
 
 def validate_outbound_url(url: str, expected_netloc: str, uri: str = "") -> None:
+    error_type = SentryAppExternalRequestFailureReason.INVALID_URI
     if uri and not VALID_SENTRY_APP_URI_RE.match(uri):
         raise SentryAppIntegratorError(
             message="URI must not alter the webhook host",
-            webhook_context={"url": url, "expected_netloc": expected_netloc},
+            webhook_context={
+                "error_type": error_type,
+                "url": url,
+                "expected_netloc": expected_netloc,
+            },
             status_code=400,
         )
     parsed = urlparse(url)
     if parsed.netloc != expected_netloc:
         raise SentryAppIntegratorError(
             message="URI must not alter the webhook host",
-            webhook_context={"url": url, "expected_netloc": expected_netloc},
+            webhook_context={
+                "error_type": error_type,
+                "url": url,
+                "expected_netloc": expected_netloc,
+            },
             status_code=400,
         )
 
