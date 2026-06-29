@@ -22,14 +22,12 @@ export type ProjectCreationEventParameters = {
     provider: string;
     repo: string;
   };
-  'project_creation.scm_connect_step_viewed': Record<string, unknown>;
   'project_creation.scm_platform_change_platform_clicked': Record<string, unknown>;
   'project_creation.scm_platform_feature_toggled': {
     enabled: boolean;
     feature: string;
     platform: string;
   };
-  'project_creation.scm_platform_features_step_viewed': Record<string, unknown>;
   'project_creation.scm_platform_selected': {
     platform: string;
     source: 'detected' | 'manual';
@@ -45,7 +43,6 @@ export type ProjectCreationEventParameters = {
   'project_creation.scm_project_details_name_edited': {
     custom: boolean;
   };
-  'project_creation.scm_project_details_step_viewed': Record<string, unknown>;
   'project_creation.scm_project_details_team_selected': {
     team: string;
   };
@@ -100,13 +97,10 @@ export const projectCreationEventMap: Record<
     'Project Creation: SCM Connect Integration Selected',
   'project_creation.scm_connect_repo_selected':
     'Project Creation: SCM Connect Repo Selected',
-  'project_creation.scm_connect_step_viewed': 'Project Creation: SCM Connect Step Viewed',
   'project_creation.scm_platform_change_platform_clicked':
     'Project Creation: SCM Platform Change Platform Clicked',
   'project_creation.scm_platform_feature_toggled':
     'Project Creation: SCM Platform Feature Toggled',
-  'project_creation.scm_platform_features_step_viewed':
-    'Project Creation: SCM Platform Features Step Viewed',
   'project_creation.scm_platform_selected': 'Project Creation: SCM Platform Selected',
   'project_creation.scm_project_details_alert_selected':
     'Project Creation: SCM Project Details Alert Selected',
@@ -118,8 +112,6 @@ export const projectCreationEventMap: Record<
     'Project Creation: SCM Project Details Create Succeeded',
   'project_creation.scm_project_details_name_edited':
     'Project Creation: SCM Project Details Name Edited',
-  'project_creation.scm_project_details_step_viewed':
-    'Project Creation: SCM Project Details Step Viewed',
   'project_creation.scm_project_details_team_selected':
     'Project Creation: SCM Project Details Team Selected',
   'project_creation.scm_select_framework_modal_rendered':

@@ -11,7 +11,7 @@ from sentry.web.helpers import render_to_response
 
 @internal_cell_silo_view
 class DebugErrorPageEmbedView(View):
-    def _get_project_key(self):
+    def _get_project_key(self) -> ProjectKey:
         return ProjectKey.objects.filter(project=settings.SENTRY_PROJECT)[0]
 
     def get(self, request: HttpRequest) -> HttpResponse:

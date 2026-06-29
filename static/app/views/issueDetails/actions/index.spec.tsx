@@ -42,8 +42,6 @@ const project = ProjectFixture({
 
 const group = GroupFixture({
   id: '1337',
-  pluginActions: [],
-  pluginIssues: [],
   issueCategory: IssueCategory.ERROR,
   project,
 });
