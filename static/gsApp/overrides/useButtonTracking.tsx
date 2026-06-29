@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {useMatches} from 'react-router-dom';
 
 import type {ButtonProps} from '@sentry/scraps/button';
@@ -8,18 +7,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {convertToReloadPath, getEventPath} from 'getsentry/utils/routeAnalytics';
 
-type Props = ButtonProps;
-
-export function useButtonTracking({
-  analyticsEventName,
-  analyticsEventKey,
-  analyticsParams,
-  'aria-label': ariaLabel,
-}: Props) {
+export function useButtonTracking() {
   const organization = useOrganization({allowNull: true});
   const matches = useMatches();
 
-  const trackButton = useCallback(() => {
+  return ({
+    analyticsEventName,
+    analyticsEventKey,
+    analyticsParams,
+    'aria-label': ariaLabel,
+  }: ButtonProps) => {
     const considerSendingAnalytics = organization && Boolean(matches);
 
     if (considerSendingAnalytics) {
@@ -45,14 +42,5 @@ export function useButtonTracking({
         ...analyticsParams,
       });
     }
-  }, [
-    analyticsEventKey,
-    analyticsEventName,
-    analyticsParams,
-    ariaLabel,
-    organization,
-    matches,
-  ]);
-
-  return trackButton;
+  };
 }

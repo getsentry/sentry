@@ -49,16 +49,14 @@ describe('Loader Script Settings', () => {
 
     const {organization, project} = initializeOrg();
 
-    const data = {
-      ...ProjectKeysFixture()[0],
-      dynamicSdkLoaderOptions,
-    } as ProjectKey;
-
     const updateData = jest.fn();
 
     render(
       <KeySettings
-        data={data}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions,
+        }}
         updateData={updateData}
         onRemove={jest.fn()}
         organization={organization}
@@ -107,11 +105,6 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
-      dynamicSdkLoaderOptions,
-    } as ProjectKey;
-
     const mockRequests = renderMockRequests(
       organization.slug,
       params.projectSlug,
@@ -125,7 +118,10 @@ describe('Loader Script Settings', () => {
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={data}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions,
+        }}
         updateData={updateData}
       />
     );
@@ -141,12 +137,7 @@ describe('Loader Script Settings', () => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
-          data: expect.objectContaining({
-            dynamicSdkLoaderOptions: {
-              ...dynamicSdkLoaderOptions,
-              hasPerformance: true,
-            },
-          }),
+          data: {dynamicSdkLoaderOptions: {hasPerformance: true}},
         })
       );
     });
@@ -173,11 +164,6 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
-      dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
-    } as ProjectKey;
-
     const mockRequests = renderMockRequests(
       organization.slug,
       params.projectSlug,
@@ -190,7 +176,10 @@ describe('Loader Script Settings', () => {
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={data}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
+        }}
       />
     );
 
@@ -223,24 +212,23 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
-      dynamicSdkLoaderOptions: {
-        hasDebug: true,
-        hasFeedback: false,
-        hasPerformance: false,
-        hasReplay: false,
-      },
-      browserSdkVersion: '6.x',
-    } as ProjectKey;
-
     render(
       <LoaderSettings
         updateData={jest.fn()}
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={data}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions: {
+            hasDebug: true,
+            hasFeedback: false,
+            hasPerformance: false,
+            hasReplay: false,
+            hasLogsAndMetrics: false,
+          },
+          browserSdkVersion: '6.x',
+        }}
       />
     );
 
@@ -276,10 +264,10 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
+    const data: ProjectKey = {
+      ...ProjectKeysFixture()[0],
       dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
-    } as ProjectKey;
+    };
 
     const {rerender} = render(
       <LoaderSettings
@@ -318,6 +306,273 @@ describe('Loader Script Settings', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('calls updateData on successful toggle', async () => {
+    const {organization, project} = initializeOrg();
+    const params = {
+      projectSlug: project.slug,
+      keyId: '1',
+    };
+
+    const data: ProjectKey = {
+      ...ProjectKeysFixture()[0],
+      dynamicSdkLoaderOptions,
+    };
+
+    const responseBody = {
+      ...data,
+      dynamicSdkLoaderOptions: {...dynamicSdkLoaderOptions, hasDebug: true},
+    };
+
+    const putMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
+      method: 'PUT',
+      body: responseBody,
+    });
+
+    const updateData = jest.fn();
+
+    render(
+      <LoaderSettings
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={data}
+        updateData={updateData}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Enable SDK debugging'}));
+
+    await waitFor(() => {
+      expect(putMock).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(updateData).toHaveBeenCalled();
+    });
+  });
+
+  it('sends correct payload when toggling debug', async () => {
+    const {organization, project} = initializeOrg();
+    const params = {
+      projectSlug: project.slug,
+      keyId: '1',
+    };
+
+    const mockRequest = renderMockRequests(
+      organization.slug,
+      params.projectSlug,
+      params.keyId
+    );
+
+    render(
+      <LoaderSettings
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions,
+        }}
+        updateData={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Enable SDK debugging'}));
+
+    await waitFor(() => {
+      expect(mockRequest.projectKeys).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
+        expect.objectContaining({
+          data: {dynamicSdkLoaderOptions: {hasDebug: true}},
+        })
+      );
+    });
+  });
+
+  it('sends correct payload when toggling replay', async () => {
+    const {organization, project} = initializeOrg();
+    const params = {
+      projectSlug: project.slug,
+      keyId: '1',
+    };
+
+    const mockRequest = renderMockRequests(
+      organization.slug,
+      params.projectSlug,
+      params.keyId
+    );
+
+    render(
+      <LoaderSettings
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions,
+        }}
+        updateData={jest.fn()}
+      />
+    );
+
+    // replay is already true in dynamicSdkLoaderOptions, toggling it off
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Enable Session Replay'}));
+
+    await waitFor(() => {
+      expect(mockRequest.projectKeys).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
+        expect.objectContaining({
+          data: {dynamicSdkLoaderOptions: {hasReplay: false}},
+        })
+      );
+    });
+  });
+
+  it('only sends the changed field so concurrent toggles do not clobber each other', async () => {
+    const {organization, project} = initializeOrg();
+    const params = {
+      projectSlug: project.slug,
+      keyId: '1',
+    };
+
+    const mockRequest = renderMockRequests(
+      organization.slug,
+      params.projectSlug,
+      params.keyId
+    );
+
+    render(
+      <LoaderSettings
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions,
+        }}
+        updateData={jest.fn()}
+      />
+    );
+
+    const url = `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`;
+
+    // Toggle two different options back-to-back, before the parent re-renders
+    // with fresh data. Each request must carry ONLY its own changed field —
+    // otherwise the slower-resolving request would overwrite the other's
+    // change with a stale value (the backend merges partial options).
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Enable Performance Monitoring'})
+    );
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Enable SDK debugging'}));
+
+    await waitFor(() => {
+      expect(mockRequest.projectKeys).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          data: {dynamicSdkLoaderOptions: {hasPerformance: true}},
+        })
+      );
+    });
+
+    expect(mockRequest.projectKeys).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {dynamicSdkLoaderOptions: {hasDebug: true}},
+      })
+    );
+  });
+
+  it('disables logs and metrics for SDK versions below 10.x', () => {
+    const {organization, project} = initializeOrg();
+    const params = {
+      projectSlug: project.slug,
+      keyId: '1',
+    };
+
+    render(
+      <LoaderSettings
+        updateData={jest.fn()}
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
+          browserSdkVersion: '7.x',
+        }}
+      />
+    );
+
+    const logsCheckbox = screen.getByRole('checkbox', {
+      name: 'Enable Logs and Metrics',
+    });
+    expect(logsCheckbox).toBeDisabled();
+    expect(logsCheckbox).not.toBeChecked();
+
+    expect(
+      screen.getByText('Only available in SDK version 10.x and above')
+    ).toBeInTheDocument();
+  });
+
+  it('enables logs and metrics for SDK version 10.x', () => {
+    const {organization, project} = initializeOrg();
+    const params = {
+      projectSlug: project.slug,
+      keyId: '1',
+    };
+
+    render(
+      <LoaderSettings
+        updateData={jest.fn()}
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions: {
+            ...fullDynamicSdkLoaderOptions,
+            hasLogsAndMetrics: true,
+          },
+          browserSdkVersion: '10.x',
+        }}
+      />
+    );
+
+    const logsCheckbox = screen.getByRole('checkbox', {
+      name: 'Enable Logs and Metrics',
+    });
+    expect(logsCheckbox).toBeEnabled();
+    expect(logsCheckbox).toBeChecked();
+  });
+
+  it('renders the loader script tag', () => {
+    const {organization, project} = initializeOrg();
+    const params = {
+      projectSlug: project.slug,
+      keyId: '1',
+    };
+
+    const data: ProjectKey = {
+      ...ProjectKeysFixture()[0],
+      dynamicSdkLoaderOptions,
+    };
+
+    render(
+      <LoaderSettings
+        updateData={jest.fn()}
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={data}
+      />
+    );
+
+    expect(screen.getByLabelText('Loader Script')).toHaveDisplayValue(
+      `<script src="${data.dsn.cdn}" crossorigin="anonymous"></script>`
+    );
+  });
+
   it('shows performance message when it is enabled', () => {
     const {organization, project} = initializeOrg();
     const params = {
@@ -325,10 +580,10 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
+    const data: ProjectKey = {
+      ...ProjectKeysFixture()[0],
       dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
-    } as ProjectKey;
+    };
 
     const {rerender} = render(
       <LoaderSettings

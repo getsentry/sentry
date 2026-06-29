@@ -6,7 +6,6 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Group, GroupStats} from 'sentry/types/group';
-import {GroupActivityType} from 'sentry/types/group';
 
 const MOCK_PROJECT = ProjectFixture();
 
@@ -269,25 +268,6 @@ describe('GroupStore', () => {
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
         expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1']));
         expect(GroupStore.items[0]).toEqual(assignedGroup);
-      });
-    });
-
-    describe('updateActivity()', () => {
-      it("should update activity data text'", () => {
-        GroupStore.items = [
-          g('1', {
-            activity: [
-              {
-                id: '1',
-                type: GroupActivityType.NOTE,
-                dateCreated: '',
-                data: {text: 'Orginal Text'},
-              },
-            ],
-          }),
-        ];
-        GroupStore.updateActivity('1', '1', {text: 'Updated Text'});
-        expect(GroupStore.items[0]!.activity[0]!.data).toEqual({text: 'Updated Text'});
       });
     });
   });

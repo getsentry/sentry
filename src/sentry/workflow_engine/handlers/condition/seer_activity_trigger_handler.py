@@ -20,6 +20,8 @@ class SeerActivityTriggerStage(StrEnum):
     CODING_STARTED = "coding_started"
     CODING_COMPLETED = "coding_completed"
     PR_CREATED = "pr_created"
+    ITERATION_STARTED = "iteration_started"
+    ITERATION_COMPLETED = "iteration_completed"
 
 
 SEER_STAGE_TO_ACTIVITY_TYPE: dict[str, int] = {
@@ -30,6 +32,8 @@ SEER_STAGE_TO_ACTIVITY_TYPE: dict[str, int] = {
     SeerActivityTriggerStage.CODING_STARTED: ActivityType.SEER_CODING_STARTED.value,
     SeerActivityTriggerStage.CODING_COMPLETED: ActivityType.SEER_CODING_COMPLETED.value,
     SeerActivityTriggerStage.PR_CREATED: ActivityType.SEER_PR_CREATED.value,
+    SeerActivityTriggerStage.ITERATION_STARTED: ActivityType.SEER_ITERATION_STARTED.value,
+    SeerActivityTriggerStage.ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED.value,
 }
 """
 Maps the DataCondition's expected stages to their ActivityType (from the Activity model)

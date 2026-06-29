@@ -1,8 +1,6 @@
-import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
 
 import {Access} from 'sentry/components/acl/access';
 import {SnoozeAlert} from 'sentry/components/alerts/snoozeAlert';
@@ -25,7 +23,6 @@ import {
   hasEAPAlerts,
 } from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type Props = {
   hasMetricRuleDetailsError: boolean;
@@ -46,7 +43,6 @@ export function DetailsHeader({
   project,
   onSnooze,
 }: Props) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const isRuleReady = !!rule && !hasMetricRuleDetailsError;
   const ruleTitle = rule && !hasMetricRuleDetailsError ? rule.name : '';
   const settingsLink = rule
@@ -102,100 +98,65 @@ export function DetailsHeader({
             },
           ]}
         />
-        <RuleTitle data-test-id="incident-rule-title" loading={!isRuleReady}>
-          {project && (
-            <IdBadge
-              project={project}
-              avatarSize={28}
-              hideName
-              avatarProps={{hasTooltip: true, tooltip: project.slug}}
-            />
-          )}
-          {ruleTitle}
-        </RuleTitle>
-      </Layout.HeaderContent>
-      {hasPageFrameFeature ? (
-        <TopBar.Slot name="actions">
-          {rule && project && (
-            <Access access={['alerts:write']}>
-              {({hasAccess}) => (
-                <SnoozeAlert
-                  isSnoozed={rule?.snoozeForEveryone ?? false}
-                  onSnooze={onSnooze}
-                  ruleId={rule.id}
-                  projectSlug={project.slug}
-                  hasAccess={hasAccess}
-                  type="metric"
-                />
-              )}
-            </Access>
-          )}
-          <LinkButton
-            icon={<IconCopy />}
-            to={duplicateLink}
-            disabled={deprecateTransactionsAlerts}
-            tooltipProps={{
-              title: deprecateTransactionsAlerts
-                ? hasEAPAlerts(organization)
-                  ? t(
-                      'Transaction alerts are being deprecated. Please create Span alerts instead.'
-                    )
-                  : t('Transaction alerts are being deprecated.')
-                : undefined,
-            }}
-          >
-            {t('Duplicate')}
-          </LinkButton>
-          <LinkButton icon={<IconEdit />} to={settingsLink}>
-            {t('Edit Rule')}
-          </LinkButton>
-        </TopBar.Slot>
-      ) : (
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
-            {rule && project && (
-              <Access access={['alerts:write']}>
-                {({hasAccess}) => (
-                  <SnoozeAlert
-                    isSnoozed={rule?.snoozeForEveryone ?? false}
-                    onSnooze={onSnooze}
-                    ruleId={rule.id}
-                    projectSlug={project.slug}
-                    hasAccess={hasAccess}
-                    type="metric"
-                  />
-                )}
-              </Access>
+        <Layout.Title>
+          <RuleTitle data-test-id="incident-rule-title" loading={!isRuleReady}>
+            {project && (
+              <IdBadge
+                project={project}
+                avatarSize={28}
+                hideName
+                avatarProps={{hasTooltip: true, tooltip: project.slug}}
+              />
             )}
-            <LinkButton
-              size="sm"
-              icon={<IconCopy />}
-              to={duplicateLink}
-              disabled={deprecateTransactionsAlerts}
-              tooltipProps={{
-                title: deprecateTransactionsAlerts
-                  ? hasEAPAlerts(organization)
-                    ? t(
-                        'Transaction alerts are being deprecated. Please create Span alerts instead.'
-                      )
-                    : t('Transaction alerts are being deprecated.')
-                  : undefined,
-              }}
-            >
-              {t('Duplicate')}
-            </LinkButton>
-            <LinkButton size="sm" icon={<IconEdit />} to={settingsLink}>
-              {t('Edit Rule')}
-            </LinkButton>
-          </Grid>
-        </Layout.HeaderActions>
-      )}
+            {ruleTitle}
+          </RuleTitle>
+        </Layout.Title>
+      </Layout.HeaderContent>
+      <TopBar.Slot name="actions">
+        {rule && project && (
+          <Access access={['alerts:write']}>
+            {({hasAccess}) => (
+              <SnoozeAlert
+                isSnoozed={rule?.snoozeForEveryone ?? false}
+                onSnooze={onSnooze}
+                ruleId={rule.id}
+                projectSlug={project.slug}
+                hasAccess={hasAccess}
+                type="metric"
+              />
+            )}
+          </Access>
+        )}
+        <LinkButton
+          icon={<IconCopy />}
+          to={duplicateLink}
+          disabled={deprecateTransactionsAlerts}
+          tooltipProps={{
+            title: deprecateTransactionsAlerts
+              ? hasEAPAlerts(organization)
+                ? t(
+                    'Transaction alerts are being deprecated. Please create Span alerts instead.'
+                  )
+                : t('Transaction alerts are being deprecated.')
+              : undefined,
+          }}
+        >
+          {t('Duplicate')}
+        </LinkButton>
+        <LinkButton icon={<IconEdit />} to={settingsLink}>
+          {t('Edit Rule')}
+        </LinkButton>
+      </TopBar.Slot>
     </Layout.Header>
   );
 }
 
-const RuleTitle = styled(Layout.Title, {
-  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',
+const RuleTitle = styled('div', {
+  shouldForwardProp: p => p !== 'loading',
 })<{loading: boolean}>`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  min-width: 0;
   ${p => p.loading && 'opacity: 0'};
 `;
