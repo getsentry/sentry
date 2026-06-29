@@ -1,8 +1,7 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -248,49 +247,53 @@ const MessageBubble = styled('div')<{
 
 function ReasoningSection({reasoning}: {reasoning: string}) {
   const organization = useOrganization();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
-  const handleToggleExpanded = () => {
-    const newState = !isExpanded;
-    setIsExpanded(newState);
+  const handleToggle = (open: boolean) => {
+    setIsOpen(open);
     trackAnalytics('conversations.detail.expand-thinking', {
       organization,
-      expanded: newState,
+      expanded: open,
     });
   };
 
+  // A collapsed <details> keeps its text in the DOM so find-in-page can reveal it.
   return (
-    <Fragment>
-      <Button
-        size="zero"
-        variant="link"
-        onClick={e => {
-          e.stopPropagation();
-          handleToggleExpanded();
-        }}
-        aria-expanded={isExpanded}
+    <ReasoningDetails onToggle={e => handleToggle(e.currentTarget.open)}>
+      <Flex
+        as="summary"
+        align="center"
+        gap="xs"
+        padding="sm md 0"
+        width="100%"
+        justify="start"
+        cursor="pointer"
+        onClick={e => e.stopPropagation()}
       >
-        <Flex align="center" gap="xs" padding="sm md 0" width="100%" justify="start">
-          <Text size="xs" variant="muted" monospace italic>
-            {t('Thinking...')}
-          </Text>
-          <IconChevron
-            direction={isExpanded ? 'down' : 'right'}
-            size="xs"
-            variant="muted"
-          />
-        </Flex>
-      </Button>
-      {isExpanded && (
-        <Container padding="md">
-          <MessageText size="sm" align="left" variant="muted" monospace italic>
-            <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
-          </MessageText>
-        </Container>
-      )}
-    </Fragment>
+        <Text size="xs" variant="muted" monospace italic>
+          {t('Thinking...')}
+        </Text>
+        <IconChevron direction={isOpen ? 'down' : 'right'} size="xs" variant="muted" />
+      </Flex>
+      <Container padding="md">
+        <MessageText size="sm" align="left" variant="muted" monospace italic>
+          <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
+        </MessageText>
+      </Container>
+    </ReasoningDetails>
   );
 }
+
+const ReasoningDetails = styled('details')`
+  width: 100%;
+
+  summary {
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+`;
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
