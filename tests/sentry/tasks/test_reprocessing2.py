@@ -686,7 +686,8 @@ def test_finish_reprocessing(default_project) -> None:
         )
     )
     assert len(redirects) == 1
-    assert redirects[0].group_id == new_group.id
+    # Should be most recently created activity.
+    assert redirects[0].group_id == new_group2.id
 
 
 @django_db_all
