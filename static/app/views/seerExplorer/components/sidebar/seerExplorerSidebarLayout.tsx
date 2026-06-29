@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
@@ -101,9 +102,9 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
   // Let the routed app content scroll within its own pane instead of growing the
   // split (which would push Seer's pane out of the viewport).
   const contentPane = (
-    <Stack flex="1" minWidth="0" minHeight="0" overflowY="auto">
+    <ContentPane flex="1" minWidth="0" minHeight="0" overflowY="auto">
       {children}
-    </Stack>
+    </ContentPane>
   );
 
   // `contain="size"` decouples this element's size from its contents (like
@@ -135,3 +136,11 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
     </Flex>
   );
 }
+
+// Match `html`'s scrollbar (the `*` default uses a transparent track) so the
+// content pane's scrollbar looks identical to the document scrollbar.
+const ContentPane = styled(Stack)`
+  scrollbar-color: ${p =>
+    // eslint-disable-next-line @sentry/scraps/use-semantic-token
+    `${p.theme.tokens.graphics.neutral.moderate} ${p.theme.tokens.background.secondary}`};
+`;

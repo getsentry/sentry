@@ -33,6 +33,8 @@ class ActivityAlertType(StrEnum):
     SEER_CODING_STARTED = "seer_coding_started"
     SEER_CODING_COMPLETED = "seer_coding_completed"
     SEER_PR_CREATED = "seer_pr_created"
+    SEER_ITERATION_STARTED = "seer_pr_iteration_started"
+    SEER_ITERATION_COMPLETED = "seer_pr_iteration_completed"
 
 
 ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE: dict[int, ActivityAlertType] = {
@@ -111,6 +113,24 @@ def _build_activity_data(activity: Activity) -> ActivityData:
                 for pull_request in pull_requests_data
             ]
             return ActivityData(type=activity_alert_type, details={"pull_requests": pull_requests})
+        case ActivityAlertType.SEER_ITERATION_COMPLETED:
+            details: dict[str, Any] = {}
+            pull_requests_data = activity.data.get("pull_requests", [])
+            if pull_requests_data:
+                details["pull_requests"] = [
+                    {
+                        "repo_name": pr.get("repo_name"),
+                        "url": pr.get("pull_request", {}).get("pr_url"),
+                    }
+                    for pr in pull_requests_data
+                ]
+            code_changes = activity.data.get("code_changes")
+            if code_changes:
+                details["code_changes"] = code_changes
+            iteration_index = activity.data.get("iteration_index")
+            if iteration_index is not None:
+                details["iteration_index"] = iteration_index
+            return ActivityData(type=activity_alert_type, details=details)
         case _:
             return ActivityData(type=activity_alert_type, details={})
 

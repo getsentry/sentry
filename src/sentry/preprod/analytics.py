@@ -61,6 +61,15 @@ class PreprodArtifactApiGetLatestBaseSnapshotEvent(analytics.Event):
     client: str
 
 
+@analytics.eventclass("preprod_artifact.api.snapshot_archive_download")
+class PreprodArtifactApiSnapshotArchiveDownloadEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
+    client: str
+
+
 @analytics.eventclass("preprod_artifact.api.install_details")
 class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
     organization_id: int
@@ -195,6 +204,7 @@ analytics.register(PreprodArtifactApiGetBuildDetailsEvent)
 analytics.register(PreprodArtifactApiGetSnapshotDetailsEvent)
 analytics.register(PreprodArtifactApiGetSnapshotImageEvent)
 analytics.register(PreprodArtifactApiGetLatestBaseSnapshotEvent)
+analytics.register(PreprodArtifactApiSnapshotArchiveDownloadEvent)
 analytics.register(PreprodArtifactApiInstallDetailsEvent)
 analytics.register(PreprodArtifactApiRerunAnalysisEvent)
 analytics.register(PreprodArtifactApiRerunStatusChecksEvent)

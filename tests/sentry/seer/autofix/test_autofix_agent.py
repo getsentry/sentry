@@ -384,6 +384,9 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
         mock_client.continue_run.return_value = 67890
+        seer_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         result = trigger_autofix_agent(
             group=self.group,
@@ -393,11 +396,12 @@ class TestTriggerAutofixAgent(TestCase):
         )
 
         assert result == 67890
-        # Verify started webhook was sent with the existing run_id
+        # Verify started webhook was sent with the existing run_id and uuid
         mock_broadcast.assert_called_once()
         call_kwargs = mock_broadcast.call_args.kwargs
         assert call_kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
         assert call_kwargs["payload"]["run_id"] == 67890
+        assert call_kwargs["payload"]["sentry_run_id"] == str(seer_run.uuid)
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)

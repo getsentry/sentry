@@ -132,6 +132,8 @@ export type CommitAuthor = {
   name?: string;
 };
 
+export type PullRequestAuthor = User | CommitAuthor;
+
 export type CommitFile = {
   author: CommitAuthor;
   commitMessage: string;
@@ -154,9 +156,18 @@ export interface PullRequest {
 
 export type PullRequestStatus = 'merged' | 'open' | 'closed' | 'draft' | 'unknown';
 
-export interface LinkedPullRequest extends PullRequest {
+type SeerAttribution = {
+  id: 'seer';
+  type: 'seer';
+};
+
+export type PullRequestAttribution = SeerAttribution;
+
+export interface LinkedPullRequest extends Omit<PullRequest, 'author'> {
+  attribution: PullRequestAttribution | null;
   dateLinked: string;
   status: PullRequestStatus;
+  author?: PullRequestAuthor;
 }
 
 export interface LinkedPullRequestsResponse {
@@ -256,6 +267,8 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+  // Each entry is a "Header-Name: value" line. Saved values are masked by the API
+  webhookHeaders?: string[];
 };
 
 // Minimal Sentry App representation for use with avatars

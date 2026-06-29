@@ -19,6 +19,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 
@@ -28,8 +29,11 @@ interface SeerDrawerProps {
 }
 
 export function SeerDrawer({group, project}: SeerDrawerProps) {
+  const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
-  const aiAutofix = useExplorerAutofix(group.id);
+  const aiAutofix = useExplorerAutofix(group.id, {
+    pollPR: organization.features.includes('autofix-pr-iteration'),
+  });
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
   const handleRestart = useHandleRestart({aiAutofix});

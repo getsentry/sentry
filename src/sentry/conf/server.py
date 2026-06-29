@@ -413,6 +413,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "sentry.middleware.devtoolbar.DevToolbarAnalyticsMiddleware",
+    "sentry.middleware.agent_discovery.AgentDiscoveryMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"
@@ -946,6 +947,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.sentry_apps.services.legacy_webhook.tasks",
     "sentry.seer.autofix.issue_summary",
+    "sentry.seer.autofix.pr_iteration_webhook",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
@@ -956,6 +958,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
+    "sentry.tasks.auth.cleanup_pending_users",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
@@ -1262,6 +1265,10 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
     "scm-repo-sync-beat": {
         "task": "integrations.control:sentry.integrations.source_code_management.sync_repos.scm_repo_sync_beat",
         "schedule": timedelta(minutes=1),
+    },
+    "cleanup-pending-users": {
+        "task": "auth.control:sentry.tasks.auth.cleanup_pending_users",
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
 }
 

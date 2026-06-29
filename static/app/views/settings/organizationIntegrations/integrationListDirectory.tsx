@@ -37,6 +37,7 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {
   getAlertText,
   getCategoriesForIntegration,
+  getIntegrationStatus,
   getProviderIntegrationStatus,
   getSentryAppInstallStatus,
   isDocIntegration,
@@ -347,6 +348,10 @@ export default function IntegrationListDirectory() {
           status={getProviderIntegrationStatus(providerIntegrations)}
           publishStatus="published"
           configurations={providerIntegrations.length}
+          disabledConfigurations={
+            providerIntegrations.filter(i => getIntegrationStatus(i) === 'disabled')
+              .length
+          }
           categories={getCategoriesForIntegration(provider)}
           alertText={getAlertText(providerIntegrations)}
           resolveText={t('Update Now')}
