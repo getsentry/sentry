@@ -812,6 +812,9 @@ export function getSamplingWarningReason(
   if (!isSamplingSensitiveAggregate(yAxis)) {
     return null;
   }
+  if (!series.some(seriesItem => defined(seriesItem) && seriesItem.values.length > 0)) {
+    return null;
+  }
   if (dataScanned === 'partial') {
     return 'partialData';
   }

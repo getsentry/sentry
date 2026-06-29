@@ -493,4 +493,14 @@ describe('getSamplingWarningReason', () => {
       )
     ).toBeNull();
   });
+
+  it('returns null when partially scanned but the series has no plotted data', () => {
+    expect(getSamplingWarningReason('count_unique(user)', [], 'partial')).toBeNull();
+  });
+
+  it('returns null when the series only contains empty timeseries', () => {
+    expect(
+      getSamplingWarningReason('count_unique(user)', seriesWithSampleRates([]), 'partial')
+    ).toBeNull();
+  });
 });
