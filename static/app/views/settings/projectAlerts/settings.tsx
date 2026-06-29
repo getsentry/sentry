@@ -8,8 +8,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {DetailedProject} from 'sentry/types/project';
-import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -32,14 +31,7 @@ export default function ProjectAlertSettings() {
     query: {project: project?.id},
   };
 
-  // useUpdateProject handles the optimistic cache update, ProjectsStore sync,
-  // error rollback, and invalidation. Updating the detailed-project query (the
-  // form's source of truth) is what lets the form pick up the saved value when
-  // AutoSaveForm resets after a successful submit.
-  const updateProject = useUpdateProject(project);
-  const projectMutationOptions = {
-    mutationFn: (data: Partial<DetailedProject>) => updateProject.mutateAsync(data),
-  };
+  const projectMutationOptions = useUpdateProjectMutationOptions(project);
 
   return (
     <FormSearch route="/settings/:orgId/projects/:projectId/alerts/">
