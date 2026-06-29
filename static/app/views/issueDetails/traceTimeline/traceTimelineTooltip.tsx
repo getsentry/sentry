@@ -40,6 +40,7 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
         ...location,
         query: {
           groupId: event.groupID,
+          referrer: location.query.referrer,
         },
       }
     : location;

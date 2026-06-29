@@ -96,10 +96,10 @@ describe('TraceLink', () => {
 
     expect(url.pathname).toBe(`/organizations/${organization.slug}/issues/trace/123/`);
     expect(url.searchParams.get('groupId')).toBe(event.groupID);
+    expect(url.searchParams.get('referrer')).toBe('issue-stream');
     expect(url.searchParams.get('source')).toBe('issue_details');
     expect(url.searchParams.has('project')).toBe(false);
     expect(url.searchParams.has('query')).toBe(false);
-    expect(url.searchParams.has('referrer')).toBe(false);
   });
 
   it('renders no trace available', async () => {
