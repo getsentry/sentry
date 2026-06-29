@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {getToolSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -26,13 +27,9 @@ export function useConversationToolBreakdown({
   conversationId,
   enabled,
 }: UseConversationToolBreakdownOptions) {
-  const escapedConversationId = conversationId
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"');
-
   const {data, isLoading, error} = useSpans(
     {
-      search: `${getToolSpansFilter()} ${SpanFields.GEN_AI_CONVERSATION_ID}:"${escapedConversationId}"`,
+      search: `${getToolSpansFilter()} ${SpanFields.GEN_AI_CONVERSATION_ID}:"${escapeDoubleQuotes(conversationId)}"`,
       fields: [
         'gen_ai.tool.name',
         'count(span.duration)',

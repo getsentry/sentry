@@ -47,12 +47,14 @@ export function ConversationToolCallsBreakdown({
             // Cap long tool names; the inner Text truncates with an ellipsis.
             style={{justifySelf: 'start', maxWidth: 200, minWidth: 0}}
           >
-            <Text ellipsis>{tool.toolName}</Text>
+            <Text ellipsis variant="inherit">
+              {tool.toolName}
+            </Text>
           </Tag>
-          <Text size="sm">
+          <Text size="sm" tabular>
             <Count value={tool.calls} /> {tn('call', 'calls', tool.calls)}
           </Text>
-          <Text size="sm" align="right">
+          <Text size="sm" align="right" tabular>
             {getDuration(tool.duration / 1000, 1, true)}
           </Text>
         </Fragment>
