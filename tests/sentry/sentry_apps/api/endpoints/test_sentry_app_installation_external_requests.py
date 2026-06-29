@@ -86,11 +86,11 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         self.login_as(user=self.user)
         responses.add(
             method=responses.GET,
-            url=f"https://example.com/get-projects?installationId={self.project.slug}",
+            url=f"https://example.com/get-projects?installationId={self.install.uuid}",
             status=500,
             content_type="application/json",
         )
-        url = self.url + f"?uri={self.project.id}"
+        url = self.url + "?uri=/get-projects"
         response = self.client.get(url, format="json")
         assert response.status_code == 502
 
@@ -99,4 +99,18 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         url = self.url + "?projectId=not-an-int&uri=/get-projects&query=proj"
         response = self.client.get(url, format="json")
         assert response.status_code == 400
-        assert response.data["detail"] == "projectId must be an integer"
+        assert "projectId" in response.data
+
+    def test_rejects_uri_with_userinfo_injection(self) -> None:
+        self.login_as(user=self.user)
+        url = self.url + "?uri=@attacker.example/path"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 400
+        assert "uri" in response.data
+
+    def test_rejects_uri_without_leading_slash(self) -> None:
+        self.login_as(user=self.user)
+        url = self.url + "?uri=https://attacker.example/path"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 400
+        assert "uri" in response.data
