@@ -11,6 +11,7 @@ import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {Confidence} from 'sentry/types/organization';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -20,6 +21,10 @@ import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansT
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import type {
+  AggregateField,
+  WritableAggregateField,
+} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsCrossEvents,
@@ -27,6 +32,7 @@ import {
   useSetQueryParamsAggregateFields,
   useSetQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
+import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
 import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
@@ -69,6 +75,7 @@ export function ExploreTables(props: ExploreTablesProps) {
     });
   const {
     validatedBooleanTags,
+    validatedAggregateFields,
     validatedFieldTypes,
     validatedFields,
     validatedNumberTags,
@@ -77,12 +84,13 @@ export function ExploreTables(props: ExploreTablesProps) {
     () =>
       getValidatedColumnEditorData({
         booleanTags,
+        aggregateFields,
         fields,
         numberTags,
         stringTags,
         validatedColumnsData,
       }),
-    [booleanTags, fields, numberTags, stringTags, validatedColumnsData]
+    [aggregateFields, booleanTags, fields, numberTags, stringTags, validatedColumnsData]
   );
 
   useEffect(() => {
@@ -98,6 +106,38 @@ export function ExploreTables(props: ExploreTablesProps) {
       setFields([...validatedFields]);
     }
   }, [fields, isValidatingColumns, setFields, tab, validatedFields]);
+
+  useEffect(() => {
+    if (tab !== Mode.AGGREGATE || isValidatingColumns) {
+      return;
+    }
+
+    const aggregateFieldsChanged =
+      validatedAggregateFields.length !== aggregateFields.length ||
+      validatedAggregateFields.some((aggregateField, index) => {
+        const currentAggregateField = aggregateFields[index];
+        if (!currentAggregateField) {
+          return true;
+        }
+        if (isGroupBy(aggregateField) && isGroupBy(currentAggregateField)) {
+          return aggregateField.groupBy !== currentAggregateField.groupBy;
+        }
+        if (!isGroupBy(aggregateField) && !isGroupBy(currentAggregateField)) {
+          return aggregateField.yAxis !== currentAggregateField.yAxis;
+        }
+        return true;
+      });
+
+    if (aggregateFieldsChanged) {
+      setAggregateFields(validatedAggregateFields.map(serializeAggregateField));
+    }
+  }, [
+    aggregateFields,
+    isValidatingColumns,
+    setAggregateFields,
+    tab,
+    validatedAggregateFields,
+  ]);
 
   const openColumnEditor = () => {
     openModal(
@@ -121,7 +161,7 @@ export function ExploreTables(props: ExploreTablesProps) {
       modalProps => (
         <AggregateColumnEditorModal
           {...modalProps}
-          columns={aggregateFields.slice()}
+          columns={validatedAggregateFields.slice()}
           onColumnsChange={setAggregateFields}
           stringTags={validatedStringTags}
           numberTags={validatedNumberTags}
@@ -183,7 +223,12 @@ export function ExploreTables(props: ExploreTablesProps) {
             {t('Edit Table')}
           </Button>
         ) : tab === Mode.AGGREGATE ? (
-          <Button onClick={openAggregateColumnEditor} icon={<IconEdit />} size="sm">
+          <Button
+            disabled={isValidatingColumns}
+            onClick={openAggregateColumnEditor}
+            icon={<IconEdit />}
+            size="sm"
+          >
             {t('Edit Table')}
           </Button>
         ) : (
@@ -225,12 +270,14 @@ export function ExploreTables(props: ExploreTablesProps) {
 }
 
 function getValidatedColumnEditorData({
+  aggregateFields,
   booleanTags,
   fields,
   numberTags,
   stringTags,
   validatedColumnsData,
 }: {
+  aggregateFields: readonly AggregateField[];
   booleanTags: TagCollection;
   fields: readonly string[];
   numberTags: TagCollection;
@@ -289,9 +336,42 @@ function getValidatedColumnEditorData({
 
   return {
     validatedBooleanTags,
+    validatedAggregateFields: getValidatedAggregateFields({
+      aggregateFields,
+      invalidFields,
+    }),
     validatedFieldTypes,
     validatedFields: fields.filter(field => !invalidFields.has(field)),
     validatedNumberTags,
     validatedStringTags,
   };
+}
+
+export function getValidatedAggregateFields({
+  aggregateFields,
+  invalidFields,
+}: {
+  aggregateFields: readonly AggregateField[];
+  invalidFields: ReadonlySet<string>;
+}): AggregateField[] {
+  return aggregateFields.filter(aggregateField => {
+    if (isGroupBy(aggregateField)) {
+      return !invalidFields.has(aggregateField.groupBy);
+    }
+
+    if (invalidFields.has(aggregateField.yAxis)) {
+      return false;
+    }
+
+    return !parseFunction(aggregateField.yAxis)?.arguments.some(
+      argument => argument && invalidFields.has(argument)
+    );
+  });
+}
+
+function serializeAggregateField(aggregateField: AggregateField): WritableAggregateField {
+  if (isGroupBy(aggregateField)) {
+    return aggregateField;
+  }
+  return aggregateField.serialize();
 }
