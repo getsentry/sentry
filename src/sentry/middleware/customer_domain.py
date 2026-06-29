@@ -107,6 +107,9 @@ class CustomerDomainMiddleware:
             logger.info("customer_domain.redirect.logout", extra={"location": redirect_url})
             return HttpResponseRedirect(redirect_url)
 
+        if request.path_info.startswith(("/auth/", "/auth-v2/", "/saml/")):
+            return self.get_response(request)
+
         activeorg = _resolve_activeorg(request)
         if not activeorg:
             session = getattr(request, "session", None)
