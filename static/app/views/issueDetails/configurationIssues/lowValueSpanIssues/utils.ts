@@ -18,11 +18,17 @@ type LowValueSpanEvidencePayload = Partial<{
 }>;
 
 function getStringValue(value: unknown): string | null {
-  return typeof value === 'string' && value.length > 0 ? value : null;
+  if (typeof value !== 'string' || value.length === 0) {
+    return null;
+  }
+  return value;
 }
 
 function getNumberValue(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return null;
+  }
+  return value;
 }
 
 export function getLowValueSpanEvidenceData(

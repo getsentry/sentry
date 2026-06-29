@@ -3,8 +3,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {PlatformKey} from 'sentry/types/platform';
-
 import {LowValueSpanTroubleshootingSection} from './lowValueSpanTroubleshootingSection';
 import type {LowValueSpanEvidenceData} from './types';
 
@@ -27,16 +25,12 @@ function makeEvent(overrides: Partial<LowValueSpanEvidenceData> = {}) {
   });
 }
 
-function makeProject(platform: PlatformKey | null) {
-  return ProjectFixture({platform: platform ?? undefined});
-}
-
 describe('LowValueSpanTroubleshootingSection', () => {
   it('renders automatic instrumentation guidance for auto spans', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent()}
-        project={makeProject('javascript-nextjs')}
+        project={ProjectFixture({platform: 'javascript-nextjs'})}
       />
     );
 
@@ -50,7 +44,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent({spanOrigin: 'manual'})}
-        project={makeProject('javascript-nextjs')}
+        project={ProjectFixture({platform: 'javascript-nextjs'})}
       />
     );
 
@@ -66,7 +60,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent({spanOrigin: 'manual'})}
-        project={makeProject(null)}
+        project={ProjectFixture()}
       />
     );
 
@@ -82,7 +76,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent()}
-        project={makeProject('ruby-rails')}
+        project={ProjectFixture({platform: 'ruby-rails'})}
       />
     );
 
@@ -98,7 +92,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent()}
-        project={makeProject('javascript-nextjs')}
+        project={ProjectFixture({platform: 'javascript-nextjs'})}
       />
     );
 
@@ -111,7 +105,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent()}
-        project={makeProject('python-django')}
+        project={ProjectFixture({platform: 'python-django'})}
       />
     );
 
@@ -124,7 +118,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent()}
-        project={makeProject('javascript-nextjs')}
+        project={ProjectFixture({platform: 'javascript-nextjs'})}
       />
     );
 
@@ -137,7 +131,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent()}
-        project={makeProject('python-django')}
+        project={ProjectFixture({platform: 'python-django'})}
       />
     );
 
@@ -150,7 +144,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent()}
-        project={makeProject(null)}
+        project={ProjectFixture()}
       />
     );
 
@@ -163,7 +157,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent({spanOrigin: null})}
-        project={makeProject('javascript-nextjs')}
+        project={ProjectFixture({platform: 'javascript-nextjs'})}
       />
     );
 
@@ -175,7 +169,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent({description: null})}
-        project={makeProject('javascript-nextjs')}
+        project={ProjectFixture({platform: 'javascript-nextjs'})}
       />
     );
 
@@ -190,7 +184,7 @@ describe('LowValueSpanTroubleshootingSection', () => {
     render(
       <LowValueSpanTroubleshootingSection
         event={makeEvent({description: null})}
-        project={makeProject('python-django')}
+        project={ProjectFixture({platform: 'python-django'})}
       />
     );
 
