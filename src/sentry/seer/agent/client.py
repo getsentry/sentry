@@ -19,6 +19,7 @@ from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
+from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
@@ -120,12 +121,13 @@ def get_monitoring_provider_connections(
     connections: list[dict[str, Any]] = []
     for provider_type in MONITORING_PROVIDERS:
         provider = identity_manager.get(provider_type)
+        is_oauth_provider = isinstance(provider, OAuth2Provider)
         if not isinstance(provider, McpIdentityProvider):
             continue
 
         try:
-            identities = identity_service.get_user_identities_by_provider_type(
-                user_id=user_id, provider_type=provider_type
+            identities = identity_service.get_org_user_identities_by_provider_type(
+                organization_id=organization.id, user_id=user_id, provider_type=provider_type
             )
         except RpcException:
             # Monitoring providers are optional enrichment. A control-silo RPC failure
@@ -157,6 +159,7 @@ def get_monitoring_provider_connections(
                     "url": url,
                     "encrypted_access_token": encrypted_access_token,
                     "identity_id": identity.id,
+                    "auth_method": "oauth" if is_oauth_provider else "pat",
                 }
             )
 
@@ -957,6 +960,7 @@ class SeerAgentClient:
         provider: str | None = None,
         user_id: int | None = None,
         issue_short_id: str | None = None,
+        issue_url: str | None = None,
     ) -> dict[str, list]:
         """
         Launch coding agents for an agent run.
@@ -974,6 +978,7 @@ class SeerAgentClient:
             provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
             user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
             issue_short_id: Optional Sentry issue short ID for coding agent session naming
+            issue_url: Optional full URL to the Sentry issue for linking in PRs
 
         Returns:
             Dictionary with 'successes' and 'failures' lists
@@ -989,4 +994,5 @@ class SeerAgentClient:
             provider=provider,
             user_id=user_id,
             issue_short_id=issue_short_id,
+            issue_url=issue_url,
         )

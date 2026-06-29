@@ -46,7 +46,6 @@ class TraceItemAttributeContextTest(TestCase):
         assert description.id is not None
         assert description.examples == ["GET", "POST"]
         assert description.additional_context is None
-        assert description.last_received is None
 
     def test_create_org_wide(self) -> None:
         description = TraceItemAttributeContext.objects.create(
@@ -156,7 +155,6 @@ class TraceItemAttributeValueContextTest(TestCase):
         )
         assert context.id is not None
         assert context.additional_context is None
-        assert context.last_received is None
 
     def test_create_org_wide(self) -> None:
         context = TraceItemAttributeValueContext.objects.create(
