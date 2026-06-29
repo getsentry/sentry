@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
@@ -193,5 +195,44 @@ describe('AssistantBlock', () => {
     });
     const {container} = render(<BlockComponent block={block} blockIndex={0} />);
     expect(container).toHaveTextContent('');
+  });
+
+  describe('streaming', () => {
+    const streamingOrg = OrganizationFixture({
+      features: ['seer-explorer-stream'],
+    });
+
+    it('renders streaming markdown for loading block with content', () => {
+      const block = createBlock({
+        loading: true,
+        message: {role: 'assistant', content: 'Partial streamed content...'},
+      });
+      render(<BlockComponent block={block} blockIndex={0} />, {
+        organization: streamingOrg,
+      });
+      expect(screen.getByText('Partial streamed content...')).toBeInTheDocument();
+    });
+
+    it('renders spinner only for loading block without content', () => {
+      const block = createBlock({
+        loading: true,
+        message: {role: 'assistant', content: ''},
+      });
+      const {container} = render(<BlockComponent block={block} blockIndex={0} />, {
+        organization: streamingOrg,
+      });
+      expect(container).toHaveTextContent('');
+    });
+
+    it('renders static markdown for completed block', () => {
+      const block = createBlock({
+        loading: false,
+        message: {role: 'assistant', content: 'Final content.'},
+      });
+      render(<BlockComponent block={block} blockIndex={0} />, {
+        organization: streamingOrg,
+      });
+      expect(screen.getByText('Final content.')).toBeInTheDocument();
+    });
   });
 });
