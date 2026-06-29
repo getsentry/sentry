@@ -23,6 +23,8 @@ import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {normalizeUserField} from 'sentry/views/explore/conversations/components/conversationsTable';
+import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
@@ -57,6 +59,7 @@ function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
 
 interface ConversationAggregates {
   errorCount: number;
+  erroredToolNames: Set<string>;
   llmCalls: number;
   toolCalls: number;
   toolNames: string[];
@@ -68,16 +71,18 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
-function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
+export function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let llmCalls = 0;
   let toolCalls = 0;
   let errorCount = 0;
   let totalTokens = 0;
   let totalCost = 0;
   const toolNameSet = new Set<string>();
+  const erroredToolNameSet = new Set<string>();
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
+    const nodeHasError = hasError(node);
 
     if (getIsAiGenerationSpan(opType)) {
       llmCalls++;
@@ -88,10 +93,13 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
       if (toolName) {
         toolNameSet.add(toolName);
+        if (nodeHasError) {
+          erroredToolNameSet.add(toolName);
+        }
       }
     }
 
-    if (hasError(node)) {
+    if (nodeHasError) {
       errorCount++;
     }
   }
@@ -100,10 +108,33 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     llmCalls,
     toolCalls,
     errorCount,
+    erroredToolNames: erroredToolNameSet,
     totalTokens,
     totalCost,
     toolNames: Array.from(toolNameSet).sort(),
   };
+}
+
+/**
+ * Derives the conversation's user from the first span node that carries any
+ * user identity attribute. Returns null when the spans aren't user-instrumented.
+ */
+export function getConversationUser(nodes: AITraceSpanNode[]): ConversationUser | null {
+  for (const node of nodes) {
+    const email = normalizeUserField(getStringAttr(node, SpanFields.USER_EMAIL));
+    const username = normalizeUserField(getStringAttr(node, SpanFields.USER_USERNAME));
+    const ipAddress = normalizeUserField(getStringAttr(node, SpanFields.USER_IP));
+    const id = normalizeUserField(getStringAttr(node, SpanFields.USER_ID));
+    if (email || username || ipAddress || id) {
+      return {
+        email,
+        username,
+        ip_address: ipAddress,
+        id,
+      };
+    }
+  }
+  return null;
 }
 
 /**

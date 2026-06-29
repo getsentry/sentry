@@ -1,47 +1,41 @@
-import type React from 'react';
 import {useCallback, useEffect, useMemo} from 'react';
-import {parseAsString, useQueryStates} from 'nuqs';
+import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
 
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
-import {ConversationSummary} from 'sentry/views/explore/conversations/components/conversationSummary';
-import {ConversationViewContent} from 'sentry/views/explore/conversations/components/conversationView';
-import {ConversationDetailPageNew} from 'sentry/views/explore/conversations/conversationDetailNew';
+import {ConversationSummaryNew} from 'sentry/views/explore/conversations/components/conversationSummaryNew';
+import {
+  CONVERSATION_VIEW_TABS,
+  ConversationViewContentNew,
+} from 'sentry/views/explore/conversations/components/conversationViewNew';
+import {ConversationViewContainer} from 'sentry/views/explore/conversations/conversationDetail';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
-import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
     {
       spanId: parseAsString,
       focusedTool: parseAsString,
+      tab: parseAsStringLiteral(CONVERSATION_VIEW_TABS).withDefault('transcript'),
     },
     {history: 'replace'}
   );
 }
 
-function ConversationDetailPage() {
-  const organization = useOrganization();
-
-  if (hasGenAiConversationsRedesignFeature(organization)) {
-    return <ConversationDetailPageNew />;
-  }
-
-  return <ConversationDetailPageLegacy />;
-}
-
-function ConversationDetailPageLegacy() {
+export function ConversationDetailPageNew() {
   const organization = useOrganization();
   const {conversationId} = useParams<{conversationId: string}>();
   const [queryState, setQueryState] = useConversationDetailQueryState();
 
   const conversation = useMemo(() => ({conversationId}), [conversationId]);
 
-  const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
+  const {nodes, isLoading} = useConversation(conversation);
 
   useEffect(() => {
     trackAnalytics('conversations.detail.page-view', {
@@ -61,18 +55,37 @@ function ConversationDetailPageLegacy() {
 
   return (
     <ViewportConstrainedPage background="secondary">
-      <Stack flex={1} minHeight="0" overflow="hidden" padding="md 2xl" gap="md">
-        <Flex direction="column" gap="md" flexShrink={0}>
-          <ConversationSummary
-            nodes={nodes}
-            nodeTraceMap={nodeTraceMap}
-            conversationId={conversationId}
-            isLoading={isLoading}
-          />
+      <Container
+        flexShrink={0}
+        background="primary"
+        borderBottom="primary"
+        padding={{sm: 'md lg', md: 'md xl'}}
+      >
+        <ConversationSummaryNew
+          nodes={nodes}
+          conversationId={conversationId}
+          isLoading={isLoading}
+        />
+      </Container>
+      <Stack
+        flex={1}
+        minHeight="0"
+        overflow="hidden"
+        padding={{sm: 'md lg', md: 'md xl'}}
+        gap="md"
+      >
+        <Flex flexShrink={0}>
+          <Tabs value={queryState.tab} onChange={tab => setQueryState({tab})}>
+            <TabList variant="floating">
+              <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
+              <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
+            </TabList>
+          </Tabs>
         </Flex>
         <ConversationViewContainer>
-          <ConversationViewContent
+          <ConversationViewContentNew
             conversation={conversation}
+            activeTab={queryState.tab}
             selectedSpanId={queryState.spanId}
             onSelectSpan={handleSelectSpan}
             focusedTool={queryState.focusedTool}
@@ -82,23 +95,3 @@ function ConversationDetailPageLegacy() {
     </ViewportConstrainedPage>
   );
 }
-
-export function ConversationViewContainer({children}: {children: React.ReactNode}) {
-  return (
-    <Container
-      flex={1}
-      minHeight="0"
-      overflow="hidden"
-      border="primary"
-      radius="md"
-      background="primary"
-      display="flex"
-    >
-      <Flex flex={1} minHeight="0" height="100%">
-        {children}
-      </Flex>
-    </Container>
-  );
-}
-
-export default ConversationDetailPage;

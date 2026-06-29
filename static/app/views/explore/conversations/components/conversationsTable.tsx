@@ -166,7 +166,7 @@ function ConversationsTableInner() {
   );
 }
 
-function normalizeUserField(value: string | null): string | null {
+export function normalizeUserField(value: string | null | undefined): string | null {
   if (!value || value.toLowerCase() === 'none') {
     return null;
   }
