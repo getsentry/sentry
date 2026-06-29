@@ -196,15 +196,18 @@ def traces_sampler(sampling_context):
     if custom_sample_rate is not None:
         return float(custom_sample_rate)
 
-    # If there's already a sampling decision, just use that
-    if sampling_context["parent_sampled"] is not None:
-        return sampling_context["parent_sampled"]
-
+    # Taskworker tasks with explicit sample rates should always use their
+    # configured rate, regardless of parent sampling decisions. This prevents
+    # a negatively-sampled parent trace from suppressing all child task spans.
     if "taskworker" in sampling_context:
         task_name = sampling_context["taskworker"].get("task")
 
         if task_name in SAMPLED_TASKS:
             return SAMPLED_TASKS[task_name]
+
+    # If there's already a sampling decision, just use that
+    if sampling_context.get("parent_sampled") is not None:
+        return sampling_context["parent_sampled"]
 
     # Default to the sampling rate in settings
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
