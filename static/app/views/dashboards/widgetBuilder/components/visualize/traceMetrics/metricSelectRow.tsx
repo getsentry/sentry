@@ -21,7 +21,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {
   DEFAULT_YAXIS_BY_TYPE,
-  isHeatmapSupportedMetricType,
+  doesMetricSupportHeatMapVisualization,
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -88,7 +88,11 @@ export function MetricSelectRow({
   // metric picker to distributions (the only type a heat map can render).
   const disabledMetricReason = useCallback(
     (option: MetricSelectorOption) =>
-      isHeatmapSupportedMetricType(option.metricType)
+      doesMetricSupportHeatMapVisualization({
+        name: option.metricName,
+        type: option.metricType,
+        unit: option.metricUnit,
+      })
         ? undefined
         : t('Heat maps can only visualize distribution metrics.'),
     []

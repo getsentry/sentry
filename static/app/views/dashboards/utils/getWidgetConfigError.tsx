@@ -3,7 +3,7 @@ import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/type
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
-import {isHeatmapSupportedMetricType} from 'sentry/views/explore/metrics/constants';
+import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
 
 /**
  * Returns a user-facing error message if the widget has a static config
@@ -30,7 +30,7 @@ export function getWidgetConfigError(widget: Widget): string | undefined {
     if (!traceMetric) {
       return t('This widget is missing a metric to visualize.');
     }
-    if (!isHeatmapSupportedMetricType(traceMetric.type)) {
+    if (!doesMetricSupportHeatMapVisualization(traceMetric)) {
       return t('Heat maps can only visualize distribution metrics.');
     }
   }
