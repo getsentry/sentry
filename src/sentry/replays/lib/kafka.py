@@ -2,7 +2,6 @@ from functools import partial
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Topic as ArroyoTopic
-from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from taskbroker_client.state import current_task
@@ -93,8 +92,7 @@ def publish_replay_event(message: str) -> None:
     # delivery is tied to the task succeeding. Every other caller keeps the
     # existing rollout-gated behavior.
     if _in_process_replay_recording_task() or (
-        settings.TASKWORKER_USE_TASK_PRODUCER
-        and in_random_rollout("tasks.producer.replays.rollout")
+        current_task() is not None and in_random_rollout("tasks.producer.replays.rollout")
     ):
         producer: SingletonProducer | TaskProducer = ingest_replay_events_taskproducer
     else:
