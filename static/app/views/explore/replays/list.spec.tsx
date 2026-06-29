@@ -16,12 +16,17 @@ import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobile
 import ListPage from 'sentry/views/explore/replays/list';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useReplayPageview');
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
 jest.mock('sentry/views/explore/replays/detail/useAllMobileProj');
+jest.mock('sentry/views/seerExplorer/contexts/llmContext', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/contexts/llmContext'),
+  useLLMContext: jest.fn(),
+}));
 
 const mockUseDeadRageSelectors = jest.mocked(useDeadRageSelectors);
 mockUseDeadRageSelectors.mockReturnValue({
@@ -36,6 +41,7 @@ const mockUseHaveSelectedProjectsSentAnyReplayEvents = jest.mocked(
   useHaveSelectedProjectsSentAnyReplayEvents
 );
 const mockUseProjectSdkNeedsUpdate = jest.mocked(useProjectSdkNeedsUpdate);
+const mockUseLLMContext = jest.mocked(useLLMContext);
 
 const mockUseReplayOnboardingSidebarPanel = jest.mocked(useReplayOnboardingSidebarPanel);
 mockUseReplayOnboardingSidebarPanel.mockReturnValue({activateSidebar: jest.fn()});
@@ -85,6 +91,7 @@ describe('ReplayList', () => {
     mockUseProjectSdkNeedsUpdate.mockClear();
     mockUseDeadRageSelectors.mockClear();
     mockUseAllMobileProj.mockClear();
+    mockUseLLMContext.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -220,6 +227,9 @@ describe('ReplayList', () => {
     expect(within(widgets[0]!).getAllByTestId('loading-placeholder')).toHaveLength(3);
     expect(within(widgets[1]!).getAllByTestId('loading-placeholder')).toHaveLength(3);
     expect(screen.getByRole('button', {name: 'Hide Widgets'})).toBeInTheDocument();
+    expect(mockUseLLMContext).toHaveBeenCalledWith(
+      expect.objectContaining({deadRageClickWidgetsVisible: true})
+    );
     expect(mockUseDeadRageSelectors).not.toHaveBeenCalled();
   });
 

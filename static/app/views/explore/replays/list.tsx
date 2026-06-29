@@ -152,7 +152,10 @@ function ReplaysListBody() {
   );
   const toggleWidgets = () => setWidgetIsOpen(isOpen => !isOpen);
 
-  useReplayListLLMContextData({showDeadRageClickCards, widgetIsOpen});
+  useReplayListLLMContextData({
+    showDeadRageClickCards: showDeadRageClickWidgets,
+    widgetIsOpen,
+  });
 
   useRouteAnalyticsParams({
     hasSessionReplay,
