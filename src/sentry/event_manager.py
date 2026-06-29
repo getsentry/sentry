@@ -115,7 +115,6 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
-from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
@@ -227,15 +226,6 @@ def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
     except Exception:
         logger.warning("failed to set normalized SDK name", exc_info=True)
         return {}
-
-
-def plugin_is_regression(group: Group, event: BaseEvent) -> bool:
-    project = event.project
-    for plugin in plugins.for_project(project):
-        result = safe_execute(plugin.is_regression, group, event, version=1)
-        if result is not None:
-            return bool(result)
-    return True
 
 
 def has_pending_commit_resolution(group: Group) -> bool:
@@ -1716,9 +1706,6 @@ def _handle_regression(
         return None
 
     elif has_pending_commit_resolution(group):
-        return None
-
-    if not plugin_is_regression(group, event):
         return None
 
     # we now think its a regression, rely on the database to validate that

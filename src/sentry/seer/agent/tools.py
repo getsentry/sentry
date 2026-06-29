@@ -21,6 +21,7 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.exceptions import BadRequest as SentryBadRequest
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
+from sentry.api.serializers.models.commit import CommitSerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
@@ -29,10 +30,13 @@ from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
+from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import EventOrdering, Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
+from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.post_process import process_raw_response
@@ -72,6 +76,7 @@ from sentry.seer.sentry_data_models import (
     ExecuteTimeseriesQuerySuccessResponse,
     GetDsnResponse,
     IssueAndEventDetailsResponse,
+    IssueCommittersResponse,
     IssueDetailsResponse,
     ProfileFlamegraphErrorResponse,
     ProfileFlamegraphMetadata,
@@ -90,6 +95,13 @@ from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
+from sentry.utils import metrics
+from sentry.utils.committers import (
+    get_event_file_committers,
+    get_frame_paths,
+    get_release_commit_candidates,
+    get_serialized_committers,
+)
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
@@ -1360,6 +1372,57 @@ def get_issue_and_event_response(
     )
 
 
+def _resolve_seer_group(
+    *,
+    organization_id: int,
+    issue_id: str,
+    project_slug: str | None = None,
+) -> Group:
+    """
+    Resolve an ``issue_id`` to a :class:`Group`, scoped to ``organization_id`` (and to
+    ``project_slug`` when provided).
+
+    ``issue_id`` may be a numeric primary key or a qualified short id (e.g. ``PROJECT-123``):
+
+    - Numeric ids are looked up via ``get_from_cache``. The model cache only accepts a single
+      kwarg, so the org/project boundary cannot live in the query and is enforced with an
+      explicit post-fetch check instead. This also skips the ``project_ids`` query on the hot
+      numeric path.
+    - Short ids keep query-level project scoping via ``by_qualified_short_id`` to preserve the
+      in-org IDOR guard documented on that method; ``project_ids`` is only computed here.
+
+    Raises ``Group.DoesNotExist`` when no matching group is visible within the scope, so callers
+    can keep their existing ``except Group.DoesNotExist`` handling.
+    """
+    if issue_id.isdigit():
+        group = Group.objects.get_from_cache(id=int(issue_id))
+        # ``group.project`` is the org/project boundary the numeric query used to enforce.
+        # A hard-deleted project makes this FK access raise ``Project.DoesNotExist``; translate
+        # it so callers' ``except Group.DoesNotExist`` handling still applies.
+        try:
+            project = group.project
+        except Project.DoesNotExist:
+            raise Group.DoesNotExist() from None
+        if (
+            project.organization_id != organization_id
+            or project.status != ObjectStatus.ACTIVE
+            or (project_slug is not None and project.slug != project_slug)
+        ):
+            raise Group.DoesNotExist()
+        return group
+
+    project_ids = list(
+        Project.objects.filter(
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+            **({"slug": project_slug} if project_slug else {}),
+        ).values_list("id", flat=True)
+    )
+    if not project_ids:
+        raise Group.DoesNotExist()
+    return Group.objects.by_qualified_short_id(organization_id, issue_id, project_ids=project_ids)
+
+
 def get_issue_details(
     *,
     organization_id: int,
@@ -1381,27 +1444,18 @@ def get_issue_details(
     Returns:
         Dict with issue metadata, event_timeseries, tags_overview, and user_activity, or None if not found.
     """
+    # NOTE: start and end are interdependent. get_date_range_from_params raises InvalidParams
+    # unless both or neither are set, so passing only one will fail despite the optional signature.
     start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
 
     organization = Organization.objects.get(id=organization_id)
 
-    project_ids = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", flat=True)
-    )
-    if not project_ids:
-        return None
-
-    group: Group
-    if issue_id.isdigit():
-        group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-    else:
-        group = Group.objects.by_qualified_short_id(
-            organization_id, issue_id, project_ids=project_ids
+    try:
+        group = _resolve_seer_group(
+            organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
         )
+    except Group.DoesNotExist:
+        return None
 
     # Get the issue metadata.
     serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
@@ -1464,6 +1518,221 @@ def get_issue_details(
     )
 
 
+def get_issue_committers(
+    *,
+    organization_id: int,
+    issue_id: str,
+    start: str | None = None,
+    end: str | None = None,
+) -> IssueCommittersResponse | None:
+    """
+    Get the likely code authors for an issue from Sentry's ingested commit data.
+
+    Combines three signals, all computed from ingested commits with NO SCM/GitHub call
+    (so it works without SCM credentials):
+
+    - ``stack_commits``: commit authors that touched the files in the issue's
+      stacktrace, scored by frame relevance. This is the *input* to Sentry's
+      suspect-commit feature (release-based blame of the failing frames) and is
+      available far more often than a single precomputed suspect commit.
+    - ``suspect_commits``: the precomputed suspect commit(s) from ``GroupOwner``, if
+      any (the same "Suspect Commit" shown in the Sentry UI).
+    - ``release_commits``: a broader pool of commits shipped around when the issue
+      first appeared, NOT limited to the stacktrace frames (catches regressions in
+      code that does not appear in the trace), each enriched with PR title/body,
+      file-change count, and a merge-commit flag so the caller can prune.
+
+    Default time windows differ by signal: ``release_commits`` covers ~6 weeks before
+    the issue first appeared (to surface what shipped just before it regressed), while
+    the sampled stacktrace event (for ``stack_commits``) is drawn from the issue's own
+    lifetime (``first_seen``..``last_seen``), since the issue has no events before it
+    first appeared. Pass ``start``/``end`` to override both.
+
+    Args:
+        organization_id: The ID of the organization.
+        issue_id: The issue ID (numeric) or qualified short ID (e.g. PROJECT-123). The
+            project is derived from the issue, so no project identifier is needed.
+        start: ISO timestamp for the start of the time range (optional).
+        end: ISO timestamp for the end of the time range (optional).
+
+    Returns:
+        An ``IssueCommittersResponse`` with ``stack_commits``, ``suspect_commits``,
+        ``release_commits``, ``project_id``, ``project_slug``. The commit lists may be
+        empty (e.g. no release/commit data linked to the issue) — callers can iterate
+        them without ``None`` checks. Returns ``None`` if the project/issue cannot be
+        resolved.
+    """
+    try:
+        committers = _IssueCommitters(
+            organization_id=organization_id,
+            issue_id=issue_id,
+            start=start,
+            end=end,
+        )
+    except Group.DoesNotExist:
+        return None
+    return committers.get()
+
+
+class _IssueCommitters:
+    """Computes the likely code authors for an issue from ingested commit data.
+
+    Backs :func:`get_issue_committers`. The shared inputs (resolved group,
+    organization, time window) are computed once in ``__init__`` and reused by the
+    per-signal helpers. Each signal is computed independently and its failures are
+    isolated, so a problem in one signal doesn't blank out the others.
+    """
+
+    def __init__(
+        self,
+        *,
+        organization_id: int,
+        issue_id: str,
+        start: str | None = None,
+        end: str | None = None,
+    ) -> None:
+        self.organization_id = organization_id
+        self.issue_id = issue_id
+        self.start_dt: datetime | None
+        self.end_dt: datetime | None
+        self.start_dt, self.end_dt = get_date_range_from_params(
+            {"start": start, "end": end}, optional=True
+        )
+        self.organization = Organization.objects.get(id=organization_id)
+        # Lets ``Group.DoesNotExist`` propagate so ``get_issue_committers`` can map it to
+        # ``None`` (the shared "issue not found" signal for the seer issue methods).
+        self.group = _resolve_seer_group(organization_id=organization_id, issue_id=issue_id)
+
+    def get(self) -> IssueCommittersResponse:
+        return IssueCommittersResponse(
+            stack_commits=self._get_stack_commits(),
+            suspect_commits=self._get_suspect_commits(),
+            release_commits=self._get_release_commits(),
+            project_id=self.group.project_id,
+            project_slug=self.group.project.slug,
+        )
+
+    @property
+    def _log_extra(self) -> dict[str, Any]:
+        return {"organization_id": self.organization_id, "issue_id": self.issue_id}
+
+    def _get_suspect_commits(self) -> list[dict[str, Any]]:
+        """Precomputed author+commit (one or none) from the suspect-commit feature."""
+        try:
+            suspect_commits = get_serialized_committers(self.group.project, self.group.id)
+        except Exception:
+            metrics.incr("seer.get_issue_committers.error", tags={"step": "suspect_commits"})
+            logger.exception(
+                "get_issue_committers: Failed to get suspect commits",
+                extra=self._log_extra,
+            )
+            return []
+        return [dict(committer) for committer in suspect_commits]
+
+    def _get_stack_commits(self) -> list[dict[str, Any]]:
+        """Frame-based blame: authors of the files in the stacktrace.
+
+        This is the input to the suspect-commit feature and is available far more often.
+        """
+        try:
+            event = _get_recommended_event(
+                self.group, self.organization, self.start_dt, self.end_dt
+            )
+            if event is None:
+                return []
+            sdk_name = (event.data.get("sdk") or {}).get("name")
+            author_commits = get_event_file_committers(
+                self.group.project,
+                self.group.id,
+                get_frame_paths(event),
+                event.platform,
+                sdk_name=sdk_name,
+            )
+            # get_event_file_committers serializes the author but leaves commits as
+            # (Commit, score) tuples ordered weakest-first; serialize the commits and
+            # reverse so the strongest blame is first.
+            # Batch-serialize every commit in one call: CommitSerializer.get_attrs runs
+            # repository and pull request queries per invocation, so serializing one
+            # commit at a time would be an N+1.
+            commits_by_id = {
+                commit.id: commit
+                for entry in author_commits
+                for commit, _ in entry.get("commits", [])
+            }
+            serialized_by_id = {
+                commit_id: serialized
+                for commit_id, serialized in zip(
+                    commits_by_id,
+                    serialize(
+                        list(commits_by_id.values()),
+                        serializer=CommitSerializer(exclude=["author"]),
+                    ),
+                )
+            }
+            stack_commits = [
+                {
+                    "author": entry.get("author"),
+                    "commits": [
+                        {**serialized_by_id[commit.id], "score": score}
+                        for commit, score in entry.get("commits", [])
+                    ],
+                }
+                for entry in author_commits
+            ]
+            stack_commits.reverse()
+            return stack_commits
+        except (Release.DoesNotExist, Commit.DoesNotExist):
+            # No release/commit data linked to this issue; frame blame isn't available.
+            return []
+        except Exception:
+            metrics.incr("seer.get_issue_committers.error", tags={"step": "stack_commits"})
+            logger.exception(
+                "get_issue_committers: Failed to compute stack commits",
+                extra=self._log_extra,
+            )
+            return []
+
+    def _get_release_commits(self) -> list[dict[str, Any]]:
+        """Broader candidate pool: commits shipped around when the issue first appeared.
+
+        NOT limited to the stacktrace frames. Window defaults to ~6 weeks before
+        first_seen; an explicit start/end overrides it.
+        """
+        release_commits: list[dict[str, Any]] = []
+        try:
+            window_end = self.end_dt or self.group.first_seen
+            window_start = self.start_dt or (window_end - timedelta(weeks=6))
+            candidates = get_release_commit_candidates(
+                self.group.project, self.group.id, since=window_start, until=window_end
+            )
+            if candidates:
+                file_change_counts = dict(
+                    CommitFileChange.objects.filter(commit_id__in=[c.id for c in candidates])
+                    .values_list("commit_id")
+                    .annotate(n=models.Count("id"))
+                )
+                serialized_candidates = serialize(
+                    candidates, serializer=CommitSerializer(exclude=["repository"])
+                )
+                for commit, serialized in zip(candidates, serialized_candidates):
+                    message = (commit.message or "").strip()
+                    release_commits.append(
+                        {
+                            **serialized,
+                            "files_changed_count": file_change_counts.get(commit.id),
+                            "is_merge_commit": message.startswith("Merge "),
+                        }
+                    )
+        except Exception:
+            metrics.incr("seer.get_issue_committers.error", tags={"step": "release_commits"})
+            logger.exception(
+                "get_issue_committers: Failed to fetch release commits",
+                extra=self._log_extra,
+            )
+            return []
+        return release_commits
+
+
 def get_event_details(
     *,
     organization_id: int,
@@ -1493,16 +1762,6 @@ def get_event_details(
 
     organization = Organization.objects.get(id=organization_id)
 
-    project_ids = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", flat=True)
-    )
-    if not project_ids:
-        return None
-
     event: Event | GroupEvent | None
     group: Group | None
 
@@ -1511,16 +1770,26 @@ def get_event_details(
 
         # Fetch the group then get a sample event from the time range.
         assert issue_id is not None
-        if issue_id.isdigit():
-            group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-        else:
-            group = Group.objects.by_qualified_short_id(
-                organization_id, issue_id, project_ids=project_ids
+        try:
+            group = _resolve_seer_group(
+                organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
             )
-        assert group is not None
+        except Group.DoesNotExist:
+            return None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
+        # The project boundary is only needed for the by-event-id lookup below.
+        project_ids = list(
+            Project.objects.filter(
+                organization=organization,
+                status=ObjectStatus.ACTIVE,
+                **({"slug": project_slug} if project_slug else {}),
+            ).values_list("id", flat=True)
+        )
+        if not project_ids:
+            return None
+
         # Fetch the event directly by ID.
         uuid.UUID(event_id)  # Raises ValueError if not valid UUID
         if len(project_ids) == 1:
@@ -1599,34 +1868,32 @@ def get_issue_and_event_details_v2(
 
     organization = Organization.objects.get(id=organization_id)
 
-    project_ids = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", flat=True)
-    )
-    if not project_ids:
-        return None
-
     event: Event | GroupEvent | None
     group: Group | None
 
     if event_id is None:
         # Fetch the group then get a sample event from the time range.
         assert issue_id is not None
-        if issue_id.isdigit():
-            group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-        else:
-            # Scope the short id lookup to the same projects as the numeric branch so both
-            # paths enforce the same project boundary.
-            group = Group.objects.by_qualified_short_id(
-                organization_id, issue_id, project_ids=project_ids
+        try:
+            group = _resolve_seer_group(
+                organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
             )
-        assert group is not None
+        except Group.DoesNotExist:
+            return None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
+        # The project boundary is only needed for the by-event-id lookup below.
+        project_ids = list(
+            Project.objects.filter(
+                organization=organization,
+                status=ObjectStatus.ACTIVE,
+                **({"slug": project_slug} if project_slug else {}),
+            ).values_list("id", flat=True)
+        )
+        if not project_ids:
+            return None
+
         # Fetch the event then look up its group.
         uuid.UUID(event_id)  # Raises ValueError if not valid UUID
         if len(project_ids) == 1:

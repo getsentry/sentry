@@ -622,6 +622,7 @@ const STATUS_TO_TAG_TYPE: Record<SpanStatus, TagProps['variant']> = {
   out_of_range: 'warning',
   unimplemented: 'danger',
   internal_error: 'danger',
+  error: 'danger',
   unavailable: 'danger',
   data_loss: 'danger',
   unauthenticated: 'warning',

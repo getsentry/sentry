@@ -3,7 +3,7 @@ import {createStore} from 'reflux';
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {IndicatorStore} from 'sentry/stores/indicatorStore';
-import type {Activity, BaseGroup, Group, GroupStats} from 'sentry/types/group';
+import type {BaseGroup, Group, GroupStats} from 'sentry/types/group';
 import {toArray} from 'sentry/utils/array/toArray';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -26,8 +26,6 @@ type Item = BaseGroup | Group;
 type ItemIds = string[] | undefined;
 
 interface InternalDefinition {
-  addActivity: (groupId: string, data: Activity, index?: number) => void;
-  indexOfActivity: (groupId: string, id: string) => number;
   /**
    * Does not include pending changes
    * TODO: Remove mutation and replace state with items
@@ -35,9 +33,7 @@ interface InternalDefinition {
   items: Item[];
 
   pendingChanges: Map<ChangeId, Change>;
-  removeActivity: (groupId: string, id: string) => number;
   statuses: Record<string, Record<string, boolean>>;
-  updateActivity: (groupId: string, id: string, data: Partial<Activity['data']>) => void;
   updateItems: (itemIds: ItemIds) => void;
 }
 
@@ -226,78 +222,6 @@ const storeConfig: GroupStoreDefinition = {
 
   hasStatus(id, status) {
     return this.statuses[id]?.[status] || false;
-  },
-
-  indexOfActivity(groupId, id) {
-    const group = this.items.find(item => item.id === groupId);
-    if (!group) {
-      return -1;
-    }
-
-    for (let i = 0; i < group.activity.length; i++) {
-      if (group.activity[i]!.id === id) {
-        return i;
-      }
-    }
-    return -1;
-  },
-
-  addActivity(groupId, data, index = -1) {
-    const group = this.items.find(item => item.id === groupId);
-    if (!group) {
-      return;
-    }
-
-    // insert into beginning by default
-    if (index === -1) {
-      group.activity.unshift(data);
-    } else {
-      group.activity.splice(index, 0, data);
-    }
-    if (data.type === 'note') {
-      group.numComments++;
-    }
-
-    this.updateItems([groupId]);
-  },
-
-  updateActivity(groupId, id, data) {
-    const group = this.items.find(item => item.id === groupId);
-    if (!group) {
-      return;
-    }
-
-    const index = this.indexOfActivity(groupId, id);
-    if (index === -1) {
-      return;
-    }
-
-    // Here, we want to merge the new `data` being passed in
-    // into the existing `data` object. This effectively
-    // allows passing in an object of only changes.
-    group.activity[index]!.data = Object.assign(group.activity[index]!.data, data);
-    this.updateItems([group.id]);
-  },
-
-  removeActivity(groupId, id) {
-    const group = this.items.find(item => item.id === groupId);
-    if (!group) {
-      return -1;
-    }
-
-    const index = this.indexOfActivity(group.id, id);
-    if (index === -1) {
-      return -1;
-    }
-
-    const activity = group.activity.splice(index, 1);
-
-    if (activity[0]!.type === 'note') {
-      group.numComments--;
-    }
-
-    this.updateItems([group.id]);
-    return index;
   },
 
   get(id) {

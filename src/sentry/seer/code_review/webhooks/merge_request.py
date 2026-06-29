@@ -69,6 +69,7 @@ from sentry.seer.code_review.models import (
     SeerCodeReviewTaskRequestForPrReview,
     SeerCodeReviewTrigger,
 )
+from sentry.seer.webhooks import SentryReviewCommand, sentry_command
 from sentry.utils import json
 from sentry.utils.redis import redis_clusters
 
@@ -694,13 +695,6 @@ def _schedule_task(
 # ---------------------------------------------------------------------------
 
 
-def _is_sentry_review_command(note: str | None) -> bool:
-    """Return True when the note body contains the @sentry review command."""
-    if note is None:
-        return False
-    return SENTRY_REVIEW_COMMAND in note.lower()
-
-
 def _get_note_trigger_metadata(event: Mapping[str, Any]) -> dict[str, Any]:
     """Extract trigger metadata from a GitLab note (comment) event."""
     user = event.get("user", {})
@@ -886,7 +880,7 @@ def handle_merge_request_note_event(
 
     # Filter for the @sentry review command phrase.
     note_body = object_attributes.get("note")
-    if not _is_sentry_review_command(note_body):
+    if not isinstance(sentry_command(note_body), SentryReviewCommand):
         debug_log(logger, organization, "note.not_review_command", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_NOTE_EVENT,

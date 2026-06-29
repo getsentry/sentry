@@ -34,7 +34,8 @@ function getAuthorName(item: GroupActivity) {
     return item.user.name;
   }
   if (
-    item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
+    (item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST ||
+      item.type === GroupActivityType.PULL_REQUEST_CLOSED) &&
     item.data.pullRequest?.author?.name &&
     !item.data.pullRequest.author.email?.endsWith('@localhost')
   ) {
@@ -501,6 +502,24 @@ export function getGroupActivityItem(
           }),
         };
       }
+      case GroupActivityType.PULL_REQUEST_CLOSED: {
+        const {data} = activity;
+        const {pullRequest} = data;
+        return {
+          title: t('Pull Request Closed'),
+          message: tct(' by [author]: [pullRequest]', {
+            author,
+            pullRequest: pullRequest ? (
+              <PullRequestLink
+                pullRequest={pullRequest}
+                repository={pullRequest.repository}
+              />
+            ) : (
+              t('PR not available')
+            ),
+          }),
+        };
+      }
       case GroupActivityType.SET_UNRESOLVED: {
         // TODO(nisanthan): Remove after migrating records to SET_ESCALATING
         const {data} = activity;
@@ -802,6 +821,28 @@ export function getGroupActivityItem(
         return {
           title: t('Pull Request Created'),
           message: t('Seer created a pull request'),
+        };
+      }
+      case GroupActivityType.SEER_ITERATION_STARTED:
+        return {
+          title: t('PR Iteration'),
+          message: t('Seer started iterating on the pull request'),
+        };
+      case GroupActivityType.SEER_ITERATION_COMPLETED: {
+        const {data: iterationData} = activity;
+        const pr = iterationData.pull_requests?.[0];
+        if (pr) {
+          return {
+            title: t('PR Iteration'),
+            message: tct('Seer updated the [link:pull request] in [repo]', {
+              link: <ExternalLink href={pr.pull_request.pr_url} />,
+              repo: pr.repo_name,
+            }),
+          };
+        }
+        return {
+          title: t('PR Iteration'),
+          message: t('Seer finished iterating on the pull request'),
         };
       }
       default:

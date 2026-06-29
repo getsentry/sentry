@@ -41,7 +41,7 @@ function OrgStatsBanner({organization, subscription, referrer}: Props) {
       size: 'sm' as const,
     },
   };
-  const isPaidPlan = subscription.planDetails.price > 0;
+  const isPaidPlan = subscription.planDetails.totalPrice > 0;
   // only show start trial if on a free plan and trial available
   const showStartTrial = !isPaidPlan && subscription.canTrial;
   const getTextContent = (): [string, string | React.JSX.Element] => {

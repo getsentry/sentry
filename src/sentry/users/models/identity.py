@@ -14,11 +14,13 @@ from sentry import analytics
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
+    DefaultFieldsModel,
     FlexibleForeignKey,
     Model,
     control_silo_model,
 )
 from sentry.db.models.fields.encryption import EncryptedJSONField
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -238,3 +240,52 @@ class Identity(Model):
         from sentry.identity import get
 
         return get(self.idp.type)
+
+
+@control_silo_model
+class OrganizationIdentity(DefaultFieldsModel):
+    """
+    Links an Identity to a specific organization.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
+    identity = FlexibleForeignKey("sentry.Identity", on_delete=models.CASCADE)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_organizationidentity"
+        unique_together = (("organization_id", "identity_id"),)
+
+
+def link_provider_identity(
+    user: User | RpcUser,
+    identity_data: dict[str, Any],
+    organization_id: int,
+) -> Identity | None:
+    with transaction.atomic(router.db_for_write(Identity)):
+        idp, _ = IdentityProvider.objects.get_or_create(
+            type=identity_data["type"],
+            external_id=identity_data["idp_external_id"],
+            defaults={"config": identity_data.get("idp_config", {})},
+        )
+
+        linked_identity = Identity.objects.link_identity(
+            user=user,
+            idp=idp,
+            external_id=identity_data["id"],
+            should_reattach=False,
+            defaults={
+                "scopes": identity_data.get("scopes", []),
+                "data": identity_data.get("data", {}),
+            },
+        )
+
+        if linked_identity:
+            OrganizationIdentity.objects.get_or_create(
+                organization_id=organization_id,
+                identity=linked_identity,
+            )
+
+    return linked_identity
