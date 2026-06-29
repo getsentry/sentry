@@ -2,6 +2,7 @@
 
 
 from enum import Enum
+from typing import Any
 
 import sentry_sdk
 from django.db import migrations
@@ -14,6 +15,7 @@ from sentry.explore.translation.dashboards_translation import (
     translate_dashboard_widget_queries,
 )
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.db import atomic_transaction
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
@@ -181,10 +183,10 @@ class DatasetSourcesTypes(Enum):
 _DATASET_SOURCES = {source.value: source.name.lower() for source in DatasetSourcesTypes}
 
 
-def _convert_thresholds_to_camel_case(thresholds: dict | None) -> dict | None:
+def _convert_thresholds_to_camel_case(thresholds: dict[str, Any] | None) -> dict[str, Any] | None:
     if thresholds is None:
         return None
-    result: dict = {
+    result: dict[str, Any] = {
         "max_values": thresholds.get("max_values", {}),
         "unit": thresholds.get("unit", ""),
     }
@@ -193,7 +195,7 @@ def _convert_thresholds_to_camel_case(thresholds: dict | None) -> dict | None:
     return result
 
 
-def _serialize_widget_snapshot(widget, queries) -> dict:
+def _serialize_widget_snapshot(widget: Any, queries: list[Any]) -> dict[str, Any]:
     """
     Manually replicates DashboardWidgetSerializer.serialize + DashboardWidgetQuerySerializer.serialize
     so the snapshot matches the format the real API serializer produces, without needing a registered
@@ -255,7 +257,7 @@ def _serialize_widget_snapshot(widget, queries) -> dict:
     }
 
 
-def _migrate_widget(widget, DashboardWidgetQuery: type) -> None:
+def _migrate_widget(widget: Any, DashboardWidgetQuery: Any) -> None:
     queries = list(DashboardWidgetQuery.objects.filter(widget_id=widget.id).order_by("order"))
 
     widget.widget_snapshot = _serialize_widget_snapshot(widget, queries)
@@ -296,13 +298,14 @@ def _migrate_widget(widget, DashboardWidgetQuery: type) -> None:
         )
         dropped_fields_info.append(dropped_fields)
 
-    DashboardWidgetQuery.objects.filter(widget_id=widget.id).delete()
-    DashboardWidgetQuery.objects.bulk_create(new_widget_queries)
+    with atomic_transaction(using="default"):
+        DashboardWidgetQuery.objects.filter(widget_id=widget.id).delete()
+        DashboardWidgetQuery.objects.bulk_create(new_widget_queries)
 
-    widget.widget_type = DashboardWidgetTypes.SPANS
-    widget.dataset_source = DatasetSourcesTypes.SPAN_MIGRATION_VERSION_5.value
-    widget.changed_reason = dropped_fields_info
-    widget.save()
+        widget.widget_type = DashboardWidgetTypes.SPANS
+        widget.dataset_source = DatasetSourcesTypes.SPAN_MIGRATION_VERSION_5.value
+        widget.changed_reason = dropped_fields_info
+        widget.save()
 
 
 def migrate_transactions_to_spans_widgets_self_hosted(
@@ -323,7 +326,6 @@ def migrate_transactions_to_spans_widgets_self_hosted(
             _migrate_widget(widget, DashboardWidgetQuery)
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            raise
 
 
 def reverse_migrate_transactions_to_spans_widgets_self_hosted(
