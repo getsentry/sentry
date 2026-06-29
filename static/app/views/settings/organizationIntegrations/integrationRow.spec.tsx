@@ -109,4 +109,50 @@ describe('IntegrationRow', () => {
       );
     });
   });
+
+  describe('Update Now alert', () => {
+    it('auto-opens the install modal for a single outdated workspace', () => {
+      render(
+        <IntegrationRow
+          organization={org}
+          type="firstParty"
+          slug="slack"
+          displayName="Slack"
+          status="Installed"
+          publishStatus="published"
+          configurations={1}
+          categories={[]}
+          alertText="Update to the latest version of our Slack app"
+          resolveText="Update Now"
+        />
+      );
+      expect(screen.getByRole('button', {name: 'Update Now'})).toHaveAttribute(
+        'href',
+        `/settings/${org.slug}/integrations/slack/?tab=configurations&referrer=directory_resolve_now&showInstallModal=1`
+      );
+    });
+
+    it('sends users to the config page when multiple workspaces exist', () => {
+      render(
+        <IntegrationRow
+          organization={org}
+          type="firstParty"
+          slug="slack"
+          displayName="Slack"
+          status="Installed"
+          publishStatus="published"
+          configurations={2}
+          categories={[]}
+          alertText="Update to the latest version of our Slack app"
+          resolveText="Update Now"
+        />
+      );
+      const button = screen.getByRole('button', {name: 'Update Now'});
+      expect(button).toHaveAttribute(
+        'href',
+        `/settings/${org.slug}/integrations/slack/?tab=configurations&referrer=directory_resolve_now`
+      );
+      expect(button.getAttribute('href')).not.toContain('showInstallModal');
+    });
+  });
 });

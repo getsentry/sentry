@@ -165,6 +165,53 @@ describe('IntegrationDetailedView', () => {
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
   });
 
+  it('shows Update Now only for the outdated Slack workspace', async () => {
+    const slackProvider = {
+      aspects: {},
+      canAdd: true,
+      canDisable: false,
+      features: ['alert-rule', 'chat-unfurl'],
+      key: 'slack',
+      name: 'Slack',
+      slug: 'slack',
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
+      body: [
+        {
+          id: '10',
+          name: 'Outdated Workspace',
+          domainName: 'outdated.slack.com',
+          provider: slackProvider,
+          status: 'active',
+          // Missing app_mentions:read -> outdated install.
+          scopes: ['commands', 'chat:write'],
+        },
+        {
+          id: '11',
+          name: 'Current Workspace',
+          domainName: 'current.slack.com',
+          provider: slackProvider,
+          status: 'active',
+          scopes: ['commands', 'chat:write', 'app_mentions:read'],
+        },
+      ],
+    });
+
+    render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('slack', {tab: 'configurations'}),
+      organization,
+    });
+
+    expect(await screen.findByText('Outdated Workspace')).toBeInTheDocument();
+    expect(screen.getByText('Current Workspace')).toBeInTheDocument();
+
+    // Only the outdated workspace surfaces an Update Now button, not every row.
+    expect(screen.getByTestId('integration-upgrade-button')).toBeInTheDocument();
+    expect(screen.getAllByTestId('integration-upgrade-button')).toHaveLength(1);
+  });
+
   it('disables configure for members without access', async () => {
     const lowerAccessOrg = OrganizationFixture({access: ['org:read']});
     render(<IntegrationDetailedView />, {

@@ -155,7 +155,8 @@ def _factor_bucket(factor: float) -> str:
     # (inclusive lower bound, label), ordered high -> low; the first bound the factor clears wins.
     factor_buckets: tuple[tuple[float, str], ...] = (
         (0.1, "1-0.1"),
-        (0.001, "0.1-0.001"),
+        (0.01, "0.1-0.01"),
+        (0.001, "0.01-0.001"),
         (0.0001, "0.001-0.0001"),
         (0.00001, "0.0001-0.00001"),
     )

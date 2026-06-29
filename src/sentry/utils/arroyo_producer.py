@@ -32,6 +32,16 @@ class SingletonProducer:
         self._futures: deque[_ProducerFuture] = deque()
         self.max_futures = max_futures
 
+        # This fixes a shutdown-ordering bug with OutcomeAggregator, which
+        # flushes buffered outcomes into a producer from its own atexit handler.
+        # atexit runs handlers in reverse registration order. When we registered
+        # our shutdown lazily (on the first produce), it ran after the
+        # aggregator's, so the producer was closed before that flush could run
+        # and the flush failed with "producer has been closed". Registering here,
+        # at construction (import time), makes our close run after the flush.
+        # _shutdown is a no-op when the producer was never created.
+        atexit.register(self._shutdown)
+
     def produce(
         self, destination: ArroyoTopic | Partition, payload: KafkaPayload
     ) -> _ProducerFuture:
@@ -42,7 +52,6 @@ class SingletonProducer:
     def _get(self) -> KafkaProducer:
         if self._producer is None:
             self._producer = self._factory()
-            atexit.register(self._shutdown)
 
         return self._producer
 

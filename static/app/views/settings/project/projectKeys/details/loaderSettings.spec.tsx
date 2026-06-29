@@ -68,13 +68,13 @@ describe('Loader Script Settings', () => {
     // Panel title
     expect(screen.getByText('JavaScript Loader Script')).toBeInTheDocument();
 
-    expect(screen.getByText('Enable Performance Monitoring')).toBeInTheDocument();
+    expect(screen.getByText('Enable Tracing')).toBeInTheDocument();
     expect(screen.getByText('Enable Session Replay')).toBeInTheDocument();
     expect(screen.getByText('Enable User Feedback')).toBeInTheDocument();
     expect(screen.getByText('Enable SDK debugging')).toBeInTheDocument();
 
     const performanceCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Performance Monitoring',
+      name: 'Enable Tracing',
     });
     expect(performanceCheckbox).toBeEnabled();
     expect(performanceCheckbox).not.toBeChecked();
@@ -129,7 +129,7 @@ describe('Loader Script Settings', () => {
     // Toggle performance option
     await userEvent.click(
       screen.getByRole('checkbox', {
-        name: 'Enable Performance Monitoring',
+        name: 'Enable Tracing',
       })
     );
 
@@ -233,7 +233,7 @@ describe('Loader Script Settings', () => {
     );
 
     const performanceCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Performance Monitoring',
+      name: 'Enable Tracing',
     });
     expect(performanceCheckbox).not.toBeChecked();
 
@@ -461,9 +461,7 @@ describe('Loader Script Settings', () => {
     // with fresh data. Each request must carry ONLY its own changed field —
     // otherwise the slower-resolving request would overwrite the other's
     // change with a stale value (the backend merges partial options).
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Enable Performance Monitoring'})
-    );
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Enable Tracing'}));
     await userEvent.click(screen.getByRole('checkbox', {name: 'Enable SDK debugging'}));
 
     await waitFor(() => {

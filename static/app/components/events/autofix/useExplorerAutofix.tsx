@@ -125,11 +125,11 @@ export function isCodingAgentsArtifact(
  * State returned from the Explorer autofix endpoint.
  * This extends the SeerExplorer types with autofix-specific data.
  */
-export interface QueuedFeedbackItem {
+export interface RawFeedback {
   text: string;
   source?: {
+    type: string;
     comment?: {html_url?: string; user?: {login: string}};
-    type?: string;
     user?: User;
   };
   timestamp?: string;
@@ -146,7 +146,7 @@ export interface ExplorerAutofixState {
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
-  queued_feedback?: QueuedFeedbackItem[];
+  queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
 }
 
@@ -226,16 +226,27 @@ const isActivelyProcessing = (
   );
 };
 
+const hasCreatedPullRequest = (autofixState: ExplorerAutofixState | null): boolean =>
+  Object.values(autofixState?.repo_pr_states ?? {}).some(
+    state => state.pr_creation_status === 'completed'
+  );
+
 /**
  * Gets the appropriate poll interval based on state.
- * Returns false to disable polling, or a number for the interval.
  */
-const getPollInterval = (
-  autofixState: ExplorerAutofixState | null,
-  runStarted: boolean
-): number | false => {
-  // Actively processing - poll fast
-  if (isActivelyProcessing(autofixState, runStarted)) {
+export const getPollInterval = ({
+  autofixState,
+  runStarted,
+  pollPR = false,
+}: {
+  autofixState: ExplorerAutofixState | null;
+  runStarted: boolean;
+  pollPR?: boolean;
+}): number | false => {
+  const shouldPollPR = pollPR && hasCreatedPullRequest(autofixState);
+  const shouldPollProcessing = isActivelyProcessing(autofixState, runStarted);
+
+  if (shouldPollPR || shouldPollProcessing) {
     return POLL_INTERVAL;
   }
 
@@ -468,6 +479,11 @@ interface UseExplorerAutofixOptions {
    * Defaults to true.
    */
   enabled?: boolean;
+  /**
+   * Force fast polling while the drawer is mounted. Other observers can keep
+   * their processing-aware intervals.
+   */
+  pollPR?: boolean;
 }
 
 /**
@@ -484,7 +500,7 @@ export function useExplorerAutofix(
 ) {
   const {openModal} = useModal();
 
-  const {enabled = true} = options;
+  const {enabled = true, pollPR = false} = options;
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -517,7 +533,9 @@ export function useExplorerAutofix(
       if (!enabled) {
         return false;
       }
-      return getPollInterval(query.state.data?.json?.autofix || null, waitingForResponse);
+
+      const autofixState = query.state.data?.json?.autofix || null;
+      return getPollInterval({autofixState, runStarted: waitingForResponse, pollPR});
     },
   });
 
@@ -570,9 +588,13 @@ export function useExplorerAutofix(
         );
 
         // Invalidate to fetch fresh data
-        queryClient.invalidateQueries({
+        const invalidation = queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
+
+        if (step === 'pr_iteration') {
+          await invalidation;
+        }
 
         return response.run_id as number;
       } catch (e: any) {
