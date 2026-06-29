@@ -15,7 +15,7 @@ import {parseCursor} from 'sentry/utils/cursor';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
-import {prettifyTagKey} from 'sentry/utils/fields';
+import {FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -27,6 +27,7 @@ import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/logs/logsQueryParams';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
+import {addValidatedFieldTypesToLogsMeta} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {
@@ -48,19 +49,29 @@ import {
 
 export function LogsAggregateTable({
   aggregatesTableResult,
+  validatedFieldTypes = {},
 }: {
   aggregatesTableResult: LogsAggregatesTableResult;
+  validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 }) {
   const {data, pageLinks, isLoading, error, eventView} = aggregatesTableResult;
+  const meta = useMemo(
+    () =>
+      addValidatedFieldTypesToLogsMeta({
+        meta: data?.meta,
+        validatedFieldTypes,
+      }),
+    [data?.meta, validatedFieldTypes]
+  );
 
   const columns = useMemo(() => {
     return eventView
-      ?.getColumns()
+      ?.getColumns(meta)
       ?.reduce<Record<string, TableColumn<string>>>((acc, col) => {
         acc[col.key] = col;
         return acc;
       }, {});
-  }, [eventView]);
+  }, [eventView, meta]);
 
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
@@ -162,7 +173,7 @@ export function LogsAggregateTable({
             );
             const extra: RendererExtra = {
               attributes: row,
-              attributeTypes: data?.meta?.fields ?? {},
+              attributeTypes: meta.fields,
               caseSensitiveHighlighting: false,
               highlightTerms: [],
               logColors: getLogColors(level, theme),
@@ -177,7 +188,7 @@ export function LogsAggregateTable({
               <LogFieldRenderer
                 key={column.key}
                 extra={extra}
-                meta={data?.meta}
+                meta={meta}
                 item={{
                   fieldKey: column.key,
                   value,

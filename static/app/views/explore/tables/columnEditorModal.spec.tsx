@@ -8,7 +8,7 @@ import {
 
 import {openModal} from 'sentry/actionCreators/modal';
 import type {TagCollection} from 'sentry/types/group';
-import {FieldKind} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 
 const stringTags: TagCollection = {
@@ -416,5 +416,32 @@ describe('ColumnEditorModal', () => {
     expect(columns[0]).toHaveTextContent('number');
     expect(columns[1]).toHaveTextContent('custom.enabled');
     expect(columns[1]).toHaveTextContent('boolean');
+  });
+
+  it('renders existing columns with types from validated field types', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['sentry.duration']}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={booleanTags}
+            validatedFieldTypes={{'sentry.duration': FieldValueType.NUMBER}}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
+
+    const column = screen.getByTestId('editor-column');
+    expect(column).toHaveTextContent('sentry.duration');
+    expect(column).toHaveTextContent('number');
   });
 });

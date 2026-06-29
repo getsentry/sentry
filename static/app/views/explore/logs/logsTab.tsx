@@ -23,9 +23,10 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {FieldKind} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -80,7 +81,12 @@ import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePers
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
 import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
+import type {
+  AggregateField,
+  WritableAggregateField,
+} from 'sentry/views/explore/queryParams/aggregateField';
 import {
+  useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsFields,
   useQueryParamsGroupBys,
@@ -89,9 +95,11 @@ import {
   useQueryParamsSortBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
+  useSetQueryParamsAggregateFields,
   useSetQueryParamsFields,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
+import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
@@ -223,12 +231,14 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const fields = useQueryParamsFields();
   const mode = useQueryParamsMode();
   const groupBys = useQueryParamsGroupBys();
+  const aggregateFields = useQueryParamsAggregateFields();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const queryClient = useQueryClient();
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
   const setFields = useSetQueryParamsFields();
+  const setAggregateFields = useSetQueryParamsAggregateFields();
   const lastValidatedFieldsCleanupRef = useRef<string | null>(null);
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
@@ -300,21 +310,30 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const {data: validatedColumnsData, isFetching: isValidatingColumns} =
     useValidateLogsTab();
   const {
-    invalidFields,
+    validatedAggregateFields,
     validatedBooleanAttributes,
+    validatedFieldTypes,
     validatedFields,
     validatedNumberAttributes,
     validatedStringAttributes,
   } = useMemo(
     () =>
       getValidatedColumnEditorData({
+        aggregateFields,
         booleanAttributes,
         fields,
         numberAttributes,
         stringAttributes,
         validatedColumnsData,
       }),
-    [booleanAttributes, fields, numberAttributes, stringAttributes, validatedColumnsData]
+    [
+      aggregateFields,
+      booleanAttributes,
+      fields,
+      numberAttributes,
+      stringAttributes,
+      validatedColumnsData,
+    ]
   );
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
@@ -363,10 +382,12 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       return;
     }
 
-    const fieldsChanged = fields.some(field => invalidFields.has(field));
+    const fieldsChanged =
+      validatedFields.length !== fields.length ||
+      validatedFields.some((field, index) => field !== fields[index]);
 
     if (fieldsChanged) {
-      const nextFields = fields.filter(field => !invalidFields.has(field));
+      const nextFields = [...validatedFields];
       const cleanupKey = nextFields.join('\0');
 
       if (lastValidatedFieldsCleanupRef.current !== cleanupKey) {
@@ -380,7 +401,39 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     } else {
       lastValidatedFieldsCleanupRef.current = null;
     }
-  }, [fields, invalidFields, isValidatingColumns, setFields, setPersistentParams]);
+  }, [fields, isValidatingColumns, setFields, setPersistentParams, validatedFields]);
+
+  useEffect(() => {
+    if (mode !== Mode.AGGREGATE || isValidatingColumns) {
+      return;
+    }
+
+    const aggregateFieldsChanged =
+      validatedAggregateFields.length !== aggregateFields.length ||
+      validatedAggregateFields.some((aggregateField, index) => {
+        const currentAggregateField = aggregateFields[index];
+        if (!currentAggregateField) {
+          return true;
+        }
+        if (isGroupBy(aggregateField) && isGroupBy(currentAggregateField)) {
+          return aggregateField.groupBy !== currentAggregateField.groupBy;
+        }
+        if (!isGroupBy(aggregateField) && !isGroupBy(currentAggregateField)) {
+          return aggregateField.yAxis !== currentAggregateField.yAxis;
+        }
+        return true;
+      });
+
+    if (aggregateFieldsChanged) {
+      setAggregateFields(validatedAggregateFields.map(serializeAggregateField));
+    }
+  }, [
+    aggregateFields,
+    isValidatingColumns,
+    mode,
+    setAggregateFields,
+    validatedAggregateFields,
+  ]);
 
   const openColumnEditor = () => {
     openModal(
@@ -392,6 +445,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
           stringTags={validatedStringAttributes}
           numberTags={validatedNumberAttributes}
           booleanTags={validatedBooleanAttributes}
+          validatedFieldTypes={validatedFieldTypes}
           hiddenKeys={HiddenColumnEditorLogFields}
           traceItemType={TraceItemDataset.LOGS}
           handleReset={() => {
@@ -536,6 +590,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                   <TableActionButton
                     mobile={
                       <Button
+                        disabled={isValidatingColumns}
                         onClick={openColumnEditor}
                         icon={<IconEdit />}
                         size="sm"
@@ -544,6 +599,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                     }
                     desktop={
                       <Button
+                        disabled={isValidatingColumns}
                         onClick={openColumnEditor}
                         icon={<IconEdit />}
                         size="sm"
@@ -560,12 +616,16 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable
                   analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                  booleanAttributes={booleanAttributes}
-                  stringAttributes={stringAttributes}
-                  numberAttributes={numberAttributes}
+                  booleanAttributes={validatedBooleanAttributes}
+                  stringAttributes={validatedStringAttributes}
+                  numberAttributes={validatedNumberAttributes}
+                  validatedFieldTypes={validatedFieldTypes}
                 />
               ) : (
-                <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
+                <LogsAggregateTable
+                  aggregatesTableResult={aggregatesTableResult}
+                  validatedFieldTypes={validatedFieldTypes}
+                />
               )}
             </LogsItemContainer>
           </ExploreContentSection>
@@ -578,12 +638,14 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 export const LogsTabContent = registerLLMContext('logs-explorer', LogsTabContentInner);
 
 function getValidatedColumnEditorData({
+  aggregateFields,
   booleanAttributes,
   fields,
   numberAttributes,
   stringAttributes,
   validatedColumnsData,
 }: {
+  aggregateFields: readonly AggregateField[];
   booleanAttributes: TagCollection;
   fields: readonly string[];
   numberAttributes: TagCollection;
@@ -591,6 +653,7 @@ function getValidatedColumnEditorData({
   validatedColumnsData?: EventValidationData;
 }) {
   const validatedBooleanAttributes = {...booleanAttributes};
+  const validatedFieldTypes: Partial<Record<string, FieldValueType>> = {};
   const validatedNumberAttributes = {...numberAttributes};
   const validatedStringAttributes = {...stringAttributes};
   const invalidFields = new Set<string>();
@@ -606,6 +669,9 @@ function getValidatedColumnEditorData({
     }
 
     if (item.attrType === 'boolean') {
+      validatedFieldTypes[item.name] = FieldValueType.BOOLEAN;
+      delete validatedNumberAttributes[item.name];
+      delete validatedStringAttributes[item.name];
       validatedBooleanAttributes[item.name] ??= {
         key: item.name,
         name: prettifyAttributeName(item.name),
@@ -614,6 +680,9 @@ function getValidatedColumnEditorData({
     }
 
     if (item.attrType === 'number') {
+      validatedFieldTypes[item.name] = FieldValueType.NUMBER;
+      delete validatedBooleanAttributes[item.name];
+      delete validatedStringAttributes[item.name];
       validatedNumberAttributes[item.name] ??= {
         key: item.name,
         name: prettifyAttributeName(item.name),
@@ -622,6 +691,9 @@ function getValidatedColumnEditorData({
     }
 
     if (item.attrType === 'string') {
+      validatedFieldTypes[item.name] = FieldValueType.STRING;
+      delete validatedBooleanAttributes[item.name];
+      delete validatedNumberAttributes[item.name];
       validatedStringAttributes[item.name] ??= {
         key: item.name,
         name: prettifyAttributeName(item.name),
@@ -631,12 +703,45 @@ function getValidatedColumnEditorData({
   }
 
   return {
-    invalidFields,
+    validatedAggregateFields: getValidatedAggregateFields({
+      aggregateFields,
+      invalidFields,
+    }),
     validatedBooleanAttributes,
+    validatedFieldTypes,
     validatedFields: fields.filter(field => !invalidFields.has(field)),
     validatedNumberAttributes,
     validatedStringAttributes,
   };
+}
+
+export function getValidatedAggregateFields({
+  aggregateFields,
+  invalidFields,
+}: {
+  aggregateFields: readonly AggregateField[];
+  invalidFields: ReadonlySet<string>;
+}): AggregateField[] {
+  return aggregateFields.filter(aggregateField => {
+    if (isGroupBy(aggregateField)) {
+      return !invalidFields.has(aggregateField.groupBy);
+    }
+
+    if (invalidFields.has(aggregateField.yAxis)) {
+      return false;
+    }
+
+    return !parseFunction(aggregateField.yAxis)?.arguments.some(
+      argument => argument && invalidFields.has(argument)
+    );
+  });
+}
+
+function serializeAggregateField(aggregateField: AggregateField): WritableAggregateField {
+  if (isGroupBy(aggregateField)) {
+    return aggregateField;
+  }
+  return aggregateField.serialize();
 }
 
 const ViewportConstrainedBody = styled(ExploreBodyContent)`

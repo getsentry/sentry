@@ -1,6 +1,7 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useQueryParamsAggregateSortBys,
@@ -38,7 +39,10 @@ export function useValidateLogsTab({enabled = true}: UseValidateLogsTabArgs = {}
         new Set([
           ...fields,
           ...groupBys.filter(groupBy => groupBy !== ''),
-          ...visualizes.map(visualize => visualize.yAxis),
+          ...visualizes.flatMap(visualize => [
+            visualize.yAxis,
+            ...(parseFunction(visualize.yAxis)?.arguments.filter(Boolean) ?? []),
+          ]),
         ])
       ),
       orderBy: [...sortBys, ...aggregateSortBys].map(sortBy =>
