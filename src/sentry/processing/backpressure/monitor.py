@@ -14,6 +14,7 @@ from sentry.processing.backpressure.health import UnhealthyReasons, record_consu
 from sentry.processing.backpressure.memory import Cluster, ServiceMemory, iter_cluster_memory_usage
 from sentry.processing.backpressure.topology import ProcessingServices
 from sentry.utils import redis
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,11 @@ def start_service_monitoring() -> None:
             time.sleep(options.get("backpressure.monitoring.interval"))
             continue
 
-        with sentry_sdk.start_transaction(name="backpressure.monitoring", sampled=True):
+        with start_span(
+            name="backpressure.monitoring",
+            custom_sampling_context={"sample_rate": 1.0},
+            transaction=True,
+        ):
             # first, check each base service and record its health
             unhealthy_services = check_service_health(services)
 
