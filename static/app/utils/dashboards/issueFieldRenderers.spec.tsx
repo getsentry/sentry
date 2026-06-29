@@ -257,13 +257,10 @@ describe('getIssueFieldRenderer', () => {
         }) as React.ReactElement
       );
 
-      const link = screen.getByRole('link', {name: '123'});
-      const href = link.getAttribute('href')!;
-      expect(href).toContain(`/organizations/${organization.slug}/issues/123/`);
-      expect(href).toContain('environment=production');
-      expect(href).toContain('statsPeriod=30d');
-      expect(href).toContain('project=2');
-      expect(href).not.toContain('widgetId');
+      expect(screen.getByRole('link', {name: '123'})).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/issues/123/?environment=production&project=2&statsPeriod=30d`
+      );
     });
   });
 
