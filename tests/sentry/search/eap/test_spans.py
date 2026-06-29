@@ -803,6 +803,61 @@ class SearchResolverQueryTest(TestCase):
         )
 
 
+class HasTraceTest(TestCase):
+    def setUp(self) -> None:
+        self.resolver = SearchResolver(
+            params=SnubaParams(), config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
+        )
+
+    def test_has_trace(self) -> None:
+        where, having, _ = self.resolver.resolve_query("has:trace")
+        trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
+        assert where == TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    TraceItemFilter(
+                        exists_filter=ExistsFilter(key=trace_key),
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=trace_key,
+                            op=ComparisonFilter.OP_NOT_EQUALS,
+                            value=AttributeValue(val_str=""),
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
+
+    def test_not_has_trace(self) -> None:
+        where, having, _ = self.resolver.resolve_query("!has:trace")
+        trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
+        assert where == TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        not_filter=NotFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    exists_filter=ExistsFilter(key=trace_key),
+                                )
+                            ]
+                        )
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=trace_key,
+                            op=ComparisonFilter.OP_EQUALS,
+                            value=AttributeValue(val_str=""),
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
+
+
 class SearchResolverColumnTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
