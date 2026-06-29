@@ -175,11 +175,6 @@ function Graph({
 
   const plottables = useChartVisualizationPlottables(chartInfo);
 
-  const {period, start, end} = selection.datetime;
-  const chartRemountKey = autorefreshEnabled
-    ? 'logs-chart-streaming'
-    : `${period}|${start}|${end}|${userQuery}|${aggregate}|${visualize.chartType}|${interval}|${topEventsLimit}|${groupBys.join(',')}`;
-
   const Title = (
     <Widget.WidgetTitle
       summary={
@@ -258,6 +253,9 @@ function Graph({
       size="xs"
     />
   );
+
+  const {period, start, end} = selection.datetime;
+  const chartRemountKey = `${period}|${start}|${end}|${userQuery}|${aggregate}|${visualize.chartType}|${interval}|${topEventsLimit}|${groupBys.join(',')}`;
 
   return (
     <Widget
