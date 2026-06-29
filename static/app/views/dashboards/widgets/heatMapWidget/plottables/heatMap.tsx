@@ -7,18 +7,13 @@ import type {
   HeatMapSeries,
   HeatMapValueUnit,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {createHeatMapColorScale} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/heatMapColorScale';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import type {HeatMapPlottable, PlottableTimeSeriesValueType} from './heatMapPlottable';
 
 type HeatMapPlottingOptions = {
   theme: Theme;
-  /**
-   * The Z-axis scale type. `'log'` applies `Math.log1p` to Z values so the
-   * color gradient distributes logarithmically. Useful when the Z range is
-   * very wide and low values would otherwise be invisible.
-   */
-  scale?: 'linear' | 'log';
 };
 
 export class HeatMap implements HeatMapPlottable {
@@ -49,18 +44,40 @@ export class HeatMap implements HeatMapPlottable {
 
   toSeries(plottingOptions: HeatMapPlottingOptions): SeriesOption[] {
     const {heatMapSeries} = this;
-    const {scale = 'linear', theme} = plottingOptions;
+    const {theme} = plottingOptions;
+
+    // Color is driven by each cell's *rank* among populated cells (histogram
+    // equalization) rather than its raw magnitude — see `heatMapColorScale` for
+    // why. Build the scale once from the whole series.
+    const colorScale = createHeatMapColorScale(
+      heatMapSeries.values.map(item => item.zAxis)
+    );
 
     return [
       {
         name: 'heatmap', // Only one heat map is allowed per visualization, so this name doesn't have to be unique
         type: 'heatmap',
+        // Each datum is `[x, y, colorPosition, rawCount]`. `colorPosition` (dim
+        // 2) drives the color via `visualMap`; `rawCount` (dim 3) is carried
+        // through untouched so the tooltip can show the true value. `encode`
+        // tells ECharts which dim is the value so the extra dim is just payload.
+        dimensions: ['x', 'y', 'colorPosition', 'rawCount'],
+        encode: {x: 0, y: 1, value: 2, tooltip: [3]},
         data: heatMapSeries.values.map(item => {
-          const zValue = item.zAxis ?? ECHARTS_MISSING_DATA_VALUE;
+          if (item.zAxis === null) {
+            // Empty bucket: nothing to color or report.
+            return [
+              item.xAxis,
+              item.yAxis,
+              ECHARTS_MISSING_DATA_VALUE,
+              ECHARTS_MISSING_DATA_VALUE,
+            ];
+          }
           return [
             item.xAxis,
             item.yAxis,
-            scale === 'log' && typeof zValue === 'number' ? Math.log1p(zValue) : zValue,
+            colorScale.toColorPosition(item.zAxis),
+            item.zAxis,
           ];
         }),
         emphasis: {

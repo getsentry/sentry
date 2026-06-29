@@ -29,8 +29,8 @@ import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIte
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconOpen} from 'sentry/icons/iconOpen';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Group} from 'sentry/types/group';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -54,7 +54,24 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
     return null;
   }
 
-  // needed to hide PR iteration after clicking "submit feedback" button
+  // The PR iteration form stays visible during a run: feedback submitted while
+  // processing is queued for the next iteration rather than dropped, so we want
+  // users to be able to keep submitting even mid-run.
+  if (isPullRequestsSection(section)) {
+    return (
+      <PullRequestNextStep
+        group={group}
+        autofix={autofix}
+        runId={runId}
+        section={section}
+        referrer={referrer}
+      />
+    );
+  }
+
+  // Every other next-step action kicks off a fresh run and can't be queued, so
+  // hide them while a run is in progress (also hides them right after clicking a
+  // next-step button).
   if (autofix.isPolling) {
     return null;
   }
@@ -86,18 +103,6 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
   if (isCodeChangesSection(section)) {
     return (
       <CodeChangesNextStep
-        group={group}
-        autofix={autofix}
-        runId={runId}
-        section={section}
-        referrer={referrer}
-      />
-    );
-  }
-
-  if (isPullRequestsSection(section)) {
-    return (
-      <PullRequestNextStep
         group={group}
         autofix={autofix}
         runId={runId}
