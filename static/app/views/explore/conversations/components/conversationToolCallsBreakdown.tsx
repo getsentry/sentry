@@ -23,13 +23,17 @@ export function ConversationToolCallsBreakdown({
 }: ConversationToolCallsBreakdownProps) {
   if (isLoading) {
     return (
-      <Flex align="center" justify="center" padding="md">
-        <LoadingIndicator mini />
+      <Flex justify="center">
+        <LoadingIndicator size={24} style={{margin: 0}} />
       </Flex>
     );
   }
 
-  if (error || data.length === 0) {
+  if (error) {
+    return <Text>{t('Failed to load tool calls')}</Text>;
+  }
+
+  if (data.length === 0) {
     return <Text>{t('No tool calls')}</Text>;
   }
 
@@ -40,10 +44,10 @@ export function ConversationToolCallsBreakdown({
           <Tag
             variant={tool.hasError ? 'danger' : 'muted'}
             title={tool.toolName}
-            // Cap long tool names; the tag's text truncates with an ellipsis.
+            // Cap long tool names; the inner Text truncates with an ellipsis.
             style={{justifySelf: 'start', maxWidth: 200, minWidth: 0}}
           >
-            {tool.toolName}
+            <Text ellipsis>{tool.toolName}</Text>
           </Tag>
           <Text size="sm">
             <Count value={tool.calls} /> {tn('call', 'calls', tool.calls)}
