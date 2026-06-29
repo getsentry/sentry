@@ -932,10 +932,12 @@ class SlackActionEndpoint(Endpoint):
     def _handle_connect_monitoring_provider(self, slack_request: SlackActionRequest) -> Response:
         action_option, _ = self.get_action_option(slack_request=slack_request)
         provider_key = action_option or ""
+        thread_ts = get_path(slack_request.data, "message", "thread_ts")
         error = open_monitoring_provider_modal(
             slack_request,
             provider_key,
             channel_id=slack_request.channel_id,
+            thread_ts=thread_ts,
         )
         if error:
             return self.respond_ephemeral(error)
