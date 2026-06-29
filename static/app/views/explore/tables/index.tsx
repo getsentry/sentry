@@ -172,7 +172,12 @@ export function ExploreTables(props: ExploreTablesProps) {
           </TabList>
         </Tabs>
         {tab === Tab.SPAN ? (
-          <Button onClick={openColumnEditor} icon={<IconEdit />} size="sm">
+          <Button
+            disabled={isValidatingColumns}
+            onClick={openColumnEditor}
+            icon={<IconEdit />}
+            size="sm"
+          >
             {t('Edit Table')}
           </Button>
         ) : tab === Mode.AGGREGATE ? (
