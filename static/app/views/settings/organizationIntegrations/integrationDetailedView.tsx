@@ -1,5 +1,5 @@
-import {Fragment, useCallback, useMemo} from 'react';
-import {mutationOptions, useQueryClient} from '@tanstack/react-query';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
@@ -10,7 +10,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
+import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -27,13 +29,18 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   canManageIntegrations,
   getAlertText,
+  getGithubPermissionsUpdateUrl,
   getIntegrationStatus,
   integrationRequiresUpgrade,
   isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {
+  fetchMutation,
+  getApiQueryData,
+  setApiQueryData,
+  useApiQuery,
+} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -104,7 +111,6 @@ function makeIntegrationQueryKey({
 const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
 
 export default function IntegrationDetailedView() {
-  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useQueryState(
     'tab',
@@ -143,7 +149,7 @@ export default function IntegrationDetailedView() {
   } = useApiQuery<Integration[]>(
     makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
     {
-      staleTime: Infinity,
+      staleTime: 0,
       retry: false,
     }
   );
@@ -178,7 +184,14 @@ export default function IntegrationDetailedView() {
     }
     return alertList;
   }, [provider]);
+
   const alertText = getAlertText(configurations);
+
+  const outdatedConfigurations = useMemo(
+    () => configurations.filter(integrationRequiresUpgrade),
+    [configurations]
+  );
+
   const installationStatus = useMemo(() => {
     const statusList = configurations?.map(getIntegrationStatus);
     // if we have conflicting statuses, we have a priority order
@@ -227,6 +240,54 @@ export default function IntegrationDetailedView() {
     );
   }, [provider, activeTab, onTabChange]);
 
+  const openGithubPermissionsUpdateModal = useCallback((integration: Integration) => {
+    const installationUrl = integration.externalId
+      ? getGithubPermissionsUpdateUrl(integration.externalId)
+      : undefined;
+
+    openModal(deps => (
+      <AutofixGithubAppPermissionsModal
+        {...deps}
+        installationUrl={installationUrl}
+        description={t(
+          'This GitHub App installation is missing permissions required for the latest features. Update the installation to grant the required permissions.'
+        )}
+      />
+    ));
+  }, []);
+
+  const openOutdatedGithubPermissionsModal = useCallback(() => {
+    openGithubPermissionsUpdateModal(outdatedConfigurations[0]!);
+  }, [openGithubPermissionsUpdateModal, outdatedConfigurations]);
+
+  // Auto-opens the update-permissions modal when the detail page is loaded with
+  // `?showPermsModal=1` (e.g. from the outdated-integration "click here" link).
+  // The param is stripped after opening so refresh / back-button don't re-trigger
+  // it. Only GitHub has a permissions modal; for other providers this no-ops.
+  const [showPermsModal, setShowPermsModal] = useQueryState('showPermsModal');
+  useEffect(() => {
+    if (showPermsModal !== '1' || !canManageIntegrations(organization)) {
+      return;
+    }
+    switch (provider?.key) {
+      case 'github':
+        if (outdatedConfigurations.length === 1) {
+          openOutdatedGithubPermissionsModal();
+        }
+        break;
+      default:
+        break;
+    }
+    setShowPermsModal(null);
+  }, [
+    showPermsModal,
+    setShowPermsModal,
+    provider,
+    organization,
+    outdatedConfigurations,
+    openOutdatedGithubPermissionsModal,
+  ]);
+
   const onInstall = useCallback(
     (integration: Integration) => {
       if (provider?.features.includes('coding-agent')) {
@@ -251,45 +312,56 @@ export default function IntegrationDetailedView() {
     [organization.slug, integrationSlug, navigate, queryClient, provider?.features]
   );
 
-  const onRemove = useCallback(
-    async (integration: Integration) => {
-      const originalConfigurations = [...configurations];
+  const {mutate: onRemove} = useMutation({
+    mutationFn: (integration: Integration) =>
+      fetchMutation({
+        method: 'DELETE',
+        url: `/organizations/${organization.slug}/integrations/${integration.id}/`,
+      }),
+    onMutate: async integration => {
+      const queryKey = makeIntegrationQueryKey({
+        orgSlug: organization.slug,
+        integrationSlug,
+      });
+      // Cancel in-flight refetches so they can't clobber the optimistic update.
+      await queryClient.cancelQueries({queryKey});
 
-      const updatedConfigurations = configurations.map(config =>
-        config.id === integration.id
-          ? {...config, organizationIntegrationStatus: 'pending_deletion' as ObjectStatus}
-          : config
-      );
-
-      // Will be fixed soon when we get rid of setApiQueryData.
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-      setApiQueryData<Integration[]>(
+      const previousConfigurations = getApiQueryData<Integration[]>(
         queryClient,
-        makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
-        updatedConfigurations
+        queryKey
       );
 
-      try {
-        // XXX: We can probably convert this to a mutation, but trying to avoid it for the FC conversion.
-        await api.requestPromise(
-          `/organizations/${organization.slug}/integrations/${integration.id}/`,
-          {
-            method: 'DELETE',
-          }
-        );
-      } catch (err) {
-        // Will be fixed soon when we get rid of setApiQueryData.
+      setApiQueryData<Integration[]>(queryClient, queryKey, current =>
+        (current ?? []).map(config =>
+          config.id === integration.id
+            ? {
+                ...config,
+                organizationIntegrationStatus: 'pending_deletion' as ObjectStatus,
+              }
+            : config
+        )
+      );
+
+      return {previousConfigurations};
+    },
+    onError: (_error, _integration, context) => {
+      if (context?.previousConfigurations) {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<Integration[]>(
           queryClient,
           makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
-          originalConfigurations
+          context.previousConfigurations
         );
-        addErrorMessage(t('Failed to remove Integration'));
       }
+      addErrorMessage(t('Failed to remove Integration'));
     },
-    [api, configurations, integrationSlug, organization.slug, queryClient]
-  );
+    onSettled: () => {
+      // Resync with the server once the delete settles.
+      queryClient.invalidateQueries({
+        queryKey: makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
+      });
+    },
+  });
 
   const onDisable = useCallback((integration: Integration) => {
     let url: string;
@@ -516,8 +588,6 @@ export default function IntegrationDetailedView() {
       );
     }
 
-    const outdatedConfigurations = configurations.filter(integrationRequiresUpgrade);
-
     if (outdatedConfigurations.length !== 1 || !provider) {
       return (
         <Button
@@ -530,7 +600,18 @@ export default function IntegrationDetailedView() {
       );
     }
 
-    return (
+    const outdatedConfiguration = outdatedConfigurations[0]!;
+
+    return provider.key === 'github' ? (
+      <Button
+        size="xs"
+        variant="primary"
+        onClick={() => openGithubPermissionsUpdateModal(outdatedConfiguration)}
+        data-test-id="integration-upgrade-button"
+      >
+        {t('Update now')}
+      </Button>
+    ) : (
       <AddIntegrationButton
         provider={provider}
         organization={organization}
