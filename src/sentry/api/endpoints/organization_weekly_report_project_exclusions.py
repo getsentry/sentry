@@ -1,3 +1,4 @@
+from django.db import router, transaction
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -62,20 +63,22 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
         else:
             validated_project_ids = set()
 
-        WeeklyReportProjectExclusion.objects.filter(
-            user_id=request.user.id,
-            project__organization_id=organization.id,
-        ).delete()
+        with transaction.atomic(using=router.db_for_write(WeeklyReportProjectExclusion)):
+            WeeklyReportProjectExclusion.objects.filter(
+                user_id=request.user.id,
+                project__organization_id=organization.id,
+            ).delete()
 
-        if validated_project_ids:
-            WeeklyReportProjectExclusion.objects.bulk_create(
-                [
-                    WeeklyReportProjectExclusion(
-                        project_id=pid,
-                        user_id=request.user.id,
-                    )
-                    for pid in validated_project_ids
-                ]
-            )
+            if validated_project_ids:
+                WeeklyReportProjectExclusion.objects.bulk_create(
+                    [
+                        WeeklyReportProjectExclusion(
+                            project_id=pid,
+                            user_id=request.user.id,
+                        )
+                        for pid in validated_project_ids
+                    ],
+                    ignore_conflicts=True,
+                )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
