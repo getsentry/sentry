@@ -7,6 +7,7 @@ from typing import Any, cast
 import jsonschema
 import orjson
 import pydantic
+import sentry_sdk
 import zstandard
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
@@ -376,13 +377,15 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         try:
             session = get_preprod_session(organization.id, artifact.project_id)
             get_response = session.get(manifest_key)
-            with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
+            with start_span(
+                op="preprod.snapshot.read_manifest", name="read_head_manifest"
+            ):
                 raw_manifest = get_response.payload.read()
             with start_span(
                 op="preprod.snapshot.parse_manifest", name="parse_head_manifest"
             ) as span:
                 manifest = SnapshotManifest(**orjson.loads(raw_manifest))
-                span.set_data("image_count", len(manifest.images))
+                set_span_data(span, "image_count", len(manifest.images))
         except Exception:
             logger.exception(
                 "Failed to retrieve snapshot manifest",
@@ -449,7 +452,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             base_manifest_key = (comparison.base_snapshot_metrics.extras or {}).get("manifest_key")
             if base_manifest_key:
                 try:
-                    with start_span(op="preprod.snapshot.read_manifest", name="read_base_manifest"):
+                    with start_span(
+                        op="preprod.snapshot.read_manifest", name="read_base_manifest"
+                    ):
                         raw_base_manifest = session.get(base_manifest_key).payload.read()
                     with start_span(
                         op="preprod.snapshot.parse_manifest", name="parse_base_manifest"
