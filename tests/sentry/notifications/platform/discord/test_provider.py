@@ -20,8 +20,6 @@ from sentry.notifications.platform.discord.provider import (
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     LinkTextBlock,
-    NotificationBodyFormattingBlockType,
-    NotificationBodyTextBlockType,
     NotificationCategory,
     NotificationProviderKey,
     NotificationRenderedAction,
@@ -122,17 +120,7 @@ class DiscordRendererTest(TestCase):
     def test_renderer_without_chart(self) -> None:
         rendered_template = NotificationRenderedTemplate(
             subject="Test Without Chart",
-            body=[
-                ParagraphBlock(
-                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
-                    blocks=[
-                        PlainTextBlock(
-                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
-                            text="test without chart",
-                        )
-                    ],
-                )
-            ],
+            body=[ParagraphBlock(blocks=[PlainTextBlock(text="test without chart")])],
             actions=[
                 NotificationRenderedAction(label="Visit Sentry", link="https://www.sentry.io")
             ],
@@ -153,17 +141,7 @@ class DiscordRendererTest(TestCase):
     def test_renderer_without_footer(self) -> None:
         rendered_template = NotificationRenderedTemplate(
             subject="Test Without Footer",
-            body=[
-                ParagraphBlock(
-                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
-                    blocks=[
-                        PlainTextBlock(
-                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
-                            text="test without footer",
-                        )
-                    ],
-                )
-            ],
+            body=[ParagraphBlock(blocks=[PlainTextBlock(text="test without footer")])],
             actions=[
                 NotificationRenderedAction(label="Visit Sentry", link="https://www.sentry.io")
             ],
@@ -187,17 +165,7 @@ class DiscordRendererTest(TestCase):
     def test_renderer_without_actions(self) -> None:
         rendered_template = NotificationRenderedTemplate(
             subject="Test Without Actions",
-            body=[
-                ParagraphBlock(
-                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
-                    blocks=[
-                        PlainTextBlock(
-                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
-                            text="test without actions",
-                        )
-                    ],
-                )
-            ],
+            body=[ParagraphBlock(blocks=[PlainTextBlock(text="test without actions")])],
             actions=[],  # No actions
             footer="Test footer",
             chart=NotificationRenderedImage(
@@ -227,17 +195,7 @@ class DiscordRendererTest(TestCase):
         # Create a custom rendered template with multiple actions
         rendered_template = NotificationRenderedTemplate(
             subject="Test Multiple Actions",
-            body=[
-                ParagraphBlock(
-                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
-                    blocks=[
-                        PlainTextBlock(
-                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
-                            text="test with multiple actions",
-                        )
-                    ],
-                )
-            ],
+            body=[ParagraphBlock(blocks=[PlainTextBlock(text="test with multiple actions")])],
             actions=actions,
             footer="Test footer",
             chart=NotificationRenderedImage(

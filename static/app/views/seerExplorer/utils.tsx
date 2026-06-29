@@ -1186,17 +1186,20 @@ type SeerExplorerSidebarOrientation = 'right' | 'bottom';
 
 /**
  * Resolves the dock preference to a concrete orientation. `auto` docks right on
- * wide viewports (≥ `xl`) and bottom otherwise. Shared by the layout (to lay
- * out the split) and the provider (to persist the popped-out window's size to
- * the right key).
+ * wide viewports (≥ `xl`) and on short landscape viewports (e.g. phones in
+ * landscape), and bottom otherwise. Shared by the layout (to lay out the split)
+ * and the provider (to persist the popped-out window's size to the right key).
  */
 export function useSeerExplorerSidebarOrientation(
   sidebarPosition: SeerExplorerSidebarPosition
 ): SeerExplorerSidebarOrientation {
   const theme = useTheme();
   const isWideScreen = useMedia(`(min-width: ${theme.breakpoints.xl})`);
+  const isShortLandscape = useMedia(
+    `(orientation: landscape) and (max-height: ${theme.breakpoints.xs})`
+  );
   if (sidebarPosition === 'auto') {
-    return isWideScreen ? 'right' : 'bottom';
+    return isWideScreen || isShortLandscape ? 'right' : 'bottom';
   }
   return sidebarPosition;
 }

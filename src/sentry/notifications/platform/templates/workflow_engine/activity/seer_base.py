@@ -3,12 +3,12 @@ from django.conf import settings
 from sentry.models.group import Group
 from sentry.notifications.platform.types import (
     CodeTextBlock,
-    NotificationBodyFormattingBlock,
-    NotificationBodyTextBlock,
     NotificationData,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
+    NotificationSection,
     NotificationSource,
+    NotificationTextBlock,
     ParagraphBlock,
     PlainTextBlock,
 )
@@ -41,10 +41,10 @@ class WorkflowEngineActivityAction(NotificationData):
     detector_id: int
 
 
-def get_issue_description(group: Group) -> list[NotificationBodyFormattingBlock]:
+def get_issue_description(group: Group) -> list[NotificationSection]:
     from sentry.integrations.messaging.message_builder import build_attachment_title
 
-    blocks: list[NotificationBodyTextBlock] = []
+    blocks: list[NotificationTextBlock] = []
     title = build_attachment_title(group)
     if title:
         blocks.append(PlainTextBlock(text=title))
@@ -69,7 +69,7 @@ def get_view_in_sentry_button(group: Group) -> NotificationRenderedAction:
 def build_template(
     data: WorkflowEngineActivityAction,
     subject: str,
-    body: list[NotificationBodyFormattingBlock],
+    body: list[NotificationSection],
     extra_actions: list[NotificationRenderedAction],
 ) -> NotificationRenderedTemplate:
     from sentry.notifications.notification_action.activity_registry.base import (
@@ -97,7 +97,7 @@ def build_template(
     )
 
 
-def get_example_issue_description() -> list[NotificationBodyFormattingBlock]:
+def get_example_issue_description() -> list[NotificationSection]:
     return [
         ParagraphBlock(
             blocks=[
@@ -118,7 +118,7 @@ def get_example_actions() -> list[NotificationRenderedAction]:
 
 def get_example_template(
     subject: str,
-    body: list[NotificationBodyFormattingBlock] | None = None,
+    body: list[NotificationSection] | None = None,
     actions: list[NotificationRenderedAction] | None = None,
 ) -> NotificationRenderedTemplate:
     return NotificationRenderedTemplate(

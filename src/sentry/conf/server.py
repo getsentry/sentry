@@ -860,11 +860,6 @@ TASKWORKER_ROUTER: str = "sentry.taskworker.adapters.SentryRouter"
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
-# If true, taskbroker-client's TaskProducer will be used to produce messages to Kafka
-# from within tasks.
-# Set to True in the worker child entrypoint in taskworker/bootstrap.py.
-TASKWORKER_USE_TASK_PRODUCER: bool = False
-
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
@@ -954,6 +949,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
+    "sentry.tasks.auth.cleanup_pending_users",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
@@ -1261,6 +1257,10 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
         "task": "integrations.control:sentry.integrations.source_code_management.sync_repos.scm_repo_sync_beat",
         "schedule": timedelta(minutes=1),
     },
+    "cleanup-pending-users": {
+        "task": "auth.control:sentry.tasks.auth.cleanup_pending_users",
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
+    },
 }
 
 if SILO_MODE == "CONTROL":
@@ -1528,6 +1528,9 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
+
+# sample rate for the ingest-replay-recordings processing (consumer and task)
+SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING = 0
 
 # ----
 # end APM config
@@ -2776,6 +2779,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-limited-dlq": "default",
     "taskworker-launchpad": "default",
     "taskworker-launchpad-dlq": "default",
+    "taskworker-launchpad-push": "default",
     "taskworker-long": "default",
     "taskworker-long-dlq": "default",
     "taskworker-products": "default",
