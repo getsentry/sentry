@@ -28,7 +28,6 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
         self.project = self.create_project(
             teams=[self.team], organization=self.organization, name="test_project"
         )
-        self._feature = "organizations:preprod-snapshot-pr-comments"
         self.project.update_option("sentry:preprod_snapshot_pr_comments_enabled", True)
 
     def _create_artifact_with_metrics(
@@ -95,8 +94,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
         mock_get_base.return_value = {artifact.id: Mock()}
         mock_build_changes_map.return_value = {artifact.id: True}
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id)
+        create_preprod_snapshot_pr_comment_task(artifact.id)
 
         assert artifact.commit_comparison is not None
         mock_delay.assert_called_once_with(
@@ -113,8 +111,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
     def test_skips_when_no_commit_comparison(self, mock_get_client):
         artifact, metrics = self._create_artifact_with_metrics(with_commit_comparison=False)
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id)
+        create_preprod_snapshot_pr_comment_task(artifact.id)
 
         mock_get_client.assert_not_called()
 
@@ -122,8 +119,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
     def test_skips_when_no_pr_number(self, mock_get_client):
         artifact, metrics = self._create_artifact_with_metrics(pr_number=None)
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id)
+        create_preprod_snapshot_pr_comment_task(artifact.id)
 
         mock_get_client.assert_not_called()
 
@@ -132,8 +128,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
         mock_get_client.return_value = None
         artifact, metrics = self._create_artifact_with_metrics()
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id)
+        create_preprod_snapshot_pr_comment_task(artifact.id)
 
         mock_get_client.assert_called_once()
 
@@ -161,8 +156,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
             commit_comparison=cc,
         )
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id)
+        create_preprod_snapshot_pr_comment_task(artifact.id)
 
         mock_client.create_comment.assert_not_called()
         mock_client.update_comment.assert_not_called()
@@ -172,8 +166,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
         self.project.update_option("sentry:preprod_snapshot_pr_comments_enabled", False)
         artifact, metrics = self._create_artifact_with_metrics()
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id)
+        create_preprod_snapshot_pr_comment_task(artifact.id)
 
         mock_get_client.assert_not_called()
 
@@ -185,8 +178,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
 
         artifact, metrics = self._create_artifact_with_metrics()
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id)
+        create_preprod_snapshot_pr_comment_task(artifact.id)
 
         mock_client.create_comment.assert_not_called()
         mock_client.update_comment.assert_not_called()
@@ -209,8 +201,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
             state=PreprodSnapshotComparison.State.FAILED,
         )
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id)
+        create_preprod_snapshot_pr_comment_task(artifact.id)
 
         mock_delay.assert_called_once()
 
@@ -236,18 +227,9 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
             images_errored=3,
         )
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id)
-
-        mock_delay.assert_called_once()
-
-    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
-    def test_skips_when_feature_flag_disabled(self, mock_get_client):
-        artifact, metrics = self._create_artifact_with_metrics()
-
         create_preprod_snapshot_pr_comment_task(artifact.id)
 
-        mock_get_client.assert_not_called()
+        mock_delay.assert_called_once()
 
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
     def test_skips_nonexistent_artifact(self, mock_get_client):
@@ -275,8 +257,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
         mock_get_base.return_value = {artifact.id: Mock()}
         mock_build_changes_map.return_value = {artifact.id: True}
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id)
+        create_preprod_snapshot_pr_comment_task(artifact.id)
 
         mock_build_changes_map.assert_called_once()
         kwargs = mock_build_changes_map.call_args
@@ -330,8 +311,7 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
 
         artifact, _ = self._create_artifact_with_metrics(commit_comparison=cc)
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id)
+        create_preprod_snapshot_pr_comment_task(artifact.id)
 
         mock_format_solo.assert_called_once()
         mock_delay.assert_called_once()
@@ -348,8 +328,7 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
 
         artifact, _ = self._create_artifact_with_metrics()
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id)
+        create_preprod_snapshot_pr_comment_task(artifact.id)
 
         mock_format_solo.assert_called_once()
         mock_delay.assert_called_once()
@@ -369,8 +348,7 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
         self._create_previous_snapshot()
         artifact, _ = self._create_artifact_with_metrics()
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id)
+        create_preprod_snapshot_pr_comment_task(artifact.id)
 
         mock_format_waiting.assert_called_once()
         mock_delay.assert_called_once()
@@ -388,8 +366,7 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
         self._create_previous_snapshot()
         artifact, _ = self._create_artifact_with_metrics()
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(artifact.id, is_timeout_check=True)
+        create_preprod_snapshot_pr_comment_task(artifact.id, is_timeout_check=True)
 
         mock_format_missing.assert_called_once()
         mock_delay.assert_called_once()
@@ -410,8 +387,7 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
         mock_get_base.return_value = {head_artifact.id: Mock()}
         mock_build_changes_map.return_value = {head_artifact.id: True}
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(head_artifact.id, is_timeout_check=True)
+        create_preprod_snapshot_pr_comment_task(head_artifact.id, is_timeout_check=True)
 
         mock_format_normal.assert_called_once()
         mock_delay.assert_called_once()
@@ -445,8 +421,7 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
         mock_get_base.return_value = {head_artifact.id: Mock()}
         mock_build_changes_map.return_value = {head_artifact.id: False}
 
-        with self.feature(self._feature):
-            create_preprod_snapshot_pr_comment_task(head_artifact.id)
+        create_preprod_snapshot_pr_comment_task(head_artifact.id)
 
         mock_format.assert_called_once()
         mock_delay.assert_called_once()

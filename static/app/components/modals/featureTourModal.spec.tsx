@@ -70,13 +70,13 @@ describe('FeatureTourModal', () => {
     await clickModal();
 
     // Should start on the first step.
-    expect(screen.getByRole('heading')).toHaveTextContent(steps[0]!.title);
+    screen.getByRole('heading', {name: 'First'});
 
     // Advance to the next step.
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     // Should move to next step.
-    expect(screen.getByRole('heading')).toHaveTextContent(steps[1]!.title);
+    screen.getByRole('heading', {name: 'Second'});
     expect(onAdvance).toHaveBeenCalled();
   });
 
@@ -86,7 +86,7 @@ describe('FeatureTourModal', () => {
     await clickModal();
 
     // Should show title, image and actions
-    expect(screen.getByRole('heading')).toHaveTextContent(steps[0]!.title);
+    screen.getByRole('heading', {name: 'First'});
     expect(screen.getByTestId('step-image')).toBeInTheDocument();
     expect(screen.getByTestId('step-action')).toBeInTheDocument();
     expect(screen.getByText('1 of 2')).toBeInTheDocument();

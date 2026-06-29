@@ -11,14 +11,18 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.msteams.provider import (
     MSTeamsNotificationProvider,
     MSTeamsRenderable,
+    MSTeamsRenderer,
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
+    LinkTextBlock,
     NotificationCategory,
     NotificationProviderKey,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationTargetResourceType,
+    ParagraphBlock,
+    PlainTextBlock,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
@@ -26,6 +30,33 @@ from tests.sentry.integrations.msteams.test_message_builder import _is_open_url_
 
 
 class MSTeamsRendererTest(TestCase):
+    def test_link_text_block_rendering(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Test Link",
+            body=[
+                ParagraphBlock(
+                    blocks=[
+                        PlainTextBlock(text="PR:"),
+                        LinkTextBlock(
+                            text="getsentry/sentry (#1234)",
+                            url="https://github.com/getsentry/sentry/pull/1234",
+                        ),
+                    ],
+                )
+            ],
+        )
+
+        data = MockNotification(message="test")
+        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
+
+        body_blocks = renderable["body"]
+        body_text_block = body_blocks[1]
+        assert body_text_block["type"] == "TextBlock"
+        assert (
+            "[getsentry/sentry (#1234)](https://github.com/getsentry/sentry/pull/1234)"
+            in body_text_block["text"]
+        )
+
     def test_default_renderer(self) -> None:
         data = MockNotification(message="test")
         template = MockNotificationTemplate()

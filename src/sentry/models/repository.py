@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar, Literal
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
@@ -19,6 +19,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.pending_deletion import (
     delete_pending_deletion_option,
     rename_on_pending_deletion,
@@ -33,6 +34,49 @@ from sentry.utils.email import MessageBuilder
 
 REPOSITORY_NAME_LENGTH = 500
 REPOSITORY_URL_LENGTH = 512
+
+
+RepoResolution = Literal["resolved", "not_found", "ambiguous"]
+
+
+class RepositoryManager(BaseManager["Repository"]):
+    def provider_match(self, provider: str) -> models.Q:
+        """Match a bare provider against both stored shapes.
+
+        Sentry stores the ``integrations:``-prefixed provider (e.g. ``integrations:github``)
+        while many callers carry the bare form (``github``). This is the single place that
+        owns the dual shape, so provider lookups stay consistent across SCM-reporting paths.
+        """
+        return models.Q(provider=provider) | models.Q(provider=f"integrations:{provider}")
+
+    def resolve_active(
+        self, *, organization_id: int, name: str, normalized_provider: str | None
+    ) -> tuple[Repository | None, RepoResolution]:
+        """Resolve the org-scoped active repository named ``name`` for a reported PR.
+
+        Resolves only when exactly one active repo matches. A provider disambiguates
+        same-named repos across providers (matching both stored shapes via
+        ``provider_match``); without one, refuse to guess between them rather than risk
+        mis-resolution.
+
+        ``normalized_provider`` is the bare, lowercased form (no ``integrations:`` prefix);
+        None skips provider filtering. Returns ``(repository, reason)`` where reason is
+        ``"resolved"``, ``"not_found"`` (zero matches), or ``"ambiguous"`` (more than one).
+        """
+        candidates = self.filter(
+            organization_id=organization_id,
+            name=name,
+            status=ObjectStatus.ACTIVE,
+        )
+        if normalized_provider is not None:
+            candidates = candidates.filter(self.provider_match(normalized_provider))
+
+        # Fetch up to 2 to detect ambiguity — the same name can exist under multiple
+        # providers (e.g. github & gitlab) within one org.
+        matches = list(candidates.order_by("id")[:2])
+        if len(matches) == 1:
+            return matches[0], "resolved"
+        return None, "ambiguous" if matches else "not_found"
 
 
 @cell_silo_model
@@ -52,6 +96,8 @@ class Repository(Model):
     date_added = models.DateTimeField(default=timezone.now)
     integration_id = BoundedPositiveIntegerField(db_index=True, null=True)
     languages = ArrayField(models.TextField(), default=list)
+
+    objects: ClassVar[RepositoryManager] = RepositoryManager()
 
     class Meta:
         app_label = "sentry"

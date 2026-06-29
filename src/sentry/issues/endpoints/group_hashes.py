@@ -8,6 +8,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -124,6 +125,13 @@ class GroupHashesEndpoint(GroupEndpoint):
         grouphash_ids = request.GET.getlist("id")
         if not grouphash_ids:
             return Response()
+
+        max_times_seen = options.get("issues.merge-unmerge.max-group-times-seen")
+        if max_times_seen and group.times_seen > max_times_seen:
+            return Response(
+                {"detail": "Large merges and unmerges are temporarily restricted at this time."},
+                status=400,
+            )
 
         grouphashes = list(
             GroupHash.objects.filter(

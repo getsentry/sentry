@@ -24,6 +24,13 @@ const BROWSER_WEB_VITAL_MEASUREMENTS: Record<string, string> = {
   'browser.web_vital.ttfb.value': 'ttfb',
 };
 
+const MOBILE_VITAL_MEASUREMENTS: Record<string, string> = {
+  'app.vitals.start.cold.value': 'app_start_cold',
+  'app.vitals.start.warm.value': 'app_start_warm',
+  'app.vitals.ttfd.value': 'time_to_full_display',
+  'app.vitals.ttid.value': 'time_to_initial_display',
+};
+
 export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   id: string;
   type: TraceTree.NodeType;
@@ -149,6 +156,20 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       if (typeof value === 'number') {
         const normalizedKey = key.replace('measurements.', '');
         result[normalizedKey] = {value};
+      }
+    }
+
+    if (this.value.mobile_app_vital) {
+      for (const key in this.value.mobile_app_vital) {
+        const normalizedKey = MOBILE_VITAL_MEASUREMENTS[key];
+        const value = this.value.mobile_app_vital[key];
+        if (
+          normalizedKey &&
+          typeof value === 'number' &&
+          (!result[normalizedKey] || result[normalizedKey].value === 0)
+        ) {
+          result[normalizedKey] = {value};
+        }
       }
     }
 
