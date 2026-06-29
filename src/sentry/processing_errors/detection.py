@@ -19,6 +19,7 @@ from sentry.processing_errors.grouptype import (
 from sentry.processing_errors.provisioning import ensure_detector
 from sentry.tasks.post_process import PostProcessJob
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from sentry.workflow_engine.models import DataPacket, DetectorState
 from sentry.workflow_engine.processors.detector import process_detectors
@@ -220,7 +221,7 @@ def detect_processing_issues(job: PostProcessJob) -> None:
         return
 
     event = job["event"]
-    errors = event.data.get("errors", [])
+    errors = get_path(event.data, "errors", filter=True, default=[])
     if not errors:
         return
 

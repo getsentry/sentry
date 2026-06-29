@@ -1,6 +1,5 @@
 import type {Scope, TimeseriesValue} from './core';
 import type {SDKUpdatesSuggestion} from './event';
-import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
 import type {PlatformKey} from './platform';
 import type {Deploy} from './release';
@@ -112,7 +111,6 @@ export interface DetailedProject extends ProjectSummary {
   groupingEnhancements: string;
   isInternal: boolean;
   organization: Pick<Organization, 'id' | 'slug'>;
-  plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
   resolveAge: number;

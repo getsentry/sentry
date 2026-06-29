@@ -1,4 +1,8 @@
-type ConversationOpenSource = 'table_conversation_id' | 'table_input' | 'table_output';
+type ConversationOpenSource =
+  | 'table_conversation_id'
+  | 'table_input'
+  | 'table_output'
+  | 'table_row';
 
 export type ConversationsEventParameters = {
   'conversations.detail.click-errors-link': Record<string, unknown>;

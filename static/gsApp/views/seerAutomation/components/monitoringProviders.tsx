@@ -5,9 +5,11 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {DatadogPatConnectModal} from 'sentry/components/seer/datadogPatConnectModal';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -24,6 +26,8 @@ type MonitoringProvider = {
 type MonitoringProvidersResponse = {
   providers: MonitoringProvider[];
 };
+
+const PAT_PROVIDERS = new Set(['datadog_pat']);
 
 function monitoringProvidersQueryOptions(orgSlug: string) {
   return apiOptions.as<MonitoringProvidersResponse>()(
@@ -92,6 +96,22 @@ export function MonitoringProvidersSection() {
   });
 
   function handleConnect(provider: MonitoringProvider) {
+    if (PAT_PROVIDERS.has(provider.provider)) {
+      openModal(modalProps => (
+        <DatadogPatConnectModal
+          {...modalProps}
+          orgSlug={organization.slug}
+          onSuccess={() => {
+            queryClient.invalidateQueries({
+              queryKey: monitoringProvidersQueryOptions(organization.slug).queryKey,
+            });
+            addSuccessMessage(t('Provider connected.'));
+          }}
+        />
+      ));
+      return;
+    }
+
     const params: {provider: string; site?: string} = {provider: provider.provider};
     if (provider.provider === 'datadog') {
       // TODO(CW-1501): v0 only supports datadoghq.com; add site selection when per-site connections are supported
