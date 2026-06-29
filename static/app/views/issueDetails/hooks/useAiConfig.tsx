@@ -7,6 +7,7 @@ import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 interface AiConfigResult {
   areAiFeaturesAllowed: boolean;
+  canCreatePullRequests: boolean;
   hasAutofix: boolean;
   hasAutofixQuota: boolean;
   hasGithubIntegration: boolean;
@@ -26,8 +27,10 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
     hasAutofixQuota,
     refetch: refetchAutofixSetup,
     seerReposLinked,
+    canCreatePullRequests,
   } = useAutofixSetup({
     groupId: group.id,
+    checkWriteAccess: true,
   });
 
   const isSampleError = useIsSampleEvent();
@@ -52,6 +55,7 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
     hasResources,
     isAutofixSetupLoading,
     areAiFeaturesAllowed,
+    canCreatePullRequests,
     hasGithubIntegration,
     hasAutofixQuota,
     refetchAutofixSetup,
