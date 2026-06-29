@@ -782,21 +782,33 @@ def _prs_from_check_payload(
             metrics.incr("pr_metrics.check.foreign_pull_request")
             continue
         seen.add(str(number))
-        pr = _get_pull_request(
-            organization, repo, {"number": number}, webhook_id, github_event=github_event
+        # Check payloads carry no PR timestamp, only a number. A missing row is the
+        # open→check race the stub exists for, so use ``now`` as the opened_at proxy
+        # to clear the recency gate; the ``pull_request`` event overwrites it with
+        # the true opened_at when it lands.
+        pr = _resolve_or_stub_pull_request(
+            organization,
+            repo,
+            pr_number=number,
+            opened_at=timezone.now(),
+            title=None,
+            github_delivery_id=webhook_id,
+            github_event=github_event,
         )
         if pr is not None:
             prs.append(pr)
     return prs
 
 
-# A comment or review webhook can be delivered before the ``pull_request``
+# A comment, review, or check webhook can be delivered before the ``pull_request``
 # (opened) webhook that writes the PullRequest row — they are separate GitHub
 # deliveries with no ordering guarantee. When the PR was opened within this
 # window we treat a miss as that race and create a minimal stub the opened/sync
 # event later enriches; an older miss predates our ingestion (no opened event
 # will re-fire to fill the stub), so we skip it. Sized well above the observed
-# seconds-to-minutes race to absorb webhook backlog.
+# seconds-to-minutes race to absorb webhook backlog. (Check payloads carry no PR
+# timestamp, so that path passes ``now`` and always clears this window — see
+# ``_prs_from_check_payload``.)
 _PULL_REQUEST_STUB_MAX_AGE = timedelta(hours=1)
 
 
@@ -813,13 +825,19 @@ def _resolve_or_stub_pull_request(
     """Return the PullRequest row, creating a minimal stub for a recent miss.
 
     pr_metrics piggybacks on rows written by ``PullRequestEventWebhook`` from
-    ``pull_request`` events. Comment and review events are separate deliveries
-    that can arrive before that row exists. Rather than drop the activity, create
-    a minimal stub the ``pull_request`` event enriches via its own
-    ``update_or_create`` — but only for a PR opened recently, since an older miss
-    predates ingestion and has no opened event coming to fill the stub.
+    ``pull_request`` events. Comment, review, and check events are separate
+    deliveries that can arrive before that row exists. Rather than drop the
+    activity, create a minimal stub the ``pull_request`` event enriches via its
+    own ``update_or_create`` — but only for a PR opened recently, since an older
+    miss predates ingestion and has no opened event coming to fill the stub.
     ``get_or_create`` is race-safe on the ``(repository_id, key)`` unique
     constraint.
+
+    Callers whose payload carries no PR timestamp (the check_suite/check_run path,
+    whose PR refs hold only a number) pass ``opened_at`` as ``timezone.now()``: a
+    missing row on a check is the out-of-order race the stub exists for (CI fired
+    before the ``opened`` delivery landed), and the ``opened`` event overwrites the
+    proxy with the true ``opened_at`` when it lands.
     """
     key = str(pr_number)
     try:
@@ -838,11 +856,21 @@ def _resolve_or_stub_pull_request(
         "github_delivery_id": github_delivery_id,
     }
 
-    if opened_at is None or opened_at < timezone.now() - _PULL_REQUEST_STUB_MAX_AGE:
-        # Expected miss: the PR predates our ingestion (or its age is unknown), so
-        # no opened event will arrive to enrich a stub. Skip it — not an error.
-        metrics.incr("pr_metrics.pull_request.unresolved", tags={"reason": "predates_ingestion"})
-        logger.info("pr_metrics.pull_request.unresolved", extra=log_extra)
+    # Two distinct misses, kept apart so rollout dashboards can tell them by
+    # `reason`: a payload that carried no parseable timestamp (`missing_opened_at`)
+    # vs. a PR known to predate our ingestion window (`predates_ingestion`).
+    # Neither can be stubbed — no `opened` event will arrive to enrich it — so both
+    # skip; only the reason differs. (Expected, not errors.)
+    if opened_at is None:
+        reason = "missing_opened_at"
+    elif opened_at < timezone.now() - _PULL_REQUEST_STUB_MAX_AGE:
+        reason = "predates_ingestion"
+    else:
+        reason = None
+
+    if reason is not None:
+        metrics.incr("pr_metrics.pull_request.unresolved", tags={"reason": reason})
+        logger.info("pr_metrics.pull_request.unresolved", extra={**log_extra, "reason": reason})
         return None
 
     pull_request, created = PullRequest.objects.get_or_create(
