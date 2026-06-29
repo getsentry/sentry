@@ -21,8 +21,16 @@ export function getConversationsListLocationState(
   return {conversationsListQuery: query};
 }
 
+function isConversationsListLocationState(
+  state: unknown
+): state is ConversationsListLocationState {
+  return typeof state === 'object' && state !== null && 'conversationsListQuery' in state;
+}
+
 export function getConversationsListQueryFromState(
   state: unknown
 ): Location['query'] | undefined {
-  return (state as ConversationsListLocationState | null)?.conversationsListQuery;
+  return isConversationsListLocationState(state)
+    ? state.conversationsListQuery
+    : undefined;
 }
