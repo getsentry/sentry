@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
+import sentry_sdk
 from django.db.models import Count
 from snuba_sdk import Request
 from snuba_sdk.column import Column
@@ -894,9 +895,7 @@ def _org_recommended_issues_snuba(
         "user_impact": options.get("weekly-report.recommended.user-impact-weight"),
         "event_volume": options.get("weekly-report.recommended.event-volume-weight"),
     }
-    agg = _recommended_aggregation(
-        timestamp_column="timestamp", weight_overrides=weight_overrides
-    )
+    agg = _recommended_aggregation(timestamp_column="timestamp", weight_overrides=weight_overrides)
     aggregations = [
         [agg[0], agg[1], "recommended"],
         ["count()", "", "count"],
