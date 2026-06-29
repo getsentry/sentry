@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 
 interface ScmCollapsibleRevealProps {
@@ -24,6 +24,11 @@ export function ScmCollapsibleReveal({open, id, children}: ScmCollapsibleRevealP
   const [overflow, setOverflow] = useState<'hidden' | 'visible'>(
     open ? 'visible' : 'hidden'
   );
+  // On collapse, AnimatePresence keeps a frozen snapshot of the last open
+  // render, so a closure over `open` reads a stale `true` and never resets
+  // overflow. Read the live value through a ref so completion settles correctly.
+  const openRef = useRef(open);
+  openRef.current = open;
 
   return (
     <AnimatePresence initial={false}>
@@ -37,9 +42,7 @@ export function ScmCollapsibleReveal({open, id, children}: ScmCollapsibleRevealP
           transition={{duration: 0.2, ease: 'easeOut'}}
           onAnimationStart={() => setOverflow('hidden')}
           onAnimationComplete={() => {
-            if (open) {
-              setOverflow('visible');
-            }
+            setOverflow(openRef.current ? 'visible' : 'hidden');
           }}
           style={{overflow, width: '100%'}}
         >
