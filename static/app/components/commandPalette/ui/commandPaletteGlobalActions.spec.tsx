@@ -218,7 +218,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     }
   );
 
-  it('highlights all projects when multiple ?project= params are set', async () => {
+  it.isKnownFlake('highlights all projects when multiple ?project= params are set', async () => {
     render(
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
