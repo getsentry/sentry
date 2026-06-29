@@ -347,6 +347,15 @@ export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
   gauge: 'avg',
 };
 
+/**
+ * Heat maps plot the distribution of a measurement's values over time, so they
+ * only make sense for `distribution` metrics. Counters (always `1`) and gauges
+ * have no meaningful value distribution to visualize.
+ */
+export function isHeatmapSupportedMetricType(metricType: string | undefined): boolean {
+  return metricType === 'distribution';
+}
+
 export const RATE_AGGREGATES = new Set(['per_second', 'per_minute']);
 
 /**
