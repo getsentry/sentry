@@ -44,6 +44,19 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert dict(request.session) == {"activeorg": "test"}
         assert response == mock.sentinel.response
 
+    @with_feature("system:multi-region")
+    def test_auth_path_preserves_session_active_org(self) -> None:
+        self.create_organization(name="albertos-apples")
+        self.create_organization(name="sentry")
+
+        request = RequestFactory().get("/auth/sentry/")
+        request.subdomain = "albertos-apples"
+        request.session = _session({"activeorg": "sentry"})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
+
+        assert dict(request.session) == {"activeorg": "sentry"}
+        assert response == mock.sentinel.response
+
     def test_noop_if_customer_domain_is_off(self) -> None:
         with self.feature({"system:multi-region": False}):
             self.create_organization(name="test")
