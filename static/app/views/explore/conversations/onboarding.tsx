@@ -273,6 +273,39 @@ Sentry.setConversationId("my-conversation-123");`,
   };
 }
 
+function getSetUserStep(isPython: boolean): OnboardingStep {
+  const content: ContentBlock[] = [
+    {
+      type: 'text',
+      text: t(
+        'Identify the user behind each conversation so the Conversations view can show who sent each message:'
+      ),
+    },
+    isPython
+      ? {
+          type: 'code' as const,
+          language: 'python',
+          code: `import sentry_sdk
+
+# Call this once per request / session, before any AI calls
+sentry_sdk.set_user({"id": "user_123", "email": "jane@example.com", "username": "jane"})`,
+        }
+      : {
+          type: 'code' as const,
+          language: 'javascript',
+          code: `import * as Sentry from "@sentry/node";
+
+// Call this once per request / session, before any AI calls
+Sentry.setUser({ id: "user_123", email: "jane@example.com", username: "jane" });`,
+        },
+  ];
+
+  return {
+    title: t('Identify Users (optional)'),
+    content,
+  };
+}
+
 export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const api = useApi();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
@@ -369,6 +402,7 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
     getConversationIdStep(selectedIntegration, isPythonPlatform),
+    getSetUserStep(isPythonPlatform),
     ...(agentMonitoringDocs.verify?.(docParams) || []),
   ].filter(s => !s.collapsible);
 

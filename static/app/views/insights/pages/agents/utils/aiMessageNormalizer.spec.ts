@@ -139,6 +139,22 @@ describe('normalizeToMessages', () => {
       expect(messages?.[0]?.content).toBe(EMPTY_TEXT_CONTENT);
     });
 
+    it('renders a single placeholder when multiple text parts all have no usable text', () => {
+      const input = JSON.stringify([
+        {
+          role: 'assistant',
+          content: [
+            {type: 'text', chars: 56},
+            {type: 'text', chars: 100},
+          ],
+        },
+      ]);
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'assistant'});
+
+      expect(messages?.[0]?.content).toBe(EMPTY_TEXT_CONTENT);
+    });
+
     it('keeps tool role content as-is (not re-rendered)', () => {
       const input = JSON.stringify([
         {role: 'tool', content: [{type: 'text', text: 'result'}]},
@@ -404,6 +420,32 @@ describe('extractAssistantOutput', () => {
 
     it('returns the placeholder for empty text parts in parts-format output', () => {
       const input = JSON.stringify([{role: 'assistant', parts: [{type: 'text'}]}]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe(EMPTY_TEXT_CONTENT);
+    });
+
+    it('returns a single placeholder when multiple parts-format text parts are all empty', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', parts: [{type: 'text'}, {type: 'text'}, {type: 'text'}]},
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe(EMPTY_TEXT_CONTENT);
+    });
+
+    it('returns a single placeholder when multiple content-format text parts are all empty', () => {
+      const input = JSON.stringify([
+        {
+          role: 'assistant',
+          content: [
+            {type: 'text', chars: 56},
+            {type: 'text', chars: 100},
+          ],
+        },
+      ]);
 
       const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
 

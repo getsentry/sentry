@@ -2,13 +2,12 @@ import {cloneElement, Fragment, isValidElement} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {PartnerPlanEndingBanner} from 'getsentry/components/partnerPlanEndingBanner';
 import type {Subscription} from 'getsentry/types';
@@ -36,7 +35,6 @@ export function SubscriptionHeader(props: Props) {
   const hasBillingPerms = hasPermissions(organization, 'org:billing');
   const isDisabled = isDisabledByPartner(subscription);
   const planIcon = getPlanIcon(subscription.planDetails);
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
     <Flex direction="column" gap="xl" background="secondary">
@@ -47,13 +45,8 @@ export function SubscriptionHeader(props: Props) {
         gap="md"
         background="primary"
         borderBottom="primary"
-        padding={hasPageFrameFeature ? '2xl 3xl' : 'md 3xl 2xl'}
+        padding="2xl 3xl"
       >
-        {hasPageFrameFeature ? null : (
-          <Heading as="h1" size="md">
-            {t('Subscription')}
-          </Heading>
-        )}
         <Flex
           justify="between"
           align={{xs: 'start', sm: 'center'}}
