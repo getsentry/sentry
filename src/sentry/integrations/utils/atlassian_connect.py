@@ -95,7 +95,15 @@ def get_integration_from_jwt(
         raise AtlassianConnectValidationError("Invalid algorithm in JWT header")
 
     try:
-        decoded_claims = jwt.decode(token, integration.metadata["shared_secret"], audience=False)
+        # We only authenticate asymmetrically (through the CDN) if the event provides a key ID
+        # in its JWT headers. This should only appear for install/uninstall events.
+        # authenticate_asymmetric_jwt hardcodes algorithms=["RS256"], so the algorithm-confusion
+        # attack (forcing an asymmetric public key to be used as an HMAC secret) is not possible.
+        decoded_claims = (
+            authenticate_asymmetric_jwt(token, key_id)
+            if key_id
+            else jwt.decode(token, integration.metadata["shared_secret"], audience=False)
+        )
     except InvalidSignatureError as e:
         raise AtlassianConnectValidationError("Signature is invalid") from e
     except ExpiredSignatureError as e:
