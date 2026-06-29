@@ -110,7 +110,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         except ValueError as e:
             return Response({"detail": str(e)}, status=400)
 
-        # Carry a validated post-OAuth return URL through the pipeline (open-redirect safe).
+        # Set the post-OAuth return URL from the request (open-redirect safe).
         return_url = data.get("return_url")
         if return_url and is_valid_redirect(
             return_url, allowed_hosts=(request._request.get_host(),)
