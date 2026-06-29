@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.base import SessionBase
+from django.http import HttpResponseRedirect
 from django.test import RequestFactory
 from django.urls import reverse
 
@@ -141,7 +142,7 @@ class IdentityPipelineFinishTest(TestCase):
 
         response = pipeline.finish_pipeline()
 
-        assert response.status_code == 302
+        assert isinstance(response, HttpResponseRedirect)
         assert response.url == "/organizations/test-org/explorer/?explorerRunId=5"
 
     @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
@@ -161,7 +162,7 @@ class IdentityPipelineFinishTest(TestCase):
 
         response = pipeline.finish_pipeline()
 
-        assert response.status_code == 302
+        assert isinstance(response, HttpResponseRedirect)
         assert response.url == reverse("sentry-account-settings")
 
 
