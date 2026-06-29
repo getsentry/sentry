@@ -15,6 +15,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.profilechunkattachment import (
+    ProfileChunkAttachmentSerializer,
+    ProfileChunkAttachmentSerializerResponse,
+)
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.profiling_examples import ProfilingExamples
@@ -22,6 +28,7 @@ from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
+from sentry.models.profilechunkattachment import ProfileChunkAttachment
 from sentry.profiles.flamegraph import FlamegraphExecutor
 from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import proxy_profiling_service
@@ -267,6 +274,96 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
                 "start": str(int(snuba_params.start_date.timestamp() * 1e9)),
                 "end": str(int(snuba_params.end_date.timestamp() * 1e9)),
             },
+        )
+
+
+CHUNK_ID_QUERY_PARAM = OpenApiParameter(
+    name="chunk_id",
+    location="query",
+    required=False,
+    type=str,
+    description=(
+        "A specific chunk ID to fetch attachments for. When omitted, attachments "
+        "for every chunk in the given time range are returned."
+    ),
+)
+
+
+@extend_schema(tags=["Profiling"])
+@cell_silo_endpoint
+class OrganizationProfilingChunkAttachmentsEndpoint(OrganizationProfilingBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
+    @extend_schema(
+        operation_id="listOrganizationProfilingChunkAttachments",
+        summary="List Attachments for Profile Chunks",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            CHUNKS_PROJECT_PARAM,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            PROFILER_ID_QUERY_PARAM,
+            CHUNK_ID_QUERY_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationProfilingChunkAttachmentsResponse",
+                list[ProfileChunkAttachmentSerializerResponse],
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
+        """
+        List attachments (e.g. Perfetto traces) for a profiler's chunks.
+
+        The visible chunks are resolved from the `profiler_id` and time range
+        using the same logic as the flamegraph, so the result matches what is
+        rendered. Pass `chunk_id` to scope the lookup to a single chunk.
+        """
+        if not features.has(
+            "organizations:continuous-profiling-perfetto", organization, actor=request.user
+        ):
+            return Response(status=404)
+
+        # We disable date quantizing here because we need the timestamps to be
+        # precise enough to resolve the exact chunks in view.
+        snuba_params = self.get_snuba_params(request, organization, quantize_date_params=False)
+
+        project_ids = snuba_params.project_ids
+        if project_ids is None or len(project_ids) != 1:
+            raise ParseError(detail="one project_id must be specified.")
+
+        profiler_id = request.query_params.get("profiler_id")
+        if profiler_id is None:
+            raise ParseError(detail="profiler_id must be specified.")
+
+        chunk_id = request.query_params.get("chunk_id")
+        if chunk_id is not None:
+            chunk_ids = [chunk_id]
+        else:
+            with handle_query_errors():
+                chunk_ids = get_chunk_ids(snuba_params, profiler_id, project_ids[0])
+
+        queryset = ProfileChunkAttachment.objects.filter(
+            project_id=project_ids[0],
+            profiler_id=profiler_id,
+            chunk_id__in=chunk_ids,
+        )
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by="id",
+            on_results=lambda results: serialize(
+                results, request.user, ProfileChunkAttachmentSerializer()
+            ),
+            paginator_cls=OffsetPaginator,
         )
 
 

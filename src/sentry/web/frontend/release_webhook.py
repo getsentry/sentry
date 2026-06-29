@@ -9,11 +9,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
 from sentry.api import client
-from sentry.exceptions import HookValidationError
 from sentry.models.apikey import ApiKey
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.plugins.base import plugins
 from sentry.utils import json
 from sentry.web.frontend.base import cell_silo_view
 
@@ -100,24 +98,4 @@ class ReleaseWebhookView(View):
         if plugin_id == "builtin":
             return self._handle_builtin(request, project)
 
-        plugin = plugins.get(plugin_id)
-        if not plugin.is_enabled(project):
-            logger.warning(
-                "release-webhook.plugin-disabled",
-                extra={"project_id": project_id, "plugin_id": plugin_id},
-            )
-            return HttpResponse(status=403)
-
-        cls = plugin.get_release_hook()
-        assert cls is not None
-        hook = cls(project)
-        try:
-            hook.handle(request)
-        except HookValidationError as exc:
-            return HttpResponse(
-                status=400,
-                content=json.dumps({"error": str(exc)}),
-                content_type="application/json",
-            )
-
-        return HttpResponse(status=204)
+        return HttpResponse(status=404)

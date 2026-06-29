@@ -6,10 +6,8 @@ from django.test import RequestFactory, override_settings
 
 from sentry.middleware.integrations.classifications import (
     IntegrationClassification,
-    PluginClassification,
 )
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
-from sentry.middleware.integrations.parsers.plugin import PluginRequestParser
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.silo.base import SiloMode
 
@@ -28,38 +26,6 @@ class BaseClassificationTestCase(TestCase):
         assert mock.called
         # Ensure noop response
         assert response == self.get_response()
-
-
-class PluginClassifiationTest(BaseClassificationTestCase):
-    get_response = MagicMock()
-    plugin_cls = PluginClassification(response_handler=get_response)
-    plugin_paths = [
-        "/plugins/github/installations/webhook/",
-        "/plugins/github/organizations/1/webhook/",
-        "/plugins/bitbucket/organizations/1/webhook/",
-    ]
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch.object(
-        PluginClassification,
-        "should_operate",
-        wraps=plugin_cls.should_operate,
-    )
-    def test_should_operate_uses_parser(self, mock_should_operate) -> None:
-        for plugin_path in self.plugin_paths:
-            request = self.factory.get(plugin_path)
-            prp = PluginRequestParser(request=request, response_handler=self.get_response)
-            assert mock_should_operate(request) == prp.should_operate()
-
-    @patch("sentry.middleware.integrations.parsers.plugin.PluginRequestParser.get_response")
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_get_response_uses_parser(self, mock_rp_get_response) -> None:
-        for plugin_path in self.plugin_paths:
-            assert not mock_rp_get_response.called
-            request = self.factory.get(plugin_path)
-            self.plugin_cls.get_response(request)
-            assert mock_rp_get_response.called
-            mock_rp_get_response.reset_mock()
 
 
 class IntegrationClassificationTest(BaseClassificationTestCase):

@@ -16,7 +16,7 @@ type Props = {
 export function Resources(_props: Props) {
   return (
     <ResourcesWrapper data-test-id="resources">
-      <Layout.Title withMargins>{t('Resources')}</Layout.Title>
+      <Layout.Title>{t('Resources')}</Layout.Title>
       <ResourceCards>
         <ResourceCard
           link="https://docs.sentry.io/product/releases/"

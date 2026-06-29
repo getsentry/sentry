@@ -89,6 +89,7 @@ import {
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ArrayValue} from './arrayValue';
+import {emptyValue, emptyStringValue} from './emptyFieldValues';
 import {
   BarContainer,
   Container,
@@ -165,13 +166,6 @@ type FieldFormatters = {
   string: FieldFormatter;
 };
 
-const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
-export const emptyStringValue = (
-  <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>
-);
 const missingUserMisery = tct(
   'We were unable to calculate User Misery. A likely cause of this is that the user was not set. [link:Read the docs]',
   {
@@ -583,7 +577,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       if (op === ModuleName.DB || op === ModuleName.RESOURCE) {
         return (
           <SpanDescriptionCell
-            description={value ?? ''}
+            description={value}
             moduleName={op}
             projectId={projectId}
             group={spanGroup}

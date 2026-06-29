@@ -48,7 +48,7 @@ _FILE_CHECKSUM_PARAM = OpenApiParameter(
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseFilesMixin):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,

@@ -1,6 +1,6 @@
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {PriorityLevel} from 'sentry/types/group';
-import type {IntegrationType} from 'sentry/types/integrations';
+import type {IntegrationType, PullRequestAttribution} from 'sentry/types/integrations';
 import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
@@ -41,6 +41,7 @@ interface ExternalIssuePullRequestParams extends CommonGroupAnalyticsData {
   pull_request_status: string;
   repository_id: string;
   repository_provider: string;
+  attribution_type?: PullRequestAttribution['type'];
 }
 
 interface SetPriorityParams extends CommonGroupAnalyticsData {
@@ -87,18 +88,9 @@ export type IssueEventParameters = {
   'issue_details.activity_drawer.filter_changed': {
     filter: string;
   };
-  'issue_details.comment_created': {
-    org_streamline_only: boolean | undefined;
-    streamline: boolean;
-  };
-  'issue_details.comment_deleted': {
-    org_streamline_only: boolean | undefined;
-    streamline: boolean;
-  };
-  'issue_details.comment_updated': {
-    org_streamline_only: boolean | undefined;
-    streamline: boolean;
-  };
+  'issue_details.comment_created': Record<string, unknown>;
+  'issue_details.comment_deleted': Record<string, unknown>;
+  'issue_details.comment_updated': Record<string, unknown>;
   'issue_details.copy_event_id_clicked': StreamlineGroupEventParams;
   'issue_details.copy_event_link_clicked': StreamlineGroupEventParams;
   'issue_details.copy_issue_details_as_markdown': {
