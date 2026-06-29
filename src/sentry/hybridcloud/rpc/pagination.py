@@ -6,7 +6,6 @@
 
 from typing import TYPE_CHECKING, Any
 
-import sentry_sdk
 from pydantic.fields import Field
 from rest_framework.request import Request
 
@@ -18,6 +17,7 @@ from sentry.utils.pagination_factory import (
     get_cursor,
     get_paginator,
 )
+from sentry.utils.tracing import start_span
 
 if TYPE_CHECKING:
     from sentry.api.base import Endpoint
@@ -44,7 +44,7 @@ class RpcPaginationArgs(RpcModel):
         count_hits: bool | None = None,
     ) -> "RpcPaginationResult":
         cursor = get_cursor(self.encoded_cursor, cursor_cls)
-        with sentry_sdk.start_span(
+        with start_span(
             op="hybrid_cloud.paginate.get_result",
             name=description,
         ) as span:

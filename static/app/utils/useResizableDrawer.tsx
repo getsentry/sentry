@@ -37,6 +37,10 @@ export interface UseResizableDrawerOptions {
   sizeStorageKey?: string;
 }
 
+function clampSize(value: number, min: number, max: number | undefined) {
+  return Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min, value));
+}
+
 /**
  * Hook to support draggable container resizing
  *
@@ -80,7 +84,9 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
       ? parseInt(localStorage.getItem(options.sizeStorageKey) ?? '', 10)
       : undefined;
 
-    return storedSize || options.initialSize;
+    // Clamp the seed so a stale persisted value or an initialSize below min
+    // never enters as the size; bounds are enforced from the very first render.
+    return clampSize(storedSize || options.initialSize, options.min, options.max);
   });
   const [isHeld, setIsHeld] = useState(false);
   const optionsRef = useRef(options);
@@ -101,8 +107,9 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
   // invoke the onResize callback with the previously stored dimensions.
   useLayoutEffect(() => {
-    options.onResize(options.initialSize ?? 0, size, false);
-    setSize(options.initialSize ?? 0);
+    const clamped = clampSize(options.initialSize ?? 0, options.min, options.max);
+    options.onResize(clamped, size, false);
+    setSize(clamped);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
 
@@ -145,9 +152,10 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
         // Round to 1px precision. Clamp to [min, max].
         const newSize = Math.round(
-          Math.min(
-            options.max ?? Number.POSITIVE_INFINITY,
-            Math.max(options.min, sizeRef.current + positionDelta * (isInverted ? -1 : 1))
+          clampSize(
+            sizeRef.current + positionDelta * (isInverted ? -1 : 1),
+            options.min,
+            options.max
           )
         );
 
@@ -179,8 +187,18 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   }, [onDragMove, options]);
 
   const startDrag = useCallback((clientX: number, clientY: number) => {
+    // Re-clamp to the current [min, max] before the drag begins: bounds can
+    // tighten after mount (e.g. the viewport shrinks the measured max) without
+    // re-clamping the stored size, which would otherwise leave the delta math
+    // and the reported startSize stepping from a stale, out-of-range value.
+    const {min, max} = optionsRef.current;
+    const clamped = clampSize(sizeRef.current, min, max);
+    // Raw state setter (not updateSize): keep the returned size in sync without
+    // firing onResize/persisting on mere drag-start. No-ops when already in range.
+    sizeRef.current = clamped;
+    setSize(clamped);
     setIsHeld(true);
-    dragStartSizeRef.current = sizeRef.current;
+    dragStartSizeRef.current = clamped;
     currentMouseVectorRaf.current = [clientX, clientY];
   }, []);
 

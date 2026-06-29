@@ -20,7 +20,7 @@ from sentry.models.releasecommit import ReleaseCommit
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

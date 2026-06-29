@@ -26,6 +26,16 @@ INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
     PROXY_TIMEOUT_HEADER,
 }
 
+# url_names whose request body is forwarded raw through the gateway and whose
+# Content-Encoding header must therefore be preserved (it is otherwise stripped
+# by clean_proxy_headers via INVALID_PROXY_HEADERS).
+PRESERVE_CONTENT_ENCODING_URL_NAMES = frozenset(
+    {
+        "sentry-api-0-organization-objectstore",
+        "sentry-api-0-project-preprod-snapshots-create",
+    }
+)
+
 DEFAULT_REQUEST_BODY = b""
 
 

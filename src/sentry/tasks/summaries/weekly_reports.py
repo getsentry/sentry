@@ -47,6 +47,7 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.sanitize import sanitize_outbound_name
 from sentry.utils.query import RangeQuerySetWrapper
+from sentry.utils.tracing import start_span
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
@@ -213,7 +214,9 @@ def prepare_organization_report(
             timestamp=timestamp, duration=duration, organization=organization
         ).create_context()
 
-        with sentry_sdk.start_span(op="weekly_reports.check_if_ctx_is_empty"):
+        with start_span(
+            op="weekly_reports.check_if_ctx_is_empty", name="weekly_reports.check_if_ctx_is_empty"
+        ):
             report_is_available = not ctx.is_empty()
         set_tag("report.available", report_is_available)
         sentry_sdk.set_attribute("report.available", report_is_available)
@@ -222,6 +225,18 @@ def prepare_organization_report(
             lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
             return
 
+    # Deliver the reports
+    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
+    with start_span(op="weekly_reports.deliver_reports", name="weekly_reports.deliver_reports"):
+        logger.info(
+            "weekly_reports.deliver_reports",
+            extra={"batch_id": str(batch_id), "organization": organization_id},
+        )
+        with metrics.timer("weekly_report.deliver_reports.duration"):
+            batch.deliver_reports()
+
+    # Cache after delivery so a failed attempt doesn't poison the
+    # previous-week lookup on retry.
     if not dry_run:
         try:
             project_metrics: dict[int, dict[str, int]] = {}
@@ -235,16 +250,6 @@ def prepare_organization_report(
                 cache_project_metrics(organization_id, project_metrics)
         except Exception:
             sentry_sdk.capture_exception()
-
-    # Finally, deliver the reports
-    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
-    with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
-        logger.info(
-            "weekly_reports.deliver_reports",
-            extra={"batch_id": str(batch_id), "organization": organization_id},
-        )
-        with metrics.timer("weekly_report.deliver_reports.duration"):
-            batch.deliver_reports()
 
 
 @dataclass(frozen=True)

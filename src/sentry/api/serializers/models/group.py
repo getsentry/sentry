@@ -8,7 +8,6 @@ from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequenc
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Protocol, TypedDict, TypeGuard
 
-import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
@@ -58,6 +57,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
+from sentry.utils.tracing import start_span
 
 if TYPE_CHECKING:
     from sentry.models.groupinbox import InboxDetails
@@ -198,7 +198,7 @@ def _make_group_project_response(project: Project) -> GroupProjectResponse:
     }
 
 
-def get_status_label(group: Group):
+def _get_status_label(group: Group):
     status = group.get_status()
 
     if status == GroupStatus.RESOLVED:
@@ -217,7 +217,7 @@ def get_status_label(group: Group):
     return status_label
 
 
-def get_substatus_label(group: Group):
+def _get_substatus_label(group: Group):
     return SUBSTATUS_TO_STR[group.substatus] if group.substatus else None
 
 
@@ -405,7 +405,7 @@ class GroupSerializerBase(Serializer, ABC):
             "level": _get_level_label(obj),
             "status": status_label,
             "statusDetails": status_details,
-            "substatus": get_substatus_label(obj),
+            "substatus": _get_substatus_label(obj),
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": _make_group_project_response(obj.project),
@@ -750,7 +750,10 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _get_permalink(attrs, obj: Group) -> str:
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
+        with start_span(
+            op="GroupSerializerBase.serialize.permalink.build",
+            name="GroupSerializerBase.serialize.permalink.build",
+        ):
             return obj.get_absolute_url()
 
     @staticmethod
@@ -1207,8 +1210,8 @@ class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
             culprit=obj.culprit,
             shortId=obj.qualified_short_id,
             level=_get_level_label(obj),
-            status=get_status_label(obj),
-            substatus=get_substatus_label(obj),
+            status=_get_status_label(obj),
+            substatus=_get_substatus_label(obj),
             platform=obj.platform,
             project=_make_group_project_response(obj.project),
             type=obj.get_event_type(),

@@ -27,6 +27,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.tagstore.types import TagKeySerializer, TagKeySerializerResponse
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import set_span_attribute
+from sentry.utils.tracing import start_span
 
 
 @extend_schema(tags=["Discover"])
@@ -102,7 +103,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
         else:
             dataset = Dataset.Discover
 
-        with sentry_sdk.start_span(op="tagstore", name="get_tag_keys_for_projects"):
+        with start_span(op="tagstore", name="get_tag_keys_for_projects"):
             with handle_query_errors():
                 start = filter_params["start"]
                 end = filter_params["end"]

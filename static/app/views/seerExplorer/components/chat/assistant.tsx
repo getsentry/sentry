@@ -11,7 +11,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {getExplorerUrl, getLangfuseUrl} from 'sentry/views/seerExplorer/utils';
 
 import type {AssistantBlockProps} from './shared';
@@ -53,7 +53,11 @@ export function AssistantBlock({
   );
 }
 
-function useBlockFeedback(block: Block, blockIndex: number, runId: number | undefined) {
+function useBlockFeedback(
+  block: Block,
+  blockIndex: number,
+  runId: SeerExplorerRunId | undefined
+) {
   const organization = useOrganization();
   const [feedbackSubmitted, setFeedbackSubmitted] = useSessionStorage(
     `seer-explorer-feedback:run-${runId ?? 'null'}:block-${block.id}`,

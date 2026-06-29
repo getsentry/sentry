@@ -1710,6 +1710,10 @@ class TestGetMonitoringProviderConnections(APITestCase):
             external_id="dd-user-1",
             data={"access_token": "access-token", "site": "datadoghq.com"},
         )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
 
         result = get_monitoring_provider_connections(
             organization_id=self.organization.id, user_id=self.user.id
