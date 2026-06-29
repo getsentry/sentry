@@ -589,7 +589,6 @@ module = [
     "sentry.api.endpoints.user_organizationintegrations",
     "sentry.api.endpoints.user_organizations",
     "sentry.api.endpoints.user_subscriptions",
-    "sentry.api.endpoints.warmup",
     "sentry.api.exceptions",
     "sentry.api.fields.*",
     "sentry.api.handlers",
