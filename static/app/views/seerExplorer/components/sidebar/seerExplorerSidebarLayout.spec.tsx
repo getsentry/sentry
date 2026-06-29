@@ -46,10 +46,11 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
 // Non-zero size so the SplitPanel isn't gated out (jsdom reports 0×0).
 const CONTAINER_SIZE = {width: 1200, height: 800};
 
-// Orientation is driven by a media query (the `xl` breakpoint).
-function mockWideScreen(matches: boolean) {
+// Drive matchMedia per-query so the wide-screen and short-landscape checks can
+// resolve independently.
+function mockMatchMedia(matches: (query: string) => boolean) {
   window.matchMedia = jest.fn().mockImplementation((query: string) => ({
-    matches,
+    matches: matches(query),
     media: query,
     onchange: null,
     addListener: jest.fn(),
@@ -58,6 +59,12 @@ function mockWideScreen(matches: boolean) {
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn(),
   }));
+}
+
+// Orientation is driven by media queries (the `xl` width breakpoint and a
+// short-landscape check); match every query uniformly.
+function mockWideScreen(matches: boolean) {
+  mockMatchMedia(() => matches);
 }
 
 function OpenSeerControl({options}: {options?: OpenSeerExplorerDrawerOptions}) {
@@ -201,6 +208,18 @@ describe('SeerExplorerSidebarLayout', () => {
 
   it('docks Seer to the right on a wide viewport (auto)', async () => {
     mockWideScreen(true);
+    renderSidebar(orgWithSidebar);
+
+    await userEvent.click(screen.getByText('open-seer'));
+
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    expect(splitOrientation()).toBe('horizontal');
+  });
+
+  it('docks Seer to the right on a short landscape viewport (auto)', async () => {
+    // Not wide (min-width: xl is false), but landscape and short — e.g. a phone
+    // held sideways, where a bottom dock has no room. Auto docks right instead.
+    mockMatchMedia(query => query.includes('orientation: landscape'));
     renderSidebar(orgWithSidebar);
 
     await userEvent.click(screen.getByText('open-seer'));

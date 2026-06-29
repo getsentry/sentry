@@ -282,18 +282,27 @@ export function getCodeOwnerIcon(
       return <IconSentry size={iconSize} />;
   }
 }
+const isIntegrationUpToDate = (integration: Integration): boolean =>
+  integration.provider.key !== 'slack' ||
+  (integration.scopes?.includes('app_mentions:read') ?? false);
+
 const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean => {
-  return integrations.every(
-    integration =>
-      integration.provider.key !== 'slack' || integration.scopes?.includes('commands')
-  );
+  return integrations.every(isIntegrationUpToDate);
 };
+
+/**
+ * Whether a single integration installation is running an outdated app and
+ * should surface an "Update Now" prompt. Checked per-workspace so that, e.g.,
+ * an outdated Slack workspace doesn't flag a sibling workspace that is current.
+ */
+export const integrationRequiresUpgrade = (integration: Integration): boolean =>
+  !isIntegrationUpToDate(integration);
 
 export const getAlertText = (integrations?: Integration[]): string | undefined => {
   return isSlackIntegrationUpToDate(integrations || [])
     ? undefined
     : t(
-        'Update to the latest version of our Slack app to get access to personal and team notifications.'
+        'Update to the latest version of our Slack app to tag Sentry and ask it to triage and debug issues'
       );
 };
 

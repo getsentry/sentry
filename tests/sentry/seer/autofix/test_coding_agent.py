@@ -631,10 +631,9 @@ class TestPollGithubCopilotAgents(TestCase):
         poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
 
-MOCK_CLIENT_CLASS_PATH = "sentry.seer.autofix.coding_agent.import_string"
+MOCK_CLIENT_CLASS_PATH = "sentry.integrations.claude_code.integration._get_client_class"
 MOCK_INTEGRATION_SERVICE_PATH = "sentry.seer.autofix.coding_agent.integration_service"
 MOCK_UPDATE_STATE_PATH = "sentry.seer.autofix.coding_agent.update_coding_agent_state"
-MOCK_DJANGO_SETTINGS_PATH = "sentry.seer.autofix.coding_agent.django_settings"
 
 
 def _make_agent_event(text: str) -> ClaudeSessionEvent:
@@ -736,11 +735,6 @@ class TestPollClaudeCodeAgents(TestCase):
         self.project = self.create_project(organization=self.organization)
         self.run_id = 12345
         self.integration_id = 99
-
-        patcher = patch(MOCK_DJANGO_SETTINGS_PATH)
-        self.mock_settings = patcher.start()
-        self.mock_settings.CLAUDE_CODE_CLIENT_CLASS = "test.MockClaudeCodeClient"
-        self.addCleanup(patcher.stop)
 
     def _create_autofix_state_with_agents(
         self, agents: dict[str, CodingAgentState]
@@ -1027,7 +1021,7 @@ class TestPollClaudeCodeAgents(TestCase):
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_uses_correct_integration_per_agent(
-        self, mock_integration_service, mock_import_string, mock_update_state
+        self, mock_integration_service, mock_get_client_class, mock_update_state
     ):
         integration_a = MagicMock()
         integration_a.metadata = {
@@ -1041,20 +1035,10 @@ class TestPollClaudeCodeAgents(TestCase):
             "environment_id": "env-b",
             "workspace_name": "ws-b",
         }
-        org_integration_a = MagicMock()
-        org_integration_a.id = 1001
-        org_integration_b = MagicMock()
-        org_integration_b.id = 1002
-        mock_integration_service.get_organization_integration.side_effect = (
-            lambda organization_id, integration_id: {
-                100: org_integration_a,
-                200: org_integration_b,
-            }[integration_id]
-        )
-        mock_integration_service.get_integration.side_effect = lambda organization_integration_id: {
-            1001: integration_a,
-            1002: integration_b,
-        }[organization_integration_id]
+        mock_integration_service.get_integration.side_effect = lambda integration_id: {
+            100: integration_a,
+            200: integration_b,
+        }[integration_id]
 
         clients = {}
 
@@ -1064,7 +1048,7 @@ class TestPollClaudeCodeAgents(TestCase):
             clients[kwargs["api_key"]] = client
             return client
 
-        mock_import_string.return_value = make_client
+        mock_get_client_class.return_value = make_client
 
         agent_a = CodingAgentState(
             id="session-a",

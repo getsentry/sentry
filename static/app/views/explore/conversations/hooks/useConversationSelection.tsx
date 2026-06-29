@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useMemo, useEffect} from 'react';
 
 import {useFocusedToolSpan} from 'sentry/views/explore/conversations/hooks/useFocusedToolSpan';
 import {extractMessagesFromNodes} from 'sentry/views/explore/conversations/utils/conversationMessages';

@@ -26,6 +26,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.search.eap.constants import VALID_GRANULARITIES
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, PERCENT_UNITS, SIZE_UNITS
 from sentry.search.events.fields import is_function, parse_arguments
@@ -59,6 +60,14 @@ _DEFAULT_INTERVAL_LADDER: tuple[tuple[timedelta, str], ...] = (
 )
 
 
+# Heat Map unfurls always render to a fixed Chartcuterie canvas, so we target a
+# fixed-density grid sized to those dimensions. 150 x 50 over 1200x400 gives
+# ~8px square cells. 150 is an approximation, since we're limited to a known set
+# of intervals.
+HEATMAP_TARGET_X_BUCKETS = 150
+HEATMAP_TARGET_Y_BUCKETS = 50
+
+
 def _query_time_range(params: QueryDict) -> timedelta:
     """Return the selected time range, mirroring the frontend's
     `getDiffInMinutes`: prefer absolute start/end, otherwise parse statsPeriod."""
@@ -83,6 +92,19 @@ def _interval_for_query(params: QueryDict) -> str:
         if diff >= threshold:
             return interval
     return "1m"
+
+
+def _heatmap_interval(time_range: timedelta) -> str:
+    """Pick the finest backend-supported granularity that keeps the Heat Map
+    within ``HEATMAP_TARGET_X_BUCKETS`` columns, so it renders a fixed-density
+    grid sized to the Chartcuterie canvas regardless of the selected time range.
+    Iterates the EAP-accepted ``VALID_GRANULARITIES`` (the only dataset we
+    support for Heat Map widgets is trace metrics)."""
+    seconds = time_range.total_seconds()
+    for granularity in sorted(VALID_GRANULARITIES):
+        if seconds / granularity <= HEATMAP_TARGET_X_BUCKETS:
+            return f"{granularity}s"
+    return f"{max(VALID_GRANULARITIES)}s"
 
 
 def _clamp_interval(url_interval: str, minimum_interval: str) -> str:
@@ -150,8 +172,9 @@ def _parse_aggregate_field_entries(
 def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
     """Assemble the QueryDict sent to the events-heatmap API. Like
     ``_build_timeseries_query`` but adds the heatmap params (xAxis/yAxis/zAxis/
-    yBuckets). The interval is the per-range ladder value (the URL interval is
-    ignored); yBuckets is derived from it to keep cells ~square."""
+    yBuckets). The URL interval is ignored; instead we target a fixed-density
+    grid (`HEATMAP_TARGET_X_BUCKETS` x `HEATMAP_TARGET_Y_BUCKETS`) sized to the
+    Chartcuterie canvas."""
     out = QueryDict(mutable=True)
 
     for param in ("project", "statsPeriod", "start", "end", "environment"):
@@ -176,16 +199,8 @@ def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
     if not out.get("statsPeriod") and not out.get("start"):
         out["statsPeriod"] = DEFAULT_PERIOD
 
-    # Per-range ladder interval (fine end, for plenty of columns), then size
-    # yBuckets to keep cells roughly square: yBuckets ≈ xBuckets * (height / width).
-    interval = _interval_for_query(out)
-    out["interval"] = interval
-    interval_td = parse_stats_period(interval)
-    x_buckets = round(_query_time_range(out) / interval_td) if interval_td else 0
-    y_buckets = max(
-        1, round(x_buckets * EXPLORE_CHART_SIZE["height"] / EXPLORE_CHART_SIZE["width"])
-    )
-    out["yBuckets"] = str(y_buckets)
+    out["interval"] = _heatmap_interval(_query_time_range(out))
+    out["yBuckets"] = str(HEATMAP_TARGET_Y_BUCKETS)
 
     # Fixed axes — the endpoint currently only supports these values.
     out["xAxis"] = "time"

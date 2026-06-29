@@ -25,6 +25,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getAlertText,
   getIntegrationStatus,
+  integrationRequiresUpgrade,
   isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
@@ -406,7 +407,7 @@ export default function IntegrationDetailedView() {
                     organization,
                   });
                 }}
-                requiresUpgrade={!!alertText}
+                requiresUpgrade={integrationRequiresUpgrade(integration)}
               />
             </PanelItem>
           ))}

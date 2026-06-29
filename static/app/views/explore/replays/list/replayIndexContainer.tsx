@@ -18,10 +18,15 @@ import {ReplayIndexTable} from 'sentry/views/explore/replays/list/replayIndexTab
 
 interface Props {
   showDeadRageClickCards: boolean;
+  showDeadRageClickCardsPlaceholder: boolean;
   widgetIsOpen: boolean;
 }
 
-export function ReplayIndexContainer({showDeadRageClickCards, widgetIsOpen}: Props) {
+export function ReplayIndexContainer({
+  showDeadRageClickCards,
+  showDeadRageClickCardsPlaceholder,
+  widgetIsOpen,
+}: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
 
@@ -66,6 +71,7 @@ export function ReplayIndexContainer({showDeadRageClickCards, widgetIsOpen}: Pro
         hasMoreResults={Boolean(hasNextResultsPage || hasPrevResultsPage)}
         queryKey={replayListOptions.queryKey}
         showDeadRageClickCards={showDeadRageClickCards}
+        showDeadRageClickCardsPlaceholder={showDeadRageClickCardsPlaceholder}
         widgetIsOpen={widgetIsOpen}
       />
       <PaginationNoMargin

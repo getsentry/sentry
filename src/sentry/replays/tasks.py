@@ -4,8 +4,10 @@ import logging
 from typing import Any
 
 from google.cloud.exceptions import NotFound
+from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
 
+from sentry.replays.consumers.recording import commit_message, process_message
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
@@ -21,10 +23,11 @@ from sentry.replays.usecases.delete import (
     fetch_rows_matching_pattern,
 )
 from sentry.replays.usecases.events import archive_event
+from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import replays_tasks
+from sentry.taskworker.namespaces import replays_raw_tasks, replays_tasks
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -55,6 +58,37 @@ def delete_replay(
         delete_seer_replay_data(organization_id, project_id, [replay_id])
 
     metrics.incr("replays.delete_replay", amount=1, tags={"status": "finished"})
+
+
+@instrumented_task(
+    name="sentry.replays.tasks.process_replay_recording",
+    namespace=replays_raw_tasks,
+    processing_deadline_duration=90,
+    retry=Retry(times=3, delay=5),
+    compression_type=CompressionType.ZSTD,
+    silo_mode=SiloMode.CELL,
+)
+def process_replay_recording(message_bytes: bytes) -> None:
+    """Process a replay recording from raw Kafka message bytes.
+
+    This task is directly spawned from taskbroker in "raw mode". You won't find
+    any application code that calls apply_async or delay directly on it, instead
+    taskbroker itself is configured to consume the ingest-replay-recordings
+    topic (in infra templates) and spawns a task for each message.
+
+    As such, the task signature, name and namespace cannot be changed without
+    coordination.
+    """
+    processed_message = process_message(message_bytes)
+    if processed_message:
+        # The per-partition query caches that the consumer builds in
+        # create_with_partitions don't apply when each message is processed as an
+        # independent task, so we always use the uncached path here.
+        context: ProcessorContext = {
+            "has_sent_replays_cache": None,
+            "options_cache": None,
+        }
+        commit_message(processed_message, context)
 
 
 @instrumented_task(
