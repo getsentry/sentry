@@ -14,6 +14,7 @@ from sentry.notifications.platform.msteams.provider import MSTeamsRenderable, MS
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.types import (
+    LinkTextBlock,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -50,7 +51,13 @@ def _serialize_sections(
 
 
 def _serialize_blocks(blocks: list[NotificationTextBlock]) -> list[dict[str, Any]]:
-    return [{"type": block.type, "text": block.text} for block in blocks]
+    serialized_blocks = []
+    for block in blocks:
+        serialized_block = {"type": block.type, "text": block.text}
+        if isinstance(block, LinkTextBlock):
+            serialized_block["url"] = block.url
+        serialized_blocks.append(serialized_block)
+    return serialized_blocks
 
 
 def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) -> dict[str, Any]:
