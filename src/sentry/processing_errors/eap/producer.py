@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING, Any
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
-from django.conf import settings
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+from taskbroker_client.state import current_task
 
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -134,7 +134,7 @@ def produce_processing_errors_to_eap(
             )
 
             payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
-            if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
+            if current_task() is not None and in_random_rollout(
                 "tasks.producer.processing-errors.rollout"
             ):
                 _eap_task_producer.produce(ArroyoTopic(topic), payload)
