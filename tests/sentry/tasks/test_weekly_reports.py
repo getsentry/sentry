@@ -479,7 +479,7 @@ class WeeklyReportsTest(
         self.project.first_event = self.now - timedelta(days=3)
         self.project.save()
 
-        ts = self.now.timestamp()
+        ts = (self.now - timedelta(hours=1)).timestamp()
 
         group_a = self.store_events_to_snuba_and_eap(
             "key-errors-a",

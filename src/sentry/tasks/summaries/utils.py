@@ -165,7 +165,7 @@ def project_key_errors(
                     "organization_id": ctx.organization.id,
                     "project_id": project.id,
                     "start": ctx.start.isoformat(),
-                    "end": (ctx.end + timedelta(days=1)).isoformat(),
+                    "end": ctx.end.isoformat(),
                 },
             )
 
@@ -189,7 +189,7 @@ def _project_key_errors_snuba(
             Condition(
                 Column("timestamp", entity=events_entity),
                 Op.LT,
-                ctx.end + timedelta(days=1),
+                ctx.end,
             ),
             Condition(
                 Column(
@@ -270,7 +270,7 @@ def _org_key_errors_snuba_chunk(
             Condition(
                 Column("timestamp", entity=events_entity),
                 Op.LT,
-                ctx.end + timedelta(days=1),
+                ctx.end,
             ),
             Condition(
                 Column("project_id", entity=events_entity),
@@ -337,7 +337,7 @@ def _project_key_errors_eap(
 ) -> list[dict[str, Any]]:
     snuba_params = SnubaParams(
         start=ctx.start,
-        end=ctx.end + timedelta(days=1),
+        end=ctx.end,
         organization=ctx.organization,
         projects=[project],
     )
@@ -461,7 +461,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
                     "project_id": project.id,
                     "candidate_group_ids_count": len(group_id_to_group),
                     "start": ctx.start.isoformat(),
-                    "end": (ctx.end + timedelta(days=1)).isoformat(),
+                    "end": ctx.end.isoformat(),
                 },
             )
 
@@ -492,7 +492,7 @@ def _project_key_performance_issues_snuba(
         where=[
             Condition(Column("group_id"), Op.IN, group_ids),
             Condition(Column("timestamp"), Op.GTE, ctx.start),
-            Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
+            Condition(Column("timestamp"), Op.LT, ctx.end),
             Condition(Column("project_id"), Op.EQ, project.id),
         ],
         groupby=[Column("group_id")],
@@ -521,7 +521,7 @@ def _project_key_performance_issues_eap(
 
     snuba_params = SnubaParams(
         start=ctx.start,
-        end=ctx.end + timedelta(days=1),
+        end=ctx.end,
         organization=ctx.organization,
         projects=[project],
     )
@@ -628,7 +628,7 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
         ],
         where=[
             Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, end + timedelta(days=1)),
+            Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("org_id"), Op.EQ, ctx.organization.id),
             Condition(Column("outcome"), Op.EQ, Outcome.ACCEPTED),
             Condition(
@@ -696,7 +696,7 @@ def project_past_resolved_issues(
                 project_id=project.id,
                 status=GroupStatus.RESOLVED,
                 resolved_at__gte=ctx.start,
-                resolved_at__lt=ctx.end + timedelta(days=1),
+                resolved_at__lt=ctx.end,
             ).order_by("-times_seen")[:PAST_ISSUES_CANDIDATE_LIMIT]
         )
 
@@ -771,7 +771,7 @@ def _past_resolved_error_counts(
             Condition(
                 Column("timestamp", entity=events_entity),
                 Op.LT,
-                ctx.end + timedelta(days=1),
+                ctx.end,
             ),
             Condition(Column("project_id", entity=events_entity), Op.EQ, project.id),
             Condition(Column("project_id", entity=group_attributes_entity), Op.EQ, project.id),
@@ -813,7 +813,7 @@ def _past_resolved_perf_counts(
         where=[
             Condition(Column("group_id"), Op.IN, group_ids),
             Condition(Column("timestamp"), Op.GTE, ctx.start),
-            Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
+            Condition(Column("timestamp"), Op.LT, ctx.end),
             Condition(Column("project_id"), Op.EQ, project.id),
         ],
         groupby=[Column("group_id")],

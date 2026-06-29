@@ -241,11 +241,10 @@ def prepare_organization_report(
         try:
             project_metrics: dict[int, dict[str, int]] = {}
             for project_id, project_ctx in ctx.projects_context_map.items():
-                if not project_ctx.check_if_project_is_empty():
-                    project_metrics[project_id] = {
-                        "e": project_ctx.accepted_error_count,
-                        "t": project_ctx.accepted_transaction_count,
-                    }
+                project_metrics[project_id] = {
+                    "e": project_ctx.accepted_error_count,
+                    "t": project_ctx.accepted_transaction_count,
+                }
             if project_metrics:
                 cache_project_metrics(organization_id, project_metrics)
         except Exception:
