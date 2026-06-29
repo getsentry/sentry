@@ -37,26 +37,26 @@ interface BuildItemProps {
   installSizeDelta?: number;
   /** Selection state, used by the base-build picker. */
   isSelected?: boolean;
+  /** When set, the card links to this path instead of being selectable. */
+  linkTo?: string;
   /** Click handler fired before navigation in link mode (e.g. analytics). */
   onClick?: () => void;
   /** Selection handler, used by the base-build picker. */
   onSelect?: () => void;
-  /** When provided, the card renders as a link to this path (no radio). */
-  to?: string;
 }
 
 export function BuildItem({
   build,
-  isSelected,
-  onSelect,
-  onClick,
-  to,
-  installSizeDelta,
   downloadSizeDelta,
+  installSizeDelta,
+  isSelected,
+  linkTo,
+  onClick,
+  onSelect,
 }: BuildItemProps) {
-  if (to) {
+  if (linkTo) {
     return (
-      <BuildItemLink to={to} onClick={onClick}>
+      <BuildItemLink to={linkTo} onClick={onClick}>
         <BuildItemDetails
           build={build}
           installSizeDelta={installSizeDelta}
@@ -85,8 +85,8 @@ export function BuildItem({
 
 function BuildItemDetails({
   build,
-  installSizeDelta,
   downloadSizeDelta,
+  installSizeDelta,
 }: {
   build: BuildDetailsApiResponse;
   downloadSizeDelta?: number;

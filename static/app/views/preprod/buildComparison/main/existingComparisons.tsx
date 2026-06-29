@@ -65,7 +65,7 @@ export function ExistingComparisons({
             <BuildItem
               key={build.id}
               build={build}
-              to={getCompareBuildPath({
+              linkTo={getCompareBuildPath({
                 organizationSlug: organization.slug,
                 headArtifactId: headBuildDetails.id,
                 baseArtifactId: build.id,
