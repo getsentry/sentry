@@ -18,7 +18,6 @@ class DebugFileSerializerResponse(TypedDict):
     sha1: str
     dateCreated: datetime
     data: dict[str, Any]
-    storage_path: str | None
 
 
 @register(ProjectDebugFile)
