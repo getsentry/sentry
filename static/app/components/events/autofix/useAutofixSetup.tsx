@@ -23,29 +23,22 @@ export interface AutofixSetupResponse {
   } | null;
 }
 
-function makeAutofixSetupQueryKey(
-  orgSlug: string,
-  groupId: string,
-  checkWriteAccess?: boolean
-): ApiQueryKey {
+function makeAutofixSetupQueryKey(orgSlug: string, groupId: string): ApiQueryKey {
   return [
     getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/', {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
     }),
-    {
-      query: checkWriteAccess ? {check_write_access: true} : undefined,
-    },
   ];
 }
 
 export function useAutofixSetup(
-  {groupId, checkWriteAccess}: {groupId: string; checkWriteAccess?: boolean},
+  {groupId}: {groupId: string},
   options: Omit<UseApiQueryOptions<AutofixSetupResponse>, 'staleTime'> = {}
 ) {
   const orgSlug = useOrganization().slug;
 
   const queryData = useApiQuery<AutofixSetupResponse>(
-    makeAutofixSetupQueryKey(orgSlug, groupId, checkWriteAccess),
+    makeAutofixSetupQueryKey(orgSlug, groupId),
     {
       enabled: Boolean(groupId),
       staleTime: 0,
