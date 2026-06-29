@@ -95,14 +95,7 @@ def get_integration_from_jwt(
         raise AtlassianConnectValidationError("Invalid algorithm in JWT header")
 
     try:
-        # We only authenticate asymmetrically (through the CDN) if the event provides a key ID
-        # in its JWT headers. This should only appear for install/uninstall events.
-
-        decoded_claims = (
-            authenticate_asymmetric_jwt(token, key_id)
-            if key_id
-            else jwt.decode(token, integration.metadata["shared_secret"], audience=False)
-        )
+        decoded_claims = jwt.decode(token, integration.metadata["shared_secret"], audience=False)
     except InvalidSignatureError as e:
         raise AtlassianConnectValidationError("Signature is invalid") from e
     except ExpiredSignatureError as e:
@@ -133,12 +126,9 @@ def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str
     """
     if token is None:
         raise AtlassianConnectValidationError("No token parameter")
-    headers = jwt.peek_header(token)
     key_response = requests.get(f"https://connect-install-keys.atlassian.com/{key_id}")
     public_key = key_response.content.decode("utf-8").strip()
-    decoded_claims = jwt.decode(
-        token, public_key, audience=absolute_uri(), algorithms=[headers.get("alg")]
-    )
+    decoded_claims = jwt.decode(token, public_key, audience=absolute_uri(), algorithms=["RS256"])
     if not decoded_claims:
         raise AtlassianConnectValidationError("Unable to verify asymmetric installation JWT")
     return decoded_claims
