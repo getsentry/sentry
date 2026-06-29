@@ -278,7 +278,7 @@ describe('LogsTabContent', () => {
       'custom.enabled',
       'invalid.attribute',
     ];
-    customColumnsRouterConfig.location.query[LOGS_SORT_BYS_KEY] = 'custom.duration';
+    customColumnsRouterConfig.location.query[LOGS_SORT_BYS_KEY] = ['custom.duration'];
 
     const {router} = render(
       <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
