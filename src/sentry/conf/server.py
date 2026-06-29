@@ -1539,6 +1539,9 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 1 if DEBUG else 0
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
 
+# sample rate for the ingest-replay-recordings processing (consumer and task)
+SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING = 0
+
 # ----
 # end APM config
 # ----
