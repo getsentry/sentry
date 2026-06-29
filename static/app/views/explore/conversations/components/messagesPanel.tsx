@@ -60,6 +60,9 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
       trackAnalytics('conversations.message.click', {
         organization,
       });
+      trackAnalytics('conversations.detail.select-span', {
+        organization,
+      });
       setClickedMessageId(message.id);
       const node = nodeMap.get(message.nodeId);
       if (node) {
@@ -244,7 +247,17 @@ const MessageBubble = styled('div')<{
 `;
 
 function ReasoningSection({reasoning}: {reasoning: string}) {
+  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleToggleExpanded = () => {
+    const newState = !isExpanded;
+    setIsExpanded(newState);
+    trackAnalytics('conversations.detail.expand-thinking', {
+      organization,
+      expanded: newState,
+    });
+  };
 
   return (
     <Fragment>
@@ -253,7 +266,7 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
         variant="link"
         onClick={e => {
           e.stopPropagation();
-          setIsExpanded(prev => !prev);
+          handleToggleExpanded();
         }}
         aria-expanded={isExpanded}
       >

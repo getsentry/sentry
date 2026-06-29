@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from django.urls import reverse
 
 from sentry.models.apitoken import ApiToken
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -62,6 +63,27 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         # Should include our project
         project_ids = [p["id"] for p in response.data["projects"]]
         assert self.project.id in project_ids
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_organization_projects(self) -> None:
+        """instrumentation reflects project flags via get_instrumentation"""
+        path = self._get_path("get_organization_projects")
+
+        # No flags set — instrumentation should be empty
+        response = self.client.post(path, data={"args": {}}, format="json")
+        assert response.status_code == 200
+        project_data = next(p for p in response.data["projects"] if p["id"] == self.project.id)
+        assert project_data["instrumentation"] == []
+
+        # Set has_transactions and has_logs flags
+        self.project.update(
+            flags=Project.flags.has_transactions | Project.flags.has_logs,
+        )
+
+        response = self.client.post(path, data={"args": {}}, format="json")
+        assert response.status_code == 200
+        project_data = next(p for p in response.data["projects"] if p["id"] == self.project.id)
+        assert set(project_data["instrumentation"]) == {"transactions", "spans", "logs"}
 
     @with_feature("organizations:seer-public-rpc")
     def test_org_level_method_get_organization_features(self) -> None:

@@ -67,14 +67,39 @@ function isConversationColumnKey(value: string): value is ConversationColumnKey 
   return value in CONVERSATION_COLUMNS;
 }
 
+export interface ConversationColumn {
+  key: ConversationColumnKey;
+  width?: number;
+}
+
 /**
- * Keep only valid column keys, preserving order and duplicates so a column can
- * appear more than once. Falls back to the defaults when nothing usable remains
- * so the table never renders an empty column set.
+ * Serialize each column to a `key` or `key:width` entry, preserving order and
+ * duplicates, e.g. `['conversationId:80', 'user:203', 'errors']`.
+ */
+export function serializeConversationColumns(
+  columns: readonly ConversationColumn[]
+): string[] {
+  return columns.map(({key, width}) =>
+    typeof width === 'number' && width > 0 ? `${key}:${width}` : key
+  );
+}
+
+/**
+ * Parse `key` / `key:width` entries into columns, keeping order and duplicates so
+ * a column can appear more than once. Falls back to the defaults when nothing
+ * usable remains so the table never renders an empty column set.
  */
 export function parseConversationColumns(
   values: readonly string[] | null
-): ConversationColumnKey[] {
-  const parsed = (values ?? []).filter(isConversationColumnKey);
-  return parsed.length > 0 ? parsed : [...DEFAULT_CONVERSATION_COLUMNS];
+): ConversationColumn[] {
+  const parsed: ConversationColumn[] = [];
+  for (const entry of values ?? []) {
+    const [key, rawWidth] = entry.split(':');
+    if (!key || !isConversationColumnKey(key)) {
+      continue;
+    }
+    const width = Number(rawWidth);
+    parsed.push(width > 0 ? {key, width} : {key});
+  }
+  return parsed.length > 0 ? parsed : DEFAULT_CONVERSATION_COLUMNS.map(key => ({key}));
 }

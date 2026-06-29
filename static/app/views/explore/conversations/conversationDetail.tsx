@@ -39,12 +39,9 @@ function ConversationDetailPage() {
 
   const handleSelectSpan = useCallback(
     (spanId: string) => {
-      trackAnalytics('conversations.detail.select-span', {
-        organization,
-      });
       setQueryState({spanId, focusedTool: null});
     },
-    [organization, setQueryState]
+    [setQueryState]
   );
 
   return (
