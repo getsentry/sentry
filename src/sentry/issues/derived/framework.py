@@ -146,17 +146,18 @@ class State(_FeatureStore):
 
     def __init__(self, data: dict[Feature[Any], Any] | None = None) -> None:
         super().__init__(data)
-        self._dirty: set[Feature[Any]] = set()
+        self._updated: set[Feature[Any]] = set()
 
     @property
-    def dirty(self) -> frozenset[Feature[Any]]:
-        return frozenset(self._dirty)
+    def updated(self) -> frozenset[Feature[Any]]:
+        """Features that aggregators have provided updates for via merge()."""
+        return frozenset(self._updated)
 
     def view(self, allowed: frozenset[Feature[Any]]) -> "StateView":
         return StateView(self._data, allowed)
 
     def merge(self, update: StateUpdate) -> None:
-        self._dirty.update(update._data)
+        self._updated.update(update._data)
         self._data.update(update._data)
 
     def items(self) -> Iterator[tuple[str, Any]]:
