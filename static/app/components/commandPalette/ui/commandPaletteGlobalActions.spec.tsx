@@ -351,10 +351,20 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     ['inbound', /Project Settings.*Inbound Filters/],
     ['size', /Project Settings.*Mobile Builds/],
     // The SDK env var name (and its spaced form) should surface Client Keys
-    // (DSN), just like "dsn". The Next.js public-prefixed variant should too.
+    // (DSN), just like "dsn". The Next.js and Expo public-prefixed variants
+    // should too, along with per-key rate limiting.
     ['SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
     ['sentry dsn', /Project Settings.*Client Keys \(DSN\)/],
     ['NEXT_PUBLIC_SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    ['EXPO_PUBLIC_SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    ['rate limit', /Project Settings.*Client Keys \(DSN\)/],
+    // Org/project slug lookups and the matching sentry-cli env vars.
+    ['project slug', /Project Settings.*General Settings/],
+    ['SENTRY_ORG', /Settings.*General Settings/],
+    // Webhook spelled as two words should still reach Custom Integrations.
+    ['web hook', /Settings.*Custom Integrations/],
+    // "insights" routes to Dashboards (insights-to-dashboards rollout).
+    ['insights', /^Dashboards$/],
   ])('finds expected actions for %s', async (query, ...expectedOptions) => {
     renderPalette();
 

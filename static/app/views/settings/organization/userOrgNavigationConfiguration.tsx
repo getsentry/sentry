@@ -76,7 +76,13 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
-          keywords: [t('slug'), t('org slug'), t('organization slug')],
+          keywords: [
+            t('slug'),
+            t('org slug'),
+            t('organization slug'),
+            // SENTRY_ORG is the sentry-cli env var holding the org slug.
+            'SENTRY_ORG',
+          ],
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
@@ -282,6 +288,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('internal integration'),
             t('developer settings'),
             t('webhooks'),
+            t('web hook'),
             t('api key'),
             t('api keys'),
             'SENTRY_AUTH_TOKEN',

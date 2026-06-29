@@ -426,7 +426,12 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
+        <CMDKAction
+          display={{label: t('Dashboards'), icon: <IconDashboard />}}
+          // Insights pages move into Dashboards under the
+          // insights-to-dashboards rollout, so route "insights" searches here.
+          keywords={[t('insights')]}
+        >
           {hasPrebuiltDashboards && (
             <CMDKAction
               display={{label: t('Dashboards')}}
@@ -691,6 +696,9 @@ export function GlobalCommandPaletteActions() {
                 'SENTRY_DSN',
                 'Sentry DSN',
                 'NEXT_PUBLIC_SENTRY_DSN',
+                'EXPO_PUBLIC_SENTRY_DSN',
+                t('rate limit'),
+                t('rate limits'),
                 project.slug,
               ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
