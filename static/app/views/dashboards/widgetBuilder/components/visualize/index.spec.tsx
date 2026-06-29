@@ -1546,6 +1546,13 @@ describe('Visualize', () => {
       // fetched attribute shows up as an option.
       await userEvent.type(screen.getByPlaceholderText('Search…'), 'cold');
       expect(await screen.findByText('measurements.app_start_cold')).toBeInTheDocument();
+
+      // Closing and reopening resets the search, so the previously fetched
+      // attribute should not linger in the options when there is no query.
+      await userEvent.keyboard('{Escape}');
+      await userEvent.click(screen.getByRole('button', {name: 'Column Selection'}));
+      expect(await screen.findByText('span.duration')).toBeInTheDocument();
+      expect(screen.queryByText('measurements.app_start_cold')).not.toBeInTheDocument();
     });
 
     it('differentiates between function and column values in selection', async () => {

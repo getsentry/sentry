@@ -610,6 +610,15 @@ export function SelectRow({
                   }
                 : true
             }
+            // CompactSelect clears its own search input on close but doesn't
+            // notify us, so reset our search state too. Otherwise the stale term
+            // keeps the previously fetched attributes merged into the options on
+            // reopen, even though the (cleared) input shows no query.
+            onOpenChange={isOpen => {
+              if (!isOpen) {
+                setSearch('');
+              }
+            }}
             loading={isSearchLoading}
             emptyMessage={
               isSearchLoading
