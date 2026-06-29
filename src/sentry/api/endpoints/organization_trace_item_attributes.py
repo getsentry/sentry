@@ -9,7 +9,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_conventions.attributes import ATTRIBUTE_METADATA
+from sentry_conventions.attributes import ATTRIBUTE_METADATA, AttributeMetadata
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
@@ -66,6 +66,7 @@ from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.preprod_size.definitions import PREPROD_SIZE_DEFINITIONS
 from sentry.search.eap.processing_errors.definitions import PROCESSING_ERROR_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.sentry_attribute_metadata import SENTRY_ATTRIBUTE_METADATA
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import (
@@ -310,33 +311,23 @@ _CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, str] = {
 }
 
 
-def build_sentry_convention_context(
-    public_name: str,
-    internal_name: str,
-    attribute_type: Literal["string", "number", "boolean"] | None = None,
+def _metadata_to_context(
+    metadata: AttributeMetadata,
+    attribute_type: Literal["string", "number", "boolean"] | None,
+    *,
+    is_convention: bool,
 ) -> TraceItemAttributeContext | None:
     """
-    Build the sentry conventions context for an attribute, if it maps to a known
-    convention. Only fields actually present in the conventions metadata are
-    included.
+    Build the serialized context from an ``AttributeMetadata`` entry. Only fields
+    actually present in the metadata are included.
 
-    A convention may be keyed in ``ATTRIBUTE_METADATA`` by either the public
-    alias or the internal name (see
-    ``_update_attribute_definitions_with_deprecations`` in
-    ``search/eap/spans/attributes.py``), so we try the public name first and
-    fall back to the internal name. The lookup is purely by name and does not
-    depend on the attribute's source, so conventions defined in
-    ``sentry_conventions`` but not in ``attributes.py`` (e.g. ``http.route``)
-    still resolve.
+    When ``attribute_type`` is provided, the metadata only matches if its
+    expected type is compatible, so an attribute that merely shares a name with a
+    definition but has a different type isn't treated as that definition.
 
-    When ``attribute_type`` is provided, the convention only matches if its
-    expected type is compatible, so a custom attribute that merely shares a name
-    with a convention but has a different type isn't treated as that convention.
+    ``is_convention`` records whether the metadata comes from a sentry convention
+    (vs. a Sentry-defined attribute that isn't a convention).
     """
-    metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(internal_name)
-    if metadata is None:
-        return None
-
     if attribute_type is not None:
         expected_type = _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value)
         if expected_type is not None and expected_type != attribute_type:
@@ -344,10 +335,9 @@ def build_sentry_convention_context(
 
     deprecation = metadata.deprecation
 
-    # isConvention, brief and isDeprecated are always present for a known
-    # convention.
+    # isConvention, brief and isDeprecated are always present.
     context: TraceItemAttributeContext = {
-        "isConvention": True,
+        "isConvention": is_convention,
         "brief": metadata.brief,
         "isDeprecated": bool(
             deprecation is not None and (deprecation.status is not None or deprecation.replacement)
@@ -372,6 +362,48 @@ def build_sentry_convention_context(
         context["replacementAttribute"] = deprecation.replacement
 
     return context
+
+
+def build_sentry_convention_context(
+    public_name: str,
+    internal_name: str,
+    attribute_type: Literal["string", "number", "boolean"] | None = None,
+) -> TraceItemAttributeContext | None:
+    """
+    Build the sentry conventions context for an attribute, if it maps to a known
+    convention.
+
+    A convention may be keyed in ``ATTRIBUTE_METADATA`` by either the public
+    alias or the internal name (see
+    ``_update_attribute_definitions_with_deprecations`` in
+    ``search/eap/spans/attributes.py``), so we try the public name first and
+    fall back to the internal name. The lookup is purely by name and does not
+    depend on the attribute's source, so conventions defined in
+    ``sentry_conventions`` but not in ``attributes.py`` (e.g. ``http.route``)
+    still resolve.
+    """
+    metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(internal_name)
+    if metadata is None:
+        return None
+    return _metadata_to_context(metadata, attribute_type, is_convention=True)
+
+
+def build_sentry_attribute_context(
+    public_name: str,
+    internal_name: str,
+    attribute_type: Literal["string", "number", "boolean"] | None,
+    item_type: SupportedTraceItemType,
+) -> TraceItemAttributeContext | None:
+    """
+    Build context for a Sentry-defined attribute that isn't a sentry convention
+    (e.g. ``span.description``). These resolve with ``isConvention=False``;
+    clients distinguish them from conventions via ``source_type == sentry``.
+    """
+    by_name = SENTRY_ATTRIBUTE_METADATA.get(item_type, {})
+    metadata = by_name.get(public_name) or by_name.get(internal_name)
+    if metadata is None:
+        return None
+    return _metadata_to_context(metadata, attribute_type, is_convention=False)
 
 
 def as_attribute_key(
@@ -434,8 +466,10 @@ def as_attribute_key(
         # `http.route` -- is missing from it and resolves as a `user` source
         # attribute. Anything without a matching convention gets an empty context
         # for now; serving custom attribute context is planned.
-        context = build_sentry_convention_context(public_name, name, attr_type) or {}
-        attribute_key["context"] = context
+        context = build_sentry_convention_context(
+            public_name, name, attr_type
+        ) or build_sentry_attribute_context(public_name, name, attr_type, item_type)
+        attribute_key["context"] = context or {}
 
     return attribute_key
 
@@ -650,6 +684,18 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                                 )
                             )
                 else:
+                    # Always include curated Sentry-defined attributes (e.g.
+                    # span.description) so they aren't paged out past the RPC's
+                    # attribute-name limit. They carry context and source_type=sentry.
+                    for public_alias in SENTRY_ATTRIBUTE_METADATA.get(trace_item_type, {}):
+                        always_include_column = column_definitions.columns.get(public_alias)
+                        if (
+                            always_include_column is not None
+                            and always_include_column.proto_type == attr_type
+                            and not always_include_column.secondary_alias
+                            and not always_include_column.private
+                        ):
+                            all_aliased_attributes.append(always_include_column)
                     for (
                         public_label,
                         virtual_context,
