@@ -105,4 +105,46 @@ describe('ConversationsLayout', () => {
     expect(params.has('start')).toBe(false);
     expect(params.has('end')).toBe(false);
   });
+
+  it('refreshes restored filters when re-opening the same conversation', async () => {
+    const organization = OrganizationFixture({
+      features: ['performance-view', 'gen-ai-conversations'],
+    });
+    const detailPathname = `/organizations/${organization.slug}/explore/conversations/6c5b72fc/`;
+
+    const {router} = render(
+      <TopBar.Slot.Provider>
+        <div data-test-id="top-bar-container">
+          <TopBar />
+        </div>
+        <ConversationsLayout />
+      </TopBar.Slot.Provider>,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/explore/conversations/:conversationId/',
+          location: {
+            pathname: detailPathname,
+            state: {conversationsListQuery: {statsPeriod: '7d'}},
+          },
+        },
+      }
+    );
+
+    const topBar = screen.getByTestId('top-bar-container');
+    expect(
+      await within(topBar).findByRole('link', {name: 'Conversations'})
+    ).toHaveAttribute('href', expect.stringContaining('statsPeriod=7d'));
+
+    // Re-open the same conversation with a different list query (e.g. the user
+    // changed filters on the list before clicking back in).
+    router.navigate(detailPathname, {
+      state: {conversationsListQuery: {statsPeriod: '14d', query: 'foo:bar'}},
+    });
+
+    const link = await within(topBar).findByRole('link', {name: 'Conversations'});
+    const params = new URLSearchParams(link.getAttribute('href')!.split('?')[1]);
+    expect(params.get('statsPeriod')).toBe('14d');
+    expect(params.get('query')).toBe('foo:bar');
+  });
 });

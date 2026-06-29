@@ -147,7 +147,11 @@ function useRestoredListQuery(
   const cache = useRef<{conversationId?: string; query?: Location['query']}>({});
   const listQueryFromState = getConversationsListQueryFromState(state);
 
-  if (listQueryFromState && cache.current.conversationId !== conversationId) {
+  // Fresh state always wins, so re-opening the same conversation with new
+  // filters refreshes the cache. When the state is absent (an in-page nuqs
+  // `replace`), keep the cached query as long as we're on the same
+  // conversation; otherwise fall back to the default.
+  if (listQueryFromState) {
     cache.current = {conversationId, query: listQueryFromState};
   }
 
