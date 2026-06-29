@@ -43,5 +43,4 @@ class DebugFileSerializer(Serializer[DebugFileSerializerResponse]):
             "sha1": obj.get_checksum(),
             "dateCreated": obj.get_date_created(),
             "data": obj.data or {},
-            "storage_path": obj.storage_path,
         }
