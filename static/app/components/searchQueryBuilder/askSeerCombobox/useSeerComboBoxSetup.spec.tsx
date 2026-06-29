@@ -278,6 +278,84 @@ describe('mapSeerResponseItem', () => {
       visualizations: [{yAxes: ['count()']}],
     });
   });
+
+  it('attaches span and log cross-events from Seer sibling queries', () => {
+    expect(
+      mapSeerResponseItem({
+        query: 'span.op:db',
+        sort: '',
+        group_by: [],
+        stats_period: '24h',
+        start: null,
+        end: null,
+        mode: 'samples',
+        span_query: 'span.description:*pool*',
+        log_query: 'severity:error',
+      })
+    ).toEqual(
+      expect.objectContaining({
+        crossEvents: [
+          {type: 'spans', query: 'span.description:*pool*'},
+          {type: 'logs', query: 'severity:error'},
+        ],
+      })
+    );
+  });
+
+  it('parses a metric cross-event from metric_query', () => {
+    expect(
+      mapSeerResponseItem({
+        query: 'span.op:db',
+        sort: '',
+        group_by: [],
+        stats_period: '24h',
+        start: null,
+        end: null,
+        mode: 'samples',
+        metric_query:
+          'metric.name:foo.duration metric.type:distribution metric.unit:millisecond value:>100',
+      })
+    ).toEqual(
+      expect.objectContaining({
+        crossEvents: [
+          {
+            type: 'metrics',
+            query: 'value:>100',
+            metric: {name: 'foo.duration', type: 'distribution', unit: 'millisecond'},
+          },
+        ],
+      })
+    );
+  });
+
+  it('drops an aggregate-mode metric cross-event with no parseable identity', () => {
+    expect(
+      mapSeerResponseItem({
+        query: 'span.op:db',
+        sort: '',
+        group_by: [],
+        stats_period: '24h',
+        start: null,
+        end: null,
+        mode: 'samples',
+        metric_query: 'value:>100',
+      })
+    ).not.toHaveProperty('crossEvents');
+  });
+
+  it('omits crossEvents when there are no sibling queries', () => {
+    expect(
+      mapSeerResponseItem({
+        query: 'span.op:db',
+        sort: '',
+        group_by: [],
+        stats_period: '24h',
+        start: null,
+        end: null,
+        mode: 'samples',
+      })
+    ).not.toHaveProperty('crossEvents');
+  });
 });
 
 describe('buildSeerDateTimeSelection', () => {
