@@ -151,8 +151,8 @@ export type PendingUserInput = {
 
 export interface ReauthMonitoringProviderData {
   auth_method: 'oauth' | 'pat';
+  identity_id: number;
   provider_key: string;
-  identity_id?: number;
 }
 
 export type SeerExplorerRunId = number | string;
