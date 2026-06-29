@@ -10,7 +10,7 @@ import {useEffect, useState} from 'react';
  * For width-based checks (`min-width`/`max-width`), prefer scraps responsive
  * props (`<Flex responsiveTo="container" direction={{...}} />`) or, when you
  * need the resolved value in JS, `useContainerBreakpoint(ref)` from
- * `sentry/components/core/layout/styles`. Those react to an element's available
+ * `@sentry/scraps/layout`. Those react to an element's available
  * space rather than the raw viewport, which is almost always what width checks
  * actually want.
  */

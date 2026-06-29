@@ -1,4 +1,4 @@
-import type React from 'react';
+import React, {useMemo} from 'react';
 import {useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
@@ -82,7 +82,10 @@ interface ContainerLayoutProps {
    * Prefer `inline-size`: it only contains the inline (width) axis, so height
    * still flows from content. `size` additionally contains the block axis, so
    * the element must get its height from elsewhere or its content collapses —
-   * only reach for it when you genuinely need height-based queries.
+   * only reach for it when you genuinely need height-based queries. `normal`
+   * (the default) means the element is not a size query container, so
+   * descendants resolve `responsiveTo="container"` against the next container
+   * up — equivalent to omitting the prop.
    */
   containerType?: 'inline-size' | 'size' | 'normal';
   /**
@@ -305,12 +308,12 @@ export const Container = styled(
     // common (non-container) path free of any ResizeObserver overhead.
     const isContainer = !!containerType && containerType !== 'normal';
 
-    const node = (
-      <Component
-        {...(rest as any)}
-        ref={isContainer ? mergeRefs(ref as React.Ref<any>, containerRef) : ref}
-      />
+    const containerRefs = useMemo(
+      () => (isContainer ? mergeRefs(ref as React.Ref<any>, containerRef) : ref),
+      [isContainer, ref]
     );
+
+    const node = <Component {...(rest as any)} ref={containerRefs} />;
 
     if (isContainer) {
       return (
