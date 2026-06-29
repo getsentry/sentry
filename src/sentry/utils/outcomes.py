@@ -6,13 +6,18 @@ import time
 from collections import namedtuple
 from datetime import datetime, timedelta
 from enum import IntEnum
+from functools import partial
 from threading import Lock
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
+from django.conf import settings
+from taskbroker_client.worker.producer import TaskProducer
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
+from sentry.options.rollout import in_random_rollout
+from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.dates import to_datetime
@@ -159,22 +164,30 @@ class Outcome(IntEnum):
         return self in (Outcome.ACCEPTED, Outcome.RATE_LIMITED)
 
 
-def _get_outcomes_producer() -> KafkaProducer:
+def _get_outcomes_producer(name: str = "sentry.utils.outcomes") -> KafkaProducer:
     return get_arroyo_producer(
-        "sentry.utils.outcomes",
+        name,
         Topic.OUTCOMES,
     )
 
 
-def _get_billing_producer() -> KafkaProducer:
+def _get_billing_producer(name: str = "sentry.utils.outcomes.billing") -> KafkaProducer:
     return get_arroyo_producer(
-        "sentry.utils.outcomes.billing",
+        name,
         Topic.OUTCOMES_BILLING,
     )
 
 
 outcomes_producer = SingletonProducer(_get_outcomes_producer)
+outcomes_tp_name = "sentry.utils.outcomes.taskproducer"
+outcomes_task_producer = get_task_producer(
+    outcomes_tp_name, partial(_get_outcomes_producer, outcomes_tp_name)
+)
 billing_producer = SingletonProducer(_get_billing_producer)
+billing_tp_name = "sentry.utils.outcomes.billing.taskproducer"
+billing_task_producer = get_task_producer(
+    billing_tp_name, partial(_get_billing_producer, billing_tp_name)
+)
 
 LATE_OUTCOME_THRESHOLD = timedelta(days=1)
 
@@ -219,9 +232,19 @@ def track_outcome(
     # Create a second producer instance only if the cluster differs. Otherwise,
     # reuse the same producer and just send to the other topic.
     if use_billing and billing_config["cluster"] != outcomes_config["cluster"]:
-        producer = billing_producer
+        if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
+            "tasks.producer.track_outcome.rollout"
+        ):
+            producer: SingletonProducer | TaskProducer = billing_task_producer
+        else:
+            producer = billing_producer
     else:
-        producer = outcomes_producer
+        if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
+            "tasks.producer.track_outcome.rollout"
+        ):
+            producer = outcomes_task_producer
+        else:
+            producer = outcomes_producer
 
     now = to_datetime(time.time())
     timestamp = timestamp or now

@@ -4,21 +4,22 @@ import logging
 from collections.abc import Iterator
 from typing import IO
 
-from django.conf import settings
 from django.http import HttpResponseBase, StreamingHttpResponse
 from drf_spectacular.utils import extend_schema
 from objectstore_client import RequestError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.auth.staff import is_active_staff
+from sentry.issues.action_log import resolve_action_source
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
+from sentry.preprod.analytics import PreprodArtifactApiSnapshotArchiveDownloadEvent
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 from sentry.preprod.snapshots.zip_builder import archive_exists, archive_object_key
@@ -65,11 +66,6 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
     def _resolve(
         self, request: Request, organization: Organization, snapshot_id: str
     ) -> tuple[PreprodArtifact, PreprodSnapshotMetrics] | Response:
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         try:
             artifact = PreprodArtifact.objects.select_related("project").get(
                 id=snapshot_id, project__organization_id=organization.id
@@ -126,6 +122,17 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
         artifact, _metrics = resolved
 
         if request.GET.get("download") is not None:
+            analytics.record(
+                PreprodArtifactApiSnapshotArchiveDownloadEvent(
+                    organization_id=organization.id,
+                    project_id=artifact.project_id,
+                    user_id=(
+                        request.user.id if request.user and request.user.is_authenticated else None
+                    ),
+                    artifact_id=str(artifact.id),
+                    client=resolve_action_source(request),
+                )
+            )
             return self._download(artifact)
 
         # Readiness probe (no side effect): lets the UI download a ready archive

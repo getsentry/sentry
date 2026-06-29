@@ -38,7 +38,7 @@ export function ChooseYourBillingCycle({
       <Grid columns={{xs: '1fr', lg: `repeat(${intervalOptions.length}, 1fr)`}} gap="lg">
         {intervalOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
-          const isAnnual = plan.contractInterval === ANNUAL;
+          const isAnnual = plan.billingInterval === ANNUAL;
           const priceAfterDiscount = utils.getReservedPriceCents({
             plan,
             reserved: formData.reserved,

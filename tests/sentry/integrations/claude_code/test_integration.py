@@ -412,6 +412,68 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert fields["workspace_is_default"]["type"] == "boolean"
         assert "workspace_name" not in fields
 
+    # ── uninstall ────────────────────────────────────────────────────
+
+    def test_uninstall_archives_each_vault_and_clears_metadata(self) -> None:
+        installation = self._create_installation(
+            installation_vault_ids={"42": "vault_a", "7": "vault_b"},
+        )
+        mock_cls, mock_client = _mock_client_class()
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            installation.uninstall()
+
+        archive_calls = [c.args[0] for c in mock_client.archive_vault.call_args_list]
+        assert sorted(archive_calls) == ["vault_a", "vault_b"]
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.get(id=installation.model.id)
+        assert integration.metadata["installation_vault_ids"] == {}
+
+    def test_uninstall_no_vaults_is_a_noop(self) -> None:
+        installation = self._create_installation()
+        mock_cls, mock_client = _mock_client_class()
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            installation.uninstall()
+
+        mock_client.archive_vault.assert_not_called()
+
+    def test_uninstall_clears_metadata_even_when_archive_fails(self) -> None:
+        installation = self._create_installation(
+            installation_vault_ids={"42": "vault_a"},
+        )
+        mock_cls, mock_client = _mock_client_class()
+        mock_client.archive_vault.side_effect = RuntimeError("anthropic api blew up")
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            installation.uninstall()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.get(id=installation.model.id)
+        assert integration.metadata["installation_vault_ids"] == {}
+
+    def test_uninstall_concurrent_vault_write_during_archive_is_preserved(self) -> None:
+        """A vault written by a concurrent session while archive_vault() runs must not be lost."""
+        installation = self._create_installation(
+            installation_vault_ids={"42": "vault_a"},
+        )
+        mock_cls, mock_client = _mock_client_class()
+
+        def archive_with_concurrent_write(vault_id):
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                fresh = Integration.objects.get(id=installation.model.id)
+                fresh.metadata["installation_vault_ids"]["99"] = "vault_new"
+                fresh.save()
+
+        mock_client.archive_vault.side_effect = archive_with_concurrent_write
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            installation.uninstall()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.get(id=installation.model.id)
+        assert integration.metadata["installation_vault_ids"] == {"99": "vault_new"}
+
     # ── launch ───────────────────────────────────────────────────────
 
     def _setup_launch(

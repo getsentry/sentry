@@ -154,3 +154,63 @@ class ReviewThreadPayload(BaseActivityPayload):
     # GitHub node_id of the review thread (the thread object has no numeric id).
     thread_id: str = ""
     is_resolved: bool = False
+
+
+@dataclass
+class CheckSuiteCompletedPayload(BaseActivityPayload):
+    action: str = "completed"
+    # Aggregate outcome of the suite: "success", "failure", "neutral",
+    # "cancelled", "timed_out", "action_required", "stale", "skipped",
+    # "startup_failure". The judge's "was CI green or red at close" signal.
+    conclusion: str = ""
+    # Slug of the GitHub App that owns the suite (e.g. "github-actions") —
+    # a bounded identifier for the CI provider, never the check's display name.
+    app_slug: str = ""
+    check_runs_count: int = 0
+
+
+@dataclass
+class CheckRunCompletedPayload(BaseActivityPayload):
+    action: str = "completed"
+    # Name of the individual check (e.g. "build", "test (3.11)"). A structural
+    # label like a status context, not free-form text.
+    check_name: str = ""
+    # Outcome of this run: same vocabulary as CheckSuiteCompletedPayload.conclusion.
+    conclusion: str = ""
+    app_slug: str = ""
+
+
+@dataclass
+class ReviewDismissedPayload(BaseActivityPayload):
+    action: str = "dismissed"
+    # Numeric id of the dismissed review. The dismissed payload reports the review
+    # state only as "dismissed", so the id is what lets the judge correlate this
+    # back to the earlier review_submitted row to see what was undone (an approval
+    # or a changes-request).
+    review_id: int = 0
+
+
+@dataclass
+class AutoMergeEnabledPayload(BaseActivityPayload):
+    action: str = "auto_merge_enabled"
+    # "merge", "squash", or "rebase" — a bounded enum; the auto-merge commit
+    # title/message are deliberately excluded.
+    merge_method: str = ""
+
+
+@dataclass
+class AutoMergeDisabledPayload(BaseActivityPayload):
+    action: str = "auto_merge_disabled"
+
+
+@dataclass
+class EnqueuedPayload(BaseActivityPayload):
+    action: str = "enqueued"
+
+
+@dataclass
+class DequeuedPayload(BaseActivityPayload):
+    action: str = "dequeued"
+    # Why GitHub removed the PR from the merge queue (e.g. "MERGE", "CI_FAILURE",
+    # "MERGE_CONFLICT", "MANUAL"). A bounded enum carrying the merge-intent signal.
+    reason: str = ""

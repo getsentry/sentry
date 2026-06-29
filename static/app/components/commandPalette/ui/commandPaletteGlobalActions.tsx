@@ -1114,6 +1114,25 @@ export function GlobalCommandPaletteActions() {
           }}
         />
       )}
+
+      {user.isStaff &&
+        (window.localStorage?.getItem('DEBUG_ANALYTICS') === '1' ? (
+          <CMDKAction
+            display={{label: 'Disable Analytics Debug Mode', icon: <IconOpen />}}
+            keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
+            onAction={() => {
+              window.localStorage?.setItem('DEBUG_ANALYTICS', '0');
+            }}
+          />
+        ) : (
+          <CMDKAction
+            display={{label: 'Enable Analytics Debug Mode', icon: <IconOpen />}}
+            keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
+            onAction={() => {
+              window.localStorage?.setItem('DEBUG_ANALYTICS', '1');
+            }}
+          />
+        ))}
     </CommandPaletteSlot>
   );
 }
