@@ -8,19 +8,22 @@ import {Count} from 'sentry/components/count';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tn} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import type {ConversationToolUsage} from 'sentry/views/explore/conversations/hooks/useConversationToolBreakdown';
+import {useConversationToolBreakdown} from 'sentry/views/explore/conversations/hooks/useConversationToolBreakdown';
 
 interface ConversationToolCallsBreakdownProps {
-  data: ConversationToolUsage[];
-  error: unknown;
-  isLoading: boolean;
+  conversationId: string;
 }
 
 export function ConversationToolCallsBreakdown({
-  data,
-  error,
-  isLoading,
+  conversationId,
 }: ConversationToolCallsBreakdownProps) {
+  // Fetch when the card mounts. The tooltip only mounts its content while open,
+  // so this covers both hover and keyboard focus without coupling to row hover.
+  const {data, isLoading, error} = useConversationToolBreakdown({
+    conversationId,
+    enabled: true,
+  });
+
   if (isLoading) {
     return (
       <Flex justify="center">

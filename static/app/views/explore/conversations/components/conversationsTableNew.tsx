@@ -333,9 +333,11 @@ function ToolCallsCell({
   dataRow: Conversation;
   isRowHovered: boolean;
 }) {
-  // Prefetch the per-tool breakdown as soon as the row is hovered, so the card
-  // is already populated by the time the cursor reaches the count.
-  const {data, isLoading, error} = useConversationToolBreakdown({
+  // Prefetch the breakdown on row hover so the card is already populated by the
+  // time it opens. Shares the card's query key, so this only warms the cache —
+  // it never fires a second request. The card fetches on its own when opened
+  // (covers keyboard focus and hovering into the interactive card).
+  useConversationToolBreakdown({
     conversationId: dataRow.conversationId,
     enabled: isRowHovered && dataRow.toolCalls > 0,
   });
@@ -352,13 +354,7 @@ function ToolCallsCell({
     <Text as="div">
       <InfoText
         maxWidth={400}
-        title={
-          <ConversationToolCallsBreakdown
-            data={data}
-            isLoading={isLoading}
-            error={error}
-          />
-        }
+        title={<ConversationToolCallsBreakdown conversationId={dataRow.conversationId} />}
       >
         <Count value={dataRow.toolCalls} />
       </InfoText>
