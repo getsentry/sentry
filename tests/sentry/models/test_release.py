@@ -126,6 +126,19 @@ class GetOrCreateNoCreateTest(TestCase):
         assert release is not None
         assert release.id == existing.id
 
+    def test_associates_existing_org_release_with_project(self) -> None:
+        # A release that exists in the org but is linked to a different project is
+        # associated with the ingesting project, not skipped.
+        other_project = self.create_project(organization=self.org, name="bar")
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(other_project)
+        assert not existing.projects.filter(id=self.project.id).exists()
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+        assert release.projects.filter(id=self.project.id).exists()
+
 
 class MergeReleasesTest(TestCase):
     @receivers_raise_on_send()
