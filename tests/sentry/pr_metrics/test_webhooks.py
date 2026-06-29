@@ -253,6 +253,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
@@ -453,6 +454,7 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
@@ -1042,6 +1044,7 @@ class HandleCommentForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.ISSUE_COMMENT,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
@@ -1226,6 +1229,7 @@ class HandleReviewForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST_REVIEW,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
@@ -1331,6 +1335,7 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
@@ -1429,6 +1434,7 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST_REVIEW_THREAD,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
