@@ -70,6 +70,7 @@ export const LLM_ONBOARDING_COPY_MARKDOWN = `
 > The setup steps above contain the correct DSN and project-specific SDK configuration — complete them first.
 > Then follow the skill references below for instrumentation and agent naming.
 > If the app has multi-turn chats, set a conversation ID for each chat so Sentry can send the gen_ai.conversation.id attribute and show the session in Conversations.
+> Also call setUser (JS) / sentry_sdk.set_user (Python) once per request or session so conversations are attributed to users in the Conversations view.
 
 # Instrument Sentry AI Agent Monitoring
 

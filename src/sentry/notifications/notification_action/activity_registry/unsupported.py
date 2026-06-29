@@ -1,9 +1,6 @@
 import logging
 
 from sentry.models.activity import Activity
-from sentry.notifications.notification_action.activity_registry.base import (
-    NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES,
-)
 from sentry.notifications.notification_action.registry import activity_handler_registry
 from sentry.notifications.notification_action.types import ActivityHandler
 from sentry.types.activity import ActivityType
@@ -20,11 +17,9 @@ logger = logging.getLogger(__name__)
 @activity_handler_registry.register(Action.Type.JIRA)
 @activity_handler_registry.register(Action.Type.JIRA_SERVER)
 @activity_handler_registry.register(Action.Type.AZURE_DEVOPS)
-@activity_handler_registry.register(Action.Type.SENTRY_APP)
 @activity_handler_registry.register(Action.Type.PLUGIN)
-@activity_handler_registry.register(Action.Type.WEBHOOK)
 class UnsupportedActivityHandler(ActivityHandler):
-    compatible_activity_types = NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES
+    compatible_activity_types = [ActivityType(key) for key in ActivityType]
 
     @classmethod
     def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:

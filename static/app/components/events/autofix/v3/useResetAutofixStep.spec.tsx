@@ -1,5 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import type {
@@ -105,7 +103,7 @@ describe('useResetAutofixStep', () => {
       expect(result.current.canReset).toBe(false);
     });
 
-    it('allows code_changes reset after a PR only with the autofix-pr-iteration feature', () => {
+    it('uses the canReset override when provided', () => {
       const autofix = makeAutofix({
         runState: {
           run_id: 1,
@@ -129,17 +127,20 @@ describe('useResetAutofixStep', () => {
         },
       });
 
-      const withoutFeature = renderHookWithProviders(() =>
+      const withoutOverride = renderHookWithProviders(() =>
         useResetAutofixStep({autofix, section: makeSection(), step: 'code_changes'})
       );
-      expect(withoutFeature.result.current.canReset).toBe(false);
+      expect(withoutOverride.result.current.canReset).toBe(false);
 
-      const withFeature = renderHookWithProviders(
-        () =>
-          useResetAutofixStep({autofix, section: makeSection(), step: 'code_changes'}),
-        {organization: OrganizationFixture({features: ['autofix-pr-iteration']})}
+      const withOverride = renderHookWithProviders(() =>
+        useResetAutofixStep({
+          autofix,
+          canReset: true,
+          section: makeSection(),
+          step: 'code_changes',
+        })
       );
-      expect(withFeature.result.current.canReset).toBe(true);
+      expect(withOverride.result.current.canReset).toBe(true);
     });
 
     it('returns false when coding agents have been started', () => {

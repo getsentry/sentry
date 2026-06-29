@@ -58,7 +58,6 @@ export function useUpgradeNowParams({organization, subscription, enabled = true}
         plan.basePrice &&
         plan.userSelectable &&
         plan.billingInterval === subscription.billingInterval &&
-        plan.contractInterval === subscription.contractInterval &&
         plan.name === subscription.planDetails?.name
     );
 

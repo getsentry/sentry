@@ -1,4 +1,4 @@
-import {Component, isValidElement} from 'react';
+import {isValidElement, memo, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import type {
@@ -100,46 +100,37 @@ type ChartProps = {
   topEvents?: number;
 };
 
-type State = {
-  forceUpdate: boolean;
-  seriesSelection: Record<string, boolean>;
-};
+function Chart({
+  theme,
+  loading: _loading,
+  reloading: _reloading,
+  yAxis,
+  releaseSeries,
+  zoomRenderProps,
+  timeseriesData,
+  previousTimeseriesData,
+  showLegend,
+  legendOptions,
+  chartOptions: chartOptionsProp,
+  currentSeriesNames,
+  previousSeriesNames,
+  seriesTransformer,
+  previousSeriesTransformer,
+  colors,
+  height,
+  timeframe,
+  topEvents,
+  timeseriesResultsTypes,
+  additionalSeries,
+  showDaily,
+  chartComponent,
+  forceChartType,
+  disableableSeries = [],
+  ...props
+}: ChartProps) {
+  const [seriesSelection, setSeriesSelection] = useState<Record<string, boolean>>({});
 
-class Chart extends Component<ChartProps, State> {
-  state: State = {
-    seriesSelection: {},
-    forceUpdate: false,
-  };
-
-  shouldComponentUpdate(nextProps: ChartProps, nextState: State) {
-    if (nextState.forceUpdate) {
-      return true;
-    }
-
-    if (!isEqual(this.state.seriesSelection, nextState.seriesSelection)) {
-      return true;
-    }
-
-    if (nextProps.reloading || !nextProps.timeseriesData) {
-      return false;
-    }
-
-    if (
-      isEqual(this.props.timeseriesData, nextProps.timeseriesData) &&
-      isEqual(this.props.releaseSeries, nextProps.releaseSeries) &&
-      isEqual(this.props.previousTimeseriesData, nextProps.previousTimeseriesData) &&
-      isEqual(this.props.tableData, nextProps.tableData) &&
-      isEqual(this.props.additionalSeries, nextProps.additionalSeries)
-    ) {
-      return false;
-    }
-
-    return true;
-  }
-
-  getChartComponent(): ChartComponent {
-    const {showDaily, timeseriesData, yAxis, chartComponent, forceChartType} = this.props;
-
+  function getChartComponent(): ChartComponent {
     if (defined(chartComponent)) {
       return chartComponent;
     }
@@ -162,10 +153,9 @@ class Chart extends Component<ChartProps, State> {
     return AreaChart;
   }
 
-  handleLegendSelectChanged = (legendChange: any) => {
-    const {disableableSeries = []} = this.props;
+  function handleLegendSelectChanged(legendChange: any) {
     const {selected} = legendChange;
-    const seriesSelection = Object.keys(selected).reduce<Record<string, boolean>>(
+    const newSeriesSelection = Object.keys(selected).reduce<Record<string, boolean>>(
       (state, key) => {
         // we only want them to be able to disable the Releases&Other series,
         // and not any of the other possible series here
@@ -177,179 +167,161 @@ class Chart extends Component<ChartProps, State> {
       {}
     );
 
-    // we have to force an update here otherwise ECharts will
-    // update its internal state and disable the series
-    this.setState({seriesSelection, forceUpdate: true}, () =>
-      this.setState({forceUpdate: false})
-    );
-  };
+    setSeriesSelection(newSeriesSelection);
+  }
 
-  render() {
-    const {
-      theme,
-      loading: _loading,
-      reloading: _reloading,
-      yAxis,
-      releaseSeries,
-      zoomRenderProps,
-      timeseriesData,
-      previousTimeseriesData,
-      showLegend,
-      legendOptions,
-      chartOptions: chartOptionsProp,
-      currentSeriesNames,
-      previousSeriesNames,
-      seriesTransformer,
-      previousSeriesTransformer,
-      colors,
-      height,
-      timeframe,
-      topEvents,
-      timeseriesResultsTypes,
-      additionalSeries,
-      ...props
-    } = this.props;
-    const {seriesSelection} = this.state;
+  const ChartComponent = getChartComponent();
 
-    const ChartComponent = this.getChartComponent();
+  const data = [
+    ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
+    ...(additionalSeries ? additionalSeries.map(series => series.name as string) : []),
+  ];
 
-    const data = [
-      ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
-      ...(additionalSeries ? additionalSeries.map(series => series.name as string) : []),
-    ];
-
-    if (defined(previousTimeseriesData)) {
-      data.push(
-        ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')])
-      );
-    }
-
-    const releasesLegend = t('Releases');
-
-    const hasOther = topEvents && topEvents + 1 === timeseriesData.length;
-    if (hasOther) {
-      data.push('Other');
-    }
-
-    if (Array.isArray(releaseSeries) && releaseSeries.length > 0) {
-      data.push(releasesLegend);
-    }
-
-    // Temporary fix to improve performance on pages with a high number of releases.
-    const releases = releaseSeries?.[0];
-    const hideReleasesByDefault =
-      Array.isArray(releaseSeries) &&
-      (releases as any)?.markLine?.data &&
-      (releases as any).markLine.data.length >= RELEASE_LINES_THRESHOLD;
-
-    const selected = Array.isArray(releaseSeries)
-      ? Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
-        ? {[releasesLegend]: false}
-        : seriesSelection
-      : seriesSelection;
-
-    const legend = showLegend
-      ? {
-          right: 16,
-          top: 12,
-          data,
-          selected,
-          ...legendOptions,
-        }
-      : undefined;
-
-    let series = Array.isArray(releaseSeries)
-      ? [...timeseriesData, ...releaseSeries]
-      : timeseriesData;
-    let previousSeries = previousTimeseriesData;
-
-    if (seriesTransformer) {
-      series = seriesTransformer(series);
-    }
-
-    if (previousSeriesTransformer) {
-      previousSeries = previousSeries?.map(prev => previousSeriesTransformer(prev)!);
-    }
-    const chartColors = timeseriesData.length
-      ? (colors?.slice(0, series.length) ??
-        this.props.theme.chart
-          .getColorPalette(timeseriesData.length - 1 - (hasOther ? 1 : 0))
-          .slice())
-      : undefined;
-    if (chartColors?.length && hasOther) {
-      chartColors.push(theme.tokens.content.secondary);
-    }
-    const chartOptions = {
-      colors: chartColors,
-      grid: {
-        left: '24px',
-        right: '24px',
-        top: '32px',
-        bottom: '12px',
-      },
-      seriesOptions: {
-        showSymbol: false,
-      },
-      tooltip: {
-        trigger: 'axis' as const,
-        truncate: 80,
-        valueFormatter: (value: number, label?: string) => {
-          const aggregateName = label
-            ?.replace(/^previous /, '')
-            .split(':')
-            .pop()
-            ?.trim();
-          if (aggregateName) {
-            return timeseriesResultsTypes
-              ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
-              : tooltipFormatter(value, aggregateOutputType(aggregateName));
-          }
-          return tooltipFormatter(value, 'number');
-        },
-      },
-      xAxis: timeframe
-        ? {
-            min: timeframe.start,
-            max: timeframe.end,
-          }
-        : undefined,
-      yAxis: {
-        axisLabel: {
-          color: theme.tokens.content.secondary,
-          formatter: (value: number) => {
-            if (timeseriesResultsTypes) {
-              // Check to see if all series output types are the same. If not, then default to number.
-              const outputType =
-                new Set(Object.values(timeseriesResultsTypes)).size === 1
-                  ? timeseriesResultsTypes[yAxis]!
-                  : 'number';
-              return axisLabelFormatterUsingAggregateOutputType(value, outputType);
-            }
-            return axisLabelFormatter(value, aggregateOutputType(yAxis));
-          },
-        },
-      },
-      ...chartOptionsProp,
-      animation: typeof ChartComponent === typeof BarChart ? false : undefined,
-    };
-
-    return (
-      <ChartComponent
-        {...props}
-        {...zoomRenderProps}
-        {...chartOptions}
-        legend={legend}
-        onLegendSelectChanged={this.handleLegendSelectChanged}
-        series={series}
-        previousPeriod={previousSeries ? previousSeries : undefined}
-        height={height}
-        additionalSeries={additionalSeries}
-      />
+  if (defined(previousTimeseriesData)) {
+    data.push(
+      ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')])
     );
   }
+
+  const releasesLegend = t('Releases');
+
+  const hasOther = topEvents && topEvents + 1 === timeseriesData.length;
+  if (hasOther) {
+    data.push('Other');
+  }
+
+  if (Array.isArray(releaseSeries) && releaseSeries.length > 0) {
+    data.push(releasesLegend);
+  }
+
+  // Temporary fix to improve performance on pages with a high number of releases.
+  const releases = releaseSeries?.[0];
+  const hideReleasesByDefault =
+    Array.isArray(releaseSeries) &&
+    (releases as any)?.markLine?.data &&
+    (releases as any).markLine.data.length >= RELEASE_LINES_THRESHOLD;
+
+  const selected = Array.isArray(releaseSeries)
+    ? Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
+      ? {[releasesLegend]: false}
+      : seriesSelection
+    : seriesSelection;
+
+  const legend = showLegend
+    ? {
+        right: 16,
+        top: 12,
+        data,
+        selected,
+        ...legendOptions,
+      }
+    : undefined;
+
+  let series = Array.isArray(releaseSeries)
+    ? [...timeseriesData, ...releaseSeries]
+    : timeseriesData;
+  let previousSeries = previousTimeseriesData;
+
+  if (seriesTransformer) {
+    series = seriesTransformer(series);
+  }
+
+  if (previousSeriesTransformer) {
+    previousSeries = previousSeries?.map(prev => previousSeriesTransformer(prev)!);
+  }
+  const chartColors = timeseriesData.length
+    ? (colors?.slice(0, series.length) ??
+      theme.chart.getColorPalette(timeseriesData.length - 1 - (hasOther ? 1 : 0)).slice())
+    : undefined;
+  if (chartColors?.length && hasOther) {
+    chartColors.push(theme.tokens.content.secondary);
+  }
+  const chartOptions = {
+    colors: chartColors,
+    grid: {
+      left: '24px',
+      right: '24px',
+      top: '32px',
+      bottom: '12px',
+    },
+    seriesOptions: {
+      showSymbol: false,
+    },
+    tooltip: {
+      trigger: 'axis' as const,
+      truncate: 80,
+      valueFormatter: (value: number, label?: string) => {
+        const aggregateName = label
+          ?.replace(/^previous /, '')
+          .split(':')
+          .pop()
+          ?.trim();
+        if (aggregateName) {
+          return timeseriesResultsTypes
+            ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
+            : tooltipFormatter(value, aggregateOutputType(aggregateName));
+        }
+        return tooltipFormatter(value, 'number');
+      },
+    },
+    xAxis: timeframe
+      ? {
+          min: timeframe.start,
+          max: timeframe.end,
+        }
+      : undefined,
+    yAxis: {
+      axisLabel: {
+        color: theme.tokens.content.secondary,
+        formatter: (value: number) => {
+          if (timeseriesResultsTypes) {
+            // Check to see if all series output types are the same. If not, then default to number.
+            const outputType =
+              new Set(Object.values(timeseriesResultsTypes)).size === 1
+                ? timeseriesResultsTypes[yAxis]!
+                : 'number';
+            return axisLabelFormatterUsingAggregateOutputType(value, outputType);
+          }
+          return axisLabelFormatter(value, aggregateOutputType(yAxis));
+        },
+      },
+    },
+    ...chartOptionsProp,
+    animation: typeof ChartComponent === typeof BarChart ? false : undefined,
+  };
+
+  return (
+    <ChartComponent
+      {...props}
+      {...zoomRenderProps}
+      {...chartOptions}
+      legend={legend}
+      onLegendSelectChanged={handleLegendSelectChanged}
+      series={series}
+      previousPeriod={previousSeries ? previousSeries : undefined}
+      height={height}
+      additionalSeries={additionalSeries}
+    />
+  );
 }
 
-const ThemedChart = withTheme(Chart);
+const ThemedChart = memo(withTheme(Chart), (prevProps, nextProps) => {
+  if (nextProps.reloading || !nextProps.timeseriesData) {
+    return true;
+  }
+
+  if (
+    isEqual(prevProps.timeseriesData, nextProps.timeseriesData) &&
+    isEqual(prevProps.releaseSeries, nextProps.releaseSeries) &&
+    isEqual(prevProps.previousTimeseriesData, nextProps.previousTimeseriesData) &&
+    isEqual(prevProps.tableData, nextProps.tableData) &&
+    isEqual(prevProps.additionalSeries, nextProps.additionalSeries)
+  ) {
+    return true;
+  }
+
+  return false;
+});
 
 export type EventsChartProps = {
   api: Client;
@@ -486,206 +458,200 @@ type ChartDataProps = {
   topEvents?: number;
 };
 
-export class EventsChart extends Component<EventsChartProps> {
-  isStacked() {
-    const {topEvents, yAxis} = this.props;
-    return (
-      (typeof topEvents === 'number' && topEvents > 0) ||
-      (Array.isArray(yAxis) && yAxis.length > 1)
-    );
-  }
+export function EventsChart(props: EventsChartProps) {
+  const {
+    api,
+    organization,
+    period,
+    utc,
+    query,
+    location,
+    start,
+    end,
+    projects,
+    environments,
+    showLegend,
+    minutesThresholdToDisplaySeconds,
+    yAxis,
+    disablePrevious,
+    disableReleases,
+    emphasizeReleases,
+    currentSeriesName: currentName,
+    previousSeriesName: previousName,
+    seriesTransformer,
+    previousSeriesTransformer,
+    field,
+    interval,
+    showDaily,
+    topEvents,
+    orderby,
+    confirmedQuery,
+    colors,
+    chartHeader,
+    legendOptions,
+    chartOptions,
+    preserveReleaseQueryParams,
+    releaseQueryExtra,
+    disableableSeries,
+    chartComponent,
+    usePageZoom,
+    height,
+    fromDiscover,
+    additionalSeries,
+    loadingAdditionalSeries,
+    reloadingAdditionalSeries,
+    dataset,
+    ...restProps
+  } = props;
 
-  render() {
-    const {
-      api,
-      organization,
-      period,
-      utc,
-      query,
-      location,
-      start,
-      end,
-      projects,
-      environments,
-      showLegend,
-      minutesThresholdToDisplaySeconds,
-      yAxis,
-      disablePrevious,
-      disableReleases,
-      emphasizeReleases,
-      currentSeriesName: currentName,
-      previousSeriesName: previousName,
-      seriesTransformer,
-      previousSeriesTransformer,
-      field,
-      interval,
-      showDaily,
-      topEvents,
-      orderby,
-      confirmedQuery,
-      colors,
-      chartHeader,
-      legendOptions,
-      chartOptions,
-      preserveReleaseQueryParams,
-      releaseQueryExtra,
-      disableableSeries,
-      chartComponent,
-      usePageZoom,
-      height,
-      fromDiscover,
-      additionalSeries,
-      loadingAdditionalSeries,
-      reloadingAdditionalSeries,
-      dataset,
-      ...props
-    } = this.props;
+  const isStacked =
+    (typeof topEvents === 'number' && topEvents > 0) ||
+    (Array.isArray(yAxis) && yAxis.length > 1);
 
-    // Include previous only on relative dates (defaults to relative if no start and end)
-    const includePrevious = !disablePrevious && !start && !end;
+  // Include previous only on relative dates (defaults to relative if no start and end)
+  const includePrevious = !disablePrevious && !start && !end;
 
-    const forceChartType = decodeScalar(location.query.forceChartType);
-    const yAxisArray = decodeList(yAxis);
-    const yAxisSeriesNames = yAxisArray.map(name => {
-      const yAxisLabel = name && isEquation(name) ? getEquation(name) : name;
-      return ellipsize(yAxisLabel, 60);
-    });
+  const forceChartType = decodeScalar(location.query.forceChartType);
+  const yAxisArray = decodeList(yAxis);
+  const yAxisSeriesNames = yAxisArray.map(name => {
+    const yAxisLabel = name && isEquation(name) ? getEquation(name) : name;
+    return ellipsize(yAxisLabel, 60);
+  });
 
-    const previousSeriesNames = previousName
-      ? [previousName]
-      : yAxisSeriesNames.map(name => t('previous %s', name));
-    const currentSeriesNames = currentName ? [currentName] : yAxisSeriesNames;
+  const previousSeriesNames = previousName
+    ? [previousName]
+    : yAxisSeriesNames.map(name => t('previous %s', name));
+  const currentSeriesNames = currentName ? [currentName] : yAxisSeriesNames;
 
-    const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, 'high');
+  const intervalVal = showDaily ? '1d' : interval || getInterval(props, 'high');
 
-    let chartImplementation = ({
-      zoomRenderProps,
-      releaseSeries,
-      errored,
-      loading,
-      reloading,
-      results,
-      timeseriesData,
-      previousTimeseriesData,
-      timeframe,
-      tableData,
-      timeseriesResultsTypes,
-    }: ChartDataProps) => {
-      if (errored) {
-        return (
-          <ErrorPanel>
-            <IconWarning variant="muted" size="lg" />
-          </ErrorPanel>
-        );
-      }
-      const seriesData = results ? results : timeseriesData;
-
+  let chartImplementation = ({
+    zoomRenderProps,
+    releaseSeries,
+    errored,
+    loading,
+    reloading,
+    results,
+    timeseriesData,
+    previousTimeseriesData,
+    timeframe,
+    tableData,
+    timeseriesResultsTypes,
+  }: ChartDataProps) => {
+    if (errored) {
       return (
-        <TransitionChart
-          loading={loading}
-          reloading={reloading || !!reloadingAdditionalSeries}
-          height={height ? `${height}px` : undefined}
-        >
-          <TransparentLoadingMask visible={reloading || !!reloadingAdditionalSeries} />
-
-          {isValidElement(chartHeader) && chartHeader}
-
-          <ThemedChart
-            forceChartType={forceChartType}
-            zoomRenderProps={zoomRenderProps}
-            loading={loading || !!loadingAdditionalSeries}
-            reloading={reloading || !!reloadingAdditionalSeries}
-            showLegend={showLegend}
-            minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-            releaseSeries={releaseSeries || []}
-            timeseriesData={seriesData ?? []}
-            previousTimeseriesData={previousTimeseriesData}
-            currentSeriesNames={currentSeriesNames}
-            previousSeriesNames={previousSeriesNames}
-            seriesTransformer={seriesTransformer}
-            additionalSeries={additionalSeries}
-            previousSeriesTransformer={previousSeriesTransformer}
-            stacked={this.isStacked()}
-            yAxis={yAxisArray[0]!}
-            showDaily={showDaily}
-            colors={colors}
-            legendOptions={legendOptions}
-            chartOptions={chartOptions}
-            disableableSeries={disableableSeries}
-            chartComponent={chartComponent}
-            height={height}
-            timeframe={timeframe}
-            topEvents={topEvents}
-            tableData={tableData ?? []}
-            fromDiscover={fromDiscover}
-            timeseriesResultsTypes={timeseriesResultsTypes}
-          />
-        </TransitionChart>
-      );
-    };
-
-    if (!disableReleases) {
-      const previousChart = chartImplementation;
-      chartImplementation = chartProps => (
-        <ReleaseSeries
-          utc={utc}
-          period={period}
-          start={start}
-          end={end}
-          projects={projects}
-          environments={environments}
-          emphasizeReleases={emphasizeReleases}
-          preserveQueryParams={preserveReleaseQueryParams}
-          queryExtra={releaseQueryExtra}
-        >
-          {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
-        </ReleaseSeries>
+        <ErrorPanel>
+          <IconWarning variant="muted" size="lg" />
+        </ErrorPanel>
       );
     }
+    const seriesData = results ? results : timeseriesData;
 
     return (
-      <ChartZoom
+      <TransitionChart
+        loading={loading}
+        reloading={reloading || !!reloadingAdditionalSeries}
+        height={height ? `${height}px` : undefined}
+      >
+        <TransparentLoadingMask visible={reloading || !!reloadingAdditionalSeries} />
+
+        {isValidElement(chartHeader) && chartHeader}
+
+        <ThemedChart
+          forceChartType={forceChartType}
+          zoomRenderProps={zoomRenderProps}
+          loading={loading || !!loadingAdditionalSeries}
+          reloading={reloading || !!reloadingAdditionalSeries}
+          showLegend={showLegend}
+          minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
+          releaseSeries={releaseSeries || []}
+          timeseriesData={seriesData ?? []}
+          previousTimeseriesData={previousTimeseriesData}
+          currentSeriesNames={currentSeriesNames}
+          previousSeriesNames={previousSeriesNames}
+          seriesTransformer={seriesTransformer}
+          additionalSeries={additionalSeries}
+          previousSeriesTransformer={previousSeriesTransformer}
+          stacked={isStacked}
+          yAxis={yAxisArray[0]!}
+          showDaily={showDaily}
+          colors={colors}
+          legendOptions={legendOptions}
+          chartOptions={chartOptions}
+          disableableSeries={disableableSeries}
+          chartComponent={chartComponent}
+          height={height}
+          timeframe={timeframe}
+          topEvents={topEvents}
+          tableData={tableData ?? []}
+          fromDiscover={fromDiscover}
+          timeseriesResultsTypes={timeseriesResultsTypes}
+        />
+      </TransitionChart>
+    );
+  };
+
+  if (!disableReleases) {
+    const previousChart = chartImplementation;
+    chartImplementation = chartProps => (
+      <ReleaseSeries
+        utc={utc}
         period={period}
         start={start}
         end={end}
-        utc={utc}
-        usePageDate={usePageZoom}
-        {...props}
+        projects={projects}
+        environments={environments}
+        emphasizeReleases={emphasizeReleases}
+        preserveQueryParams={preserveReleaseQueryParams}
+        queryExtra={releaseQueryExtra}
       >
-        {zoomRenderProps => {
-          return (
-            <EventsRequest
-              {...props}
-              api={api}
-              organization={organization}
-              period={period}
-              project={projects}
-              environment={environments}
-              start={start}
-              end={end}
-              interval={intervalVal}
-              query={query}
-              includePrevious={includePrevious}
-              currentSeriesNames={currentSeriesNames}
-              previousSeriesNames={previousSeriesNames}
-              yAxis={yAxis}
-              field={field}
-              orderby={orderby}
-              topEvents={topEvents}
-              confirmedQuery={confirmedQuery}
-              partial
-              dataset={dataset}
-            >
-              {eventData => {
-                return chartImplementation({
-                  ...eventData,
-                  zoomRenderProps,
-                });
-              }}
-            </EventsRequest>
-          );
-        }}
-      </ChartZoom>
+        {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
+      </ReleaseSeries>
     );
   }
+
+  return (
+    <ChartZoom
+      period={period}
+      start={start}
+      end={end}
+      utc={utc}
+      usePageDate={usePageZoom}
+      {...restProps}
+    >
+      {zoomRenderProps => {
+        return (
+          <EventsRequest
+            {...restProps}
+            api={api}
+            organization={organization}
+            period={period}
+            project={projects}
+            environment={environments}
+            start={start}
+            end={end}
+            interval={intervalVal}
+            query={query}
+            includePrevious={includePrevious}
+            currentSeriesNames={currentSeriesNames}
+            previousSeriesNames={previousSeriesNames}
+            yAxis={yAxis}
+            field={field}
+            orderby={orderby}
+            topEvents={topEvents}
+            confirmedQuery={confirmedQuery}
+            partial
+            dataset={dataset}
+          >
+            {eventData => {
+              return chartImplementation({
+                ...eventData,
+                zoomRenderProps,
+              });
+            }}
+          </EventsRequest>
+        );
+      }}
+    </ChartZoom>
+  );
 }
