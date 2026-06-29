@@ -24,7 +24,7 @@ export function useReplayCountForIssues({
     hasMany: hasManyError,
   } = useReplayCount({
     bufferLimit,
-    dataSource: 'discover',
+    dataSource: 'events',
     fieldName: 'issue.id',
     organization,
     statsPeriod,

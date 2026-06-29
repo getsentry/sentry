@@ -52,7 +52,7 @@ export function DemoHeader() {
         {t('Request a Demo')}
       </NewRequestDemoBtn>
       <FreeTrialButton
-        priority="primary"
+        variant="primary"
         onClick={() => {
           const url = urlAttachQueryParams(
             'https://sentry.io/signup/',
@@ -98,7 +98,7 @@ const Wrapper = styled('div')`
   white-space: nowrap;
 
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  z-index: ${p => p.theme.zIndex.settingsSidebarNav};
+  z-index: ${p => p.theme.zIndex.sidebarPanel - 1};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     height: 54px;

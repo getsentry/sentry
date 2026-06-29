@@ -1,11 +1,11 @@
 import {Component, useContext} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {
   EventView,
   ImmutableEventView,
@@ -13,7 +13,6 @@ import type {
 } from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
-import type {UseQueryOptions} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -86,7 +85,7 @@ type BaseDiscoverQueryProps = {
    */
   noPagination?: boolean;
   options?: Omit<
-    UseQueryOptions<[any, string | undefined, ResponseMeta<any> | undefined], QueryError>,
+    UseQueryOptions<[any, string | undefined, ResponseMeta | undefined], QueryError>,
     'queryKey' | 'queryFn'
   > & {additionalQueryKey?: UseQueryOptions['queryKey']};
   /**
@@ -109,7 +108,7 @@ type BaseDiscoverQueryProps = {
   skipAbort?: boolean;
 };
 
-export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
+type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
 export type DiscoverQueryProps = BaseDiscoverQueryProps & {
   eventView: EventView | ImmutableEventView;
   orgSlug: string;
@@ -186,7 +185,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
 
     // or if we've moved from an invalid view state to a valid one,
     const eventViewValidation =
-      prevProps.eventView.isValid() === false && this.props.eventView.isValid();
+      !prevProps.eventView.isValid() && this.props.eventView.isValid();
 
     const shouldRefetchExternal = this.props.shouldRefetchData
       ? this.props.shouldRefetchData(prevProps, this.props)
@@ -230,7 +229,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     }
 
     const url = `/organizations/${orgSlug}/${route}/`;
-    const tableFetchID = Symbol(`tableFetchID`);
+    const tableFetchID = Symbol('tableFetchID');
     const apiPayload: Partial<EventQuery & LocationQuery> = getPayload(this.props);
 
     this.setState({isLoading: true, tableFetchID});

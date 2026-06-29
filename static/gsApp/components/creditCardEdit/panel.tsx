@@ -127,7 +127,7 @@ export function CreditCardPanel({
       </Flex>
       {!isEditing && (
         <Button
-          priority="default"
+          variant="secondary"
           size="sm"
           onClick={() => setIsEditing(true)}
           aria-label={t('Edit payment method')}

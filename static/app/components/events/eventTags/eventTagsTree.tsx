@@ -11,14 +11,14 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
 
-type TagTree = Record<string, TagTreeContent>;
+type TagTree = Map<string, TagTreeContent>;
 
 export interface TagTreeContent {
   subtree: TagTree;
@@ -62,7 +62,12 @@ function addToTagTree({
 
   // Ignore tags with 0, or >4 branches, as well as sequential dots (e.g. 'some..tag')
   if (hasInvalidBranchCount || hasInvalidBranchSequence) {
-    tree[tag.key] = {value: tag.value, subtree: {}, meta: originalTag?.meta, originalTag};
+    tree.set(tag.key, {
+      value: tag.value,
+      subtree: new Map<string, TagTreeContent>(),
+      meta: originalTag?.meta,
+      originalTag,
+    });
     return tree;
   }
   // E.g. 'device.model.version'
@@ -70,16 +75,18 @@ function addToTagTree({
   const trunk = tag.key.slice(0, splitIndex); // 'device'
   const branch = tag.key.slice(splitIndex + 1); // 'model.version'
 
-  if (tree[trunk] === undefined) {
-    tree[trunk] = {value: '', subtree: {}};
+  let trunkNode = tree.get(trunk);
+  if (!trunkNode) {
+    trunkNode = {value: '', subtree: new Map<string, TagTreeContent>()};
+    tree.set(trunk, trunkNode);
   }
   // Recurse with a pseudo tag, e.g. 'model', to create nesting structure
   const pseudoTag = {
     key: branch,
     value: tag.value,
   };
-  tree[trunk].subtree = addToTagTree({
-    tree: tree[trunk].subtree,
+  trunkNode.subtree = addToTagTree({
+    tree: trunkNode.subtree,
     tag: pseudoTag,
     originalTag,
   });
@@ -100,20 +107,23 @@ function getTagTreeRows({
   project,
   isLast,
 }: EventTagsTreeRowProps & {uniqueKey: string}): React.ReactNode[] {
-  const subtreeTags = Object.keys(content.subtree);
-  const subtreeRows = subtreeTags.reduce<React.ReactNode[]>((rows, tag, i) => {
-    const branchRows = getTagTreeRows({
-      event,
-      project,
-      tagKey: tag,
-      content: content.subtree[tag]!,
-      spacerCount: spacerCount + 1,
-      isLast: i === subtreeTags.length - 1,
-      // Encoding the trunk index with the branch index ensures uniqueness for the key
-      uniqueKey: `${uniqueKey}-${i}`,
-    });
-    return rows.concat(branchRows);
-  }, []);
+  const subtreeEntries = Array.from(content.subtree.entries());
+  const subtreeRows = subtreeEntries.reduce<React.ReactNode[]>(
+    (rows, [tag, tagContent], i) => {
+      const branchRows = getTagTreeRows({
+        event,
+        project,
+        tagKey: tag,
+        content: tagContent,
+        spacerCount: spacerCount + 1,
+        isLast: i === subtreeEntries.length - 1,
+        // Encoding the trunk index with the branch index ensures uniqueness for the key
+        uniqueKey: `${uniqueKey}-${i}`,
+      });
+      return rows.concat(branchRows);
+    },
+    []
+  );
   return [
     <EventTagsTreeRow
       key={`${tagKey}-${spacerCount}-${uniqueKey}`}
@@ -153,13 +163,13 @@ function TagTreeColumns({
       return [];
     }
     // Create the TagTree data structure using all the given tags
-    const tagTree = tags.reduce<TagTree>(
+    const tagTree = tags.reduce(
       (tree, tag) => addToTagTree({tree, tag, originalTag: tag}),
-      {}
+      new Map<string, TagTreeContent>()
     );
     // Create a list of TagTreeRow lists, containing every row to be rendered. They are grouped by
     // root parent so that we do not split up roots/branches when forming columns
-    const tagTreeRowGroups: React.ReactNode[][] = Object.entries(tagTree).map(
+    const tagTreeRowGroups: React.ReactNode[][] = Array.from(tagTree.entries()).map(
       ([tagKey, content], i) =>
         getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project, event})
     );

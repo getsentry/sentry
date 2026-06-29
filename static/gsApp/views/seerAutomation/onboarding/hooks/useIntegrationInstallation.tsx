@@ -13,7 +13,7 @@ export function useIntegrationInstallation(provider_key: string) {
   const organization = useOrganization();
   const {data, isPending} = useApiQuery<OrganizationIntegration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

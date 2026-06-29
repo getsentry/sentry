@@ -6,11 +6,12 @@ from typing import Any
 from urllib.parse import quote
 
 from sentry import features
-from sentry.integrations.gitlab.types import GitLabIssueAction
+from sentry.integrations.gitlab.types import GitLabIssueAction, GitLabIssueStatus
 from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.model import RpcUser
@@ -19,11 +20,17 @@ from sentry.users.services.user.service import user_service
 logger = logging.getLogger("sentry.integrations.gitlab.issue_sync")
 
 
+def _add_lifecycle_extras(lifecycle: Any, extras: Mapping[str, Any]) -> None:
+    if lifecycle is not None and hasattr(lifecycle, "add_extras"):
+        lifecycle.add_extras(extras)
+
+
 class GitlabIssueSyncSpec(IssueSyncIntegration):
     comment_key = "sync_comments"
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
     inbound_status_key = "sync_status_reverse"
+    outbound_status_key = "sync_status_forward"
     resolution_strategy_key = "resolution_strategy"
 
     def check_feature_flag(self) -> bool:
@@ -68,19 +75,23 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
         If assign=True, we're assigning the issue. Otherwise, deassign.
         """
         client = self.get_client()
+        lifecycle = kwargs.get("lifecycle")
 
         project_id, issue_id = self.split_external_issue_key(external_issue.key)
+        log_context: dict[str, Any] = {
+            "provider": self.model.provider,
+            "integration_id": external_issue.integration_id,
+            "external_issue_key": external_issue.key,
+            "external_issue_id": external_issue.id,
+            "project_path": project_id,
+            "issue_iid": issue_id,
+            "assign": assign,
+            "user_id": user.id if user else None,
+        }
+        _add_lifecycle_extras(lifecycle, log_context)
 
         if not project_id or not issue_id:
-            logger.error(
-                "assignee-outbound.invalid-key",
-                extra={
-                    "provider": self.model.provider,
-                    "integration_id": external_issue.integration_id,
-                    "external_issue_key": external_issue.key,
-                    "external_issue_id": external_issue.id,
-                },
-            )
+            logger.warning("assignee-outbound.invalid-key", extra=log_context)
             return
 
         gitlab_user_id = None
@@ -96,57 +107,52 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
                 organization=external_issue.organization,
             ).first()
             if not external_actor:
-                logger.info(
-                    "assignee-outbound.external-actor-not-found",
-                    extra={
-                        "provider": self.model.provider,
-                        "integration_id": external_issue.integration_id,
-                        "user_id": user.id,
-                    },
-                )
+                logger.info("assignee-outbound.external-actor-not-found", extra=log_context)
                 return
+
+            log_context.update(
+                {
+                    "external_actor_id": external_actor.id,
+                    "external_actor_name": external_actor.external_name,
+                    "external_actor_external_id": external_actor.external_id,
+                }
+            )
+            _add_lifecycle_extras(lifecycle, log_context)
 
             # Strip the @ from the username stored in external_name
             gitlab_username = external_actor.external_name.lstrip("@")
 
             # Search for the GitLab user by username to get their user ID
             try:
-                users = client.search_users(gitlab_username)
-                if not users or len(users) == 0:
-                    logger.warning(
-                        "assignee-outbound.gitlab-user-not-found",
-                        extra={
-                            "provider": self.model.provider,
-                            "integration_id": external_issue.integration_id,
-                            "gitlab_username": gitlab_username,
-                        },
-                    )
-                    return
-
-                # Take the first matching user (exact username match)
-                gitlab_user = users[0]
-                gitlab_user_id = gitlab_user["id"]
-
-                logger.info(
-                    "assignee-outbound.gitlab-user-found",
-                    extra={
-                        "provider": self.model.provider,
-                        "integration_id": external_issue.integration_id,
-                        "gitlab_username": gitlab_username,
-                        "gitlab_user_id": gitlab_user_id,
-                    },
-                )
+                users = client.search_users(gitlab_username) or []
             except ApiError as e:
-                logger.warning(
-                    "assignee-outbound.gitlab-user-search-failed",
-                    extra={
-                        "provider": self.model.provider,
-                        "integration_id": external_issue.integration_id,
-                        "gitlab_username": gitlab_username,
-                        "error": str(e),
-                    },
-                )
+                log_context["error"] = str(e)
+                logger.warning("assignee-outbound.gitlab-user-search-failed", extra=log_context)
+                _add_lifecycle_extras(lifecycle, log_context)
                 return
+
+            usernames = [
+                found_user.get("username") for found_user in users[:5] if found_user.get("username")
+            ]
+            log_context.update(
+                {
+                    "assignee_resolution_method": "username_search",
+                    "gitlab_search_result_count": len(users),
+                    "gitlab_search_usernames": usernames,
+                }
+            )
+
+            if not users:
+                logger.warning("assignee-outbound.gitlab-user-not-found", extra=log_context)
+                _add_lifecycle_extras(lifecycle, log_context)
+                return
+
+            gitlab_user = users[0]
+            gitlab_user_id = gitlab_user["id"]
+            log_context["resolved_gitlab_user_id"] = gitlab_user_id
+
+            logger.info("assignee-outbound.gitlab-user-found", extra=log_context)
+            _add_lifecycle_extras(lifecycle, log_context)
 
         # Update GitLab issue assignees
         try:
@@ -165,7 +171,93 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
         Propagate a sentry issue's status to a linked GitLab issue's status.
         For GitLab, we only support opened/closed states.
         """
-        raise NotImplementedError
+
+        client = self.get_client()
+        project_path, issue_iid = self.split_external_issue_key(external_issue.key)
+
+        if not project_path or not issue_iid:
+            logger.warning(
+                "status-outbound.invalid-key",
+                extra={
+                    "external_issue_key": external_issue.key,
+                    "provider": self.model.provider,
+                },
+            )
+            return
+
+        # Get the project mapping to determine what status to use
+        external_project = integration_service.get_integration_external_project(
+            organization_id=external_issue.organization_id,
+            integration_id=external_issue.integration_id,
+            external_id=project_path,
+        )
+
+        log_context = {
+            "provider": self.model.provider,
+            "integration_id": external_issue.integration_id,
+            "is_resolved": is_resolved,
+            "issue_key": external_issue.key,
+            "project_path": project_path,
+        }
+
+        if not external_project:
+            logger.info("external-project-not-found", extra=log_context)
+            return
+
+        desired_state = (
+            external_project.resolved_status if is_resolved else external_project.unresolved_status
+        )
+
+        # Fetch current GitLab issue state
+        try:
+            # URL-encode project_path since it's a path_with_namespace
+            encoded_project_path = quote(project_path, safe="")
+            issue_data = client.get_issue(encoded_project_path, issue_iid)
+        except ApiError as e:
+            self.raise_error(e)
+
+        current_state = issue_data.get("state")
+
+        # Don't update if it's already in the desired state
+        if current_state == desired_state:
+            logger.info(
+                "sync_status_outbound.unchanged",
+                extra={
+                    **log_context,
+                    "current_state": current_state,
+                    "desired_state": desired_state,
+                },
+            )
+            return
+
+        # Determine state_event parameter for GitLab API
+        # GitLab uses "close" to transition to closed, "reopen" to transition to opened
+        if desired_state == GitLabIssueStatus.CLOSED.value:
+            state_event = GitLabIssueAction.CLOSE.value
+        elif desired_state == GitLabIssueStatus.OPENED.value:
+            state_event = GitLabIssueAction.REOPEN.value
+        else:
+            logger.warning(
+                "sync_status_outbound.invalid-desired-state",
+                extra={**log_context, "desired_state": desired_state},
+            )
+            return
+
+        # Update the issue state
+        try:
+            encoded_project_path = quote(project_path, safe="")
+            client.update_issue_status(encoded_project_path, issue_iid, state_event)
+            logger.info(
+                "sync_status_outbound.success",
+                extra={
+                    **log_context,
+                    "old_state": current_state,
+                    "new_state": desired_state,
+                    "state_event": state_event,
+                },
+            )
+        except ApiError as e:
+            self.raise_error(e)
 
     def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
         """

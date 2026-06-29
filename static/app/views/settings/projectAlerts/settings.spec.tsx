@@ -1,4 +1,4 @@
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +11,7 @@ describe('ProjectAlertSettings', () => {
   // 55 minutes
   const digestsMaxDelay = 55 * 60;
 
-  const project = ProjectFixture({
+  const project = DetailedProjectFixture({
     digestsMinDelay,
     digestsMaxDelay,
   });
@@ -20,14 +20,6 @@ describe('ProjectAlertSettings', () => {
     router: {
       params: {projectId: project.slug},
     },
-  });
-
-  beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/plugins/`,
-      method: 'GET',
-      body: [],
-    });
   });
 
   it('renders', async () => {
@@ -44,11 +36,6 @@ describe('ProjectAlertSettings', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('slider', {name: 'Maximum delivery interval'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Oops! Looks like there aren't any available integrations installed."
-      )
     ).toBeInTheDocument();
   });
 });

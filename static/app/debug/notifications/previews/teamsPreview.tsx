@@ -15,8 +15,8 @@ import {
   type NotificationTemplateRegistration,
 } from 'sentry/debug/notifications/types';
 import {IconCheckmark, IconCopy} from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 const MSTEAMS_PREVIEW_URL = 'https://adaptivecards.microsoft.com/designer.html';
@@ -50,10 +50,10 @@ export function TeamsPreview({
             Copy JSON
           </Button>
           <LinkButton
-            to={MSTEAMS_PREVIEW_URL}
+            href={MSTEAMS_PREVIEW_URL}
             size="xs"
             icon={<PluginIcon pluginId="msteams" size={24} />}
-            target="_blank"
+            external
           >
             Designer
           </LinkButton>
@@ -72,7 +72,7 @@ export function TeamsPreview({
             </Flex>
             <TeamsCard direction="column" align="start" padding="xl" gap="md">
               <TeamsBlackText size="xl" bold>
-                {subject}
+                {subject.map(block => block.text).join(' ')}
               </TeamsBlackText>
               <TeamsBlackText>
                 <NotificationBodyRenderer
@@ -99,7 +99,11 @@ export function TeamsPreview({
                   />
                 </Flex>
               )}
-              {footer && <TeamsBlackText size="sm">{footer}</TeamsBlackText>}
+              {footer && (
+                <TeamsBlackText size="sm">
+                  {footer.map(block => block.text).join(' ')}
+                </TeamsBlackText>
+              )}
             </TeamsCard>
           </TeamsMessage>
         </TeamsPreviewContainer>

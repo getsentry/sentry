@@ -1,10 +1,57 @@
+import * as Sentry from '@sentry/react';
+
+import {validateDashboard} from 'sentry/actionCreators/dashboards';
+import type {Organization} from 'sentry/types/organization';
+import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
+
 import {
+  assignDefaultLayout,
+  assignTempId,
   DEFAULT_WIDGET_WIDTH,
   getDefaultWidgetHeight,
-} from 'sentry/views/dashboards/layoutUtils';
-import type {Widget, WidgetLayout} from 'sentry/views/dashboards/types';
+  getInitialColumnDepths,
+} from './layoutUtils';
+import {DEFAULT_TABLE_LIMIT} from './types';
+import type {DashboardDetails, Widget, WidgetLayout} from './types';
 
-const DEFAULT_LIMIT = 5;
+const DASHBOARD_ARTIFACT_KEY = 'dashboard';
+
+type DashboardArtifact = {
+  title: string;
+  widgets: WidgetArtifact[];
+};
+
+type WidgetArtifact = {
+  display_type: Widget['displayType'];
+  interval: string;
+  layout: {h: number; min_h: number; w: number; x: number; y: number};
+  queries: Widget['queries'];
+  title: string;
+  widget_type: Widget['widgetType'];
+  description?: string;
+  limit?: number;
+};
+
+/**
+ * Converts a Seer-generated widget artifact (snake_case) to a frontend Widget (camelCase).
+ */
+function normalizeWidgetCase(raw: WidgetArtifact): Widget {
+  const {display_type, widget_type, ...rest} = raw;
+  return {
+    ...rest,
+    displayType: display_type,
+    widgetType: widget_type,
+    layout: raw.layout
+      ? {
+          x: raw.layout.x,
+          y: raw.layout.y,
+          w: raw.layout.w,
+          h: raw.layout.h,
+          minH: raw.layout.min_h,
+        }
+      : undefined,
+  };
+}
 
 /**
  * This function serves as a fallback to fill out any commonly missing or transform
@@ -48,7 +95,98 @@ function applyLayoutDefaults(
 
 function applyLimitDefaults(limit: number | null | undefined): number {
   if (limit === null || limit === undefined) {
-    return DEFAULT_LIMIT;
+    return DEFAULT_TABLE_LIMIT;
   }
   return limit;
+}
+
+/**
+ * Extracts the latest dashboard artifact from a Seer Explorer session's blocks.
+ */
+export function extractDashboardFromSession(
+  session: NonNullable<SeerExplorerResponse['session']>
+): {
+  title: string;
+  widgets: Widget[];
+} | null {
+  for (let i = session.blocks.length - 1; i >= 0; i--) {
+    const artifact = session.blocks[i]!.artifacts?.find(
+      a => a.key === DASHBOARD_ARTIFACT_KEY && a.data
+    );
+    if (artifact) {
+      const data = artifact.data as DashboardArtifact;
+      return {
+        title: data.title,
+        widgets: assignDefaultLayout(
+          applySeerWidgetDefaults(data.widgets.map(normalizeWidgetCase)).map(
+            assignTempId
+          ),
+          getInitialColumnDepths()
+        ),
+      };
+    }
+  }
+  return null;
+}
+
+export function statusIsTerminal(status?: string | null) {
+  return status === 'completed' || status === 'error' || status === 'awaiting_user_input';
+}
+
+/**
+ * The dashboard generation endpoint prepends a block of system instructions to
+ * the user's prompt before sending it to Seer, terminated by this marker (see
+ * `DASHBOARD_INSTRUCTIONS` in `organization_dashboard_generate.py`). Splitting on
+ * it lets the chat UI show only what the user actually typed and tuck the
+ * instructions behind a collapsible disclosure instead of leaking them inline.
+ */
+const DASHBOARD_INSTRUCTIONS_MARKER = 'User Query:\n';
+
+export function splitDashboardPrompt(content: string): {
+  instructions: string | null;
+  query: string;
+} {
+  const markerIndex = content.indexOf(DASHBOARD_INSTRUCTIONS_MARKER);
+  if (markerIndex === -1) {
+    return {instructions: null, query: content};
+  }
+  const instructions = content.slice(0, markerIndex).trim();
+  const query = content.slice(markerIndex + DASHBOARD_INSTRUCTIONS_MARKER.length).trim();
+  return {instructions: instructions || null, query};
+}
+
+export async function validateDashboardAndRecordMetrics({
+  organization,
+  dashboard,
+  seerRunId,
+  source,
+}: {
+  dashboard: DashboardDetails;
+  organization: Organization;
+  seerRunId: number | null;
+  source: 'create' | 'edit';
+}) {
+  try {
+    await validateDashboard(organization.slug, dashboard);
+    Sentry.metrics.count('dashboards.seer.validation', 1, {
+      attributes: {
+        status: 'success',
+        organization_slug: organization.slug,
+        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
+        source,
+      },
+    });
+  } catch (error) {
+    Sentry.metrics.count('dashboards.seer.validation', 1, {
+      attributes: {
+        status: 'failure',
+        organization_slug: organization.slug,
+        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
+        source,
+      },
+    });
+    Sentry.captureException(error, {
+      tags: {seer_run_id: seerRunId},
+    });
+  }
 }

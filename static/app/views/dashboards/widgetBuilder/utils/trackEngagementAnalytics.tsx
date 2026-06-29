@@ -6,10 +6,13 @@ export function trackEngagementAnalytics(
   widgets: Widget[],
   organization: Organization,
   dashboardTitle: string,
-  globalFilterCount: number
+  globalFilterCount: number,
+  isSentryBuilt: boolean
 ) {
   // Handle edge-case of dashboard with no widgets.
-  if (!widgets.length) return;
+  if (!widgets.length) {
+    return;
+  }
 
   // For attributing engagement metrics initially track the ratio
   // of widgets reading from Transactions, Spans, Errors, and Issues, and Logs.
@@ -19,20 +22,25 @@ export function trackEngagementAnalytics(
     WidgetType.RELEASE,
   ]);
   const logWidgetTypes = new Set<string | undefined>([WidgetType.LOGS]);
+  const metricsWidgetTypes = new Set<string | undefined>([WidgetType.TRACEMETRICS]);
+
   const tracingWidgetTypes = new Set<string | undefined>([
     WidgetType.TRANSACTIONS,
     WidgetType.SPANS,
   ]);
-  let issuesWidgetCount = 0.0;
-  let logWidgetCount = 0.0;
-  let tracingWidgetCount = 0.0;
+  let issuesWidgetCount = 0;
+  let logWidgetCount = 0;
+  let tracingWidgetCount = 0;
+  let metricsWidgetCount = 0;
   for (const widget of widgets) {
     if (issuesWidgetTypes.has(widget.widgetType)) {
-      issuesWidgetCount += 1.0;
+      issuesWidgetCount += 1;
     } else if (logWidgetTypes.has(widget.widgetType)) {
-      logWidgetCount += 1.0;
+      logWidgetCount += 1;
     } else if (tracingWidgetTypes.has(widget.widgetType)) {
-      tracingWidgetCount += 1.0;
+      tracingWidgetCount += 1;
+    } else if (metricsWidgetTypes.has(widget.widgetType)) {
+      metricsWidgetCount += 1;
     }
   }
   const analyticsPayload = {
@@ -41,7 +49,9 @@ export function trackEngagementAnalytics(
     tracingRatio: tracingWidgetCount / widgets.length,
     issuesRatio: issuesWidgetCount / widgets.length,
     logRatio: logWidgetCount / widgets.length,
+    metricsRatio: metricsWidgetCount / widgets.length,
     globalFilterCount,
+    isSentryBuilt,
   };
   trackAnalytics('dashboards_views.engagement.load', analyticsPayload);
 }

@@ -22,6 +22,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
+from find_test_imports import find_test_imports
+
 # -- Path conventions --
 # The coverage DB stores paths relative to the getsentry rootdir:
 #   sentry sources: ../sentry/src/sentry/...
@@ -31,6 +33,7 @@ DB_TEST_PREFIX = "../sentry/tests/"
 
 # Known sentry test directory names.
 TEST_DIRS = (
+    "tests/apigw/",
     "tests/sentry/",
     "tests/snuba/",
     "tests/relay_integration/",
@@ -53,10 +56,25 @@ FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     re.compile(r"(^|/)conftest\.py$"),
     "src/sentry/runner/initializer.py",
     "src/sentry/constants.py",
+    # column-alias enum evaluated at import time; used indirectly by every
+    # Snuba query builder so coverage never records per-test contexts for it
+    "src/sentry/snuba/events.py",
+    # pure constants/aliases consumed at module level by search field/function
+    # registries — same pattern as constants.py, coverage sees only startup context
+    "src/sentry/search/events/constants.py",
+    # EAP shared column/aggregate definitions; consumed at import time by every
+    # EAP dataset file via module-level list comprehensions — zero coverage data
+    "src/sentry/search/eap/common_columns.py",
+    "src/sentry/search/eap/common_aggregates.py",
     # option defaults registered at startup via initialize_app()
     re.compile(r"^src/sentry/options/"),
     # feature flags registered via manager.add() at import time
     re.compile(r"^src/sentry/features/"),
+    # audit log events registered via default_manager.add() at import time;
+    # 60+ test files consume this via `from sentry import audit_log` (parent-package
+    # import), which the static import scan can't detect — so targeted mapping is
+    # unsafe and the full suite is required
+    re.compile(r"^src/sentry/audit_log/"),
     # signal definitions created at module level; receivers depend on these
     "src/sentry/signals.py",
     # signal handlers registered globally via initialize_receivers()
@@ -80,11 +98,64 @@ EXCLUDED_TEST_FILES: set[str] = {
 
 EXTRA_FILE_TO_TEST_MAPPING: dict[str, list[str]] = {
     ".github/CODEOWNERS": ["tests/sentry/api/test_api_owners.py"],
+    "static/app/data/controlsiloUrlPatterns.ts": [
+        "tests/sentry/management/commands/test_generate_controlsilo_urls.py"
+    ],
+    # JSON/binary files not tracked by coverage DB
+    "src/sentry/issues/event.schema.json": ["tests/sentry/issues/test_json_schemas.py"],
+    "fixtures/test.mmdb": ["tests/sentry/utils/test_geo.py"],
+    # Backup/restore golden fixtures — coverage won't see non-Python files
+    "fixtures/backup/fresh-install.json": ["tests/sentry/backup/test_imports.py"],
+    "fixtures/backup/user-with-minimum-privileges.json": ["tests/sentry/backup/test_rpc.py"],
+    "fixtures/backup/single-integration.json": ["tests/sentry/backup/test_validate.py"],
+    "fixtures/backup/single-option.json": ["tests/sentry/backup/test_validate.py"],
+    # JSON test-data files co-located with tests — only .py files are auto-selected
+    "tests/sentry/runner/commands/valid_patch.json": [
+        "tests/sentry/runner/commands/test_configoptions.py"
+    ],
+    "tests/sentry/runner/commands/badsync.json": [
+        "tests/sentry/runner/commands/test_configoptions.py"
+    ],
+    "tests/sentry/runner/commands/badpatch.json": [
+        "tests/sentry/runner/commands/test_configoptions.py"
+    ],
+    "tests/sentry/runner/commands/unsetsync.json": [
+        "tests/sentry/runner/commands/test_configoptions.py"
+    ],
+}
+
+# Like EXTRA_FILE_TO_TEST_MAPPING but keys are directory prefixes: any changed file
+# whose path starts with the prefix will trigger the listed tests.
+EXTRA_DIR_TO_TEST_MAPPING: dict[str, list[str]] = {
+    # 74 parametrized JSON fixtures loaded via os.listdir(); coverage won't see them
+    "fixtures/search-syntax/": ["tests/sentry/api/test_event_search.py"],
 }
 
 EXCLUDED_TEST_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"^tests/(acceptance|apidocs|js|tools)/"),
 ]
+
+# Tests that should always be run even if not explicitly selected.
+ALWAYS_RUN_TESTS: set[str] = {
+    "tests/sentry/taskworker/test_config.py",
+    "tests/sentry/management/commands/test_generate_controlsilo_urls.py",
+    # apigw must stay in sync with sentry (url -> silo mapping, model queries),
+    # so any backend change can affect these. Coverage can't attribute the
+    # routing test to source files: both the django url conf and the apigw
+    # routing table are built at import time, before any per-test coverage
+    # context is active.
+    "tests/apigw/test_db.py",
+    "tests/apigw/test_routing.py",
+    # Both of these tests check global codebase invariants via runtime discovery —
+    # the same reason the apigw tests above are always run. Coverage can't attribute
+    # them to individual source files because the discovery happens at startup,
+    # before per-test coverage contexts are active:
+    #   test_base.py: walks all endpoint subclasses to check for silo decorators
+    #   test_validate.py: walks the Django ORM registry (get_exportable_sentry_models)
+    #     to assign comparators — __relocation_scope__ changes on any model are invisible
+    "tests/sentry/silo/test_base.py",
+    "tests/sentry/backup/test_validate.py",
+}
 
 
 def _is_test(path: str) -> bool:
@@ -206,11 +277,25 @@ def main() -> int:
                 print(f"Error querying coverage database: {e}", file=sys.stderr)
                 return 1
 
+            # Union with static import search so files invisible to coverage are still caught.
+            changed_source_files = [f for f in changed if not _is_test(f) and f.endswith(".py")]
+            if changed_source_files:
+                static_tests = find_test_imports(changed_source_files, Path.cwd())
+                static_tests = {
+                    f
+                    for f in static_tests
+                    if _is_test(f) and not any(p.search(f) for p in EXCLUDED_TEST_PATTERNS)
+                }
+                affected_test_files.update(static_tests)
+
             affected_test_files -= EXCLUDED_TEST_FILES
 
             # Extra mapped files
             for f in changed:
                 affected_test_files.update(EXTRA_FILE_TO_TEST_MAPPING.get(f, []))
+                for prefix, tests in EXTRA_DIR_TO_TEST_MAPPING.items():
+                    if f.startswith(prefix):
+                        affected_test_files.update(tests)
 
             # Directly changed test files
             changed_tests = {
@@ -224,6 +309,9 @@ def main() -> int:
             if existing_changed:
                 print(f"Including {len(existing_changed)} directly changed test files")
                 affected_test_files.update(existing_changed)
+
+            # Always run these tests
+            affected_test_files.update(ALWAYS_RUN_TESTS)
 
     # Filter to sentry tests only (drop any getsentry tests from coverage)
     affected_test_files = {f for f in affected_test_files if _is_test(f)}
@@ -239,7 +327,8 @@ def main() -> int:
         affected_test_files = existing_files
 
     output_tests = sorted(affected_test_files)
-    print(f"Selected {len(output_tests)} test files")
+    if selective_applied or output_tests:
+        print(f"Selected {len(output_tests)} test files")
 
     if args.output and (output_tests or selective_applied):
         output_path = Path(args.output)
@@ -256,7 +345,8 @@ def main() -> int:
             with open(github_output, "a") as f:
                 f.write(f"test-count={len(output_tests)}\n")
                 f.write(f"has-selected-tests={'true' if has_selected else 'false'}\n")
-            print(f"Wrote to GITHUB_OUTPUT: test-count={len(output_tests)}")
+            if has_selected:
+                print(f"Wrote to GITHUB_OUTPUT: test-count={len(output_tests)}")
 
     for test_file in output_tests:
         print(f"  {test_file}")

@@ -1,10 +1,12 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -12,7 +14,6 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -21,10 +22,9 @@ import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ProjectItem as ProjectListItem} from 'sentry/views/settings/components/settingsProjectItem';
@@ -34,65 +34,67 @@ import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/team
 export default function TeamProjects() {
   const location = useLocation();
   const organization = useOrganization();
-  const api = useApi({persistInFlight: true});
-  const [query, setQuery] = useState<string>('');
+  const [query, setQuery] = useState('');
   const {team} = useTeamDetailsOutlet();
   const {
-    data: linkedProjects,
+    data: linkedProjectsResponse,
     isError: linkedProjectsError,
     isPending: linkedProjectsLoading,
-    getResponseHeader: linkedProjectsHeaders,
     refetch: refetchLinkedProjects,
-  } = useApiQuery<Project[]>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          query: `team:${team.slug}`,
-          cursor: location.query.cursor,
-        },
+  } = useQuery({
+    ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        query: `team:${team.slug}`,
+        cursor: location.query.cursor,
+        collapse: ['latestDeploys', 'unusedFeatures'],
       },
-    ],
-    {staleTime: 0}
-  );
+      staleTime: 0,
+    }),
+    select: selectJsonWithHeaders,
+  });
+  const linkedProjects = linkedProjectsResponse?.json;
   const {
     data: unlinkedProjects = [],
     isPending: loadingUnlinkedProjects,
     refetch: refetchUnlinkedProjects,
-  } = useApiQuery<Project[]>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {query: query ? `!team:${team.slug} ${query}` : `!team:${team.slug}`},
+  } = useQuery(
+    apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        query: query ? `!team:${team.slug} ${query}` : `!team:${team.slug}`,
+        collapse: ['latestDeploys', 'unusedFeatures'],
       },
-    ],
-    {staleTime: 0}
+      staleTime: 0,
+    })
   );
 
+  const {mutate: mutateLinkProject} = useMutation({
+    mutationFn: ({project, action}: {action: string; project: Project}) =>
+      fetchMutation<Project>({
+        url: `/projects/${organization.slug}/${project.slug}/teams/${team.slug}/`,
+        method: action === 'add' ? 'POST' : 'DELETE',
+      }),
+    onSuccess: (resp, {action}) => {
+      refetchLinkedProjects();
+      refetchUnlinkedProjects();
+      ProjectsStore.onUpdateSuccess(resp);
+      addSuccessMessage(
+        action === 'add'
+          ? t('Successfully added project to team.')
+          : t('Successfully removed project from team')
+      );
+    },
+    onError: () => {
+      addErrorMessage(t("Wasn't able to change project association."));
+    },
+  });
+
   const handleLinkProject = (project: Project, action: string) => {
-    api.request(`/projects/${organization.slug}/${project.slug}/teams/${team.slug}/`, {
-      method: action === 'add' ? 'POST' : 'DELETE',
-      success: resp => {
-        refetchLinkedProjects();
-        refetchUnlinkedProjects();
-        ProjectsStore.onUpdateSuccess(resp);
-        addSuccessMessage(
-          action === 'add'
-            ? t('Successfully added project to team.')
-            : t('Successfully removed project from team')
-        );
-      },
-      error: () => {
-        addErrorMessage(t("Wasn't able to change project association."));
-      },
-    });
+    mutateLinkProject({project, action});
   };
 
-  const linkedProjectsPageLinks = linkedProjectsHeaders?.('Link');
+  const linkedProjectsPageLinks = linkedProjectsResponse?.headers.Link;
   const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
   const otherProjects = useMemo(() => {
     return unlinkedProjects

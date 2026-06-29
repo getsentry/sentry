@@ -18,7 +18,7 @@ from sentry.sentry_apps.models.servicehook import ServiceHook
 
 @cell_silo_endpoint
 class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

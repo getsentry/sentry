@@ -75,6 +75,7 @@ def _get_rate_limit_stats_dict(request: Request) -> dict[str, str | int | None]:
         "snuba_rejection_threshold": getattr(
             snuba_rate_limit_metadata, "rejection_threshold", None
         ),
+        "snuba_throttle_threshold": getattr(snuba_rate_limit_metadata, "throttle_threshold", None),
         "snuba_storage_key": getattr(snuba_rate_limit_metadata, "storage_key", None),
     }
 

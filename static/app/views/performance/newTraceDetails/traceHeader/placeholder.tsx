@@ -8,9 +8,18 @@ import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {TraceHeaderComponents} from './styles';
+
+const traceViewFeedbackOptions = {
+  messagePlaceholder: t('How can we make the trace view better for you?'),
+  tags: {
+    ['feedback.source']: 'trace-view',
+    ['feedback.owner']: 'performance',
+  },
+};
 
 export function PlaceHolder({
   organization,
@@ -29,27 +38,28 @@ export function PlaceHolder({
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent>
         <TraceHeaderComponents.HeaderRow>
-          <Breadcrumbs
-            crumbs={getTraceViewBreadcrumbs({
-              organization,
-              location,
-              moduleURLBuilder,
-              traceSlug,
-              project,
-              view,
-            })}
-          />
-          <Grid flow="column" align="center" gap="md">
-            <FeedbackButton
-              size="xs"
-              feedbackOptions={{
-                messagePlaceholder: t('How can we make the trace view better for you?'),
-                tags: {
-                  ['feedback.source']: 'trace-view',
-                  ['feedback.owner']: 'performance',
-                },
-              }}
+          <TopBar.Slot name="title">
+            <Breadcrumbs
+              crumbs={getTraceViewBreadcrumbs({
+                organization,
+                location,
+                moduleURLBuilder,
+                traceSlug,
+                project,
+                view,
+              })}
             />
+          </TopBar.Slot>
+          <Grid flow="column" align="center" gap="md">
+            <TopBar.Slot name="feedback">
+              <FeedbackButton
+                feedbackOptions={traceViewFeedbackOptions}
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
+            </TopBar.Slot>
           </Grid>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>
@@ -62,7 +72,6 @@ export function PlaceHolder({
             <TraceHeaderComponents.StyledPlaceholder _width={300} _height={24} />
           </Stack>
         </TraceHeaderComponents.HeaderRow>
-        <TraceHeaderComponents.StyledBreak />
         <TraceHeaderComponents.HeaderRow>
           <Flex align="center" gap="md">
             <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />

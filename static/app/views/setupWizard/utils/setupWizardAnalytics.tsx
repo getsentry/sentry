@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useMemo} from 'react';
 
-import type {Organization} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-function useSetupWizardAnalyticsParams(organizations: Organization[]) {
+function useSetupWizardAnalyticsParams(organizations: OrganizationSummary[]) {
   const urlParams = new URLSearchParams(location.search);
   const projectPlatform = urlParams.get('project_platform') ?? undefined;
 
@@ -20,7 +20,9 @@ function useSetupWizardAnalyticsParams(organizations: Organization[]) {
 
 const EMPTY_ARRAY: any = [];
 
-export function useSetupWizardViewedAnalytics(organizations: Organization[] | undefined) {
+export function useSetupWizardViewedAnalytics(
+  organizations: OrganizationSummary[] | undefined
+) {
   const analyticsParams = useSetupWizardAnalyticsParams(organizations ?? EMPTY_ARRAY);
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export function useSetupWizardViewedAnalytics(organizations: Organization[] | un
   }, [analyticsParams, organizations?.length]);
 }
 
-export function useSetupWizardCompletedAnalytics(organizations: Organization[]) {
+export function useSetupWizardCompletedAnalytics(organizations: OrganizationSummary[]) {
   const analyticsParams = useSetupWizardAnalyticsParams(organizations);
 
   return useCallback(() => {

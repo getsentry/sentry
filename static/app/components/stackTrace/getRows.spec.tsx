@@ -78,7 +78,6 @@ describe('stackTrace rows utils', () => {
       frameCountMap,
       newestFirst: false,
       framesOmitted: null,
-      maxDepth: undefined,
     });
 
     expect(rows).toHaveLength(4);
@@ -108,7 +107,6 @@ describe('stackTrace rows utils', () => {
       frameCountMap: getFrameCountMap(frames, true),
       newestFirst: false,
       framesOmitted: null,
-      maxDepth: undefined,
     });
 
     expect(rows).toHaveLength(2);
@@ -130,7 +128,6 @@ describe('stackTrace rows utils', () => {
       frameCountMap: getFrameCountMap(frames, true),
       newestFirst: false,
       framesOmitted: [1, 3],
-      maxDepth: undefined,
     });
 
     expect(rowsWithOmitted.some(row => row.kind === 'omitted')).toBe(true);

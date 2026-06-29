@@ -8,7 +8,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 
 interface Props {
   defaultSort: Sort;
-  location: Location<{sort?: undefined | string}>;
+  location: Location;
 }
 
 export function useQueryBasedSorting({location, defaultSort}: Props) {

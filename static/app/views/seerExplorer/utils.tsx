@@ -1,21 +1,46 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {useMatches} from 'react-router-dom';
+import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {isUUID} from 'sentry/utils/string/isUUID';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
+import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
+import {
+  defaultAggregateSortBys,
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+  type TraceMetric,
+} from 'sentry/views/explore/metrics/metricQuery';
+import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {
   Block,
+  SeerExplorerRunId,
+  SeerExplorerSidebarPosition,
   ToolCall,
   ToolLink,
   ToolResult,
@@ -34,7 +59,7 @@ type ToolFormatter = (
 
 export const makeSeerExplorerQueryKey = (
   orgSlug: string,
-  runId: number | null
+  runId: SeerExplorerRunId | null
 ): ApiQueryKey => [
   runId
     ? getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/', {
@@ -142,7 +167,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     }
 
     // shouldn't happen (issue_id required)
-    return isLoading ? `Inspecting issue...` : `Inspected issue`;
+    return isLoading ? 'Inspecting issue...' : 'Inspected issue';
   },
 
   get_event_details: (args, isLoading, resultMetadata) => {
@@ -168,7 +193,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     }
 
     // shouldn't happen (either event_id or issue_id required)
-    return isLoading ? `Analyzing event...` : `Analyzed event`;
+    return isLoading ? 'Analyzing event...' : 'Analyzed event';
   },
 
   code_search: (args, isLoading) => {
@@ -377,10 +402,17 @@ export function getToolsStringFromBlock(block: Block): string[] {
   const isLoading = block.loading ?? false;
   const toolCalls = block.message.tool_calls || [];
   const toolLinks = block.tool_links || [];
+  const toolResults = block.tool_results || [];
 
-  for (let i = 0; i < toolCalls.length; i++) {
-    const tool = toolCalls[i] as ToolCall;
-    const toolLink = toolLinks[i];
+  const toolLinkByCallId = new Map<string, ToolLink | null>();
+  toolResults.forEach((result, idx) => {
+    if (result?.tool_call_id) {
+      toolLinkByCallId.set(result.tool_call_id, toolLinks[idx] ?? null);
+    }
+  });
+
+  for (const tool of toolCalls) {
+    const toolLink = (tool.id ? toolLinkByCallId.get(tool.id) : undefined) ?? null;
     const formatter = TOOL_FORMATTERS[tool.function];
 
     if (formatter) {
@@ -408,100 +440,6 @@ export function getToolsStringFromBlock(block: Block): string[] {
 }
 
 /**
- * Converts issue short IDs in text to markdown links.
- * Examples: INTERNAL-4K, JAVASCRIPT-2SDJ, PROJECT-1
- * Excludes IDs that are already inside markdown code blocks, links, or URLs.
- */
-function linkifyIssueShortIds(text: string): string {
-  // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
-  // Requires at least 2 chars before hyphen and 1+ chars after
-  // First segment must contain at least one uppercase letter (all letters must be uppercase)
-  const shortIdPattern = /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)-[A-Z0-9]+)\b/g;
-
-  // Track positions that should be excluded (inside code blocks, links, or URLs)
-  const excludedRanges: Array<{end: number; start: number}> = [];
-
-  // Find all markdown code blocks (inline and block)
-  const codeBlockPattern = /(`+)([^`]+)\1|```[\s\S]*?```/g;
-  for (const codeMatch of text.matchAll(codeBlockPattern)) {
-    excludedRanges.push({
-      end: codeMatch.index + codeMatch[0].length,
-      start: codeMatch.index,
-    });
-  }
-  // Find all markdown links [text](url)
-  const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
-  for (const linkMatch of text.matchAll(markdownLinkPattern)) {
-    excludedRanges.push({
-      end: linkMatch.index + linkMatch[0].length,
-      start: linkMatch.index,
-    });
-  }
-  // Find all URLs (http://, https://, or starting with /)
-  const urlPattern = /(https?:\/\/\S+|\/[^\s)]+)/g;
-  for (const urlMatch of text.matchAll(urlPattern)) {
-    excludedRanges.push({
-      end: urlMatch.index + urlMatch[0].length,
-      start: urlMatch.index,
-    });
-  }
-
-  // Sort ranges by start position for efficient checking
-  excludedRanges.sort((a, b) => a.start - b.start);
-
-  // Helper function to check if a position is within any excluded range
-  const isExcluded = (pos: number): boolean => {
-    return excludedRanges.some(range => pos >= range.start && pos < range.end);
-  };
-
-  // Replace matches, but skip those in excluded ranges
-  return text.replace(shortIdPattern, (idMatch, _content, offset) => {
-    if (isExcluded(offset)) {
-      return idMatch;
-    }
-    return `[${idMatch}](/issues/${idMatch}/)`;
-  });
-}
-
-/**
- * Post-processes markdown text from LLM responses.
- * Applies various transformations to enhance the text with links and formatting.
- * Add new processing rules to this function as needed.
- */
-export function postProcessLLMMarkdown(text: string | null | undefined): string {
-  if (!text) {
-    return '';
-  }
-
-  let processed = text;
-
-  // Convert issue short IDs to clickable links
-  processed = linkifyIssueShortIds(processed);
-
-  // Add more processing rules here as needed
-
-  return processed;
-}
-
-/**
- * Simulates the keyboard shortcut to toggle the Seer Explorer panel.
- * This dispatches a keyboard event that matches the Cmd+/ (Mac) or Ctrl+/ (non-Mac) shortcut.
- */
-export function toggleSeerExplorerPanel(): void {
-  const isMac = navigator.platform.toUpperCase().includes('MAC');
-  const keyboardEvent = new KeyboardEvent('keydown', {
-    key: '/',
-    code: 'Slash',
-    keyCode: 191,
-    which: 191,
-    metaKey: isMac,
-    ctrlKey: !isMac,
-    bubbles: true,
-  } as KeyboardEventInit);
-  document.dispatchEvent(keyboardEvent);
-}
-
-/**
  * Validate an ISO string and return it with 'Z' suffix stripped.
  * Returns undefined if invalid.
  */
@@ -513,14 +451,135 @@ function validateIso(val: unknown): string | undefined {
   return isNaN(d.getTime()) ? undefined : d.toISOString().replace(/Z$/, '');
 }
 
+function getStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+  return typeof value === 'string' ? [value] : [];
+}
+
+function getTraceMetricFromParams(params: Record<string, any>): TraceMetric | null {
+  const rawTraceMetric = params.trace_metric;
+  if (
+    !rawTraceMetric ||
+    typeof rawTraceMetric !== 'object' ||
+    typeof rawTraceMetric.name !== 'string' ||
+    typeof rawTraceMetric.type !== 'string'
+  ) {
+    return null;
+  }
+
+  const traceMetric: TraceMetric = {
+    name: rawTraceMetric.name,
+    type: rawTraceMetric.type,
+  };
+  if (typeof rawTraceMetric.unit === 'string') {
+    traceMetric.unit = rawTraceMetric.unit;
+  }
+  return traceMetric;
+}
+
+function getMetricYAxis(yAxis: string, traceMetric: TraceMetric): string {
+  const visualize = new VisualizeFunction(yAxis);
+  const aggregate = visualize.parsedFunction?.name;
+  if (!aggregate) {
+    return yAxis;
+  }
+
+  return makeMetricsAggregate({aggregate, traceMetric});
+}
+
+function getDefaultMetricYAxis(traceMetric: TraceMetric): string {
+  return makeMetricsAggregate({
+    aggregate: DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'sum',
+    traceMetric,
+  });
+}
+
+function parseMetricsSort(
+  sort: unknown,
+  normalizedYAxesByOriginal: Map<string, string>
+): Sort | undefined {
+  if (typeof sort !== 'string' || !sort) {
+    return undefined;
+  }
+
+  const kind = sort.startsWith('-') ? 'desc' : 'asc';
+  const sortField = sort.replace(/^-/, '');
+  const normalizedYAxis = normalizedYAxesByOriginal.get(sortField);
+  if (normalizedYAxis) {
+    return {field: normalizedYAxis, kind};
+  }
+
+  const sortFunction = new VisualizeFunction(sortField).parsedFunction;
+  if (sortFunction) {
+    for (const mappedYAxis of normalizedYAxesByOriginal.values()) {
+      const yAxisFunction = new VisualizeFunction(mappedYAxis).parsedFunction;
+      if (yAxisFunction?.name === sortFunction.name) {
+        return {field: mappedYAxis, kind};
+      }
+    }
+  }
+
+  return {field: sortField, kind};
+}
+
+function buildMetricsQueryParam(params: Record<string, any>): string[] | undefined {
+  const traceMetric = getTraceMetricFromParams(params);
+  if (!traceMetric) {
+    return undefined;
+  }
+
+  const mode = params.mode === 'aggregates' ? Mode.AGGREGATE : Mode.SAMPLES;
+  const base = defaultMetricQuery();
+
+  // Seer y-axes use short names like "avg(duration)"; normalize them to fully
+  // qualified metric aggregates like "avg(metrics.foo.duration)".
+  const yAxes = getStringArray(params.y_axes);
+  const resolvedYAxes = yAxes.length ? yAxes : [getDefaultMetricYAxis(traceMetric)];
+  const normalizedYAxesByOriginal = resolvedYAxes.reduce((map, yAxis) => {
+    map.set(yAxis, getMetricYAxis(yAxis, traceMetric));
+    return map;
+  }, new Map<string, string>());
+  // VisualizeFunction instances that the Explore page uses to render charts.
+  const visualizes = resolvedYAxes.map(
+    yAxis => new VisualizeFunction(normalizedYAxesByOriginal.get(yAxis)!)
+  );
+
+  const aggregateFields: AggregateField[] = [
+    ...getStringArray(params.group_by).map(groupBy => ({groupBy})),
+    ...visualizes,
+  ];
+  const sortBys = parseMetricsSort(params.sort, normalizedYAxesByOriginal);
+
+  const queryParams = base.queryParams.replace({
+    query: typeof params.query === 'string' ? params.query : '',
+    mode,
+    aggregateFields,
+    aggregateSortBys:
+      mode === Mode.AGGREGATE && sortBys
+        ? [sortBys]
+        : defaultAggregateSortBys(aggregateFields),
+    sortBys: mode === Mode.SAMPLES && sortBys ? [sortBys] : base.queryParams.sortBys,
+  });
+
+  return [encodeMetricQueryParams({metric: traceMetric, queryParams})];
+}
+
 /**
  * Build a URL/LocationDescriptor for a tool link based on its kind and params
  */
 export function buildToolLinkUrl(
-  toolLink: ToolLink,
-  orgSlug: string,
+  toolLink: ToolLink | undefined,
+  organization: Organization,
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
+  if (!toolLink) {
+    return null;
+  }
+
+  const orgSlug = organization.slug;
+
   switch (toolLink.kind) {
     case 'telemetry_live_search': {
       const {dataset, project_slugs, query, sort, stats_period, start, end} =
@@ -582,9 +641,15 @@ export function buildToolLinkUrl(
           const yAxesArray = Array.isArray(y_axes) ? y_axes : [y_axes];
           fields.push(...yAxesArray);
         }
-        if (fields.length > 0) {
-          queryParams.field = fields;
+
+        // make sure we always force some fields as discover will re-route to the
+        // saved default query in the event that no fields are specified
+        if (fields.length === 0) {
+          const defaultErrorView = DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS];
+          fields.push(...defaultErrorView.fields);
         }
+
+        queryParams.field = fields;
 
         // Discover sort strips parentheses from aggregates: -count() -> -count
         if (queryParams.sort) {
@@ -622,13 +687,12 @@ export function buildToolLinkUrl(
       }
 
       if (dataset === 'metrics' || dataset === 'tracemetrics') {
-        // TODO: The metrics explore page reads metric-specific state (metric name,
-        // type, aggregations, group bys) from a JSON-encoded `metric` URL param.
-        // Currently we only pass page filter params (project, statsPeriod, etc.)
-        // which means the search query context is lost on navigation. To fully
-        // preserve context, the Seer backend should include structured metric
-        // metadata (name, type, unit) in tool_link params so we can build the
-        // `metric` param here via encodeMetricsQueryParams().
+        const metric = buildMetricsQueryParam(toolLink.params);
+        if (!metric) {
+          return null;
+        }
+        queryParams.metric = metric;
+
         return {
           pathname: `/organizations/${orgSlug}/explore/metrics/`,
           query: queryParams,
@@ -729,7 +793,10 @@ export function buildToolLinkUrl(
       }
 
       return {
-        pathname: `/organizations/${orgSlug}/replays/${replay_id}/`,
+        pathname: makeReplaysPathname({
+          path: `/${replay_id}/`,
+          organization,
+        }),
       };
     }
     case 'get_profile_flamegraph': {
@@ -756,7 +823,7 @@ export function buildToolLinkUrl(
         const endDate = new Date(end_ts * 1000).toISOString();
 
         return {
-          pathname: `/explore/profiling/profile/${project.slug}/flamegraph/`,
+          pathname: `/explore/profiles/profile/${project.slug}/flamegraph/`,
           query: {
             start: startDate,
             end: endDate,
@@ -768,7 +835,7 @@ export function buildToolLinkUrl(
 
       // Transaction profiles use profile_id in the path
       return {
-        pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/${profile_id}/flamegraph/`,
+        pathname: `/organizations/${orgSlug}/explore/profiles/profile/${project.slug}/${profile_id}/flamegraph/`,
         ...(thread_id && {query: {tid: thread_id}}),
       };
     }
@@ -805,7 +872,7 @@ export function getValidToolLinks(
   tool_links: Array<ToolLink | null>,
   tool_results: Array<ToolResult | null>,
   tool_calls: ToolCall[],
-  orgSlug: string,
+  organization: Organization,
   projects?: Array<{id: string; slug: string}>
 ) {
   // Get valid tool links sorted by their corresponding tool call indices
@@ -823,8 +890,10 @@ export function getValidToolLinks(
 
       // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
       const toolCallId = tool_results[idx]?.tool_call_id;
-      const toolCallIndex = tool_calls.findIndex(call => call.id === toolCallId);
-      const canBuildUrl = buildToolLinkUrl(link, orgSlug, projects) !== null;
+      const toolCallIndex = toolCallId
+        ? tool_calls.findIndex(call => call.id === toolCallId)
+        : -1;
+      const canBuildUrl = buildToolLinkUrl(link, organization, projects) !== null;
 
       if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
         return {link, toolCallIndex};
@@ -852,8 +921,8 @@ export function getValidToolLinks(
  */
 export function usePageReferrer(): {getPageReferrer: () => string} {
   // Track the normalized path of the current page (e.g. /issues/:groupId/) for analytics.
-  const routes = useRoutes();
-  const routeString = getRouteStringFromRoutes(routes);
+  const matches = useMatches();
+  const routeString = getRouteStringFromRoutes({matches});
   const routeStringRef = useRef(routeString);
 
   useEffect(() => {
@@ -888,7 +957,7 @@ export function useCopySessionDataToClipboard({
     setIsError(false);
     try {
       const text = blocks
-        ? formatSessionData(blocks, organization.slug, projects)
+        ? formatSessionData(blocks, organization, projects)
         : `No data available. Status: ${status ?? 'unknown'}`;
       await navigator.clipboard.writeText(text);
       addSuccessMessage('Copied conversation to clipboard');
@@ -905,7 +974,7 @@ export function useCopySessionDataToClipboard({
 
 function formatSessionData(
   blocks: Block[],
-  orgSlug: string,
+  organization: Organization,
   projects?: Array<{id: string; slug: string}>
 ): string {
   const formatBlock = (block: Block): string => {
@@ -917,7 +986,7 @@ function formatSessionData(
       tool_links || [],
       tool_results || [],
       tool_calls || [],
-      orgSlug,
+      organization,
       projects
     );
 
@@ -930,7 +999,9 @@ function formatSessionData(
       const validLinkIdx = toolCallToLinkIndexMap.get(idx);
       const validLink =
         validLinkIdx === undefined ? null : (sortedToolLinks[validLinkIdx] ?? null);
-      const location = validLink ? buildToolLinkUrl(validLink, orgSlug, projects) : null;
+      const location = validLink
+        ? buildToolLinkUrl(validLink, organization, projects)
+        : null;
       const url = location ? locationToUrl(location) : null;
 
       // Get metadata from raw tool_links array.
@@ -945,21 +1016,20 @@ function formatSessionData(
       lines.push(messageContent);
     }
     if (thinking_content) {
-      lines.push('');
-      lines.push('## THINKING CONTENT');
-      lines.push(thinking_content);
+      lines.push('', '## THINKING CONTENT', thinking_content);
     }
 
     if (toolCallsWithLinks.length > 0) {
-      lines.push('');
-      lines.push('## TOOL CALLS');
+      lines.push('', '## TOOL CALLS');
       toolCallsWithLinks.forEach((item, idx) => {
         const isError = !!item.metadata?.is_error;
         const emptyResults = !!item.metadata?.empty_results;
         const status = isError ? 'ERRORED' : emptyResults ? 'EMPTY RESULTS' : 'SUCCESS';
 
-        lines.push(`${item.tool_call.function} (${status}) (${item.tool_call.id}):`);
-        lines.push(`args: ${item.tool_call.args}`);
+        lines.push(
+          `${item.tool_call.function} (${status})${item.tool_call.id ? ` (${item.tool_call.id})` : ''}:`,
+          `args: ${item.tool_call.args}`
+        );
         if (item.url) {
           lines.push(`URL: ${item.url}`);
         }
@@ -994,7 +1064,48 @@ function locationToUrl(location: LocationDescriptor): string | null {
   return `${base}${queryPart}${hashPart}`;
 }
 
-export const RUN_ID_QUERY_PARAM = 'explorerRunId';
+const RUN_ID_QUERY_PARAM = 'explorerRunId';
+
+export function parseRunIdParam(value: string): SeerExplorerRunId | null {
+  if (/^\d+$/.test(value)) {
+    return Number(value);
+  }
+  return isUUID(value) ? value : null;
+}
+
+/**
+ * useEffect which listens for run ID query param in the current location. If found, it removes the query param and runs a callback.
+ */
+export function useSeerExplorerDeepLink({
+  callback,
+  enabled = true,
+}: {
+  callback: (runId: SeerExplorerRunId) => void;
+  enabled?: boolean;
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
+    if (!paramValue || typeof paramValue !== 'string') {
+      return;
+    }
+
+    const runId = parseRunIdParam(paramValue);
+    if (runId === null) {
+      return;
+    }
+
+    const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
+    navigate({...location, query: restQuery}, {replace: true});
+    callback(runId);
+  }, [location, navigate, callback, enabled]);
+}
 
 /**
  * Returns the URL of the current window with the run ID query param set.
@@ -1009,13 +1120,86 @@ export function getLangfuseUrl(runId: number | string): string {
   return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
 }
 
+export function getExplorerFeedbackOptions(
+  runId: SeerExplorerRunId | null
+): UseFeedbackOptions {
+  return {
+    formTitle: 'Seer Agent Feedback',
+    messagePlaceholder: 'How can we make Seer better for you?',
+    tags: {
+      ['feedback.source']: 'seer_explorer',
+      ['feedback.owner']: 'ml-ai',
+      ...(runId === null ? {} : {['seer.run_id']: runId.toString()}),
+      ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
+      ...(runId === null ? {} : {['langfuse_url']: getLangfuseUrl(runId)}),
+      ...(runId === null
+        ? {}
+        : {['conversations_url']: getConversationsUrlForExternalUse('sentry', runId)}),
+    },
+  };
+}
+
 /**
  * Checks if Seer Explorer is enabled for the organization.
- * Requires all of the following conditions:
- * - 'seer-explorer' feature flag
- * - Organization has open membership
- * Does not check general AI features access or org consent.
+ * Requires the rollout flag and:
+ * - 'gen-ai-features' feature flag
+ * - Organization has not disabled open membership
+ * - Organization has not disabled AI features (hideAiFeatures is false)
  */
-export function isSeerExplorerEnabled(organization: Organization): boolean {
-  return organization.openMembership && organization.features.includes('seer-explorer');
+export function isSeerExplorerEnabled(organization: Organization | null): boolean {
+  if (!organization) {
+    return false;
+  }
+
+  return (
+    organization.openMembership &&
+    !organization.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('seer-explorer')
+  );
+}
+
+/**
+ * Whether Seer Explorer should render as a persistent, resizable split-panel
+ * sidebar instead of an overlay drawer.
+ */
+export function useIsSeerExplorerSidebarEnabled(): boolean {
+  const organization = useOrganization({allowNull: true});
+  return (
+    isSeerExplorerEnabled(organization) &&
+    !!organization?.features.includes('seer-explorer-persistent-sidebar')
+  );
+}
+
+/**
+ * localStorage keys for Seer's persisted size in the sidebar split, one per dock
+ * orientation (width when docked right, height when docked bottom). We persist
+ * *Seer's* size — which is viewport-independent — rather than the content pane's,
+ * so Seer keeps a fixed size and the content area flexes as the viewport changes.
+ */
+export const SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY = {
+  right: 'seer-explorer-sidebar-seer-size:right',
+  bottom: 'seer-explorer-sidebar-seer-size:bottom',
+} as const;
+
+type SeerExplorerSidebarOrientation = 'right' | 'bottom';
+
+/**
+ * Resolves the dock preference to a concrete orientation. `auto` docks right on
+ * wide viewports (≥ `xl`) and on short landscape viewports (e.g. phones in
+ * landscape), and bottom otherwise. Shared by the layout (to lay out the split)
+ * and the provider (to persist the popped-out window's size to the right key).
+ */
+export function useSeerExplorerSidebarOrientation(
+  sidebarPosition: SeerExplorerSidebarPosition
+): SeerExplorerSidebarOrientation {
+  const theme = useTheme();
+  const isWideScreen = useMedia(`(min-width: ${theme.breakpoints.xl})`);
+  const isShortLandscape = useMedia(
+    `(orientation: landscape) and (max-height: ${theme.breakpoints.xs})`
+  );
+  if (sidebarPosition === 'auto') {
+    return isWideScreen || isShortLandscape ? 'right' : 'bottom';
+  }
+  return sidebarPosition;
 }

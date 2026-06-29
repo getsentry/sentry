@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {QueryClient, useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
@@ -25,48 +26,44 @@ import {
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
   isWidgetViewerPath,
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
-import {QueryClient, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
-import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRouter} from 'sentry/utils/useRouter';
+import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
+import {getDashboardRevisionsQueryKey} from 'sentry/views/dashboards/hooks/useDashboardRevisions';
 import {
   cloneDashboard,
   getCurrentPageFilters,
   getMergedDashboardFilters,
   hasUnsavedFilterChanges,
-  isWidgetUsingTransactionName,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -78,15 +75,17 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
-import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
-import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
-import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import {Controls} from './controls';
+import {validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {Dashboard} from './dashboard';
+import {DashboardEditSeerChat} from './dashboardEditSeerChat';
 import {DEFAULT_STATS_PERIOD} from './data';
 import {FiltersBar} from './filtersBar';
 import {
@@ -99,20 +98,18 @@ import {DashboardTitle} from './title';
 import type {
   DashboardDetails,
   DashboardFilters,
-  DashboardListItem,
   DashboardPermissions,
   Widget,
 } from './types';
 import {DashboardFilterKeys, DashboardState, MAX_WIDGETS, WidgetType} from './types';
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
-
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
 export const UNSAVED_FILTERS_MESSAGE = t(
   'You have unsaved dashboard filters. You can save or discard them.'
 );
 
-const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
+const OverrideHeader = OverrideOrDefault({overrideName: 'component:dashboards-header'});
 
 const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.EVENTS]: WidgetType.DISCOVER,
@@ -135,7 +132,6 @@ type RouteParams = {
 type Props = {
   api: Client;
   dashboard: DashboardDetails;
-  dashboards: DashboardListItem[];
   initialState: DashboardState;
   location: Location;
   navigate: ReactRouter3Navigate;
@@ -143,10 +139,9 @@ type Props = {
   params: RouteParams;
   projects: Project[];
   queryClient: QueryClient;
-  router: InjectedRouter;
   theme: Theme;
-  children?: React.ReactNode;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
+  pageAlerts?: React.ReactNode;
   storageNamespace?: string;
   widgetInterval?: string;
 };
@@ -157,6 +152,8 @@ type State = {
   isSavingDashboardFilters: boolean;
   isWidgetBuilderOpen: boolean;
   modifiedDashboard: DashboardDetails | null;
+  seerEditApplied: boolean;
+  seerRunId: number | null;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   newlyAddedWidget?: Widget;
@@ -185,7 +182,7 @@ function getDashboardLocation({
 
   const commonPath = defined(dashboardId)
     ? `/dashboard/${dashboardId}/`
-    : `/dashboards/new/`;
+    : '/dashboards/new/';
 
   const dashboardUrl = USING_CUSTOMER_DOMAIN
     ? commonPath
@@ -213,6 +210,8 @@ class DashboardDetail extends Component<Props, State> {
     openWidgetTemplates: undefined,
     newlyAddedWidget: undefined,
     isCommittingChanges: false,
+    seerEditApplied: false,
+    seerRunId: null,
   };
 
   componentDidMount() {
@@ -279,17 +278,34 @@ class DashboardDetail extends Component<Props, State> {
     window.removeEventListener('beforeunload', this.handleBeforeUnload);
   }
 
+  closeFullScreenView = () => {
+    const {location, navigate} = this.props;
+    // Filter out Widget Viewer Modal query params when exiting the Modal
+    const query = omit(location.query, Object.values(WidgetViewerQueryField));
+    navigate(
+      {
+        pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
+        query,
+      },
+      {preventScrollReset: true}
+    );
+  };
+
   checkIfShouldMountWidgetViewerModal() {
     const {
       params: {widgetId},
       organization,
       dashboard,
       location,
-      router,
       navigate,
     } = this.props;
     const {modifiedDashboard} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
+      // When the releases drawer is triggered from within the full-screen widget viewer modal, close the modal by navigating away from the widget path.
+      if (location.query[ReleasesDrawerFields.DRAWER] === 'show') {
+        this.closeFullScreenView();
+        return;
+      }
       const widget = (modifiedDashboard ?? dashboard).widgets[Number(widgetId)];
       if (widget) {
         openWidgetViewerModal({
@@ -302,15 +318,7 @@ class DashboardDetail extends Component<Props, State> {
           isPrebuiltDashboard: defined(dashboard.prebuiltId),
           widgetInterval: this.props.widgetInterval,
           onClose: () => {
-            // Filter out Widget Viewer Modal query params when exiting the Modal
-            const query = omit(location.query, Object.values(WidgetViewerQueryField));
-            navigate(
-              {
-                pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
-                query,
-              },
-              {preventScrollReset: true}
-            );
+            this.closeFullScreenView();
           },
           onEdit: () => {
             const widgetIndex = dashboard.widgets.findIndex(
@@ -338,11 +346,12 @@ class DashboardDetail extends Component<Props, State> {
         });
       } else {
         // Replace the URL if the widget isn't found and raise an error in toast
-        router.replace(
+        navigate(
           normalizeUrl({
             pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
             query: location.query,
-          })
+          }),
+          {replace: true}
         );
         addErrorMessage(t('Widget not found'));
       }
@@ -419,7 +428,7 @@ class DashboardDetail extends Component<Props, State> {
     if (USING_CUSTOMER_DOMAIN) {
       widgetBuilderRoutes.push(
         ...[
-          `/dashboards/new/widget-builder/widget/new/`,
+          '/dashboards/new/widget-builder/widget/new/',
           `/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`,
           `/dashboard/${dashboardId}/widget-builder/widget/new/`,
           `/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`,
@@ -449,7 +458,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
-    const {api, organization, location, queryClient} = this.props;
+    const {api, navigate, organization, location, queryClient} = this.props;
     if (!dashboard?.id) {
       return;
     }
@@ -461,10 +470,13 @@ class DashboardDetail extends Component<Props, State> {
         .then(() => {
           addSuccessMessage(t('Dashboard deleted'));
           trackAnalytics('dashboards2.delete', {organization});
-          browserHistory.replace({
-            pathname: `/organizations/${organization.slug}/dashboards/`,
-            query: location.query,
-          });
+          navigate(
+            {
+              pathname: `/organizations/${organization.slug}/dashboards/`,
+              query: location.query,
+            },
+            {replace: true}
+          );
         })
         .catch(() => {
           this.setState({
@@ -475,7 +487,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onCancel = () => {
-    const {organization, dashboard, location, params} = this.props;
+    const {navigate, organization, dashboard, location, params} = this.props;
     const {modifiedDashboard} = this.state;
 
     let hasDashboardChanged = !isEqual(modifiedDashboard, dashboard);
@@ -510,16 +522,17 @@ class DashboardDetail extends Component<Props, State> {
       return;
     }
     trackAnalytics('dashboards2.create.cancel', {organization});
-    browserHistory.replace(
+    navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/`,
         query: location.query,
-      })
+      }),
+      {replace: true}
     );
   };
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
-    const {dashboard, location} = this.props;
+    const {dashboard, location, navigate} = this.props;
 
     const filterParams: Record<string, string[]> = {};
     filterParams[DashboardFilterKeys.RELEASE] = activeFilters[DashboardFilterKeys.RELEASE]
@@ -541,10 +554,10 @@ class DashboardDetail extends Component<Props, State> {
         if (a.length === 0 && b.length === 0) {
           return a === b;
         }
-        return undefined;
+        return;
       })
     ) {
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -555,7 +568,8 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleUpdateWidgetList = (widgets: Widget[]) => {
-    const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
+    const {organization, dashboard, api, onDashboardUpdate, location, queryClient} =
+      this.props;
     const {modifiedDashboard} = this.state;
 
     // Use the new widgets for calculating layout because widgets has
@@ -576,6 +590,9 @@ class DashboardDetail extends Component<Props, State> {
     }
     return updateDashboard(api, organization.slug, newModifiedDashboard).then(
       (newDashboard: DashboardDetails) => {
+        queryClient.invalidateQueries({
+          queryKey: getDashboardRevisionsQueryKey(organization.slug, newDashboard.id),
+        });
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
           this.setState({
@@ -587,14 +604,15 @@ class DashboardDetail extends Component<Props, State> {
           this.state.widgetLegendState.setMultipleWidgetSelectionStateURL(newDashboard);
 
         if (dashboard && newDashboard.id !== dashboard.id) {
-          this.props.router.replace(
+          this.props.navigate(
             normalizeUrl({
               pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
               query: {
                 ...location.query,
                 unselectedSeries: legendQuery,
               },
-            })
+            }),
+            {replace: true}
           );
         }
         addSuccessMessage(t('Dashboard updated'));
@@ -602,7 +620,7 @@ class DashboardDetail extends Component<Props, State> {
         return newDashboard;
       },
       // `updateDashboard` does its own error handling
-      () => undefined
+      () => {}
     );
   };
 
@@ -642,7 +660,7 @@ class DashboardDetail extends Component<Props, State> {
           pathname = `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`;
         }
 
-        const defaultLibraryWidget = getTopNConvertedDefaultWidgets(organization)[0];
+        const defaultLibraryWidget = getDefaultWidgets(organization)[0];
         navigate(
           normalizeUrl({
             // TODO: Replace with the old widget builder path when swapping over
@@ -831,21 +849,21 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onCommit = () => {
-    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
+    const {
+      api,
+      navigate,
+      organization,
+      location,
+      dashboard,
+      onDashboardUpdate,
+      queryClient,
+    } = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
       case DashboardState.PREVIEW:
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
-          if (this.isPreview) {
-            trackAnalytics('dashboards_manage.templates.add', {
-              organization,
-              dashboard_id: dashboard.id,
-              dashboard_title: dashboard.title,
-              was_previewed: true,
-            });
-          }
           const newModifiedDashboard = {
             ...cloneDashboard(modifiedDashboard),
             ...getCurrentPageFilters(location),
@@ -855,17 +873,30 @@ class DashboardDetail extends Component<Props, State> {
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalytics('dashboards2.create.complete', {organization});
+              const seerRunId = location.query?.seerRunId
+                ? Number(location.query.seerRunId)
+                : null;
+              if (seerRunId) {
+                Sentry.metrics.count('dashboards.seer.create.save', 1, {
+                  attributes: {
+                    organization_slug: organization.slug,
+                    dashboard_id: newDashboard.id,
+                    seer_run_id: seerRunId,
+                  },
+                });
+              }
               this.setState(
                 {
                   dashboardState: DashboardState.VIEW,
                 },
                 () => {
                   // redirect to new dashboard
-                  browserHistory.replace(
+                  navigate(
                     normalizeUrl({
                       pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                       query: omit(location.query, Object.values(DashboardFilterKeys)),
-                    })
+                    }),
+                    {replace: true}
                   );
                 }
               );
@@ -881,7 +912,7 @@ class DashboardDetail extends Component<Props, State> {
                   Sentry.captureMessage('Generated dashboard failed to save', {
                     extra: {
                       dashboard_title: newModifiedDashboard.title,
-                      error_message: error?.message,
+                      error_message: error instanceof Error ? error.message : undefined,
                     },
                   });
                 });
@@ -898,41 +929,63 @@ class DashboardDetail extends Component<Props, State> {
             this.setState({
               dashboardState: DashboardState.VIEW,
               modifiedDashboard: null,
+              seerEditApplied: false,
+              seerRunId: null,
             });
             return;
           }
           this.setState({
             isCommittingChanges: true,
           });
-          updateDashboard(api, organization.slug, modifiedDashboard).then(
+          updateDashboard(api, organization.slug, modifiedDashboard, {
+            revisionSource: this.state.seerEditApplied ? 'edit-with-agent' : undefined,
+          }).then(
             (newDashboard: DashboardDetails) => {
+              queryClient.invalidateQueries({
+                queryKey: getDashboardRevisionsQueryKey(
+                  organization.slug,
+                  newDashboard.id
+                ),
+              });
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);
               }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalytics('dashboards2.edit.complete', {organization});
+              if (this.state.seerEditApplied && this.state.seerRunId) {
+                Sentry.metrics.count('dashboards.seer.edit.save', 1, {
+                  attributes: {
+                    organization_slug: organization.slug,
+                    dashboard_id: newDashboard.id,
+                    seer_run_id: this.state.seerRunId,
+                  },
+                });
+              }
               this.setState(
                 {
                   dashboardState: DashboardState.VIEW,
                   modifiedDashboard: null,
                   isCommittingChanges: false,
+                  seerEditApplied: false,
+                  seerRunId: null,
                 },
                 () => {
                   if (dashboard && newDashboard.id !== dashboard.id) {
-                    browserHistory.replace(
+                    navigate(
                       normalizeUrl({
                         pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                         query: {
                           ...location.query,
                         },
-                      })
+                      }),
+                      {replace: true}
                     );
                   }
                 }
               );
             },
             // `updateDashboard` does its own error handling
-            () => undefined
+            () => {}
           );
 
           return;
@@ -940,6 +993,8 @@ class DashboardDetail extends Component<Props, State> {
         this.setState({
           dashboardState: DashboardState.VIEW,
           modifiedDashboard: null,
+          seerEditApplied: false,
+          seerRunId: null,
         });
         break;
       }
@@ -948,6 +1003,8 @@ class DashboardDetail extends Component<Props, State> {
         this.setState({
           dashboardState: DashboardState.VIEW,
           modifiedDashboard: null,
+          seerEditApplied: false,
+          seerRunId: null,
         });
         break;
       }
@@ -958,6 +1015,39 @@ class DashboardDetail extends Component<Props, State> {
     this.setState({
       modifiedDashboard: dashboard,
     });
+  };
+
+  handleSeerDashboardUpdate = (
+    {title, widgets}: Pick<DashboardDetails, 'title' | 'widgets'>,
+    seerRunId: number | null
+  ) => {
+    const {organization} = this.props;
+    this.setState(
+      state => {
+        const dashboard = cloneDashboard(state.modifiedDashboard ?? this.props.dashboard);
+        const updatedDashboard = {
+          ...dashboard,
+          widgets,
+          ...(title === undefined ? {} : {title}),
+        };
+        return {
+          widgetLimitReached: widgets.length >= MAX_WIDGETS,
+          seerEditApplied: true,
+          seerRunId,
+          modifiedDashboard: updatedDashboard,
+        };
+      },
+      () => {
+        if (this.state.modifiedDashboard) {
+          validateDashboardAndRecordMetrics({
+            organization,
+            dashboard: this.state.modifiedDashboard,
+            seerRunId,
+            source: 'edit',
+          });
+        }
+      }
+    );
   };
 
   handleUpdateEditStateWidgets = (widgets: Widget[]) => {
@@ -974,7 +1064,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   renderDefaultDashboardDetail() {
-    const {organization, dashboard, dashboards, location} = this.props;
+    const {pageAlerts, organization, dashboard, location} = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     return (
       <PageFiltersContainer
@@ -1002,7 +1092,6 @@ class DashboardDetail extends Component<Props, State> {
                   </Layout.Title>
                   <Controls
                     organization={organization}
-                    dashboards={dashboards}
                     dashboard={dashboard}
                     onEdit={this.onEdit}
                     onCancel={this.onCancel}
@@ -1014,18 +1103,21 @@ class DashboardDetail extends Component<Props, State> {
                     widgetLimitReached={widgetLimitReached}
                   />
                 </StyledPageHeader>
-                <HookHeader organization={organization} />
-                <FiltersBar
-                  dashboard={dashboard}
-                  dashboardPermissions={dashboard.permissions}
-                  dashboardCreator={dashboard.createdBy}
-                  filters={{}} // Default Dashboards don't have filters set
-                  location={location}
-                  hasUnsavedChanges={false}
-                  isEditingDashboard={false}
-                  isPreview={false}
-                  onDashboardFilterChange={this.handleChangeFilter}
-                />
+                <OverrideHeader organization={organization} />
+                <Stack gap="xl">
+                  {pageAlerts}
+                  <FiltersBar
+                    dashboard={dashboard}
+                    dashboardPermissions={dashboard.permissions}
+                    dashboardCreator={dashboard.createdBy}
+                    filters={{}} // Default Dashboards don't have filters set
+                    location={location}
+                    hasUnsavedChanges={false}
+                    isEditingDashboard={false}
+                    isPreview={false}
+                    onDashboardFilterChange={this.handleChangeFilter}
+                  />
+                </Stack>
                 <MetricsCardinalityProvider
                   organization={organization}
                   location={location}
@@ -1068,27 +1160,17 @@ class DashboardDetail extends Component<Props, State> {
     );
   }
 
-  getBreadcrumbLabel() {
-    const {dashboardState} = this.state;
-
-    let label = this.dashboardTitle;
-    if (dashboardState === DashboardState.CREATE) {
-      label = t('Create Dashboard');
-    } else if (this.isPreview) {
-      label = t('Preview Dashboard');
-    }
-    return label;
-  }
-
   renderDashboardDetail() {
     const {
       api,
+      navigate,
       organization,
       dashboard,
-      dashboards,
       location,
       onDashboardUpdate,
+      pageAlerts,
       projects,
+      queryClient,
     } = this.props;
     const {
       modifiedDashboard,
@@ -1099,15 +1181,10 @@ class DashboardDetail extends Component<Props, State> {
     } = this.state;
 
     const hasUnsavedFilters =
-      dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
 
     const eventView = generatePerformanceEventView(location, projects, {});
-
-    const isDashboardUsingTransaction = dashboard.widgets.some(
-      isWidgetUsingTransactionName
-    );
 
     const pageContent = (
       <Stack flex={1}>
@@ -1115,8 +1192,8 @@ class DashboardDetail extends Component<Props, State> {
           <MetricsResultsMetaProvider>
             <NoProjectMessage organization={organization}>
               {this.isEmbedded ? null : (
-                <Layout.Header>
-                  <Layout.HeaderContent>
+                <Fragment>
+                  <TopBar.Slot name="title">
                     <Breadcrumbs
                       crumbs={[
                         {
@@ -1124,23 +1201,22 @@ class DashboardDetail extends Component<Props, State> {
                           to: `/organizations/${organization.slug}/dashboards/`,
                         },
                         {
-                          label: this.getBreadcrumbLabel(),
+                          label: (
+                            <DashboardTitle
+                              dashboard={modifiedDashboard ?? dashboard}
+                              onUpdate={this.setModifiedDashboard}
+                              isEditingDashboard={this.isEditingDashboard}
+                            />
+                          ),
                         },
                       ]}
                     />
-                    <Layout.Title>
-                      <DashboardTitle
-                        dashboard={modifiedDashboard ?? dashboard}
-                        onUpdate={this.setModifiedDashboard}
-                        isEditingDashboard={this.isEditingDashboard}
-                      />
-                    </Layout.Title>
-                  </Layout.HeaderContent>
-                  <Layout.HeaderActions>
+                  </TopBar.Slot>
+                  <TopBar.Slot name="actions">
                     <Controls
                       organization={organization}
-                      dashboards={dashboards}
                       dashboard={dashboard}
+                      hideAddWidget
                       hasUnsavedFilters={hasUnsavedFilters}
                       onEdit={this.onEdit}
                       onCancel={this.onCancel}
@@ -1152,8 +1228,8 @@ class DashboardDetail extends Component<Props, State> {
                       widgetLimitReached={widgetLimitReached}
                       isSaving={isCommittingChanges}
                     />
-                  </Layout.HeaderActions>
-                </Layout.Header>
+                  </TopBar.Slot>
+                </Fragment>
               )}
               <Layout.Body>
                 <Layout.Main width="full">
@@ -1172,104 +1248,107 @@ class DashboardDetail extends Component<Props, State> {
                           location={location}
                           forceTransactions={metricsDataSide.forceTransactionsOnly}
                         >
-                          {isDashboardUsingTransaction ? (
-                            <MetricsDataSwitcherAlert
-                              organization={organization}
-                              eventView={eventView}
-                              projects={projects}
-                              source={DiscoverQueryPageSource.DISCOVER}
-                              {...metricsDataSide}
+                          <Stack gap="xl">
+                            {pageAlerts}
+                            <FiltersBar
+                              dashboard={modifiedDashboard ?? dashboard}
+                              filters={(modifiedDashboard ?? dashboard).filters}
+                              dashboardPermissions={dashboard.permissions}
+                              dashboardCreator={dashboard.createdBy}
+                              location={location}
+                              hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
+                              isEditingDashboard={
+                                dashboardState !== DashboardState.CREATE &&
+                                this.isEditingDashboard
+                              }
+                              isPreview={this.isPreview}
+                              onAddWidget={this.onAddWidget}
+                              onDashboardFilterChange={this.handleChangeFilter}
+                              shouldBusySaveButton={this.state.isSavingDashboardFilters}
+                              prebuiltDashboardId={dashboard.prebuiltId}
+                              storageNamespace={this.props.storageNamespace}
+                              widgetLimitReached={widgetLimitReached}
+                              onCancel={() => {
+                                resetPageFilters(dashboard, location, navigate);
+                                trackAnalytics('dashboards2.filter.cancel', {
+                                  organization,
+                                });
+
+                                this.setState({
+                                  modifiedDashboard: {
+                                    ...(modifiedDashboard ?? dashboard),
+                                    filters: dashboard.filters,
+                                  },
+                                });
+                              }}
+                              onSave={async () => {
+                                const newModifiedDashboard = {
+                                  ...cloneDashboard(modifiedDashboard ?? dashboard),
+                                  ...getCurrentPageFilters(location),
+                                  filters: getMergedDashboardFilters(
+                                    (modifiedDashboard ?? dashboard).filters,
+                                    location
+                                  ),
+                                  ...(defined(dashboard.prebuiltId) && {
+                                    widgets: undefined,
+                                  }),
+                                };
+                                this.setState({isSavingDashboardFilters: true});
+                                addLoadingMessage(t('Saving dashboard filters'));
+                                await updateDashboard(
+                                  api,
+                                  organization.slug,
+                                  newModifiedDashboard
+                                ).then(
+                                  (newDashboard: DashboardDetails) => {
+                                    queryClient.invalidateQueries({
+                                      queryKey: getDashboardRevisionsQueryKey(
+                                        organization.slug,
+                                        newDashboard.id
+                                      ),
+                                    });
+                                    addSuccessMessage(t('Dashboard filters updated'));
+                                    trackAnalytics('dashboards2.filter.save', {
+                                      organization,
+                                    });
+
+                                    const navigateToDashboard = () => {
+                                      this.props.navigate(
+                                        normalizeUrl({
+                                          pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                                          query: omit(
+                                            location.query,
+                                            Object.values(DashboardFilterKeys)
+                                          ),
+                                        }),
+                                        {replace: true}
+                                      );
+                                    };
+
+                                    if (onDashboardUpdate) {
+                                      onDashboardUpdate(newDashboard);
+                                      this.setState(
+                                        {
+                                          modifiedDashboard: null,
+                                          isSavingDashboardFilters: false,
+                                        },
+                                        () => {
+                                          // Wait for modifiedDashboard state to update before navigating
+                                          navigateToDashboard();
+                                        }
+                                      );
+                                      return;
+                                    }
+
+                                    navigateToDashboard();
+                                    this.setState({isSavingDashboardFilters: false});
+                                  },
+                                  // `updateDashboard` does its own error handling
+                                  () => {}
+                                );
+                              }}
                             />
-                          ) : null}
-                          <FiltersBar
-                            dashboard={modifiedDashboard ?? dashboard}
-                            filters={(modifiedDashboard ?? dashboard).filters}
-                            dashboardPermissions={dashboard.permissions}
-                            dashboardCreator={dashboard.createdBy}
-                            location={location}
-                            hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
-                            isEditingDashboard={
-                              dashboardState !== DashboardState.CREATE &&
-                              this.isEditingDashboard
-                            }
-                            isPreview={this.isPreview}
-                            onDashboardFilterChange={this.handleChangeFilter}
-                            shouldBusySaveButton={this.state.isSavingDashboardFilters}
-                            prebuiltDashboardId={dashboard.prebuiltId}
-                            storageNamespace={this.props.storageNamespace}
-                            onCancel={() => {
-                              resetPageFilters(dashboard, location);
-                              trackAnalytics('dashboards2.filter.cancel', {
-                                organization,
-                              });
-
-                              this.setState({
-                                modifiedDashboard: {
-                                  ...(modifiedDashboard ?? dashboard),
-                                  filters: dashboard.filters,
-                                },
-                              });
-                            }}
-                            onSave={async () => {
-                              const newModifiedDashboard = {
-                                ...cloneDashboard(modifiedDashboard ?? dashboard),
-                                ...getCurrentPageFilters(location),
-                                filters: getMergedDashboardFilters(
-                                  (modifiedDashboard ?? dashboard).filters,
-                                  location
-                                ),
-                                ...(defined(dashboard.prebuiltId) && {
-                                  widgets: undefined,
-                                }),
-                              };
-                              this.setState({isSavingDashboardFilters: true});
-                              addLoadingMessage(t('Saving dashboard filters'));
-                              await updateDashboard(
-                                api,
-                                organization.slug,
-                                newModifiedDashboard
-                              ).then(
-                                (newDashboard: DashboardDetails) => {
-                                  addSuccessMessage(t('Dashboard filters updated'));
-                                  trackAnalytics('dashboards2.filter.save', {
-                                    organization,
-                                  });
-
-                                  const navigateToDashboard = () => {
-                                    browserHistory.replace(
-                                      normalizeUrl({
-                                        pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                                        query: omit(
-                                          location.query,
-                                          Object.values(DashboardFilterKeys)
-                                        ),
-                                      })
-                                    );
-                                  };
-
-                                  if (onDashboardUpdate) {
-                                    onDashboardUpdate(newDashboard);
-                                    this.setState(
-                                      {
-                                        modifiedDashboard: null,
-                                        isSavingDashboardFilters: false,
-                                      },
-                                      () => {
-                                        // Wait for modifiedDashboard state to update before navigating
-                                        navigateToDashboard();
-                                      }
-                                    );
-                                    return;
-                                  }
-
-                                  navigateToDashboard();
-                                  this.setState({isSavingDashboardFilters: false});
-                                },
-                                // `updateDashboard` does its own error handling
-                                () => undefined
-                              );
-                            }}
-                          />
+                          </Stack>
 
                           <Fragment>
                             <WidgetQueryQueueProvider>
@@ -1311,6 +1390,18 @@ class DashboardDetail extends Component<Props, State> {
                               dashboard={modifiedDashboard ?? dashboard}
                               onSave={this.handleSaveWidget}
                             />
+                            {dashboardState === DashboardState.EDIT &&
+                              organization.features.includes(
+                                'dashboards-ai-generate-edit'
+                              ) &&
+                              organization.features.includes(
+                                'dashboards-ai-generate'
+                              ) && (
+                                <DashboardEditSeerChat
+                                  dashboard={modifiedDashboard ?? dashboard}
+                                  onDashboardUpdate={this.handleSeerDashboardUpdate}
+                                />
+                              )}
                           </Fragment>
                         </MEPSettingProvider>
                       )}
@@ -1417,7 +1508,6 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'projects'
   | 'location'
   | 'params'
-  | 'router'
   | 'queryClient'
 > {}
 
@@ -1431,15 +1521,12 @@ export function DashboardDetailWithInjectedProps(
   const {projects} = useProjects();
   const location = useLocation();
   const params = useParams<RouteParams>();
-  const router = useRouter();
-  const [chartInterval] = useChartInterval();
+  const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
-  const widgetInterval = organization.features.includes('dashboards-interval-selection')
-    ? chartInterval
-    : undefined;
+  const widgetInterval = chartInterval;
 
   return (
     <DashboardDetail
@@ -1451,7 +1538,6 @@ export function DashboardDetailWithInjectedProps(
       projects={projects}
       location={location}
       params={params}
-      router={router}
       widgetInterval={widgetInterval}
       queryClient={queryClient}
     />

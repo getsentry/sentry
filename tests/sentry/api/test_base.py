@@ -7,11 +7,12 @@ from unittest.mock import MagicMock
 from django.http import QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
+from rest_framework.exceptions import ParseError
 from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
-from sentry.api.base import Endpoint, EndpointSiloLimit
+from sentry.api.base import Endpoint, EndpointSiloLimit, StatsMixin
 from sentry.api.exceptions import SuperuserRequired
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.permissions import SuperuserPermission
@@ -138,7 +139,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert "Access-Control-Allow-Credentials" not in response
 
-    @override_options({"system.base-hostname": "example.com"})
+    @override_settings(SENTRY_BASE_HOSTNAME="example.com")
     def test_allow_credentials_subdomain(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -165,7 +166,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
 
-    @override_options({"system.base-hostname": "example.com"})
+    @override_settings(SENTRY_BASE_HOSTNAME="example.com")
     def test_allow_credentials_root_domain(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -192,7 +193,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
 
-    @override_options({"system.base-hostname": "example.com"})
+    @override_settings(SENTRY_BASE_HOSTNAME="example.com")
     @override_settings(ALLOWED_CREDENTIAL_ORIGINS=["http://docs.example.org"])
     def test_allow_credentials_allowed_domain(self) -> None:
         org = self.create_organization()
@@ -220,7 +221,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
 
-    @override_options({"system.base-hostname": "acme.com"})
+    @override_settings(SENTRY_BASE_HOSTNAME="acme.com")
     def test_allow_credentials_incorrect(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -235,7 +236,7 @@ class EndpointTest(APITestCase):
             response.render()
             assert "Access-Control-Allow-Credentials" not in response
 
-    @override_options({"system.base-hostname": "acme.com"})
+    @override_settings(SENTRY_BASE_HOSTNAME="acme.com")
     def test_disallow_credentials_when_two_origins(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -430,11 +431,9 @@ class CursorGenerationTest(APITestCase):
         )
         request.GET = QueryDict("member=1&cursor=foo")
         endpoint = Endpoint()
-        with override_options(
-            {
-                "system.url-prefix": "https://testserver",
-                "system.organization-url-template": "https://{hostname}",
-            }
+        with (
+            override_options({"system.url-prefix": "https://testserver"}),
+            override_settings(SENTRY_ORGANIZATION_URL_TEMPLATE="https://{hostname}"),
         ):
             result = endpoint.build_cursor_link(
                 request, "next", Cursor.from_string("1492107369532:0:0")
@@ -649,3 +648,26 @@ class RequestAccessTest(APITestCase):
         response = AccessUsingEndpoint.as_view()(self.request)
         assert response.status_code == 200
         assert response.data == {"ok": True}
+
+
+class StatsMixinParseArgsTest(APITestCase):
+    def _make_request(self, params: dict[str, str]) -> MagicMock:
+        request = MagicMock()
+        request.GET = QueryDict(mutable=True)
+        request.GET.update(params)
+        return request
+
+    def test_invalid_timestamp_params(self) -> None:
+        mixin = StatsMixin()
+        with raises(ParseError, match="until must be a numeric timestamp"):
+            mixin._parse_args(self._make_request({"until": "not_a_number"}))
+        with raises(ParseError, match="since must be a numeric timestamp"):
+            mixin._parse_args(self._make_request({"since": "not_a_number"}))
+
+    def test_overflow_timestamp_params(self) -> None:
+        mixin = StatsMixin()
+        huge = "9" * 30
+        with raises(ParseError, match="until must be a numeric timestamp"):
+            mixin._parse_args(self._make_request({"until": huge}))
+        with raises(ParseError, match="since must be a numeric timestamp"):
+            mixin._parse_args(self._make_request({"since": huge}))

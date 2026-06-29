@@ -1,7 +1,6 @@
 import type {
   Integration,
   IntegrationProvider,
-  Plugin,
   SentryApp,
 } from 'sentry/types/integrations';
 
@@ -29,11 +28,6 @@ export function ProviderListFixture(): {providers: IntegrationProvider[]} {
         },
         name: 'Bitbucket',
 
-        setupDialog: {
-          height: 600,
-          url: '/organizations/sentry/integrations/bitbucket/setup/',
-          width: 600,
-        },
         slug: 'bitbucket',
       },
     ],
@@ -210,141 +204,4 @@ export function SentryAppInstallsFixture() {
       uuid: '5379e8e1-0554-468f-90ca-2e0c88f1ac32',
     },
   ];
-}
-
-export function PluginListConfigFixture() {
-  return [
-    {
-      author: {name: 'Sentry Team', url: 'https://github.com/getsentry/sentry'},
-      canDisable: true,
-      contexts: [],
-      description: 'Forward Sentry events to Amazon SQS.',
-      doc: '',
-      featureDescriptions: [
-        {
-          description: 'Forward Sentry errors and events to Amazon SQS.',
-          featureGate: 'data-forwarding',
-        },
-      ],
-      features: ['data-forwarding'],
-      hasConfiguration: true,
-      id: 'amazon-sqs',
-      isHidden: false,
-      isTestable: false,
-      metadata: {},
-      name: 'Amazon SQS',
-      projectList: [],
-      resourceLinks: [
-        {
-          title: 'Report Issue',
-          url: 'https://github.com/getsentry/sentry/issues',
-        },
-        {
-          title: 'View Source',
-          url: 'https://github.com/getsentry/sentry/tree/master/src/sentry_plugins',
-        },
-      ],
-      shortName: 'Amazon SQS',
-      slug: 'amazon-sqs',
-      status: 'beta',
-      type: 'data-forwarding',
-      version: '10.1.0.dev0',
-    },
-    {
-      status: 'unknown',
-      description: 'Send alerts to PagerDuty.',
-      isTestable: true,
-      isHidden: true,
-      hasConfiguration: true,
-      shortName: 'PagerDuty',
-      id: 'pagerduty',
-      featureDescriptions: [
-        {
-          description:
-            'Configure rule based PagerDuty alerts to automatically be triggered in a specific\n            service - or in multiple services!',
-          featureGate: 'alert-rule',
-        },
-      ],
-      features: ['alert-rule'],
-      name: 'PagerDuty',
-      author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
-      contexts: [],
-      doc: '',
-      resourceLinks: [
-        {
-          url: 'https://github.com/getsentry/sentry/issues',
-          title: 'Report Issue',
-        },
-        {
-          url: 'https://github.com/getsentry/sentry/tree/master/src/sentry_plugins',
-          title: 'View Source',
-        },
-      ],
-      slug: 'pagerduty',
-      projectList: [
-        {
-          projectId: 2,
-          configured: true,
-          enabled: true,
-          projectSlug: 'javascript',
-          projectPlatform: 'javascript',
-          projectName: 'JavaScript',
-        },
-      ],
-      version: '10.1.0.dev0',
-      canDisable: true,
-      type: 'notification',
-      metadata: {},
-    },
-  ];
-}
-
-export function WebhookPluginConfigFixture(plugin?: Partial<Plugin>): Plugin {
-  return {
-    id: 'webhooks',
-    name: 'WebHooks',
-    slug: 'webhooks',
-    shortName: 'WebHooks',
-    type: 'notification',
-    canDisable: true,
-    isTestable: true,
-    hasConfiguration: true,
-    metadata: {},
-    contexts: [],
-    status: 'unknown',
-    doc: '',
-    enabled: true,
-    version: '24.1.0.dev0',
-    author: {
-      name: 'Sentry Team',
-      url: 'https://github.com/getsentry/sentry',
-    },
-    isDeprecated: false,
-    isHidden: false,
-    description:
-      '\nTrigger outgoing HTTP POST requests from Sentry.\n\nNote: To configure webhooks over multiple projects, we recommend setting up an\nInternal Integration.\n',
-    features: ['alert-rule'],
-    featureDescriptions: [
-      {
-        description: 'Configure rule based outgoing HTTP POST requests from Sentry.',
-        featureGate: 'alert-rule',
-        featureId: 1,
-      },
-    ],
-    resourceLinks: [
-      {
-        title: 'Report Issue',
-        url: 'https://github.com/getsentry/sentry/issues',
-      },
-      {
-        title: 'View Source',
-        url: 'https://github.com/getsentry/sentry/tree/master/src/sentry/plugins/sentry_webhooks',
-      },
-      {
-        title: 'Internal Integrations',
-        url: 'https://docs.sentry.io/workflow/integrations/integration-platform/#internal-integrations',
-      },
-    ],
-    ...plugin,
-  };
 }

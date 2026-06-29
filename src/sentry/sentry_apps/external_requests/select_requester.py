@@ -8,7 +8,11 @@ from django.utils.functional import cached_property
 from requests import RequestException
 
 from sentry.http import safe_urlread
-from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
+from sentry.sentry_apps.external_requests.utils import (
+    integrator_error_message,
+    send_and_save_sentry_app_request,
+    validate,
+)
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
     SentryAppExternalRequestFailureReason,
@@ -85,9 +89,12 @@ class SelectRequester:
                 lifecycle.record_halt(halt_reason=e, extra={"reason": halt_reason, **extras})
 
                 raise SentryAppIntegratorError(
-                    message=f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}",
+                    message=integrator_error_message(
+                        e.response,
+                        f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}",
+                    ),
                     webhook_context={"error_type": halt_reason, **extras},
-                    status_code=500,
+                    status_code=e.response.status_code if e.response is not None else 502,
                 ) from e
 
             except SentryAppIntegratorError as e:

@@ -75,7 +75,7 @@ describe('initializeSdk', () => {
       },
     } as Sentry.ErrorEvent;
 
-    expect(initConfig?.beforeSend?.(event, {} as Sentry.EventHint)).toBeNull();
+    expect(initConfig?.beforeSend?.(event, {})).toBeNull();
   });
 });
 
@@ -162,7 +162,7 @@ describe('isFilteredRequestErrorEvent', () => {
   });
 
   describe('non-matching error type, non-matching message', () => {
-    it(`rejects other errors`, () => {
+    it('rejects other errors', () => {
       const event = {
         exception: {
           values: [{type: 'UncaughtSquirrelError', value: 'Squirrel was not caught'}],
@@ -172,7 +172,7 @@ describe('isFilteredRequestErrorEvent', () => {
       expect(isFilteredRequestErrorEvent(event)).toBeFalsy();
     });
 
-    it(`rejects other errors as causes`, () => {
+    it('rejects other errors as causes', () => {
       const event = {
         exception: {
           values: [

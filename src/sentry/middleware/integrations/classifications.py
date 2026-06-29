@@ -35,26 +35,6 @@ class BaseClassification(abc.ABC):
         raise NotImplementedError
 
 
-class PluginClassification(BaseClassification):
-    plugin_prefix = "/plugins/"
-    """Prefix for plugin requests."""
-
-    def should_operate(self, request: HttpRequest) -> bool:
-        from .parsers import PluginRequestParser
-
-        is_plugin = request.path.startswith(self.plugin_prefix)
-        if not is_plugin:
-            return False
-        rp = PluginRequestParser(request=request, response_handler=self.response_handler)
-        return rp.should_operate()
-
-    def get_response(self, request: HttpRequest) -> HttpResponseBase:
-        from .parsers import PluginRequestParser
-
-        rp = PluginRequestParser(request=request, response_handler=self.response_handler)
-        return rp.get_response()
-
-
 class IntegrationClassification(BaseClassification):
     integration_prefix = "/extensions/"
     """Prefix for all integration requests. See `src/sentry/web/urls.py`"""
@@ -116,7 +96,6 @@ class IntegrationClassification(BaseClassification):
             and not request.path.endswith("/setup/")
             # or match the routes for integrationOrganizationLink page (See routes.tsx)
             and not request.path.endswith("/link/")
-            and not request.path.startswith("/extensions/external-install/")
         )
 
     def get_response(self, request: HttpRequest) -> HttpResponseBase:
@@ -126,9 +105,10 @@ class IntegrationClassification(BaseClassification):
 
         parser_class = self.integration_parsers.get(provider)
         if not parser_class:
-            scope = sentry_sdk.get_isolation_scope()
-            scope.set_tag("provider", provider)
-            scope.set_tag("path", request.path)
+            sentry_sdk.set_tag("provider", provider)
+            sentry_sdk.set_attribute("provider", provider)
+            sentry_sdk.set_tag("path", request.path)
+            sentry_sdk.set_attribute("path", request.path)
             sentry_sdk.capture_exception(
                 Exception("Unknown provider was extracted from integration extension url")
             )

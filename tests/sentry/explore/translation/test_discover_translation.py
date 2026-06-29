@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.explore.translation.discover_translation import (
@@ -8,7 +10,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class DiscoverToExploreTranslationTest(TestCase):
-    def create_discover_query(self, name: str, query: dict, explore_query=None):
+    def create_discover_query(self, name: str, query: dict, explore_query=None, is_homepage=False):
         discover_saved_query = DiscoverSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,
@@ -21,6 +23,7 @@ class DiscoverToExploreTranslationTest(TestCase):
             last_visited=before_now(minutes=5),
             dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
             explore_query=explore_query,
+            is_homepage=is_homepage,
         )
         discover_saved_query.set_projects([self.project1.id, self.project2.id])
 
@@ -374,3 +377,20 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert query["mode"] == "samples"
         assert query["aggregateOrderby"] is None
         assert query["orderby"] is None
+
+    def test_translate_homepage_discover_query_to_explore_query(self) -> None:
+        self.homepage_query = {
+            "query": "",
+            "range": "14d",
+            "yAxis": ["count()"],
+            "fields": ["id", "timestamp"],
+            "orderby": "-timestamp",
+            "display": "default",
+            "environment": [],
+        }
+        self.homepage_saved_query = self.create_discover_query(
+            "Homepage query", self.homepage_query, is_homepage=True
+        )
+
+        with pytest.raises(Exception):
+            translate_discover_query_to_explore_query(self.homepage_saved_query)

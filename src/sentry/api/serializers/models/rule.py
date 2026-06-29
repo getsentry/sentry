@@ -3,18 +3,19 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 
-from django.db.models import Max, Prefetch, Q, prefetch_related_objects
+from django.db.models import Prefetch, Q, prefetch_related_objects
 from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
-from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
@@ -106,18 +107,18 @@ class RuleSerializerResponse(RuleSerializerResponseOptional):
     conditions: list[dict]
     filters: list[dict]
     actions: list[dict]
-    actionMatch: str
-    filterMatch: str
+    actionMatch: str | None
+    filterMatch: str | None
     frequency: int
     name: str
     dateCreated: datetime
     projects: list[str]
-    status: str
+    status: Literal["active", "disabled"]
     snooze: bool
 
 
 @register(Rule)
-class RuleSerializer(Serializer):
+class RuleSerializer(Serializer[RuleSerializerResponse]):
     def __init__(
         self,
         expand: list[str] | None = None,
@@ -225,20 +226,15 @@ class RuleSerializer(Serializer):
                 result[rule]["errors"] = errors
 
         if "lastTriggered" in self.expand:
-            last_triggered_lookup = {
-                rfh["rule_id"]: rfh["date_added"]
-                for rfh in RuleFireHistory.objects.filter(rule__in=item_list)
-                .values("rule_id")
-                .annotate(date_added=Max("date_added"))
-            }
-
-            # Update lastTriggered with WorkflowFireHistory if available
+            last_triggered_lookup: dict[int, datetime] = {}
             if item_list:
                 rule_ids = [rule.id for rule in item_list]
+                org_ids = {rule.project.organization_id for rule in item_list}
                 workflow_rule_lookup = dict(
-                    AlertRuleWorkflow.objects.filter(rule_id__in=rule_ids).values_list(
-                        "workflow_id", "rule_id"
-                    )
+                    AlertRuleWorkflow.objects.filter(
+                        rule_id__in=rule_ids,
+                        workflow__organization_id__in=org_ids,
+                    ).values_list("workflow_id", "rule_id")
                 )
 
                 workflow_fire_dates = get_last_fired_dates(list(workflow_rule_lookup.keys()))
@@ -246,27 +242,10 @@ class RuleSerializer(Serializer):
                 for workflow_id, last_fire in workflow_fire_dates.items():
                     rule_id = workflow_rule_lookup.get(workflow_id)
                     if rule_id and last_fire:
-                        # Take the maximum date between RuleFireHistory and WorkflowFireHistory
-                        existing_date = last_triggered_lookup.get(rule_id)
-                        if (existing_date and last_fire > existing_date) or not existing_date:
-                            last_triggered_lookup[rule_id] = last_fire
+                        last_triggered_lookup[rule_id] = last_fire
 
-            # Set the results
             for rule in item_list:
                 result[rule]["last_triggered"] = last_triggered_lookup.get(rule.id, None)
-
-        neglected_rule_lookup = {
-            nr["rule_id"]: nr["disable_date"]
-            for nr in NeglectedRule.objects.filter(
-                rule__in=item_list,
-                opted_out=False,
-                sent_initial_email_date__isnull=False,
-            ).values("rule_id", "disable_date")
-        }
-        for rule in item_list:
-            disable_date = neglected_rule_lookup.get(rule.id, None)
-            if disable_date:
-                result[rule]["disable_date"] = disable_date
 
         rule_snooze_lookup = {
             snooze["rule_id"]: {"user_id": snooze["user_id"], "owner_id": snooze["owner_id"]}
@@ -326,6 +305,14 @@ class RuleSerializer(Serializer):
                         action_data["targetIdentifier"] = str(action_data["targetIdentifier"])
                     if "fallthroughType" not in action_data:
                         action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+                # IssueOwners email actions also emit a default fallthroughType to match
+                # WorkflowEngineRuleSerializer output
+                elif (
+                    action_data.get("id") == EMAIL_ACTION
+                    and action_data.get("targetType") == ActionTargetType.ISSUE_OWNERS.value
+                    and "fallthroughType" not in action_data
+                ):
+                    action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
                 actions.append(action_data)
             except serializers.ValidationError:
                 # Integrations can be deleted and we don't want to fail to load the rule
@@ -507,7 +494,9 @@ class WorkflowEngineRuleSerializer(Serializer):
                 except NoRegistrationExistsError:
                     raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
 
-            condition_data["name"] = handler.render_label(condition_data)
+            condition_data["name"] = handler.render_label(
+                condition_data, organization_id=project.organization_id
+            )
             return condition_data
 
         def generate_condition_filters(conditions: list[DataCondition], is_filter: bool):
@@ -591,6 +580,22 @@ class WorkflowEngineRuleSerializer(Serializer):
             )
         actions_by_dcg = self._fetch_actions_by_dcg(all_dcg_ids)
 
+        # Batch-fetch integrations for all actions to avoid per-action RPC calls in render_label
+        all_integration_ids: set[int] = set()
+        for action_list in actions_by_dcg.values():
+            for action in action_list:
+                if action.integration_id is not None:
+                    all_integration_ids.add(action.integration_id)
+
+        integration_cache: dict[int, RpcIntegration] = {}
+        if all_integration_ids and item_list:
+            integrations = integration_service.get_integrations(
+                integration_ids=list(all_integration_ids),
+                organization_id=item_list[0].organization_id,
+                status=ObjectStatus.ACTIVE,
+            )
+            integration_cache = {i.id: i for i in integrations}
+
         last_triggered_lookup: dict[int, datetime] = {}
         if "lastTriggered" in self.expand:
             last_triggered_lookup = self._fetch_workflow_last_triggered(item_list)
@@ -666,8 +671,17 @@ class WorkflowEngineRuleSerializer(Serializer):
                 if not action_data:
                     continue
 
+                # XXX: default an empty/missing fallthrough_type before rendering the
+                # label so the label and the fallthroughType we return below agree
+                if (
+                    action.type == Action.Type.EMAIL.value
+                    and action_data.get("targetType")
+                    and not action_data.get("fallthrough_type")
+                ):
+                    action_data["fallthrough_type"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+
                 action_data["name"] = action_to_handler[action].render_label(
-                    workflow.organization_id, action_data
+                    workflow.organization_id, action_data, integration_cache=integration_cache
                 )
                 installation_uuid = action_data.get("sentryAppInstallationUuid")
                 install_context = None
@@ -698,18 +712,10 @@ class WorkflowEngineRuleSerializer(Serializer):
                 # HACKs below - we don't want to change the underlying data we render for ACI but we need to return it in the expected issue alert format
 
                 # XXX: convert fallthrough_type to fallthroughType
-                if action_data.get("fallthrough_type"):
-                    action_data["fallthroughType"] = action_data.get("fallthrough_type")
-                    del action_data["fallthrough_type"]
-
-                # XXX: add default fallthroughType for email Team/Member actions
-                if (
-                    action.type == Action.Type.EMAIL.value
-                    and "fallthroughType" not in action_data
-                    and action_data.get("targetType")
-                    in (ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value)
-                ):
-                    action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+                if "fallthrough_type" in action_data:
+                    fallthrough_type = action_data.pop("fallthrough_type")
+                    if fallthrough_type:
+                        action_data["fallthroughType"] = fallthrough_type
 
                 # XXX: add a targetIdentifier empty string for email only
                 if (

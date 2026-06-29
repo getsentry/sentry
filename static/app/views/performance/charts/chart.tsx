@@ -51,9 +51,9 @@ function computeAxisMax(data: Series[]) {
   } else if (magnitude <= 5) {
     scale = 0.5;
   } else if (magnitude <= 7.5) {
-    scale = 1.0;
+    scale = 1;
   } else {
-    scale = 2.0;
+    scale = 2;
   }
 
   const step = 10 ** Math.floor(power) * scale;

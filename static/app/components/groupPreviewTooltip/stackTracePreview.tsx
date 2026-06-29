@@ -12,11 +12,12 @@ import {
   usePreviewEvent,
 } from 'sentry/components/groupPreviewTooltip/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isNativePlatform} from 'sentry/utils/platform';
 
 export function getStacktrace(event: Event): StacktraceType | null {
@@ -82,7 +83,7 @@ export function StackTracePreviewContent({
     return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
   }
 
-  return <StackTraceContent {...commonProps} expandFirstFrame={false} />;
+  return <IssueStackTracePreview event={event} stacktrace={stacktrace} />;
 }
 
 type StackTracePreviewProps = {

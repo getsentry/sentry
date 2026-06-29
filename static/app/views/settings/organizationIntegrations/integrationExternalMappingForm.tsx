@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {queryOptions, useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -24,7 +25,7 @@ import {
   getExternalActorEndpointDetails,
   isExternalActorMapping,
 } from 'sentry/utils/integrationUtil';
-import {fetchMutation, queryOptions, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useOrganization} from 'sentry/utils/useOrganization';

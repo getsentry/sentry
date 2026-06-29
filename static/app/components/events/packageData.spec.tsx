@@ -7,11 +7,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EventPackageData} from 'sentry/components/events/packageData';
 
-jest.mock('sentry/views/issueDetails/utils', () => ({
-  ...jest.requireActual('sentry/views/issueDetails/utils'),
-  useHasStreamlinedUI: () => true,
-}));
-
 describe('EventPackageData', () => {
   const event = EventFixture({
     packages: {
@@ -58,7 +53,7 @@ describe('EventPackageData', () => {
     // Displays when open
     await userEvent.click(screen.getByText('Packages'));
     expect(screen.getByText(/python/)).toBeInTheDocument();
-    expect(screen.getByText(event?.packages?.python as string)).toBeInTheDocument();
+    expect(screen.getByText(event?.packages?.python!)).toBeInTheDocument();
     // Respects _meta annotations
     expect(screen.getByText(/redacted/)).toBeInTheDocument();
     await userEvent.hover(screen.getByText(/redacted/));

@@ -40,7 +40,9 @@ const traceWithChildError = makeTrace({
 
 const errorsOnlyTrace = makeTrace({
   transactions: [],
-  orphan_errors: new Array(20).fill(null).map(() => makeTraceError({})),
+  orphan_errors: Array.from({length: 20})
+    .fill(null)
+    .map(() => makeTraceError({})),
 });
 
 const organization = OrganizationFixture();
@@ -49,7 +51,7 @@ function mockSpansResponse(
   spans: TraceTree.Span[],
   project_slug: string,
   event_id: string
-): jest.Mock<any, any> {
+): jest.Mock {
   return MockApiClient.addMockResponse({
     url: `/organizations/org-slug/events/${project_slug}:${event_id}/?averageColumn=span.self_time&averageColumn=span.duration`,
     method: 'GET',

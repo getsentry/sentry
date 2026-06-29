@@ -40,7 +40,7 @@ export function AutomationActionSummary({
 
   const actionsList = actions
     .map(action => ActionMetadata[action]?.name)
-    .filter(x => x)
+    .filter(Boolean)
     .join(', ');
 
   return (

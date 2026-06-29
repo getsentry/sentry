@@ -5,8 +5,6 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from typing import TypedDict
 
-from django.db.models import Q
-
 from sentry.digests.notifications import Digest
 from sentry.digests.types import Record
 from sentry.integrations.types import ExternalProviders
@@ -14,7 +12,6 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.participants import get_send_to
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -104,7 +101,7 @@ def get_personalized_digests(
 
     for participant, events in events_by_participant.items():
         if participant is not None:
-            custom_digest = build_custom_digest(digest, events, participant)
+            custom_digest = build_custom_digest(digest, events)
             if custom_digest:
                 actor_to_digest[participant] = custom_digest
 
@@ -120,19 +117,10 @@ def get_event_from_groups_in_digest(digest: Digest) -> Iterable[Event | GroupEve
     }
 
 
-def build_custom_digest(
-    original_digest: Digest, events: Iterable[Event | GroupEvent], participant: Actor
-) -> Digest:
+def build_custom_digest(original_digest: Digest, events: Iterable[Event | GroupEvent]) -> Digest:
     """Given a digest and a set of events, filter the digest to only records that include the events."""
     user_digest: Digest = {}
-    rule_snoozes = RuleSnooze.objects.filter(
-        Q(user_id=participant.id) | Q(user_id__isnull=True), rule__in=original_digest.keys()
-    ).values_list("rule", flat=True)
-    snoozed_rule_ids = {rule for rule in rule_snoozes}
-
     for rule, rule_groups in original_digest.items():
-        if rule.id in snoozed_rule_ids:
-            continue
         user_rule_groups = {}
         for group, group_records in rule_groups.items():
             user_group_records = [

@@ -45,7 +45,7 @@ type DataType = {
 export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const theme = useTheme();
   const location = useLocation();
-  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
+  const [selectedListIndex, setSelectListIndex] = useState(0);
   const {InteractiveTitle} = props;
 
   const {data: projectScoresData, isPending: isProjectScoresLoading} =
@@ -96,9 +96,8 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const getHeaders = () =>
     transactionWebVitals.map((listItem, i) => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
-      const scoreCount = projectScoresData?.[0]?.[
-        'count_scores(measurements.score.total)'
-      ] as number;
+      const scoreCount =
+        projectScoresData?.[0]?.['count_scores(measurements.score.total)']!;
       const opportunity = scoreCount ? (listItem.opportunity ?? 0) * 100 : 0;
       return (
         <Fragment key={i}>

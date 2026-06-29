@@ -4,9 +4,9 @@ from rest_framework import serializers
 
 
 class AlertRuleDetectorValidator(serializers.Serializer[Any]):
-    rule_id = serializers.CharField(required=False)
-    alert_rule_id = serializers.CharField(required=False)
-    detector_id = serializers.CharField(required=False)
+    rule_id = serializers.IntegerField(required=False, min_value=1)
+    alert_rule_id = serializers.IntegerField(required=False, min_value=1)
+    detector_id = serializers.IntegerField(required=False, min_value=1)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         super().validate(attrs)

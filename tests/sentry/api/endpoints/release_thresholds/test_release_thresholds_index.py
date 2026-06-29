@@ -22,6 +22,11 @@ class ReleaseThresholdTest(APITestCase):
     def test_get_invalid_project(self) -> None:
         self.get_error_response(self.organization.slug, project="foo bar")
 
+    def test_get_all_projects_slug_is_invalid(self) -> None:
+        response = self.get_error_response(self.organization.slug, project="$all")
+
+        assert response.status_code == 400
+
     def test_get_no_project(self) -> None:
         self.get_error_response(self.organization.slug)
 
@@ -48,6 +53,21 @@ class ReleaseThresholdTest(APITestCase):
         assert created_threshold["project"]["name"] == self.project.name
         assert created_threshold["environment"]["id"] == str(self.canary_environment.id)
         assert created_threshold["environment"]["name"] == self.canary_environment.name
+
+    def test_get_valid_project_slug(self) -> None:
+        ReleaseThreshold.objects.create(
+            threshold_type=0,
+            trigger_type=0,
+            value=100,
+            window_in_seconds=1800,
+            project=self.project,
+            environment=self.canary_environment,
+        )
+
+        response = self.get_success_response(self.organization.slug, project=self.project.slug)
+
+        assert len(response.data) == 1
+        assert response.data[0]["project"]["id"] == str(self.project.id)
 
     def test_get_invalid_environment(self) -> None:
         self.get_error_response(self.organization.slug, environment="foo bar", project="-1")
@@ -77,6 +97,41 @@ class ReleaseThresholdTest(APITestCase):
         assert created_threshold["project"]["name"] == self.project.name
         assert created_threshold["environment"]["id"] == str(self.canary_environment.id)
         assert created_threshold["environment"]["name"] == self.canary_environment.name
+
+    def test_scoped_to_caller_accessible_projects(self) -> None:
+        ReleaseThreshold.objects.create(
+            threshold_type=0,
+            trigger_type=0,
+            value=100,
+            window_in_seconds=1800,
+            project=self.project,
+            environment=self.canary_environment,
+        )
+
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_environment = Environment.objects.create(organization_id=other_org.id, name="canary")
+        ReleaseThreshold.objects.create(
+            threshold_type=0,
+            trigger_type=0,
+            value=200,
+            window_in_seconds=1800,
+            project=other_project,
+            environment=other_environment,
+        )
+
+        # Closed membership so a teamless member has access to zero projects;
+        # otherwise `allow_joinleave` grants global project access and the
+        # `projects_list == []` path that triggered the bug is unreachable.
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member", teams=[])
+        self.login_as(user=member)
+
+        response = self.get_success_response(self.organization.slug, project="-1")
+        assert response.data == []
 
     def test_get_valid_with_environment(self) -> None:
         response = self.get_success_response(

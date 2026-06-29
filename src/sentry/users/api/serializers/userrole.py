@@ -19,7 +19,7 @@ class UserRoleSerializerResponse(TypedDict):
 
 
 @register(UserRole)
-class UserRoleSerializer(Serializer):
+class UserRoleSerializer(Serializer[UserRoleSerializerResponse]):
     def serialize(
         self,
         obj: UserRole,

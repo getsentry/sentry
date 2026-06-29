@@ -10,7 +10,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.silo.base import SiloMode
 from sentry.utils.sdk import (
     bind_ambiguous_org_context,
@@ -21,19 +21,23 @@ from sentry.utils.sdk import (
 logger = logging.getLogger(__name__)
 
 
-def clear_tags_and_context() -> None:
+def clear_organization_info() -> None:
     """Clear certain tags and context since it should not be set."""
     reset_values = False
     scope = sentry_sdk.get_isolation_scope()
 
-    for tag in ["organization", "organization.slug"]:
-        if tag in scope._tags:
+    for key in ["organization", "organization.slug"]:
+        scope.remove_attribute(key)
+        if key in scope._tags:
             reset_values = True
-            del scope._tags[tag]
+            del scope._tags[key]
 
     if "organization" in scope._contexts:
         reset_values = True
         del scope._contexts["organization"]
+
+    scope.remove_attribute("organization.multiple_possible")
+    scope.remove_attribute("organization.source")
 
     if reset_values:
         logger.info("We've reset the context and tags.")
@@ -58,7 +62,7 @@ def get_org_integrations(
 
 def bind_org_context_from_integration(
     integration_id: int, extra: Mapping[str, Any] | None = None
-) -> None:
+) -> RpcOrganization | None:
     """
     Given the id of an Integration or an RpcIntegration, get the associated org(s) and bind that
     data to the scope.
@@ -68,6 +72,12 @@ def bind_org_context_from_integration(
     GitHub org, or an instance of the Slack integration tied to a particular Slack workspace), which
     can be shared by multiple orgs. Also, it doesn't matter whether the passed id comes from an
     Integration or an RpcIntegration object, because corresponding ones share the same id.
+
+    Returns the bound `RpcOrganization` when exactly one Sentry org is linked to this integration,
+    so callers that need the org for follow-up work (e.g. a feature-flag check) don't have to
+    re-fetch it. Returns `None` for unlinked integrations and for installations shared across
+    multiple orgs, since attributing the integration to a single tenant in those cases would be
+    ambiguous.
     """
 
     org_integrations = get_org_integrations(integration_id)
@@ -86,6 +96,7 @@ def bind_org_context_from_integration(
         # (With `add_to_scope=False`, we still log a warning - separate from the one above - on data
         # mismatch.)
         check_tag_for_scope_bleed("integration_id", integration_id, add_to_scope=False)
+        return None
     elif len(org_integrations) == 1:
         org_integration = org_integrations[0]
         org = organization_service.get_organization_by_id(
@@ -93,12 +104,13 @@ def bind_org_context_from_integration(
         )
         if org is not None:
             bind_organization_context(org.organization)
-        else:
-            logger.warning(
-                "Unable to call organization_service.get_organization_by_id with organization id=%s.",
-                org_integration.organization_id,
-                extra=extra,
-            )
+            return org.organization
+        logger.warning(
+            "Unable to call organization_service.get_organization_by_id with organization id=%s.",
+            org_integration.organization_id,
+            extra=extra,
+        )
+        return None
     else:
         org_ids = [org_integration.organization_id for org_integration in org_integrations]
         org_slugs = []
@@ -115,3 +127,4 @@ def bind_org_context_from_integration(
             org_slugs = [org.slug for org in orgs]
 
         bind_ambiguous_org_context(org_slugs, f"integration (id={integration_id})")
+        return None

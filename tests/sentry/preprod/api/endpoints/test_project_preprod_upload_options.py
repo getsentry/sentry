@@ -1,4 +1,7 @@
+from unittest.mock import MagicMock, patch
+
 from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
@@ -16,9 +19,13 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
             args=[self.org.slug, self.project.slug],
         )
 
-    def test_returns_upload_options(self) -> None:
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(self.url)
+    @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_preprod_session")
+    def test_returns_upload_options(self, mock_get_session) -> None:
+        mock_session = MagicMock()
+        mock_session.mint_token.return_value = "fake-token"
+        mock_get_session.return_value = mock_session
+
+        response = self.client.get(self.url)
 
         assert response.status_code == 200
         data = response.data["objectstore"]
@@ -27,13 +34,19 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
 
         assert data["scopes"] == [("org", str(self.org.id)), ("project", str(self.project.id))]
 
-        assert data["expirationPolicy"] == "ttl:30 days"
+        assert data["authToken"] == "fake-token"
 
-    def test_objectstore_url_uses_region_endpoint(self) -> None:
-        with (
-            self.feature("organizations:preprod-snapshots"),
-            self.options({"system.region-api-url-template": "https://{region}.testserver"}),
-        ):
+        assert data["expirationPolicy"] == "tti:30 days"
+
+        mock_get_session.assert_called_once_with(org=self.org.id, project=self.project.id)
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_preprod_session")
+    def test_objectstore_url_uses_region_endpoint(self, mock_get_session) -> None:
+        mock_session = MagicMock()
+        mock_session.mint_token.return_value = "fake-token"
+        mock_get_session.return_value = mock_session
+
+        with override_settings(SENTRY_REGION_API_URL_TEMPLATE="https://{region}.testserver"):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
@@ -42,17 +55,10 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         assert url.startswith(f"https://{region}.testserver/")
         assert url.endswith(f"/api/0/organizations/{self.org.id}/objectstore")
 
-    def test_without_feature_flag(self) -> None:
-        response = self.client.get(self.url)
-
-        assert response.status_code == 403
-        assert response.data["detail"] == "Feature not enabled"
-
     def test_requires_authentication(self) -> None:
         unauthenticated_client = APIClient()
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = unauthenticated_client.get(self.url)
+        response = unauthenticated_client.get(self.url)
 
         assert response.status_code == 401
 
@@ -60,7 +66,6 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         other_user = self.create_user()
         self.login_as(user=other_user)
 
-        with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(self.url)
+        response = self.client.get(self.url)
 
         assert response.status_code == 403

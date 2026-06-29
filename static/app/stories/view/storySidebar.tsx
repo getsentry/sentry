@@ -32,11 +32,6 @@ const SidebarContainer = styled('nav')`
   width: 256px;
   background: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
-  scrollbar-width: thin;
-  /* eslint-disable @sentry/scraps/use-semantic-token */
-  scrollbar-color: ${p => p.theme.tokens.border.primary}
-    ${p => p.theme.tokens.background.primary};
-  /* eslint-enable @sentry/scraps/use-semantic-token */
   ul,
   li {
     list-style: none;

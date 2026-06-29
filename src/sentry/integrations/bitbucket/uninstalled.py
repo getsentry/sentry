@@ -20,7 +20,7 @@ from sentry.integrations.utils.atlassian_connect import (
 
 @control_silo_endpoint
 class BitbucketUninstalledEndpoint(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

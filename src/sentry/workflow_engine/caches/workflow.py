@@ -6,6 +6,7 @@ from django.db.models import Q
 from sentry.models.environment import Environment
 from sentry.workflow_engine.caches import CacheMapping
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
+from sentry.workflow_engine.types import DetectorId
 from sentry.workflow_engine.utils import scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
@@ -19,7 +20,7 @@ WORKFLOW_CACHE_PREFIX = "workflows_by_detector_env"
 
 
 class _WorkflowCacheKey(NamedTuple):
-    detector_id: int
+    detector_id: DetectorId
     env_id: int | None
 
 
@@ -36,7 +37,7 @@ class _CacheLookupResult(NamedTuple):
     """
 
     cached_workflows: set[Workflow]
-    missed_detector_ids: list[int]
+    missed_detector_ids: list[DetectorId]
 
     @property
     def all_hits(self) -> bool:
@@ -48,7 +49,7 @@ class _WorkflowsByDetector(NamedTuple):
     Workflows grouped by detector ID with helper methods.
     """
 
-    mapping: dict[int, set[Workflow]]
+    mapping: dict[DetectorId, set[Workflow]]
 
     @property
     def all_workflows(self) -> set[Workflow]:
@@ -71,7 +72,7 @@ class _SplitWorkflowsByDetector(NamedTuple):
     env_workflows: _WorkflowsByDetector  # env_id=X workflows (may be empty)
 
 
-def _invalidate_all_environments(detector_id: int) -> bool:
+def _invalidate_all_environments(detector_id: DetectorId) -> bool:
     """
     Invalidate all cache entries for a detector across all environments.
 
@@ -95,7 +96,8 @@ def _invalidate_all_environments(detector_id: int) -> bool:
 
 @scopedstats.timer()
 def invalidate_processing_workflows(
-    detector_id: int, env_id: int | None | Literal["default"] = DEFAULT_VALUE
+    detector_id: DetectorId,
+    env_id: int | None | Literal["default"] = DEFAULT_VALUE,
 ) -> bool:
     """
     Invalidate workflow processing cache entries for a specific detector.
@@ -133,7 +135,7 @@ def _check_caches_for_detectors(
         _CacheLookupResult with cached_workflows and missed_detector_ids
     """
     workflows: set[Workflow] = set()
-    missed_detector_ids: list[int] = []
+    missed_detector_ids: list[DetectorId] = []
 
     keys = [_WorkflowCacheKey(d.id, env_id) for d in detectors]
     for key, cached in _workflow_cache.get_many(keys).items():
@@ -148,7 +150,8 @@ def _check_caches_for_detectors(
 
 
 def _query_workflows_by_detector_ids(
-    detector_ids: Collection[int], env_id: int | None
+    detector_ids: Collection[DetectorId],
+    env_id: int | None,
 ) -> _SplitWorkflowsByDetector:
     """
     Query DB for workflows and split by actual environment_id.

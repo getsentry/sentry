@@ -10,8 +10,11 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQueryState} from 'nuqs';
 
+import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
+
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {
   GridLineLabels,
@@ -23,7 +26,7 @@ import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selec
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {DetectorsTableActions} from 'sentry/views/detectors/components/detectorListTable/actions';
@@ -31,6 +34,7 @@ import {
   DetectorListRow,
   DetectorListRowSkeleton,
 } from 'sentry/views/detectors/components/detectorListTable/detectorListRow';
+import {IssueStreamDetectorContextProvider} from 'sentry/views/detectors/components/detectorListTable/issueStreamDetectorContext';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
 import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';
 import {
@@ -95,7 +99,7 @@ export function DetectorListTable({
   queryCount,
   allResultsVisible,
 }: DetectorListTableProps) {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState(new Set<string>());
   const [isVisualizationExpanded, setIsVisualizationExpanded] = useState(false);
 
   const detectorIds = new Set(detectors.map(d => d.id));
@@ -132,6 +136,11 @@ export function DetectorListTable({
     [detectors, selected]
   );
 
+  const uniqueProjectIds = useMemo(
+    () => [...new Set(detectors.map(d => d.projectId))],
+    [detectors]
+  );
+
   const selectedDetectors = detectors.filter(d => selected.has(d.id));
   const canEditDetectors = useCanEditDetectors({detectors: selectedDetectors});
   const hasSystemCreatedDetectors = selectedDetectors.some(
@@ -139,7 +148,7 @@ export function DetectorListTable({
   );
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
@@ -187,7 +196,7 @@ export function DetectorListTable({
             {additionalColumns.map(col => (
               <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
             ))}
-            {hasVisualization && (
+            {hasVisualization && detectors.length > 0 && (
               <VisualizationHeaderContainer
                 data-column-name="visualization"
                 ref={elementRef}
@@ -201,7 +210,7 @@ export function DetectorListTable({
               <VisualizationExpandButton>
                 <Button
                   size="xs"
-                  priority="transparent"
+                  variant="transparent"
                   icon={
                     <IconChevron
                       isDouble
@@ -242,9 +251,17 @@ export function DetectorListTable({
         {isError && <SimpleTable.Empty>{t('Error loading monitors')}</SimpleTable.Empty>}
         {isPending && <LoadingSkeletons />}
         {isSuccess && detectors.length === 0 && (
-          <SimpleTable.Empty>{t('No monitors found')}</SimpleTable.Empty>
+          <SimpleTable.Empty>
+            <StyledFlex gap="xl" direction="column" align="center">
+              <img src={NoAlertsImage} />
+              <Heading as="h3">{t('No monitors found.')}</Heading>
+              <Text align="center" variant="muted">
+                {t("Sorry, we couldn't find what you were looking for.")}
+              </Text>
+            </StyledFlex>
+          </SimpleTable.Empty>
         )}
-        {hasVisualization && (
+        {hasVisualization && detectors.length > 0 && (
           <PositionedGridLineOverlay
             stickyCursor
             allowZoom
@@ -256,14 +273,16 @@ export function DetectorListTable({
             cursorOverlayAnchorOffset={10}
           />
         )}
-        {detectors.map(detector => (
-          <DetectorListRow
-            key={detector.id}
-            detector={detector}
-            selected={selected.has(detector.id)}
-            onSelect={handleSelect}
-          />
-        ))}
+        <IssueStreamDetectorContextProvider projectIds={uniqueProjectIds}>
+          {detectors.map(detector => (
+            <DetectorListRow
+              key={detector.id}
+              detector={detector}
+              selected={selected.has(detector.id)}
+              onSelect={handleSelect}
+            />
+          ))}
+        </IssueStreamDetectorContextProvider>
       </DetectorListSimpleTable>
     </TableContainer>
   );
@@ -452,7 +471,6 @@ const DetectorListSimpleTable = styled(SimpleTable)<{
   isVisualizationExpanded: boolean;
 }>`
   grid-template-columns: 1fr;
-  margin-bottom: ${p => p.theme.space.xl};
 
   [data-column-name='type'],
   [data-column-name='last-issue'],
@@ -503,6 +521,10 @@ const PositionedGridLineOverlay = styled(GridLineOverlay)`
 
 const VisualizationHeaderContainer = styled(Container)`
   grid-column: -3 / -1;
+`;
+
+const StyledFlex = styled(Flex)`
+  padding: ${p => p.theme.size.xs};
 `;
 
 const VisualizationExpandButton = styled('div')`

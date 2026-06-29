@@ -41,7 +41,6 @@ export function ListBoxOption({
   const {
     label,
     details,
-    leadingItems,
     trailingItems,
     priority,
     hideCheck,
@@ -66,6 +65,7 @@ export function ListBoxOption({
     [labelProps.id, label]
   );
 
+  const leadingItems = (item.props as MenuListItemProps).leadingItems;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 

@@ -115,26 +115,16 @@ class ProjectDetailsTest(APITestCase):
         )
         assert not response.data["hasAlertIntegrationInstalled"]
 
-    def test_filters_disabled_plugins(self) -> None:
-        from sentry.plugins.base import plugins
-
-        self.create_group(project=self.project)
-
+    def test_collapse_organization(self) -> None:
         response = self.get_success_response(
             self.project.organization.slug,
             self.project.slug,
+            qs_params={"collapse": ["organization"]},
         )
-        assert response.data["plugins"] == []
-
-        asana_plugin = plugins.get("asana")
-        asana_plugin.enable(self.project)
-
-        response = self.get_success_response(
-            self.project.organization.slug,
-            self.project.slug,
-        )
-        assert len(response.data["plugins"]) == 1
-        assert response.data["plugins"][0]["slug"] == asana_plugin.slug
+        assert response.data["organization"] == {
+            "id": str(self.project.organization.id),
+            "slug": self.project.organization.slug,
+        }
 
     def test_project_renamed_302(self) -> None:
         # Rename the project
@@ -795,27 +785,40 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("filters:react-hydration-errors", "1")
         assert project.get_option("filters:chunk-load-error", "1")
 
-        self.project.update_option(
-            "relay.cardinality-limiter.limits",
-            [
-                {
-                    "limit": {
-                        "id": "project-override-custom",
-                        "window": {"windowSeconds": 3600, "granularitySeconds": 600},
-                        "limit": 1000,
-                        "namespace": "custom",
-                        "scope": "name",
-                    }
-                }
-            ],
-        )
-
     def test_preprod_snapshot_pr_comments_option(self) -> None:
         self.get_success_response(
             self.org_slug, self.proj_slug, preprodSnapshotPrCommentsEnabled=False
         )
         project = Project.objects.get(id=self.project.id)
         assert project.get_option("sentry:preprod_snapshot_pr_comments_enabled") is False
+
+    def test_preprod_snapshot_pr_comments_post_on_added_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsPostOnAdded=True
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_added") is True
+
+    def test_preprod_snapshot_pr_comments_post_on_removed_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsPostOnRemoved=False
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_removed") is False
+
+    def test_preprod_snapshot_pr_comments_post_on_changed_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsPostOnChanged=False
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_changed") is False
+
+    def test_preprod_snapshot_pr_comments_post_on_renamed_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsPostOnRenamed=True
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_renamed") is True
 
     def test_bookmarks(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
@@ -843,6 +846,20 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_success_response(self.org_slug, self.proj_slug, securityTokenHeader="")
         assert self.project.get_option("sentry:token_header") == ""
         assert resp.data["securityTokenHeader"] == ""
+
+    def test_security_token_header_max_length(self) -> None:
+        # exactly 64 characters should succeed
+        value = "X-" + "A" * 62
+        assert len(value) == 64
+        resp = self.get_success_response(self.org_slug, self.proj_slug, securityTokenHeader=value)
+        assert self.project.get_option("sentry:token_header") == value
+        assert resp.data["securityTokenHeader"] == value
+
+        # 65 characters should fail
+        resp = self.get_error_response(
+            self.org_slug, self.proj_slug, securityTokenHeader="X-" + "A" * 63, status_code=400
+        )
+        assert b"securityTokenHeader" in resp.content
 
     def test_verify_ssl(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, verifySSL=False)
@@ -1182,9 +1199,7 @@ class ProjectUpdateTest(APITestCase):
 
     @mock.patch("sentry.api.base.create_audit_entry")
     def test_redacted_symbol_source_secrets(self, create_audit_entry: mock.MagicMock) -> None:
-        with Feature(
-            {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
-        ):
+        with Feature({"organizations:custom-symbol-sources": True}):
             config = {
                 "id": "honk",
                 "name": "honk source",
@@ -1237,9 +1252,7 @@ class ProjectUpdateTest(APITestCase):
     def test_redacted_symbol_source_secrets_unknown_secret(
         self, create_audit_entry: mock.MagicMock
     ) -> None:
-        with Feature(
-            {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
-        ):
+        with Feature({"organizations:custom-symbol-sources": True}):
             config = {
                 "id": "honk",
                 "name": "honk source",

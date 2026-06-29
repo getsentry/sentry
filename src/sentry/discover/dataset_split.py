@@ -404,6 +404,8 @@ def _get_and_save_split_decision_for_query(
                     "org_slug": saved_query.organization.slug,
                 },
             )
+            sentry_sdk.set_attribute("query.saved_query_id", saved_query.id)
+            sentry_sdk.set_attribute("query.org_slug", saved_query.organization.slug)
             sentry_sdk.capture_message(
                 "No projects found in organization for saved query, defaulting to errors dataset"
             )

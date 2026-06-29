@@ -27,7 +27,7 @@ class ActionHandlerSerializerResponse(TypedDict):
 
 
 @register(ActionHandler)
-class ActionHandlerSerializer(Serializer):
+class ActionHandlerSerializer(Serializer[ActionHandlerSerializerResponse]):
     def transform_title(self, title: str) -> str:
         if title in PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS:
             return f"(Legacy) {title}"

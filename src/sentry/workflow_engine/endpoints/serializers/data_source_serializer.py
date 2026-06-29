@@ -8,7 +8,7 @@ from sentry.workflow_engine.types import DataSourceTypeHandler
 
 
 @register(DataSource)
-class DataSourceSerializer(Serializer):
+class DataSourceSerializer(Serializer[dict[str, Any]]):
     def get_attrs(
         self, item_list: Sequence[DataSource], user: Any, **kwargs: Any
     ) -> MutableMapping[DataSource, dict[str, Any]]:

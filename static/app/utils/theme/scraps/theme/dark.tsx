@@ -832,14 +832,14 @@ const dataviz = {
     accent: color.categorical.dark.blurple,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjI2MSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzVFQ0U3MyIvPgogIDwvc3ZnPg==)
      *
-     * `semantic.good` `#00F261`
+     * `semantic.good` `#5ECE73`
      *
      * Used specifically for chart data that aims to visually communicate ideal
      * outcomes.
      */
-    good: border.success.vibrant,
+    good: color.green.dark.opaque1200,
     /**
      *
      * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQ0UwMCIvPgogIDwvc3ZnPg==)
@@ -849,7 +849,7 @@ const dataviz = {
      * Used specifically for chart data that aims to visually communicate less
      * than ideal outcomes.
      */
-    meh: border.warning.vibrant,
+    meh: color.yellow.dark.opaque1200,
     /**
      *
      * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAyQiIvPgogIDwvc3ZnPg==)
@@ -859,7 +859,7 @@ const dataviz = {
      * Used specifically for chart data that aims to visually communicate
      * negative outcomes.
      */
-    bad: border.danger.vibrant,
+    bad: color.red.dark.opaque900,
     /**
      *
      * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0E0OUVBRSIvPgogIDwvc3ZnPg==)

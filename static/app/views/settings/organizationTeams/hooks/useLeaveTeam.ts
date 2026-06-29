@@ -1,11 +1,11 @@
+import {useMutation} from '@tanstack/react-query';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {leaveTeamPromise} from 'sentry/actionCreators/teams';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
-import {useMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
-
 interface UseLeaveTeamOptions {
   organization: Organization;
   team: Team;

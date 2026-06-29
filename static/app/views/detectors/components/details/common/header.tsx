@@ -1,5 +1,6 @@
+import {Fragment} from 'react';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -14,10 +15,12 @@ import {
   makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 type DetectorDetailsHeaderProps = {
   detector: Detector;
   project: Project;
+  useLocalDetailActions?: boolean;
 };
 
 function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
@@ -39,36 +42,52 @@ function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
   );
 }
 
-export function DetectorDetailsDefaultHeaderContent({
+function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
+  return (
+    <TopBar.Slot name="title">
+      <DetectorDetailsBreadcrumbs detector={detector} />
+    </TopBar.Slot>
+  );
+}
+
+function DetectorDetailsDefaultActions({
   detector,
-  project,
+  useLocalDetailActions = false,
 }: {
   detector: Detector;
-  project: Project;
+  useLocalDetailActions?: boolean;
 }) {
-  return (
-    <DetailLayout.HeaderContent>
-      <DetectorDetailsBreadcrumbs detector={detector} />
-      <DetailLayout.Title title={detector.name} project={project} />
-    </DetailLayout.HeaderContent>
-  );
-}
+  const shouldUseLocalDetailActions =
+    useLocalDetailActions ||
+    detector.type === 'monitor_check_in_failure' ||
+    detector.type === 'metric_issue' ||
+    detector.type === 'uptime_domain_failure' ||
+    detector.type === 'preprod_size_analysis';
 
-function DetectorDetailsDefaultActions({detector}: {detector: Detector}) {
   return (
-    <DetailLayout.Actions>
+    <Fragment>
+      {shouldUseLocalDetailActions ? null : (
+        <TopBar.Slot name="actions">
+          <DisableDetectorAction detector={detector} />
+          <EditDetectorAction detector={detector} />
+        </TopBar.Slot>
+      )}
       <MonitorFeedbackButton />
-      <DisableDetectorAction detector={detector} />
-      <EditDetectorAction detector={detector} />
-    </DetailLayout.Actions>
+    </Fragment>
   );
 }
 
-export function DetectorDetailsHeader({detector, project}: DetectorDetailsHeaderProps) {
+export function DetectorDetailsHeader({
+  detector,
+  useLocalDetailActions = false,
+}: DetectorDetailsHeaderProps) {
   return (
-    <DetailLayout.Header>
-      <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
-      <DetectorDetailsDefaultActions detector={detector} />
-    </DetailLayout.Header>
+    <Fragment>
+      <DetectorDetailsDefaultHeaderContent detector={detector} />
+      <DetectorDetailsDefaultActions
+        detector={detector}
+        useLocalDetailActions={useLocalDetailActions}
+      />
+    </Fragment>
   );
 }

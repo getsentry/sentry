@@ -1,22 +1,29 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from django.db import IntegrityError, router, transaction
+from django.utils import timezone
 
-from sentry import features
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.integrations.gitlab.tasks import update_all_project_webhooks
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.repository import RepositoryService, RpcRepository
 from sentry.integrations.services.repository.model import RpcCreateRepository
 from sentry.integrations.services.repository.serial import serialize_repository
+from sentry.integrations.source_code_management.auto_link_repos import auto_link_repos_by_name
+from sentry.models.code_review_event import CodeReviewEvent
+from sentry.models.commit import Commit
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projectrepository import ProjectRepository
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.tasks.seer.cleanup import bulk_cleanup_seer_repository_preferences
 from sentry.users.services.user.model import RpcUser
 
 
@@ -28,7 +35,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         id: int,
         as_user: RpcUser | None = None,
     ) -> Any | None:
-        repository = Repository.objects.filter(id=id).first()
+        repository = Repository.objects.filter(organization_id=organization_id, id=id).first()
         if repository is None:
             return None
         return serialize(repository, user=as_user)
@@ -38,7 +45,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         *,
         organization_id: int,
         integration_id: int | None = None,
-        external_id: int | None = None,
+        external_id: str | None = None,
         providers: list[str] | None = None,
         has_integration: bool | None = None,
         has_provider: bool | None = None,
@@ -138,6 +145,65 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 provider=provider,
             ).update(status=ObjectStatus.DISABLED)
 
+    def find_recently_active_repo_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+        cutoff_days: int,
+    ) -> list[str]:
+        if not external_ids:
+            return []
+
+        cutoff = timezone.now() - timedelta(days=cutoff_days)
+        repo_id_to_external = dict(
+            Repository.objects.filter(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                provider=provider,
+                external_id__in=external_ids,
+                status=ObjectStatus.ACTIVE,
+            ).values_list("id", "external_id")
+        )
+        if not repo_id_to_external:
+            return []
+
+        repo_ids = list(repo_id_to_external.keys())
+        active_repo_ids: set[int] = set()
+
+        active_repo_ids.update(
+            Commit.objects.filter(
+                repository_id__in=repo_ids,
+                date_added__gte=cutoff,
+            )
+            .values_list("repository_id", flat=True)
+            .distinct()
+        )
+        active_repo_ids.update(
+            PullRequest.objects.filter(
+                repository_id__in=repo_ids,
+                date_added__gte=cutoff,
+            )
+            .values_list("repository_id", flat=True)
+            .distinct()
+        )
+        active_repo_ids.update(
+            CodeReviewEvent.objects.filter(
+                organization_id=organization_id,
+                repository_id__in=repo_ids,
+                trigger_at__gte=cutoff,
+            )
+            .values_list("repository_id", flat=True)
+            .distinct()
+        )
+        return [
+            eid
+            for rid, eid in repo_id_to_external.items()
+            if rid in active_repo_ids and eid is not None
+        ]
+
     def disable_repositories_by_external_ids(
         self,
         *,
@@ -147,13 +213,18 @@ class DatabaseBackedRepositoryService(RepositoryService):
         external_ids: list[str],
     ) -> None:
         with transaction.atomic(router.db_for_write(Repository)):
-            Repository.objects.filter(
-                organization_id=organization_id,
-                integration_id=integration_id,
-                provider=provider,
-                external_id__in=external_ids,
-                status=ObjectStatus.ACTIVE,
-            ).update(status=ObjectStatus.DISABLED)
+            repo_ids = list(
+                Repository.objects.filter(
+                    organization_id=organization_id,
+                    integration_id=integration_id,
+                    provider=provider,
+                    external_id__in=external_ids,
+                    status=ObjectStatus.ACTIVE,
+                ).values_list("id", flat=True)
+            )
+
+            if repo_ids:
+                Repository.objects.filter(id__in=repo_ids).update(status=ObjectStatus.DISABLED)
 
     def disassociate_organization_integration(
         self,
@@ -163,27 +234,20 @@ class DatabaseBackedRepositoryService(RepositoryService):
         integration_id: int,
     ) -> None:
         with transaction.atomic(router.db_for_write(Repository)):
-            repos = list(
+            repo_ids = list(
                 Repository.objects.filter(
                     organization_id=organization_id, integration_id=integration_id
-                ).values_list("id", "external_id", "provider")
+                ).values_list("id", flat=True)
             )
-            repo_ids = [repo_id for repo_id, _, _ in repos]
-
             if repo_ids:
                 # Disassociate repos from the organization integration being deleted
                 Repository.objects.filter(id__in=repo_ids).update(integration_id=None)
 
-                # Delete Seer project preferences for the affected repos.
-                # Organization may already be deleted if org deletion and integration
-                # uninstall overlap; skip SeerProjectRepository cleanup in that case
-                # since cascades will handle it.
-                try:
-                    organization = Organization.objects.get_from_cache(id=organization_id)
-                    if features.has("organizations:seer-project-settings-dual-write", organization):
-                        SeerProjectRepository.objects.filter(repository_id__in=repo_ids).delete()
-                except Organization.DoesNotExist:
-                    pass
+                # Delete Seer preferences for this repository
+                SeerProjectRepository.objects.filter(
+                    project_repository__repository_id__in=repo_ids,
+                    project_repository__project__organization_id=organization_id,
+                ).delete()
 
             # Delete Code Owners with a Code Mapping using the OrganizationIntegration
             ProjectCodeOwners.objects.filter(
@@ -196,17 +260,49 @@ class DatabaseBackedRepositoryService(RepositoryService):
             RepositoryProjectPathConfig.objects.filter(
                 organization_integration_id=organization_integration_id
             ).delete()
+            # Delete project-repo links for the disconnected repos
+            if repo_ids:
+                ProjectRepository.objects.filter(
+                    repository_id__in=repo_ids,
+                    project__organization_id=organization_id,
+                ).delete()
 
-        # Delete Seer project preferences for the affected repos via Seer API
-        repos_to_clean = [
-            {"repo_external_id": external_id, "repo_provider": provider}
-            for _, external_id, provider in repos
-            if external_id and provider
-        ]
-        if repos_to_clean:
-            bulk_cleanup_seer_repository_preferences.apply_async(
-                kwargs={
-                    "organization_id": organization_id,
-                    "repos": repos_to_clean,
-                }
-            )
+            # Clear automation_handoff project options that reference this integration.
+            affected_project_ids = ProjectOption.objects.filter(
+                project__organization_id=organization_id,
+                key="sentry:seer_automation_handoff_integration_id",
+                value=integration_id,
+            ).values("project_id")
+            ProjectOption.objects.filter(
+                project_id__in=affected_project_ids,
+                key__in={
+                    "sentry:seer_automation_handoff_integration_id",
+                    "sentry:seer_automation_handoff_point",
+                    "sentry:seer_automation_handoff_target",
+                    "sentry:seer_automation_handoff_auto_create_pr",
+                },
+            ).delete()
+
+    def schedule_update_gitlab_project_webhooks(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+    ) -> None:
+        update_all_project_webhooks.delay(
+            integration_id=integration_id,
+            organization_id=organization_id,
+        )
+
+    def auto_link_repos_by_name(
+        self,
+        *,
+        organization_id: int,
+        repo_ids: list[int] | None = None,
+        project_ids: list[int] | None = None,
+    ) -> int:
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
+            return 0
+        return auto_link_repos_by_name(organization, repo_ids, project_ids=project_ids)

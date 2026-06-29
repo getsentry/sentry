@@ -25,6 +25,7 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
 PAGERDUTY_CUSTOM_PRIORITIES = {
+    "default",
     "critical",
     "warning",
     "error",

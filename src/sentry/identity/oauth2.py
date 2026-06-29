@@ -25,7 +25,6 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
-from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineErrorReason,
     IntegrationPipelineHaltReason,
@@ -147,22 +146,24 @@ class OAuth2Provider(Provider):
             ),
         ]
 
-    def get_pipeline_api_steps(self) -> list[OAuth2ApiStep]:
+    def make_oauth_api_step(self, **kwargs: Any) -> OAuth2ApiStep:
         redirect_url = self.config.get(
             "redirect_url",
             reverse("sentry-extension-setup", kwargs={"provider_id": "default"}),
         )
-        return [
-            OAuth2ApiStep(
-                authorize_url=self.get_oauth_authorize_url(),
-                client_id=self.get_oauth_client_id(),
-                client_secret=self.get_oauth_client_secret(),
-                access_token_url=self.get_oauth_access_token_url(),
-                scope=" ".join(self.get_oauth_scopes()),
-                redirect_url=redirect_url,
-                verify_ssl=self.config.get("verify_ssl", True),
-            ),
-        ]
+        return OAuth2ApiStep(
+            authorize_url=self.get_oauth_authorize_url(),
+            client_id=self.get_oauth_client_id(),
+            client_secret=self.get_oauth_client_secret(),
+            access_token_url=self.get_oauth_access_token_url(),
+            scope=" ".join(self.get_oauth_scopes()),
+            redirect_url=redirect_url,
+            verify_ssl=self.config.get("verify_ssl", True),
+            **kwargs,
+        )
+
+    def get_pipeline_api_steps(self) -> list[OAuth2ApiStep]:
+        return [self.make_oauth_api_step()]
 
     def get_refresh_token_params(
         self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
@@ -230,6 +231,7 @@ class OAuth2Provider(Provider):
 
 def record_event(event: IntegrationPipelineViewType, provider: str):
     from sentry.identity import default_manager as identity_manager
+    from sentry.integrations.base import IntegrationDomain
 
     try:
         identity_manager.get(provider)
@@ -299,17 +301,27 @@ class OAuth2ApiStep:
     def get_serializer_cls(self) -> type:
         return OAuth2ApiSerializer
 
+    def extract_code(self, validated_data: dict[str, str], pipeline: Pipeline[Any, Any]) -> str:
+        """The authorization code to exchange for a token.
+
+        Defaults to the `code` relayed in the callback POST. Subclasses may
+        override to source it elsewhere -- e.g. preauthorized marketplace
+        installs that bind the code to pipeline state up front.
+        """
+        return validated_data["code"]
+
     def handle_post(
         self,
         validated_data: dict[str, str],
         pipeline: Pipeline[Any, Any],
         request: HttpRequest,
     ) -> PipelineStepResult:
-        code = validated_data["code"]
         state = validated_data["state"]
 
         if state != pipeline.signature:
             return PipelineStepResult.error(ERR_INVALID_STATE)
+
+        code = self.extract_code(validated_data, pipeline)
 
         try:
             data = self._exchange_token(code)

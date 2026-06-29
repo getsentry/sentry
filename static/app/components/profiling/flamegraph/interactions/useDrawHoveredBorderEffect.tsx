@@ -27,7 +27,7 @@ export function useDrawHoveredBorderEffect({
 }) {
   useEffect(() => {
     if (!canvas || !view || !renderer) {
-      return undefined;
+      return;
     }
 
     const drawHoveredFrameBorder = () => {

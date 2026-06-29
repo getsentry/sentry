@@ -8,7 +8,7 @@ describe('useReplayCount', () => {
   const organization = OrganizationFixture();
   const initialProps = {
     bufferLimit: 100,
-    dataSource: 'discover',
+    dataSource: 'events' as const,
     fieldName: 'replay_id',
     organization,
     statsPeriod: '90d',
@@ -162,6 +162,109 @@ describe('useReplayCount', () => {
         '1111': false,
         '2222': true,
       });
+    });
+  });
+
+  describe('replay access gating', () => {
+    it('does not request counts when the viewer lacks replay access', async () => {
+      const deniedOrg = OrganizationFixture({
+        hasGranularReplayPermissions: true,
+        replayAccessMembers: [],
+      });
+      const mockRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${deniedOrg.slug}/replay-count/`,
+        body: {'1111': 5},
+      });
+
+      const {result} = renderHookWithProviders(useReplayCount, {
+        organization: deniedOrg,
+        initialProps: {...initialProps, organization: deniedOrg},
+      });
+
+      await waitFor(() => expect(result.current.getOne('1111')).toBeUndefined());
+      expect(result.current.getMany(['1111', '2222'])).toStrictEqual({});
+      expect(result.current.hasOne('1111')).toBeUndefined();
+      expect(result.current.hasMany(['1111', '2222'])).toStrictEqual({});
+      expect(mockRequest).not.toHaveBeenCalled();
+    });
+
+    it('requests counts when the viewer is on the replay allowlist', async () => {
+      const allowedOrg = OrganizationFixture({
+        hasGranularReplayPermissions: true,
+        replayAccessMembers: [1],
+      });
+      const mockRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${allowedOrg.slug}/replay-count/`,
+        body: {'1111': 5},
+      });
+
+      const {result} = renderHookWithProviders(useReplayCount, {
+        organization: allowedOrg,
+        initialProps: {...initialProps, organization: allowedOrg},
+      });
+
+      result.current.getOne('1111');
+
+      await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    });
+  });
+
+  describe('query construction', () => {
+    it('should quote ids when fieldName is "transaction"', async () => {
+      const mockRequest = getMockRequest({
+        'txn-a': 5,
+        'txn-b': 7,
+      });
+
+      const {result} = renderHookWithProviders(useReplayCount, {
+        initialProps: {
+          ...initialProps,
+          dataSource: 'transactions' as const,
+          fieldName: 'transaction',
+        },
+      });
+
+      result.current.getMany(['txn-a', 'txn-b']);
+
+      await waitFor(() => {
+        expect(mockRequest).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/replay-count/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              data_source: 'transactions',
+              query: 'transaction:["txn-a","txn-b"]',
+            }),
+          })
+        );
+      });
+    });
+
+    it('should send start/end and omit statsPeriod when both are provided', async () => {
+      const mockRequest = getMockRequest({'1111': 5});
+
+      const {result} = renderHookWithProviders(useReplayCount, {
+        initialProps: {
+          ...initialProps,
+          start: '2026-01-01T00:00:00',
+          end: '2026-01-02T00:00:00',
+        },
+      });
+
+      result.current.getOne('1111');
+
+      await waitFor(() => {
+        expect(mockRequest).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/replay-count/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              start: '2026-01-01T00:00:00',
+              end: '2026-01-02T00:00:00',
+            }),
+          })
+        );
+      });
+      const callQuery = mockRequest.mock.calls[0]![1].query;
+      expect(callQuery).not.toHaveProperty('statsPeriod');
     });
   });
 });

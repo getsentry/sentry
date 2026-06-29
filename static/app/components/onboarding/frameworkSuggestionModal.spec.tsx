@@ -6,7 +6,8 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
+
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 
@@ -52,7 +53,7 @@ describe('Framework suggestion modal', () => {
 
     expect(screen.getByText(languageDescriptions.javascript!)).toBeInTheDocument();
 
-    expect(screen.getByRole('radio', {name: `Nope, Vanilla`})).toBeChecked();
+    expect(screen.getByRole('radio', {name: 'Nope, Vanilla'})).toBeChecked();
 
     const frameworks = platforms.filter(
       platform => platform.type === 'framework' && platform.language === 'javascript'

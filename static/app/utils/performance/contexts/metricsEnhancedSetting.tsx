@@ -1,5 +1,5 @@
 import type {Dispatch, ReactNode} from 'react';
-import {useCallback, useReducer} from 'react';
+import {createContext, useCallback, useContext, useReducer} from 'react';
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
@@ -7,8 +7,6 @@ import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhanced
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import {createDefinedContext} from './utils';
 
 export interface MetricsEnhancedSettingContext {
   autoSampleState: AutoSampleState;
@@ -21,12 +19,21 @@ export interface MetricsEnhancedSettingContext {
   shouldQueryProvideMEPTransactionParams: boolean;
 }
 
-const [_MEPSettingProvider, _useMEPSettingContext, _MEPSettingContext] =
-  createDefinedContext<MetricsEnhancedSettingContext>({
-    name: 'MetricsEnhancedSettingContext',
-  });
+const MEPSettingContext = createContext<MetricsEnhancedSettingContext | undefined>(
+  undefined
+);
 
-export const MEPConsumer = _MEPSettingContext.Consumer;
+export function useMEPSettingContext(): MetricsEnhancedSettingContext {
+  const context = useContext(MEPSettingContext);
+  if (context === undefined) {
+    throw new Error(
+      'useContext for "MetricsEnhancedSettingContext" must be inside a Provider with a value'
+    );
+  }
+  return context;
+}
+
+export const MEPConsumer = MEPSettingContext.Consumer;
 
 /**
  * These will be called something else in the copy, but functionally the data is coming from metrics / transactions.
@@ -50,15 +57,7 @@ export enum MEPState {
 const METRIC_SETTING_PARAM = 'metricSetting';
 export const METRIC_SEARCH_SETTING_PARAM = 'metricSearchSetting'; // TODO: Clean this up since we don't need multiple params in practice.
 
-function canUseMetricsDevUI(organization: Organization) {
-  return organization.features.includes('performance-use-metrics');
-}
-
 export function canUseMetricsData(organization: Organization) {
-  const isDevFlagOn = canUseMetricsDevUI(organization); // Forces metrics data on as well.
-  const isInternalViewOn = organization.features.includes(
-    'performance-transaction-name-only-search'
-  );
   const isRollingOut = organization.features.includes('dynamic-sampling'); // Exists on AM2 plans only.
 
   // For plans transitioning from AM2 to AM3, we still want to show metrics
@@ -68,7 +67,7 @@ export function canUseMetricsData(organization: Organization) {
     'dashboards-metrics-transition'
   );
 
-  return isDevFlagOn || isInternalViewOn || isRollingOut || isTransitioningPlan;
+  return isRollingOut || isTransitioningPlan;
 }
 
 export function MEPSettingProvider({
@@ -100,7 +99,7 @@ export function MEPSettingProvider({
   const metricSettingFromParam =
     allowedStates.find(s => s === _metricSettingFromParam) ?? defaultMetricsState;
 
-  const isControlledMEP = typeof _hasMEPState !== 'undefined';
+  const isControlledMEP = _hasMEPState !== undefined;
 
   const [_metricSettingState, _setMetricSettingState] = useReducer(
     (_: MEPState, next: MEPState) => next,
@@ -144,7 +143,7 @@ export function MEPSettingProvider({
   const memoizationKey = metricSettingState;
 
   return (
-    <_MEPSettingProvider
+    <MEPSettingContext
       value={{
         autoSampleState,
         metricSettingState,
@@ -157,8 +156,6 @@ export function MEPSettingProvider({
       }}
     >
       <MEPDataProvider>{children}</MEPDataProvider>
-    </_MEPSettingProvider>
+    </MEPSettingContext>
   );
 }
-
-export const useMEPSettingContext = _useMEPSettingContext;

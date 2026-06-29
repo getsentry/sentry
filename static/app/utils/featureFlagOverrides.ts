@@ -59,9 +59,9 @@ export class FeatureFlagOverrides {
     const enabled = new Set(Object.keys(this.getFlagMap(organization)));
     Object.entries(this.getStoredOverrides()).forEach(([override, value]) => {
       // TODO(ryan953): we're only dealing with booleans to start, but other types could be supported
-      if (value === true) {
+      if (value) {
         enabled.add(override);
-      } else if (value === false) {
+      } else {
         enabled.delete(override);
       }
     });

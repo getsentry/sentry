@@ -12,7 +12,7 @@ class ActionHandlerSerializerResponse(TypedDict):
 
 
 @register(AlertRuleWorkflow)
-class AlertRuleWorkflowSerializer(Serializer):
+class AlertRuleWorkflowSerializer(Serializer[ActionHandlerSerializerResponse]):
     def serialize(
         self, obj: AlertRuleWorkflow, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> ActionHandlerSerializerResponse:

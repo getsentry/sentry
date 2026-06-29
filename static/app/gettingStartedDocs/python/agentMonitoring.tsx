@@ -12,7 +12,7 @@ import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIn
 
 import {getPythonInstallCodeBlock} from './utils';
 
-const MIN_REQUIRED_VERSION = '2.43.0';
+const MIN_REQUIRED_VERSION = '2.60.0';
 
 export const agentMonitoring: OnboardingConfig = {
   introduction: params => (
@@ -58,6 +58,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    stream_gen_ai_spans=True,
     send_default_pii=True,
 )`,
         },
@@ -85,6 +86,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    stream_gen_ai_spans=True,
     send_default_pii=True,
 )`,
         },
@@ -112,6 +114,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    stream_gen_ai_spans=True,
     send_default_pii=True,
 )`,
         },
@@ -139,6 +142,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    stream_gen_ai_spans=True,
     send_default_pii=True,
 )`,
         },
@@ -166,6 +170,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    stream_gen_ai_spans=True,
     send_default_pii=True,
 )`,
         },
@@ -193,6 +198,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    stream_gen_ai_spans=True,
     send_default_pii=True,
 )`,
         },
@@ -226,6 +232,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    stream_gen_ai_spans=True,
     send_default_pii=True,
     integrations=[
         LiteLLMIntegration(),
@@ -250,6 +257,7 @@ sentry_sdk.init(
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
+    stream_gen_ai_spans=True,
     send_default_pii=True,
 )`,
         },
@@ -288,6 +296,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    stream_gen_ai_spans=True,
     send_default_pii=True,
 )`,
         },

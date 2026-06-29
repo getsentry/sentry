@@ -3,11 +3,10 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SessionField} from 'sentry/types/sessions';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {useReleasesSeriesQuery, useReleasesTableQuery} from './useReleasesWidgetQuery';
@@ -15,20 +14,6 @@ import {useReleasesSeriesQuery, useReleasesTableQuery} from './useReleasesWidget
 jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
   useWidgetQueryQueue: () => ({queue: null}),
 }));
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
-  return function Wrapper({children}: {children: React.ReactNode}) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-  };
-}
 
 describe('useReleasesSeriesQuery', () => {
   const organization = OrganizationFixture();
@@ -60,15 +45,13 @@ describe('useReleasesSeriesQuery', () => {
       body: SessionsFieldFixture(`crash_free_rate(${SessionField.SESSION})`),
     });
 
-    renderHook(
-      () =>
-        useReleasesSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useReleasesSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -104,18 +87,16 @@ describe('useReleasesSeriesQuery', () => {
       body: SessionsFieldFixture(`crash_free_rate(${SessionField.SESSION})`),
     });
 
-    renderHook(
-      () =>
-        useReleasesSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['2.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useReleasesSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['2.0.0'],
+        },
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -150,15 +131,13 @@ describe('useReleasesSeriesQuery', () => {
       body: SessionsFieldFixture(`sum(${SessionField.SESSION})`),
     });
 
-    renderHook(
-      () =>
-        useReleasesSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useReleasesSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -194,15 +173,13 @@ describe('useReleasesSeriesQuery', () => {
       body: SessionsFieldFixture(`crash_free_rate(${SessionField.SESSION})`),
     });
 
-    renderHook(
-      () =>
-        useReleasesSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useReleasesSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -249,15 +226,13 @@ describe('useReleasesTableQuery', () => {
       body: SessionsFieldFixture(`crash_free_rate(${SessionField.SESSION})`),
     });
 
-    renderHook(
-      () =>
-        useReleasesTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useReleasesTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -294,17 +269,15 @@ describe('useReleasesTableQuery', () => {
       body: SessionsFieldFixture(`crash_free_rate(${SessionField.SESSION})`),
     });
 
-    renderHook(
-      () =>
-        useReleasesTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          limit: 50,
-          cursor: 'test-cursor',
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useReleasesTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        limit: 50,
+        cursor: 'test-cursor',
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -340,18 +313,16 @@ describe('useReleasesTableQuery', () => {
       body: SessionsFieldFixture(`crash_free_rate(${SessionField.SESSION})`),
     });
 
-    renderHook(
-      () =>
-        useReleasesTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useReleasesTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -386,15 +357,13 @@ describe('useReleasesTableQuery', () => {
       body: SessionsFieldFixture(`sum(${SessionField.SESSION})`),
     });
 
-    renderHook(
-      () =>
-        useReleasesTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useReleasesTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -431,15 +400,13 @@ describe('useReleasesTableQuery', () => {
       body: SessionsFieldFixture(`crash_free_rate(${SessionField.SESSION})`),
     });
 
-    renderHook(
-      () =>
-        useReleasesTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useReleasesTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -475,15 +442,13 @@ describe('useReleasesTableQuery', () => {
       body: SessionsFieldFixture(`sum(${SessionField.SESSION})`),
     });
 
-    renderHook(
-      () =>
-        useReleasesTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useReleasesTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {

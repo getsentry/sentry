@@ -9,6 +9,7 @@ from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     count_argument_resolver_optimized,
 )
+from sentry.search.eap.common_aggregates import count_unique_aggregate_definition
 
 PROCESSING_ERRORS_ALWAYS_PRESENT_ATTRIBUTES = [
     AttributeKey(name="error_type", type=AttributeKey.Type.TYPE_STRING),
@@ -34,4 +35,5 @@ PROCESSING_ERROR_AGGREGATE_DEFINITIONS = {
             PROCESSING_ERRORS_ALWAYS_PRESENT_ATTRIBUTES
         ),
     ),
+    "count_unique": count_unique_aggregate_definition(default_arg="event_id"),
 }

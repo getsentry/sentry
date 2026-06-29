@@ -16,8 +16,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import DetectorNewSettings from 'sentry/views/detectors/new-settings';
 
 describe('DetectorEdit', () => {
@@ -783,14 +786,13 @@ describe('DetectorEdit', () => {
   });
 
   describe('Metric Detector with Metrics dataset', () => {
-    it('shows metrics dataset option when tracemetrics-alerts feature flag is enabled', async () => {
+    it('shows metrics dataset option', async () => {
       const metricsOrganization = OrganizationFixture({
         features: [
           'workflow-engine-ui',
           'visibility-explore-view',
           'performance-view',
           'tracemetrics-enabled',
-          'tracemetrics-alerts',
         ],
       });
 
@@ -813,6 +815,12 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('menuitemradio', {name: /Metrics/})).toBeInTheDocument();
     });
 
+    it('auto-generates names using application metrics wording', () => {
+      expect(
+        getDatasetConfig(DetectorDataset.METRICS).formatAggregateForTitle?.('count()')
+      ).toBe('Number of application metrics');
+    });
+
     it('can submit a new metric detector with metrics dataset from URL params', async () => {
       const metricsOrganization = OrganizationFixture({
         features: [
@@ -820,7 +828,6 @@ describe('DetectorEdit', () => {
           'visibility-explore-view',
           'performance-view',
           'tracemetrics-enabled',
-          'tracemetrics-alerts',
         ],
       });
 
@@ -885,28 +892,6 @@ describe('DetectorEdit', () => {
           `/organizations/${metricsOrganization.slug}/monitors/999/`
         );
       });
-    });
-
-    it('does not show metrics dataset option without tracemetrics-alerts feature flag', async () => {
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {
-            ...initialRouterConfig.location,
-            query: {detectorType: 'metric_issue', project: project.id},
-          },
-        },
-      });
-
-      await screen.findByText('New Monitor');
-
-      // Open dataset dropdown
-      await userEvent.click(screen.getByText('Errors'));
-
-      expect(
-        screen.queryByRole('menuitemradio', {name: /Metrics/})
-      ).not.toBeInTheDocument();
     });
   });
 
@@ -1240,6 +1225,71 @@ describe('DetectorEdit', () => {
           }),
         })
       );
+    });
+
+    it('displays slug errors on the name field and in a toast', async () => {
+      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        statusCode: 400,
+        body: {
+          dataSources: {slug: ['The slug "new-test-cron-job" is already in use.']},
+        },
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+
+      const title = await screen.findByText('New Monitor');
+      await userEvent.click(title);
+      await userEvent.keyboard('new-test-cron-job{enter}');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockAddErrorMessage).toHaveBeenCalledWith(
+          'The slug "new-test-cron-job" is already in use.'
+        );
+      });
+
+      // The slug error is mapped to the name field and shown inline
+      expect(
+        await screen.findByText('The slug "new-test-cron-job" is already in use.')
+      ).toBeInTheDocument();
+    });
+
+    it('displays schedule config errors on the schedule field and in a toast', async () => {
+      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        statusCode: 400,
+        body: {
+          dataSources: {
+            config: {schedule: ['Invalid schedule for schedule unit count']},
+          },
+        },
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockAddErrorMessage).toHaveBeenCalledWith(
+          'Invalid schedule for schedule unit count'
+        );
+      });
+
+      expect(
+        await screen.findByText('Invalid schedule for schedule unit count')
+      ).toBeInTheDocument();
     });
   });
 });

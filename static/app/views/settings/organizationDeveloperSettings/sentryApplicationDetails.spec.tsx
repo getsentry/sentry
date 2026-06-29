@@ -98,6 +98,9 @@ describe('Sentry Application Details', () => {
         screen.getByRole('textbox', {name: 'Issue & Event'}),
         'Admin'
       );
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: 'Continuous Integration (CI)'})
+      );
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
 
@@ -114,19 +117,54 @@ describe('Sentry Application Details', () => {
           'member:admin',
           'event:read',
           'event:admin',
+          'org:ci',
         ]),
         events: ['issue'],
         isInternal: false,
         verifyInstall: true,
         isAlertable: true,
         allowedOrigins: [],
+        webhookHeaders: [],
         schema: {},
+        overview: '',
       };
 
       expect(createAppRequest).toHaveBeenCalledWith(
         '/sentry-apps/',
         expect.objectContaining({
           data,
+          method: 'POST',
+        })
+      );
+    });
+
+    it('saves webhook headers', async () => {
+      render(<SentryApplicationDetails />, {
+        initialRouterConfig,
+        organization: OrganizationFixture({
+          features: ['sentry-apps-custom-webhook-headers'],
+        }),
+      });
+
+      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Webhook URL'}),
+        'https://webhook.com'
+      );
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Webhook Headers'}),
+        'X-Example: value'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+      expect(createAppRequest).toHaveBeenCalledWith(
+        '/sentry-apps/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            webhookHeaders: ['X-Example: value'],
+          }),
           method: 'POST',
         })
       );
@@ -167,7 +205,7 @@ describe('Sentry Application Details', () => {
   describe('Renders public app', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -224,12 +262,31 @@ describe('Sentry Application Details', () => {
       expect(screen.getByRole('textbox', {name: 'Client ID'})).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
     });
+
+    it('prefills webhook headers from the app', async () => {
+      sentryApp.webhookHeaders = ['X-Example: value', 'Another-Header: thing'];
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      render(<SentryApplicationDetails />, {
+        initialRouterConfig,
+        organization: OrganizationFixture({
+          features: ['sentry-apps-custom-webhook-headers'],
+        }),
+      });
+
+      expect(await screen.findByRole('textbox', {name: 'Webhook Headers'})).toHaveValue(
+        'X-Example: value\nAnother-Header: thing'
+      );
+    });
   });
 
   describe('Renders for internal apps', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -295,7 +352,7 @@ describe('Sentry Application Details', () => {
   describe('Renders masked values', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -342,7 +399,7 @@ describe('Sentry Application Details', () => {
   describe('Editing internal app tokens', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -399,6 +456,14 @@ describe('Sentry Application Details', () => {
       });
     });
 
+    it('disables the new token button when user lacks org:write', async () => {
+      const organization = OrganizationFixture({access: ['org:read']});
+      render(<SentryApplicationDetails />, {initialRouterConfig, organization});
+
+      const button = await screen.findByRole('button', {name: 'New Token'});
+      expect(button).toBeDisabled();
+    });
+
     it('removing token from list', async () => {
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/${token.id}/`,
@@ -429,7 +494,7 @@ describe('Sentry Application Details', () => {
   describe('Editing an existing public Sentry App', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -517,7 +582,7 @@ describe('Sentry Application Details', () => {
   describe('Editing an existing public Sentry App with a scope error', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -536,6 +601,7 @@ describe('Sentry Application Details', () => {
           scopes: [
             "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change.",
             "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
+            "Requested permission of org:ci exceeds requester's permission. Please contact an administrator to make the requested change.",
           ],
         },
       });
@@ -559,7 +625,7 @@ describe('Sentry Application Details', () => {
 
       expect(
         await screen.findByText(
-          "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change."
+          "Requested permission of org:ci exceeds requester's permission. Please contact an administrator to make the requested change."
         )
       ).toBeInTheDocument();
     });

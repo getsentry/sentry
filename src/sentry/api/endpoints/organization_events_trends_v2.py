@@ -238,6 +238,10 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsEndpointBase):
                 "performance.trendsv2.top_events",
                 top_trending_transactions.get("data", None) is not None,
             )
+            sentry_sdk.set_attribute(
+                "performance.trendsv2.top_events",
+                top_trending_transactions.get("data", None) is not None,
+            )
             if len(top_trending_transactions.get("data", [])) == 0:
                 return {}
 
@@ -304,6 +308,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
             sentry_sdk.set_tag("performance.trendsv2.trends", len(trending_events) > 0)
+            sentry_sdk.set_attribute("performance.trendsv2.trends", len(trending_events) > 0)
 
             return trending_events, trends_requests
 
@@ -358,6 +363,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsEndpointBase):
             )
 
             sentry_sdk.set_tag("performance.trendsv2.stats_data", bool(stats_data))
+            sentry_sdk.set_attribute("performance.trendsv2.stats_data", bool(stats_data))
 
             # Handle empty response
             if not bool(stats_data):

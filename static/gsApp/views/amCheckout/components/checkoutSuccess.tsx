@@ -14,7 +14,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {GIGABYTE} from 'getsentry/constants';
@@ -113,7 +113,7 @@ function ScheduledChanges({
   effectiveDate,
   total,
 }: ScheduledChangesProps) {
-  const shortInterval = plan ? utils.getShortInterval(plan.contractInterval) : undefined;
+  const shortInterval = plan ? utils.getShortInterval(plan.billingInterval) : undefined;
   return (
     <Flex
       data-test-id="scheduled-changes"
@@ -498,6 +498,15 @@ function Receipt({
   );
 }
 
+const checkoutSuccessFeedbackOptions = {
+  formTitle: t('Give feedback'),
+  messagePlaceholder: t('How can we make the checkout experience better for you?'),
+  tags: {
+    ['feedback.source']: 'checkout_success',
+    ['feedback.owner']: 'billing',
+  },
+};
+
 export function CheckoutSuccess({
   invoice,
   basePlan,
@@ -595,7 +604,7 @@ export function CheckoutSuccess({
           </Description>
           <Flex gap="sm">
             <LinkButton
-              priority="primary"
+              variant="primary"
               aria-label={t('View your subscription')}
               to={`/settings/${organization.slug}/billing/overview/${viewSubscriptionQueryParams}`}
             >
@@ -607,19 +616,7 @@ export function CheckoutSuccess({
             >
               {t('Edit plan')}
             </LinkButton>
-            <FeedbackButton
-              feedbackOptions={{
-                formTitle: t('Give feedback'),
-                messagePlaceholder: t(
-                  'How can we make the checkout experience better for you?'
-                ),
-                tags: {
-                  ['feedback.source']: 'checkout_success',
-                  ['feedback.owner']: 'billing',
-                },
-              }}
-              size="md"
-            />
+            <FeedbackButton feedbackOptions={checkoutSuccessFeedbackOptions} size="md" />
           </Flex>
         </Flex>
       </Flex>

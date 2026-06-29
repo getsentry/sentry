@@ -197,15 +197,12 @@ function parseFiltersForDisplay(query: string | undefined): StatusCheckFilter[] 
 }
 
 function groupFiltersByKey(filters: StatusCheckFilter[]) {
-  return filters.reduce(
-    (acc, filter) => {
-      const groupKey = `${filter.key}:${filter.negated ? 'negated' : 'normal'}`;
-      if (!acc[groupKey]) {
-        acc[groupKey] = [];
-      }
-      acc[groupKey].push(filter);
-      return acc;
-    },
-    {} as Record<string, StatusCheckFilter[]>
-  );
+  return filters.reduce<Record<string, StatusCheckFilter[]>>((acc, filter) => {
+    const groupKey = `${filter.key}:${filter.negated ? 'negated' : 'normal'}`;
+    if (!acc[groupKey]) {
+      acc[groupKey] = [];
+    }
+    acc[groupKey].push(filter);
+    return acc;
+  }, {});
 }

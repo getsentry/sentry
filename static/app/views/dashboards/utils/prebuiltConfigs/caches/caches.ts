@@ -1,6 +1,9 @@
 import {t} from 'sentry/locale';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/settings';
 import {
   WIDGET_COLUMN_LABELS,
@@ -55,7 +58,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   0
 );
 
-const TRANSACTION_TABLE: Widget = {
+const TRANSACTION_TABLE: PrebuiltWidget = {
   id: 'transaction-table',
   title: t('Transactions'),
   displayType: DisplayType.TABLE,

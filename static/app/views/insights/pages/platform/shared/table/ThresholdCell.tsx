@@ -5,7 +5,7 @@ const getCellColor = (
   thresholds?: Record<'danger' | 'warning', number>
 ) => {
   if (!value || !thresholds) {
-    return undefined;
+    return;
   }
   return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0] as
     | 'danger'

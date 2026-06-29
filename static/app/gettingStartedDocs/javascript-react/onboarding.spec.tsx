@@ -117,7 +117,7 @@ describe('javascript-react onboarding docs', () => {
       ],
     });
 
-    expect(screen.getByText('Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Application Metrics')).toBeInTheDocument();
   });
 
   it('does not show Metrics in next steps when metrics is not selected', () => {
@@ -128,7 +128,7 @@ describe('javascript-react onboarding docs', () => {
       ],
     });
 
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    expect(screen.queryByText('Application Metrics')).not.toBeInTheDocument();
   });
 
   it('shows Logging Integrations in next steps when logs is selected', () => {

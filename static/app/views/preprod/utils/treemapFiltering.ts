@@ -22,7 +22,9 @@ export function filterTreemapElement(
   const hasSearchFilter = !!ctx.term;
   const hasCategoryFilter = selectedCategories && selectedCategories.size > 0;
 
-  if (!hasSearchFilter && !hasCategoryFilter) return element;
+  if (!hasSearchFilter && !hasCategoryFilter) {
+    return element;
+  }
 
   // Root is a special case, only keep if children match.
   if (parentPath === '') {
@@ -56,7 +58,9 @@ function makeSearchCtx(searchQuery: string): SearchCtx {
 }
 
 function advancePathIdx(nodeNameLC: string, parts: string[], idx: number): number {
-  if (idx >= parts.length) return idx;
+  if (idx >= parts.length) {
+    return idx;
+  }
   return nodeNameLC.includes(parts[idx] ?? '') ? idx + 1 : idx;
 }
 
@@ -69,10 +73,16 @@ function currentNodeMatches(
   ctx: SearchCtx,
   pathIdx: number
 ): boolean {
-  if (!ctx.term) return true;
-  if (!ctx.hasPath) return nodeNameLC.includes(ctx.lcTerm);
+  if (!ctx.term) {
+    return true;
+  }
+  if (!ctx.hasPath) {
+    return nodeNameLC.includes(ctx.lcTerm);
+  }
 
-  if (pathIdx >= ctx.parts.length) return true; // already satisfied the whole path
+  if (pathIdx >= ctx.parts.length) {
+    return true;
+  } // already satisfied the whole path
   const needed = ctx.parts[pathIdx];
   return needed ? nodeNameLC.includes(needed) : false; // must advance to count as a match
 }
@@ -81,7 +91,9 @@ function categoryMatches(
   element: TreemapElement,
   selectedCategories?: Set<TreemapType>
 ): boolean {
-  if (!selectedCategories || selectedCategories.size === 0) return true;
+  if (!selectedCategories || selectedCategories.size === 0) {
+    return true;
+  }
   return selectedCategories.has(element.type);
 }
 
@@ -147,11 +159,15 @@ function filterChildren(
   pathIdx: number,
   selectedCategories?: Set<TreemapType>
 ): TreemapElement[] {
-  if (!children || children.length === 0) return [];
+  if (!children || children.length === 0) {
+    return [];
+  }
   const out: TreemapElement[] = [];
   for (const child of children) {
     const filtered = filterNode(child, ctx, pathIdx, selectedCategories);
-    if (filtered) out.push(filtered);
+    if (filtered) {
+      out.push(filtered);
+    }
   }
   return out;
 }

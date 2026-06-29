@@ -138,6 +138,8 @@ class Referrer(StrEnum):
     API_EXPLORE_TRACEMETRICS_RAW_COUNT_HIGH_ACCURACY = (
         "api.explore.tracemetrics.raw-count.high-accuracy"
     )
+    API_EXPLORE_HEATMAP_FIND_Y_BOUNDS = "api.explore.heatmap.find-y-bounds"
+    API_EXPLORE_HEATMAP_QUERY_DATA = "api.explore.heatmap.query-data"
     DATA_EXPORT_TASKS_EXPLORE = "data_export.tasks.explore"
 
     # ** Insights **
@@ -422,6 +424,7 @@ class Referrer(StrEnum):
     API_INSIGHTS_MCP_TRAFFIC_BY_CLIENT_WIDGET = "api.insights.mcp.traffic-by-client-widget"
     API_INSIGHTS_MCP_TRAFFIC_WIDGET = "api.insights.mcp.traffic-widget"
     API_INSIGHTS_MCP_TRANSPORT_WIDGET = "api.insights.mcp.transport-widget"
+    API_MCP_SEARCH_EVENTS = "api.mcp.search-events"
 
     # Misc
     API_INSIGHTS_ORG_EVENT_AVERAGE_SPAN = "api.insights.org-event-average-span"
@@ -498,6 +501,7 @@ class Referrer(StrEnum):
     API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
     API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
     API_AI_CONVERSATION_DETAILS = "api.ai-conversation-details"
+    API_AI_CONVERSATION_DETAILS_ISSUES = "api.ai-conversation-details.issues"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PROFILING_ONBOARDING = "profiling-onboarding"
@@ -582,6 +586,7 @@ class Referrer(StrEnum):
     API_SPANS_FREQUENCY_STATS_RPC = "api.spans.fields-stats.rpc"
     API_SPANS_TAG_VALUES_RPC = "api.spans.tags-values.rpc"
     API_SPANS_TRACE_VIEW = "api.spans.trace-view"
+    API_OCCURRENCES_FREQUENCY_STATS_RPC = "api.occurrences.fields-stats.rpc"
     API_TRACE_METRICS_TAG_KEYS_RPC = "api.tracemetrics.tags-keys.rpc"
     API_TRACE_METRICS_TAG_VALUES_RPC = "api.tracemetrics.tags-values.rpc"
 
@@ -593,11 +598,14 @@ class Referrer(StrEnum):
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
     API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"
     API_TRACE_VIEW_GET_EVENTS = "api.trace-view.get-events"
+    API_TRACE_ISSUES_GET_EVENTS = "api.trace-view.issues.get-events"
+    API_TRACE_INSIGHTS_GET_EVENTS = "api.trace-view.insights.get-events"
     API_TRACE_VIEW_GET_META = "api.trace-view.get-meta"
     API_TRACE_VIEW_SPAN_META = "api.trace-view.spans-meta"
     API_TRACE_VIEW_SPAN_OP_META = "api.trace-view.spans-op-count"
     API_TRACE_VIEW_TRANSACTION_CHILDREN = "api.trace-view.transaction-children"
     API_TRACE_VIEW_LOGS_META = "api.trace-view.logs-meta"
+    API_TRACE_VIEW_TRACE_METRICS_META = "api.trace-view.trace-metrics-meta"
     API_TRACE_VIEW_LOGS = "api.trace-view.logs"
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
@@ -624,12 +632,21 @@ class Referrer(StrEnum):
     DATA_EXPORT_TASKS_DISCOVER = "data_export.tasks.discover"
     DELETIONS_GROUP = "deletions.group"
     DISCOVER = "discover"
+    DASHBOARDS_SLACK_UNFURL = "dashboards.slack.unfurl"
     DISCOVER_SLACK_UNFURL = "discover.slack.unfurl"
+    EXPLORE_SLACK_UNFURL = "explore.slack.unfurl"
     DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
         "dynamic_sampling.counters.get_org_transaction_volumes"
     )
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
         "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
+    )
+    DYNAMIC_SAMPLING_PER_ORG_GET_EAP_ORG_VOLUME = "dynamic_sampling.per_org.get_eap_org_volume"
+    DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES = (
+        "dynamic_sampling.per_org.get_eap_project_volumes"
+    )
+    DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES = (
+        "dynamic_sampling.per_org.get_eap_transaction_volumes"
     )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
         "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
@@ -661,6 +678,7 @@ class Referrer(StrEnum):
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
+    ISSUES_ESCALATING_ISSUE_VELOCITY = "sentry.issues.escalating.issue_velocity"
     ISSUES_SUSPECT_FLAGS_QUERY_BASELINE_SET = "issues.suspect_flags.query_baseline_set"
     ISSUES_SUSPECT_FLAGS_QUERY_SELECTION_SET = "issues.suspect_flags.query_selection_set"
     ISSUES_SUSPECT_FLAGS_QUERY_ERROR_COUNTS = "issues.suspect_flags.query_error_counts"
@@ -673,6 +691,8 @@ class Referrer(StrEnum):
 
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
+
+    LOW_VALUE_TELEMETRY_DETECTOR = "configuration.low_value_telemetry_detector"
 
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     BILLING_USAGE_SERVICE_CLICKHOUSE = "billing.usage_service.clickhouse"
@@ -767,9 +787,9 @@ class Referrer(StrEnum):
     FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
     EU_DATA_EXPORT = "sentry.internal.eu-compliance-data-export"
     REPORTS_KEY_ERRORS = "reports.key_errors"
+    REPORTS_KEY_ERRORS_BATCHED = "reports.key_errors.batched"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
-    REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
-    REPORTS_KEY_TRANSACTIONS = "reports.key_transactions"
+    REPORTS_PAST_RESOLVED_ISSUES = "reports.past_resolved_issues"
     REPORTS_OUTCOME_SERIES = "reports.outcome_series"
     REPORTS_OUTCOMES = "reports.outcomes"
     REPROCESSING2_REPROCESS_GROUP = "reprocessing2.reprocess_group"
@@ -777,6 +797,7 @@ class Referrer(StrEnum):
     SEARCH_SAMPLE = "search_sample"
     SEARCH = "search"
     SEARCH_GROUP_INDEX = "search.group_index"
+    SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY = "seer.night_shift.fixability_score_strategy"
     SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_QUERY = "search.snuba.group_attributes_search.query"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
@@ -784,6 +805,11 @@ class Referrer(StrEnum):
     SEER_EXPLORER_INDEX = "seer.explorer_index"
     SEER_EXPLORER_SERVICE_MAP = "seer.explorer_service_map"
     SEER_EXPLORER_TOOLS = "seer.explorer_tools"
+    SEER_AUTOFIX_GET_TRACE_EVENTS = "seer.autofix.trace.get-events"
+    SEER_AGENT_IN_CHAT_LINK = "seer.agent.in-chat-link"
+    SUPERGROUPS_BACKFILL_LIGHTWEIGHT_GET_LATEST_EVENTS = (
+        "supergroups_backfill_lightweight.get_latest_events"
+    )
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )
@@ -915,9 +941,6 @@ class Referrer(StrEnum):
 
     UNKNOWN = "unknown"
     UNMERGE = "unmerge"
-    WEEKLY_REPORTS_KEY_TRANSACTIONS_LAST_WEEK = "weekly_reports.key_transactions.last_week"
-    WEEKLY_REPORTS_KEY_TRANSACTIONS_THIS_WEEK = "weekly_reports.key_transactions.this_week"
-    WEEKLY_REPORTS_OUTCOMES = "weekly_reports.outcomes"
 
     # Referrers used in the migration script for alerts
     ALERTS_MIGRATION_SCRIPT = "alerts.migration_script"

@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -9,7 +9,7 @@ import ProjectSecurityAndPrivacy from 'sentry/views/settings/projectSecurityAndP
 describe('projectSecurityAndPrivacy', () => {
   it('renders form fields', () => {
     const organization = OrganizationFixture({features: ['event-attachments']});
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       sensitiveFields: ['creditcard', 'ssn'],
       safeFields: ['business-email', 'company'],
     });
@@ -66,7 +66,7 @@ describe('projectSecurityAndPrivacy', () => {
 
   it('disables field when equivalent org setting is true', () => {
     const {organization} = initializeOrg();
-    const project = ProjectFixture();
+    const project = DetailedProjectFixture();
 
     organization.dataScrubber = true;
     organization.scrubIPAddresses = false;
@@ -103,7 +103,7 @@ describe('projectSecurityAndPrivacy', () => {
         access: [], // Remove all access
       },
     });
-    const project = ProjectFixture();
+    const project = DetailedProjectFixture();
 
     render(<ProjectSecurityAndPrivacy />, {
       organization,

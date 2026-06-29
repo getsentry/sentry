@@ -1,11 +1,12 @@
 import logging
 from collections import defaultdict
 from concurrent.futures import as_completed
+from dataclasses import dataclass
+from typing import Literal, get_args
 
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry import options
@@ -13,19 +14,29 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.auth.staff import is_active_staff
+from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
+from sentry.search.eap.columns import ColumnDefinitions
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
+from sentry.search.eap.occurrences.attributes import (
+    OCCURRENCE_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    OCCURRENCE_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
+)
+from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import (
     SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import can_expose_attribute_to_api
+from sentry.snuba import rpc_dataset_common
+from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -36,13 +47,49 @@ logger = logging.getLogger(__name__)
 
 MAX_THREADS = 4
 
+SupportedItemType = Literal["spans", "occurrences"]
+SUPPORTED_ITEM_TYPES: tuple[SupportedItemType, ...] = get_args(SupportedItemType)
+
+
+@dataclass(frozen=True)
+class TraceItemStatsConfig:
+    rpc_class: type[rpc_dataset_common.RPCBase]
+    definitions: ColumnDefinitions
+    alias_mappings: dict[Literal["string", "number", "boolean"], dict[str, str]]
+    excluded_attributes: set[str]
+    referrer: Referrer
+    id_column: str
+    visibility_item_type: SupportedTraceItemType
+
+
+def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsConfig:
+    if item_type == "occurrences":
+        return TraceItemStatsConfig(
+            rpc_class=Occurrences,
+            definitions=OCCURRENCE_DEFINITIONS,
+            alias_mappings=OCCURRENCE_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+            excluded_attributes=OCCURRENCE_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
+            referrer=Referrer.API_OCCURRENCES_FREQUENCY_STATS_RPC,
+            id_column="id",
+            visibility_item_type=SupportedTraceItemType.OCCURRENCES,
+        )
+    return TraceItemStatsConfig(
+        rpc_class=Spans,
+        definitions=SPAN_DEFINITIONS,
+        alias_mappings=SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+        excluded_attributes=SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
+        referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC,
+        id_column="span_id",
+        visibility_item_type=SupportedTraceItemType.SPANS,
+    )
+
 
 class TraceItemStatsPaginator:
     """
     Custom paginator for trace item stats that properly handles pagination
     based on the number of attributes fetched, not the number of stats types.
     Similar to TraceItemAttributesNamesPaginator, with some extra code to make
-    it work for stats results/
+    it work for stats results.
     """
 
     def __init__(self, data_fn):
@@ -53,7 +100,9 @@ class TraceItemStatsPaginator:
             raise ValueError(f"invalid limit for paginator, expected >0, got {limit}")
 
         offset = cursor.offset if cursor is not None else 0
-        # Request 1 more than limit so we can tell if there is another page
+        # data_fn returns (payload, total_count), where total_count is the number of
+        # attributes available across all pages. There is a next page whenever the total
+        # extends at least one attribute past the end of the current page (offset + limit).
         data = self.data_fn(offset=offset, limit=limit)
         has_more = data[1] >= offset + limit + 1
 
@@ -76,7 +125,12 @@ class OrganizationTraceItemsStatsSerializer(serializers.Serializer):
     limit = serializers.IntegerField(
         required=False,
     )
-    spansLimit = serializers.IntegerField(required=False, default=1000, max_value=1000)
+    traceItemsLimit = serializers.IntegerField(required=False, default=1000, max_value=1000)
+    itemType = serializers.ChoiceField(
+        choices=SUPPORTED_ITEM_TYPES,
+        required=False,
+        default="spans",
+    )
 
 
 @cell_silo_endpoint
@@ -97,52 +151,40 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
 
+        stats_config = get_trace_item_stats_config(serialized.get("itemType", "spans"))
+
         resolver_config = SearchResolverConfig()
         resolver = SearchResolver(
-            params=snuba_params, config=resolver_config, definitions=SPAN_DEFINITIONS
+            params=snuba_params, config=resolver_config, definitions=stats_config.definitions
         )
 
         substring_match = serialized.get("substringMatch", "")
         value_substring_match = translate_escape_sequences(substring_match)
 
-        # Fetch attribute names
-        adjusted_start_date, adjusted_end_date = adjust_start_end_window(
-            snuba_params.start_date, snuba_params.end_date
-        )
-        attrs_snuba_params = snuba_params.copy()
-        attrs_snuba_params.start = adjusted_start_date
-        attrs_snuba_params.end = adjusted_end_date
-        attrs_resolver = SearchResolver(
-            params=attrs_snuba_params, config=resolver_config, definitions=SPAN_DEFINITIONS
-        )
-        attrs_meta = attrs_resolver.resolve_meta(
-            referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value
-        )
-        attrs_meta.trace_item_type = TraceItemType.TRACE_ITEM_TYPE_SPAN
-
         max_attributes = options.get("explore.trace-items.keys.max")
+        include_internal = is_active_superuser(request) or is_active_staff(request)
 
         def get_table_results():
             with handle_query_errors():
-                return Spans.run_table_query(
+                return stats_config.rpc_class.run_table_query(
                     params=snuba_params,
                     config=SearchResolverConfig(),
                     offset=0,
-                    limit=serialized.get("spansLimit", 1000),
+                    limit=serialized.get("traceItemsLimit", 1000),
                     sampling_mode=snuba_params.sampling_mode,
                     query_string=serialized.get("query", ""),
                     orderby=["-timestamp"],
-                    referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value,
-                    selected_columns=["span_id", "timestamp"],
+                    referrer=stats_config.referrer.value,
+                    selected_columns=[stats_config.id_column, "timestamp"],
                 )
 
-        def run_stats_query_with_span_ids(span_id_filter):
+        def run_stats_query_with_item_ids(item_id_filter):
             with handle_query_errors():
-                return Spans.run_stats_query(
+                return stats_config.rpc_class.run_stats_query(
                     params=snuba_params,
                     stats_types=serialized.get("statsType"),
-                    query_string=span_id_filter,
-                    referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value,
+                    query_string=item_id_filter,
+                    referrer=stats_config.referrer.value,
                     config=resolver_config,
                     search_resolver=resolver,
                     max_buckets=1,
@@ -151,11 +193,11 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
 
         def run_stats_query_with_error_handling(attributes):
             with handle_query_errors():
-                return Spans.run_stats_query(
+                return stats_config.rpc_class.run_stats_query(
                     params=snuba_params,
                     stats_types=serialized.get("statsType"),
                     query_string=serialized.get("query", ""),
-                    referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value,
+                    referrer=stats_config.referrer.value,
                     config=resolver_config,
                     search_resolver=resolver,
                     attributes=attributes,
@@ -166,10 +208,10 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             if not table_results["data"]:
                 return {"data": []}, 0
 
-            span_ids = [row["span_id"] for row in table_results["data"]]
-            span_id_list = ",".join(span_ids)
+            item_ids = [row[stats_config.id_column] for row in table_results["data"]]
+            item_id_list = ",".join(item_ids)
 
-            preflight_stats = run_stats_query_with_span_ids(f"id:[{span_id_list}]")
+            preflight_stats = run_stats_query_with_item_ids(f"id:[{item_id_list}]")
             try:
                 internal_alias_attr_keys = list(
                     preflight_stats[0]["attribute_distributions"]["data"].keys()
@@ -178,28 +220,44 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 return {"data": []}, 0
 
             sanitized_keys = []
+            visited_public_keys = []
             for internal_name in internal_alias_attr_keys:
-                public_alias = SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get("string", {}).get(
+                public_alias = stats_config.alias_mappings.get("string", {}).get(
                     internal_name, internal_name
                 )
 
-                if public_alias in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
+                if (
+                    public_alias in stats_config.excluded_attributes
+                    or public_alias in visited_public_keys
+                ):
+                    continue
+
+                if not can_expose_attribute_to_api(
+                    public_alias,
+                    stats_config.visibility_item_type,
+                    include_internal=include_internal,
+                ):
                     continue
 
                 if value_substring_match:
                     if value_substring_match in public_alias:
+                        visited_public_keys.append(public_alias)
                         sanitized_keys.append(internal_name)
                     continue
 
+                visited_public_keys.append(public_alias)
                 sanitized_keys.append(internal_name)
 
-            sanitized_keys = sanitized_keys[offset : offset + limit]
+            # The number of attributes available across all pages drives pagination
+            # (see TraceItemStatsPaginator), so capture the total before slicing.
+            total_attributes = len(sanitized_keys)
+            paginated_keys = sanitized_keys[offset : offset + limit]
 
-            if not sanitized_keys:
-                return {"data": []}, 0
+            if not paginated_keys:
+                return {"data": []}, total_attributes
 
             request_attrs_list = []
-            for requested_key in sanitized_keys:
+            for requested_key in paginated_keys:
                 request_attrs_list.append(
                     AttributeKey(name=requested_key, type=AttributeKey.TYPE_STRING)
                 )
@@ -226,7 +284,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                         for stats_type, data in stats.items():
                             stats_results[stats_type]["data"].update(data["data"])
 
-            return {"data": [{k: v} for k, v in stats_results.items()]}, len(request_attrs_list)
+            return {"data": [{k: v} for k, v in stats_results.items()]}, total_attributes
 
         return self.paginate(
             request=request,

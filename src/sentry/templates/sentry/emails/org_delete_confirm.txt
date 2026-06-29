@@ -1,4 +1,4 @@
-The {{ organization.name }} organization has been scheduled for deletion by:
+{% load sentry_helpers %}The {{ organization.name|sanitize_periods }} organization has been scheduled for deletion by:
 
 User: {{ username }}
 IP: {{ user_ip_address }}
@@ -9,3 +9,5 @@ This irreversible deletion will take place at {{ eta }} and will permanently rem
 If this was unintentional and you would like to cancel the deletion:
 
 {{ url }}
+
+If you deleted this organization as part of closing your account, please log in to reactivate your account before attempting to restore this organization: {% absolute_uri '/auth/login/' %}

@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {decodeScalar, type decodeList, type decodeSorts} from 'sentry/utils/queryString';
 import {useUrlBatchContext} from 'sentry/utils/url/urlParamBatchContext';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
@@ -83,7 +83,9 @@ export function useQueryParamState<T = string>({
 
   // Sync local state when URL query params change (e.g., browser back/forward navigation)
   useEffect(() => {
-    if (!syncStateWithUrl) return;
+    if (!syncStateWithUrl) {
+      return;
+    }
 
     setLocalState(deserializeValue());
   }, [deserializeValue, syncStateWithUrl]);

@@ -4,11 +4,13 @@ import uuid
 from collections.abc import Mapping, MutableMapping
 from typing import Any, Literal
 
-from django import forms
+from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from pydantic import BaseModel
 from requests import HTTPError
+from rest_framework.fields import CharField
 
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -18,12 +20,14 @@ from sentry.integrations.base import (
 from sentry.integrations.coding_agent.integration import (
     CodingAgentIntegration,
     CodingAgentIntegrationProvider,
-    CodingAgentPipelineView,
 )
 from sentry.integrations.cursor.client import CursorAgentClient
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.apitoken import generate_token
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 
 DESCRIPTION = "Connect your Sentry organization with Cursor Cloud Agents."
@@ -42,6 +46,25 @@ class CursorIntegrationMetadata(BaseModel):
     domain_name: Literal["cursor.sh"] = "cursor.sh"
     api_key_name: str | None = None
     user_email: str | None = None
+    display_name: str | None = None
+
+
+INTEGRATION_NAME_MAX_LENGTH = 200
+
+
+def build_default_integration_name(api_key_name: str | None, api_key: str) -> str:
+    """Auto-generate the display name from the API key's name (or a key hint)."""
+    if api_key_name:
+        return f"Cursor Cloud Agent - {api_key_name}"
+    key_hint = api_key[:8] if len(api_key) >= 8 else api_key
+    return f"Cursor Cloud Agent ({key_hint}...)"
+
+
+def resolve_integration_name(metadata: CursorIntegrationMetadata) -> str:
+    """Use the custom display name if set, otherwise the auto-generated default."""
+    if metadata.display_name:
+        return metadata.display_name
+    return build_default_integration_name(metadata.api_key_name, metadata.api_key)
 
 
 metadata = IntegrationMetadata(
@@ -55,30 +78,39 @@ metadata = IntegrationMetadata(
 )
 
 
-class CursorAgentConfigForm(forms.Form):
-    api_key = forms.CharField(
-        label=_("Cursor API Key"),
-        help_text=_("Enter your Cursor API key to call Cursor Agents with."),
-        widget=forms.PasswordInput(attrs={"placeholder": _("***********************")}),
-        max_length=255,
-    )
+class CursorApiKeySerializer(CamelSnakeSerializer):
+    api_key = CharField(required=True, max_length=255)
 
 
-class CursorPipelineView(CodingAgentPipelineView):
-    def get_form_class(self) -> type[forms.Form]:
-        return CursorAgentConfigForm
+class CursorApiKeyApiStep:
+    step_name = "api_key_config"
 
-    def get_template_name(self) -> str:
-        return "sentry/integrations/cursor-config.html"
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {}
+
+    def get_serializer_cls(self) -> type:
+        return CursorApiKeySerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, str],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        pipeline.bind_state("config", {"api_key": validated_data["api_key"]})
+        return PipelineStepResult.advance()
 
 
 class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
     key = "cursor"
     name = "Cursor Agent"
     metadata = metadata
+    # The organizations:integrations-cursor flag has graduated; skip the
+    # parent class's flag check rather than rely on a removed registration.
+    requires_feature_flag = False
 
-    def get_pipeline_views(self):
-        return [CursorPipelineView()]
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [CursorApiKeyApiStep()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         config = state.get("config", {})
@@ -108,11 +140,7 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
                 "Unable to validate Cursor API key. Please try again or contact support if the issue persists."
             )
 
-        if user_email and api_key_name:
-            integration_name = f"Cursor Cloud Agent - {user_email}/{api_key_name}"
-        else:
-            key_hint = api_key[:8] if len(api_key) >= 8 else api_key
-            integration_name = f"Cursor Cloud Agent ({key_hint}...)"
+        integration_name = build_default_integration_name(api_key_name, api_key)
 
         int_metadata = CursorIntegrationMetadata(
             domain_name="cursor.sh",
@@ -146,7 +174,20 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
 
 class CursorAgentIntegration(CodingAgentIntegration):
     def get_organization_config(self) -> list[dict[str, Any]]:
+        metadata = CursorIntegrationMetadata.parse_obj(self.model.metadata or {})
+        default_name = build_default_integration_name(metadata.api_key_name, metadata.api_key)
         return [
+            {
+                "name": "display_name",
+                "type": "string",
+                "label": _("Display Name"),
+                "help": _(
+                    "Customize the name shown when launching Cursor Cloud Agents. "
+                    "Leave blank to use the default."
+                ),
+                "required": False,
+                "placeholder": default_name,
+            },
             {
                 "name": "api_key",
                 "type": "secret",
@@ -155,10 +196,24 @@ class CursorAgentIntegration(CodingAgentIntegration):
                 "required": True,
                 "placeholder": "***********************",
                 "formatMessageValue": False,
-            }
+            },
         ]
 
+    def get_config_data(self) -> Mapping[str, Any]:
+        data = dict(super().get_config_data())
+        metadata = CursorIntegrationMetadata.parse_obj(self.model.metadata or {})
+        data["display_name"] = metadata.display_name or ""
+        return data
+
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        # Editing only the display name should not require or re-verify the API key.
+        if "api_key" not in data:
+            metadata = CursorIntegrationMetadata.parse_obj(self.model.metadata or {})
+            self._update_display_name(metadata, data)
+            self._persist_metadata(metadata, name=resolve_integration_name(metadata))
+            super().update_organization_config({})
+            return
+
         api_key = data.get("api_key")
         if not api_key:
             raise IntegrationConfigurationError("API key is required")
@@ -185,14 +240,21 @@ class CursorAgentIntegration(CodingAgentIntegration):
                 "Unable to validate Cursor API key. Please try again or contact support if the issue persists."
             )
 
-        if metadata.user_email and metadata.api_key_name:
-            integration_name = f"Cursor Cloud Agent - {metadata.user_email}/{metadata.api_key_name}"
-        else:
-            key_hint = api_key[:8] if len(api_key) >= 8 else api_key
-            integration_name = f"Cursor Cloud Agent ({key_hint}...)"
-
-        self._persist_metadata(metadata, name=integration_name)
+        self._update_display_name(metadata, data)
+        self._persist_metadata(metadata, name=resolve_integration_name(metadata))
         super().update_organization_config({})
+
+    def _update_display_name(
+        self, metadata: CursorIntegrationMetadata, data: MutableMapping[str, Any]
+    ) -> None:
+        if "display_name" not in data:
+            return
+        display_name = (data.get("display_name") or "").strip()
+        if len(display_name) > INTEGRATION_NAME_MAX_LENGTH:
+            raise IntegrationConfigurationError(
+                f"Display name must be {INTEGRATION_NAME_MAX_LENGTH} characters or fewer."
+            )
+        metadata.display_name = display_name or None
 
     def get_client(self):
         return CursorAgentClient(

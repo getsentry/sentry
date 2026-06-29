@@ -1,112 +1,25 @@
-from datetime import datetime, timedelta
+from collections.abc import Sequence
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.test import TestCase
 
-from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-from sentry.models.repository import Repository
-from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
-from sentry.seer.autofix.utils import AutofixState, get_seer_seat_based_tier_cache_key
-from sentry.seer.models import SeerApiError, SummarizeIssueResponse, SummarizeIssueScores
-from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
+from sentry.seer.autofix.autofix_agent import Feedback
+from sentry.seer.autofix.constants import AutofixReferrer, SeerAutomationSource
+from sentry.seer.autofix.feedback_queue import QueuedAutofixFeedback
+from sentry.seer.autofix.utils import get_seer_seat_based_tier_cache_key
+from sentry.seer.models import (
+    SummarizeIssueResponse,
+    SummarizeIssueScores,
+)
 from sentry.tasks.seer.autofix import (
-    check_autofix_status,
     configure_seer_for_existing_org,
+    consume_queued_autofix_feedback,
     generate_issue_summary_only,
 )
 from sentry.testutils.cases import TestCase as SentryTestCase
+from sentry.utils import json
 from sentry.utils.cache import cache
-
-
-class TestCheckAutofixStatus(TestCase):
-    @patch("sentry.tasks.seer.autofix.get_autofix_state")
-    @patch("sentry.tasks.seer.autofix.logger.error")
-    def test_check_autofix_status_processing_too_long(
-        self, mock_logger: MagicMock, mock_get_autofix_state: MagicMock
-    ) -> None:
-        # Mock the get_autofix_state function to return a state that's been processing for too long
-        mock_get_autofix_state.return_value = AutofixState(
-            run_id=123,
-            request={
-                "project_id": 456,
-                "organization_id": 789,
-                "issue": {"id": 789, "title": "Test Issue"},
-                "repos": [],
-            },
-            updated_at=datetime.now() - timedelta(minutes=10),  # Naive datetime
-            status=AutofixStatus.PROCESSING,
-        )
-
-        # Call the task
-        check_autofix_status(123, 789)
-
-        # Check that the logger.error was called
-        mock_logger.assert_called_once_with(
-            "Autofix run has been processing for more than 5 minutes", extra={"run_id": 123}
-        )
-
-    @patch("sentry.tasks.seer.autofix.get_autofix_state")
-    @patch("sentry.tasks.seer.autofix.logger.error")
-    def test_check_autofix_status_processing_within_time_limit(
-        self, mock_logger, mock_get_autofix_state
-    ):
-        # Mock the get_autofix_state function to return a state that's still within the time limit
-        mock_get_autofix_state.return_value = AutofixState(
-            run_id=123,
-            request={
-                "project_id": 456,
-                "organization_id": 789,
-                "issue": {"id": 789, "title": "Test Issue"},
-                "repos": [],
-            },
-            updated_at=datetime.now() - timedelta(minutes=3),  # Naive datetime
-            status=AutofixStatus.PROCESSING,
-        )
-
-        # Call the task
-        check_autofix_status(123, 789)
-
-        # Check that the logger.error was not called
-        mock_logger.assert_not_called()
-
-    @patch("sentry.tasks.seer.autofix.get_autofix_state")
-    @patch("sentry.tasks.seer.autofix.logger.error")
-    def test_check_autofix_status_completed(
-        self, mock_logger: MagicMock, mock_get_autofix_state: MagicMock
-    ) -> None:
-        # Mock the get_autofix_state function to return a completed state
-        mock_get_autofix_state.return_value = AutofixState(
-            run_id=123,
-            request={
-                "project_id": 456,
-                "organization_id": 789,
-                "issue": {"id": 789, "title": "Test Issue"},
-                "repos": [],
-            },
-            updated_at=datetime.now() - timedelta(minutes=10),  # Naive datetime
-            status=AutofixStatus.COMPLETED,
-        )
-
-        # Call the task
-        check_autofix_status(123, 789)
-
-        # Check that the logger.error was not called
-        mock_logger.assert_not_called()
-
-    @patch("sentry.tasks.seer.autofix.get_autofix_state")
-    @patch("sentry.tasks.seer.autofix.logger.error")
-    def test_check_autofix_status_no_state(
-        self, mock_logger: MagicMock, mock_get_autofix_state: MagicMock
-    ) -> None:
-        # Mock the get_autofix_state function to return None (no state found)
-        mock_get_autofix_state.return_value = None
-
-        # Call the task
-        check_autofix_status(123, 789)
-
-        # Check that the logger.error was not called
-        mock_logger.assert_not_called()
 
 
 class TestGenerateIssueSummaryOnly(SentryTestCase):
@@ -149,19 +62,13 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
 
 
 class TestConfigureSeerForExistingOrg(SentryTestCase):
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_configures_org_and_project_settings(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
-    ) -> None:
+    def test_configures_org_and_project_settings(self) -> None:
         """Test that org and project settings are configured correctly."""
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
         # Set to non-off value so we can verify it gets changed to medium
         project1.update_option("sentry:autofix_automation_tuning", "low")
         project2.update_option("sentry:autofix_automation_tuning", "high")
-
-        mock_bulk_get.return_value = {}
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
@@ -173,21 +80,17 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         assert project1.get_option("sentry:autofix_automation_tuning") == "medium"
         assert project2.get_option("sentry:seer_scanner_automation") is True
         assert project2.get_option("sentry:autofix_automation_tuning") == "medium"
-
-        mock_bulk_get.assert_called_once()
-        mock_bulk_set.assert_called_once()
+        # Check Seer project preferences (valid stopping point + no org-default handoff means no change)
+        assert project1.get_option("sentry:seer_automation_handoff_point") is None
+        assert project1.get_option("sentry:seer_automation_handoff_target") is None
+        assert project2.get_option("sentry:seer_automation_handoff_point") is None
+        assert project2.get_option("sentry:seer_automation_handoff_target") is None
 
     @pytest.mark.skip("DO NOT override autofix automation tuning off")
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_overrides_autofix_off_to_medium(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
-    ) -> None:
+    def test_overrides_autofix_off_to_medium(self) -> None:
         """Test that projects with autofix set to off are migrated to medium."""
         project = self.create_project(organization=self.organization)
         project.update_option("sentry:autofix_automation_tuning", "off")
-
-        mock_bulk_get.return_value = {}
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
@@ -196,77 +99,18 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         # Scanner should be enabled
         assert project.get_option("sentry:seer_scanner_automation") is True
 
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_new_project_gets_stopping_point_and_no_handoff_from_org_defaults(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
-    ) -> None:
-        """Project with no existing prefs gets stopping point and no handoff (seer coding agent) from org defaults."""
-        project = self.create_project(organization=self.organization)
-
-        mock_bulk_get.return_value = {}
-
-        configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        mock_bulk_set.assert_called_once()
-        prefs = mock_bulk_set.call_args[0][1]
-        prefs_by_project = {p["project_id"]: p for p in prefs}
-        assert prefs_by_project[project.id]["automated_run_stopping_point"] == "code_changes"
-        assert prefs_by_project[project.id]["automation_handoff"] is None
-
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_new_project_gets_stopping_point_and_handoff_from_org_defaults(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
-    ) -> None:
-        """Project with no existing prefs gets stopping point and external agent handoff from org defaults."""
-        project = self.create_project(organization=self.organization)
-        self.organization.update_option(
-            "sentry:seer_default_coding_agent", "cursor_background_agent"
-        )
-        self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
-        self.organization.update_option("sentry:auto_open_prs", True)
-
-        mock_bulk_get.return_value = {}
-
-        configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        mock_bulk_set.assert_called_once()
-        prefs = mock_bulk_set.call_args[0][1]
-        prefs_by_project = {p["project_id"]: p for p in prefs}
-        assert prefs_by_project[project.id]["automation_handoff"] == {
-            "handoff_point": "root_cause",
-            "target": "cursor_background_agent",
-            "integration_id": 42,
-            "auto_create_pr": True,
-        }
-        # auto_open_prs should NOT override stopping point for external agents
-        assert (
-            prefs_by_project[project.id]["automated_run_stopping_point"]
-            == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-        )
-
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_skips_project_with_valid_stopping_point_and_no_default_handoff(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
-    ) -> None:
+    def test_skips_project_with_valid_stopping_point_and_no_default_handoff(self) -> None:
         """Project is skipped when it has a valid stopping point and the org has no default handoff (seer agent)."""
         project = self.create_project(organization=self.organization)
-
-        mock_bulk_get.return_value = {
-            str(project.id): {"automated_run_stopping_point": "open_pr"},
-        }
+        project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        mock_bulk_set.assert_not_called()
+        # Existing stopping point is unchanged and no handoff is written.
+        assert project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        assert project.get_option("sentry:seer_automation_handoff_point") is None
 
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_skips_project_with_valid_stopping_point_and_existing_handoff(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
-    ) -> None:
+    def test_skips_project_with_valid_stopping_point_and_existing_handoff(self) -> None:
         """Project is skipped when it has a valid stopping point and an existing handoff configured."""
         project = self.create_project(organization=self.organization)
         self.organization.update_option(
@@ -274,29 +118,24 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         )
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
 
-        mock_bulk_get.return_value = {
-            str(project.id): {
-                "automated_run_stopping_point": "code_changes",
-                "automation_handoff": {
-                    "handoff_point": "root_cause",
-                    "target": "claude_code_agent",
-                    "integration_id": 99,
-                    "auto_create_pr": False,
-                },
-            },
-        }
+        project.update_option("sentry:seer_automated_run_stopping_point", "code_changes")
+        project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        project.update_option("sentry:seer_automation_handoff_target", "claude_code_agent")
+        project.update_option("sentry:seer_automation_handoff_integration_id", 99)
+        project.update_option("sentry:seer_automation_handoff_auto_create_pr", False)
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        mock_bulk_set.assert_not_called()
+        # Existing stopping point and handoff preserved instead of being backfilled from org defaults.
+        assert project.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
+        assert project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
+        assert project.get_option("sentry:seer_automation_handoff_target") == "claude_code_agent"
+        assert project.get_option("sentry:seer_automation_handoff_integration_id") == 99
+        assert project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_project_with_valid_stopping_point_gets_handoff_from_org_defaults(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
-    ) -> None:
+    def test_project_with_valid_stopping_point_gets_handoff_from_org_defaults(self) -> None:
         """Project with valid stopping point but no handoff gets org default handoff applied.
-        Existing stopping point is preserved."""
+        Existing stopping point is preserved, and auto_open_prs does not override it for external agents."""
         project = self.create_project(organization=self.organization)
         self.organization.update_option(
             "sentry:seer_default_coding_agent", "cursor_background_agent"
@@ -304,28 +143,21 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
         self.organization.update_option("sentry:auto_open_prs", True)
 
-        mock_bulk_get.return_value = {
-            str(project.id): {"automated_run_stopping_point": "open_pr"},
-        }
+        project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        mock_bulk_set.assert_called_once()
-        prefs = mock_bulk_set.call_args[0][1]
-        prefs_by_project = {p["project_id"]: p for p in prefs}
-        assert prefs_by_project[project.id]["automated_run_stopping_point"] == "open_pr"
-        assert prefs_by_project[project.id]["automation_handoff"] == {
-            "handoff_point": "root_cause",
-            "target": "cursor_background_agent",
-            "integration_id": 42,
-            "auto_create_pr": True,
-        }
+        # Stopping point preserved.
+        assert project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        # New handoff from org defaults.
+        assert project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
+        assert (
+            project.get_option("sentry:seer_automation_handoff_target") == "cursor_background_agent"
+        )
+        assert project.get_option("sentry:seer_automation_handoff_integration_id") == 42
+        assert project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
 
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_project_with_invalid_stopping_point_gets_org_default_stopping_point(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
-    ) -> None:
+    def test_project_with_invalid_stopping_point_gets_org_default_stopping_point(self) -> None:
         """Project with unrecognized stopping point gets org default stopping point applied.
         Existing handoff (if any) is preserved."""
         project = self.create_project(organization=self.organization)
@@ -333,93 +165,26 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
             "sentry:seer_default_coding_agent", "cursor_background_agent"
         )
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
 
-        existing_handoff = {
-            "handoff_point": "root_cause",
-            "target": "claude_code_agent",
-            "integration_id": 99,
-            "auto_create_pr": False,
-        }
-        mock_bulk_get.return_value = {
-            str(project.id): {
-                "automated_run_stopping_point": "root_cause",
-                "automation_handoff": existing_handoff,
-            },
-        }
+        # "solution" is not in the valid set for seat-based orgs.
+        project.update_option("sentry:seer_automated_run_stopping_point", "solution")
+        project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        project.update_option("sentry:seer_automation_handoff_target", "claude_code_agent")
+        project.update_option("sentry:seer_automation_handoff_integration_id", 99)
+        project.update_option("sentry:seer_automation_handoff_auto_create_pr", False)
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        mock_bulk_set.assert_called_once()
-        prefs = mock_bulk_set.call_args[0][1]
-        prefs_by_project = {p["project_id"]: p for p in prefs}
-        assert (
-            prefs_by_project[project.id]["automated_run_stopping_point"]
-            == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-        )
-        assert prefs_by_project[project.id]["automation_handoff"] == existing_handoff
+        # Stopping point changed to org default.
+        assert project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        # Existing handoff preserved.
+        assert project.get_option("sentry:seer_automation_handoff_target") == "claude_code_agent"
+        assert project.get_option("sentry:seer_automation_handoff_integration_id") == 99
 
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_root_cause_stopping_point_preserved_when_valid(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
-    ) -> None:
-        """Project with root_cause stopping point is preserved when root-cause-stopping-point flag is enabled."""
-        project = self.create_project(organization=self.organization)
-
-        mock_bulk_get.return_value = {
-            str(project.id): {
-                "automated_run_stopping_point": "root_cause",
-                "automation_handoff": None,
-            },
-        }
-
-        with self.feature("organizations:root-cause-stopping-point"):
-            configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        mock_bulk_set.assert_not_called()
-
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_raises_on_bulk_get_api_failure(self, mock_bulk_get: MagicMock) -> None:
-        """Test that task raises on bulk GET API failure to trigger retry."""
-        project1 = self.create_project(organization=self.organization)
-        project2 = self.create_project(organization=self.organization)
-
-        mock_bulk_get.side_effect = SeerApiError("API error", 500)
-
-        with pytest.raises(SeerApiError):
-            configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        # Sentry DB options should still be set before the API call
-        assert project1.get_option("sentry:seer_scanner_automation") is True
-        assert project2.get_option("sentry:seer_scanner_automation") is True
-
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_raises_on_bulk_set_api_failure(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
-    ) -> None:
-        """Test that task raises on bulk SET API failure to trigger retry."""
-        project1 = self.create_project(organization=self.organization)
-        project2 = self.create_project(organization=self.organization)
-
-        mock_bulk_get.return_value = {}
-        mock_bulk_set.side_effect = SeerApiError("API error", 500)
-
-        with pytest.raises(SeerApiError):
-            configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        # Sentry DB options should still be set before the API call
-        assert project1.get_option("sentry:seer_scanner_automation") is True
-        assert project2.get_option("sentry:seer_scanner_automation") is True
-
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_sets_seat_based_tier_cache_to_true(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
-    ) -> None:
+    def test_sets_seat_based_tier_cache_to_true(self) -> None:
         """Test that the seat-based tier cache is set to True after configuring org."""
         self.create_project(organization=self.organization)
-        mock_bulk_get.return_value = {}
 
         # Set a cached value before running the task
         cache_key = get_seer_seat_based_tier_cache_key(self.organization.id)
@@ -431,71 +196,102 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         # Cache should be set to True to prevent race conditions
         assert cache.get(cache_key) is True
 
-    @patch("sentry.tasks.seer.autofix.get_autofix_repos_from_project_code_mappings")
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_uses_code_mappings_when_no_existing_preferences(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock, mock_get_code_mappings: MagicMock
-    ) -> None:
-        """Test that code mappings are used as fallback when no preferences exist."""
-        project = self.create_project(organization=self.organization)
-        mock_bulk_get.return_value = {}
-        mock_repos = [{"provider": "github", "owner": "test-org", "name": "test-repo"}]
-        mock_get_code_mappings.return_value = mock_repos
 
-        configure_seer_for_existing_org(organization_id=self.organization.id)
+@patch("sentry.tasks.seer.autofix.trigger_autofix_agent")
+@patch("sentry.tasks.seer.autofix.pop_queued_autofix_feedback")
+@patch("sentry.tasks.seer.autofix.get_autofix_run_state")
+class TestConsumeQueuedAutofixFeedbackDedup(SentryTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+        self.run_id = 123
 
-        mock_get_code_mappings.assert_called_once_with(project)
-        preferences = mock_bulk_set.call_args[0][1]
-        assert preferences[0]["repositories"] == mock_repos
-
-    @patch("sentry.tasks.seer.autofix.get_autofix_repos_from_project_code_mappings")
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_preserves_existing_repositories_when_preferences_exist(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock, mock_get_code_mappings: MagicMock
-    ) -> None:
-        """Test that existing repositories are preserved when preferences exist."""
-        project = self.create_project(organization=self.organization)
-        existing_repos = [{"provider": "github", "owner": "existing-org", "name": "existing-repo"}]
-        mock_bulk_get.return_value = {str(project.id): {"repositories": existing_repos}}
-
-        configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        mock_get_code_mappings.assert_not_called()
-        preferences = mock_bulk_set.call_args[0][1]
-        assert preferences[0]["repositories"] == existing_repos
-
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_creates_seer_project_repository(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
-    ) -> None:
-        """Test that SeerProjectRepository is created when feature flag is enabled."""
-        project = self.create_project(organization=self.organization)
-        repo = Repository.objects.create(
+    def _gh_item(self, comment_id: int, message: str = "fix it") -> QueuedAutofixFeedback:
+        return QueuedAutofixFeedback(
             organization_id=self.organization.id,
-            name="test-org/test-repo",
-            provider="github",
-            external_id="ext123",
+            group_id=self.group.id,
+            feedback=Feedback(
+                text=message,
+                source={"type": "github-pr-comment", "comment": {"id": comment_id}},
+            ),
+            referrer=AutofixReferrer.GITHUB_PR_COMMENT,
         )
 
-        mock_bulk_get.return_value = {
-            str(project.id): {
-                "repositories": [
-                    {
-                        "provider": "github",
-                        "owner": "test-org",
-                        "name": "test-repo",
-                        "external_id": "ext123",
-                    }
-                ],
-                "automated_run_stopping_point": None,
-            }
-        }
+    def _ui_item(self, message: str = "ui feedback") -> QueuedAutofixFeedback:
+        return QueuedAutofixFeedback(
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+            feedback=Feedback(text=message, source={"type": "user-ui", "user_id": 1, "user": None}),
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+        )
 
-        with self.feature("organizations:seer-project-settings-dual-write"):
-            configure_seer_for_existing_org(organization_id=self.organization.id)
+    def _state(self, processed_feedback: Sequence[Feedback] = ()) -> SeerRunState:
+        blocks = []
+        if processed_feedback:
+            blocks = [
+                MemoryBlock(
+                    id="b1",
+                    timestamp="2024-01-01T00:00:00Z",
+                    message=Message(
+                        role="user",
+                        metadata={
+                            "feedback": json.dumps(
+                                [
+                                    {
+                                        "text": f.text,
+                                        "source": f.source,
+                                        "timestamp": "2024-01-01T00:00:00Z",
+                                    }
+                                    for f in processed_feedback
+                                ]
+                            )
+                        },
+                    ),
+                )
+            ]
+        return SeerRunState(
+            run_id=self.run_id,
+            blocks=blocks,
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            metadata={"group_id": self.group.id},
+        )
 
-        seer_repo = SeerProjectRepository.objects.get(project=project)
-        assert seer_repo.repository_id == repo.id
+    def _consume(self):
+        consume_queued_autofix_feedback(
+            run_id=self.run_id,
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+    def test_skips_comment_already_processed(self, mock_state, mock_pop, mock_trigger) -> None:
+        mock_state.return_value = self._state([self._gh_item(111).feedback])
+        mock_pop.return_value = [self._gh_item(111)]
+
+        self._consume()
+
+        mock_trigger.assert_not_called()
+
+    def test_collapses_duplicate_comment_ids_in_batch(
+        self, mock_state, mock_pop, mock_trigger
+    ) -> None:
+        mock_state.return_value = self._state()
+        mock_pop.return_value = [self._gh_item(222), self._gh_item(222)]
+
+        self._consume()
+
+        mock_trigger.assert_called_once()
+        assert len(mock_trigger.call_args.kwargs["feedback"]) == 1
+
+    def test_keeps_distinct_and_ui_feedback(self, mock_state, mock_pop, mock_trigger) -> None:
+        mock_state.return_value = self._state([self._gh_item(333).feedback])
+        mock_pop.return_value = [
+            self._gh_item(333),
+            self._gh_item(444),
+            self._ui_item(),
+        ]
+
+        self._consume()
+
+        mock_trigger.assert_called_once()
+        assert len(mock_trigger.call_args.kwargs["feedback"]) == 2

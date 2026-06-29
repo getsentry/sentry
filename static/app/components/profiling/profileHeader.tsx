@@ -1,19 +1,19 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProfiles} from 'sentry/views/profiling/profilesProvider';
+import {useProfiles} from 'sentry/views/explore/profiling/profilesProvider';
+import type {SpanResponse} from 'sentry/views/insights/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 function getTransactionName(input: Profiling.ProfileInput): string {
   if (isSchema(input)) {
@@ -29,10 +29,12 @@ function getTransactionName(input: Profiling.ProfileInput): string {
 interface ProfileHeaderProps {
   eventId: string;
   projectId: string;
-  transaction: Event | null;
+  transactionSpan:
+    | Pick<SpanResponse, 'trace' | 'span_id' | 'precise.finish_ts'>
+    | undefined;
 }
 
-function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
+function ProfileHeader({transactionSpan, projectId, eventId}: ProfileHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
   const profiles = useProfiles();
@@ -42,21 +44,21 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
   const profileId = eventId ?? '';
   const projectSlug = projectId ?? '';
 
-  const transactionTarget = transaction?.id
+  const transactionTarget = transactionSpan?.span_id
     ? generateLinkToEventInTraceView({
-        timestamp: transaction.endTimestamp ?? '',
-        eventId: transaction.id,
-        traceSlug: transaction.contexts?.trace?.trace_id ?? '',
+        timestamp: transactionSpan['precise.finish_ts'],
+        targetId: transactionSpan.span_id,
+        traceSlug: transactionSpan.trace,
         location,
         organization,
       })
     : null;
 
-  const handleGoToTransaction = useCallback(() => {
+  const handleGoToTransaction = () => {
     trackAnalytics('profiling_views.go_to_transaction', {
       organization,
     });
-  }, [organization]);
+  };
 
   const breadcrumbTrails = useMemo(() => {
     return [
@@ -81,43 +83,38 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
     ] as const;
   }, [location, projectSlug, transactionName, profileId]);
 
+  const breadcrumbs = (
+    <SmallerProfilingBreadcrumbsWrapper>
+      <ProfilingBreadcrumbs organization={organization} trails={breadcrumbTrails} />
+    </SmallerProfilingBreadcrumbsWrapper>
+  );
+
   return (
-    <SmallerLayoutHeader>
-      <SmallerHeaderContent>
-        <SmallerProfilingBreadcrumbsWrapper>
-          <ProfilingBreadcrumbs organization={organization} trails={breadcrumbTrails} />
-        </SmallerProfilingBreadcrumbsWrapper>
-      </SmallerHeaderContent>
-      <StyledHeaderActions>
-        <FeedbackButton />
-        {transactionTarget && (
-          <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
+    <Fragment>
+      <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
+      {transactionTarget && (
+        <TopBar.Slot name="actions">
+          <LinkButton onClick={handleGoToTransaction} to={transactionTarget}>
             {t('Go to Trace')}
           </LinkButton>
-        )}
-      </StyledHeaderActions>
-    </SmallerLayoutHeader>
+        </TopBar.Slot>
+      )}
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
+    </Fragment>
   );
 }
-
-const StyledHeaderActions = styled(Layout.HeaderActions)`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.md};
-`;
-
-const SmallerHeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: ${p => p.theme.space.lg};
-`;
 
 const SmallerProfilingBreadcrumbsWrapper = styled('div')`
   nav {
     padding-bottom: ${p => p.theme.space.md};
   }
-`;
-
-const SmallerLayoutHeader = styled(Layout.Header)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl} !important;
 `;
 
 export {ProfileHeader};

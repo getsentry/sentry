@@ -10,11 +10,11 @@ import {
   IssueCategory,
   PriorityLevel,
   VALID_ISSUE_CATEGORIES,
+  AI_DETECTED_ISSUE_TYPES,
   VISIBLE_ISSUE_TYPES,
   type TagCollection,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {escapeIssueTagKey} from 'sentry/utils';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {
   FieldKey,
@@ -27,6 +27,7 @@ import {
 } from 'sentry/utils/fields';
 import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import {useMemberUsernames} from 'sentry/utils/membersAndTeams/useMemberUsernames';
+import {escapeIssueTagKey} from 'sentry/utils/queryString';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
@@ -204,6 +205,7 @@ export const useFetchIssueTags = ({
       currentTags: renamedTags,
       assigneeFieldValues: assignedValues,
       bookmarksValues: usernames,
+      organization: org,
     });
 
     return {
@@ -216,6 +218,7 @@ export const useFetchIssueTags = ({
     featureFlagTagsQuery.data,
     usernames,
     assignedValues,
+    org,
   ]);
 
   return {
@@ -233,12 +236,14 @@ export const useFetchIssueTags = ({
 
 function builtInIssuesFields({
   currentTags,
-  assigneeFieldValues = [],
-  bookmarksValues = [],
+  assigneeFieldValues,
+  bookmarksValues,
+  organization,
 }: {
   assigneeFieldValues: SearchGroup[] | string[];
   bookmarksValues: string[];
   currentTags: TagCollection;
+  organization: Organization;
 }): TagCollection {
   const semverFields: TagCollection = Object.values(SEMVER_TAGS).reduce<TagCollection>(
     (acc, tag) => {
@@ -253,10 +258,13 @@ function builtInIssuesFields({
     },
     {}
   );
-  const hasFieldValues = [
-    ...Object.values(currentTags).map(tag => tag.key),
-    ...Object.values(SEMVER_TAGS).map(tag => tag.key),
-  ].sort();
+  const hasFieldValues = Array.from(
+    new Set([
+      ...Object.values(currentTags).map(tag => tag.key),
+      ...Object.values(SEMVER_TAGS).map(tag => tag.key),
+      ...ISSUE_EVENT_PROPERTY_FIELDS,
+    ])
+  ).sort();
 
   const tagCollection: TagCollection = {
     [FieldKey.IS]: {
@@ -319,7 +327,13 @@ function builtInIssuesFields({
     [FieldKey.ISSUE_TYPE]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_TYPE]!,
       name: 'Issue Type',
-      values: VISIBLE_ISSUE_TYPES.map(value => ({
+      values: [
+        ...VISIBLE_ISSUE_TYPES,
+        ...(organization.features.includes('ai-issue-detection') &&
+        !organization.hideAiFeatures
+          ? [...AI_DETECTED_ISSUE_TYPES]
+          : []),
+      ].map(value => ({
         icon: null,
         title: value,
         name: value,
@@ -363,10 +377,23 @@ function builtInIssuesFields({
       values: [],
       predefined: true,
     },
+    [FieldKey.USER_COUNT]: {
+      ...PREDEFINED_FIELDS[FieldKey.USER_COUNT]!,
+      name: 'User Count',
+      isInput: true,
+      values: [],
+      predefined: true,
+    },
     [FieldKey.ISSUE_PRIORITY]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_PRIORITY]!,
       name: 'Issue Priority',
       values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
+      predefined: true,
+    },
+    [FieldKey.ISSUE_PROGRESS]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_PROGRESS]!,
+      name: 'Issue Progress',
+      values: ['identified', 'assigned', 'diagnosed', 'fix_proposed', 'fix_applied'],
       predefined: true,
     },
     [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
@@ -396,9 +423,15 @@ function builtInIssuesFields({
     ISSUE_FIELDS.includes(key as FieldKey)
   );
 
-  return {
+  const allFields: TagCollection = {
     ...PREDEFINED_FIELDS,
     ...Object.fromEntries(filteredCollection),
     ...semverFields,
   };
+
+  if (!organization.features.includes('issue-stream-progress-ui')) {
+    delete allFields[FieldKey.ISSUE_PROGRESS];
+  }
+
+  return allFields;
 }

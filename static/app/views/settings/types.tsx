@@ -43,6 +43,10 @@ export type NavigationItem = {
    */
   index?: boolean;
   /**
+   * Additional search keywords for this item (e.g. aliases or common abbreviations).
+   */
+  keywords?: string[];
+  /**
    * Should clicking on the sidebar generate an analytics event
    */
   recordAnalytics?: boolean;

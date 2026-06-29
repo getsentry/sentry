@@ -7,11 +7,13 @@ from sentry.constants import ObjectStatus
 from sentry.db.pending_deletion import build_pending_deletion_key
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.exceptions import PluginError
+from sentry.integrations.example import ExampleRepositoryProvider
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -20,6 +22,31 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
+    def setUp(self) -> None:
+        super().setUp()
+        patcher = patch("sentry.deletions.defaults.repository.notify_seer_repository_deleted")
+        self.mock_notify_seer_repository_deleted = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_schedules_seer_notification_when_repository_deleted(self) -> None:
+        org = self.create_organization()
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            provider="dummy",
+            name="example/example",
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        self.ScheduledDeletion.schedule(instance=repo, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        self.mock_notify_seer_repository_deleted.delay.assert_called_once_with(
+            org.id, repo.id, repo.provider, repo.name
+        )
+        assert not Repository.objects.filter(id=repo.id).exists()
+
     def test_simple(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -65,7 +92,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
             created_at=timezone.now(),
             updated_at=timezone.now(),
         )
-        seer_project_repo = SeerProjectRepository.objects.create(
+        seer_project_repo = self.create_seer_project_repository(
             project=project,
             repository=repo,
         )
@@ -94,15 +121,19 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
             name="example/example",
             status=ObjectStatus.PENDING_DELETION,
         )
-        path_config = RepositoryProjectPathConfig.objects.create(
+        project_repo, _ = ProjectRepository.objects.get_or_create(
             project=project,
             repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+        path_config = RepositoryProjectPathConfig.objects.create(
             stack_root="",
             source_root="src/packages/store",
             default_branch="main",
             organization_integration_id=org_integration.id,
             integration_id=org_integration.integration_id,
             organization_id=org_integration.organization_id,
+            project_repository=project_repo,
         )
         code_owner = ProjectCodeOwners.objects.create(
             project=project,
@@ -129,14 +160,18 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
             run_scheduled_deletions()
         assert Repository.objects.filter(id=repo.id).exists()
 
-    @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository")
+    @patch.object(ExampleRepositoryProvider, "on_delete_repository")
     def test_delete_fail_email(self, mock_delete_repo: MagicMock) -> None:
         mock_delete_repo.side_effect = PluginError("foo")
 
         org = self.create_organization()
+        integration = self.create_integration(
+            organization=org, provider="example", external_id="example:1"
+        )
         repo = Repository.objects.create(
             organization_id=org.id,
-            provider="dummy",
+            provider="integrations:example",
+            integration_id=integration.id,
             name="example/example",
             status=ObjectStatus.PENDING_DELETION,
         )
@@ -152,14 +187,18 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         assert "foo" in msg.body
         assert not Repository.objects.filter(id=repo.id).exists()
 
-    @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository")
+    @patch.object(ExampleRepositoryProvider, "on_delete_repository")
     def test_delete_fail_email_random(self, mock_delete_repo: MagicMock) -> None:
         mock_delete_repo.side_effect = Exception("secrets")
 
         org = self.create_organization()
+        integration = self.create_integration(
+            organization=org, provider="example", external_id="example:1"
+        )
         repo = Repository.objects.create(
             organization_id=org.id,
-            provider="dummy",
+            provider="integrations:example",
+            integration_id=integration.id,
             name="example/example",
             status=ObjectStatus.PENDING_DELETION,
         )

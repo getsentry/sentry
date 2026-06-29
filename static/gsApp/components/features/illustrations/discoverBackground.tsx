@@ -62,7 +62,7 @@ const guy2Animation = {
 };
 
 const shake = keyframes`
-${new Array(50)
+${Array.from({length: 50})
   .fill(0)
   .map(
     (_, i) => `${i * 2}% {
@@ -112,13 +112,15 @@ const Smoke = styled('g')`
     animation: ${ploom} 3s infinite;
   }
 
-  ${new Array(3).fill(0).map(
-    (_, i) => css`
-      > :nth-child(${i + 1}) {
-        animation-delay: ${i * 0.8}s;
-      }
-    `
-  )}
+  ${Array.from({length: 3})
+    .fill(0)
+    .map(
+      (_, i) => css`
+        > :nth-child(${i + 1}) {
+          animation-delay: ${i * 0.8}s;
+        }
+      `
+    )}
 `;
 
 const LandBeforeTime = styled(motion.g)``;

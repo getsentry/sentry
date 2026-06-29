@@ -1,7 +1,7 @@
 import type * as Sentry from '@sentry/react';
 
 import type {ConfigStore} from 'sentry/stores/configStore';
-import type {Region} from 'sentry/types/system';
+import type {Locality} from 'sentry/types/system';
 
 declare global {
   interface Window {
@@ -70,7 +70,7 @@ export type Relocation = {
   latestUnclaimedEmailsSentAt: string | null;
   owner: RelocationAssociatedUser | null;
   provenance: RelocationProvenance;
-  region: Region;
+  region: Locality;
   scheduledCancelAtStep: RelocationStep | null;
   scheduledPauseAtStep: RelocationStep | null;
   status: RelocationStatus;
@@ -92,7 +92,7 @@ type ContractPricingTier = {
   start?: string;
 };
 
-export type ContractTieredPricingRate = {
+type ContractTieredPricingRate = {
   tiers?: ContractPricingTier[];
 };
 
@@ -111,7 +111,7 @@ export type ContractSharedSKUBudget = {
   skus?: string[];
 };
 
-export type ContractMetadata = {
+type ContractMetadata = {
   id?: string;
   organizationId?: string;
 };
@@ -120,7 +120,7 @@ type ContractAddress = {
   countryCode?: string;
 };
 
-export type ContractBillingConfig = {
+type ContractBillingConfig = {
   address?: ContractAddress;
   billingType?: string;
   channel?: string;
@@ -128,7 +128,7 @@ export type ContractBillingConfig = {
   contractStartDate?: ContractDate;
 };
 
-export type ContractPricingConfig = {
+type ContractPricingConfig = {
   basePriceCents?: string;
   billingPeriodEndDate?: ContractDate;
   billingPeriodStartDate?: ContractDate;

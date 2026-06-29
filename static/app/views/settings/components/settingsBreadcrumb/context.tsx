@@ -1,11 +1,17 @@
-import {createContext, useCallback, useContext, useEffect, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from 'react';
+import {useMatches, type UIMatch} from 'react-router-dom';
 
-import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 type ExplicitTitleProps = {
-  routes: PlainRoute[];
+  matches: UIMatch[];
   title: string;
 };
 
@@ -32,7 +38,7 @@ type ProviderProps = {
 };
 
 function BreadcrumbProvider({children}: ProviderProps) {
-  const routes = useRoutes();
+  const matches = useMatches();
 
   // Maps path strings to breadcrumb names
   const [pathMap, setPathMap] = useState<PathMap>({});
@@ -46,7 +52,7 @@ function BreadcrumbProvider({children}: ProviderProps) {
   useEffect(
     () =>
       setPathMap(oldPathMap => {
-        const routePath = getRouteStringFromRoutes(routes);
+        const routePath = getRouteStringFromRoutes({matches});
         const newPathMap = {...oldPathMap};
 
         for (const fullPath in newPathMap) {
@@ -57,12 +63,12 @@ function BreadcrumbProvider({children}: ProviderProps) {
 
         return newPathMap;
       }),
-    [routes, setPathMap]
+    [matches, setPathMap]
   );
 
   const setExplicitTitle = useCallback(
-    ({routes: updateRoutes, title}: ExplicitTitleProps) => {
-      const key = getRouteStringFromRoutes(updateRoutes);
+    ({matches: updateRoutes, title}: ExplicitTitleProps) => {
+      const key = getRouteStringFromRoutes({matches: updateRoutes});
 
       setExplicitPathMap(lastState => ({...lastState, [key]: title}));
 
@@ -102,7 +108,7 @@ function useBreadcrumbTitleEffect(props: ExplicitTitleProps) {
   const context = useContext(BreadcrumbContext);
   const setExplicitTitle = context?.setExplicitTitle;
 
-  useEffect(() => setExplicitTitle?.(props), [setExplicitTitle, props]);
+  useLayoutEffect(() => setExplicitTitle?.(props), [setExplicitTitle, props]);
 }
 
 export {BreadcrumbProvider, useBreadcrumbsPathmap, useBreadcrumbTitleEffect};

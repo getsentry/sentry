@@ -2,13 +2,16 @@ from collections.abc import Callable
 from typing import Any
 from unittest.mock import Mock, patch
 
+import pytest
 from rediscluster.exceptions import RedisClusterException  # type: ignore[attr-defined]
+from taskbroker_client.retry import RetryTaskError
 from taskbroker_client.state import CurrentTaskState
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.utils.exceptions import (
     exception_grouping_context,
     quiet_redis_noise,
+    quiet_retriable_timeouts,
     set_sentry_exception_levels,
     timeout_grouping_context,
 )
@@ -472,3 +475,44 @@ class TestQuietRedisNoise:
                 mock_capture.assert_not_called()
             else:
                 assert False, "ValueError was not re-raised"
+
+
+@patch(
+    "sentry.utils.exceptions.current_task",
+    return_value=CurrentTaskState(
+        id="test_id",
+        namespace="test_namespace",
+        taskname="test_task",
+        attempt=1,
+        processing_deadline_duration=30,
+        retries_remaining=True,
+    ),
+)
+class TestQuietRetriableTimeouts:
+    def test_retries_remaining_raises_retry_silently(self, mock_current_task: Mock) -> None:
+        with pytest.raises(RetryTaskError):
+            with quiet_retriable_timeouts():
+                raise ProcessingDeadlineExceeded("timed out")
+
+    def test_no_retries_remaining_propagates_pde(self, mock_current_task: Mock) -> None:
+        mock_current_task.return_value.retries_remaining = False
+
+        with pytest.raises(ProcessingDeadlineExceeded):
+            with quiet_retriable_timeouts():
+                raise ProcessingDeadlineExceeded("timed out")
+
+    def test_no_task_state_propagates_pde(self, mock_current_task: Mock) -> None:
+        mock_current_task.return_value = None
+
+        with pytest.raises(ProcessingDeadlineExceeded):
+            with quiet_retriable_timeouts():
+                raise ProcessingDeadlineExceeded("timed out")
+
+    def test_non_pde_exceptions_propagate_unchanged(self, mock_current_task: Mock) -> None:
+        with pytest.raises(ValueError, match="other error"):
+            with quiet_retriable_timeouts():
+                raise ValueError("other error")
+
+    def test_no_exception_passes_through(self, mock_current_task: Mock) -> None:
+        with quiet_retriable_timeouts():
+            pass

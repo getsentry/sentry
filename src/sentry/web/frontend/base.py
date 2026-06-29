@@ -5,7 +5,7 @@ import hashlib
 import inspect
 import logging
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -52,6 +52,9 @@ from sentry.utils.http import absolute_uri, is_using_customer_domain, origin_fro
 from sentry.web.constants import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
 from sudo.views import redirect_to_sudo
+
+if TYPE_CHECKING:
+    from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.ui")
@@ -125,6 +128,14 @@ class ViewSiloLimit(SiloLimit):
         raise TypeError("`@ViewSiloLimit` must decorate a class or method")
 
 
+class CellSiloView(ViewSiloLimit):
+    def __init__(
+        self, cell_resolver: CellRequestResolver | None = None, *args, **kwargs: Any
+    ) -> None:
+        super().__init__([SiloMode.CELL], *args, **kwargs)
+        self.cell_resolver = cell_resolver
+
+
 control_silo_view = ViewSiloLimit([SiloMode.CONTROL])
 """
 Apply to frontend views that exist in CONTROL Silo
@@ -132,24 +143,48 @@ If a request is received and the application is not in CONTROL/MONOLITH
 mode a 404 will be returned.
 """
 
-cell_silo_view = ViewSiloLimit([SiloMode.CELL])
-"""
-Apply to frontend views that exist in CELL Silo
-If a request is received and the application is not in CELL/MONOLITH
-mode a 404 will be returned.
-"""
+
+def cell_silo_view(
+    decorated_obj: Any = None,
+    *,
+    cell_resolver: CellRequestResolver | None = None,
+) -> Any:
+    """
+    Apply to frontend views that exist in Cell silo that are publicly accesible.
+
+    By default, if a request is received and the application is not in CELL
+    mode 404s will be returned.
+
+    Optionally, a resolver class can be specified to allow Control Silo to
+    dispatch a request to the correct cell, if possible.
+    """
+    limiter = CellSiloView(internal=False, cell_resolver=cell_resolver)
+    if decorated_obj is not None:
+        return limiter(decorated_obj)
+    return limiter
+
 
 all_silo_view = ViewSiloLimit([SiloMode.CELL, SiloMode.CONTROL, SiloMode.MONOLITH])
 """
 Apply to frontend views that respond in both CONTROL and CELL mode.
 """
 
-internal_cell_silo_view = ViewSiloLimit([SiloMode.CELL], internal=True)
-"""
-Apply to frontend views that exist in CELL Silo
-and are not accessible via cell routing.
-This is generally for debug/development views.
-"""
+
+def internal_cell_silo_view(
+    decorated_obj: Any = None, *, cell_resolver: CellRequestResolver | None = None
+) -> Any:
+    """
+    Apply to frontend views that exist in CELL Silo
+    and are not accessible via cell routing.
+    This is generally for debug/development views.
+
+    Optionally, a resolver class can be specified to allow Control Silo to
+    dispatch a request to the correct cell, if possible.
+    """
+    limiter = CellSiloView(internal=True, cell_resolver=cell_resolver)
+    if decorated_obj is not None:
+        return limiter(decorated_obj)
+    return limiter
 
 
 class _HasRespond(Protocol):
@@ -316,6 +351,18 @@ class OrganizationMixin:
                 url_prefix = generate_organization_url(request.subdomain)
                 url = absolute_uri(url, url_prefix=url_prefix)
         elif not features.has("organizations:create"):
+            session = getattr(request, "session", None)
+            if session and (org_slug := session.get("activeorg")):
+                active_organization = determine_active_organization(request, org_slug)
+                if active_organization and active_organization.member:
+                    url = reverse(
+                        "sentry-organization-issue-list",
+                        args=[active_organization.organization.slug],
+                    )
+                    if is_using_customer_domain(request):
+                        url = absolute_uri(url, url_prefix=options.get("system.url-prefix"))
+                    return HttpResponseRedirect(url)
+                session.pop("activeorg", None)
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
             url = reverse("sentry-organization-create")
@@ -393,7 +440,12 @@ class BaseView(View, OrganizationMixin):
 
         """
         organization_slug = kwargs.get("organization_slug", None)
-        if request and is_using_customer_domain(request) and not subdomain_is_locality(request):
+        if (
+            request
+            and is_using_customer_domain(request)
+            and not subdomain_is_locality(request)
+            and organization_slug is None
+        ):
             organization_slug = request.subdomain
         self.active_organization = determine_active_organization(request, organization_slug)
 
@@ -840,14 +892,14 @@ class AvatarPhotoView(View):
             return HttpResponseNotFound()
 
         size_s = request.GET.get("s")
-        photo_file = photo.getfile()
         if size_s:
             try:
                 size = int(size_s)
+                photo_file = avatar.get_cached_photo(size)
             except ValueError:
                 return HttpResponseBadRequest()
-            else:
-                photo_file = avatar.get_cached_photo(size)
+        else:
+            photo_file = photo.getfile()
 
         res = HttpResponse(photo_file, content_type="image/png")
         res["Cache-Control"] = FOREVER_CACHE

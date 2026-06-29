@@ -1,0 +1,6 @@
+We couldn't build your snapshot images.
+---------------------------------------
+
+Something went wrong while building your snapshot image archive. Please try again, and reach out if it keeps failing.
+
+{{ url|safe }}

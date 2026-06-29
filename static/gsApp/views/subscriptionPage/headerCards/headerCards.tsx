@@ -5,12 +5,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import type {Subscription} from 'getsentry/types';
-import {
-  hasBillingAccess,
-  isDeveloperPlan,
-  isTrialPlan,
-  supportsPayg,
-} from 'getsentry/utils/billing';
+import {hasBillingAccess, isDeveloperPlan, supportsPayg} from 'getsentry/utils/billing';
 import {BillingInfoCard} from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
 import {LinksCard} from 'getsentry/views/subscriptionPage/headerCards/linksCard';
 import {NextBillCard} from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
@@ -26,7 +21,7 @@ function getCards(organization: Organization, subscription: Subscription) {
   const hasBillingPerms = hasBillingAccess(organization);
   const cards: React.ReactNode[] = [];
   const isTrialOrFreePlan =
-    isTrialPlan(subscription.plan) || isDeveloperPlan(subscription.planDetails);
+    subscription.onTrialPlan || isDeveloperPlan(subscription.planDetails);
 
   // the organization can use PAYG
   const canUsePayg = supportsPayg(subscription);

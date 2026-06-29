@@ -2,8 +2,11 @@ import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
 import {BASE_FILTER_STRING} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
 import {
@@ -51,11 +54,11 @@ export const BACKEND_OVERVIEW_FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: 'Requests',
           fields: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
           fieldAliases: [],
@@ -127,11 +130,11 @@ export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: '',
           fields: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
           fieldAliases: [],
@@ -215,7 +218,7 @@ const TABLE_FIELDS = [
   `sum(${SpanFields.SPAN_DURATION})`,
 ];
 
-const TRANSACTIONS_TABLE: Widget = {
+const TRANSACTIONS_TABLE: PrebuiltWidget = {
   id: 'backend-overview-transactions-table',
   title: t('Transactions'),
   description: '',

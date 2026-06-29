@@ -29,7 +29,7 @@ function MissingDsymModal({binaries, closeModal}: MissingDsymModalProps) {
         >
           <Button
             onClick={closeModal}
-            priority="transparent"
+            variant="transparent"
             icon={<IconClose />}
             size="sm"
             aria-label={t('Close')}

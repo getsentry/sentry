@@ -1,36 +1,44 @@
 import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
-import {Footer} from 'sentry/components/footer';
-import {GlobalDrawer} from 'sentry/components/globalDrawer';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {Override} from 'sentry/components/override';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {getOverride} from 'sentry/overrideRegistry';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import {useInitSentryToolbar} from 'sentry/utils/useInitSentryToolbar';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AppBodyContent} from 'sentry/views/app/appBodyContent';
+import {SystemAlerts} from 'sentry/views/app/systemAlerts';
+import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
-import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
+import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
+import {useSeerExplorerDocumentTitle} from 'sentry/views/seerExplorer/components/useSeerExplorerDocumentTitle';
+import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {OrganizationDetailsBody} from './body';
 
-const OrganizationHeader = HookOrDefault({
-  hookName: 'component:organization-header',
+const OrganizationHeader = OverrideOrDefault({
+  overrideName: 'component:organization-header',
 });
 
 export function OrganizationLayout() {
@@ -45,9 +53,17 @@ export function OrganizationLayout() {
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <GlobalAnalytics />
       <OrganizationContainer>
-        <GlobalDrawer>
-          <AppLayout organization={organization} />
-        </GlobalDrawer>
+        <SeerExplorerSessionsProvider>
+          <SeerExplorerChatStateProvider>
+            <PictureInPictureProvider>
+              <GlobalDrawer>
+                <SeerExplorerContextProvider>
+                  <AppLayout organization={organization} />
+                </SeerExplorerContextProvider>
+              </GlobalDrawer>
+            </PictureInPictureProvider>
+          </SeerExplorerChatStateProvider>
+        </SeerExplorerSessionsProvider>
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />
     </SentryDocumentTitle>
@@ -70,40 +86,50 @@ function AppDrawers() {
 }
 
 function AppLayout({organization}: LayoutProps) {
-  const hasPageFrame = useHasPageFrameFeature();
+  useSeerExplorerDocumentTitle();
+  const showSuperuserWarning =
+    isActiveSuperuser() &&
+    !ConfigStore.get('isSelfHosted') &&
+    !getOverride('component:superuser-warning-excluded')?.(organization);
 
   return (
     <PrimaryNavigationContextProvider>
-      <Flex
-        flex="1"
-        minWidth="0"
-        direction={{sm: 'column', md: 'row'}}
-        position="relative"
-      >
-        <Navigation />
-        {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
-        <ContentStack
-          id="main"
-          tabIndex={-1}
+      <Stack flex="1" minWidth="0" minHeight="100dvh">
+        {showSuperuserWarning && (
+          <Override name="component:superuser-warning" organization={organization} />
+        )}
+        <SystemAlerts className="messages-container" />
+        <Flex
           flex="1"
           minWidth="0"
-          background={hasPageFrame ? 'secondary' : undefined}
+          minHeight="0"
+          direction={{sm: 'column', md: 'row'}}
+          position="relative"
         >
-          <DemoHeader />
-          <AppBodyContent>
-            {organization && <OrganizationHeader organization={organization} />}
-            <OrganizationDetailsBody>
-              <TopBar.Slot.Provider>
-                <TopBar />
-                <Layout.Page>
-                  <Outlet />
-                  <Footer />
-                </Layout.Page>
-              </TopBar.Slot.Provider>
-            </OrganizationDetailsBody>
-          </AppBodyContent>
-        </ContentStack>
-      </Flex>
+          <Navigation />
+          <SeerExplorerSidebarLayout>
+            {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
+            <ContentStack
+              id="main"
+              tabIndex={-1}
+              flex="1"
+              minWidth="0"
+              background="secondary"
+            >
+              <DemoHeader />
+              {organization && <OrganizationHeader organization={organization} />}
+              <OrganizationDetailsBody>
+                <TopBar.Slot.Provider>
+                  <TopBar />
+                  <Layout.Page>
+                    <Outlet />
+                  </Layout.Page>
+                </TopBar.Slot.Provider>
+              </OrganizationDetailsBody>
+            </ContentStack>
+          </SeerExplorerSidebarLayout>
+        </Flex>
+      </Stack>
       {organization ? <AppDrawers /> : null}
     </PrimaryNavigationContextProvider>
   );

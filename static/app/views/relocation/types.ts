@@ -1,13 +1,13 @@
-export type RelocationState = {
+type RelocationState = {
+  localityName: string;
   orgSlugs: string;
   promoCode: string;
-  regionUrl: string;
 };
 
 export type MaybeUpdateRelocationState = {
+  localityName?: string;
   orgSlugs?: string;
   promoCode?: string;
-  regionUrl?: string;
 };
 
 export type StepProps = {

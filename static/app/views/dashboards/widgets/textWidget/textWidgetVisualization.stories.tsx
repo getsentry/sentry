@@ -72,7 +72,9 @@ export default Storybook.story('TextWidgetVisualization', story => {
             <p>Headings &amp; emphasis</p>
             <InvisibleWidgetFrame>
               <TextWidgetVisualization
-                text={`# Dashboard Notes\n\nThis widget shows **critical** metrics for the *payments* service.`}
+                text={
+                  '# Dashboard Notes\n\nThis widget shows **critical** metrics for the *payments* service.'
+                }
               />
             </InvisibleWidgetFrame>
           </div>
@@ -80,7 +82,9 @@ export default Storybook.story('TextWidgetVisualization', story => {
             <p>Links &amp; lists</p>
             <InvisibleWidgetFrame>
               <TextWidgetVisualization
-                text={`## Runbook\n\n- Check the [error dashboard](https://sentry.io)\n- Review recent deploys\n- Page on-call if p99 > 500ms`}
+                text={
+                  '## Runbook\n\n- Check the [error dashboard](https://sentry.io)\n- Review recent deploys\n- Page on-call if p99 > 500ms'
+                }
               />
             </InvisibleWidgetFrame>
           </div>
@@ -106,7 +110,9 @@ export default Storybook.story('TextWidgetVisualization', story => {
         </p>
         <InvisibleWidgetFrame>
           <TextWidgetVisualization
-            text={`# Section 1\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit.\n\n# Section 2\n\nPellentesque habitant morbi tristique senectus et netus.\n\n# Section 3\n\nVivamus lacinia odio vitae vestibulum vestibulum.\n\n# Section 4\n\nDonec in efficitur leo, in commodo orci.`}
+            text={
+              '# Section 1\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit.\n\n# Section 2\n\nPellentesque habitant morbi tristique senectus et netus.\n\n# Section 3\n\nVivamus lacinia odio vitae vestibulum vestibulum.\n\n# Section 4\n\nDonec in efficitur leo, in commodo orci.'
+            }
           />
         </InvisibleWidgetFrame>
       </Fragment>

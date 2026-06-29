@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -44,11 +45,12 @@ export function initializeData(settings?: InitializeDataSettings) {
     routerLocation.query.project = project || settings?.project;
     initialRouterConfig.location.query.project = project || settings?.project;
   }
-  const router = {
+  const router = RouterFixture({
     location: routerLocation,
-  };
-  const initialData = initializeOrg({organization, projects, router});
-  const location = initialData.router.location;
+    params: {orgId: organization.slug, projectId: projects[0]?.slug},
+  });
+  const initialData = initializeOrg({organization, projects});
+  const location = router.location;
   const eventView = EventView.fromLocation(initialRouterConfig.location as any);
 
   return {
@@ -56,7 +58,7 @@ export function initializeData(settings?: InitializeDataSettings) {
     /**
      * @deprecated use initialRouterConfig instead. Avoid deprecatedRouterMocks.
      */
-    router: initialData.router,
+    router,
     location,
     eventView,
     initialRouterConfig,

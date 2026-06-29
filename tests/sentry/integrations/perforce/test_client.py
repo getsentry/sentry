@@ -40,6 +40,14 @@ class PerforceClientTest(TestCase):
             integration=self.integration, org_integration=self.org_integration
         )
 
+        # These tests mock the P4 connection with placeholder hosts that don't
+        # resolve; bypass the SSRF host check (covered in test_integration.py).
+        patcher = mock.patch(
+            "sentry.integrations.perforce.client.is_safe_hostname", return_value=True
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     @mock.patch("sentry.integrations.perforce.client.P4")
     def test_get_blame_for_files_success(self, mock_p4_class):
         """Test get_blame_for_files returns commit info for files"""
@@ -180,7 +188,7 @@ class PerforceClientTest(TestCase):
     @mock.patch("sentry.integrations.perforce.client.logger")
     def test_get_blame_for_files_p4_exception(self, mock_logger, mock_p4_class):
         """Test get_blame_for_files handles P4 exceptions gracefully"""
-        from P4 import P4Exception
+        from sentry.integrations.perforce.p4protocol import P4Exception
 
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -538,7 +546,7 @@ class PerforceClientTest(TestCase):
         mock_p4_class.return_value = mock_p4
 
         # Mock P4Exception for non-existent file
-        from P4 import P4Exception
+        from sentry.integrations.perforce.p4protocol import P4Exception
 
         mock_p4.run.side_effect = P4Exception("File not found")
 
@@ -691,7 +699,7 @@ class PerforceClientTest(TestCase):
         import shutil
         import tempfile
 
-        from P4 import P4
+        from sentry.integrations.perforce.p4protocol import P4
 
         os.environ.setdefault("P4CONFIG", ".p4config")
 
@@ -717,3 +725,285 @@ class PerforceClientTest(TestCase):
     def test_module_level_p4config_is_set(self) -> None:
         """Verify that importing the client module sets P4CONFIG."""
         assert os.environ.get("P4CONFIG") == ".p4config"
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_sets_charset_for_unicode_server(self, mock_p4_class):
+        """_connect() must set p4.charset before connect() when configured for a Unicode server."""
+        p4_stub = _P4AttributeRecorder()
+        mock_p4_class.return_value = p4_stub
+
+        unicode_integration = self.create_integration(
+            organization=self.organization,
+            provider="perforce",
+            name="Perforce Unicode",
+            external_id="perforce-unicode",
+            metadata={
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
+                "auth_type": "password",
+                "charset": "utf8",
+            },
+        )
+        unicode_org_integration = unicode_integration.organizationintegration_set.first()
+        client = PerforceClient(
+            integration=unicode_integration, org_integration=unicode_org_integration
+        )
+
+        with client._connect():
+            pass
+
+        # charset must be set, and it must be set before connect() so the
+        # server sees it during the initial handshake.
+        assert p4_stub.charset == "utf8"
+        assert "charset" in p4_stub.attrs_set_before_connect
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_does_not_set_charset_for_non_unicode_server(self, mock_p4_class):
+        """_connect() must NOT touch p4.charset when configured for a non-Unicode server."""
+        p4_stub = _P4AttributeRecorder()
+        mock_p4_class.return_value = p4_stub
+
+        # Default fixture client has no charset → non-Unicode server.
+        with self.p4_client._connect():
+            pass
+
+        assert "charset" not in p4_stub.attrs_set
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_does_not_set_charset_when_explicitly_none(self, mock_p4_class):
+        """The 'none' sentinel must behave the same as not setting charset at all."""
+        p4_stub = _P4AttributeRecorder()
+        mock_p4_class.return_value = p4_stub
+
+        none_integration = self.create_integration(
+            organization=self.organization,
+            provider="perforce",
+            name="Perforce None",
+            external_id="perforce-none-charset",
+            metadata={
+                "p4port": "perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
+                "auth_type": "password",
+                "charset": "none",
+            },
+        )
+        none_org_integration = none_integration.organizationintegration_set.first()
+        client = PerforceClient(integration=none_integration, org_integration=none_org_integration)
+
+        with client._connect():
+            pass
+
+        assert "charset" not in p4_stub.attrs_set
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_translates_unicode_server_error(self, mock_p4_class):
+        """Connecting to a Unicode server without a charset must surface an actionable error."""
+        from sentry.integrations.perforce.p4protocol import P4Exception
+        from sentry.shared_integrations.exceptions import ApiError
+
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+        mock_p4.connect.side_effect = P4Exception(
+            "Unicode server permits only unicode enabled clients."
+        )
+
+        with pytest.raises(ApiError) as exc_info:
+            with self.p4_client._connect():
+                pass
+
+        # The user-facing message must point at the fix, not just the raw P4 string.
+        message = str(exc_info.value)
+        assert "Unicode mode" in message
+        assert "Server Encoding" in message
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_unicode_error_at_login_is_translated(self, mock_p4_class):
+        """The pure-Python client surfaces the Unicode error at run_login(), not
+        connect(); it must still yield the Server Encoding guidance rather than a
+        misleading password/ticket error."""
+        from sentry.integrations.perforce.p4protocol import P4Exception
+        from sentry.shared_integrations.exceptions import ApiError
+
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+        mock_p4.run_login.side_effect = P4Exception(
+            "Unicode server permits only unicode enabled clients."
+        )
+
+        with pytest.raises(ApiError) as exc_info:
+            with self.p4_client._connect():
+                pass
+
+        message = str(exc_info.value)
+        assert "Unicode mode" in message
+        assert "Server Encoding" in message
+        assert "password" not in message.lower()
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_get_file_binary_returns_empty(self, mock_p4_class):
+        """Binary depot files return empty rather than 500-ing or yielding mojibake."""
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+        mock_p4.run.return_value = [
+            {"depotFile": "//depot/logo.bin", "type": "binary", "fileSize": "15"},
+            b"\x89PNG\r\n\x1a\n\x00\x01\x02\x03",
+        ]
+
+        assert self.p4_client.get_file(self.repo, "logo.bin", None) == ""
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_get_file_binary_variants_return_empty(self, mock_p4_class):
+        """Legacy/modified binary file types must also be treated as binary."""
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+
+        for file_type in ("xbinary", "ubinary", "uxbinary", "binary+x", "apple", "resource"):
+            mock_p4.run.return_value = [
+                {"depotFile": "//depot/logo.bin", "type": file_type, "fileSize": "15"},
+                b"\x89PNG\r\n\x1a\n\x00\x01\x02\x03",
+            ]
+            assert self.p4_client.get_file(self.repo, "logo.bin", None) == "", file_type
+
+    def test_parse_fields_rejects_malformed_message(self) -> None:
+        """A truncated/malformed server message raises P4Exception, not a bare ValueError."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4, P4Exception
+
+        with pytest.raises(P4Exception):
+            P4._parse_fields(b"name-without-terminator")
+
+    def test_is_ssl_transport_detection(self) -> None:
+        """TLS is detected by the transport prefix case-insensitively, and only
+        when a transport is present — a host named 'ssl...' is plain TCP."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4
+
+        def is_ssl(port: str) -> bool:
+            p4 = P4()
+            p4.port = port
+            return p4._is_ssl()
+
+        assert is_ssl("ssl:perforce.example.com:1666") is True
+        assert is_ssl("SSL:perforce.example.com:1666") is True
+        assert is_ssl("Ssl6:perforce.example.com:1666") is True
+        assert is_ssl("tcp:perforce.example.com:1666") is False
+        assert is_ssl("perforce.example.com:1666") is False
+        assert is_ssl("sslhost.example.com:1666") is False
+
+    def test_handle_message_tolerates_non_numeric_code(self) -> None:
+        """A non-numeric server message code is surfaced as an error rather than
+        crashing the dispatch loop with a ValueError."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4
+
+        p4 = P4()
+        errors: list[str] = []
+        p4._handle_message({b"code0": b"not-a-number", b"fmt0": b"kaboom"}, errors)
+        assert errors == ["kaboom"]
+
+    def test_write_wraps_socket_errors(self) -> None:
+        """A mid-stream socket error surfaces as P4Exception, not a raw OSError
+        that the callers (which catch only P4Exception) would let escape as a 500."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4, P4Exception
+
+        p4 = P4()
+        p4._sock = mock.Mock()
+        p4._sock.sendall.side_effect = OSError("broken pipe")
+        with pytest.raises(P4Exception):
+            p4._write(b"data")
+
+    def test_read_message_rejects_oversized_length(self) -> None:
+        """A hostile/oversized announced message length is rejected up front."""
+        import struct
+
+        from sentry.integrations.perforce.p4protocol.protocol import (
+            _MAX_MESSAGE_SIZE,
+            P4,
+            P4Exception,
+        )
+
+        p4 = P4()
+        length = _MAX_MESSAGE_SIZE + 1
+        lb = struct.pack("<I", length)
+        p4._buf = bytes([lb[0] ^ lb[1] ^ lb[2] ^ lb[3]]) + lb
+        with pytest.raises(P4Exception):
+            p4._read_message()
+
+    def test_dispatch_ignores_progress_rpc(self) -> None:
+        """A server-emitted client-Progress meter must not abort the operation."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4
+
+        p4 = P4()
+        with mock.patch.object(
+            p4,
+            "_read_message",
+            side_effect=[
+                {b"func": b"client-Progress", b"desc": b"copying", b"position": b"1"},
+                {b"func": b"client-OutputText", b"data": b"hello"},
+                {b"func": b"release"},
+            ],
+        ):
+            assert p4._dispatch() == [b"hello"]
+
+    def test_dispatch_fails_closed_on_unknown_rpc(self) -> None:
+        """Genuinely unknown server RPCs fail closed rather than being ignored silently."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4, P4Exception
+
+        p4 = P4()
+        with mock.patch.object(
+            p4,
+            "_read_message",
+            side_effect=[{b"func": b"client-SomeBrandNewRpc"}],
+        ):
+            with pytest.raises(P4Exception):
+                p4._dispatch()
+
+
+class _P4AttributeRecorder:
+    """
+    Minimal stand-in for the P4Python `P4` object that records every attribute
+    assignment so tests can assert exactly which fields `_connect()` set on the
+    client (e.g. that `charset` was — or was not — assigned before `connect()`).
+
+    A plain `Mock` is unsuitable here: reading `mock.charset` after the fact
+    auto-creates a child Mock, making it indistinguishable from a real
+    assignment. This stub gives us a deterministic set of assignments instead.
+    """
+
+    # Declared at class scope so mypy can see them — runtime assignment happens
+    # via object.__setattr__ inside __init__ to bypass our custom __setattr__.
+    attrs_set: set[str]
+    attrs_set_before_connect: set[str]
+    _connect_called: bool
+    # Set dynamically by `_connect()` when the integration is configured for a
+    # Unicode server. Declared so tests can read `p4_stub.charset` without
+    # tripping mypy's attr-defined check.
+    charset: str
+
+    def __init__(self) -> None:
+        object.__setattr__(self, "attrs_set", set())
+        object.__setattr__(self, "attrs_set_before_connect", set())
+        object.__setattr__(self, "_connect_called", False)
+
+    def __setattr__(self, name: str, value: object) -> None:
+        self.attrs_set.add(name)
+        if not self._connect_called:
+            self.attrs_set_before_connect.add(name)
+        object.__setattr__(self, name, value)
+
+    def connect(self) -> None:
+        object.__setattr__(self, "_connect_called", True)
+
+    def disconnect(self) -> None:
+        pass
+
+    def connected(self) -> bool:
+        return True
+
+    def run(self, *args: object, **kwargs: object) -> list:
+        return []
+
+    def run_login(self) -> None:
+        pass
+
+    def run_trust(self, *args: object) -> None:
+        pass

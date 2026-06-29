@@ -1,6 +1,8 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {CheckboxField} from 'sentry/components/forms/fields/checkboxField';
 import {InputField} from 'sentry/components/forms/fields/inputField';
 import {RadioField} from 'sentry/components/forms/fields/radioField';
@@ -69,17 +71,6 @@ export function PlanList({
     return <CurrentValueText>Current: None</CurrentValueText>;
   };
 
-  // for legacy errors-only plans
-  const formattedReservedMinimum = {
-    6000000: '6M',
-    5000000: '5M',
-    4000000: '4M',
-    3000000: '3M',
-    1500000: '1.5M',
-    500000: '500k',
-    100000: '100K',
-  };
-
   const availableAddOns = useMemo(
     () =>
       Object.values(activePlan?.addOnCategories || {})
@@ -105,7 +96,7 @@ export function PlanList({
       onSubmit={onSubmit}
       onCancel={onCancel}
       submitLabel="Change Plan"
-      submitPriority="danger"
+      submitVariant="danger"
       model={formModel}
       onSubmitSuccess={onSubmitSuccess}
       onSubmitError={onSubmitError}
@@ -118,16 +109,10 @@ export function PlanList({
             plan.id,
             <PlanLabel key={plan.id} data-test-id={`change-plan-label-${plan.id}`}>
               <div>
-                <strong>
-                  {plan.name}{' '}
-                  {formattedReservedMinimum[
-                    plan.reservedMinimum as keyof typeof formattedReservedMinimum
-                  ] ?? ''}
-                </strong>{' '}
-                <SubText>— {plan.id}</SubText>
+                <strong>{plan.name}</strong> <SubText>— {plan.id}</SubText>
                 <br />
                 <small>
-                  {formatCurrency(plan.price)} /{' '}
+                  {formatCurrency(plan.totalPrice)} /{' '}
                   {plan.billingInterval === ANNUAL ? 'annually' : 'monthly'}
                 </small>
               </div>
@@ -164,7 +149,7 @@ export function PlanList({
               const fieldValue = formModel.getValue(reservedKey);
               const currentValueDisplay = getCurrentValueDisplay(category);
               return (
-                <SelectFieldWrapper key={`test-${category}`}>
+                <Container position="relative" key={`test-${category}`}>
                   <SelectField
                     inline={false}
                     stacked
@@ -180,7 +165,7 @@ export function PlanList({
                     required
                   />
                   {currentValueDisplay}
-                </SelectFieldWrapper>
+                </Container>
               );
             })}
           </StyledFormSection>
@@ -211,7 +196,7 @@ export function PlanList({
           })}
         </StyledFormSection>
       )}
-      <AuditFields>
+      <Container marginTop="xl">
         <InputField
           data-test-id="url-field"
           name="ticket-url"
@@ -230,7 +215,7 @@ export function PlanList({
           flexibleControlStateSize
           maxLength={500}
         />
-      </AuditFields>
+      </Container>
     </Form>
   );
 }
@@ -259,18 +244,10 @@ const SubText = styled('small')`
   color: #999;
 `;
 
-const SelectFieldWrapper = styled('div')`
-  position: relative;
-`;
-
 const CurrentValueText = styled('div')`
   color: #666;
   font-size: 0.9em;
   margin-top: -${p => p.theme.space.md};
   margin-bottom: ${p => p.theme.space.lg};
   font-style: italic;
-`;
-
-const AuditFields = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
 `;

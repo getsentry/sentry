@@ -1,30 +1,29 @@
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {HookStore} from 'sentry/stores/hookStore';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {
   MessagingIntegrationAnalyticsView,
   SetupMessagingIntegrationButton,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
-jest.mock('sentry/actionCreators/modal');
-
 describe('SetupAlertIntegrationButton', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture();
   const providers = (providerKey: string) => [
     GitHubIntegrationProviderFixture({key: providerKey}),
   ];
   const providerKeys = ['slack', 'discord', 'msteams'];
-  let mockResponses: Array<jest.Mock<any>> = [];
+  let mockResponses: jest.Mock[] = [];
 
   const getComponent = () => (
     <SetupMessagingIntegrationButton
-      projectId={project.id}
       refetchConfigs={jest.fn()}
       analyticsView={MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}
     />
@@ -86,9 +85,10 @@ describe('SetupAlertIntegrationButton', () => {
     mockResponses.forEach(mock => {
       expect(mock).toHaveBeenCalled();
     });
+    renderGlobalModal();
     const button = await screen.findByRole('button', {name: /connect to messaging/i});
     await userEvent.click(button);
-    expect(openModal).toHaveBeenCalled();
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('does not render button if API errors', () => {
@@ -113,7 +113,7 @@ describe('SetupAlertIntegrationButton', () => {
       })
     );
 
-    HookStore.add('integrations:feature-gates', () => {
+    registerOverride('integrations:feature-gates', () => {
       return {
         IntegrationFeatures: p =>
           p.children({

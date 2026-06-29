@@ -78,6 +78,7 @@ describe('getCustomFieldRenderer', () => {
         {trace: 'abcd'},
         {
           organization,
+          navigate: jest.fn(),
           location,
           theme,
           eventView: new EventView({
@@ -106,6 +107,7 @@ describe('getCustomFieldRenderer', () => {
         {id: 'defg', 'project.name': project.slug},
         {
           organization,
+          navigate: jest.fn(),
           location,
           theme,
           eventView: new EventView({
@@ -148,6 +150,7 @@ describe('getCustomFieldRenderer', () => {
         {title: '<< unparameterized >>'},
         {
           organization,
+          navigate: jest.fn(),
           location,
           theme,
           eventView: new EventView({

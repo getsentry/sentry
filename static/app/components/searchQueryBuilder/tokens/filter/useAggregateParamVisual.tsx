@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 
@@ -9,7 +9,7 @@ interface UseAggregateParamVisualOptions {
 }
 
 export function useAggregateParamVisual({token}: UseAggregateParamVisualOptions) {
-  const {filterKeys, getFieldDefinition} = useSearchQueryBuilder();
+  const {filterKeys, getFieldDefinition} = useSearchQueryBuilderConfig();
 
   return useMemo(() => {
     const aggregateDefinition = getFieldDefinition(token.key.name.text);

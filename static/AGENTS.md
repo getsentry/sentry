@@ -35,7 +35,7 @@
 
 ### Frontend API Calls
 
-Prefer `apiOptions` with `useQuery` from TanStack Query for type-safe, consistent API calls:
+Use `apiOptions` with `useQuery` from TanStack Query. **Do not use `useApiQuery`, `getApiQueryData`, or `setApiQueryData`** — they are deprecated.
 
 ```typescript
 import {skipToken, useQuery} from '@tanstack/react-query';
@@ -58,7 +58,67 @@ const query = useQuery(
 );
 ```
 
-Existing code might use `useApiQuery` from `sentry/utils/queryClient` — prefer `apiOptions` for new code.
+Key rules:
+
+- **`staleTime` is required** — you must choose a value (`0`, a number in ms, `Infinity`, or `'static'`).
+- **Build abstractions over `apiOptions`**, not over `useQuery`. Return the options object so consumers can pass it to `useQuery`, `useQueries`, `prefetchQuery`, etc.
+- **Cache stores `{json, headers}`**, not just the body. `apiOptions` uses `select` to extract `.json` by default, but `getQueryData`, `setQueryData`, `retry` functions, and `predicate` callbacks all receive the raw `ApiResponse<T>` shape.
+- **never** use `api.requestPromise` for a Query - it returns the wrong structure. If you must make a manual `queryFn`, use `apiFetch`.
+
+### TanStack Query Type Inference — NEVER Pass Call-Site Generics
+
+**CRITICAL**: Never pass type parameters to `useQuery`, `useMutation`, `mutationOptions`, `queryOptions`, or any TanStack Query function at the call site. Let TypeScript infer types from your `queryFn`/`mutationFn` and callbacks. Passing call-site generics defeats inference, hides bugs, and creates maintenance burden.
+
+```typescript
+// ❌ NEVER pass generics to useQuery, useMutation, mutationOptions, etc.
+useMutation<ResponseType, RequestError, Variables, Context>({...})
+mutationOptions<ResponseType, RequestError, Variables, Context>({...})
+useQuery<ResponseType, RequestError>({...})
+
+// ✅ Let types be inferred — annotate the mutationFn/queryFn instead
+useMutation({
+  mutationFn: (variables: MyVariables) =>
+    fetchMutation<MyResponse>({...}),
+})
+```
+
+Specific rules:
+
+1. **Type the `mutationFn` parameters**, not the hook/function generics. The variables type flows from the `mutationFn` signature.
+2. **Use `fetchMutation<T>`** to type the return value — the generic on `fetchMutation` is correct because it types the API response.
+3. **Never type the error generic as `RequestError`** — that's a type assertion in disguise. The error is `Error` by default. Use runtime narrowing (`if (error instanceof RequestError)`) when you need `RequestError`-specific properties.
+4. **Never explicitly type the context** — it is inferred from what `onMutate` returns. Creating a separate `type FooContext = {...}` and passing it as a generic is unnecessary.
+5. **Same rule applies to queries** — `useQuery`, `queryOptions`, `useInfiniteQuery`, etc. Types flow from `queryFn` and `select`.
+
+```typescript
+// ❌ Explicit context type + error assertion
+type MyContext = {previousData: Item[]};
+
+mutationOptions<Item, RequestError, UpdateItemVars, MyContext>({
+  mutationFn: variables => fetchMutation({...}),
+  onMutate: async () => {
+    const previousData = queryClient.getQueryData(itemQueryOptions);
+    return {previousData};
+  },
+  onError: (_error, _variables, context) => {
+    queryClient.setQueryData(key, context?.previousData);
+  },
+})
+
+// ✅ Everything is inferred
+mutationOptions({
+  mutationFn: (variables: UpdateItemVars) =>
+    fetchMutation<Item>({...}),
+  onMutate: async () => {
+    const previousData = queryClient.getQueryData(itemQueryOptions);
+    return {previousData};
+  },
+  onError: (_error, _variables, context) => {
+    // context type is inferred from onMutate return
+    queryClient.setQueryData(key, context?.previousData);
+  },
+})
+```
 
 #### Accessing response headers (pagination, hit counts)
 
@@ -99,272 +159,20 @@ Note that `X-Hits` and `X-Max-Hits` are already parsed to `number | undefined` �
 
 - When implementing advanced copy to clipboard functionality like markdown or JSON, avoid using separate buttons to copy different formats and prefer using sentry/components/copyAsDropdown and provide the different format options.
 
-### General practices
-
-- Use [core components](./app/components/core/) whenever possible. Use Emotion (styled components) only in edge cases.
-- Use Text, Heading, Flex, Grid, Stack, Container and other core typography/layout components whenever possible.
-- Add stories whenever possible (\*.stories.mdx).
-- Icons should be part of our icon set at static/app/icons and should never be inlined anywhere in the app.
-- Images should be placed inside static/app/images and imported via loader
-
-### Core components
-
-Always use Core components whenever available. Avoid using Emotion (styled components) unless absolutely necessary.
-
-#### Layout
-
-##### Grid
-
-Use <Grid> from `@sentry/scraps/layout` for elements that require grid layout as opposed to styled components with `display: grid`
-
-```tsx
-import {Grid} from '@sentry/scraps/layout';
-
-// ❌ Do not use styled and create a new styled component
-const Component = styled('div')`
-  display: flex;
-  flex-directon: column;
-`;
-
-// ✅ Use the Grid layout primitive
-<Grid direction="column"></Grid>;
-```
-
-##### Flex
-
-Use <Flex> from `@sentry/scraps/layout` for elements that require flex layout as opposed to styled components with `display: flex`.
-
-```tsx
-import {Flex} from '@sentry/scraps/layout';
-
-// ❌ Do not use styled and create a new styled component
-const Component = styled('div')`
-  display: flex;
-  flex-directon: column;
-`;
-
-// ✅ Use the Flex layout primitive
-<Flex direction="column"></Flex>;
-```
-
-##### Container
-
-Use using <Container> from `@sentry/scraps/layout` over simple elements that require a border or border radius.
-
-```tsx
-import {Container} from '@sentry/scraps/layout';
-
-// ❌ Do not use styled and create a new styled component
-const Component = styled('div')`
-  padding: space(2);
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-// ✅ Use the Container primitive
-<Container padding="md" border="primary"></Container>;
-```
-
-##### General Guidelines
-
-Favor props over style attribute
-
-```tsx
-// ❌ Do not use style attribute for supported props
-<Flex style={{width: "100%", padding: `${space(1)} ${space(1.5)}`}>
-
-// ✅ Use the supported prop
-<Flex width="100%" padding="md lg">
-```
-
-Use responsive props instead of styled media queries for Flex, Grid and Container.
-
-```tsx
-import {Flex} from '@sentry/scraps/layout';
-
-// ❌ Do not use styled and create a new styled component
-const Component = styled('div')`
-  display: flex;
-  flex-directon: column;
-
-  @media screen and (min-width: ${p => p.theme.breakpoints.md}) {
-    flex-direction: row;
-  }
-`;
-
-// ✅ Use the responsive prop signature
-<Flex direction={{xs: 'column', md: 'row'}}></Flex>;
-```
-
-Prefer the use of gap or padding over margin.
-
-```tsx
-import {Flex} from '@sentry/scraps/layout';
-
-// ❌ Do not use styled and create a new styled component
-const Component = styled('div')`
-  display: flex;
-  flex-directon: column;
-  gap: ${p => p.theme.spacing.lg};
-`;
-
-// ✅ Use the responsive prop signature
-<Flex gap="lg">
-  <Child1 />
-  <Child2 />
-</Flex>;
-```
-
-#### Typography
-
-##### Heading
-
-Use <Heading> from `@sentry/scraps/text` for headings instead of styled components that style heading typography.
-
-```tsx
-import {Heading} from '@sentry/scraps/text';
-
-// ❌ Do not use styled and create a new styled component
-const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: bold;
-`;
-
-// ✅ Use the Heading typography primitive
-<Heading as="h2">Heading</Heading>;
-```
-
-Do not use or style h1, h2, h3, h4, h5, h6 intrinsic elements. Prefer using <Heading as="h1...h6">title</Heading> component instead
-
-```tsx
-import {Heading} from '@sentry/scraps/text';
-
-// ❌ Do not use styled and create a new styled component
-const Title = styled('h4')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSizes.small};
-`;
-
-// ❌ Do not use intrinsic heading elements directly
-function Component(){
-  return <h4>Title<h4>
-}
-
-// ✅ Use the Heading typography primitive
-<Heading as="h4">Title</Heading>;
-
-// ✅ Use the Heading typography primitive
-function Component(){
-  return <Heading as="h4">Title</Heading>
-}
-```
-
-##### Text
-
-Use <Text> from `@sentry/scraps/text` for text styling instead of styled components that handle typography features like color, overflow, font-size, font-weight.
-
-```tsx
-import {Text} from '@sentry/scraps/text';
-
-// ❌ Do not use styled and create a new styled component
-const Label = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSizes.small};
-`;
-
-// ✅ Use the Text typography primitive
-<Text variant="muted" size="sm">
-  Text
-</Text>;
-```
-
-Do not use or style intrinsic elements like. Prefer using <Text as="p | span | div">text...</Text> component instead
-
-```tsx
-import {Text} from '@sentry/scraps/text';
-
-// ❌ Do not style intrinsic elements directly
-const Paragraph = styled('p')`
-  color: ${p => p.theme.tokens.content.secondary};
-  line-height: 1.5;
-`;
-
-const Label = styled('span')`
-  font-weight: bold;
-  text-transform: uppercase;
-`;
-
-// ❌ Do not use raw intrinsic elements
-function Content() {
-  return (
-    <div>
-      <p>This is a paragraph of content</p>
-      <span>Status: Active</span>
-      <div>Container content</div>
-    </div>
-  );
-}
-
-// ✅ Use Text component with semantic HTML via 'as' prop
-function Content() {
-  return (
-    <div>
-      <Text as="p" variant="muted" density="comfortable">
-        This is a paragraph of content
-      </Text>
-      <Text as="span" bold uppercase>
-        Status: Active
-      </Text>
-      <Text as="div">Container content</Text>
-    </div>
-  );
-}
-```
-
-##### Splitting layout and typography
-
-- Split Layout from Typography by directly using Flex, Grid, Stack or Container and Text or Heading components
-
-```tsx
-// ❌ Do not couple typography with layout
-const Component = styled('div')`
-  display: flex;
-  flex-directon: column;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
-// ✅ Use the Layout primitives and Text component
-<Flex direction="column">
-  <Text muted size="lg">...</Text>
-<Flex>
-```
-
-#### Assets
-
-##### Image
-
-Use the core component <Image/> from `@sentry/scraps/image` instead of intrinsic <img />.
-
-```tsx
-// ❌ Do not use raw intrinsic elements or static paths
-function Component() {
-  return (
-    <img src="/path/to/image.jpg" />
-  );
-}
-
-// ✅ Use Image component and src loader
-import {Image} from '@sentry/scraps/image';
-import image from 'sentry-images/example.jpg';
-
-function Component() {
-  return (
-    <Image src={imagePath} alt="Descriptive Alt Attribute">
-  );
-}
-```
-
-##### Avatars
+## Design System
+
+Use core primitives from `@sentry/scraps` instead of hand-rolling styled components for layout and typography. **For the full prop/token reference and worked examples, use the `design-system` skill.**
+
+- **Layout**: use `Flex`, `Grid`, `Stack`, `Container` — never styled `display: flex/grid`.
+- **Typography**: use `Text` and `Heading` — never raw `<p>`, `<span>`, `<div>`, or `<h1>`–`<h6>`.
+- Prefer component props over the `style` attribute; use `gap`/padding over `margin`.
+- Use responsive props (e.g. `{xs: 'column', md: 'row'}`) instead of styled media queries.
+- Split layout from typography — compose `Flex`/`Grid` with `Text`/`Heading`; don't couple them in one styled component.
+- Prefer `InfoTip`/`InfoText` over a raw `Tooltip`.
+- Add `*.stories.mdx` stories for new components.
+- Use [core components](./app/components/core/) whenever available; reserve Emotion for genuine edge cases.
+
+### Avatars
 
 Use the core avatar components (<UserAvatar/>, <TeamAvatar/>, <ProjectAvatar/>, <OrganizationAvatar/>, <SentryAppAvatar/>, <DocIntegrationAvatar/>) from `static/app/components/core/avatar` for avatars.
 
@@ -395,7 +203,7 @@ function Component() {
 
 For lists of avatars, use <AvatarList>.
 
-##### Disclosure
+### Disclosure
 
 Use the core disclosure component instead of building
 
@@ -564,6 +372,14 @@ jest.mocked(usePageFilters)
 PageFiltersStore.onInitializeUrlState(
     PageFiltersFixture({ projects: [1]}),
 )
+
+// ❌ Don't recreate the basic context providers
+renderHook(useNavigate, {
+  wrapper: (children) => (<AllTheProviders>{children}</AllTheProviders>),
+})
+
+// ✅ Use the provided helpers that mock everything
+renderHookWithProviders(useNavigate)
 ```
 
 #### Use fixtures

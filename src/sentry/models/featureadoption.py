@@ -5,7 +5,7 @@ import rb
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
@@ -179,8 +179,10 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
             return False
 
         if not self.in_cache(organization_id, feature_id):
-            row, created = self.create_or_update(
-                organization_id=organization_id, feature_id=feature_id, complete=True
+            _, created = self.update_or_create(
+                organization_id=organization_id,
+                feature_id=feature_id,
+                defaults={"complete": True},
             )
             self.set_cache(organization_id, feature_id)
             return created

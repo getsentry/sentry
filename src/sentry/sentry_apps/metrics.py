@@ -73,6 +73,8 @@ class SentryAppWebhookHaltReason(StrEnum):
     CONNECTION_RESET = "connection_reset"
     HARD_TIMEOUT = "hard_timeout"
     CIRCUIT_BROKEN = "circuit_broken"
+    EMAIL_FAILED = "email_failed"
+    APP_DISABLED = "app_disabled"
 
 
 class SentryAppExternalRequestFailureReason(StrEnum):
@@ -99,6 +101,7 @@ class SentryAppEventType(StrEnum):
 
     # issue alert webhooks
     EVENT_ALERT_TRIGGERED = "event_alert.triggered"
+    ACTIVITY_ALERT_TRIGGERED = "activity_alert.triggered"
 
     # external request webhooks
     EXTERNAL_ISSUE_CREATED = "external_issue.created"
@@ -148,11 +151,9 @@ class SentryAppEventType(StrEnum):
     SEER_SOLUTION_COMPLETED = "seer.solution_completed"
     SEER_CODING_STARTED = "seer.coding_started"
     SEER_CODING_COMPLETED = "seer.coding_completed"
-    SEER_TRIAGE_STARTED = "seer.triage_started"
-    SEER_TRIAGE_COMPLETED = "seer.triage_completed"
-    SEER_IMPACT_ASSESSMENT_STARTED = "seer.impact_assessment_started"
-    SEER_IMPACT_ASSESSMENT_COMPLETED = "seer.impact_assessment_completed"
     SEER_PR_CREATED = "seer.pr_created"
+    SEER_ITERATION_STARTED = "seer.iteration_started"
+    SEER_ITERATION_COMPLETED = "seer.iteration_completed"
 
     # preprod artifact webhooks
     PREPROD_ARTIFACT_SIZE_ANALYSIS_COMPLETED = "preprod_artifact.size_analysis_completed"

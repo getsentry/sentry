@@ -35,13 +35,12 @@ from sentry.integrations.slack.message_builder.types import (
 )
 from sentry.integrations.slack.message_builder.util import build_slack_footer
 from sentry.integrations.slack.utils.escape import (
-    escape_slack_markdown_asterisks,
     escape_slack_markdown_text,
     escape_slack_text,
 )
+from sentry.integrations.slack.utils.nudge import record_nudge_metric
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
-from sentry.integrations.utils.issue_summary_for_alerts import fetch_issue_summary
 from sentry.issues.endpoints.group_details import get_group_global_count
 from sentry.issues.grouptype import GroupCategory, NotificationContextField
 from sentry.models.commit import Commit
@@ -425,6 +424,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         is_unfurl: bool = False,
         skip_fallback: bool = False,
         notes: str | None = None,
+        send_nudge: bool = False,
+        has_mentions_read_scope: bool = False,
     ) -> None:
         super().__init__()
         self.group = group
@@ -440,7 +441,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
         self.notes = notes
-        self.issue_summary: dict[str, Any] | None = None
+        self.send_nudge = send_nudge
+        self.has_mentions_read_scope = has_mentions_read_scope
         self._has_autofix = SeerAutofixOperator.has_access(
             organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
         ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
@@ -475,21 +477,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             title_emojis = CATEGORY_TO_EMOJI.get(self.group.issue_category, [])
 
         return " ".join(title_emojis)
-
-    def get_issue_summary_text(self) -> str | None:
-        """Generate formatted text from issue summary fields."""
-        if self.issue_summary is None:
-            return None
-
-        parts = []
-
-        if possible_cause := self.issue_summary.get("possibleCause"):
-            parts.append(escape_slack_markdown_asterisks(possible_cause))
-
-        if not parts:
-            return None
-
-        return f"*Initial Guess*: {escape_slack_markdown_text('  '.join(parts))}"
 
     def get_culprit_block(self, event_or_group: Event | GroupEvent | Group) -> SlackBlock | None:
         if event_or_group.culprit and isinstance(event_or_group.culprit, str):
@@ -548,6 +535,26 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         else:
             return self.get_context_block(text=footer, timestamp=timestamp)
 
+    def get_slack_app_update_nudge_block(self) -> SlackBlock:
+        org = self.group.organization
+
+        # app_mentions:read is mandatory for every new Slack app installation, so its
+        # presence tells us the app is up to date.
+        # groups/channels:history scopes are optional, so they may not be present in
+        # new Slack app installations.
+        if self.has_mentions_read_scope:
+            nudge_text = "Mention or tag Sentry to investigate issues more deeply."
+            nudge_type = "mention_reminder"
+        else:
+            reinstall_url = org.absolute_url(
+                f"/settings/{org.slug}/integrations/slack/",
+                query="showInstallModal=1",
+            )
+            nudge_text = f"Ask Sentry questions and debug faster, <{reinstall_url}|reinstall Sentry Slack app>."
+            nudge_type = "reinstall"
+        record_nudge_metric("sent", nudge_type=nudge_type)
+        return self.get_context_block(text=nudge_text)
+
     def build_description_block(self, description_text: str) -> SlackBlock | None:
         text = description_text.lstrip(" ")
         # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
@@ -568,17 +575,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return self.get_context_block(context_text)
 
-    def build_pre_footer_context_blocks(self) -> list[SlackBlock]:
-        blocks: list[SlackBlock] = []
-        summary_text = self.get_issue_summary_text()
-        if summary_text:
-            blocks.append(self.get_context_block(summary_text))
-
-        return blocks
-
     def build(self, notification_uuid: str | None = None) -> SlackBlock:
-        self.issue_summary = fetch_issue_summary(self.group)
-
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
         text = text.strip(" \n")
@@ -710,18 +707,14 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     )
                 )
 
-        if self._has_autofix:
-            autofix_button = SeerSlackRenderer.render_autofix_button(group=self.group)
-            # We have to coerce this since we're not using the proper SlackSDK client to emit this
-            # notification yet, it just takes JSON.
-            actions.append(autofix_button.to_dict())
-
         if actions:
+            if self._has_autofix and not self.is_unfurl:
+                autofix_button = SeerSlackRenderer.render_autofix_button(group=self.group)
+                # We have to coerce this since we're not using the proper SlackSDK client to emit this
+                # notification yet, it just takes JSON.
+                actions.append(autofix_button.to_dict())
             action_block = {"type": "actions", "elements": [action for action in actions]}
             blocks.append(action_block)
-
-        if pre_footer_context_block := self.build_pre_footer_context_blocks():
-            blocks.extend(pre_footer_context_block)
 
         # add notes
         if self.notes:
@@ -734,6 +727,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         chart_block = ImageBlockBuilder(group=self.group).build_image_block()
         if chart_block:
             blocks.append(chart_block)
+
+        if self.send_nudge:
+            blocks.append(self.get_slack_app_update_nudge_block())
 
         return self._build_blocks(
             *blocks,

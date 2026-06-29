@@ -114,9 +114,10 @@ const TOUR_STATE_INITIAL_VALUE: Record<DemoTour, TourState<any>> = {
 };
 
 export function DemoToursProvider({children}: {children: React.ReactNode}) {
-  const [tourState, setTourState] = useLocalStorageState<
-    Record<DemoTour, TourState<any>>
-  >(DEMO_TOURS_STATE_KEY, TOUR_STATE_INITIAL_VALUE);
+  const [tourState, setTourState] = useLocalStorageState(
+    DEMO_TOURS_STATE_KEY,
+    TOUR_STATE_INITIAL_VALUE
+  );
 
   const handleStepChange = useCallback(
     (tourKey: DemoTour, stepId: DemoTourStep) => {

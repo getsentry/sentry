@@ -1,10 +1,13 @@
 import {useCallback, useEffect, useReducer, type Reducer} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {
   convertTokenTypeToValueType,
   escapeTagValue,
+  escapeTagValueForSearch,
   getArgsToken,
+  unescapeAsteriskSearchValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
@@ -23,6 +26,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
+import {defined} from 'sentry/utils/defined';
 
 type QueryBuilderState = {
   /**
@@ -60,6 +64,7 @@ type UpdateQueryAction = {
   query: string;
   type: 'UPDATE_QUERY';
   focusOverride?: FocusOverride | null;
+  ignoreDisabled?: boolean;
   shouldCommitQuery?: boolean;
 };
 
@@ -648,9 +653,22 @@ function updateFilterMultipleValues(
   token: TokenResult<Token.FILTER>,
   values: string[]
 ) {
-  const uniqNonEmptyValues = Array.from(
-    new Set(values.filter(value => value.length > 0))
-  );
+  // Deduplicate by canonical form while preserving the original text of the
+  // first occurrence (so the query string keeps the user's original formatting)
+  const seen = new Set<string>();
+  const uniqNonEmptyValues = values.filter(value => {
+    if (value.length === 0) {
+      return false;
+    }
+
+    const canonical = canonicalizeSearchValue(value);
+    if (seen.has(canonical)) {
+      return false;
+    }
+
+    seen.add(canonical);
+    return true;
+  });
   if (uniqNonEmptyValues.length === 0) {
     return {...state, query: replaceQueryToken(state.query, token.value, '""')};
   }
@@ -663,25 +681,109 @@ function updateFilterMultipleValues(
   return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
 }
 
-function multiSelectTokenValue(
+// Normalizes a filter value so that different surface representations of the
+// same logical value compare as equal. This is needed because values arrive
+// from two different sources that use different formats:
+//
+//   1. `action.value` (from the suggestion checkbox) is pre-escaped by
+//      `escapeTagValueForSearch`, which quotes values containing spaces,
+//      parens, or commas (e.g. `1.0.0+build 1` → `"1.0.0+build 1"`)
+//      and escapes wildcards (e.g. `test*` → `test\*`).
+//
+//   2. `item.value?.value` (from the parsed token) is the unquoted semantic
+//      value produced by the parser (e.g. `"1.0.0+build 1"` → `1.0.0+build 1`).
+//
+// To compare them we strip quotes, unescape wildcards, then re-escape through
+// `escapeTagValueForSearch` so both sides end up in the same canonical form.
+function canonicalizeSearchValue(value: string) {
+  const unquotedValue =
+    value.startsWith('"') && value.endsWith('"')
+      ? value.slice(1, -1).replace(/\\"/g, '"')
+      : value;
+
+  return escapeTagValueForSearch(unescapeAsteriskSearchValue(unquotedValue));
+}
+
+function getCanonicalSelectedValues(token: TokenResult<Token.FILTER>): Set<string> {
+  const tokenValue = token.value;
+
+  switch (tokenValue.type) {
+    case Token.VALUE_TEXT_LIST:
+    case Token.VALUE_NUMBER_LIST:
+      return new Set(
+        tokenValue.items
+          .map(item => item.value?.value)
+          .filter(defined)
+          .map(canonicalizeSearchValue)
+      );
+    default:
+      return tokenValue.value
+        ? new Set([canonicalizeSearchValue(tokenValue.value)])
+        : new Set();
+  }
+}
+
+export function getMultiSelectValueState(
+  token: TokenResult<Token.FILTER>,
+  value: string
+): {selected: boolean; selectedCount: number} {
+  const canonicalSelectedValues = getCanonicalSelectedValues(token);
+
+  return {
+    selected: canonicalSelectedValues.has(canonicalizeSearchValue(value)),
+    selectedCount: canonicalSelectedValues.size,
+  };
+}
+
+export function multiSelectTokenValue(
   state: QueryBuilderState,
   action: MultiSelectFilterValueAction
 ) {
   const tokenValue = action.token.value;
 
+  // Suggestions already pass escaped search syntax, while parsed tokens expose
+  // semantic values. Canonicalize before comparing so toggling treats both
+  // representations as the same value.
+  const normalizedActionValue = canonicalizeSearchValue(action.value);
+
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST: {
-      const values = tokenValue.items.map(item => item.value?.text ?? '');
-      const containsValue = values.includes(action.value);
-      const newValues = containsValue
-        ? values.filter(value => value !== action.value)
-        : [...values, action.value];
+      // Compare against canonical values, but keep each token's raw text for
+      // reconstruction so quotes and escaping already in the query are preserved.
+      const values = tokenValue.items.map(item => ({
+        canonicalValue: canonicalizeSearchValue(item.value?.value ?? ''),
+        text: item.value?.text ?? '',
+      }));
+
+      const containsValue = values.some(
+        ({canonicalValue}) => canonicalValue === normalizedActionValue
+      );
+
+      if (!containsValue) {
+        return updateFilterMultipleValues(state, action.token, [
+          ...values.map(({text}) => text),
+          action.value,
+        ]);
+      }
+
+      // The selected value was already present, so this is a deselect. Filter it
+      // by canonical value instead of raw text because the same value may appear
+      // quoted/escaped differently depending on whether it came from the parser
+      // or the suggestion list.
+      const newValues: string[] = [];
+      for (const value of values) {
+        if (value.canonicalValue !== normalizedActionValue) {
+          newValues.push(value.text);
+        }
+      }
 
       return updateFilterMultipleValues(state, action.token, newValues);
     }
     default: {
-      if (tokenValue.text === action.value) {
+      // Single values use the same toggle semantics as lists: if the canonical
+      // value is already selected, clear it; otherwise expand it into a list.
+      if (canonicalizeSearchValue(tokenValue.value ?? '') === normalizedActionValue) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
       const newValue = tokenValue.value
@@ -755,6 +857,11 @@ function updateFilterKey(
   };
 }
 
+function countWords(text: string): number {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
 /**
  * This function is used to replace free text tokens with the specified
  * `replaceRawSearchKeys` prop from `SearchQueryBuilder`. This function also handles
@@ -770,14 +877,15 @@ function updateFilterKey(
 export function replaceFreeTextTokens(
   currentQuery: string,
   parseQuery: (query: string) => ParseResult | null,
-  replaceRawSearchKeys: string[]
+  replaceRawSearchKeys: string[],
+  searchSource: string
 ) {
   if (
     currentQuery.trim().length === 0 ||
     replaceRawSearchKeys.length === 0 ||
     (replaceRawSearchKeys.length !== 0 && replaceRawSearchKeys[0] === '')
   ) {
-    return undefined;
+    return;
   }
 
   const currentQueryTokens = parseQuery(currentQuery) ?? [];
@@ -786,11 +894,13 @@ export function replaceFreeTextTokens(
   );
 
   if (!foundFreeTextToken) {
-    return undefined;
+    return;
   }
 
   const primarySearchKey = replaceRawSearchKeys[0] ?? '';
   const replacedQuery: string[] = [];
+  const freeTextTokens: string[] = [];
+
   for (const token of currentQueryTokens) {
     if (token.type === Token.L_PAREN) {
       replacedQuery.push('(');
@@ -815,6 +925,7 @@ export function replaceFreeTextTokens(
     }
 
     const value = escapeTagValue(token.text.trim());
+    freeTextTokens.push(token.text.trim());
 
     // We don't want to break user flows, so if they include an asterisk in their free
     // text value, leave it as an `is` filter.
@@ -837,6 +948,27 @@ export function replaceFreeTextTokens(
     }
   }
 
+  // We're doing an experiment here to see if we can detect natural language queries
+  // and attempt to track them.
+  if (freeTextTokens.length > 0) {
+    const wordCount = freeTextTokens.reduce((acc, value) => acc + countWords(value), 0);
+
+    Sentry.logger.info(Sentry.logger.fmt`Found potential natural language query`, {
+      source: searchSource,
+      wordCount,
+    });
+
+    Sentry.metrics.count('search_query_builder.potential_natural_language_query', 1, {
+      attributes: {source: searchSource},
+    });
+
+    Sentry.metrics.gauge(
+      'search_query_builder.potential_natural_language_query_word_count',
+      wordCount,
+      {attributes: {source: searchSource}}
+    );
+  }
+
   const finalQuery = replacedQuery.join(' ').trim();
   const newParsedQuery = parseQuery(finalQuery) ?? [];
   const focusedToken = newParsedQuery?.findLast(token => token.type === Token.FREE_TEXT);
@@ -854,6 +986,7 @@ function updateFreeTextAndReplaceText(
     | UpdateFreeTextActionOnExit
     | UpdateFreeTextActionOnCommit,
   parseQuery: (query: string) => ParseResult | null,
+  searchSource: string,
   replaceRawSearchKeys?: string[]
 ): QueryBuilderState {
   const newState = updateFreeText(state, action);
@@ -865,7 +998,8 @@ function updateFreeTextAndReplaceText(
   const replacedState = replaceFreeTextTokens(
     newState.query,
     parseQuery,
-    replaceRawSearchKeys ?? []
+    replaceRawSearchKeys ?? [],
+    searchSource
   );
 
   const query = replacedState?.newQuery ? replacedState.newQuery : newState.query;
@@ -911,19 +1045,21 @@ function updateLogicOperator(
 }
 
 export function useQueryBuilderState({
-  initialQuery,
-  getFieldDefinition,
   disabled,
   displayAskSeerFeedback,
-  setDisplayAskSeerFeedback,
-  replaceRawSearchKeys,
+  getFieldDefinition,
+  initialQuery,
   parseQuery,
+  setDisplayAskSeerFeedback,
+  searchSource,
+  replaceRawSearchKeys,
 }: {
   disabled: boolean;
   displayAskSeerFeedback: boolean;
   getFieldDefinition: FieldDefinitionGetter;
   initialQuery: string;
   parseQuery: (query: string) => ParseResult | null;
+  searchSource: string;
   setDisplayAskSeerFeedback: (value: boolean) => void;
   replaceRawSearchKeys?: string[];
 }) {
@@ -936,7 +1072,7 @@ export function useQueryBuilderState({
 
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
-      if (disabled) {
+      if (disabled && !(action.type === 'UPDATE_QUERY' && action.ignoreDisabled)) {
         return state;
       }
 
@@ -974,7 +1110,8 @@ export function useQueryBuilderState({
           const replacedState = replaceFreeTextTokens(
             action.query,
             parseQuery,
-            replaceRawSearchKeys
+            replaceRawSearchKeys,
+            searchSource
           );
 
           const query = replacedState?.newQuery ? replacedState.newQuery : action.query;
@@ -1038,6 +1175,7 @@ export function useQueryBuilderState({
             state,
             action,
             parseQuery,
+            searchSource,
             replaceRawSearchKeys
           );
 
@@ -1097,6 +1235,7 @@ export function useQueryBuilderState({
       getFieldDefinition,
       parseQuery,
       replaceRawSearchKeys,
+      searchSource,
     ]
   );
 

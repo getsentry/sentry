@@ -3,12 +3,13 @@ import type {QueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {fetchIssueStreamDetectorIdsForProjects} from 'sentry/views/automations/utils/fetchIssueStreamDetectorIdsForProjects';
 
 type ResolveDetectorIdsForProjectsParams = {
   formData: AutomationFormData;
-  orgSlug: string;
+  organization: Organization;
   queryClient: QueryClient;
   onSubmitError?: (error: unknown) => void;
   projectIds?: string[];
@@ -22,7 +23,7 @@ type ResolveDetectorIdsForProjectsParams = {
 export async function resolveDetectorIdsForProjects({
   formData,
   onSubmitError,
-  orgSlug,
+  organization,
   projectIds,
   queryClient,
 }: ResolveDetectorIdsForProjectsParams): Promise<AutomationFormData | null> {
@@ -33,7 +34,7 @@ export async function resolveDetectorIdsForProjects({
   try {
     const detectorIds = await fetchIssueStreamDetectorIdsForProjects({
       queryClient,
-      orgSlug,
+      organization,
       projectIds,
     });
     return {...formData, detectorIds};

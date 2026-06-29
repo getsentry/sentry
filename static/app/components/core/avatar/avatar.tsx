@@ -74,7 +74,7 @@ export function Avatar({
   return (
     <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions} skipWrapper>
       <AvatarContainer
-        ref={ref as React.Ref<HTMLSpanElement>}
+        ref={ref}
         data-test-id={testId ?? `${type}-avatar`}
         className={classNames('avatar', className)}
         round={round}

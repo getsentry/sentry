@@ -177,11 +177,9 @@ DiscoverFullFallbackWidgetType = [
 class DashboardWidgetDisplayTypes(TypesClass):
     LINE_CHART = 0
     AREA_CHART = 1
-    STACKED_AREA_CHART = 2
     BAR_CHART = 3
     TABLE = 4
     BIG_NUMBER = 6
-    TOP_N = 7
     DETAILS = 8
     CATEGORICAL_BAR_CHART = 9
     WHEEL = 10
@@ -189,14 +187,13 @@ class DashboardWidgetDisplayTypes(TypesClass):
     SERVER_TREE = 12
     TEXT = 13
     AGENTS_TRACES_TABLE = 14
+    HEATMAP = 15
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
-        (STACKED_AREA_CHART, "stacked_area"),
         (BAR_CHART, "bar"),
         (TABLE, "table"),
         (BIG_NUMBER, "big_number"),
-        (TOP_N, "top_n"),
         (DETAILS, "details"),
         (CATEGORICAL_BAR_CHART, "categorical_bar"),
         (WHEEL, "wheel"),
@@ -204,8 +201,20 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (SERVER_TREE, "server_tree"),
         (TEXT, "text"),
         (AGENTS_TRACES_TABLE, "agents_traces_table"),
+        (HEATMAP, "heatmap"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
+
+
+DEFAULT_MAX_WIDGET_LIMIT = 10
+MAX_WIDGET_LIMIT_BY_DISPLAY_TYPE: dict[int, int] = {
+    DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART: 25,
+    DashboardWidgetDisplayTypes.TABLE: 20,
+}
+
+
+def get_max_widget_limit(display_type_id: int) -> int:
+    return MAX_WIDGET_LIMIT_BY_DISPLAY_TYPE.get(display_type_id, DEFAULT_MAX_WIDGET_LIMIT)
 
 
 @cell_silo_model

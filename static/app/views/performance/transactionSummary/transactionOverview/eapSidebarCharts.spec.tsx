@@ -26,6 +26,11 @@ describe('EAPSidebarCharts', () => {
   });
 
   it('renders Performance Score widget when hasWebVitals is true', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [{id: '1', title: 'Test Dashboard'}],
+    });
+
     render(<EAPSidebarCharts transactionName="test-txn" hasWebVitals />);
     expect(await screen.findByText('Performance Score')).toBeInTheDocument();
     expect(await screen.findByText('Failure Rate')).toBeInTheDocument();
@@ -75,6 +80,11 @@ describe('EAPSidebarCharts', () => {
           Array.isArray(options.query?.field) &&
           options.query.field.includes('failure_rate()'),
       ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [{id: '1', title: 'Test Dashboard'}],
     });
 
     render(<EAPSidebarCharts transactionName="test-txn" hasWebVitals />);

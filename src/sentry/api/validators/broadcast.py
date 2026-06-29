@@ -16,3 +16,4 @@ class AdminBroadcastValidator(BroadcastValidator):
     cta = serializers.CharField(max_length=256, required=False)
     mediaUrl = serializers.URLField(required=False)
     category = serializers.ChoiceField(choices=BROADCAST_CATEGORIES, required=False)
+    syncLocked = serializers.BooleanField(required=False)

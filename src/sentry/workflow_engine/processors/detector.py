@@ -24,6 +24,7 @@ from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
+    DetectorId,
     WorkflowEventData,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
@@ -67,31 +68,25 @@ class EventDetectors:
 def _is_issue_stream_detector_enabled(event_data: WorkflowEventData) -> bool:
     """
     Check if the issue stream detector should be enabled for this event's group type.
-
-    Most group types enable the issue stream detector by default. MetricIssue is excluded
-    unless the workflow-engine-metric-issue-ui feature flag is enabled for the organization,
-    which allows incremental rollout of issue alerts for metric issues.
     """
     group_type_id = event_data.group.type
     disabled_type_ids = options.get("workflow_engine.group.type_id.disable_issue_stream_detector")
     if group_type_id not in disabled_type_ids:
         return True
 
+    # Metric isssues are a special case currently.
+    # In order to give users time to adjust to the new behavior, we allow them to disable the
+    # issue stream detector for metric issues via a feature flag.
     if group_type_id != MetricIssue.type_id:
         return False
 
     organization = event_data.event.project.organization
 
-    has_metric_issue_ui = features.has(
-        "organizations:workflow-engine-metric-issue-ui", organization
-    )
-    # For most users, the issue stream detector for metric issues will be rolled out along with the metric issue UI.
-    # For users who find that behavior undesirable, this feature flag will disable it for them.
     disable_issue_stream_detector_for_metric_issues = features.has(
         "organizations:workflow-engine-metric-issue-disable-issue-detector-notifications",
         organization,
     )
-    return has_metric_issue_ui and not disable_issue_stream_detector_for_metric_issues
+    return not disable_issue_stream_detector_for_metric_issues
 
 
 def get_detectors_for_event_data(
@@ -287,7 +282,7 @@ def process_detectors[T](
 
 
 # TODO - move to another file / location
-def associate_new_group_with_detector(group: Group, detector_id: int | None = None) -> bool:
+def associate_new_group_with_detector(group: Group, detector_id: DetectorId | None = None) -> bool:
     """
     Associate a new Group with it's Detector in the database.
     If the Group is an error, it can be associated without a detector ID.
@@ -365,7 +360,7 @@ def associate_new_group_with_detector(group: Group, detector_id: int | None = No
 
 
 # TODO - move to another file / location
-def ensure_association_with_detector(group: Group, detector_id: int | None = None) -> bool:
+def ensure_association_with_detector(group: Group, detector_id: DetectorId | None = None) -> bool:
     """
     Ensure a Group has a DetectorGroup association, creating it if missing.
     Backdates date_added to group.first_seen for gradual backfill of existing groups.

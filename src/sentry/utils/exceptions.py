@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from typing import Any, Literal
 
 import sentry_sdk
+from taskbroker_client.retry import RetryTaskError
 from taskbroker_client.state import current_task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
@@ -94,6 +95,26 @@ def timeout_grouping_context(*refinements: str) -> Generator[None]:
         {ProcessingDeadlineExceeded: "task.processing_deadline_exceeded"}, *refinements
     ):
         yield
+
+
+@contextmanager
+def quiet_retriable_timeouts() -> Generator[None]:
+    """
+    Context manager for tasks where ProcessingDeadlineExceeded is occasionally expected
+    and safe to retry. When retries remain, the timeout is silently retried with no Sentry
+    event. On the final attempt, the exception propagates normally so it is reported as an
+    error by the framework.
+
+    Must be used inside a task with retries configured.
+    """
+    try:
+        yield
+    except ProcessingDeadlineExceeded:
+        task_state = current_task()
+        if task_state and task_state.retries_remaining:
+            raise RetryTaskError()
+        else:
+            raise
 
 
 @contextmanager

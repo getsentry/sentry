@@ -22,10 +22,11 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
 
     @extend_schema(
-        operation_id="List a Project's Organization Members",
+        operation_id="listProjectMembers",
+        summary="List a Project's Organization Members",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
@@ -37,7 +38,7 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
         },
         examples=OrganizationMemberExamples.LIST_ORG_MEMBERS,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[list[OrganizationMemberResponse]]:
         """
         Returns a list of active organization members that belong to any team assigned to the project.
         """
@@ -48,6 +49,6 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
         ).distinct()
 
         member_list = sorted(queryset, key=lambda member: member.email or str(member.id))
-        context = serialize(member_list, request.user)
+        context: list[OrganizationMemberResponse] = serialize(member_list, request.user)
 
         return Response(context)

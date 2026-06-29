@@ -1,11 +1,10 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DropdownButton} from 'sentry/components/dropdownButton';
@@ -31,6 +30,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   isSizeInfoCompleted,
@@ -47,6 +47,12 @@ interface BuildDetailsHeaderContentProps {
   projectSlug: string;
   projectType: string | null;
 }
+
+const buildDetailsFeedbackOptions = {
+  tags: {
+    'feedback.source': 'preprod.buildDetails',
+  },
+};
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
@@ -115,7 +121,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     label: 'Build Details',
   });
 
-  let versionTitle: string | undefined = undefined;
+  let versionTitle: string | undefined;
   if (version) {
     versionTitle = `v${version}`;
     if (buildNumber) {
@@ -158,7 +164,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Layout.HeaderContent>
         <Flex align="center" gap="sm">
           <Breadcrumbs crumbs={breadcrumbs} />
@@ -173,18 +179,10 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
         </Layout.Title>
       </Layout.HeaderContent>
 
-      <Layout.HeaderActions>
-        <Flex align="center" gap="sm" flexShrink={0}>
-          <FeedbackButton
-            feedbackOptions={{
-              tags: {
-                'feedback.source': 'preprod.buildDetails',
-              },
-            }}
-          />
+      <Fragment>
+        <TopBar.Slot name="actions">
           <Button
-            size="sm"
-            priority="default"
+            variant="secondary"
             icon={<IconTelescope />}
             onClick={handleCompareClick}
             disabled={!areActionsEnabled}
@@ -196,16 +194,14 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           >
             {t('Compare Build')}
           </Button>
-          <Feature features="organizations:preprod-frontend-routes">
-            {project && (
-              <LinkButton
-                size="sm"
-                icon={<IconSettings />}
-                aria-label={t('Settings')}
-                to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}
-              />
-            )}
-          </Feature>
+          {project && (
+            <LinkButton
+              icon={<IconSettings />}
+              tooltipProps={{title: t('Settings')}}
+              aria-label={t('Settings')}
+              to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}
+            />
+          )}
           <ConfirmDelete
             message={t(
               'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'
@@ -294,8 +290,17 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               );
             }}
           </ConfirmDelete>
-        </Flex>
-      </Layout.HeaderActions>
-    </React.Fragment>
+        </TopBar.Slot>
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            feedbackOptions={buildDetailsFeedbackOptions}
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
+      </Fragment>
+    </Fragment>
   );
 }

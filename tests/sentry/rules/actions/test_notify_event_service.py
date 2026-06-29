@@ -1,23 +1,22 @@
+from typing import cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
 import responses
 from django.utils import timezone
-from requests.exceptions import HTTPError
 
-from sentry.api.serializers import serialize
 from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
+from sentry.incidents.endpoints.serializers.incident import IncidentSerializerResponse
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
     NotificationContext,
 )
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.rule import Rule
-from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.rules.actions.notify_event_service import (
     NotifyEventServiceAction,
     send_incident_alert_notification,
@@ -39,36 +38,17 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 pytestmark = [requires_snuba]
 
 
-class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
+class NotifyEventServiceWebhookActionTest(RuleTestCase, BaseWorkflowTest):
     rule_cls = NotifyEventServiceAction
 
-    def test_applies_correctly_for_plugins(self) -> None:
-        event = self.get_event()
-
-        plugin = MagicMock()
-        plugin.is_enabled.return_value = True
-        plugin.should_notify.return_value = True
-
-        rule = self.get_rule(data={"service": "mail"})
-
-        with patch("sentry.plugins.base.plugins.get") as get_plugin:
-            get_plugin.return_value = plugin
-
-            results = list(rule.after(event=event))
-
-        assert len(results) == 1
-        assert plugin.should_notify.call_count == 1
-        assert results[0].callback is plugin.rule_notify
-
-
-class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
     def setUp(self) -> None:
         self.event = self.get_event()
-        self.webhook = WebHooksPlugin()
-        self.webhook.set_option(
-            project=self.event.project, key="urls", value="http://my-fake-webhook.io"
+        ProjectOption.objects.set_value(
+            project=self.event.project, key="webhooks:urls", value="http://my-fake-webhook.io"
         )
-        self.webhook.set_option(project=self.event.project, key="enabled", value=True)
+        ProjectOption.objects.set_value(
+            project=self.event.project, key="webhooks:enabled", value=True
+        )
 
         self.rule_webhook_data = {
             "conditions": [
@@ -136,7 +116,7 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
         assert payload["message"] == "こんにちは"
         assert payload["event"]["id"] == self.event.event_id
         assert payload["event"]["event_id"] == self.event.event_id
-        assert payload["triggering_rules"] == ["error_detector"]
+        assert payload["triggering_rules"] == ["error_workflow"]
 
     @responses.activate
     def test_legacy_webhooks_uneven_dual_write_aci(self) -> None:
@@ -175,34 +155,10 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
 
         assert len(responses.calls) == 0
 
-    @responses.activate
-    @patch("sentry.plugins.sentry_webhooks.plugin.WebHooksPlugin.notify_users")
-    def test_error_for_legacy_webhooks_dual_write_aci(self, mock_notify_users):
-        responses.add(method=responses.POST, url="http://my-fake-webhook.io", json={}, status=408)
-        mock_notify_users.side_effect = HTTPError("didn't work")
-        rule = Rule.objects.create(
-            label="bad stuff happening",
-            project=self.event.project,
-            data=self.rule_webhook_data,
-        )
-        # dual write the rule to replicate current reality
-        IssueAlertMigrator(rule, self.user.id).run()
 
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
-                group_id=self.event.group_id,
-                project_id=self.event.project.id,
-                eventstream_type=EventStreamEventType.Error.value,
-            )
+class NotifyEventServiceSentryAppActionTest(RuleTestCase, BaseWorkflowTest):
+    rule_cls = NotifyEventServiceAction
 
-        assert len(responses.calls) == 0
-
-
-class NotifyEventServiceSentryAppActionTest(NotifyEventServiceActionTest):
     def test_applies_correctly_for_sentry_apps(self) -> None:
         event = self.get_event()
 
@@ -216,27 +172,6 @@ class NotifyEventServiceSentryAppActionTest(NotifyEventServiceActionTest):
 
         assert len(results) == 1
         assert results[0].callback is notify_sentry_app
-
-    def test_notify_sentry_app_and_plugin_with_same_slug(self) -> None:
-        event = self.get_event()
-
-        self.create_sentry_app(organization=event.organization, name="Notify", is_alertable=True)
-
-        plugin = MagicMock()
-        plugin.is_enabled.return_value = True
-        plugin.should_notify.return_value = True
-
-        rule = self.get_rule(data={"service": "notify"})
-
-        with patch("sentry.plugins.base.plugins.get") as get_plugin:
-            get_plugin.return_value = plugin
-
-            results = list(rule.after(event=event))
-
-        assert len(results) == 2
-        assert plugin.should_notify.call_count == 1
-        assert results[0].callback is notify_sentry_app
-        assert results[1].callback is plugin.rule_notify
 
     def test_sentry_app_installed(self) -> None:
         event = self.get_event()
@@ -272,9 +207,7 @@ class TestSendIncidentAlertNotification(TestCase):
         self.metric_issue_context = MetricIssueContext.from_legacy_models(
             self.incident, IncidentStatus.CRITICAL, metric_value=100.0
         )
-        self.incident_serialized_response = serialize(
-            self.incident, serializer=IncidentSerializer()
-        )
+        self.incident_serialized_response = cast(IncidentSerializerResponse, {})
         self.notification_context = NotificationContext(
             id=1,
             sentry_app_id=self.sentry_app.id,

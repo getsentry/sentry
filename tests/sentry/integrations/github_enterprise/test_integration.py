@@ -1,32 +1,76 @@
+from __future__ import annotations
+
 from dataclasses import asdict
 from datetime import datetime, timezone
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
-from urllib.parse import parse_qs, urlencode, urlparse
 
 import orjson
 import pytest
 import responses
+from django.urls import reverse
 
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
 from sentry.integrations.github_enterprise.integration import (
     GitHubEnterpriseIntegration,
     GitHubEnterpriseIntegrationProvider,
+    _api_base_url,
+    get_user_info,
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
     FileBlameInfo,
     SourceLineInfo,
 )
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+
+
+class ApiBaseUrlTest(TestCase):
+    def test_ghes_url(self) -> None:
+        assert _api_base_url("github.example.org") == "https://github.example.org/api/v3"
+
+    def test_ghe_cloud_url(self) -> None:
+        assert _api_base_url("acme-corp.ghe.com") == "https://api.acme-corp.ghe.com"
+
+    def test_github_com_url(self) -> None:
+        assert _api_base_url("github.com") == "https://api.github.com"
+
+    @responses.activate
+    def test_get_user_info_ghe_cloud_calls_api_subdomain(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://api.acme-corp.ghe.com/user",
+            json={"login": "testuser", "id": 1},
+            status=200,
+        )
+        result = get_user_info("acme-corp.ghe.com", "mytoken")
+        assert result == {"login": "testuser", "id": 1}
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == "https://api.acme-corp.ghe.com/user"
+
+    @responses.activate
+    def test_get_user_info_ghes_calls_api_v3(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://github.example.org/api/v3/user",
+            json={"login": "testuser", "id": 1},
+            status=200,
+        )
+        result = get_user_info("github.example.org", "mytoken")
+        assert result == {"login": "testuser", "id": 1}
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == "https://github.example.org/api/v3/user"
 
 
 @control_silo_test
@@ -54,23 +98,11 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.config = {
-            "url": "https://github.example.org",
-            "id": 2,
-            "name": "test-app",
-            "client_id": "client_id",
-            "client_secret": "client_secret",
-            "webhook_secret": "webhook_secret",
-            "private_key": "private_key",
-            "verify_ssl": True,
-        }
         self.base_url = "https://github.example.org/api/v3"
 
-        # Add attributes needed for various tests
         self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         self.expires_at = "3000-01-01T00:00:00Z"
 
-        # These will be set up in specific tests
         with assume_test_silo_mode(SiloMode.CELL):
             self.project = self.create_project()
             self.group = self.create_group()
@@ -123,19 +155,17 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         from sentry.users.services.user.serial import serialize_rpc_user
 
         user = serialize_rpc_user(self.create_user(email=user_email))
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
 
-        integration.metadata.update(
+        self.integration.metadata.update(
             {
                 "access_token": self.access_token,
                 "expires_at": self.expires_at,
             }
         )
-        integration.save()
+        self.integration.save()
 
         installation = get_installation_of_type(
-            GitHubEnterpriseIntegration, integration, self.organization.id
+            GitHubEnterpriseIntegration, self.integration, self.organization.id
         )
 
         group = self.create_group()
@@ -145,7 +175,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             self.create_external_user(
                 user=user,
                 organization=self.organization,
-                integration=integration,
+                integration=self.integration,
                 provider=ExternalProviders.GITHUB_ENTERPRISE.value,
                 external_name=external_name,
                 external_id=external_id,
@@ -153,245 +183,60 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         external_issue = self.create_integration_external_issue(
             group=group,
-            integration=integration,
+            integration=self.integration,
             key=issue_key,
         )
 
-        return user, installation, external_issue, integration, group
-
-    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
-    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    def assert_setup_flow(
-        self,
-        get_jwt,
-        _,
-        installation_id="install_id_1",
-        app_id="app_1",
-        user_id="user_id_1",
-        public_link=None,
-    ):
-        responses.reset()
-        resp = self.client.get(self.init_path)
-        assert resp.status_code == 200
-        resp = self.client.post(self.init_path, data=self.config)
-        assert resp.status_code == 302
-        redirect = urlparse(resp["Location"])
-        assert redirect.scheme == "https"
-        if public_link:
-            assert resp["Location"] == public_link
-        else:
-            assert redirect.netloc == "github.example.org"
-            assert redirect.path == "/github-apps/test-app"
-
-        # App installation ID is provided, mveo thr
-        resp = self.client.get(
-            "{}?{}".format(self.setup_path, urlencode({"installation_id": installation_id}))
-        )
-
-        assert resp.status_code == 302
-        redirect = urlparse(resp["Location"])
-        assert redirect.scheme == "https"
-        assert redirect.netloc == "github.example.org"
-        assert redirect.path == "/login/oauth/authorize"
-
-        params = parse_qs(redirect.query)
-        assert params["state"]
-        assert params["redirect_uri"] == ["http://testserver/extensions/github-enterprise/setup/"]
-        assert params["response_type"] == ["code"]
-        assert params["client_id"] == ["client_id"]
-        # once we've asserted on it, switch to a singular values to make life
-        # easier
-        authorize_params = {k: v[0] for k, v in params.items()}
-
-        access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-
-        responses.add(
-            responses.POST,
-            "https://github.example.org/login/oauth/access_token",
-            json={"access_token": access_token},
-        )
-
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{installation_id}/access_tokens",
-            json={"token": access_token, "expires_at": "3000-01-01T00:00:00Z"},
-        )
-
-        responses.add(responses.GET, self.base_url + "/user", json={"id": user_id})
-
-        responses.add(
-            responses.GET,
-            self.base_url + f"/app/installations/{installation_id}",
-            json={
-                "id": installation_id,
-                "app_id": app_id,
-                "account": {
-                    "login": "Test Organization",
-                    "type": "Organization",
-                    "avatar_url": "https://github.example.org/avatar.png",
-                    "html_url": "https://github.example.org/Test-Organization",
-                },
-            },
-        )
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/user/installations",
-            json={"installations": [{"id": installation_id}]},
-        )
-
-        responses.add(
-            method=responses.GET,
-            url=self.base_url + "/rate_limit",
-            json={
-                "resources": {
-                    "graphql": {
-                        "limit": 5000,
-                        "used": 1,
-                        "remaining": 4999,
-                        "reset": 1613064000,
-                    }
-                }
-            },
-            status=200,
-            content_type="application/json",
-        )
-
-        resp = self.client.get(
-            "{}?{}".format(
-                self.setup_path,
-                urlencode({"code": "oauth-code", "state": authorize_params["state"]}),
-            )
-        )
-
-        mock_access_token_request = responses.calls[0].request
-        req_params = parse_qs(mock_access_token_request.body)
-        assert req_params["grant_type"] == ["authorization_code"]
-        assert req_params["code"] == ["oauth-code"]
-        assert req_params["redirect_uri"] == [
-            "http://testserver/extensions/github-enterprise/setup/"
-        ]
-        assert req_params["client_id"] == ["client_id"]
-        assert req_params["client_secret"] == ["client_secret"]
-
-        assert resp.status_code == 200
-
-        auth_header = responses.calls[2].request.headers["Authorization"]
-        assert auth_header == "Bearer jwt_token_1"
-
-        self.assertDialogSuccess(resp)
-
-    @responses.activate
-    def test_basic_flow(self) -> None:
-        self.assert_setup_flow()
-
-        integration = Integration.objects.get(provider=self.provider.key)
-
-        assert integration.external_id == "github.example.org:install_id_1"
-        assert integration.name == "Test Organization"
-        assert integration.metadata == {
-            "access_token": None,
-            "expires_at": None,
-            "icon": "https://github.example.org/avatar.png",
-            "domain_name": "github.example.org/Test-Organization",
-            "account_type": "Organization",
-            "installation_id": "install_id_1",
-            "installation": {
-                "client_id": "client_id",
-                "client_secret": "client_secret",
-                "id": "2",
-                "name": "test-app",
-                "private_key": "private_key",
-                "public_link": None,
-                "url": "github.example.org",
-                "webhook_secret": "webhook_secret",
-                "verify_ssl": True,
-            },
-        }
-        oi = OrganizationIntegration.objects.get(
-            integration=integration, organization_id=self.organization.id
-        )
-        assert oi.config == {}
-
-        idp = IdentityProvider.objects.get(type="github_enterprise")
-        identity = Identity.objects.get(idp=idp, user=self.user, external_id="user_id_1")
-        assert identity.status == IdentityStatus.VALID
-        assert identity.data == {"access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"}
-
-    @responses.activate
-    def test_basic_flow__public_link(self) -> None:
-        public_link = "https://github.example.org/github/apps/test-app"
-        self.config["public_link"] = public_link
-        self.assert_setup_flow(public_link=public_link)
-
-        integration = Integration.objects.get(provider=self.provider.key)
-
-        assert integration.external_id == "github.example.org:install_id_1"
-        assert integration.name == "Test Organization"
-        assert integration.metadata == {
-            "access_token": None,
-            "expires_at": None,
-            "icon": "https://github.example.org/avatar.png",
-            "domain_name": "github.example.org/Test-Organization",
-            "account_type": "Organization",
-            "installation_id": "install_id_1",
-            "installation": {
-                "client_id": "client_id",
-                "client_secret": "client_secret",
-                "id": "2",
-                "name": "test-app",
-                "private_key": "private_key",
-                "public_link": public_link,
-                "url": "github.example.org",
-                "webhook_secret": "webhook_secret",
-                "verify_ssl": True,
-            },
-        }
-        oi = OrganizationIntegration.objects.get(
-            integration=integration, organization_id=self.organization.id
-        )
-        assert oi.config == {}
-
-        idp = IdentityProvider.objects.get(type="github_enterprise")
-        identity = Identity.objects.get(idp=idp, user=self.user, external_id="user_id_1")
-        assert identity.status == IdentityStatus.VALID
-        assert identity.data == {"access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"}
+        return user, installation, external_issue, self.integration, group
 
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_repositories_search_param(self, mock_jwtm: MagicMock, _: MagicMock) -> None:
-        with self.tasks():
-            self.assert_setup_flow()
-
-        querystring = urlencode({"q": "fork:true org:Test Organization ex"})
+        querystring = "q=fork%3Atrue+org%3ATest+Organization+ex"
         responses.add(
             responses.GET,
             f"{self.base_url}/search/repositories?{querystring}",
             json={
                 "items": [
-                    {"name": "example", "full_name": "test/example", "default_branch": "main"},
-                    {"name": "exhaust", "full_name": "test/exhaust", "default_branch": "main"},
+                    {
+                        "id": 10,
+                        "name": "example",
+                        "full_name": "test/example",
+                        "default_branch": "main",
+                    },
+                    {
+                        "id": 11,
+                        "name": "exhaust",
+                        "full_name": "test/exhaust",
+                        "default_branch": "main",
+                    },
                 ]
             },
         )
-        integration = Integration.objects.get(provider=self.provider.key)
         installation = get_installation_of_type(
-            GitHubEnterpriseIntegration, integration, self.organization.id
+            GitHubEnterpriseIntegration, self.integration, self.organization.id
         )
         result = installation.get_repositories("ex")
         assert result == [
-            {"identifier": "test/example", "name": "example", "default_branch": "main"},
-            {"identifier": "test/exhaust", "name": "exhaust", "default_branch": "main"},
+            {
+                "identifier": "test/example",
+                "name": "example",
+                "external_id": "10",
+                "default_branch": "main",
+            },
+            {
+                "identifier": "test/exhaust",
+                "name": "exhaust",
+                "external_id": "11",
+                "default_branch": "main",
+            },
         ]
 
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_stacktrace_link_file_exists(self, get_jwt: MagicMock, _: MagicMock) -> None:
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
-
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -400,7 +245,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 provider="integrations:github_enterprise",
                 external_id=123,
                 config={"name": "Test-Organization/foo"},
-                integration_id=integration.id,
+                integration_id=self.integration.id,
             )
 
         path = "README.md"
@@ -411,7 +256,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
         )
         installation = get_installation_of_type(
-            GitHubEnterpriseIntegration, integration, self.organization.id
+            GitHubEnterpriseIntegration, self.integration, self.organization.id
         )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
@@ -421,9 +266,6 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_stacktrace_link_file_doesnt_exists(self, get_jwt: MagicMock, _: MagicMock) -> None:
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
-
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -432,7 +274,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 provider="integrations:github_enterprise",
                 external_id=123,
                 config={"name": "Test-Organization/foo"},
-                integration_id=integration.id,
+                integration_id=self.integration.id,
             )
         path = "README.md"
         version = "master"
@@ -443,7 +285,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             status=404,
         )
         installation = get_installation_of_type(
-            GitHubEnterpriseIntegration, integration, self.organization.id
+            GitHubEnterpriseIntegration, self.integration, self.organization.id
         )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
@@ -455,9 +297,6 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     def test_get_stacktrace_link_use_default_if_version_404(
         self, get_jwt: MagicMock, _: MagicMock
     ) -> None:
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
-
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -466,7 +305,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 provider="integrations:github_enterprise",
                 external_id=123,
                 config={"name": "Test-Organization/foo"},
-                integration_id=integration.id,
+                integration_id=self.integration.id,
             )
         path = "README.md"
         version = "12345678"
@@ -481,7 +320,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={default}",
         )
         installation = get_installation_of_type(
-            GitHubEnterpriseIntegration, integration, self.organization.id
+            GitHubEnterpriseIntegration, self.integration, self.organization.id
         )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
@@ -491,8 +330,6 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_commit_context_all_frames(self, _: MagicMock, __: MagicMock) -> None:
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -501,10 +338,10 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 provider="integrations:github_enterprise",
                 external_id=123,
                 config={"name": "Test-Organization/foo"},
-                integration_id=integration.id,
+                integration_id=self.integration.id,
             )
         installation = get_installation_of_type(
-            GitHubEnterpriseIntegration, integration, self.organization.id
+            GitHubEnterpriseIntegration, self.integration, self.organization.id
         )
 
         file = SourceLineInfo(
@@ -567,10 +404,8 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_source_url_matches(self) -> None:
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
         installation = get_installation_of_type(
-            GitHubEnterpriseIntegration, integration, self.organization.id
+            GitHubEnterpriseIntegration, self.integration, self.organization.id
         )
 
         test_cases = [
@@ -585,8 +420,6 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_extract_branch_from_source_url(self) -> None:
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -595,10 +428,10 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 provider="integrations:github_enterprise",
                 external_id=123,
                 config={"name": "Test-Organization/foo"},
-                integration_id=integration.id,
+                integration_id=self.integration.id,
             )
         installation = get_installation_of_type(
-            GitHubEnterpriseIntegration, integration, self.organization.id
+            GitHubEnterpriseIntegration, self.integration, self.organization.id
         )
 
         source_url = "https://github.example.org/Test-Organization/foo/blob/master/src/sentry/integrations/github/integration.py"
@@ -607,8 +440,6 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_extract_source_path_from_source_url(self) -> None:
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -617,10 +448,10 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 provider="integrations:github_enterprise",
                 external_id=123,
                 config={"name": "Test-Organization/foo"},
-                integration_id=integration.id,
+                integration_id=self.integration.id,
             )
         installation = get_installation_of_type(
-            GitHubEnterpriseIntegration, integration, self.organization.id
+            GitHubEnterpriseIntegration, self.integration, self.organization.id
         )
 
         source_url = "https://github.example.org/Test-Organization/foo/blob/master/src/sentry/integrations/github/integration.py"
@@ -640,8 +471,18 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             json={
                 "total_count": 2,
                 "repositories": [
-                    {"name": "repo1", "full_name": "Test-Organization/repo1", "archived": False},
-                    {"name": "repo2", "full_name": "Test-Organization/repo2", "archived": False},
+                    {
+                        "id": 1,
+                        "name": "repo1",
+                        "full_name": "Test-Organization/repo1",
+                        "archived": False,
+                    },
+                    {
+                        "id": 2,
+                        "name": "repo2",
+                        "full_name": "Test-Organization/repo2",
+                        "archived": False,
+                    },
                 ],
             },
         )
@@ -670,14 +511,12 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_update_organization_config(self) -> None:
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
         installation = get_installation_of_type(
-            GitHubEnterpriseIntegration, integration, self.organization.id
+            GitHubEnterpriseIntegration, self.integration, self.organization.id
         )
 
         org_integration = OrganizationIntegration.objects.get(
-            integration=integration, organization_id=self.organization.id
+            integration=self.integration, organization_id=self.organization.id
         )
 
         # Initial config should be empty
@@ -696,14 +535,12 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_update_organization_config_preserves_existing(self) -> None:
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
         installation = get_installation_of_type(
-            GitHubEnterpriseIntegration, integration, self.organization.id
+            GitHubEnterpriseIntegration, self.integration, self.organization.id
         )
 
         org_integration = OrganizationIntegration.objects.get(
-            integration=integration, organization_id=self.organization.id
+            integration=self.integration, organization_id=self.organization.id
         )
 
         org_integration.config = {
@@ -886,26 +723,23 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     def test_sync_assignee_outbound_with_none_user(self) -> None:
         """Test that assigning with no user does not make an API call"""
 
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
-
-        integration.metadata.update(
+        self.integration.metadata.update(
             {
                 "access_token": self.access_token,
                 "expires_at": self.expires_at,
             }
         )
-        integration.save()
+        self.integration.save()
 
         installation = get_installation_of_type(
-            GitHubEnterpriseIntegration, integration, self.organization.id
+            GitHubEnterpriseIntegration, self.integration, self.organization.id
         )
 
         group = self.create_group()
 
         external_issue = self.create_integration_external_issue(
             group=group,
-            integration=integration,
+            integration=self.integration,
             key="Test-Organization/foo#123",
         )
 
@@ -1170,3 +1004,446 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                     "body": "**** wrote:\n\n> hello world\n> This is a comment.\n> \n> \n>     I've changed it"
                 },
             )
+
+
+class BuildIntegrationGitHubComTest(TestCase):
+    """build_integration must produce external_id with the 'github.com:' prefix so the
+    github_enterprise integration can coexist with the first-party `github` integration
+    (which uses a bare installation_id as external_id)."""
+
+    @patch(
+        "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegrationProvider._get_ghe_installation_info"
+    )
+    @patch("sentry.integrations.github_enterprise.integration.get_user_info")
+    def test_build_integration_produces_github_com_prefixed_external_id(
+        self,
+        mock_get_user_info: MagicMock,
+        mock_get_installation: MagicMock,
+    ) -> None:
+        mock_get_user_info.return_value = {"id": 42, "login": "tester"}
+        mock_get_installation.return_value = {
+            "id": 12345,
+            "app_id": 99,
+            "account": {
+                "login": "acme",
+                "type": "Organization",
+                "html_url": "https://github.com/acme",
+                "avatar_url": "https://github.com/avatars/acme.png",
+            },
+        }
+
+        provider = GitHubEnterpriseIntegrationProvider()
+        state = {
+            "oauth_data": {"access_token": "token-abc"},
+            "installation_data": {
+                "url": "github.com",
+                "id": "1",
+                "name": "test-app",
+                "private_key": "key",
+                "verify_ssl": True,
+                "webhook_secret": "whsec",
+            },
+            "installation_id": 12345,
+            "oauth_config_information": {
+                "access_token_url": "https://github.com/login/oauth/access_token",
+                "authorize_url": "https://github.com/login/oauth/authorize",
+                "client_id": "cid",
+                "client_secret": "csec",
+                "verify_ssl": True,
+            },
+        }
+        result = provider.build_integration(state)
+
+        assert result["external_id"] == "github.com:12345"
+        assert result["idp_external_id"] == "github.com:99"
+        assert result["metadata"]["domain_name"] == "github.com/acme"
+        assert result["metadata"]["installation_id"] == 12345
+
+
+@control_silo_test
+class GitHubEnterpriseApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    ghe_host = "github.example.com"
+    ghe_url = f"https://{ghe_host}"
+    installation_id = "12345"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def tearDown(self) -> None:
+        responses.reset()
+        super().tearDown()
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "github_enterprise"},
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _submit_config(self, **overrides: Any) -> Any:
+        data = {
+            "url": self.ghe_url,
+            "id": "1",
+            "name": "sentry-app",
+            "verifySsl": True,
+            "webhookSecret": "webhook-secret-123",
+            "privateKey": "-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----",
+            "clientId": "client-id-abc",
+            "clientSecret": "client-secret-xyz",
+        }
+        data.update(overrides)
+        return self._advance_step(data)
+
+    def _get_pipeline_signature(self, resp: Any) -> str:
+        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+
+    def _stub_ghe_oauth(self) -> None:
+        responses.add(
+            responses.POST,
+            f"{self.ghe_url}/login/oauth/access_token",
+            json={
+                "access_token": "test-access-token",
+                "token_type": "bearer",
+            },
+        )
+
+    def _stub_ghe_user(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.ghe_url}/api/v3/user",
+            json={"id": 42, "login": "testuser"},
+        )
+
+    def _stub_ghe_installation(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.ghe_url}/api/v3/app/installations/{self.installation_id}",
+            json={
+                "id": int(self.installation_id),
+                "app_id": 1,
+                "account": {
+                    "login": "Test-Org",
+                    "avatar_url": f"{self.ghe_url}/avatar.png",
+                    "html_url": f"{self.ghe_url}/Test-Org",
+                    "type": "Organization",
+                },
+            },
+        )
+        responses.add(
+            responses.GET,
+            f"{self.ghe_url}/api/v3/user/installations",
+            json={
+                "installations": [
+                    {
+                        "id": int(self.installation_id),
+                        "app_id": 1,
+                        "account": {
+                            "login": "Test-Org",
+                            "avatar_url": f"{self.ghe_url}/avatar.png",
+                            "html_url": f"{self.ghe_url}/Test-Org",
+                            "type": "Organization",
+                        },
+                    }
+                ]
+            },
+        )
+
+    @responses.activate
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "installation_config"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 3
+        assert resp.data["provider"] == "github_enterprise"
+
+    @responses.activate
+    def test_config_step_advance(self) -> None:
+        self._initialize_pipeline()
+        resp = self._submit_config()
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "app_install_redirect"
+        assert resp.data["stepIndex"] == 1
+        assert "appInstallUrl" in resp.data["data"]
+        assert "sentry-app" in resp.data["data"]["appInstallUrl"]
+
+    @responses.activate
+    def test_config_step_validation_missing_required_fields(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({"url": self.ghe_url})
+        assert resp.status_code == 400
+        for field in ("id", "name", "webhookSecret", "privateKey", "clientId", "clientSecret"):
+            assert resp.data[field] == ["This field is required."]
+
+    @responses.activate
+    def test_app_install_step_no_installation_id(self) -> None:
+        self._initialize_pipeline()
+        self._submit_config()
+        resp = self._advance_step({})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "stay"
+        assert "appInstallUrl" in resp.data["data"]
+
+    @responses.activate
+    def test_app_install_step_with_installation_id(self) -> None:
+        self._initialize_pipeline()
+        self._submit_config()
+        resp = self._advance_step({"installationId": self.installation_id})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "oauth_login"
+        assert "oauthUrl" in resp.data["data"]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert self.ghe_host in oauth_url
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token"
+    )
+    def test_full_pipeline_flow(self, mock_jwt: MagicMock) -> None:
+        self._stub_ghe_oauth()
+        self._stub_ghe_user()
+        self._stub_ghe_installation()
+
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "installation_config"
+
+        resp = self._submit_config()
+        assert resp.data["step"] == "app_install_redirect"
+
+        resp = self._advance_step({"installationId": self.installation_id})
+        assert resp.data["step"] == "oauth_login"
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "auth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert "data" in resp.data
+
+        integration = Integration.objects.get(provider="github_enterprise")
+        assert integration.metadata["installation_id"] == int(self.installation_id)
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token"
+    )
+    @override_options({"github-enterprise.disallow-domain-mismatch": True})
+    def test_pipeline_fails_if_domain_mismatch_is_detected(self, mock_jwt: MagicMock) -> None:
+        original_host = "original-ghe.example.com"
+        original_installation_id = int(self.installation_id)
+        original_external_id = f"{original_host}:{original_installation_id}"
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            original_org = self.create_organization(name="original-org")
+
+        original_integration = self.create_provider_integration(
+            provider="github_enterprise",
+            external_id=original_external_id,
+            name="original-org",
+            metadata={
+                "domain_name": f"{original_host}/original-org",
+                "account_type": "Organization",
+                "installation_id": original_installation_id,
+                "installation": {
+                    "url": original_host,
+                    "id": "1",
+                    "name": "original-sentry-app",
+                    "private_key": "original_private_key",
+                    "webhook_secret": "original_webhook_secret",
+                    "client_id": "original-client-id",
+                    "client_secret": "original-client-secret",
+                    "verify_ssl": True,
+                    "public_link": None,
+                },
+            },
+        )
+        self.create_organization_integration(
+            organization_id=original_org.id,
+            integration=original_integration,
+        )
+
+        overriding_host = "overriding.example.com"
+        overriding_url = f"https://{overriding_host}"
+
+        responses.add(
+            responses.POST,
+            f"{overriding_url}/login/oauth/access_token",
+            json={"access_token": "overriding-controlled-token", "token_type": "bearer"},
+        )
+        responses.add(
+            responses.GET,
+            f"{overriding_url}/api/v3/user",
+            json={"id": 9999, "login": "overriding"},
+        )
+
+        spoofed_installation = {
+            "id": original_installation_id,
+            "app_id": 1,
+            "account": {
+                "login": "original-org",
+                "avatar_url": f"https://{original_host}/avatar.png",
+                "html_url": f"https://{original_host}/original-org",
+                "type": "Organization",
+            },
+        }
+        responses.add(
+            responses.GET,
+            f"{overriding_url}/api/v3/app/installations/{self.installation_id}",
+            json=spoofed_installation,
+        )
+        responses.add(
+            responses.GET,
+            f"{overriding_url}/api/v3/user/installations",
+            json={"installations": [spoofed_installation]},
+        )
+
+        self._initialize_pipeline()
+        self._submit_config(
+            url=overriding_url,
+            privateKey="overriding_private_key",
+            webhookSecret="overriding_webhook_secret",
+            clientId="overriding-client-id",
+            clientSecret="overriding-client-secret",
+            name="overriding-sentry-app",
+        )
+        resp = self._advance_step({"installationId": self.installation_id})
+        pipeline_signature = self._get_pipeline_signature(resp)
+        resp = self._advance_step({"code": "auth-code", "state": pipeline_signature})
+
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert (
+            resp.data["data"]["detail"]
+            == "The GitHub Enterprise domain does not match the expected domain. Please check the domain and port combination."
+        )
+
+        integrations = Integration.objects.filter(
+            provider="github_enterprise", external_id=original_external_id
+        )
+        assert integrations.count() == 1
+        overriding_integration = integrations.get()
+        assert overriding_integration.id == original_integration.id
+
+        installation_meta = overriding_integration.metadata["installation"]
+        assert installation_meta["private_key"] == "original_private_key"
+        assert installation_meta["webhook_secret"] == "original_webhook_secret"
+        assert installation_meta["client_id"] == "original-client-id"
+        assert installation_meta["client_secret"] == "original-client-secret"
+        assert installation_meta["url"] == original_host
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=original_org.id, integration=overriding_integration
+        ).exists()
+        assert not OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration=overriding_integration
+        ).exists()
+
+    @responses.activate
+    def test_config_step_allows_github_com(self) -> None:
+        self._initialize_pipeline()
+        resp = self._submit_config(url="https://github.com")
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "app_install_redirect"
+
+    def test_app_install_step_uses_apps_path_for_github_com(self) -> None:
+        # github.com hosts the App install page at /apps/{name}, GHES at
+        # /github-apps/{name}. Wrong URL → 404 → broken install flow.
+        self._initialize_pipeline()
+        self._submit_config(url="https://github.com")
+        resp = self._advance_step({})
+        assert resp.status_code == 200
+        assert resp.data["data"]["appInstallUrl"] == "https://github.com/apps/sentry-app"
+
+    def test_ensure_matching_domain_method_with_same_netloc(self) -> None:
+        state = {
+            "installation_data": {
+                "url": "github.com",
+            },
+        }
+        installation = {
+            "account": {
+                "html_url": "https://github.com/test-org",
+            },
+        }
+        GitHubEnterpriseIntegrationProvider.ensure_matching_domain(state, installation)
+
+    def test_ensure_matching_domain_method_with_same_ports(self) -> None:
+        state = {
+            "installation_data": {
+                "url": "github.com:443",
+            },
+        }
+        installation = {
+            "account": {
+                "html_url": "https://github.com:443/test-org",
+            }
+        }
+        GitHubEnterpriseIntegrationProvider.ensure_matching_domain(state, installation)
+
+    def test_ensure_matching_domain_method_with_different_ports(self) -> None:
+        state = {
+            "installation_data": {
+                "url": "github.com:443",
+            },
+        }
+        installation = {
+            "account": {
+                "html_url": "https://github.com:80/test-org",
+            }
+        }
+        with pytest.raises(IntegrationError) as ie:
+            GitHubEnterpriseIntegrationProvider.ensure_matching_domain(state, installation)
+        assert (
+            str(ie.value.message)
+            == "The GitHub Enterprise domain does not match the expected domain. Please check the domain and port combination."
+        )
+
+    def test_ensure_matching_domain_method_with_different_netloc(self) -> None:
+        state = {
+            "installation_data": {
+                "url": "github.com",
+            },
+        }
+        installation = {
+            "account": {
+                "html_url": "https://example.com/test-org",
+            },
+        }
+        with pytest.raises(IntegrationError) as ie:
+            GitHubEnterpriseIntegrationProvider.ensure_matching_domain(state, installation)
+        assert (
+            str(ie.value.message)
+            == "The GitHub Enterprise domain does not match the expected domain. Please check the domain and port combination."
+        )
+
+    def test_ensure_matching_domain_method_with_different_casing(self) -> None:
+        state = {
+            "installation_data": {
+                "url": "github.com",
+            },
+        }
+        installation = {
+            "account": {
+                "html_url": "https://GitHub.com/test-org",
+            },
+        }
+        GitHubEnterpriseIntegrationProvider.ensure_matching_domain(state, installation)

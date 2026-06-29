@@ -9,8 +9,9 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
+import {useAutomationListDetectors} from 'sentry/views/automations/hooks/useAutomationListDetectors';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 type AutomationListConnectedDetectorsProps = {
   detectorIds: string[];
@@ -19,20 +20,18 @@ type AutomationListConnectedDetectorsProps = {
 const MAX_DISPLAYED_DETECTORS = 5;
 
 function ConnectedDetectorsBody({detectorIds}: {detectorIds: string[]}) {
-  const shownDetectors = detectorIds.slice(0, MAX_DISPLAYED_DETECTORS);
-  const {data, isPending, isError} = useDetectorsQuery({
-    ids: detectorIds.slice(0, MAX_DISPLAYED_DETECTORS),
-  });
+  const {detectorsById, isLoading, isError} = useAutomationListDetectors();
+  const shownIds = detectorIds.slice(0, MAX_DISPLAYED_DETECTORS);
   const hasMore = detectorIds.length > MAX_DISPLAYED_DETECTORS;
 
   if (isError) {
     return <LoadingError />;
   }
 
-  if (isPending) {
+  if (isLoading) {
     return (
       <div>
-        {Array.from({length: shownDetectors.length}).map((_, index) => (
+        {Array.from({length: shownIds.length}).map((_, index) => (
           <Stack padding="md xl" gap="xs" minHeight="64px" key={index}>
             <Placeholder height="20px" width="100%" />
             <Placeholder height="18px" width="70%" />
@@ -42,9 +41,11 @@ function ConnectedDetectorsBody({detectorIds}: {detectorIds: string[]}) {
     );
   }
 
+  const detectors = shownIds.map(id => detectorsById.get(id)).filter(defined);
+
   return (
     <div>
-      {data?.map(detector => {
+      {detectors.map(detector => {
         return (
           <HovercardRow key={detector.id}>
             <InteractionStateLayer />

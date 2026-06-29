@@ -21,6 +21,7 @@ export function getUploadSourceMapsStep({
   platformKey,
   project,
   newOrg,
+  hasScmOnboarding,
   isSelfHosted,
   description,
 }: DocsParams & {
@@ -57,16 +58,20 @@ export function getUploadSourceMapsStep({
             language="bash"
             onCopy={() =>
               trackEvent(
-                newOrg
-                  ? 'onboarding.source_maps_wizard_button_copy_clicked'
-                  : 'project_creation.source_maps_wizard_button_copy_clicked'
+                hasScmOnboarding
+                  ? 'onboarding.scm_source_maps_wizard_button_copy_clicked'
+                  : newOrg
+                    ? 'onboarding.source_maps_wizard_button_copy_clicked'
+                    : 'project_creation.source_maps_wizard_button_copy_clicked'
               )
             }
             onSelectAndCopy={() =>
               trackEvent(
-                newOrg
-                  ? 'onboarding.source_maps_wizard_selected_and_copied'
-                  : 'project_creation.source_maps_wizard_selected_and_copied'
+                hasScmOnboarding
+                  ? 'onboarding.scm_source_maps_wizard_selected_and_copied'
+                  : newOrg
+                    ? 'onboarding.source_maps_wizard_selected_and_copied'
+                    : 'project_creation.source_maps_wizard_selected_and_copied'
               )
             }
           >
@@ -82,8 +87,7 @@ export function getUploadSourceMapsStep({
   };
 }
 
-const SENTRY_FOR_AI_BASE_URL =
-  'https://github.com/getsentry/sentry-for-ai/blob/main/skills';
+const SENTRY_FOR_AI_BASE_URL = 'https://skills.sentry.dev';
 
 function CopyPromptButton({prompt}: {prompt: string}) {
   const {copy} = useCopyToClipboard();

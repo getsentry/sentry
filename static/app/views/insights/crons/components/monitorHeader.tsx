@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Monitor} from 'sentry/views/insights/crons/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {MonitorHeaderActions} from './monitorHeaderActions';
 
@@ -19,7 +20,7 @@ export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
   const crumbs = [
     {
       label: t('Alerts'),
-      to: makeAlertsPathname({path: `/rules/`, organization}),
+      to: makeAlertsPathname({path: '/rules/', organization}),
       preservePageFilters: true,
     },
     {
@@ -41,9 +42,9 @@ export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
           {monitor.name}
         </Layout.Title>
       </Layout.HeaderContent>
-      <Layout.HeaderActions>
+      <TopBar.Slot name="actions">
         <MonitorHeaderActions orgSlug={orgSlug} monitor={monitor} onUpdate={onUpdate} />
-      </Layout.HeaderActions>
+      </TopBar.Slot>
     </Layout.Header>
   );
 }

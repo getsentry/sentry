@@ -18,13 +18,13 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_status_inbound import (
     sync_status_inbound as sync_status_inbound_task,
 )
+from sentry.integrations.utils.external_issues import maybe_generate_external_issue_details
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.notifications.utils import get_notification_group_title
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import all_silo_function, cell_silo_function
@@ -74,6 +74,10 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         return False
 
     def get_group_title(self, group, event, **kwargs):
+        # Imported lazily to avoid a circular import: sentry.notifications.utils
+        # imports sentry.utils.committers -> sentry.api.serializers -> this module.
+        from sentry.notifications.utils import get_notification_group_title
+
         return get_notification_group_title(group, event, **kwargs)
 
     @abstractmethod
@@ -161,18 +165,29 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
         event = group.get_latest_event()
 
+        default_title = self.get_group_title(group, event, **kwargs)
+        default_description = self.get_group_description(group, event, **kwargs)
+
+        llm_details = maybe_generate_external_issue_details(group=group, user=user, event=event)
+        title = llm_details["title"] if llm_details["title"] else default_title
+        description = (
+            f"**{default_title}**\n\n{llm_details['description']}\n\n---\n\n{default_description}"
+            if llm_details["description"]
+            else default_description
+        )
+
         return [
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.get_group_title(group, event, **kwargs),
+                "default": title,
                 "type": "string",
                 "required": True,
             },
             {
                 "name": "description",
                 "label": "Description",
-                "default": self.get_group_description(group, event, **kwargs),
+                "default": description,
                 "type": "textarea",
                 "autosize": True,
                 "maxRows": 10,

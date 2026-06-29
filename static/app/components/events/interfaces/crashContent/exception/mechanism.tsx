@@ -12,7 +12,7 @@ import {Pills} from 'sentry/components/pills';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 type Props = {
   data: StackTraceMechanism;
@@ -24,7 +24,7 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
 
   const {errno, signal, mach_exception} = meta;
 
-  const linkElement = help_link && isUrl(help_link) && (
+  const linkElement = help_link && isValidUrl(help_link) && (
     <StyledExternalLink href={help_link}>
       <IconOpen size="xs" />
     </StyledExternalLink>

@@ -20,6 +20,9 @@ class GroupEventJsonView(OrganizationView):
         except Group.DoesNotExist:
             raise Http404
 
+        if not request.access.has_project_access(group.project):
+            raise Http404
+
         event: Event | GroupEvent | None
         if event_id_or_latest == "latest":
             event = group.get_latest_event()

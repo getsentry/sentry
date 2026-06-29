@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {ApiForm} from 'sentry/components/forms/apiForm';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -39,12 +39,14 @@ const fieldProps = {
 } as const;
 
 export function InstanceLevelOAuthDetails() {
+  const {openModal} = useModal();
+
   const api = useApi();
   const params = useParams<{clientID: string}>();
 
   const [clientDetails, setClientDetails] = useState<ClientDetails | null>();
   const [errorMessage, setErrorMessage] = useState<string | null>();
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
 
   const fetchClientData = useCallback(async () => {
     try {
@@ -157,7 +159,7 @@ export function InstanceLevelOAuthDetails() {
           <Flex justify="right">
             <StyledButton
               size="sm"
-              priority="danger"
+              variant="danger"
               onClick={() =>
                 openModal(deps => (
                   <ConfirmClientDeleteModal

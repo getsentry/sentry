@@ -11,7 +11,7 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuthProvider} from 'sentry/types/auth';
-import type {FeatureDisabledHooks} from 'sentry/types/hooks';
+import type {FeatureDisabledOverrides} from 'sentry/types/overrides';
 import {descopeFeatureName} from 'sentry/utils';
 
 type RenderInstallButtonProps = {
@@ -61,14 +61,14 @@ export function ProviderItem({provider, active, onConfigure}: Props) {
     </Access>
   );
 
-  // TODO(epurkhiser): We should probably use a more explicit hook name,
+  // TODO(epurkhiser): We should probably use a more explicit override name,
   // instead of just the feature names (sso-basic, sso-saml2, etc).
   const featureKey = provider.requiredFeature;
-  const hookName = featureKey
-    ? (`feature-disabled:${descopeFeatureName(featureKey)}` as keyof FeatureDisabledHooks)
+  const overrideName = featureKey
+    ? (`feature-disabled:${descopeFeatureName(featureKey)}` as keyof FeatureDisabledOverrides)
     : null;
 
-  const featureProps = hookName ? {hookName} : {};
+  const featureProps = overrideName ? {overrideName} : {};
 
   const getProviderDescription = (providerName: any) => {
     if (providerName === 'SAML2') {
@@ -87,7 +87,7 @@ export function ProviderItem({provider, active, onConfigure}: Props) {
   return (
     <Feature
       {...featureProps}
-      features={[featureKey].filter(f => f)}
+      features={[featureKey].filter(Boolean)}
       renderDisabled={({children, ...props}) =>
         typeof children === 'function' &&
         // TODO(ts): the Feature component isn't correctly templatized to allow

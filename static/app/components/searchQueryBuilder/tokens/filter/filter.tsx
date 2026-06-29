@@ -9,7 +9,11 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {
   BaseGridCell,
@@ -22,6 +26,7 @@ import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
   formatFilterValue,
+  getFilterValueType,
   isAggregateFilterToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
@@ -35,7 +40,7 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {prettifyTagKey} from 'sentry/utils/fields';
 
 interface SearchQueryTokenProps {
@@ -50,7 +55,9 @@ interface FilterValueProps extends SearchQueryTokenProps {
 }
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
-  const {size} = useSearchQueryBuilder();
+  const {getFieldDefinition} = useSearchQueryBuilderConfig();
+  const {size} = useSearchQueryBuilderLayout();
+  const valueType = getFilterValueType(token, getFieldDefinition(getKeyName(token.key)));
 
   if (token.filter === FilterType.HAS) {
     return (
@@ -69,7 +76,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       if (items.length === 1 && items[0]!.value) {
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue({token: items[0]!.value})}
+            {formatFilterValue({token: items[0]!.value, valueType})}
           </FilterValueSingleTruncatedValue>
         );
       }
@@ -81,7 +88,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
-                {formatFilterValue({token: item.value!})}
+                {formatFilterValue({token: item.value!, valueType})}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueJoiner> {multiValueJoiner} </FilterValueJoiner>
@@ -102,7 +109,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     default: {
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue({token: token.value})}
+          {formatFilterValue({token: token.value, valueType})}
         </FilterValueSingleTruncatedValue>
       );
     }
@@ -111,7 +118,8 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
 
 function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValueProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {dispatch, focusOverride, disabled} = useSearchQueryBuilder();
+  const {dispatch, focusOverride} = useSearchQueryBuilderState();
+  const {disabled} = useSearchQueryBuilderConfig();
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -179,7 +187,8 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
 }
 
 function FilterDelete({token, state, item}: SearchQueryTokenProps) {
-  const {dispatch, disabled} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilderState();
+  const {disabled} = useSearchQueryBuilderConfig();
   const filterButtonProps = useFilterButtonProps({state, item});
 
   return (
@@ -203,7 +212,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
-  const {dispatch, invalidFilterKeys} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilderState();
+  const {invalidFilterKeys} = useSearchQueryBuilderConfig();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -225,21 +235,17 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     onKeyDown,
   });
 
-  const tokenHasError = 'invalid' in token && defined(token.invalid);
+  const hasTokenInvalid = 'invalid' in token && defined(token.invalid);
   const tokenHasWarning = 'warning' in token && defined(token.warning);
-  const isInvalidFilterKey = invalidFilterKeys.includes(getKeyName(token.key));
+  const filterKeyName = getKeyName(token.key, {aggregateWithArgs: true});
+  const isInvalidFilterKey = invalidFilterKeys.includes(filterKeyName);
+  const tokenHasError = hasTokenInvalid || isInvalidFilterKey;
 
   return (
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
-      state={
-        tokenHasWarning || isInvalidFilterKey
-          ? 'warning'
-          : tokenHasError
-            ? 'invalid'
-            : 'valid'
-      }
+      state={tokenHasError ? 'invalid' : tokenHasWarning ? 'warning' : 'valid'}
       ref={ref}
       {...modifiedRowProps}
     >
@@ -251,8 +257,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
         warning={
-          isInvalidFilterKey
-            ? t('Invalid key. "%s" is not a supported search key.', getKeyName(token.key))
+          isInvalidFilterKey && !hasTokenInvalid
+            ? t('Invalid key. "%s" is not a supported search key.', filterKeyName)
             : undefined
         }
       >

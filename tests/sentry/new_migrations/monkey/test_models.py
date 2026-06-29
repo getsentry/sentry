@@ -57,3 +57,41 @@ class SafeDeleteModelTest(TestCase):
             assert "Cannot determine database for deleted model" in str(exc_info.value)
             assert "sentry_fake_deleted_table_not_in_router" in str(exc_info.value)
             assert "historical_silo_assignments" in str(exc_info.value)
+
+    def test_move_to_pending_without_historical_assignment_fails(self) -> None:
+        """
+        When marking a model for pending deletion that is not in
+        historical_silo_assignments and cannot be resolved via the live app
+        registry, SafeDeleteModel should raise a ValueError in test
+        environments. This catches the case where the model class is deleted
+        in the same PR as the MOVE_TO_PENDING migration without adding the
+        historical entry — which would silently skip the migration in prod.
+        """
+        fake_meta = Mock()
+        fake_meta.db_table = "sentry_fake_pending_table_not_in_router"
+        fake_meta.app_label = "sentry"
+        fake_meta.model_name = "fakependingmodel"
+
+        FakePendingModel = Mock()
+        FakePendingModel._meta = fake_meta
+
+        from_state = Mock(spec=SentryProjectState)
+        from_state.apps.get_model.return_value = FakePendingModel
+        to_state = Mock(spec=SentryProjectState)
+
+        operation = SafeDeleteModel(
+            name="FakePendingModel", deletion_action=DeletionAction.MOVE_TO_PENDING
+        )
+
+        with connection.schema_editor() as schema_editor:
+            with pytest.raises(ValueError) as exc_info:
+                operation.database_forwards(
+                    "sentry",
+                    cast(SafePostgresDatabaseSchemaEditor, schema_editor),
+                    from_state,
+                    to_state,
+                )
+
+            assert "Cannot determine database for deleted model" in str(exc_info.value)
+            assert "sentry_fake_pending_table_not_in_router" in str(exc_info.value)
+            assert "historical_silo_assignments" in str(exc_info.value)

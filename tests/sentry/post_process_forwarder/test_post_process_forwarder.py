@@ -67,6 +67,10 @@ class PostProcessForwarderTest(TestCase):
                 "events": self.events_topic,
                 "transactions": self.events_topic,
             },
+            KAFKA_TOPIC_TO_CLUSTER={
+                **settings.KAFKA_TOPIC_TO_CLUSTER,
+                self.events_topic: settings.KAFKA_TOPIC_TO_CLUSTER["events"],
+            },
         )
 
         self.override_settings_cm.__enter__()
@@ -92,7 +96,6 @@ class PostProcessForwarderTest(TestCase):
             topic=self.events_topic,
             synchronize_commit_log_topic=self.commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
-            cluster=None,
             group_id=consumer_group,
             auto_offset_reset="earliest",
             strict_offset_reset=False,

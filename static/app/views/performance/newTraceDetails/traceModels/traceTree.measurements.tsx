@@ -13,13 +13,10 @@ export const RENDERABLE_MEASUREMENTS = [
   MobileVital.TIME_TO_INITIAL_DISPLAY,
 ]
   .map(n => n.replace('measurements.', ''))
-  .reduce(
-    (acc, curr) => {
-      acc[curr] = true;
-      return acc;
-    },
-    {} as Record<string, boolean>
-  );
+  .reduce<Record<string, boolean>>((acc, curr) => {
+    acc[curr] = true;
+    return acc;
+  }, {});
 
 export const TRACE_VIEW_WEB_VITALS: WebVital[] = [
   WebVital.LCP,

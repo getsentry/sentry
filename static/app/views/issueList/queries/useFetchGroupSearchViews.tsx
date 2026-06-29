@@ -1,6 +1,4 @@
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {
   GroupSearchView,
   GroupSearchViewCreatedBy,
@@ -25,19 +23,18 @@ type FetchGroupSearchViewsParameters = {
   sort?: GroupSearchViewBackendSortOption[];
 };
 
-export const makeFetchGroupSearchViewsKey = ({
+export function groupSearchViewsApiOptions({
   orgSlug,
   createdBy,
   limit,
   cursor,
   sort,
   query,
-}: FetchGroupSearchViewsParameters): ApiQueryKey =>
-  [
-    getApiUrl('/organizations/$organizationIdOrSlug/group-search-views/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
+}: FetchGroupSearchViewsParameters) {
+  return apiOptions.as<GroupSearchView[]>()(
+    '/organizations/$organizationIdOrSlug/group-search-views/',
     {
+      path: {organizationIdOrSlug: orgSlug},
       query: {
         per_page: limit,
         createdBy,
@@ -45,15 +42,7 @@ export const makeFetchGroupSearchViewsKey = ({
         sort,
         query,
       },
-    },
-  ] as const;
-
-export const useFetchGroupSearchViews = (
-  parameters: FetchGroupSearchViewsParameters,
-  options: Partial<UseApiQueryOptions<GroupSearchView[]>> = {}
-) => {
-  return useApiQuery<GroupSearchView[]>(makeFetchGroupSearchViewsKey(parameters), {
-    staleTime: Infinity,
-    ...options,
-  });
-};
+      staleTime: Infinity,
+    }
+  );
+}

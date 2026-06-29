@@ -1,214 +1,118 @@
-import {useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
+import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Input} from '@sentry/scraps/input';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
-import {TeamSelector} from 'sentry/components/teamSelector';
-import {IconGroup, IconProject, IconSiren} from 'sentry/icons';
+import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
+import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Team} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {slugify} from 'sentry/utils/slugify';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useTeams} from 'sentry/utils/useTeams';
+import type {Repository} from 'sentry/types/integrations';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
+import {ScmAlertFrequencySection} from 'sentry/views/onboarding/components/scmAlertFrequencySection';
+import {ScmProjectDetailsCore} from 'sentry/views/onboarding/components/scmProjectDetailsCore';
 import {
-  DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
-  getRequestDataFragment,
-  type AlertRuleOptions,
-  RuleAction,
-} from 'sentry/views/projectInstall/issueAlertOptions';
+  type ScmProjectDetailsCompletion,
+  useScmProjectDetails,
+} from 'sentry/views/onboarding/components/useScmProjectDetails';
+import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
-import {ScmAlertFrequency} from './components/scmAlertFrequency';
-import {ScmStepFooter} from './components/scmStepFooter';
 import {ScmStepHeader} from './components/scmStepHeader';
 import type {StepProps} from './types';
 
-const PROJECT_DETAILS_WIDTH = '285px';
+interface ScmProjectDetailsProps {
+  createdProjectSlug: string | undefined;
+  onComplete: StepProps['onComplete'];
+  onProjectCreated: (slug: string | undefined) => void;
+  onProjectDetailsFormChange: (form: ProjectDetailsFormState | undefined) => void;
+  projectDetailsForm: ProjectDetailsFormState | undefined;
+  selectedFeatures: ProductSolution[] | undefined;
+  selectedPlatform: OnboardingSelectedSDK | undefined;
+  selectedRepository: Repository | undefined;
+  genBackButton?: StepProps['genBackButton'];
+}
 
-export function ScmProjectDetails({onComplete}: StepProps) {
-  const organization = useOrganization();
-  const {selectedPlatform, selectedFeatures, setCreatedProjectSlug} =
-    useOnboardingContext();
-  const {teams} = useTeams();
-  const createProjectAndRules = useCreateProjectAndRules();
-  useEffect(() => {
-    trackAnalytics('onboarding.scm_project_details_step_viewed', {organization});
-  }, [organization]);
+export function ScmProjectDetails({
+  createdProjectSlug,
+  onComplete,
+  onProjectCreated,
+  onProjectDetailsFormChange,
+  projectDetailsForm,
+  selectedFeatures,
+  selectedPlatform,
+  selectedRepository,
+  genBackButton,
+}: ScmProjectDetailsProps) {
+  // Live form for this step, seeded from the saved form in the onboarding
+  // context. The context only ever holds submitted values, which the hook's
+  // unchanged-return reuse check relies on as its baseline, so live edits stay
+  // here. This step remounts on every onboarding navigation, so each visit
+  // re-seeds and abandoned edits are discarded.
+  const [liveForm, setLiveForm] = useState(projectDetailsForm);
 
-  const firstAdminTeam = teams.find((team: Team) => team.access.includes('team:admin'));
-  const defaultName = slugify(selectedPlatform?.key ?? '');
-
-  // State tracks user edits; derived values fall back to defaults from context/teams
-  const [projectName, setProjectName] = useState<string | null>(null);
-  const [teamSlug, setTeamSlug] = useState<string | null>(null);
-
-  const projectNameResolved = projectName ?? defaultName;
-  const teamSlugResolved = teamSlug ?? firstAdminTeam?.slug ?? '';
-
-  const [alertRuleConfig, setAlertRuleConfig] = useState<AlertRuleOptions>(
-    DEFAULT_ISSUE_ALERT_OPTIONS_VALUES
-  );
-
-  function handleAlertChange<K extends keyof AlertRuleOptions>(
-    key: K,
-    value: AlertRuleOptions[K]
-  ) {
-    setAlertRuleConfig(prev => ({...prev, [key]: value}));
-    if (key === 'alertSetting') {
-      const optionMap: Record<number, string> = {
-        [RuleAction.DEFAULT_ALERT]: 'high_priority',
-        [RuleAction.CUSTOMIZED_ALERTS]: 'custom',
-        [RuleAction.CREATE_ALERT_LATER]: 'create_later',
-      };
-      trackAnalytics('onboarding.scm_project_details_alert_selected', {
-        organization,
-        option: optionMap[value as number] ?? String(value),
-      });
-    }
-  }
-
-  function handleProjectNameBlur() {
-    if (projectName !== null) {
-      trackAnalytics('onboarding.scm_project_details_name_edited', {
-        organization,
-        custom: projectName !== defaultName,
-      });
-    }
-  }
-
-  function handleTeamChange({value}: {value: string}) {
-    setTeamSlug(value);
-    trackAnalytics('onboarding.scm_project_details_team_selected', {
-      organization,
-      team: value,
-    });
-  }
-
-  const canSubmit =
-    projectNameResolved.length > 0 &&
-    teamSlugResolved.length > 0 &&
-    !!selectedPlatform &&
-    !createProjectAndRules.isPending;
-
-  async function handleCreateProject() {
-    if (!selectedPlatform || !canSubmit) {
-      return;
-    }
-
-    trackAnalytics('onboarding.scm_project_details_create_clicked', {organization});
-
-    try {
-      const {project} = await createProjectAndRules.mutateAsync({
-        projectName: projectNameResolved,
-        platform: selectedPlatform,
-        team: teamSlugResolved,
-        alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-        createNotificationAction: () => undefined,
-      });
-
-      // Store the project slug separately so onboarding.tsx can find
-      // the project via useRecentCreatedProject without corrupting
-      // selectedPlatform.key (which the platform features step needs).
-      setCreatedProjectSlug(project.slug);
-
-      trackAnalytics('onboarding.scm_project_details_create_succeeded', {
-        organization,
-        project_slug: project.slug,
-      });
-
+  const form = useScmProjectDetails({
+    analyticsFlow: 'onboarding',
+    selectedPlatform,
+    selectedRepository,
+    createdProjectSlug,
+    projectDetailsForm: liveForm,
+    onProjectDetailsFormChange: setLiveForm,
+    onComplete: ({
+      project,
+      projectDetailsForm: submittedForm,
+    }: ScmProjectDetailsCompletion) => {
+      // Store the slug separately so onboarding.tsx can find the project via
+      // useRecentCreatedProject without corrupting selectedPlatform.key (which
+      // the platform features step needs), and persist the submitted form so
+      // navigating back from setup-docs restores it. Both land before the
+      // step advances.
+      onProjectCreated(project.slug);
+      onProjectDetailsFormChange(submittedForm);
       onComplete(undefined, selectedFeatures ? {product: selectedFeatures} : undefined);
-    } catch (error) {
-      trackAnalytics('onboarding.scm_project_details_create_failed', {organization});
-      addErrorMessage(t('Failed to create project'));
-      Sentry.captureException(error);
-    }
-  }
+    },
+  });
 
   return (
     <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
       <ScmStepHeader
-        stepNumber={3}
         heading={t('Project details')}
         subtitle={t(
-          'Set the project name, assign a team, and configure\nhow you want to receive issue alerts'
+          'Set the project name, assign a team, and configure how you want to receive issue alerts'
         )}
       />
 
-      <Stack gap="3xl" width="100%" maxWidth={PROJECT_DETAILS_WIDTH}>
-        <Stack gap="md">
-          <Flex gap="md" align="center" justify="center">
-            <IconProject size="md" variant="secondary" />
-            <Container>
-              <Text bold size="lg" density="comfortable">
-                {t('Give your project a name')}
-              </Text>
-            </Container>
-          </Flex>
-          <Input
-            type="text"
-            placeholder={t('project-name')}
-            value={projectNameResolved}
-            onChange={e => setProjectName(slugify(e.target.value))}
-            onBlur={handleProjectNameBlur}
-          />
-        </Stack>
-
-        <Stack gap="md">
-          <Flex gap="md" align="center" justify="center">
-            <IconGroup size="md" />
-            <Container>
-              <Text bold size="lg" density="comfortable">
-                {t('Assign a team')}
-              </Text>
-            </Container>
-          </Flex>
-          <TeamSelector
-            allowCreate
-            name="team"
-            aria-label={t('Select a Team')}
-            clearable={false}
-            placeholder={t('Select a Team')}
-            teamFilter={(tm: Team) => tm.access.includes('team:admin')}
-            value={teamSlugResolved}
-            onChange={handleTeamChange}
-          />
-        </Stack>
-
-        <Stack gap="md">
-          <Flex gap="md" align="center" justify="center">
-            <IconSiren size="md" />
-            <Container>
-              <Text bold size="lg" density="comfortable">
-                {t('Alert frequency')}
-              </Text>
-            </Container>
-          </Flex>
-          <Container>
-            <Text variant="muted" size="lg" density="comfortable" align="center">
-              {t('Get notified when things go wrong')}
-            </Text>
-          </Container>
-          <ScmAlertFrequency {...alertRuleConfig} onFieldChange={handleAlertChange} />
-        </Stack>
+      <Stack gap="3xl" width="100%" maxWidth={SCM_STEP_CONTENT_WIDTH}>
+        <ScmProjectDetailsCore
+          analyticsFlow="onboarding"
+          projectName={form.projectName}
+          onProjectNameChange={form.onProjectNameChange}
+          onProjectNameBlur={form.onProjectNameBlur}
+          teamSlug={form.teamSlug}
+          onTeamChange={form.onTeamChange}
+          isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
+        />
+        <ScmAlertFrequencySection
+          analyticsFlow="onboarding"
+          alertRuleConfig={form.alertRuleConfig}
+          onAlertChange={form.onAlertChange}
+        />
       </Stack>
 
-      <ScmStepFooter>
-        <Button
-          priority="primary"
-          onClick={handleCreateProject}
-          disabled={!canSubmit}
-          busy={createProjectAndRules.isPending}
-          icon={<IconProject />}
-        >
-          {t('Create project')}
-        </Button>
-      </ScmStepFooter>
+      <GenericFooter gap="3xl" padding="0 3xl">
+        <Flex align="center">{genBackButton?.()}</Flex>
+        <Flex align="center" gap="md">
+          <Button
+            variant="primary"
+            onClick={form.submit}
+            disabled={!form.canSubmit}
+            busy={form.isBusy}
+            icon={<IconProject />}
+          >
+            {t('Create project')}
+          </Button>
+        </Flex>
+      </GenericFooter>
     </Flex>
   );
 }

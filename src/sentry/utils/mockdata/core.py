@@ -391,7 +391,7 @@ def create_member(
 
 
 def create_access_request(member: OrganizationMember, team: Team) -> None:
-    OrganizationAccessRequest.objects.create_or_update(member=member, team=team)
+    OrganizationAccessRequest.objects.get_or_create(member=member, team=team)
 
 
 def generate_projects(organization: Organization) -> Mapping[str, Any]:
@@ -586,7 +586,7 @@ def populate_release(
             authors=[str(a.id) for a in authors],
         )
 
-    ReleaseProjectEnvironment.objects.create_or_update(
+    ReleaseProjectEnvironment.objects.get_or_create(
         project=project,
         environment=environment,
         release=release,

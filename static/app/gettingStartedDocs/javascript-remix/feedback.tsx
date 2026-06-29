@@ -51,7 +51,7 @@ export const feedback: OnboardingConfig = {
               filename: 'entry.client.tsx',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
-                importStatement: `import * as Sentry from "@sentry/remix";`,
+                importStatement: 'import * as Sentry from "@sentry/remix";',
                 dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),

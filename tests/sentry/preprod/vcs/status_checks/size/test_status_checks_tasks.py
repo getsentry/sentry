@@ -12,9 +12,9 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.vcs.status_checks.size.tasks import (
-    StatusCheckErrorType,
     create_preprod_status_check_task,
 )
+from sentry.preprod.vcs.status_checks.utils import StatusCheckErrorType
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
@@ -258,7 +258,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         ]
 
         for artifact_state, expected_status, error_message in test_cases:
-            with self.subTest(state=artifact_state):
+            with self.subTest(state=artifact_state.name):
                 preprod_artifact = self._create_preprod_artifact(
                     state=artifact_state,
                     error_message=error_message,
@@ -1377,7 +1377,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         ]
 
         for artifact_state, expected_status in test_cases:
-            with self.subTest(state=artifact_state, expected=expected_status):
+            with self.subTest(state=artifact_state.name, expected=expected_status.name):
                 preprod_artifact = self._create_preprod_artifact(
                     state=artifact_state,
                     error_message=(

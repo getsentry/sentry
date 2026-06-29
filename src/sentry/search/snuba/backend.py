@@ -8,14 +8,16 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from django.db.models import Q
+from django.db.models import F, Max, Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import features, quotas
+from sentry import quotas
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.progress import PROGRESS_RESET_ACTIVITY_TYPES
+from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -42,6 +44,9 @@ from sentry.utils.cursors import Cursor, CursorResult
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 logger = logging.getLogger(__name__)
+
+# `has:issue.seer_last_run` only matches issues Seer ran on within this window.
+SEER_LAST_RUN_RECENCY_WINDOW = timedelta(days=30)
 
 
 def assigned_to_filter(
@@ -247,6 +252,69 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
     )
 
 
+def issue_activity_type_filter(activity_types: list[int], projects: Sequence[Project]) -> Q:
+    group_ids = (
+        Activity.objects.filter(
+            project__in=projects,
+            type__in=set(activity_types) | PROGRESS_RESET_ACTIVITY_TYPES,
+        )
+        .values("group_id")
+        .annotate(
+            _latest_match=Max("datetime", filter=Q(type__in=activity_types)),
+            _latest_reset=Max("datetime", filter=Q(type__in=PROGRESS_RESET_ACTIVITY_TYPES)),
+        )
+        .filter(_latest_match__isnull=False)
+        .filter(Q(_latest_reset__isnull=True) | Q(_latest_match__gte=F("_latest_reset")))
+        .values_list("group_id", flat=True)
+    )
+
+    return Q(id__in=group_ids)
+
+
+def issue_progress_filter(progress_values: list[str], projects: Sequence[Project]) -> Q:
+    """
+    Filters issues by their position in the resolution lifecycle:
+
+      identified -> assigned -> diagnosed -> fix_proposed -> fix_applied
+
+    "diagnosed" and above are determined by seer/resolution activity types (see
+    ISSUE_PROGRESS_TO_ACTIVITY_TYPES). A regression or manual unresolve resets an issue
+    back, so only activities *after* the latest reset count.
+
+    "identified" and "assigned" are the two base states before any seer activity,
+    distinguished solely by whether the issue is currently assigned:
+      - identified: not assigned AND no post-regression seer activity
+      - assigned:   assigned (via GroupAssignee) AND no post-regression seer activity
+
+    Assignment is checked via GroupAssignee rather than ASSIGNED activity so that it
+    survives regressions — an issue that was assigned, progressed, then regressed
+    remains assigned as long as it's still assigned.
+    """
+    from sentry.issues.progress import ISSUE_PROGRESS_TO_ACTIVITY_TYPES, IssueProgressState
+
+    all_progress_activity_types = [
+        t for types in ISSUE_PROGRESS_TO_ACTIVITY_TYPES.values() for t in types
+    ]
+    has_progress_q = issue_activity_type_filter(all_progress_activity_types, projects)
+    assigned_q = Q(
+        id__in=GroupAssignee.objects.filter(project_id__in=[p.id for p in projects]).values_list(
+            "group_id", flat=True
+        )
+    )
+
+    q = Q()
+    for value in progress_values:
+        progress = IssueProgressState(value)
+        if progress is IssueProgressState.IDENTIFIED:
+            q |= ~assigned_q & ~has_progress_q
+        elif progress is IssueProgressState.ASSIGNED:
+            q |= assigned_q & ~has_progress_q
+        else:
+            activity_types = ISSUE_PROGRESS_TO_ACTIVITY_TYPES[progress]
+            q |= issue_activity_type_filter(activity_types, projects)
+    return q
+
+
 def seer_actionability_filter(trigger_values: list[float]) -> Q:
     """
     Converts float thresholds for the Seer fixability score into a query of ranges:
@@ -264,7 +332,7 @@ def seer_actionability_filter(trigger_values: list[float]) -> Q:
                 seer_fixability_score__gte=0.0,
                 seer_fixability_score__lte=FixabilityScoreThresholds.LOW.value,
             )
-        if val == FixabilityScoreThresholds.LOW.value:
+        elif val == FixabilityScoreThresholds.LOW.value:
             query |= Q(
                 seer_fixability_score__gt=FixabilityScoreThresholds.LOW.value,
                 seer_fixability_score__lte=FixabilityScoreThresholds.MEDIUM.value,
@@ -356,6 +424,32 @@ class ScalarCondition(Condition):
             q_dict.update(self.extra)
 
         return qs_method(**q_dict)
+
+
+class RecentDateCondition(ScalarCondition):
+    """
+    Like ``ScalarCondition`` but for a datetime field, ``has:`` means the field
+    was set within the trailing ``window`` (a recent run), not merely non-NULL.
+    ``!has:`` is the complement: never set, or set longer ago than the window.
+    """
+
+    def __init__(self, field: str, window: timedelta):
+        super().__init__(field)
+        self.window = window
+
+    def apply(
+        self, queryset: BaseQuerySet[Group, Group], search_filter: SearchFilter
+    ) -> BaseQuerySet[Group, Group]:
+        if search_filter.value.raw_value == "" and search_filter.operator in ("=", "!="):
+            # `__gte` matches a run within the window (NULLs are excluded
+            # implicitly). has: → operator "!=" keeps those; !has: → operator
+            # "=" is the complement (NULL or older than the window).
+            cutoff = timezone.now() - self.window
+            recent = {f"{self.field}__gte": cutoff}
+            if search_filter.operator == "!=":
+                return queryset.filter(**recent)
+            return queryset.exclude(**recent)
+        return super().apply(queryset, search_filter)
 
 
 class QuerySetBuilder:
@@ -587,15 +681,23 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "regressed_in_release": QCallbackCondition(
                 functools.partial(regressed_in_release_filter, projects=projects)
             ),
-            "detector": QCallbackCondition(_make_detector_filter),
+            "detector": QCallbackCondition(
+                _make_detector_filter
+            ),  # TODO - delete this once the UI has been updated
+            "monitor": QCallbackCondition(_make_detector_filter),
             "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
             "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),
             "issue.seer_actionability": QCallbackCondition(seer_actionability_filter),
-            "issue.seer_last_run": ScalarCondition(
-                "seer_explorer_autofix_last_triggered"
-                if features.has("organizations:autofix-on-explorer", organization)
-                else "seer_autofix_last_triggered"
+            "issue.progress": QCallbackCondition(
+                functools.partial(issue_progress_filter, projects=projects)
+            ),
+            # TODO: the recency window approximates an "active" run while
+            # we figure out how to handle deletion of seer runs better. Once runs
+            # clear the column on deletion, this should go back to a plain
+            # ScalarCondition.
+            "issue.seer_last_run": RecentDateCondition(
+                "seer_explorer_autofix_last_triggered", SEER_LAST_RUN_RECENCY_WINDOW
             ),
             "issue.id": QCallbackCondition(
                 lambda ids: Q(id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids])])

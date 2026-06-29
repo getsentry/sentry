@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from typing import NotRequired
 from uuid import uuid4
 
 import orjson
@@ -21,12 +22,17 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.project import DetailedProjectSerializer
+from sentry.api.serializers.models.project import DetailedProjectResponse, DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.constants import (
     PROJECT_SLUG_MAX_LENGTH,
     RESERVED_PROJECT_SLUGS,
@@ -106,6 +112,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         required=False,
     )
     seerScannerAutomation = serializers.BooleanField(required=False)
+    seerNightshiftTweaks = serializers.JSONField(required=False, allow_null=True)
     preprodSizeStatusChecksEnabled = serializers.BooleanField(
         help_text="Enable preprod size status checks. Can be updated with **`project:read`** permission.",
         required=False,
@@ -114,12 +121,24 @@ class ProjectMemberSerializer(serializers.Serializer):
     preprodSnapshotStatusChecksEnabled = serializers.BooleanField(required=False)
     preprodSnapshotStatusChecksFailOnAdded = serializers.BooleanField(required=False)
     preprodSnapshotStatusChecksFailOnRemoved = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnChanged = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnRenamed = serializers.BooleanField(required=False)
     preprodSizeEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodDistributionEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
         required=False, allow_null=True
     )
     preprodSnapshotPrCommentsEnabled = serializers.BooleanField(required=False, allow_null=True)
+    preprodSnapshotPrCommentsPostOnAdded = serializers.BooleanField(required=False, allow_null=True)
+    preprodSnapshotPrCommentsPostOnRemoved = serializers.BooleanField(
+        required=False, allow_null=True
+    )
+    preprodSnapshotPrCommentsPostOnChanged = serializers.BooleanField(
+        required=False, allow_null=True
+    )
+    preprodSnapshotPrCommentsPostOnRenamed = serializers.BooleanField(
+        required=False, allow_null=True
+    )
     preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
     preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
 
@@ -157,6 +176,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "tempestFetchScreenshots",
         "autofixAutomationTuning",
         "seerScannerAutomation",
+        "seerNightshiftTweaks",
         "debugFilesRole",
         "preprodSizeStatusChecksEnabled",
         "preprodSizeStatusChecksRules",
@@ -167,8 +187,14 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodSnapshotStatusChecksEnabled",
         "preprodSnapshotStatusChecksFailOnAdded",
         "preprodSnapshotStatusChecksFailOnRemoved",
+        "preprodSnapshotStatusChecksFailOnChanged",
+        "preprodSnapshotStatusChecksFailOnRenamed",
         "preprodDistributionPrCommentsEnabledByCustomer",
         "preprodSnapshotPrCommentsEnabled",
+        "preprodSnapshotPrCommentsPostOnAdded",
+        "preprodSnapshotPrCommentsPostOnRemoved",
+        "preprodSnapshotPrCommentsPostOnChanged",
+        "preprodSnapshotPrCommentsPostOnRenamed",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -229,7 +255,7 @@ E.g. `['release', 'environment']`""",
         r"^[-a-zA-Z0-9+/=\s]+$", max_length=255, allow_blank=True
     )
     securityTokenHeader = serializers.RegexField(
-        r"^[a-zA-Z0-9_\-]+$", max_length=20, allow_blank=True
+        r"^[a-zA-Z0-9_\-]+$", max_length=64, allow_blank=True
     )
     verifySSL = serializers.BooleanField(required=False)
 
@@ -324,18 +350,6 @@ E.g. `['release', 'environment']`""",
         return validate_pii_config_update(organization, value)
 
     def validate_builtinSymbolSources(self, value):
-        if not value:
-            return value
-
-        from sentry import features
-
-        organization = self.context["project"].organization
-        request = self.context["request"]
-        has_sources = features.has("organizations:symbol-sources", organization, actor=request.user)
-
-        if not has_sources:
-            raise serializers.ValidationError("Organization is not allowed to set symbol sources")
-
         return value
 
     def validate_symbolSources(self, sources_json) -> str:
@@ -479,15 +493,6 @@ E.g. `['release', 'environment']`""",
             )
         return value
 
-    def validate_scmSourceContextEnabled(self, value):
-        if value:
-            organization = self.context["project"].organization
-            if not features.has("organizations:scm-source-context", organization):
-                raise serializers.ValidationError(
-                    "Organization does not have the SCM source context feature enabled."
-                )
-        return value
-
     def validate_debugFilesRole(self, value):
         if value is None:
             return value
@@ -513,6 +518,13 @@ class RelaxedProjectAndStaffPermission(StaffPermissionMixin, RelaxedProjectPermi
     pass
 
 
+class _ProjectDetailsResponse(DetailedProjectResponse):
+    """`DetailedProjectResponse` plus the endpoint-level extra the handler
+    appends post-serialize via `?expand=hasAlertIntegration`."""
+
+    hasAlertIntegrationInstalled: NotRequired[bool]
+
+
 @extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
@@ -535,7 +547,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         return queryset.count()
 
     @extend_schema(
-        operation_id="Retrieve a Project",
+        operation_id="getProject",
+        summary="Retrieve a Project",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
@@ -545,11 +558,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.DETAILED_PROJECT,
     )
-    def get(self, request: Request, project: Project) -> Response:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[_ProjectDetailsResponse] | Response[ValidationErrorResponse]:
         """
         Return details on an individual project.
         """
-        data = serialize(project, request.user, DetailedProjectSerializer())
+        collapse = request.GET.getlist("collapse", [])
+        data: _ProjectDetailsResponse = serialize(
+            project, request.user, DetailedProjectSerializer(collapse=collapse)
+        )
 
         # TODO: should switch to expand and move logic into the serializer
         include = set(filter(bool, request.GET.get("include", "").split(",")))
@@ -567,18 +585,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 many=True,
             )
             if not ds_bias_serializer.is_valid():
-                return Response(ds_bias_serializer.errors, status=400)
-            data["dynamicSamplingBiases"] = ds_bias_serializer.data
+                return Response(as_validation_errors(ds_bias_serializer), status=400)
+            biases: list[dict[str, str | bool]] = list(ds_bias_serializer.data)
+            data["dynamicSamplingBiases"] = biases
         else:
             data["dynamicSamplingBiases"] = None
-
-        # filter for enabled plugins o/w the response body is gigantic and difficult to read
-        data["plugins"] = [plugin for plugin in data["plugins"] if plugin.get("enabled")]
 
         return Response(data)
 
     @extend_schema(
-        operation_id="Update a Project",
+        operation_id="updateProject",
+        summary="Update a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -591,7 +608,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.DETAILED_PROJECT,
     )
-    def put(self, request: Request, project) -> Response:
+    def put(
+        self, request: Request, project
+    ) -> (
+        Response[_ProjectDetailsResponse]
+        | Response[None]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Update various attributes and configurable settings for the given project.
 
@@ -630,7 +654,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 status=403,
             )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         if not has_elevated_scopes:
             for key in ProjectAdminSerializer().fields.keys():
@@ -811,6 +835,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:seer_scanner_automation"] = result[
                     "seerScannerAutomation"
                 ]
+        if "seerNightshiftTweaks" in result:
+            if project.update_option(
+                "sentry:seer_nightshift_tweaks", result["seerNightshiftTweaks"]
+            ):
+                changed_proj_settings["sentry:seer_nightshift_tweaks"] = result[
+                    "seerNightshiftTweaks"
+                ]
         if result.get("preprodSizeStatusChecksEnabled") is not None:
             if project.update_option(
                 "sentry:preprod_size_status_checks_enabled",
@@ -883,6 +914,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_removed"] = (
                     result["preprodSnapshotStatusChecksFailOnRemoved"]
                 )
+        if result.get("preprodSnapshotStatusChecksFailOnChanged") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_changed",
+                result["preprodSnapshotStatusChecksFailOnChanged"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_changed"] = (
+                    result["preprodSnapshotStatusChecksFailOnChanged"]
+                )
+        if result.get("preprodSnapshotStatusChecksFailOnRenamed") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_renamed",
+                result["preprodSnapshotStatusChecksFailOnRenamed"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_renamed"] = (
+                    result["preprodSnapshotStatusChecksFailOnRenamed"]
+                )
         if "preprodDistributionPrCommentsEnabledByCustomer" in result:
             if project.update_option(
                 "sentry:preprod_distribution_pr_comments_enabled_by_customer",
@@ -899,6 +946,38 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:preprod_snapshot_pr_comments_enabled"] = result[
                     "preprodSnapshotPrCommentsEnabled"
                 ]
+        if "preprodSnapshotPrCommentsPostOnAdded" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_post_on_added",
+                result["preprodSnapshotPrCommentsPostOnAdded"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_post_on_added"] = result[
+                    "preprodSnapshotPrCommentsPostOnAdded"
+                ]
+        if "preprodSnapshotPrCommentsPostOnRemoved" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_post_on_removed",
+                result["preprodSnapshotPrCommentsPostOnRemoved"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_post_on_removed"] = (
+                    result["preprodSnapshotPrCommentsPostOnRemoved"]
+                )
+        if "preprodSnapshotPrCommentsPostOnChanged" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_post_on_changed",
+                result["preprodSnapshotPrCommentsPostOnChanged"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_post_on_changed"] = (
+                    result["preprodSnapshotPrCommentsPostOnChanged"]
+                )
+        if "preprodSnapshotPrCommentsPostOnRenamed" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_post_on_renamed",
+                result["preprodSnapshotPrCommentsPostOnRenamed"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_post_on_renamed"] = (
+                    result["preprodSnapshotPrCommentsPostOnRenamed"]
+                )
         if "debugFilesRole" in result:
             if result["debugFilesRole"] is None:
                 project.delete_option("sentry:debug_files_role")
@@ -1079,8 +1158,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     result.get("dynamicSamplingBiases"),
                 )
                 if len(changed_proj_settings) == 1:
-                    data = serialize(project, request.user, DetailedProjectSerializer())
-                    return Response(data)
+                    body_partial: _ProjectDetailsResponse = serialize(
+                        project, request.user, DetailedProjectSerializer()
+                    )
+                    return Response(body_partial)
 
             if "sentry:uptime_autodetection" in options:
                 project.update_option(
@@ -1095,16 +1176,19 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             data={**changed_proj_settings, **project.get_audit_log_data()},
         )
 
-        data = serialize(project, request.user, DetailedProjectSerializer())
+        body: _ProjectDetailsResponse = serialize(
+            project, request.user, DetailedProjectSerializer()
+        )
         if not has_dynamic_sampling(project.organization):
-            data["dynamicSamplingBiases"] = None
+            body["dynamicSamplingBiases"] = None
         # If here because the case of when no dynamic sampling is enabled at all, you would want to kick
         # out both keys actually
 
-        return Response(data)
+        return Response(body)
 
     @extend_schema(
-        operation_id="Delete a Project",
+        operation_id="deleteProject",
+        summary="Delete a Project",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         responses={
             204: RESPONSE_NO_CONTENT,
@@ -1112,7 +1196,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project: Project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response[None] | Response[str]:
         """
         Schedules a project for deletion.
 

@@ -18,7 +18,7 @@ export function JumpButtons({jump, onClick, tableHeaderHeight}: Props) {
       <JumpButton
         onClick={onClick}
         aria-label={t('Jump Up')}
-        priority="primary"
+        variant="primary"
         size="xs"
         style={{top: `${tableHeaderHeight + offsetFromEdge}px`}}
       >
@@ -31,7 +31,7 @@ export function JumpButtons({jump, onClick, tableHeaderHeight}: Props) {
       <JumpButton
         onClick={onClick}
         aria-label={t('Jump Down')}
-        priority="primary"
+        variant="primary"
         size="xs"
         style={{bottom: `${offsetFromEdge}px`}}
       >

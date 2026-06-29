@@ -1,7 +1,8 @@
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 type Props = {
   enabled: boolean;
@@ -21,7 +22,10 @@ export function usePollReplayRecord({
     getApiUrl('/organizations/$organizationIdOrSlug/replays/$replayId/', {
       path: {organizationIdOrSlug: orgSlug, replayId},
     }),
-    {}, // we use {} to avoid colliding with the queryKey used by useReplayData
+    {
+      // we use { isPolling: true } to avoid colliding with the queryKey used by useReplayData
+      query: {isPolling: true},
+    },
   ];
 
   const {data} = useApiQuery<{data: ReplayRecord}>(queryKey, {

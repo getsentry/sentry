@@ -70,7 +70,8 @@ def _resolve_integration(
     if not integration:
         return None
 
-    install = integration.get_installation(organization_id=config.project.organization_id)
+    org_id = config.project_repository.project.organization_id
+    install = integration.get_installation(organization_id=org_id)
     if not isinstance(install, RepositoryIntegration):
         return None
 
@@ -207,8 +208,9 @@ def fetch_source_context_from_scm(
 
         ref = ctx.get("commit_id") or str(config.default_branch or "")
 
+        repository = config.project_repository.repository
         file_content, fetch_error = _fetch_file_from_scm(
-            install, integration.id, config.repository, src_path, ref
+            install, integration.id, repository, src_path, ref
         )
 
         if fetch_error:
@@ -230,7 +232,7 @@ def fetch_source_context_from_scm(
 
         try:
             source_url = install.get_stacktrace_link(
-                config.repository, src_path, str(config.default_branch or ""), ctx.get("commit_id")
+                repository, src_path, str(config.default_branch or ""), ctx.get("commit_id")
             )
             result["source_url"] = source_url
         except (ApiError, IntegrationConfigurationError):

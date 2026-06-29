@@ -4,13 +4,22 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {tct} from 'sentry/locale';
-import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-import SentryAppExternalForm from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+import {
+  SentryAppExternalForm,
+  type SchemaFormConfig,
+} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+
+type OnSubmitSuccess = (
+  response: any,
+  instance?: unknown,
+  id?: string,
+  change?: {new: unknown; old: unknown}
+) => void;
 
 type Props = ModalRenderProps & {
   appName: string;
   config: SchemaFormConfig;
-  onSubmitSuccess: React.ComponentProps<typeof SentryAppExternalForm>['onSubmitSuccess'];
+  onSubmitSuccess: OnSubmitSuccess;
   resetValues: Record<string, any>;
   sentryAppInstallationUuid: string;
 };
@@ -24,6 +33,12 @@ export function SentryAppRuleModal({
   resetValues,
   onSubmitSuccess,
 }: Props) {
+  const handleSubmitSuccess: OnSubmitSuccess = (...params) => {
+    onSubmitSuccess(...params);
+    closeModal();
+  };
+  const formConfig = resetValues?.formFields || config;
+
   return (
     <Fragment>
       <Header closeButton>
@@ -34,13 +49,10 @@ export function SentryAppRuleModal({
         <SentryAppExternalForm
           sentryAppInstallationUuid={sentryAppInstallationUuid}
           appName={appName}
-          config={resetValues?.formFields || config}
+          config={formConfig}
           element="alert-rule-action"
           action="create"
-          onSubmitSuccess={(...params) => {
-            onSubmitSuccess(...params);
-            closeModal();
-          }}
+          onSubmitSuccess={handleSubmitSuccess}
           resetValues={{settings: resetValues?.settings}}
         />
       </Body>

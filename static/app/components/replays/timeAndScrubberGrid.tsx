@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -33,21 +33,21 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   const durationMs = replay?.getDurationMs();
   const maxScale = durationMs ? Math.ceil(durationMs / 60000) : 10;
 
-  const handleZoomOut = useCallback(() => {
+  const handleZoomOut = () => {
     const newScale = Math.max(timelineScale - 1, 1);
     setTimelineScale(newScale);
     trackAnalytics('replay.timeline.zoom-out', {
       organization,
     });
-  }, [timelineScale, setTimelineScale, organization]);
+  };
 
-  const handleZoomIn = useCallback(() => {
+  const handleZoomIn = () => {
     const newScale = Math.min(timelineScale + 1, maxScale);
     setTimelineScale(newScale);
     trackAnalytics('replay.timeline.zoom-in', {
       organization,
     });
-  }, [timelineScale, maxScale, setTimelineScale, organization]);
+  };
 
   return (
     <Grid flow="column" align="center" gap="0">
@@ -55,7 +55,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
         size="xs"
         tooltipProps={{title: t('Zoom out')}}
         icon={<IconSubtract />}
-        priority="transparent"
+        variant="transparent"
         onClick={handleZoomOut}
         aria-label={t('Zoom out')}
         disabled={timelineScale === 1 || isLoading}
@@ -68,7 +68,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
         size="xs"
         tooltipProps={{title: t('Zoom in')}}
         icon={<IconAdd />}
-        priority="transparent"
+        variant="transparent"
         onClick={handleZoomIn}
         aria-label={t('Zoom in')}
         disabled={timelineScale === maxScale || isLoading}

@@ -5,16 +5,16 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-
-import type {AddIntegrationParams} from './addIntegration';
-import {useAddIntegration} from './addIntegration';
+import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
+import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
+import {useAutoOpenInstallModal} from 'sentry/utils/integrations/useAutoOpenInstallModal';
 
 interface AddIntegrationButtonProps
   extends
     Omit<ButtonProps, 'children' | 'analyticsParams'>,
     Pick<
       AddIntegrationParams,
-      'provider' | 'organization' | 'analyticsParams' | 'modalParams'
+      'provider' | 'organization' | 'analyticsParams' | 'suppressSuccessMessage'
     > {
   onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
@@ -29,8 +29,8 @@ export function AddIntegrationButton({
   organization,
   reinstall,
   analyticsParams,
-  modalParams,
   installStatus,
+  suppressSuccessMessage,
   ...buttonProps
 }: AddIntegrationButtonProps) {
   const label =
@@ -41,12 +41,15 @@ export function AddIntegrationButton({
         ? t('Reinstall')
         : t('Add %s', provider.metadata.noun));
 
-  const {startFlow} = useAddIntegration({
+  const {startFlow} = useAddIntegration();
+
+  // This is hooked to the button since the button is only rendered when all the flags/plan checks pass.
+  useAutoOpenInstallModal({
     provider,
     organization,
     onInstall: onAddIntegration,
     analyticsParams,
-    modalParams,
+    suppressSuccessMessage,
   });
 
   return (
@@ -64,7 +67,13 @@ export function AddIntegrationButton({
               provider: provider.metadata.noun,
             });
           }
-          startFlow();
+          startFlow({
+            provider,
+            organization,
+            onInstall: onAddIntegration,
+            analyticsParams,
+            suppressSuccessMessage,
+          });
         }}
         aria-label={t('Add integration')}
       >

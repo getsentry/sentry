@@ -232,7 +232,13 @@ class ProjectSerializerTest(TestCase):
             class ProjectColorFeatureHandler(features.FeatureHandler):
                 features = {color_flag}
 
-                def has(self, feature, actor, skip_entity: bool | None = False):
+                def has(
+                    self,
+                    feature,
+                    actor,
+                    skip_entity: bool | None = False,
+                    skip_experiment_exposure: bool = False,
+                ):
                     return feature.project in included_projects
 
                 def batch_has(self, *a, **k):

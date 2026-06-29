@@ -153,7 +153,7 @@ export function ActionDropDown(props: Props) {
           {...triggerProps}
           aria-label={t('Quick Context Action Menu')}
           data-test-id="quick-context-action-trigger"
-          priority="transparent"
+          variant="transparent"
           size="zero"
           onClick={e => {
             e.stopPropagation();

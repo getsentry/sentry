@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -7,7 +7,7 @@ import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {joinTeam} from 'sentry/actionCreators/teams';
+import {joinTeamPromise} from 'sentry/actionCreators/teams';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
 import {IconFlag} from 'sentry/icons';
@@ -29,27 +29,21 @@ function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
   const teamStoreData = useLegacyStore(TeamStore);
   const selectedTeam = teamStoreData.teams.find(team => team.slug === teamSlug);
 
-  const handleJoinTeam = useCallback(() => {
+  const handleJoinTeam = async () => {
     setIsLoading(true);
 
-    joinTeam(
-      api,
-      {
+    try {
+      await joinTeamPromise(api, {
         orgId: organization.slug,
         teamId: teamSlug,
-      },
-      {
-        success: () => {
-          setIsLoading(false);
-          addSuccessMessage(t('Request to join team sent.'));
-        },
-        error: () => {
-          setIsLoading(false);
-          addErrorMessage(t('There was an error while trying to request access.'));
-        },
-      }
-    );
-  }, [api, organization.slug, teamSlug]);
+      });
+      addSuccessMessage(t('Request to join team sent.'));
+    } catch {
+      addErrorMessage(t('There was an error while trying to request access.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const openMembership = organization.features.includes('open-membership');
 
@@ -66,7 +60,7 @@ function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
   }
 
   return (
-    <Button priority="primary" onClick={handleJoinTeam}>
+    <Button variant="primary" onClick={handleJoinTeam}>
       {openMembership ? t('Join Team') : t('Request Access')}
     </Button>
   );
@@ -153,7 +147,7 @@ export function MissingProjectMembership({
             </Grid>
           }
         >
-          {t(`You'll need to join a team with access before you can view this data.`)}
+          {t("You'll need to join a team with access before you can view this data.")}
         </EmptyMessage>
       ) : (
         <EmptyMessage icon={<IconFlag />}>

@@ -14,7 +14,6 @@ from sentry.issues.grouptype import (
 from sentry.models.group import Group
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, ProfilesSnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
@@ -56,7 +55,6 @@ class TestSlackImageBlockBuilder(
         group.update(type=PerformanceP95EndpointRegressionGroupType.type_id)
         return group
 
-    @with_feature("organizations:performance-use-metrics")
     def test_image_block_for_endpoint_regression(self) -> None:
         group = self._create_endpoint_regression_issue()
         image_block = ImageBlockBuilder(group=group).build_image_block()
@@ -64,7 +62,6 @@ class TestSlackImageBlockBuilder(
         assert image_block and "type" in image_block and image_block["type"] == "image"
         assert "_media/" in image_block["image_url"]
 
-    @with_feature("organizations:performance-use-metrics")
     @patch("sentry.issue_detection.detectors.utils.escape_transaction")
     def test_caching(self, mock_escape_transaction: MagicMock) -> None:
         mock_escape_transaction.return_value = "Test Transaction"
@@ -82,7 +79,6 @@ class TestSlackImageBlockBuilder(
             assert image_block is not None
             assert image_block["image_url"] == image_url
 
-    @with_feature("organizations:performance-use-metrics")
     def test_image_block_for_function_regression(self) -> None:
         hour_ago = (before_now(minutes=10) - timedelta(hours=1)).replace(
             minute=0, second=0, microsecond=0

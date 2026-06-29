@@ -4,15 +4,18 @@ from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, urlparse
 
+import orjson
 import pytest
 import responses
+from django.http import HttpRequest
+from django.urls import reverse
 
 from fixtures.vsts import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
 from sentry.identity.vsts.provider import VSTSNewIdentityProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.pipeline import ensure_integration
+from sentry.integrations.pipeline import IntegrationPipeline, ensure_integration
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
@@ -61,13 +64,11 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
+            "oauth_data": {
+                "access_token": self.access_token,
+                "expires_in": "3600",
+                "refresh_token": self.refresh_token,
+                "token_type": "jwt-bearer",
             },
         }
 
@@ -87,13 +88,11 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
             {
                 "account": {"accountName": self.vsts_account_name, "accountId": external_id},
                 "base_url": self.vsts_base_url,
-                "identity": {
-                    "data": {
-                        "access_token": "new_access_token",
-                        "expires_in": "3600",
-                        "refresh_token": "new_refresh_token",
-                        "token_type": "bearer",
-                    }
+                "oauth_data": {
+                    "access_token": "new_access_token",
+                    "expires_in": "3600",
+                    "refresh_token": "new_refresh_token",
+                    "token_type": "bearer",
                 },
             }
         )
@@ -122,13 +121,11 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
+            "oauth_data": {
+                "access_token": self.access_token,
+                "expires_in": "3600",
+                "refresh_token": self.refresh_token,
+                "token_type": "jwt-bearer",
             },
             "integration_migration_version": 1,
             "subscription": {
@@ -157,13 +154,11 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
             {
                 "account": {"accountName": self.vsts_account_name, "accountId": external_id},
                 "base_url": self.vsts_base_url,
-                "identity": {
-                    "data": {
-                        "access_token": "new_access_token",
-                        "expires_in": "3600",
-                        "refresh_token": "new_refresh_token",
-                        "token_type": "bearer",
-                    }
+                "oauth_data": {
+                    "access_token": "new_access_token",
+                    "expires_in": "3600",
+                    "refresh_token": "new_refresh_token",
+                    "token_type": "bearer",
                 },
                 "subscription": {
                     "id": "123",
@@ -243,16 +238,24 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             status=403,
             json={"$id": 1, "message": "Your account is not good"},
         )
-        resp = self.make_init_request()
-        assert resp.status_code < 400, resp.content
+        pipeline_url = self._pipeline_url()
 
-        redirect = urlparse(resp["Location"])
-        query = parse_qs(redirect.query)
-
-        # OAuth redirect back to Sentry (identity_pipeline_view)
-        resp = self.make_oauth_redirect_request(query["state"][0])
+        resp: Any = self.client.post(
+            pipeline_url, data={"action": "initialize", "provider": "vsts"}, format="json"
+        )
         assert resp.status_code == 200, resp.content
-        assert b"No accounts found" in resp.content
+        state = parse_qs(urlparse(resp.data["data"]["oauthUrl"]).query)["state"][0]
+
+        # Advancing to the account selection step surfaces no accounts and
+        # records a single halt. The advance response already carries the step
+        # data, so we assert on it directly rather than re-fetching (a second
+        # GET would invoke get_step_data again and record a duplicate halt).
+        resp = self.client.post(
+            pipeline_url, data={"code": "oauth-code", "state": state}, format="json"
+        )
+        assert resp.status_code == 200, resp.content
+        assert resp.data["step"] == "account_selection"
+        assert resp.data["data"]["accounts"] == []
 
         assert_halt_metric(mock_record, "no_accounts")
 
@@ -266,13 +269,11 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
+            "oauth_data": {
+                "access_token": self.access_token,
+                "expires_in": "3600",
+                "refresh_token": self.refresh_token,
+                "token_type": "jwt-bearer",
             },
         }
 
@@ -304,19 +305,246 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             {
                 "account": {"accountName": self.vsts_account_name, "accountId": external_id},
                 "base_url": self.vsts_base_url,
-                "identity": {
-                    "data": {
-                        "access_token": self.access_token,
-                        "expires_in": "3600",
-                        "refresh_token": self.refresh_token,
-                        "token_type": "jwt-bearer",
-                    }
+                "oauth_data": {
+                    "access_token": self.access_token,
+                    "expires_in": "3600",
+                    "refresh_token": self.refresh_token,
+                    "token_type": "jwt-bearer",
                 },
             }
         )
         assert external_id == data["external_id"]
         subscription = data["metadata"]["subscription"]
         assert subscription["id"] is not None and subscription["secret"] is not None
+
+
+@control_silo_test
+class VstsIntegrationApiPipelineTest(VstsIntegrationTestCase):
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            "sentry-api-0-organization-pipeline",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "pipeline_name": "integration_pipeline",
+            },
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "vsts"},
+            format="json",
+        )
+
+    def _initialize_with_initial_data(self, initial_data: dict[str, Any]) -> Any:
+        # Nested initialData must be sent as real JSON; the Django test client
+        # ignores format="json" and would form-encode it.
+        return self.client.post(
+            self._get_pipeline_url(),
+            data=orjson.dumps(
+                {"action": "initialize", "provider": "vsts", "initialData": initial_data}
+            ),
+            content_type="application/json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _get_step_info(self) -> Any:
+        return self.client.get(self._get_pipeline_url())
+
+    def _get_pipeline_signature(self, init_resp: Any) -> str:
+        return parse_qs(urlparse(init_resp.data["data"]["oauthUrl"]).query)["state"][0]
+
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 2
+        assert resp.data["provider"] == "vsts"
+        assert "oauthUrl" in resp.data["data"]
+
+    def test_get_oauth_step_info(self) -> None:
+        self._initialize_pipeline()
+        resp = self._get_step_info()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert "login.microsoftonline.com/common/oauth2/v2.0/authorize" in oauth_url
+        assert "client_id=" in oauth_url
+
+    def test_oauth_step_advance(self) -> None:
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "account_selection"
+        assert resp.data["stepIndex"] == 1
+
+    def test_oauth_step_invalid_state(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({"code": "oauth-code", "state": "invalid-state"})
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert resp.data["data"]["detail"] == "An error occurred while validating your request."
+
+    def test_account_selection_get(self) -> None:
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.data["step"] == "account_selection"
+
+        resp = self._get_step_info()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "account_selection"
+        assert resp.data["data"]["accounts"] == [
+            {"accountId": self.vsts_account_id, "accountName": self.vsts_account_name}
+        ]
+
+    def test_account_selection_invalid_account(self) -> None:
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+        self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+
+        resp = self._advance_step({"account": "invalid-account"})
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert resp.data["data"]["detail"] == "Invalid Azure DevOps account"
+
+    def test_full_api_pipeline_flow(self) -> None:
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "account_selection"
+
+        resp = self._advance_step({"account": self.vsts_account_id})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert "data" in resp.data
+
+        integration = Integration.objects.get(provider="vsts")
+        assert integration.external_id == self.vsts_account_id
+        assert integration.name == self.vsts_account_name
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
+
+    def test_marketplace_install_auto_advances_account_selection(self) -> None:
+        # Marketplace installs supply the account up front as initialData. Since
+        # the user is a member of it, the account-selection step signals
+        # auto-advance with the pre-selected account.
+        resp = self._initialize_with_initial_data({"targetId": self.vsts_account_id})
+        assert resp.status_code == 200, resp.content
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.status_code == 200, resp.content
+        assert resp.data["step"] == "account_selection"
+        # The pre-selected account is surfaced so the frontend can advance
+        # without prompting; its presence is the auto-advance signal.
+        assert resp.data["data"]["account"] == self.vsts_account_id
+
+        # The pre-selected account still goes through the normal verification.
+        resp = self._advance_step({"account": self.vsts_account_id})
+        assert resp.status_code == 200, resp.content
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider="vsts")
+        assert integration.external_id == self.vsts_account_id
+        assert integration.name == self.vsts_account_name
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
+
+    def test_marketplace_install_does_not_trust_unverified_account(self) -> None:
+        # A targetId the user is not a member of must not auto-advance, and must
+        # be rejected if submitted -- the supplied account is only a hint, never
+        # trusted without membership verification.
+        resp = self._initialize_with_initial_data(
+            {"targetId": "00000000-0000-0000-0000-000000000000"}
+        )
+        assert resp.status_code == 200, resp.content
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.status_code == 200, resp.content
+        assert resp.data["step"] == "account_selection"
+        # No pre-selected account is surfaced, so the frontend shows the picker.
+        assert "account" not in resp.data["data"]
+
+        resp = self._advance_step({"account": "00000000-0000-0000-0000-000000000000"})
+        assert resp.status_code == 400, resp.content
+        assert resp.data["data"]["detail"] == "Invalid Azure DevOps account"
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_account_selection_get_with_no_accounts(self, mock_record: MagicMock) -> None:
+        responses.replace(
+            responses.GET,
+            "https://app.vssps.visualstudio.com/_apis/accounts?memberId=%s&api-version=4.1"
+            % self.vsts_user_id,
+            status=403,
+            json={"$id": 1, "message": "Your account is not good"},
+        )
+
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["step"] == "account_selection"
+
+        # Reset so we only capture lifecycle events from the GET step
+        mock_record.reset_mock()
+
+        resp = self._get_step_info()
+        assert resp.status_code == 200
+        assert resp.data["data"]["accounts"] == []
+
+        assert_halt_metric(mock_record, "no_accounts")
+
+    def test_build_integration_uses_oauth_data_state(self) -> None:
+        provider = VstsIntegrationProvider()
+        pipeline = Mock()
+        pipeline.organization = self.organization
+        provider.set_pipeline(pipeline)
+
+        data = provider.build_integration(
+            {
+                "account": {
+                    "accountName": self.vsts_account_name,
+                    "accountId": self.vsts_account_id,
+                },
+                "oauth_data": {
+                    "access_token": self.access_token,
+                    "expires_in": "3600",
+                    "refresh_token": self.refresh_token,
+                    "token_type": "bearer",
+                },
+            }
+        )
+
+        assert data["external_id"] == self.vsts_account_id
+        assert data["name"] == self.vsts_account_name
+
+    def test_initialize_binds_pipeline_state(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+
+        request = HttpRequest()
+        request.session = self.client.session
+        request.user = self.user
+
+        pipeline = IntegrationPipeline.get_for_request(request)
+        assert pipeline is not None
+        assert pipeline.provider.key == "vsts"
 
     @responses.activate
     def test_source_url_matches(self) -> None:
@@ -409,13 +637,11 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
+            "oauth_data": {
+                "access_token": self.access_token,
+                "expires_in": "3600",
+                "refresh_token": self.refresh_token,
+                "token_type": "jwt-bearer",
             },
         }
 
@@ -455,13 +681,11 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
+            "oauth_data": {
+                "access_token": self.access_token,
+                "expires_in": "3600",
+                "refresh_token": self.refresh_token,
+                "token_type": "jwt-bearer",
             },
         }
 
@@ -493,13 +717,11 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
+            "oauth_data": {
+                "access_token": self.access_token,
+                "expires_in": "3600",
+                "refresh_token": self.refresh_token,
+                "token_type": "jwt-bearer",
             },
         }
 
@@ -728,7 +950,15 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
 
         result = installation.get_repositories()
         assert len(result) == 1
-        assert {"name": "ProjectA/cool-service", "identifier": self.repo_id} == result[0]
+        assert {
+            "name": "ProjectA/cool-service",
+            "repo_name": "cool-service",
+            "identifier": str(self.repo_id),
+            "external_id": str(self.repo_id),
+            "url": f"https://{self.vsts_account_name.lower()}.visualstudio.com/_git/{self.repo_name}",
+            "instance": self.vsts_base_url,
+            "project": "ProjectA",
+        } == result[0]
 
     def test_get_repositories_identity_error(self) -> None:
         self.assert_installation()

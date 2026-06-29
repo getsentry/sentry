@@ -31,9 +31,10 @@ describe('SimilarIssuesDrawer', () => {
     GroupStore.init();
 
     mockSimilarIssues = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/similar/?limit=50`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/similar/`,
       body: [[group, {'exception:stacktrace:pairs': 0.375}]],
       method: 'GET',
+      match: [MockApiClient.matchQuery({limit: 50})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,

@@ -4,7 +4,7 @@ import datetime
 import logging
 import sys
 import traceback
-from collections.abc import Generator, Mapping
+from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Literal, overload
@@ -14,14 +14,17 @@ from django.conf import settings
 from django.db.utils import OperationalError
 from django.http import HttpRequest
 from django.utils import timezone
-from rest_framework.exceptions import APIException, ParseError, Throttled
+from rest_framework.exceptions import APIException, ParseError, Throttled, ValidationError
 from rest_framework.status import HTTP_504_GATEWAY_TIMEOUT
 from sentry_sdk import Scope
+from snuba_sdk.column import InvalidColumnError
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
 from sentry import options, quotas
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
+from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.discover.arithmetic import ArithmeticError
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
 from sentry.hybridcloud.rpc import extract_id_from
@@ -63,7 +66,12 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
-from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCRateLimitExceeded
+from sentry.utils.snuba_rpc import (
+    SnubaRPCError,
+    SnubaRPCRateLimitExceeded,
+    SnubaRPCTooManySimultaneous,
+)
+from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID
 
 logger = logging.getLogger(__name__)
 
@@ -313,7 +321,7 @@ def generate_locality_url(locality_name: str | None = None) -> str:
     SENTRY_LOCAL_CELL set the corresponding locality is resolved from that cell name.
     Falls back to system.url-prefix when no template or locality name is available.
     """
-    region_url_template: str | None = options.get("system.region-api-url-template")
+    region_url_template: str | None = settings.SENTRY_REGION_API_URL_TEMPLATE
     if locality_name is None and SiloMode.get_current_mode() == SiloMode.CELL:
         locality_name = get_local_locality().name
 
@@ -362,39 +370,59 @@ def get_auth_api_token_type(auth: object) -> str | None:
 def handle_query_errors() -> Generator[None]:
     try:
         yield
-    except InvalidSearchQuery as error:
+    except InvalidColumnError as error:
         message = str(error)
-        # Special case the project message since it has so many variants so tagging is messy otherwise
-        if message.endswith("do not exist or are not actively selected."):
-            sentry_sdk.set_tag(
-                "query.error_reason", "Project in query does not exist or not selected"
-            )
-        else:
-            sentry_sdk.set_tag("query.error_reason", message)
+        sentry_sdk.set_tag("query.error_reason", message)
+        sentry_sdk.set_attribute("query.error_reason", message)
         raise ParseError(detail=message)
+    except InvalidSearchQuery as error:
+        message = original_error = str(error)
+        # Special case the some messages since that include values causing variants so tagging is messy otherwise
+        if message.endswith("do not exist or are not actively selected."):
+            message = "Project in query does not exist or not selected"
+        elif message.endswith(INVALID_ID_DETAILS[5:]):
+            message = "Invalid ID used in a filter"
+        elif message.endswith(INVALID_SPAN_ID[5:]):
+            message = "Invalid Span ID used in a filter"
+        elif message.startswith("Empty string after"):
+            message = "Filter key was followed by nothing (eg. thing:)"
+        sentry_sdk.set_tag("query.error_reason", message)
+        sentry_sdk.set_attribute("query.error_reason", message)
+        logger.info("A query error was handled", extra={"query.error_reason": message})
+        raise ParseError(detail=original_error)
     except ArithmeticError as error:
         message = str(error)
         sentry_sdk.set_tag("query.error_reason", message)
+        sentry_sdk.set_attribute("query.error_reason", message)
         raise ParseError(detail=message)
     except QueryOutsideRetentionError as error:
         sentry_sdk.set_tag("query.error_reason", "QueryOutsideRetentionError")
+        sentry_sdk.set_attribute("query.error_reason", "QueryOutsideRetentionError")
         raise ParseError(detail=str(error))
     except QueryIllegalTypeOfArgument:
         message = "Invalid query. Argument to function is wrong type."
         sentry_sdk.set_tag("query.error_reason", message)
+        sentry_sdk.set_attribute("query.error_reason", message)
         raise ParseError(detail=message)
     except IncompatibleMetricsQuery as error:
         message = str(error)
         sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
+        sentry_sdk.set_attribute("query.error_reason", f"Metric Error: {message}")
         raise ParseError(detail=message)
     except SnubaRPCRateLimitExceeded:
         sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
+        sentry_sdk.set_attribute("query.error_reason", "RateLimitExceeded")
+        raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
+    except SnubaRPCTooManySimultaneous:
+        sentry_sdk.set_tag("query.error_reason", "TooManySimultaneousQueries")
+        sentry_sdk.set_attribute("query.error_reason", "TooManySimultaneousQueries")
         raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
     except SnubaRPCError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(arg, TimeoutError):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
+            sentry_sdk.set_attribute("query.error_reason", "Timeout")
             raise TimeoutException(detail=TIMEOUT_RPC_ERROR_MESSAGE)
         sentry_sdk.capture_exception(error)
         if hasattr(error, "debug"):
@@ -410,22 +438,28 @@ def handle_query_errors() -> Generator[None]:
         arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(error, RateLimitExceeded):
             sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
+            sentry_sdk.set_attribute("query.error_reason", "RateLimitExceeded")
             raise
+        if isinstance(error, QueryTooManySimultaneous):
+            sentry_sdk.set_tag("query.error_reason", "TooManySimultaneousQueries")
+            sentry_sdk.set_attribute("query.error_reason", "TooManySimultaneousQueries")
+            raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
         if isinstance(
             error,
             (
                 QueryMemoryLimitExceeded,
                 QueryExecutionTimeMaximum,
-                QueryTooManySimultaneous,
             ),
         ) or isinstance(
             arg,
             ReadTimeoutError,
         ):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
+            sentry_sdk.set_attribute("query.error_reason", "Timeout")
             raise TimeoutException(detail=TIMEOUT_ERROR_MESSAGE)
         elif isinstance(error, (UnqualifiedQueryError)):
             sentry_sdk.set_tag("query.error_reason", str(error))
+            sentry_sdk.set_attribute("query.error_reason", str(error))
             raise ParseError(detail=str(error))
         elif isinstance(
             error,
@@ -454,6 +488,7 @@ def handle_query_errors() -> Generator[None]:
         is_timeout = "canceling statement due to statement timeout" in error_message
         if is_timeout:
             sentry_sdk.set_tag("query.error_reason", "Postgres statement timeout")
+            sentry_sdk.set_attribute("query.error_reason", "Postgres statement timeout")
             sentry_sdk.capture_exception(error, level="warning")
             raise Throttled(
                 detail="Query timeout. Please try with a smaller date range or fewer conditions."
@@ -472,6 +507,7 @@ def update_snuba_params_with_timestamp(
     faster than the default 7d or 14d queries"""
     # during the transition this is optional but it will become required for the trace view
     sentry_sdk.set_tag("trace_view.used_timestamp", timestamp_key in request.GET)
+    sentry_sdk.set_attribute("trace_view.used_timestamp", timestamp_key in request.GET)
     has_dates = params.start is not None and params.end is not None
     if timestamp_key in request.GET and has_dates:
         example_timestamp = parse_datetime_string(request.GET[timestamp_key])
@@ -499,3 +535,36 @@ def reformat_timestamp_ms_to_isoformat(timestamp_ms: str) -> Any:
     back to isoformat to keep it standardized with other timestamp fields
     """
     return datetime.datetime.fromisoformat(timestamp_ms).astimezone().isoformat()
+
+
+def to_valid_int_id(name: str, val: str | int, raise_404: bool = False) -> int:
+    """
+    Convert a string or integer to a valid integer id.
+    Raises a ValidationError if the value is not a valid integer id.
+    If raise_404 is True, raises ResourceDoesNotExist instead.
+    NOTE: This function is no stricter than int(); if the annotated types
+    aren't honored (eg passing in a float or bool), an int may still be returned.
+    """
+    ival: int
+    if isinstance(val, int):
+        ival = val
+    else:
+        try:
+            ival = int(val)
+        except ValueError:
+            if raise_404:
+                raise ResourceDoesNotExist
+            raise ValidationError({name: f"Value {val} is not a valid integer id"})
+    if ival >= 0 and ival <= BoundedBigAutoField.MAX_VALUE:
+        return ival
+    if raise_404:
+        raise ResourceDoesNotExist
+    raise ValidationError({name: f"Value {val} is not a valid integer id"})
+
+
+def to_valid_int_id_list(name: str, val: Sequence[str | int]) -> list[int]:
+    """
+    Convert a sequence of strings or integers to a list of valid integer ids.
+    Raises a ValidationError if any of the values are not a valid integer id.
+    """
+    return [to_valid_int_id(name, v) for v in val]

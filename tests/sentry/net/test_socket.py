@@ -4,12 +4,12 @@ from django.test import override_settings
 
 from sentry.net.socket import ensure_fqdn, is_ipaddress_allowed, is_safe_hostname
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_blocklist
+from sentry.testutils.helpers import override_allowlist, override_blocklist
 
 
 class SocketTest(TestCase):
     @override_blocklist("10.0.0.0/8", "127.0.0.1")
-    def test_is_ipaddress_allowed(self) -> None:
+    def test_is_ipaddress_blocked(self) -> None:
         is_ipaddress_allowed.cache_clear()
         assert is_ipaddress_allowed("127.0.0.1") is False
         is_ipaddress_allowed.cache_clear()
@@ -18,7 +18,7 @@ class SocketTest(TestCase):
         assert is_ipaddress_allowed("1.1.1.1") is True
 
     @override_blocklist("::ffff:10.0.0.0/104", "::1/128")
-    def test_is_ipaddress_allowed_ipv6(self) -> None:
+    def test_is_ipaddress_blocked_ipv6(self) -> None:
         is_ipaddress_allowed.cache_clear()
         assert is_ipaddress_allowed("::1") is False
         is_ipaddress_allowed.cache_clear()
@@ -27,6 +27,22 @@ class SocketTest(TestCase):
         assert is_ipaddress_allowed("::ffff:1.1.1.1") is True
         is_ipaddress_allowed.cache_clear()
         assert is_ipaddress_allowed("2001:db8:a::123") is True
+
+    @override_blocklist("10.0.0.0/8")
+    @override_allowlist("10.0.0.1/32")
+    def test_is_ipaddress_allowed(self) -> None:
+        is_ipaddress_allowed.cache_clear()
+        assert is_ipaddress_allowed("10.0.1.1") is False
+        is_ipaddress_allowed.cache_clear()
+        assert is_ipaddress_allowed("10.0.0.1") is True
+
+    @override_blocklist("::ffff:10.0.0.0/104")
+    @override_allowlist("::ffff:10.0.0.1/128")
+    def test_is_ipaddress_allowed_ipv6(self) -> None:
+        is_ipaddress_allowed.cache_clear()
+        assert is_ipaddress_allowed("::ffff:10.0.1.2") is False
+        is_ipaddress_allowed.cache_clear()
+        assert is_ipaddress_allowed("::ffff:10.0.0.1") is True
 
     @override_blocklist("10.0.0.0/8", "127.0.0.1")
     @patch("socket.getaddrinfo")

@@ -113,8 +113,8 @@ pod update`,
     },
   ],
   verify: getReplayVerifyStep({
-    replayOnErrorSampleRateName: 'options\u200b.sessionReplay\u200b.onErrorSampleRate',
-    replaySessionSampleRateName: 'options\u200b.sessionReplay\u200b.sessionSampleRate',
+    replayOnErrorSampleRateName: 'options\u200B.sessionReplay\u200B.onErrorSampleRate',
+    replaySessionSampleRateName: 'options\u200B.sessionReplay\u200B.sessionSampleRate',
   }),
   nextSteps: () => [],
 };

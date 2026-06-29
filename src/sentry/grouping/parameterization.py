@@ -1,16 +1,40 @@
 import dataclasses
+import logging
 import re
-from collections import OrderedDict, defaultdict
+from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Sequence
 from ipaddress import ip_address, ip_interface, ip_network
-from typing import Callable
+from typing import Any, Callable
 
 from sentry.utils import metrics
+
+logger = logging.getLogger("sentry.events.grouping")
+
+
+# Counter for logging a set amount of example data. Not meant to be used directly. (Use the
+# `_log_example_data` helper instead.)
+LOGGING_COUNTER: Counter[str] = Counter()
 
 # Function parameterization regexes can specify to provide a customized replacement string. Can also
 # be used to do conditional replacement, by returning the original value in cases where replacement
 # shouldn't happen.
 ParameterizationReplacementFunction = Callable[[str], str]
+
+
+# Log examples, up to the given limit.
+def _log_example_data(
+    key: str,  # Key used for tracking log count and in logger `event` string
+    extra: dict[str, Any],  # Extra data to add to the log (should include example data)
+    limit: int = 100,  # Number of logs to be gathered per deployment
+) -> None:
+    # Note: In a multi-threaded environment, it's possible to run into a race condition where
+    # multiple threads are simultaneously logging what should theoretically be the last example. As
+    # result, we may end up logging a few more examples than the given limit. To fix this, we'd need
+    # to wrap everything here in a lock, but given that a few extra logs don't hurt anything, it's
+    # not worth blocking ingest by doing so.
+    if LOGGING_COUNTER[key] < limit:
+        logger.info(f"grouping.parameterization.{key}", extra=extra)
+        LOGGING_COUNTER[key] += 1
 
 
 @dataclasses.dataclass
@@ -60,24 +84,141 @@ def is_valid_ip(maybe_ip_str: str) -> bool:
     return False
 
 
+# fmt: off
+TLDS = {"com", "net", "org", "jp", "de", "uk", "fr", "br", "it", "ru", "es", "me", "gov", "pl", "ca", "au", "cn", "co", "in", "nl", "edu", "info", "eu", "ch", "id", "at", "kr", "cz", "mx", "be", "tv", "se", "tr", "tw", "al", "ua", "ir", "vn", "cl", "sk", "ly", "cc", "to", "no", "fi", "us", "pt", "dk", "ar", "hu", "tk", "gr", "il", "news", "ro", "my", "biz", "ie", "za", "nz", "sg", "ee", "th", "io", "xyz", "pe", "bg", "hk", "rs", "lt", "link", "ph", "club", "si", "site", "mobi", "by", "cat", "wiki", "la", "ga", "xxx", "cf", "hr", "ng", "jobs", "online", "kz", "ug", "gq", "ae", "is", "lv", "pro", "fm", "tips", "ms", "sa", "app"}
+# fmt: on
+
+
+def is_valid_hostname(maybe_hostname_str: str) -> bool:
+    # By spec, hostnames have a max length of 255
+    if len(maybe_hostname_str) > 255:
+        return False
+
+    # Almost anything is an allowable top-level domain since ICANN opened it up, but that means that
+    # paths like `some.path.to.a.module` and attribute access like `someobj.someproperty` and
+    # filenames like `somefile.txt` all would match as hostnames, which isn't what we want. So, at
+    # the risk of occasional false negatives, we check against the top 99 TLDs and if it doesn't
+    # match one of those, we don't count it as a hostname. (Fortunately there's not a ton of overlap
+    # between popular TLDs and common file extensions, and most of them aren't actual words, so
+    # they're also less likely to be used as module or property names.)
+    maybe_tld = maybe_hostname_str.split(".")[-1]
+    if maybe_tld.lower() not in TLDS:
+        return False
+
+    return True
+
+
+# Raw and compiled versions of the regex for the `random_id` pattern, pulled into constants so the
+# raw pattern can be used in multiple places and so that the compiled version only compiles once
+RANDOM_ID_REGEX = r"""
+    # Random nonsense alphanumeric id strings. To avoid false positives, we require the following:
+    #   - A minimum of 4 characters, with at least a certain level of "mixed-up-ness". For our
+    #     purposes, that means the string must switch back and forth between letters and numbers at
+    #     least 3 times. This rules out human-readable strings like `dogNumber1` (1 switch) and
+    #     `bball4lyfe` (2 switches), while catching strings like `aKj8XLr2`.
+    #   - For strings shorter than 6 characters, a mix of uppercase letters, lowercase letters, and
+    #     numbers. (For 6+ character strings, the switching requirement alone is restrictive
+    #     enough.)
+    #
+    # Negative lookbehind to create a word boundary but with underscores allowed to count as
+    # wordbreak characters (to permit things like `some_file_k9cm2.py`)
+    (?<![a-zA-Z0-9])
+    # Lookaheads, each of which guarantees either a) at least 6 characters or b) at least one
+    # uppercase or at least one lowercase letter, respectively. Together, they guarantee that
+    # matches of fewer than of fewer than 6 characters have both upper- and lowercase letters..
+    (?= [a-zA-Z0-9]{6} | [a-z0-9]* [A-Z])
+    (?= [a-zA-Z0-9]{6} | [A-Z0-9]* [a-z])
+    # Lookahead enforcing letter/number switches. Two versions depending on whether the string
+    # starts with a letter or number. This also takes care of the "contains a number" requirement.
+    (?=
+        \d+ [a-zA-Z]+ \d+ [a-zA-Z]+
+        |
+        [a-zA-Z]+ \d+ [a-zA-Z]+ \d+
+    )
+    # The pattern itself
+    [a-zA-Z0-9]{4,128}
+    # Negative lookahead similar to the negative lookbehind above - \b, but with underscores
+    # counting for wordbreaks
+    (?![a-zA-Z0-9])
+"""
+COMPILED_RANDOM_ID_REGEX = re.compile(rf"(?x){RANDOM_ID_REGEX}")
+
+
+def is_valid_random_id_without_separators(maybe_random_id_str: str) -> bool:
+    # Strip separators from the candidate string and check whether the result would qualify as a
+    # random id. Used to catch multi-part ids like `R2D2-H1N1` and `ab32-bwX4`, where neither part
+    # qualifies on its own but the joined version does.
+    stripped = maybe_random_id_str.replace("-", "")
+    return COMPILED_RANDOM_ID_REGEX.match(stripped) is not None
+
+
 DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="email",
-        raw_pattern=r"""[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*""",
+        raw_pattern=r"""[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]{1,254}@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*""",
     ),
-    ParameterizationRegex(name="url", raw_pattern=r"""\b(wss?|https?|ftp)://[^\s/$.?#].[^\s]*"""),
+    ParameterizationRegex(
+        name="url",
+        raw_pattern=r"""
+            # Scheme - by spec, must start with a letter, but after that can contain anything
+            # alphanumeric in addition to plus, minus (has to be escaped so it's clear it's not part
+            # of a range), and dot. The length is bounded (real schemes are short) to prevent
+            # quadratic backtracking on long runs of scheme-valid characters that lack a `://`.
+            [a-zA-Z][a-zA-Z0-9+\-.]{0,32}
+            # The normal separator
+            ://
+            # First character of the domain (or path, if the domain is empty) - must be a valid URL
+            # character (so no quotes, backticks, backslashes, angle brackets, sqiggly brackets,
+            # pipes, carets, or whitespace) and must be allowable in the first spot (no starting the
+            # querystring right away, for example)
+            [^'"`\\<>{}|\^\s$.?#]
+            # The rest of the URL is technically optional
+            (
+                [^'"`\\<>{}|\^\s]* # Any number of copies of anything not globally invalid
+                [^'"`\\<>{}|\^\s.,;] # Final character - must be both valid in general and allowable
+                                     # in the last spot (so no trailing punctuation)
+            )?
+        """,
+    ),
     ParameterizationRegex(
         name="hostname",
+        # This regex is intentionally loose, in that it doesn't encode the hostname spec's overall
+        # length restriction, and in that it catches things which are technically valid hostnames
+        # but which we don't want to parameterize that way (module paths, filenames with extensions,
+        # etc.). Max length is complicated to bake into a regex, and depending on how you do it,
+        # using the regex to narrow matches down to the most popular top-level domains is either
+        # slow or too aggressive. So here we use the regex to find hostname-like strings, and then
+        # validate them using a callback.
         raw_pattern=r"""
-            # Top 100 TLDs. The complete list is 1000s long.
+            # The overall pattern here expresses "2 to 128 dot-separated segments, each segment
+            # consisting of up to 63 letters/numbers/dashes, as long as no segment starts or ends
+            # with a dash." Individual parts labeled below.
             \b
-            ([a-zA-Z0-9\-]{1,63}\.)+?
+            # All segments but the final one, each followed by a dot
             (
-                (COM|NET|ORG|JP|DE|UK|FR|BR|IT|RU|ES|ME|GOV|PL|CA|AU|CN|CO|IN|NL|EDU|INFO|EU|CH|ID|AT|KR|CZ|MX|BE|TV|SE|TR|TW|AL|UA|IR|VN|CL|SK|LY|CC|TO|NO|FI|US|PT|DK|AR|HU|TK|GR|IL|NEWS|RO|MY|BIZ|IE|ZA|NZ|SG|EE|TH|IO|XYZ|PE|BG|HK|RS|LT|LINK|PH|CLUB|SI|SITE|MOBI|BY|CAT|WIKI|LA|GA|XXX|CF|HR|NG|JOBS|ONLINE|KZ|UG|GQ|AE|IS|LV|PRO|FM|TIPS|MS|SA|APP)|
-                (com|net|org|jp|de|uk|fr|br|it|ru|es|me|gov|pl|ca|au|cn|co|in|nl|edu|info|eu|ch|id|at|kr|cz|mx|be|tv|se|tr|tw|al|ua|ir|vn|cl|sk|ly|cc|to|no|fi|us|pt|dk|ar|hu|tk|gr|il|news|ro|my|biz|ie|za|nz|sg|ee|th|io|xyz|pe|bg|hk|rs|lt|link|ph|club|si|site|mobi|by|cat|wiki|la|ga|xxx|cf|hr|ng|jobs|online|kz|ug|gq|ae|is|lv|pro|fm|tips|ms|sa|app)
+                # Lookahead guaranteeing at least one letter
+                (?= [a-zA-Z0-9\-]* [a-zA-Z])
+                # Segment body - either all letters/numbers (no dashes), or with interior-only dashes
+                (
+                    [a-zA-Z0-9]{1,63}
+                    |
+                    [a-zA-Z0-9] [a-zA-Z0-9\-]{1,61} [a-zA-Z0-9]
+                )
+                \.
+            ){1,127}
+            # Final segment has no dot
+            (
+                [a-zA-Z0-9]{1,63}
+                |
+                [a-zA-Z0-9] [a-zA-Z0-9\-]{1,61} [a-zA-Z0-9]
             )
             \b
         """,
+        # Validate that the matched string actually is a valid hostname before replacing it. If not,
+        # leave it alone.
+        replacement_callback=lambda orig_value: "<hostname>"
+        if is_valid_hostname(orig_value)
+        else orig_value,
     ),
     ParameterizationRegex(
         name="traceparent",
@@ -155,9 +296,6 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # Date
             (\d{4}-[01]\d-[0-3]\d)
             |
-            # Time
-            ([0-2]\d:[0-5]\d:[0-5]\d)
-            |
             # Old Date Formats, TODO: possibly safe to remove?
             (
                 \b(?:(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+)?
@@ -178,7 +316,32 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (datetime.datetime\(.*?\))
         """,
     ),
-    ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
+    ParameterizationRegex(
+        name="duration", raw_pattern=r"""\b(\d{1,20}ms)\b | \b(\d{1,20}(\.\d{1,20})?s)\b"""
+    ),
+    ParameterizationRegex(
+        name="mac_addr",
+        raw_pattern=r"""
+            (
+                # 6 sets of 2 hex characters, separated by colons, dashes, or spaces
+                \b
+                (
+                    ([0-9A-Fa-f]{2}:){5} | # 5 sets of two hex digits, each followed by a colon
+                    ([0-9A-Fa-f]{2}-){5} | # 5 sets of two hex digits, each followed by a dash
+                    ([0-9A-Fa-f]{2}\s){5} # 5 sets of two hex digits, each followed by a space
+                )
+                [0-9A-Fa-f]{2} # Final set of two hex digits
+                \b
+            )|
+            (
+                # 3 sets of 4 hex characters, separate by dots
+                \b
+                ([0-9A-Fa-f]{4}\.){2}  # 2 sets of four hex digits, each followed by a period
+                [0-9A-Fa-f]{4} # Final set of four hex digits
+                \b
+            )
+        """,
+    ),
     # The IP pattern has to come after the date pattern, because times like 12:31:12 are also valid
     # IPv6 addresses
     ParameterizationRegex(
@@ -192,9 +355,25 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (::[fF]{4}:)? # Optional prefix mapping the IPv4 address which follows to IPv6 format
             (
                 \b
-                (\d{1,3}\.){3} # Three sets of 1-3 digits, each followed by a literal dot
-                \d{1,3} # Final set of 1-3 digits
+                # Negative lookbehind to ensure this isn't part of a longer set of dot-delimited
+                # ints (so, prevent 1.2.3.4.5 from matching as 1.<ip>)
+                (?<!\d\.)
+                # Three numbers from 0-255, each followed by a literal dot, no leading zeros allowed
+                (
+                    (
+                        \d | # 0-9
+                        [1-9]\d | # 10-99
+                        1\d{2} | # 100-199
+                        2[0-4]\d | # 200-249
+                        25[0-5] # 250-255
+                    )\.
+                ){3}
+                # Final number from 0-255 (same pattern alternatives as above)
+                (\d | [1-9]\d | 1\d{2} | 2[0-4]\d | 25[0-5])
                 (/\d{1,2})? # Optional CIDR suffix
+                # Negative lookahead to ensure this isn't part of a longer set of dot-delimited
+                # ints (so, prevent 1.2.3.4.5 from matching as <ip>.5)
+                (?!\.\d)
                 \b
             )
             |
@@ -206,20 +385,27 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # two things:
             #   - Cases where the initial or end characters are all valid, but there are too many of
             #     them. (IOW, we don't want to match `2345:...` inside of an otherwise-invalid IP
-            #     like `12345:...`, and the same applies to `...:1234` inside of `...:12345`.)
+            #     like `12345:...`, and the same applies to `...:1234` inside of `...:12345`.
+            #     Similar logic applies to initial and final colons - we don't want `:::1` to turn
+            #     into `:<ip>` because it's matching on just the second and third colons.)
             #   - Cases where `::` (which is a valid IPv6 address) appears inside of expressions
             #     like `SomeClass::someMethod()`, especially when the characters bordering the `::`
             #     are valid hex, like `Space::explore()`.
             # This doesn't fix edge cases like `Fee::add()`, where it's all hex and also fewer than
             # 5 characters on either side, but those are presumably pretty rare.
-            (?<![0-9a-zA-Z_]) # Negative lookbehind
+            (?<![\w:]) # Negative lookbehind (match can't start immediately after these)
             (
+                (?!:::) # Negative lookahead to prevent starting with three colons
+                (?!:[^:]) # Negative lookahead to prevent starting with a single colon
                 ([0-9a-fA-F]{0,4}:){2,7} # Multiple sets of 0-4 hex chars, each followed by a colon
                 [0-9a-fA-F]{0,4} # Final set of 0-4 hex chars
+                (?<![^:]:) # Negative lookbehind to prevent ending with a single colon
+                (?<!:::) # Negative lookbehind to prevent ending with three colons
+
                 (%\S+)? # Optional zone ID
                 (/\d{1,3})? # Optional CIDR suffix
             )
-            (?![0-9a-zA-Z]) # Negative lookahead
+            (?![\w:]) # Negative lookahead (match can't end immediately before these)
         """,
         # Validate that the matched string actually is an IP address before replacing it. If not,
         # leave it alone.
@@ -245,13 +431,12 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # and number if shorter than 8 characters, and either all uppercase or all lowercase -
             # we're more conservative here in order to reduce false positives).
             (
-                # Regular word boundary (for positive values)
-                \b
+                # For positive values, a negative lookbehind to create a word boundary but with
+                # underscores allowed (to permit things like `some_file_31d12.py`)
+                (?<![a-zA-Z0-9])
                 |
-                # Alphanumeric negative lookbehind before the dash in negative values to ensure it's
-                # only considered a minus sign if it doesn't connect two alphanumeric strings. (No
-                # word boundary here because the dash serves as the word boundary, since it's not a
-                # word character.)
+                # For negative values, an alphanumeric negative lookbehind before the dash to ensure
+                # it's only considered a minus sign if it doesn't connect two alphanumeric strings
                 (?<!\w)-
             )
             (
@@ -274,7 +459,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 [0-9a-f]{8,128} |
                 [0-9A-F]{8,128}
             )
-            \b
+            # Negative lookahead similar to the negative lookbehind for positive values above - \b,
+            # but with underscores allowed
+            (?![a-zA-Z0-9])
         """,
     ),
     ParameterizationRegex(
@@ -288,20 +475,88 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (\b(?=[a-f]*[0-9])(?=[0-9]*[a-f])[0-9a-f]{7}\b)
         """,
     ),
-    ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
+    # IDs made up of random nonsense combos of letters and numbers, either broken up by dashes (the
+    # first pattern) or not (the second pattern). In the no-dash pattern we have various checks in
+    # place to guard against false positives (depending on the length, we look for different combos
+    # of letters and numbers, mixed cases, and switches between letters and numbers), and for the
+    # dashed pattern, we remove the dashes and validate against the no-dash pattern before making
+    # the replacement. Note that these random_id patterns must come after the hex-based patterns so
+    # they don't catch strings which happen to contain only letters between A and F.
+    ParameterizationRegex(
+        name="multi_part_random_id",
+        raw_pattern=r"""
+            # Like \b, but with underscores counting as wordbreak characters
+            (?<![a-zA-Z0-9])
+            # Lookaheads guaranteeing at least one letter and one number in the overall match
+            (
+                (?= [a-zA-Z0-9\-]* [a-zA-Z])
+                (?= [a-zA-Z0-9\-]* \d)
+            )
+            # First part, containing some combination of letters and numbers. The length is capped
+            # based on the fact that the no-dash pattern only matches strings up to 128 characters.
+            [a-zA-Z0-9]{1,126}
+            # At least one dash-separated additional part. Both the individual segment lengths and
+            # the number of segments are limited by the same overall length requirement cited above.
+            (
+                -
+                [a-zA-Z0-9]{1,126}
+            ){1,63}
+            # Same word-boundary-with-underscores as above
+            (?![a-zA-Z0-9])
+        """,
+        # Validate that the matched string, with dashes removed, actually qualifies as a random ID
+        # before replacing it. If not, leave it alone.
+        replacement_callback=lambda orig_value: "<random_id>"
+        if is_valid_random_id_without_separators(orig_value)
+        else orig_value,
+    ),
+    ParameterizationRegex(
+        name="random_id",
+        # This pattern is pulled into a variable so it can be used both here and in the validation
+        # for the pattern above. See the `RANDOM_ID_REGEX` docstring for more details on how the
+        # matching is done.
+        raw_pattern=RANDOM_ID_REGEX,
+    ),
+    ParameterizationRegex(
+        name="float",
+        raw_pattern=r"""
+            (
+                # For positive values, in addition to the wordbreak, a negative lookbehind to ensure
+                # this isn't part of a longer set of dot-delimited ints (IOW, to prevent `1.2.3`
+                # from matching as `1.<float>`)
+                (
+                    \b
+                    (?<!\d\.)
+                ) |
+                # For negative values, no wordbreak or lookbehind needed, since the minus sign
+                # itself both creates a wordbreak and prevents the `1.2.3` case matching on `2.3`
+                -
+            )
+            # The value itself
+            \d+\.\d+
+            # Negative lookahead to ensure this isn't part of a longer set of dot-delimited ints
+            # (IOW, to prevent 1.2.3 from matching as <float>.3)
+            (?!\.\d)
+            \b
+        """,
+    ),
     ParameterizationRegex(
         name="int",
         raw_pattern=r"""
             (
-                # Regular word boundary for positive ints
-                \b
+                # For positive values, a negative lookbehind to create a word boundary but with
+                # underscores allowed (to permit things like `some_file_1121.py`)
+                (?<![a-zA-Z0-9])
                 |
-                # Alphanumeric negative lookbehind before the dash in negative ints (logic the same
-                # as in the hex pattern above)
+                # For negative values, an alphanumeric negative lookbehind before the dash to ensure
+                # it's only considered a minus sign if it doesn't connect two alphanumeric strings
                 (?<!\w)-
             )
-            \d{1,7} # Anything 8 digits and up is considered hex
-            \b
+            # The value itself (with a count limit because anything with 8+ digits is considered hex)
+            \d{1,7}
+            # Negative lookahead similar to the negative lookbehind for positive values above - \b,
+            # but with underscores allowed
+            (?![a-zA-Z0-9])
         """,
     ),
     ParameterizationRegex(
@@ -331,6 +586,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
 
 
 class Parameterizer:
+    # Inputs longer than this are not parameterized, as a defense against ReDoS
+    MAX_INPUT_LENGTH = 8192
+
     def __init__(
         self,
         # List of `ParameterizationRegex` objects defining the regexes to use. If nothing is passed,
@@ -396,6 +654,10 @@ class Parameterizer:
         For example, turn "Error with order #1231" into "Error with order #<int>".
         """
 
+        if len(input_str) > self.MAX_INPUT_LENGTH:
+            metrics.incr("grouping.parameterization_skipped_long_input")
+            return input_str
+
         replacement_counts: defaultdict[str, int] = defaultdict(int)
         # Track whether any regex matches don't lead to a replacement
         found_false_positive = False
@@ -444,6 +706,10 @@ class Parameterizer:
                     # to see how often our maybe-matches pan out to be actual matches.
                     metrics.incr(
                         "grouping.parameterization_false_positive", tags={"key": matched_key}
+                    )
+                    # TODO: Remove this once we have enough sample data
+                    _log_example_data(
+                        "ip_false_positive", extra={"input_str": input_str, "value": orig_value}
                     )
 
             return replacement_string

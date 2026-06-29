@@ -4,8 +4,6 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {PlanTier} from 'getsentry/types';
-
 import {OnDemandDisabled} from './ondemandDisabled';
 
 describe('OnDemandDisabled', () => {
@@ -40,7 +38,6 @@ describe('OnDemandDisabled', () => {
       organization,
       onDemandDisabled: true,
       onDemandMaxSpend: 1000,
-      planTier: PlanTier.AM1,
     });
 
     render(<OnDemandDisabled organization={organization} subscription={subscription} />);
@@ -95,7 +92,7 @@ describe('OnDemandDisabled', () => {
       screen.getByRole('link', {name: 'Learn more about this process'})
     ).toHaveAttribute(
       'href',
-      'https://sentry.zendesk.com/hc/en-us/articles/23622477256987-We-can-t-pay-our-on-demand-pay-as-you-go-invoice-and-have-an-annual-contract-What-happens'
+      'https://www.sentry.help/en/articles/13964796-what-can-we-do-if-we-can-t-pay-our-on-demand-pay-as-you-go-invoice-and-have-an-annual-contract'
     );
   });
 });

@@ -42,6 +42,7 @@ describe('ErrorsConfig', () => {
           {trace: 'abcd'},
           {
             organization,
+            navigate: jest.fn(),
             location,
             theme,
             eventView: new EventView({
@@ -70,6 +71,7 @@ describe('ErrorsConfig', () => {
           {id: 'defg', 'project.name': project.slug},
           {
             organization,
+            navigate: jest.fn(),
             location,
             theme,
             eventView: new EventView({

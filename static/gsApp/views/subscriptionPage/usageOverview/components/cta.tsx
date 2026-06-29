@@ -104,7 +104,7 @@ function FindOutMoreButton({
   return (
     <LinkButton
       icon={<IconOpen />}
-      priority="link"
+      variant="link"
       size="sm"
       href={href}
       to={to ?? ''}
@@ -207,7 +207,7 @@ function ProductTrialCta({
                 reasonCode: potentialProductTrial.reasonCode,
               },
             }}
-            priority="primary"
+            variant="primary"
             handleClick={() => setTrialButtonBusy(true)}
             onTrialStarted={() => setTrialButtonBusy(true)}
             onTrialFailed={() => setTrialButtonBusy(false)}
@@ -244,7 +244,7 @@ function ProductTrialCta({
                 reasonCode: potentialProductTrial.reasonCode,
               },
             }}
-            priority="primary"
+            variant="primary"
             handleClick={() => setTrialButtonBusy(true)}
             onTrialStarted={() => setTrialButtonBusy(true)}
             onTrialFailed={() => setTrialButtonBusy(false)}
@@ -288,7 +288,7 @@ function UpgradeCta({
             subscription.canSelfServe ? (
               <LinkButton
                 icon={<IconUpload />}
-                priority="primary"
+                variant="primary"
                 href={`/checkout/${organization.slug}/?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
               >
                 {t('Add to plan')}
@@ -337,7 +337,7 @@ function UpgradeCta({
         subscription.canSelfServe && hasBillingPerms ? (
           <Fragment>
             <LinkButton
-              priority="primary"
+              variant="primary"
               href={`/checkout/${organization.slug}/?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
             >
               {t('Upgrade now')}
@@ -365,21 +365,29 @@ function SetupCta({
     return null;
   }
 
+  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
+
   return (
     <Cta
       isBanner={false}
       image={seerConfigSeerImg}
       imageAlt=""
       title={t('Get started with Seer')}
-      subtitle={t(
-        'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
-      )}
+      subtitle={
+        hasGitLabSupport
+          ? t(
+              'Finish connecting to GitHub or GitLab, configure your repositories and projects, and start getting the most out of Seer.'
+            )
+          : t(
+              'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
+            )
+      }
       heightOverride={`calc(100% - ${USAGE_OVERVIEW_PANEL_HEADER_HEIGHT})`}
       buttons={
         <LinkButton
           icon={<IconSeer />}
           href={`/settings/${organization.slug}/seer/?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
-          priority="primary"
+          variant="primary"
           analyticsEventName="Subscription Settings: Set Up Button Clicked"
           analyticsEventKey="subscription_settings.set_up_button_clicked"
           analyticsParams={{

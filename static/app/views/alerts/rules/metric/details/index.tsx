@@ -7,7 +7,6 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -69,9 +68,6 @@ class MetricAlertDetails extends Component<Props, State> {
   };
 
   componentDidMount() {
-    const {api, organization} = this.props;
-
-    fetchOrgMembers(api, organization.slug);
     this.fetchData();
     this.trackView();
   }

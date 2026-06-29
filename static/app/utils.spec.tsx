@@ -2,27 +2,9 @@ import {
   convertMultilineFieldValue,
   descopeFeatureName,
   escapeDoubleQuotes,
-  escapeIssueTagKey,
   explodeSlug,
   extractMultilineFields,
-  generateQueryWithTag,
 } from 'sentry/utils';
-
-describe('utils.escapeIssueTagKey', () => {
-  it('should escape conflicting tag keys', () => {
-    expect(escapeIssueTagKey('status')).toBe('tags[status]');
-    expect(escapeIssueTagKey('message')).toBe('tags[message]');
-  });
-
-  it('should not escape environment and project', () => {
-    expect(escapeIssueTagKey('environment')).toBe('environment');
-    expect(escapeIssueTagKey('project')).toBe('project');
-  });
-
-  it('escapes empty keys for missing tag labels', () => {
-    expect(escapeIssueTagKey('')).toBe('""');
-  });
-});
 
 describe('utils.extractMultilineFields', () => {
   it('should split string by newlines', () => {
@@ -120,16 +102,5 @@ describe('utils.escapeDoubleQuotes', () => {
     // don't unnecessarily escape
     const actual = escapeDoubleQuotes(escapeDoubleQuotes(escapeDoubleQuotes('a"b')));
     expect(actual).toBe('a\\"b');
-  });
-});
-
-describe('utils.generateQueryWithTag', () => {
-  it('produces !has query when tag value missing', () => {
-    expect(
-      generateQueryWithTag({referrer: 'tag-details-drawer'}, {key: 'device', value: ''})
-    ).toEqual({
-      referrer: 'tag-details-drawer',
-      query: '!has:device',
-    });
   });
 });

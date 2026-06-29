@@ -8,7 +8,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {useCanvasScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasZoomOrScroll';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -115,7 +115,7 @@ export function FlamegraphPreview({
   // when we register/unregister these top level listeners.
   useLayoutEffect(() => {
     if (!flamegraphCanvas || !flamegraphView) {
-      return undefined;
+      return;
     }
 
     const onTransformConfigView = (
@@ -141,7 +141,7 @@ export function FlamegraphPreview({
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !flamegraphRenderer || !textRenderer) {
-      return undefined;
+      return;
     }
 
     const clearOverlayCanvas = () => {

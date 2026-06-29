@@ -7,7 +7,10 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.environment import EnvironmentProjectSerializer
+from sentry.api.serializers.models.environment import (
+    EnvironmentProjectSerializer,
+    EnvironmentProjectSerializerResponse,
+)
 from sentry.api.serializers.rest_framework.environment import EnvironmentSerializer
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -17,6 +20,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.environment_examples import EnvironmentExamples
 from sentry.apidocs.parameters import EnvironmentParams, GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.models.environment import Environment, EnvironmentProject
 
 
@@ -29,7 +33,8 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a Project Environment",
+        operation_id="getProjectEnvironment",
+        summary="Retrieve a Project Environment",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -43,7 +48,9 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         },
         examples=EnvironmentExamples.RETRIEVE_PROJECT_ENVIRONMENT,
     )
-    def get(self, request: Request, project, environment) -> Response:
+    def get(
+        self, request: Request, project, environment
+    ) -> Response[EnvironmentProjectSerializerResponse]:
         """
         Return details on a project environment.
         """
@@ -55,10 +62,12 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         except EnvironmentProject.DoesNotExist:
             raise ResourceDoesNotExist
 
-        return Response(serialize(instance, request.user))
+        body: EnvironmentProjectSerializerResponse = serialize(instance, request.user)
+        return Response(body)
 
     @extend_schema(
-        operation_id="Update a Project Environment",
+        operation_id="updateProjectEnvironment",
+        summary="Update a Project Environment",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -74,7 +83,9 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         },
         examples=EnvironmentExamples.RETRIEVE_PROJECT_ENVIRONMENT,
     )
-    def put(self, request: Request, project, environment) -> Response:
+    def put(
+        self, request: Request, project, environment
+    ) -> Response[EnvironmentProjectSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update the visibility for a project environment.
         """
@@ -88,7 +99,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
 
         serializer = EnvironmentSerializer(data=request.data, partial=True)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
         fields = {}
@@ -99,4 +110,5 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         if fields:
             instance.update(**fields)
 
-        return Response(serialize(instance, request.user))
+        body: EnvironmentProjectSerializerResponse = serialize(instance, request.user)
+        return Response(body)

@@ -17,7 +17,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
-type Priority = 'default' | 'primary';
+type Priority = 'default' | 'primary' | 'secondary';
 
 const getChildTransforms = (count: number) => {
   return Array.from(
@@ -41,7 +41,7 @@ function getTextColor({
   isDisabled?: boolean;
 }) {
   if (isSelected) {
-    return priority === 'default'
+    return priority === 'default' || priority === 'secondary'
       ? theme.tokens.interactive.chonky.embossed.neutral.content.accent
       : undefined;
   }
@@ -104,7 +104,10 @@ export function SegmentedControl<Value extends string>({
 }: SegmentedControlProps<Value>) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const collection = useCollection(props as any, collectionFactory);
+  const collection = useCollection(
+    props as Parameters<typeof useCollection>[0],
+    collectionFactory
+  );
   const ariaProps = {
     ...props,
     value,
@@ -135,6 +138,7 @@ export function SegmentedControl<Value extends string>({
             nextKey={option.nextKey}
             prevKey={option.prevKey}
             value={String(option.key)}
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             isDisabled={option.props.disabled || disabled}
             state={state}
             size={size}
@@ -278,7 +282,7 @@ const SegmentWrap = styled('label')<{
     ...DO_NOT_USE_getButtonStyles({
       ...p,
       disabled: p.isDisabled,
-      priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default',
+      variant: p.isSelected && p.priority === 'primary' ? 'primary' : 'secondary',
       shapeVariant: p.shapeVariant,
     }),
   })}

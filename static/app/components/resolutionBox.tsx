@@ -2,11 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitLink} from 'sentry/components/commitLink';
-import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
-import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {GroupActivity, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
@@ -110,35 +108,11 @@ export function ResolutionReason({statusDetails, project, activities}: Props) {
   return null;
 }
 
-export function ResolutionBox(props: Props) {
-  return (
-    <BannerContainer priority="default">
-      <BannerSummary>
-        <StyledIconCheckmark variant="success" />
-        <span>
-          <ResolutionReason {...props} />
-        </span>
-      </BannerSummary>
-    </BannerContainer>
-  );
-}
-
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.colors.green500};
   font-size: inherit;
   text-decoration-style: dotted;
   text-decoration-color: ${p => p.theme.colors.green500};
-`;
-
-const StyledIconCheckmark = styled(IconCheckmark)`
-  /* override margin defined in BannerSummary */
-  margin-top: 0 !important;
-  align-self: center;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    margin-top: ${p => p.theme.space.xs} !important;
-    align-self: flex-start;
-  }
 `;
 
 const StyledVersion = styled(Version)`

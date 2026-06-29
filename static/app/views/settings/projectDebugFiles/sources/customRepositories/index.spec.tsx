@@ -1,10 +1,12 @@
 import {Fragment} from 'react';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {GlobalModal} from 'sentry/components/globalModal';
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
 import type {CustomRepo, CustomRepoHttp} from 'sentry/types/debugFiles';
 import {CustomRepoType} from 'sentry/types/debugFiles';
@@ -30,7 +32,7 @@ function TestComponent({
 }
 
 function getProps(props?: Parameters<typeof initializeOrg>[0]) {
-  const {organization, router, project} = initializeOrg({
+  const {organization, project} = initializeOrg({
     router: props?.router,
   });
 
@@ -38,9 +40,7 @@ function getProps(props?: Parameters<typeof initializeOrg>[0]) {
     api: new MockApiClient(),
     organization,
     project,
-    router,
-    isLoading: false,
-    location: router.location,
+    location: LocationFixture(props?.router?.location),
   };
 }
 

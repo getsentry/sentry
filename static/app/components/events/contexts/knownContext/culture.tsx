@@ -22,7 +22,7 @@ export interface CultureContext {
 }
 
 export function getCultureContextData({
-  data = {},
+  data,
   meta,
 }: {
   data: CultureContext;

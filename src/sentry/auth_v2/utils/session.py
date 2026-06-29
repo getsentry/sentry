@@ -25,7 +25,7 @@ class SessionSerializerResponse(TypedDict, total=False):
     sessionOrgs: list[str] | None
 
 
-class SessionSerializer(Serializer):
+class SessionSerializer(Serializer[SessionSerializerResponse]):
     """
     These are the keys available when calling request.session.keys()
     https://docs.djangoproject.com/en/5.2/topics/http/sessions/#django.contrib.sessions.backends.base.SessionBase

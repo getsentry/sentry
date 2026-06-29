@@ -6,7 +6,6 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {LineCoverageLegend} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageLegend';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels/panel';
 import {ChevronAction} from 'sentry/components/stackTrace/frame/actions/chevron';
@@ -14,6 +13,7 @@ import {HiddenFramesToggleAction} from 'sentry/components/stackTrace/frame/actio
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {StackTraceFrameRow} from 'sentry/components/stackTrace/frame/frameRow';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
+import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
 import {
   StackTraceViewStateProvider,
   useStackTraceContext,
@@ -32,7 +32,6 @@ import {
   type ExceptionValue,
   type Frame,
 } from 'sentry/types/event';
-import {Coverage} from 'sentry/types/integrations';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 type StacktraceWithFrames = StacktraceType & {
@@ -43,18 +42,6 @@ type StackTraceStoryData = {
   event: Event;
   stacktrace: StacktraceWithFrames;
 };
-
-function getSampleSourceLineCoverage(length: number): Coverage[] {
-  return Array.from({length}, (_, index) => {
-    if (index % 3 === 0) {
-      return Coverage.COVERED;
-    }
-    if (index % 3 === 1) {
-      return Coverage.NOT_COVERED;
-    }
-    return Coverage.PARTIAL;
-  });
-}
 
 function makeEvent(overrides: Partial<Event> = {}): Event {
   return {
@@ -343,7 +330,7 @@ function makeLongPathAndFunctionStackTraceData(): StackTraceStoryData {
         ...frame,
         function:
           `very_long_function_name_for_exception_debugging_pipeline_stage_${index}` +
-          `__with_additional_context_and_nested_handler_resolution_chain`,
+          '__with_additional_context_and_nested_handler_resolution_chain',
         inApp: true,
       })),
     } as StacktraceWithFrames,
@@ -628,7 +615,7 @@ function makeChainedWithExceptionGroupValues(): ExceptionValue[] {
       context: [
         [lineNo - 2, `def ${func}():`],
         [lineNo - 1, '    try:'],
-        [lineNo, `        raise ExceptionGroup("group", errors)`],
+        [lineNo, '        raise ExceptionGroup("group", errors)'],
         [lineNo + 1, '    except Exception:'],
         [lineNo + 2, '        pass'],
       ],
@@ -742,7 +729,7 @@ function StoryFrameActions({isHovering}: {isHovering: boolean}) {
         <Tooltip title={t('Copy file path')} skipWrapper>
           <Button
             size="xs"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Copy file path')}
             icon={<IconCopy size="xs" />}
             onClick={e => e.stopPropagation()}
@@ -751,7 +738,7 @@ function StoryFrameActions({isHovering}: {isHovering: boolean}) {
         <Tooltip title={t('Open this line in GitHub')} skipWrapper>
           <Button
             size="xs"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Open this line in GitHub')}
             icon={<IconGithub size="xs" />}
             onClick={e => e.stopPropagation()}
@@ -1001,6 +988,41 @@ export default Storybook.story('StackTrace', story => {
     );
   });
 
+  story('StackTraceProvider - No Filename', () => {
+    const event = makeEvent({platform: 'javascript', projectID: '1'});
+    const stacktrace: StacktraceWithFrames = {
+      framesOmitted: null,
+      hasSystemFrames: false,
+      registers: {},
+      frames: [
+        makeFrame({
+          filename: null,
+          module: null,
+          absPath: null,
+          function: 'eval',
+          lineNo: 5,
+          colNo: 20,
+          inApp: true,
+        }),
+      ],
+    };
+
+    return (
+      <Fragment>
+        <p>
+          Frames with no filename or module (e.g. browser <code>eval</code>) show a muted{' '}
+          <code>{'<unknown>'}</code> in the path slot.
+        </p>
+        <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={StoryFrameActions}
+          />
+        </StoryStackTraceProvider>
+      </Fragment>
+    );
+  });
+
   story('StackTraceProvider - Raw Function and Package', () => {
     const {event, stacktrace} = makeRawFunctionAndPackageStackTraceData();
 
@@ -1022,7 +1044,7 @@ export default Storybook.story('StackTrace', story => {
     );
   });
 
-  story('StackTraceFrames - Single Frame Source Coverage', () => {
+  story('StackTraceFrames - Single frame with embedded source context', () => {
     const {event, stacktrace} = makeStackTraceData();
 
     const context: Frame['context'] = [
@@ -1034,23 +1056,17 @@ export default Storybook.story('StackTrace', story => {
       [6, '        raise ValueError("bad data")'],
       [7, '    return result'],
     ];
-    const sourceLineCoverage = getSampleSourceLineCoverage(context.length);
 
     const singleFrameStacktrace = {
       ...stacktrace,
       frames: [makeFrame({context, lineNo: 6, inApp: true})],
     };
 
-    function CoveredFrameContext() {
-      return <FrameContent sourceLineCoverage={sourceLineCoverage} />;
-    }
-
     return (
       <Flex direction="column" gap="md">
-        <LineCoverageLegend />
         <StoryStackTraceProvider event={event} stacktrace={singleFrameStacktrace}>
           <StackTraceFrames
-            frameContextComponent={CoveredFrameContext}
+            frameContextComponent={FrameContent}
             frameActionsComponent={StoryFrameActions}
           />
         </StoryStackTraceProvider>
@@ -1243,14 +1259,7 @@ export default Storybook.story('StackTrace', story => {
     return (
       <Flex align="center" justify="center">
         <WideHovercard
-          body={
-            <StoryStackTraceProvider event={event} stacktrace={stacktrace} maxDepth={5}>
-              <StackTraceFrames
-                frameContextComponent={FrameContent}
-                frameActionsComponent={StoryFrameActions}
-              />
-            </StoryStackTraceProvider>
-          }
+          body={<IssueStackTracePreview event={event} stacktrace={stacktrace} />}
         >
           Hovercard Trigger
         </WideHovercard>

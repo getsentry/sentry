@@ -1,8 +1,9 @@
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -11,7 +12,7 @@ import {
 } from 'sentry/views/automations/components/actionFilters/comparisonBranches';
 import {
   COMPARISON_INTERVAL_CHOICES,
-  INTERVAL_CHOICES,
+  PERCENT_INTERVAL_CHOICES,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {
   SubfilterDetailsList,
@@ -34,7 +35,7 @@ export function PercentSessionsCountDetails({condition}: {condition: DataConditi
         {
           value: condition.comparison.value,
           interval:
-            INTERVAL_CHOICES.find(
+            PERCENT_INTERVAL_CHOICES.find(
               choice => choice.value === condition.comparison.interval
             )?.label || condition.comparison.interval,
           where: hasSubfilters ? t('where') : null,
@@ -56,7 +57,7 @@ export function PercentSessionsPercentDetails({condition}: {condition: DataCondi
         {
           value: condition.comparison.value,
           interval:
-            INTERVAL_CHOICES.find(
+            PERCENT_INTERVAL_CHOICES.find(
               choice => choice.value === condition.comparison.interval
             )?.label || condition.comparison.interval,
           comparisonInterval:
@@ -94,10 +95,10 @@ function ComparisonTypeField() {
   const {removeError} = useAutomationBuilderErrorContext();
 
   if (condition.type === DataConditionType.PERCENT_SESSIONS_COUNT) {
-    return <CountBranch />;
+    return <CountBranch intervalChoices={PERCENT_INTERVAL_CHOICES} minValue={1} />;
   }
   if (condition.type === DataConditionType.PERCENT_SESSIONS_PERCENT) {
-    return <PercentBranch />;
+    return <PercentBranch intervalChoices={PERCENT_INTERVAL_CHOICES} minValue={1} />;
   }
 
   return (

@@ -16,7 +16,8 @@ interface IndeterminateLoaderProps extends React.HTMLAttributes<HTMLDivElement> 
   variant?: 'vibrant' | 'monochrome';
 }
 
-const SQUIGGLE_TILE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='1 0 16 8'%3E%3Cpath stroke='%23fff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M17 6c-4 0-4-4-8-4S5 6 1 6'/%3E%3C/svg%3E")`;
+const SQUIGGLE_TILE =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='1 0 16 8'%3E%3Cpath stroke='%23fff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M17 6c-4 0-4-4-8-4S5 6 1 6'/%3E%3C/svg%3E\")";
 
 const indeterminateSlow = keyframes`
   0% { left: -35%; right: 100%; }
@@ -34,7 +35,7 @@ const indeterminateFast = keyframes`
 // Small (~128px): 2.0s duration, 1.0s delay
 // Large (~400px+): 3.2s duration, 1.6s delay
 const WIDTH = {MIN: 128, MAX: 400};
-const DURATION = {MIN: 2.0, MAX: 2.8};
+const DURATION = {MIN: 2, MAX: 2.8};
 const DELAY = {MIN: 0.8, MAX: 1.2};
 
 function lerp(min: number, max: number, t: number): number {
@@ -66,7 +67,7 @@ function useMessageCycler(messages: React.ReactNode[]) {
 
   useEffect(() => {
     if (messages.length <= 1 || index >= messages.length - 1) {
-      return undefined;
+      return;
     }
     const timer = setTimeout(() => setIndex(i => i + 1), MESSAGE_INTERVAL_MS);
     return () => clearTimeout(timer);

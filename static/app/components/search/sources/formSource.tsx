@@ -1,15 +1,8 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
-
 import {FORM_FIELD_REGISTRY} from '@sentry/scraps/form';
 
 import type {Field, JsonFormObject} from 'sentry/components/forms/types';
-import type {Fuse} from 'sentry/utils/fuzzySearch';
-import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 
-import type {ChildProps, Result} from './types';
-import {makeResolvedTs, strGetFn} from './utils';
-
-type FormSearchField = {
+export type FormSearchField = {
   description: React.ReactNode;
   field: {name: string};
   route: string;
@@ -102,7 +95,7 @@ function getOldFormFields(): FormSearchField[] {
   });
 }
 
-function getSearchMap() {
+export function getSearchMap() {
   if (ALL_FORM_FIELDS_CACHED !== null) {
     return ALL_FORM_FIELDS_CACHED;
   }
@@ -117,60 +110,4 @@ function getSearchMap() {
 
   ALL_FORM_FIELDS_CACHED = Array.from(fieldMap.values());
   return ALL_FORM_FIELDS_CACHED;
-}
-
-/**
- * @internal Used specifically for tests
- */
-export function setSearchMap(fields: FormSearchField[]) {
-  ALL_FORM_FIELDS_CACHED = fields;
-}
-
-interface Props {
-  children: (props: ChildProps) => React.ReactElement;
-  /**
-   * search term
-   */
-  query: string;
-  /**
-   * fusejs options.
-   */
-  searchOptions?: Fuse.IFuseOptions<FormSearchField>;
-}
-
-export function FormSource({searchOptions, query, children}: Props) {
-  const [fuzzy, setFuzzy] = useState<Fuse<FormSearchField> | null>(null);
-
-  const createSearch = useCallback(async () => {
-    setFuzzy(
-      await createFuzzySearch(getSearchMap(), {
-        ...searchOptions,
-        keys: ['title', 'description'],
-        getFn: strGetFn,
-      })
-    );
-  }, [searchOptions]);
-
-  useEffect(() => void createSearch(), [createSearch]);
-
-  const results = useMemo(() => {
-    const resolvedTs = makeResolvedTs();
-    return (
-      fuzzy?.search(query).map<Result>(({item, ...rest}) => ({
-        item: {
-          ...item,
-          sourceType: 'field',
-          resultType: 'field',
-          to: {pathname: item.route, hash: `#${encodeURIComponent(item.field.name)}`},
-          resolvedTs,
-        },
-        ...rest,
-      })) ?? []
-    );
-  }, [fuzzy, query]);
-
-  return children({
-    isLoading: fuzzy === null,
-    results,
-  });
 }

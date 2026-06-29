@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import Feature from 'sentry/components/acl/feature';
@@ -11,16 +11,15 @@ import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {FeatureFilter} from './featureFilter';
 import {PrCommentsToggle} from './prCommentsToggle';
-import {SnapshotStatusChecks} from './snapshotStatusChecks';
 import {StatusCheckRules} from './statusCheckRules';
 
-type PreprodTab = 'size' | 'distribution' | 'snapshots';
+type PreprodTab = 'size' | 'distribution';
 
 const SIZE_ENABLED_READ_KEY = 'sentry:preprod_size_enabled_by_customer';
 const SIZE_ENABLED_WRITE_KEY = 'preprodSizeEnabledByCustomer';
@@ -32,20 +31,14 @@ const DISTRIBUTION_ENABLED_WRITE_KEY = 'preprodDistributionEnabledByCustomer';
 const DISTRIBUTION_ENABLED_QUERY_READ_KEY = 'sentry:preprod_distribution_enabled_query';
 const DISTRIBUTION_ENABLED_QUERY_WRITE_KEY = 'preprodDistributionEnabledQuery';
 
-const VALID_TABS: PreprodTab[] = ['size', 'distribution', 'snapshots'];
+const VALID_TABS: PreprodTab[] = ['size', 'distribution'];
 
 export default function PreprodSettings() {
   const location = useLocation();
   const navigate = useNavigate();
-  const organization = useOrganization();
 
-  const hasSnapshots = organization.features.includes('preprod-snapshots');
-
-  const availableTabs = hasSnapshots
-    ? VALID_TABS
-    : VALID_TABS.filter(tab => tab !== 'snapshots');
   const queryTab = decodeScalar(location?.query?.tab);
-  const tab = availableTabs.includes(queryTab as PreprodTab)
+  const tab = VALID_TABS.includes(queryTab as PreprodTab)
     ? (queryTab as PreprodTab)
     : 'size';
 
@@ -54,19 +47,22 @@ export default function PreprodSettings() {
   };
 
   return (
-    <Feature features="organizations:preprod-frontend-routes" renderDisabled>
+    <Fragment>
       <SentryDocumentTitle title={t('Mobile Builds')} />
       <SettingsPageHeader
         title={t('Mobile Builds')}
         subtitle={t(
           'Configure status checks and thresholds for your mobile build size analysis.'
         )}
-        action={
-          <Grid flow="column" align="center" gap="lg">
-            <FeedbackButton />
-          </Grid>
-        }
       />
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
       <Stack gap="lg">
         <PreprodQuotaAlert />
         <Container borderBottom="primary">
@@ -74,9 +70,6 @@ export default function PreprodSettings() {
             <TabList>
               <TabList.Item key="size">{t('Size Analysis')}</TabList.Item>
               <TabList.Item key="distribution">{t('Build Distribution')}</TabList.Item>
-              <TabList.Item key="snapshots" hidden={!hasSnapshots}>
-                {t('Snapshots')}
-              </TabList.Item>
             </TabList>
           </Tabs>
         </Container>
@@ -111,8 +104,7 @@ export default function PreprodSettings() {
             </Feature>
           </Fragment>
         )}
-        {tab === 'snapshots' && <SnapshotStatusChecks />}
       </Stack>
-    </Feature>
+    </Fragment>
   );
 }

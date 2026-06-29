@@ -52,6 +52,7 @@ from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
+from sentry.utils.tracing import set_span_data, start_span
 
 OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
 
@@ -112,12 +113,13 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
     """
     # For efficiency purposes, we fetch the flags in batch and propagate them downstream.
     sentry_sdk.set_tag("organization_id", project.organization_id)
+    sentry_sdk.set_attribute("organization_id", project.organization_id)
 
-    with sentry_sdk.start_span(op="get_on_demand_metric_specs"):
+    with start_span(op="get_on_demand_metric_specs", name="get_on_demand_metric_specs"):
         alert_specs, widget_specs = build_safe_config(
             "on_demand_metric_specs", get_on_demand_metric_specs, project
         ) or ([], [])
-    with sentry_sdk.start_span(op="merge_metric_specs"):
+    with start_span(op="merge_metric_specs", name="merge_metric_specs"):
         metric_specs = _merge_metric_specs(alert_specs, widget_specs)
 
     if not metric_specs:
@@ -134,24 +136,21 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
 def get_on_demand_metric_specs(
     timeout: TimeChecker, project: Project
 ) -> tuple[list[HashedMetricSpec], list[HashedMetricSpec]]:
-    with sentry_sdk.start_span(op="on_demand_metrics_feature_flags"):
+    with start_span(op="on_demand_metrics_feature_flags", name="on_demand_metrics_feature_flags"):
         enabled_features = on_demand_metrics_feature_flags(project.organization)
     timeout.check()
 
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-    prefilling_for_deprecation = (
-        "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
-    )
 
-    with sentry_sdk.start_span(op="get_alert_metric_specs"):
+    with start_span(op="get_alert_metric_specs", name="get_alert_metric_specs"):
         alert_specs = _get_alert_metric_specs(
             project,
             enabled_features,
             prefilling,
-            prefilling_for_deprecation=prefilling_for_deprecation,
+            prefilling_for_deprecation=False,
         )
     timeout.check()
-    with sentry_sdk.start_span(op="get_widget_metric_specs"):
+    with start_span(op="get_widget_metric_specs", name="get_widget_metric_specs"):
         widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
     timeout.check()
 
@@ -162,9 +161,7 @@ def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
     feature_names = [
         "organizations:on-demand-metrics-extraction",
         "organizations:on-demand-metrics-extraction-widgets",  # Controls extraction for widgets
-        "organizations:on-demand-metrics-extraction-experimental",
         "organizations:on-demand-metrics-prefill",
-        "organizations:on-demand-gen-metrics-deprecation-prefill",
     ]
 
     enabled_features = set()
@@ -275,8 +272,10 @@ def _get_bulk_cached_query(project: Project) -> tuple[dict[int, dict[str, bool]]
         if chunk_result is None:
             cold_cache_chunks.append(i)
         sentry_sdk.set_tag(f"on_demand_metrics.query_cache.{i}", chunk_result is None)
+        sentry_sdk.set_attribute(f"on_demand_metrics.query_cache.{i}", chunk_result is None)
         cache_result[i] = chunk_result or {}
     sentry_sdk.set_extra("cold_cache_chunks", cold_cache_chunks)
+    sentry_sdk.set_attribute("cold_cache_chunks", json.dumps(cold_cache_chunks))
     metrics.incr("on_demand_metrics.query_cache_cold_keys", amount=len(cold_cache_chunks))
     return cache_result, cold_cache_chunks
 
@@ -763,14 +762,18 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     with sentry_sdk.isolation_scope() as scope:
         metrics.incr("on_demand_metrics.cardinality_check.query")
         scope.set_tag("widget_query.widget_id", widget_query.id)
+        scope.set_attribute("widget_query.widget_id", widget_query.id)
         scope.set_tag("widget_query.org_id", project.organization_id)
+        scope.set_attribute("widget_query.org_id", project.organization_id)
         scope.set_tag("widget_query.conditions", widget_query.conditions)
+        scope.set_attribute("widget_query.conditions", widget_query.conditions)
 
         try:
             results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
             processed_results = query_builder.process_results(results)
         except ProcessingDeadlineExceeded as error:
             scope.set_tag("widget_soft_deadline", True)
+            scope.set_attribute("widget_soft_deadline", True)
             sentry_sdk.capture_exception(error)
             # We're setting a much shorter cache timeout here since this is essentially a permissive 'unknown' state
             cache.set(cache_key, True, timeout=_get_widget_cardinality_softdeadline_ttl())
@@ -788,8 +791,11 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
                     cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
 
                     scope.set_tag("widget_query.column_name", column)
+                    scope.set_attribute("widget_query.column_name", column)
                     scope.set_extra("widget_query.column_count", count)
+                    scope.set_attribute("widget_query.column_count", count)
                     scope.set_extra("widget_query.id", widget_query.id)
+                    scope.set_attribute("widget_query.id", widget_query.id)
                     raise HighCardinalityWidgetException()
         except HighCardinalityWidgetException as error:
             sentry_sdk.capture_message(str(error))
@@ -840,8 +846,10 @@ def _convert_aggregate_and_query_to_metrics(
         "groupbys": groupbys,
     }
 
-    with sentry_sdk.start_span(op="converting_aggregate_and_query") as span:
-        span.set_data("widget_query_args", {"query": query, "aggregate": aggregate})
+    with start_span(
+        op="converting_aggregate_and_query", name="converting_aggregate_and_query"
+    ) as span:
+        set_span_data(span, "widget_query_args", {"query": query, "aggregate": aggregate})
         # Create as many specs as we support
         for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
             try:

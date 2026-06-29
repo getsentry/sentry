@@ -52,4 +52,6 @@ class AdminBroadcastSerializer(BroadcastSerializer):
         context = super().serialize(obj, attrs, user)
         context["userCount"] = attrs["user_count"]
         context["createdBy"] = obj.created_by_id.email if obj.created_by_id else None
+        context["upstreamId"] = obj.upstream_id
+        context["syncLocked"] = obj.sync_locked
         return context

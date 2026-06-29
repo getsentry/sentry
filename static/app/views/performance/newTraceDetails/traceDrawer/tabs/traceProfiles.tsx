@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -36,16 +36,13 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
     [tree.profiled_events]
   );
 
-  const onProfileLinkClick = useCallback(
-    (type: 'continuous' | 'transaction') => {
-      if (type === 'continuous') {
-        traceAnalytics.trackViewContinuousProfile(organization);
-      } else {
-        traceAnalytics.trackViewTransactionProfile(organization);
-      }
-    },
-    [organization]
-  );
+  const onProfileLinkClick = (type: 'continuous' | 'transaction') => {
+    if (type === 'continuous') {
+      traceAnalytics.trackViewContinuousProfile(organization);
+    } else {
+      traceAnalytics.trackViewTransactionProfile(organization);
+    }
+  };
 
   return (
     <ProfilesTable>

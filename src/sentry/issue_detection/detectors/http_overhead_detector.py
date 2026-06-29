@@ -15,8 +15,6 @@ from sentry.issue_detection.detectors.utils import (
 )
 from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 
 from ..performance_problem import PerformanceProblem
 from ..types import Span
@@ -55,10 +53,9 @@ class HTTPOverheadDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.location_to_indicators: dict[str, list[list[ProblemIndicator]]] = defaultdict(list)
 
@@ -194,8 +191,5 @@ class HTTPOverheadDetector(PerformanceDetector):
         for location in self.location_to_indicators:
             self._store_performance_problem(location)
 
-    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]

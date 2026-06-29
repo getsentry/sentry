@@ -1,7 +1,7 @@
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 
@@ -329,7 +329,7 @@ export function sortProfileSamples<S extends SortableProfileSample>(
   frames: Readonly<Profiling.SentrySampledProfile['profile']['frames']>,
   frameFilter?: (i: number) => boolean
 ) {
-  const frameIds = [...new Array(frames.length).keys()].sort((a, b) => {
+  const frameIds = [...Array.from({length: frames.length}).keys()].sort((a, b) => {
     const frameA = frames[a]!;
     const frameB = frames[b]!;
 
@@ -364,13 +364,10 @@ export function sortProfileSamples<S extends SortableProfileSample>(
     return 0;
   });
 
-  const framesMapping = frameIds.reduce(
-    (acc, frameId, idx) => {
-      acc[frameId] = idx;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+  const framesMapping = frameIds.reduce<Record<string, number>>((acc, frameId, idx) => {
+    acc[frameId] = idx;
+    return acc;
+  }, {});
 
   return [...samples].sort((a, b) => {
     // same stack id, these are the same

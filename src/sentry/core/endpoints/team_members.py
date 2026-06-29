@@ -28,7 +28,7 @@ class OrganizationMemberOnTeamResponse(OrganizationMemberResponse):
 
 
 @register(OrganizationMemberTeam)
-class DetailedOrganizationMemberTeamSerializer(Serializer):
+class DetailedOrganizationMemberTeamSerializer(Serializer[OrganizationMemberOnTeamResponse]):
     def __init__(self, *args, **kwargs):
         self.team = kwargs.pop("team", None)
         super().__init__(*args, **kwargs)
@@ -65,10 +65,11 @@ class TeamMembersEndpoint(TeamEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
 
     @extend_schema(
-        operation_id="List a Team's Members",
+        operation_id="listTeamMembers",
+        summary="List a Team's Members",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
@@ -83,7 +84,7 @@ class TeamMembersEndpoint(TeamEndpoint):
         },
         examples=TeamExamples.LIST_TEAM_MEMBERS,
     )
-    def get(self, request: Request, team) -> Response:
+    def get(self, request: Request, team) -> Response[list[OrganizationMemberOnTeamResponse]]:
         """
         List all members on a team.
 

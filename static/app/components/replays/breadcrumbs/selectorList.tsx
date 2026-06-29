@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {ClickFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 
 export function SelectorList({frame}: {frame: ClickFrame}) {
   const location = useLocation();

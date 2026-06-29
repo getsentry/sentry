@@ -12,7 +12,6 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
-from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
@@ -32,6 +31,12 @@ from sentry.users.models.userrole import UserRoleUser
 from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.serializers import manytoone_to_dict
+
+
+class SerializedAvatarFields(TypedDict, total=False):
+    avatarType: str
+    avatarUuid: str | None
+    avatarUrl: str | None
 
 
 class _UserEmails(TypedDict):
@@ -93,6 +98,7 @@ class UserSerializerResponse(UserSerializerResponseOptional):
     email: str
     avatarUrl: str
     isActive: bool
+    isSuspended: bool
     hasPasswordAuth: bool
     isManaged: bool
     dateJoined: datetime
@@ -169,6 +175,7 @@ class UserSerializer(Serializer):
             "email": obj.email,
             "avatarUrl": get_gravatar_url(obj.email, size=32),
             "isActive": obj.is_active,
+            "isSuspended": obj.is_suspended,
             "hasPasswordAuth": obj.password not in ("!", ""),
             "isManaged": obj.is_managed,
             "dateJoined": obj.date_joined,

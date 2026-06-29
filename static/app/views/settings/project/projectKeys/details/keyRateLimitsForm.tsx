@@ -1,72 +1,71 @@
-import {useMemo} from 'react';
-import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 import sortBy from 'lodash/sortBy';
+import {z} from 'zod';
 
-import {Input} from '@sentry/scraps/input';
+import {Alert} from '@sentry/scraps/alert';
+import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
-import {Form} from 'sentry/components/forms/form';
-import {FormField} from 'sentry/components/forms/formField';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {t, tct, tn} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {ProjectKey} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import type {Project, ProjectKey} from 'sentry/types/project';
+import {defined} from 'sentry/utils/defined';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const PREDEFINED_RATE_LIMIT_VALUES = [
   0, 60, 300, 900, 3600, 7200, 14400, 21600, 43200, 86400,
 ];
 
-type RateLimitValue = {
-  count: number;
-  window: number;
-};
+const rateLimitSchema = z
+  .object({
+    count: z.number().int().min(0).nullable(),
+    window: z.number().int().min(0),
+  })
+  .refine(value => !((value.count ?? 0) > 0 && value.window === 0), {
+    message: t('A time window is required when a count is set'),
+    path: ['window'],
+  })
+  .refine(value => !(value.window > 0 && (value.count === null || value.count === 0)), {
+    message: t('Count is required when a time window is set'),
+    path: ['count'],
+  });
 
-type Props = {
+interface KeyRateLimitsFormProps {
   data: ProjectKey;
   disabled: boolean;
+  keyId: string;
   organization: Organization;
+  project: Project;
+  projectId: string;
   updateData: (data: ProjectKey) => void;
-} & Pick<
-  RouteComponentProps<{
-    keyId: string;
-    projectId: string;
-  }>,
-  'params'
->;
+}
 
 export function KeyRateLimitsForm({
   data,
   disabled,
   organization,
-  params,
+  keyId,
+  projectId,
+  project,
   updateData,
-}: Props) {
-  const initialRateLimit = useMemo(() => data.rateLimit, [data.rateLimit]);
-
-  const {keyId, projectId} = params;
+}: KeyRateLimitsFormProps) {
   const endpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
 
   function getAllowedRateLimitValues(currentRateLimit?: number) {
     const {rateLimit} = data;
     const {window} = rateLimit ?? {};
 
-    // The slider should display other values if they are set via the API, but still offer to select only the predefined values
     if (defined(window)) {
-      // If the API returns a value not found in the predefined values and the user selects another value through the UI,
-      // he will no longer be able to reselect the "custom" value in the slider
       if (currentRateLimit !== window) {
         return PREDEFINED_RATE_LIMIT_VALUES;
       }
 
-      // If the API returns a value not found in the predefined values, that value will be added to the slider
       if (!PREDEFINED_RATE_LIMIT_VALUES.includes(window)) {
         return sortBy([...PREDEFINED_RATE_LIMIT_VALUES, window]);
       }
@@ -75,43 +74,68 @@ export function KeyRateLimitsForm({
     return PREDEFINED_RATE_LIMIT_VALUES;
   }
 
-  function hasRateLimitChanged(currentRateLimit?: Partial<RateLimitValue>) {
-    return (
-      initialRateLimit?.count !== currentRateLimit?.count ||
-      initialRateLimit?.window !== currentRateLimit?.window
-    );
-  }
+  const mutation = useMutation({
+    mutationFn: (submitData: {rateLimit: ProjectKey['rateLimit']}) =>
+      fetchMutation<ProjectKey>({
+        url: endpoint,
+        method: 'PUT',
+        data: submitData,
+      }),
+    onSuccess: responseData => {
+      addSuccessMessage(t('Successfully saved rate limit.'));
+      updateData(responseData);
+      form.reset();
+    },
+    onError: error => {
+      let message: string | undefined;
+      if (error instanceof RequestError) {
+        const detail = error.responseJSON?.detail;
+        message = typeof detail === 'string' ? detail : detail?.message;
+      }
+      addErrorMessage(message ?? t('Unable to save rate limit.'));
+    },
+  });
 
-  const disabledAlert = ({features}: any) => (
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      count: data.rateLimit?.count ?? null,
+      window: data.rateLimit?.window ?? 0,
+    },
+    validators: {onDynamic: rateLimitSchema},
+    onSubmit: ({value}) => {
+      const rateLimit =
+        (value.count === null || value.count === 0) && value.window === 0
+          ? null
+          : {count: value.count ?? 0, window: value.window};
+      return mutation.mutateAsync({rateLimit}).catch(() => {});
+    },
+  });
+
+  const disabledAlert = ({features}: {features: string[]}) => (
     <FeatureDisabled
-      alert={PanelAlert}
+      alert={Alert}
       features={features}
       featureName={t('Key Rate Limits')}
     />
   );
 
   return (
-    <Form
-      saveOnBlur
-      apiEndpoint={endpoint}
-      apiMethod="PUT"
-      initialData={data}
-      onSubmitSuccess={updateData}
+    <Feature
+      features="projects:rate-limits"
+      overrideName="feature-disabled:rate-limits"
+      project={project}
+      renderDisabled={({children, ...props}) =>
+        typeof children === 'function' &&
+        children({...props, renderDisabled: disabledAlert})
+      }
     >
-      <Feature
-        features="projects:rate-limits"
-        hookName="feature-disabled:rate-limits"
-        renderDisabled={({children, ...props}) =>
-          typeof children === 'function' &&
-          children({...props, renderDisabled: disabledAlert})
-        }
-      >
-        {({hasFeature, features, project, renderDisabled}) => (
-          <Panel>
-            <PanelHeader>{t('Rate Limits')}</PanelHeader>
-
-            <PanelBody>
-              <PanelAlert variant="info">
+      {({hasFeature, features, renderDisabled}) => {
+        const fieldDisabled = disabled || !hasFeature;
+        return (
+          <form.AppForm form={form}>
+            <FieldGroup title={t('Rate Limits')}>
+              <Alert variant="info" system>
                 {t(
                   `Rate limits provide a flexible way to manage your error
                     volume. If you have a noisy project or environment you
@@ -120,7 +144,7 @@ export function KeyRateLimitsForm({
                     volume, we recommend adjusting your sample rate in your
                     SDK configuration.`
                 )}
-              </PanelAlert>
+              </Alert>
               {!hasFeature &&
                 typeof renderDisabled === 'function' &&
                 renderDisabled({
@@ -130,107 +154,68 @@ export function KeyRateLimitsForm({
                   hasFeature,
                   children: null,
                 })}
-              <FormField
-                name="rateLimit"
-                label={t('Rate Limit')}
-                disabled={disabled || !hasFeature}
-                validate={({form}: any) => {
-                  // TODO(TS): is validate actually doing anything because it's an unexpected prop
-                  const isValid =
-                    typeof form?.rateLimit?.count !== 'undefined' &&
-                    typeof form.rateLimit.window !== 'undefined';
 
-                  if (isValid) {
-                    return [];
-                  }
-
-                  return [['rateLimit', t('Fill in both fields first')]];
-                }}
-                formatMessageValue={({count, window}: RateLimitValue) =>
-                  tct('[errors] in [timeWindow]', {
-                    errors: tn('%s error ', '%s errors ', count),
-                    timeWindow:
-                      window === 0 ? t('no time window') : getExactDuration(window),
-                  })
-                }
-                help={t(
-                  'Apply a rate limit to this credential to cap the amount of errors accepted during a time window.'
+              <form.AppField name="count">
+                {field => (
+                  <field.Layout.Row
+                    label={t('Count')}
+                    hintText={t(
+                      'The maximum number of errors to accept in the time window.'
+                    )}
+                  >
+                    <field.Number
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={fieldDisabled}
+                      min={0}
+                    />
+                  </field.Layout.Row>
                 )}
-              >
-                {({onChange, value, model: formModel}) => {
-                  const window = typeof value === 'object' ? value.window : undefined;
+              </form.AppField>
+              <form.AppField name="window">
+                {field => {
+                  const windowValue = field.state.value;
+                  const allowedValues = getAllowedRateLimitValues(windowValue);
+                  const windowIndex = Math.max(0, allowedValues.indexOf(windowValue));
+                  const windowLabel =
+                    windowValue === 0 ? t('None') : getExactDuration(windowValue);
                   return (
-                    <RateLimitRow>
-                      <Input
-                        type="number"
-                        name="rateLimit.count"
-                        min={0}
-                        value={typeof value === 'object' ? value.count : undefined}
-                        placeholder={t('Count')}
-                        disabled={disabled || !hasFeature}
-                        onChange={event =>
-                          onChange({...value, count: Number(event.target.value)}, event)
-                        }
-                        onBlur={() => {
-                          if (hasRateLimitChanged(value)) {
-                            formModel.saveField('rateLimit', value);
+                    <field.Layout.Row
+                      label={t('Time Window')}
+                      hintText={t('The time period in which the rate limit is applied.')}
+                    >
+                      <Stack>
+                        <Text variant="muted" bold>
+                          {windowLabel}
+                        </Text>
+                        <field.Range
+                          value={windowIndex}
+                          onChange={index =>
+                            field.handleChange(allowedValues[index] ?? 0)
                           }
-                        }}
-                        onKeyDown={event => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault();
-                            if (hasRateLimitChanged(value)) {
-                              formModel.saveField('rateLimit', value);
-                            }
-                          }
-                        }}
-                      />
-                      <EventsIn>{t('event(s) in')}</EventsIn>
-                      <RangeSlider
-                        name="rateLimit.window"
-                        allowedValues={getAllowedRateLimitValues(window)}
-                        value={window}
-                        placeholder={t('Window')}
-                        formatLabel={rangeValue => {
-                          if (typeof rangeValue === 'number') {
-                            if (rangeValue === 0) {
-                              return t('None');
-                            }
-                            return getExactDuration(rangeValue);
-                          }
-                          return undefined;
-                        }}
-                        disabled={disabled || !hasFeature}
-                        onChange={(rangeValue, event) =>
-                          onChange({...value, window: Number(rangeValue)}, event)
-                        }
-                        onChangeEnd={() => {
-                          if (hasRateLimitChanged(value)) {
-                            formModel.saveField('rateLimit', value);
-                          }
-                        }}
-                      />
-                    </RateLimitRow>
+                          min={0}
+                          max={allowedValues.length - 1}
+                          step={1}
+                          formatOptions="hidden"
+                          disabled={fieldDisabled}
+                          aria-valuetext={windowLabel}
+                          aria-label={t('Time window')}
+                        />
+                      </Stack>
+                    </field.Layout.Row>
                   );
                 }}
-              </FormField>
-            </PanelBody>
-          </Panel>
-        )}
-      </Feature>
-    </Form>
+              </form.AppField>
+              <Flex gap="sm" justify="end">
+                <form.ResetButton disabled={fieldDisabled}>{t('Reset')}</form.ResetButton>
+                <form.SubmitButton disabled={fieldDisabled}>
+                  {t('Save')}
+                </form.SubmitButton>
+              </Flex>
+            </FieldGroup>
+          </form.AppForm>
+        );
+      }}
+    </Feature>
   );
 }
-
-const RateLimitRow = styled('div')`
-  display: grid;
-  grid-template-columns: 100px max-content 1fr;
-  align-items: center;
-  gap: ${p => p.theme.space.xl};
-`;
-
-const EventsIn = styled('small')`
-  font-size: ${p => p.theme.font.size.sm};
-  text-align: center;
-  white-space: nowrap;
-`;
