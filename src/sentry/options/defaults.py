@@ -319,6 +319,27 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "unmerge.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "merge.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.merge-unmerge.max-group-times-seen",
+    default=0,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "cleanup.abort_execution",
@@ -1123,6 +1144,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.pull-request-linking.killswitch.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.explorer.context-engine-rollout",
     type=Float,
     default=0.0,
@@ -1498,17 +1525,17 @@ register(
 )
 
 # Brownout schedule for the deprecated alerts API endpoints.
-# 1 minute blackout 6 times a day (every 4 hours, on the hour, UTC).
+# 2 minute blackout 12 times a day (every 2 hours, on the hour, UTC).
 register(
     "api.deprecation.alerts-cron",
-    default="0 */4 * * *",
+    default="0 */2 * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "api.deprecation.alerts-duration",
     type=Int,
-    default=60,
+    default=120,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2041,6 +2068,12 @@ register(
 register(
     "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions",
     0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
+register(
+    "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3742,9 +3775,25 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rolls out the new TaskProducer to replays tasks
+register(
+    "tasks.producer.replays.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rolls out the new TaskProducer to track_outcome in tasks
 register(
     "tasks.producer.track_outcome.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to preprod tasks
+register(
+    "tasks.producer.preprod.rollout",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

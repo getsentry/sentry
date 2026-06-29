@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import secrets
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import orjson
 import sentry_sdk
@@ -23,7 +23,6 @@ from sentry.identity.oauth2 import (
     _redirect_url,
     record_event,
 )
-from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationPipelineViewType
@@ -31,18 +30,19 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
-DATADOG_VALID_SITES = frozenset(
-    {
-        "datadoghq.com",
-        "us3.datadoghq.com",
-        "us5.datadoghq.com",
-        "datadoghq.eu",
-        "ddog-gov.com",
-        "us2.ddog-gov.com",
-        "ap1.datadoghq.com",
-        "ap2.datadoghq.com",
-    }
-)
+if TYPE_CHECKING:
+    from sentry.identity.pipeline import IdentityPipeline
+
+DATADOG_VALID_SITES: dict[str, str] = {
+    "datadoghq.com": "US1",
+    "us3.datadoghq.com": "US3",
+    "us5.datadoghq.com": "US5",
+    "datadoghq.eu": "EU",
+    "ap1.datadoghq.com": "AP1",
+    "ap2.datadoghq.com": "AP2",
+    "ddog-gov.com": "US1-FED",
+    "us2.ddog-gov.com": "US2-FED",
+}
 
 MCP_REGISTER_PATH = "/api/unstable/mcp-server/register"
 MCP_AUTHORIZE_PATH = "/api/unstable/mcp-server/authorize"
@@ -432,7 +432,7 @@ class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
         return f"{base}{MCP_ENDPOINT_PATH}" if base else None
 
     def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
-        access_token = data.get("access_token")
+        access_token = (data.get("access_token") or "").strip()
         if not access_token:
             raise ValueError("Datadog requires an 'access_token' parameter.")
 

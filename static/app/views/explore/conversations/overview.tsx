@@ -56,6 +56,20 @@ function ConversationsOverviewPage() {
     });
   }, [organization]);
 
+  useEffect(() => {
+    if (!isOnboardingLoading) {
+      if (showOnboarding) {
+        trackAnalytics('conversations.onboarding.page-view', {
+          organization,
+        });
+      } else {
+        trackAnalytics('conversations.table.page-view', {
+          organization,
+        });
+      }
+    }
+  }, [showOnboarding, isOnboardingLoading, organization]);
+
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
@@ -110,7 +124,12 @@ function ConversationsOverviewPage() {
         </Layout.Main>
       </ExploreBodySearch>
       <ExploreBodyContent>
-        <Stack flex={1} padding="xl" gap="md">
+        <Stack
+          flex={1}
+          minWidth={showConversationsTableNew ? '0' : undefined}
+          padding="xl"
+          gap="md"
+        >
           {isOnboardingLoading ? (
             <LoadingIndicator />
           ) : showOnboarding ? (

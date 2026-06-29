@@ -8,13 +8,13 @@ from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
     BoldTextBlock,
     LinkTextBlock,
-    NotificationBodyFormattingBlock,
-    NotificationBodyFormattingBlockType,
-    NotificationBodyTextBlock,
-    NotificationBodyTextBlockType,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSection,
+    NotificationSectionType,
     NotificationTargetResourceType,
+    NotificationTextBlock,
+    NotificationTextBlockType,
     ParagraphBlock,
     PlainTextBlock,
 )
@@ -23,25 +23,25 @@ from sentry.testutils.notifications.platform import MockNotification, MockNotifi
 
 
 def validate_text_block(
-    text_block: NotificationBodyTextBlock, text_content: str, html_content: str
+    text_block: NotificationTextBlock, text_content: str, html_content: str
 ) -> None:
-    if text_block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+    if text_block.type == NotificationTextBlockType.PLAIN_TEXT:
         assert text_block.text in text_content
         assert text_block.text in html_content
-    elif text_block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+    elif text_block.type == NotificationTextBlockType.BOLD_TEXT:
         assert f"<strong>{text_block.text}</strong>" in html_content
-    elif text_block.type == NotificationBodyTextBlockType.CODE:
+    elif text_block.type == NotificationTextBlockType.CODE:
         assert f"<code>{text_block.text}</code>" in html_content
 
 
 def validate_formatting_block(
-    formatting_block: NotificationBodyFormattingBlock, text_content: str, html_content: str
+    formatting_block: NotificationSection, text_content: str, html_content: str
 ) -> None:
-    if formatting_block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
+    if formatting_block.type == NotificationSectionType.PARAGRAPH:
         assert "\n" in text_content
         assert "<p" in html_content
         assert "</p>" in html_content
-    elif formatting_block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+    elif formatting_block.type == NotificationSectionType.CODE_BLOCK:
         assert "\n" in text_content
         assert "<pre" in html_content
         assert "</pre>" in html_content
@@ -70,15 +70,18 @@ class EmailRendererTest(TestCase):
         text_content = email.body
 
         assert self.rendered_template.chart is not None
-        assert self.rendered_template.footer is not None
+        assert isinstance(self.rendered_template.subject_blocks, list)
+        assert isinstance(self.rendered_template.subject_text, str)
+        assert isinstance(self.rendered_template.footer_blocks, list)
+        assert isinstance(self.rendered_template.footer_text, str)
 
         for element in [
-            self.rendered_template.subject,
+            self.rendered_template.subject_text,
             self.rendered_template.actions[0].label,
             self.rendered_template.actions[0].link,
             self.rendered_template.chart.url,
             self.rendered_template.chart.alt_text,
-            self.rendered_template.footer,
+            self.rendered_template.footer_text,
         ]:
             assert element in str(text_content)
             assert element in str(html_content)
@@ -122,16 +125,9 @@ class EmailRendererTest(TestCase):
             subject="Test XSS",
             body=[
                 ParagraphBlock(
-                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
-                        PlainTextBlock(
-                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
-                            text="<script>alert('xss')</script>",
-                        ),
-                        BoldTextBlock(
-                            type=NotificationBodyTextBlockType.BOLD_TEXT,
-                            text="<img src=x onerror=alert('xss')>",
-                        ),
+                        PlainTextBlock(text="<script>alert('xss')</script>"),
+                        BoldTextBlock(text="<img src=x onerror=alert('xss')>"),
                     ],
                 )
             ],

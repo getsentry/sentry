@@ -10,12 +10,12 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
 )
 from sentry.notifications.platform.types import (
     LinkTextBlock,
-    NotificationBodyFormattingBlock,
-    NotificationBodyTextBlock,
     NotificationCategory,
     NotificationRenderedTemplate,
+    NotificationSection,
     NotificationSource,
     NotificationTemplate,
+    NotificationTextBlock,
     ParagraphBlock,
 )
 from sentry.types.activity import ActivityType
@@ -58,7 +58,7 @@ class SeerPrCreatedActivityTemplate(NotificationTemplate[WorkflowEngineActivityA
             activity_id=data.activity_id
         )
 
-        pr_links: list[NotificationBodyTextBlock] = []
+        pr_links: list[NotificationTextBlock] = []
         if activity.data:
             for pull_request in activity.data.get("pull_requests", []):
                 repo_name = pull_request.get("repo_name", "")
@@ -68,7 +68,7 @@ class SeerPrCreatedActivityTemplate(NotificationTemplate[WorkflowEngineActivityA
                     label = f"{repo_name} (#{pr_number})" if pr_number else repo_name
                     pr_links.append(LinkTextBlock(text=label, url=pr_url))
 
-        body: list[NotificationBodyFormattingBlock] = [*get_issue_description(group)]
+        body: list[NotificationSection] = [*get_issue_description(group)]
         if pr_links:
             body.append(ParagraphBlock(blocks=pr_links))
 

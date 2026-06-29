@@ -19,6 +19,7 @@ from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
+from sentry.utils.tracing import start_span
 
 
 @instrumented_task(
@@ -98,7 +99,7 @@ def reprocess_group(
 
     for event in events:
         if max_events is None or max_events > 0:
-            with sentry_sdk.start_span(op="reprocess_event"):
+            with start_span(op="reprocess_event", name="reprocess_event"):
                 try:
                     reprocess_event(
                         project_id=project_id,
@@ -246,7 +247,9 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
         # to transfer manually.
         # Any activities created during reprocessing (e.g. user clicks "assign" in an old browser tab)
         # are ignored.
-        activities = Activity.objects.filter(group_id=group_id, type=ActivityType.REPROCESS.value)
+        activities = Activity.objects.filter(
+            group_id=group_id, type=ActivityType.REPROCESS.value
+        ).order_by("-datetime")
         activity = activities[0]
         new_group_id = activity.group_id = activity.data["newGroupId"]
         activity.save()
