@@ -596,6 +596,20 @@ class PrMetricsEmissionTest(TestCase):
         assert row.ci_failed_at_close is False
         assert row.ci_ever_failed is True
 
+    def test_build_row_ci_failed_at_close_null_when_no_suite_on_terminal_head(self) -> None:
+        # Suites ran on an earlier commit but none on the closing head (fast merge,
+        # still-pending CI): the at-close state is unknown (null), not green — even
+        # though we still know CI failed earlier in the PR's life.
+        self._check_suite(conclusion="failure", head_sha="c" * 40, webhook_id="cs-1")
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.ci_failed_at_close is None
+        assert row.ci_ever_failed is True
+
     def test_build_row_ci_rerun_green_supersedes_failure_at_head(self) -> None:
         # Same head, same CI app: a red suite re-run green. The latest suite per
         # app wins, so the terminal head reads green (but it did fail once).

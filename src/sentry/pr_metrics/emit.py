@@ -161,9 +161,12 @@ def _ci_summary(pull_request: PullRequest) -> dict[str, Any]:
 
     ``ci_failed_at_close`` reduces to the latest suite per CI app at the PR's
     terminal ``head_commit_sha``, so a red run later re-run green at the same head
-    reads as green. ``ci_ever_failed`` is true if any suite went red over the PR's
-    whole life, counting a since-fixed failure. Both span required and optional
-    checks alike — the webhook doesn't say which gate merge.
+    reads as green. It stays null when no suite ran on the terminal head (CI only
+    on earlier commits, a fast merge, or still-pending CI), keeping "unknown at
+    close" distinct from ``False`` ("green at close") — even when earlier suites
+    make ``ci_ever_failed`` known. ``ci_ever_failed`` is true if any suite went
+    red over the PR's whole life, counting a since-fixed failure. Both span
+    required and optional checks alike — the webhook doesn't say which gate merge.
     """
     head = pull_request.head_commit_sha
     rows = (
@@ -191,7 +194,13 @@ def _ci_summary(pull_request: PullRequest) -> dict[str, Any]:
     if not saw_suite:
         return {}
     return {
-        "ci_failed_at_close": any(c in _CI_FAILURE_CONCLUSIONS for c in latest_at_head.values()),
+        # None (not False) when no suite ran on the terminal head: an empty
+        # any() would otherwise report "green at close" for an unknown state.
+        "ci_failed_at_close": (
+            any(c in _CI_FAILURE_CONCLUSIONS for c in latest_at_head.values())
+            if latest_at_head
+            else None
+        ),
         "ci_ever_failed": ever_failed,
     }
 
