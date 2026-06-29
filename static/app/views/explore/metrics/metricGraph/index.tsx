@@ -63,8 +63,7 @@ export function getMetricsChartTypeOptions(
       {
         value: ChartType.HEATMAP,
         label: t('Heat Map'),
-        disabled:
-          isEquation || !metric || !doesMetricSupportHeatMapVisualization(metric),
+        disabled: isEquation || !metric || !doesMetricSupportHeatMapVisualization(metric),
       },
     ];
   }
