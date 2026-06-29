@@ -6,8 +6,6 @@ from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
-from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
-from sentry.explore.models import ExploreSavedQueryProject
 from sentry.explore.translation.discover_translation import (
     translate_discover_query_to_explore_query,
 )
@@ -38,9 +36,11 @@ class DiscoverSavedQueryTypes(TypesClass):
 def migrate_transactions_discover_queries_self_hosted(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
-    queryset = DiscoverSavedQuery.objects.filter(
-        dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE
-    ).select_related("organization")
+    DiscoverSavedQuery = apps.get_model("discover", "DiscoverSavedQuery")
+    DiscoverSavedQueryProject = apps.get_model("discover", "DiscoverSavedQueryProject")
+    ExploreSavedQueryProject = apps.get_model("explore", "ExploreSavedQueryProject")
+
+    queryset = DiscoverSavedQuery.objects.filter(dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE)
 
     for discover_query in RangeQuerySetWrapperWithProgressBar(queryset):
         try:

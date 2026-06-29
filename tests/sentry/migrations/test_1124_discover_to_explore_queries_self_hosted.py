@@ -12,9 +12,6 @@ class MigrateDiscoverQueriesToExploreQueriesSelfHostedTest(TestMigrations, Snuba
     migrate_to = "1124_discover_to_explore_queries_self_hosted"
 
     def setup_before_migration(self, apps):
-        User = apps.get_model("sentry", "User")
-
-        self.user = User.objects.create(email="test@sentry.io")
         self.org = self.create_organization(name="Test org", slug="test-org")
         self.project = self.create_project(organization=self.org)
         self.project_ids = [self.project.id]
