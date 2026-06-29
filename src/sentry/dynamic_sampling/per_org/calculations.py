@@ -146,6 +146,20 @@ def run_project_balancing(
     for project_volume in project_volumes:
         if project_volume.project_id in project_ids and project_volume.total > 0:
             counts_by_project[project_volume.project_id] = project_volume.total
+
+    # Mirror the legacy serving path (get_guarded_project_sample_rate): a 100% org sample
+    # rate means every project is sampled at 100% and the balanced ("boost low volume
+    # projects") rate is never applied. Reproduced intentionally to match the legacy pipeline.
+    if sample_rate == 1.0:
+        return [
+            RebalancedItem(
+                id=project.id,
+                count=counts_by_project.get(project.id, 0),
+                new_sample_rate=1.0,
+            )
+            for project in config.projects
+        ]
+
     return ProjectsRebalancingModel().run(
         ProjectsRebalancingInput(
             classes=[
