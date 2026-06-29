@@ -39,6 +39,7 @@ from sentry.sentry_apps.metrics import (
     SentryAppInteractionType,
 )
 from sentry.sentry_apps.models.sentry_app import (
+    MASKED_VALUE,
     REQUIRED_EVENT_PERMISSIONS,
     UUID_CHARS_IN_SLUG,
     SentryApp,
@@ -114,6 +115,7 @@ class SentryAppUpdater:
     schema: Schema | None = None
     overview: str | None = None
     allowed_origins: list[str] | None = None
+    webhook_headers: list[str] | None = None
     popularity: int | None = None
     features: list[int] | None = None
     is_disabled: bool | None = None
@@ -137,6 +139,7 @@ class SentryAppUpdater:
                 self._update_verify_install()
                 self._update_overview()
                 self._update_allowed_origins()
+                self._update_webhook_headers()
                 new_schema_elements = self._update_schema()
                 self._update_popularity(user=user)
                 self.sentry_app.save()
@@ -286,6 +289,40 @@ class SentryAppUpdater:
             self.sentry_app.application.allowed_origins = "\n".join(self.allowed_origins)
             self.sentry_app.application.save()
 
+    def _update_webhook_headers(self) -> None:
+        # None means "not provided" (leave unchanged); an empty list clears all headers.
+        if self.webhook_headers is None:
+            return
+
+        # The serializer masks header values on read, so an unchanged entry comes back
+        # as "Header-Name: <MASKED_VALUE>". Substitute the stored value for any masked
+        # entry (matched by name) so a prefill+resave doesn't overwrite real secrets.
+        # Drop masked entries with no stored match.
+        #
+        # Names are unique (the parser rejects duplicates), so this re-pairing is
+        # unambiguous. Known limitation: renaming a header while leaving its value
+        # masked can't be matched by the new name and will drop the entry — only
+        # reachable by an editor who sees masks (org:write without scope coverage);
+        # they should re-enter the value when renaming.
+        existing_by_name = {}
+        for header in self.sentry_app.webhook_headers:
+            name, separator, _value = header.partition(":")
+            if separator:
+                existing_by_name[name.strip().lower()] = header
+
+        resolved: list[str] = []
+        for header in self.webhook_headers:
+            name, separator, value = header.partition(":")
+            if separator and value.strip() == MASKED_VALUE:
+                stored = existing_by_name.get(name.strip().lower())
+                if stored is not None:
+                    resolved.append(stored)
+            else:
+                resolved.append(header)
+
+        self.sentry_app.webhook_headers = resolved
+        # Persisted by the sentry_app.save() call at the end of run().
+
     def _update_popularity(self, user: User | RpcUser) -> None:
         if self.popularity is not None:
             if _is_elevated_user(user):
@@ -343,6 +380,7 @@ class SentryAppCreator:
     schema: Schema = dataclasses.field(default_factory=dict)
     overview: str | None = None
     allowed_origins: list[str] = dataclasses.field(default_factory=list)
+    webhook_headers: list[str] = dataclasses.field(default_factory=list)
     popularity: int | None = None
     metadata: dict | None = field(default_factory=dict)
 
@@ -426,6 +464,7 @@ class SentryAppCreator:
             "events": expand_events(self.events),
             "schema": self.schema or {},
             "webhook_url": self.webhook_url,
+            "webhook_headers": self.webhook_headers,
             "redirect_url": self.redirect_url,
             "is_alertable": self.is_alertable,
             "verify_install": self.verify_install,

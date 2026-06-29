@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
+import {Avatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -9,12 +10,21 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {TimeSince} from 'sentry/components/timeSince';
+import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GroupActivityType, type Group} from 'sentry/types/group';
+import {
+  GroupActivityType,
+  type Group,
+  type GroupActivityPullRequestClosed,
+  type GroupActivitySetByResolvedInPullRequest,
+} from 'sentry/types/group';
 import type {
   LinkedPullRequest,
   LinkedPullRequestsResponse,
+  PullRequestAuthor,
+  PullRequestAttribution,
 } from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -27,13 +37,25 @@ import {
 
 const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
 
+const PULL_REQUEST_ACTIVITY_TYPES = new Set([
+  GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+  GroupActivityType.PULL_REQUEST_CLOSED,
+]);
+
 export function getLinkedPullRequestActivityIds(group: Group) {
   return new Set(
     group.activity
       .filter(
-        activity => activity.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST
+        (
+          activity
+        ): activity is
+          | GroupActivityPullRequestClosed
+          | GroupActivitySetByResolvedInPullRequest =>
+          PULL_REQUEST_ACTIVITY_TYPES.has(activity.type)
       )
-      .map(activity => activity.data.pullRequest?.id)
+      .map(activity => {
+        return activity.data.pullRequest?.id;
+      })
       .filter(id => id !== undefined)
   );
 }
@@ -54,6 +76,7 @@ function LinkedPullRequestRow({
   const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
   const statusLabel = getPullRequestStatusLabel(pullRequest.status);
   const pullRequestLabel = t('#%s', pullRequest.id);
+  const author = getPullRequestAuthor(pullRequest);
 
   return (
     <Tooltip
@@ -77,6 +100,7 @@ function LinkedPullRequestRow({
         onClick={() =>
           trackAnalytics('issue_details.external_issue_pull_request_clicked', {
             organization,
+            attribution_type: pullRequest.attribution?.type,
             pull_request_id: pullRequest.id,
             pull_request_status: pullRequest.status,
             repository_id: pullRequest.repository.id,
@@ -104,6 +128,11 @@ function LinkedPullRequestRow({
             </PullRequestTitle>
             <Flex align="center" gap="xs">
               <PullRequestStatusBadge status={pullRequest.status} />
+              {pullRequest.attribution ? (
+                <PullRequestAttributionAvatar attribution={pullRequest.attribution} />
+              ) : author ? (
+                <PullRequestAuthorAvatar author={author} />
+              ) : null}
               <Text as="span" size="sm" variant="muted">
                 <TimeSince
                   date={pullRequest.dateLinked}
@@ -116,6 +145,80 @@ function LinkedPullRequestRow({
           </Flex>
         </Grid>
       </PullRequestRow>
+    </Tooltip>
+  );
+}
+
+function PullRequestAttributionAvatar({
+  attribution,
+}: {
+  attribution: PullRequestAttribution;
+}) {
+  switch (attribution.type) {
+    case 'seer':
+      return <SeerAttributionAvatar />;
+  }
+}
+
+function getPullRequestAuthor(pullRequest: LinkedPullRequest): PullRequestAuthor | null {
+  if (!pullRequest.author || pullRequest.author.email?.endsWith('@localhost')) {
+    return null;
+  }
+
+  return pullRequest.author;
+}
+
+function isSentryUserAuthor(author: PullRequestAuthor): author is User {
+  return 'id' in author;
+}
+
+function PullRequestAuthorAvatar({author}: {author: PullRequestAuthor}) {
+  const name = author.name || author.email;
+  if (!name) {
+    return null;
+  }
+
+  const label = t('Pull request author: %s', name);
+
+  return (
+    <Flex as="span" aria-label={label} display="inline-flex" role="img" title={label}>
+      {isSentryUserAuthor(author) ? (
+        <UserAvatar hasTooltip size={18} tooltip={label} user={author} />
+      ) : (
+        <Avatar
+          hasTooltip
+          identifier={author.email || author.name || name}
+          name={name}
+          round
+          size={18}
+          tooltip={label}
+          type="letter_avatar"
+        />
+      )}
+    </Flex>
+  );
+}
+
+function SeerAttributionAvatar() {
+  const label = t('Pull request created by Seer');
+
+  return (
+    <Tooltip title={label} skipWrapper>
+      <Flex
+        as="span"
+        align="center"
+        aria-label={label}
+        border="primary"
+        display="inline-flex"
+        height="18px"
+        justify="center"
+        radius="full"
+        role="img"
+        title={label}
+        width="18px"
+      >
+        <IconSeer aria-hidden size="xs" />
+      </Flex>
     </Tooltip>
   );
 }

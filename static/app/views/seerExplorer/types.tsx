@@ -3,6 +3,12 @@ import {z} from 'zod';
 import {isFilePatch, type FilePatch} from 'sentry/components/events/autofix/types';
 
 /**
+ * Where the Seer Explorer sidebar docks. `auto` picks right/bottom based on
+ * screen size; `right`/`bottom` force a position. Persisted in localStorage.
+ */
+export type SeerExplorerSidebarPosition = 'auto' | 'right' | 'bottom';
+
+/**
  * z.enum but forward-compatible: accepts any string at runtime while preserving
  * autocomplete for the known values via the `(string & {})` trick.
  */
@@ -108,6 +114,7 @@ export interface ExplorerSession {
   last_triggered_at: string;
   run_id: number;
   title: string;
+  sentry_run_id?: string | null;
 }
 
 export interface Artifact<T = Record<string, unknown>> {
@@ -142,6 +149,8 @@ export type PendingUserInput = {
   input_type: 'file_change_approval' | 'ask_user_question';
 };
 
+export type SeerExplorerRunId = number | string;
+
 export type SeerExplorerResponse = {
   session: {
     blocks: Block[];
@@ -150,6 +159,6 @@ export type SeerExplorerResponse = {
     owner_user_id?: number | null;
     pending_user_input?: PendingUserInput | null;
     repo_pr_states?: Record<string, RepoPRState>;
-    run_id?: number;
   } | null;
+  sentry_run_id?: string | null;
 };

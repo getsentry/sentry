@@ -22,13 +22,9 @@ export function ChartContextMenu({
   visualizeYAxes,
   query,
   interval,
-  visible,
-  setVisible,
 }: {
   interval: string;
   query: string;
-  setVisible: (visible: boolean) => void;
-  visible: boolean;
   visualizeIndex: number;
   visualizeYAxes: readonly Visualize[];
 }) {
@@ -139,22 +135,6 @@ export function ChartContextMenu({
       },
     });
 
-    if (visible) {
-      menuItems.push({
-        key: 'hide-chart',
-        textValue: t('Hide Chart'),
-        label: t('Hide Chart'),
-        onAction: () => setVisible(false),
-      });
-    } else {
-      menuItems.push({
-        key: 'show-chart',
-        textValue: t('Show Chart'),
-        label: t('Show Chart'),
-        onAction: () => setVisible(true),
-      });
-    }
-
     return menuItems;
   }, [
     addToDashboard,
@@ -165,8 +145,6 @@ export function ChartContextMenu({
     query,
     visualizeIndex,
     visualizeYAxes,
-    visible,
-    setVisible,
   ]);
 
   if (items.length === 0) {

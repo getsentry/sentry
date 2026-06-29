@@ -15,6 +15,7 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.seer.webhooks import SentryReviewCommand, sentry_command
 
 from ..metrics import WebhookFilteredReason, record_webhook_filtered, record_webhook_received
 from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_reaction
@@ -33,15 +34,6 @@ class GitHubIssueCommentAction(enum.StrEnum):
     CREATED = "created"
     EDITED = "edited"
     DELETED = "deleted"
-
-
-SENTRY_REVIEW_COMMAND = "@sentry review"
-
-
-def is_pr_review_command(comment_body: str | None) -> bool:
-    if comment_body is None:
-        return False
-    return SENTRY_REVIEW_COMMAND in comment_body.lower()
 
 
 def handle_issue_comment_event(
@@ -80,7 +72,7 @@ def handle_issue_comment_event(
         logger.info(Log.NOT_PR_COMMENT.value)
         return
 
-    if not is_pr_review_command(comment_body or ""):
+    if not isinstance(sentry_command(comment_body), SentryReviewCommand):
         record_webhook_filtered(
             github_event, github_event_action, WebhookFilteredReason.NOT_REVIEW_COMMAND
         )

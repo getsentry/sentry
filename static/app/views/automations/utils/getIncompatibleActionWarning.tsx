@@ -15,12 +15,14 @@ const METRIC_DETECTOR_SUPPORTED_ACTIONS = new Set<ActionType>([
   ActionType.SENTRY_APP,
 ]);
 
-const ACTIVITY_TRIGGER_SUPPORTED_ACTIONS = new Set<ActionType>([
+const SEER_ACTIVITY_SUPPORTED_ACTIONS = new Set<ActionType>([
   ActionType.EMAIL,
   ActionType.SLACK,
   ActionType.SLACK_STAGING,
   ActionType.MSTEAMS,
   ActionType.DISCORD,
+  ActionType.SENTRY_APP,
+  ActionType.WEBHOOK,
 ]);
 
 interface IncompatibleActionWarningContext {
@@ -39,7 +41,7 @@ export function getIncompatibleActionWarnings(
   const warnings: string[] = [];
 
   if (
-    !ACTIVITY_TRIGGER_SUPPORTED_ACTIONS.has(action.type) &&
+    !SEER_ACTIVITY_SUPPORTED_ACTIONS.has(action.type) &&
     triggerConditions.some(c => c.type === DataConditionType.SEER_ACTIVITY_TRIGGER)
   ) {
     warnings.push(t('This action is not supported for Seer activity triggers.'));

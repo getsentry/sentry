@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sentry.tasks.seer.night_shift.models import TriageAction
 
@@ -27,6 +27,7 @@ class TriageCandidate(_Base):
     times_seen: int
     first_seen: str  # ISO 8601; Seer parses it back to a datetime.
     priority: str | None = None
+    connected_repos: list[str] = Field(default_factory=list)
 
 
 class TriageTweaks(_Base):

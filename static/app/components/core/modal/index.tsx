@@ -17,7 +17,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getModalPortal} from 'sentry/utils/getModalPortal';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
@@ -118,7 +117,6 @@ type Props = {
 
 export function GlobalModal({onClose}: Props) {
   const {renderer, options, visible, triggerElement} = useModalStore();
-  const hasPageFrame = useHasPageFrameFeature();
   const location = useLocation();
   const theme = useTheme();
   const closeEvents = options.closeEvents ?? 'all';
@@ -258,22 +256,14 @@ export function GlobalModal({onClose}: Props) {
                 role="dialog"
                 aria-modal
                 css={options.modalCss}
-                initial={hasPageFrame ? {opacity: 0, scale: 0.98} : {opacity: 0, y: -10}}
-                animate={hasPageFrame ? {opacity: 1, scale: 1} : {opacity: 1, y: 0}}
-                exit={
-                  hasPageFrame
-                    ? {opacity: 0, scale: 0.99, transition: theme.motion.framer.exit.fast}
-                    : {opacity: 0, y: 15}
-                }
-                transition={
-                  hasPageFrame
-                    ? theme.motion.framer.enter.moderate
-                    : {
-                        type: 'spring',
-                        stiffness: 450,
-                        damping: 25,
-                      }
-                }
+                initial={{opacity: 0, scale: 0.98}}
+                animate={{opacity: 1, scale: 1}}
+                exit={{
+                  opacity: 0,
+                  scale: 0.99,
+                  transition: theme.motion.framer.exit.fast,
+                }}
+                transition={theme.motion.framer.enter.moderate}
               >
                 <Surface variant="overlay" elevation="high">
                   {p => (

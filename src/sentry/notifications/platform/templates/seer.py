@@ -44,6 +44,7 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
         source=NotificationSource.SEER_AUTOFIX_ERROR,
         error_message="(401): Could not connect to your GitHub repository for this project.",
     )
+    hide_from_debugger = True
 
     def render(self, data: SeerAutofixError) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(

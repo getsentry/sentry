@@ -37,6 +37,10 @@ export interface UseResizableDrawerOptions {
   sizeStorageKey?: string;
 }
 
+function clampSize(value: number, min: number, max: number | undefined) {
+  return Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min, value));
+}
+
 /**
  * Hook to support draggable container resizing
  *
@@ -58,6 +62,10 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
    */
   onMouseDown: React.MouseEventHandler<HTMLElement>;
   /**
+   * Apply to the drag handle element. Supports touch and pen input.
+   */
+  onPointerDown: React.PointerEventHandler<HTMLElement>;
+  /**
    * Call this function to manually set the size of the drawer.
    */
   setSize: (newSize: number, userEvent?: boolean) => void;
@@ -76,7 +84,9 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
       ? parseInt(localStorage.getItem(options.sizeStorageKey) ?? '', 10)
       : undefined;
 
-    return storedSize || options.initialSize;
+    // Clamp the seed so a stale persisted value or an initialSize below min
+    // never enters as the size; bounds are enforced from the very first render.
+    return clampSize(storedSize || options.initialSize, options.min, options.max);
   });
   const [isHeld, setIsHeld] = useState(false);
   const optionsRef = useRef(options);
@@ -97,17 +107,19 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
   // invoke the onResize callback with the previously stored dimensions.
   useLayoutEffect(() => {
-    options.onResize(options.initialSize ?? 0, size, false);
-    setSize(options.initialSize ?? 0);
+    const clamped = clampSize(options.initialSize ?? 0, options.min, options.max);
+    options.onResize(clamped, size, false);
+    setSize(clamped);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
 
   const sizeRef = useRef(size);
   sizeRef.current = size;
 
-  const onMouseMove = useCallback(
-    (event: MouseEvent) => {
+  const onDragMove = useCallback(
+    (event: MouseEvent | PointerEvent) => {
       event.stopPropagation();
+      event.preventDefault();
       const isXAxis = options.direction === 'left' || options.direction === 'right';
       const isInverted = options.direction === 'down' || options.direction === 'left';
 
@@ -140,9 +152,10 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
         // Round to 1px precision. Clamp to [min, max].
         const newSize = Math.round(
-          Math.min(
-            options.max ?? Number.POSITIVE_INFINITY,
-            Math.max(options.min, sizeRef.current + positionDelta * (isInverted ? -1 : 1))
+          clampSize(
+            sizeRef.current + positionDelta * (isInverted ? -1 : 1),
+            options.min,
+            options.max
           )
         );
 
@@ -154,12 +167,15 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
   const dragStartSizeRef = useRef<number | null>(null);
 
-  const onMouseUp = useCallback(() => {
+  const onDragEnd = useCallback(() => {
     document.body.style.pointerEvents = '';
     document.body.style.userSelect = '';
     document.documentElement.style.cursor = '';
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('mouseup', onDragEnd);
+    document.removeEventListener('pointermove', onDragMove);
+    document.removeEventListener('pointerup', onDragEnd);
+    document.removeEventListener('pointercancel', onDragEnd);
     setIsHeld(false);
     if (dragStartSizeRef.current !== null) {
       options.onResizeEnd?.({
@@ -168,18 +184,51 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
       });
       dragStartSizeRef.current = null;
     }
-  }, [onMouseMove, options]);
+  }, [onDragMove, options]);
+
+  const startDrag = useCallback((clientX: number, clientY: number) => {
+    // Re-clamp to the current [min, max] before the drag begins: bounds can
+    // tighten after mount (e.g. the viewport shrinks the measured max) without
+    // re-clamping the stored size, which would otherwise leave the delta math
+    // and the reported startSize stepping from a stale, out-of-range value.
+    const {min, max} = optionsRef.current;
+    const clamped = clampSize(sizeRef.current, min, max);
+    // Raw state setter (not updateSize): keep the returned size in sync without
+    // firing onResize/persisting on mere drag-start. No-ops when already in range.
+    sizeRef.current = clamped;
+    setSize(clamped);
+    setIsHeld(true);
+    dragStartSizeRef.current = clamped;
+    currentMouseVectorRaf.current = [clientX, clientY];
+  }, []);
 
   const onMouseDown = useCallback(
     (evt: React.MouseEvent<HTMLElement>) => {
-      setIsHeld(true);
-      dragStartSizeRef.current = sizeRef.current;
-      currentMouseVectorRaf.current = [evt.clientX, evt.clientY];
+      if (evt.button !== 0) {
+        return;
+      }
 
-      document.addEventListener('mousemove', onMouseMove, {passive: true});
-      document.addEventListener('mouseup', onMouseUp);
+      evt.preventDefault();
+      startDrag(evt.clientX, evt.clientY);
+      document.addEventListener('mousemove', onDragMove, {passive: false});
+      document.addEventListener('mouseup', onDragEnd);
     },
-    [onMouseMove, onMouseUp]
+    [onDragMove, onDragEnd, startDrag]
+  );
+
+  const onPointerDown = useCallback(
+    (evt: React.PointerEvent<HTMLElement>) => {
+      if (!evt.isPrimary || (evt.pointerType === 'mouse' && evt.button !== 0)) {
+        return;
+      }
+
+      evt.preventDefault();
+      startDrag(evt.clientX, evt.clientY);
+      document.addEventListener('pointermove', onDragMove, {passive: false});
+      document.addEventListener('pointerup', onDragEnd);
+      document.addEventListener('pointercancel', onDragEnd);
+    },
+    [onDragMove, onDragEnd, startDrag]
   );
 
   const onDoubleClick = useCallback(() => {
@@ -194,5 +243,5 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     };
   });
 
-  return {size, isHeld, onMouseDown, onDoubleClick, setSize: updateSize};
+  return {size, isHeld, onMouseDown, onPointerDown, onDoubleClick, setSize: updateSize};
 }
