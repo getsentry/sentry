@@ -12,7 +12,7 @@ import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmO
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 const PACKAGE_NAME = '@sentry/deno';
-const MIN_VERSION = '10.53.0';
+const MIN_VERSION = '10.61.0';
 
 const sentryImport = `import * as Sentry from "npm:${PACKAGE_NAME}";`;
 

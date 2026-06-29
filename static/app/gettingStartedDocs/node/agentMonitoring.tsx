@@ -16,7 +16,7 @@ import {
   AgentIntegration,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
-export const MIN_REQUIRED_VERSION = '10.53.0';
+export const MIN_REQUIRED_VERSION = '10.61.0';
 
 export function getAgentIntegration(params: DocsParams): AgentIntegration {
   return (params.platformOptions?.integration ??
