@@ -260,14 +260,21 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
   // A collapsed <details> keeps its text in the DOM so find-in-page can reveal it.
   return (
     <ReasoningDetails onToggle={e => handleToggle(e.currentTarget.open)}>
-      <ReasoningSummary onClick={e => e.stopPropagation()}>
-        <Flex align="center" gap="xs" padding="sm md 0" width="100%" justify="start">
-          <Text size="xs" variant="muted" monospace italic>
-            {t('Thinking...')}
-          </Text>
-          <IconChevron direction={isOpen ? 'down' : 'right'} size="xs" variant="muted" />
-        </Flex>
-      </ReasoningSummary>
+      <Flex
+        as="summary"
+        align="center"
+        gap="xs"
+        padding="sm md 0"
+        width="100%"
+        justify="start"
+        cursor="pointer"
+        onClick={e => e.stopPropagation()}
+      >
+        <Text size="xs" variant="muted" monospace italic>
+          {t('Thinking...')}
+        </Text>
+        <IconChevron direction={isOpen ? 'down' : 'right'} size="xs" variant="muted" />
+      </Flex>
       <Container padding="md">
         <MessageText size="sm" align="left" variant="muted" monospace italic>
           <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
@@ -279,13 +286,11 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
 
 const ReasoningDetails = styled('details')`
   width: 100%;
-`;
 
-const ReasoningSummary = styled('summary')`
-  cursor: pointer;
-  list-style: none;
-
-  &::-webkit-details-marker {
+  summary {
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
     display: none;
   }
 `;
