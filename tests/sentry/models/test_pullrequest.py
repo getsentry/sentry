@@ -10,7 +10,12 @@ from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.pullrequest import CommentType, PullRequest, PullRequestCommit
+from sentry.models.pullrequest import (
+    CommentType,
+    PullRequest,
+    PullRequestCommit,
+    parse_pull_request_number,
+)
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
@@ -424,3 +429,152 @@ class PullRequestRetentionTest(TestCase):
             comment_type=CommentType.OPEN_PR,
         )
         assert not pr.is_unused(self.cutoff_date)
+
+
+class GetOrCreateFromReferenceTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(
+            self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+
+    def _resolve(
+        self,
+        *,
+        repo_name: str = "getsentry/sentry",
+        provider: str | None = "github",
+        key: int | str = 42,
+    ):
+        return PullRequest.objects.get_or_create_from_reference(
+            organization_id=self.organization.id,
+            repo_name=repo_name,
+            provider=provider,
+            key=key,
+        )
+
+    def test_resolves_and_creates_pull_request(self) -> None:
+        resolved = self._resolve()
+
+        assert resolved.repo_resolution == "resolved"
+        assert resolved.provider_unmappable is False
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == self.repo.id
+        assert resolved.pull_request.key == "42"
+
+    def test_coerces_integer_key_to_string(self) -> None:
+        resolved = self._resolve(key=7)
+
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.key == "7"
+
+    def test_reuses_existing_pull_request_without_overwriting(self) -> None:
+        existing = self.create_pull_request(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="42",
+            title="Real title",
+        )
+
+        resolved = self._resolve()
+
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.id == existing.id
+        # The shell find-or-create must not clobber a title a webhook already filled in.
+        resolved.pull_request.refresh_from_db()
+        assert resolved.pull_request.title == "Real title"
+        assert PullRequest.objects.filter(repository_id=self.repo.id, key="42").count() == 1
+
+    def test_resolves_by_provider_when_name_collides(self) -> None:
+        gitlab_repo = self.create_repo(
+            self.project, name="getsentry/sentry", provider="integrations:gitlab"
+        )
+
+        resolved = self._resolve(provider="github")
+
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == self.repo.id
+        assert not PullRequest.objects.filter(repository_id=gitlab_repo.id).exists()
+
+    def test_not_found_when_no_repository_matches(self) -> None:
+        resolved = self._resolve(repo_name="getsentry/does-not-exist")
+
+        assert resolved.pull_request is None
+        assert resolved.repo_resolution == "not_found"
+        assert resolved.provider_unmappable is False
+
+    def test_ambiguous_when_unknown_provider_matches_many(self) -> None:
+        self.create_repo(self.project, name="getsentry/sentry", provider="integrations:gitlab")
+
+        # Two same-named repos under different providers and no provider to disambiguate —
+        # refuse to guess rather than risk mis-resolution.
+        resolved = self._resolve(provider="unknown")
+
+        assert resolved.pull_request is None
+        assert resolved.repo_resolution == "ambiguous"
+        assert not PullRequest.objects.exists()
+
+    def test_resolves_unknown_provider_when_unambiguous(self) -> None:
+        resolved = self._resolve(provider="unknown")
+
+        assert resolved.pull_request is not None
+        # The "unknown" sentinel is treated as absent, not unmappable.
+        assert resolved.provider_unmappable is False
+
+    def test_flags_unmappable_provider(self) -> None:
+        # An unmapped provider is surfaced via provider_unmappable=True. Resolution still
+        # filters by it, so a repo stored under a recognized provider won't match.
+        resolved = self._resolve(provider="subversion")
+
+        assert resolved.provider_unmappable is True
+        assert resolved.pull_request is None
+        assert resolved.repo_resolution == "not_found"
+
+    def test_unmappable_provider_resolves_against_a_matching_repo(self) -> None:
+        svn_repo = self.create_repo(self.project, name="svn/project", provider="subversion")
+
+        resolved = self._resolve(repo_name="svn/project", provider="subversion")
+
+        # Still flagged, but resolution is attempted and succeeds when a repo actually
+        # carries that provider.
+        assert resolved.provider_unmappable is True
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == svn_repo.id
+
+    def test_scopes_resolution_to_the_given_org(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_repo = self.create_repo(
+            other_project, name="getsentry/sentry", provider="integrations:github"
+        )
+
+        resolved = PullRequest.objects.get_or_create_from_reference(
+            organization_id=other_org.id,
+            repo_name="getsentry/sentry",
+            provider="github",
+            key=42,
+        )
+
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == other_repo.id
+        assert not PullRequest.objects.filter(repository_id=self.repo.id).exists()
+
+
+class ParsePullRequestNumberTest(TestCase):
+    def test_extracts_number_from_supported_url_shapes(self) -> None:
+        # Each provider segment the regex recognizes must yield the trailing number.
+        cases = [
+            ("https://github.com/getsentry/sentry/pull/42", 42),
+            ("https://github.com/getsentry/sentry/pulls/7", 7),
+            ("https://gitlab.com/getsentry/sentry/merge_requests/13", 13),
+        ]
+        for url, expected in cases:
+            assert parse_pull_request_number(url) == expected
+
+    def test_returns_none_when_no_pr_segment(self) -> None:
+        # A branch/tree URL or a number-less path must not be mistaken for a PR.
+        cases = [
+            "https://github.com/getsentry/sentry/tree/123",
+            "https://github.com/getsentry/sentry/pulls",
+            "https://github.com/getsentry/sentry",
+        ]
+        for url in cases:
+            assert parse_pull_request_number(url) is None

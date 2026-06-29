@@ -13,7 +13,7 @@ from requests import RequestException, Response
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 from rest_framework import status
 
-from sentry import options
+from sentry import features, options
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen
 from sentry.integrations.utils.metrics import EventLifecycle
@@ -195,6 +195,7 @@ def _circuit_breaker_allows_request(
 def _send_webhook_request(
     url: str,
     app_platform_event: AppPlatformEvent[T],
+    use_custom_headers: bool = False,
 ) -> Response:
     # We don't want to use the alarm in CONTROL silo as it's only used for installation webhooks which are v. low volume
     # Also that we aren't guaranteed to be in main thread
@@ -212,7 +213,9 @@ def _send_webhook_request(
         return safe_urlopen(
             url=url,
             data=app_platform_event.body,
-            headers=app_platform_event.headers,
+            headers=app_platform_event.headers
+            if use_custom_headers
+            else app_platform_event.sentry_headers,
             timeout=options.get("sentry-apps.webhook.timeout.sec"),
         )
 
@@ -262,6 +265,7 @@ def send_and_save_webhook_request(
         )
 
         assert url is not None
+        custom_headers_enabled = False
         try:
             owner_context = organization_service.get_organization_by_id(
                 id=sentry_app.owner_id,
@@ -269,12 +273,18 @@ def send_and_save_webhook_request(
                 include_teams=False,
             )
             owner_org = owner_context.organization if owner_context is not None else None
+            if owner_org is not None:
+                custom_headers_enabled = features.has(
+                    "organizations:sentry-apps-custom-webhook-headers", owner_org
+                )
             circuit_breaker = _create_circuit_breaker(sentry_app)
             if not _circuit_breaker_allows_request(circuit_breaker, sentry_app, lifecycle):
                 return Response()
 
             with circuit_breaker_tracking(circuit_breaker):
-                response = _send_webhook_request(url, app_platform_event)
+                response = _send_webhook_request(
+                    url, app_platform_event, use_custom_headers=custom_headers_enabled
+                )
 
         except WebhookTimeoutError:
             if circuit_breaker and circuit_breaker.is_open() and owner_org is not None:
@@ -307,7 +317,9 @@ def send_and_save_webhook_request(
                 org_id=org_id,
                 event=event,
                 url=url,
-                headers=app_platform_event.headers,
+                headers=app_platform_event.loggable_headers
+                if custom_headers_enabled
+                else app_platform_event.sentry_headers,
             )
             lifecycle.record_halt(e)
             # Re-raise the exception because some of these tasks might retry on the exception
@@ -338,7 +350,9 @@ def send_and_save_webhook_request(
             error_id=response.headers.get("Sentry-Hook-Error"),
             project_id=project_id,
             response=response,
-            headers=app_platform_event.headers,
+            headers=app_platform_event.loggable_headers
+            if custom_headers_enabled
+            else app_platform_event.sentry_headers,
         )
 
         debug_logging_enabled = (

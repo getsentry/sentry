@@ -16,7 +16,6 @@ RELAY_OPTIONS: list[str] = [
     "profiling.profile_metrics.unsampled_profiles.sample_rate",
     "profiling.profile_metrics.unsampled_profiles.enabled",
     "relay.span-usage-metric",
-    "relay.eap-outcomes.rollout-rate",
     "relay.metric-bucket-set-encodings",
     "relay.metric-bucket-distribution-encodings",
     "relay.sessions-eap.rollout-rate",
