@@ -108,11 +108,19 @@ class PutOrganizationWeeklyReportProjectExclusionsTest(APITestCase):
         )
         assert response.status_code == 404
 
-    def test_invalid_project_ids(self) -> None:
+    def test_invalid_project_ids_not_a_list(self) -> None:
         with self.feature("organizations:weekly-report-project-exclusions"):
             response = self.get_response(
                 self.organization.slug,
                 projectIds="not-a-list",
+            )
+        assert response.status_code == 400
+
+    def test_invalid_project_ids_non_integers(self) -> None:
+        with self.feature("organizations:weekly-report-project-exclusions"):
+            response = self.get_response(
+                self.organization.slug,
+                projectIds=["not-a-number"],
             )
         assert response.status_code == 400
 

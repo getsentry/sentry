@@ -48,9 +48,12 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         project_ids = request.data.get("projectIds", [])
-        if not isinstance(project_ids, list):
+        if not isinstance(project_ids, list) or not all(
+            isinstance(pid, int) for pid in project_ids
+        ):
             return Response(
-                {"detail": "projectIds must be a list"}, status=status.HTTP_400_BAD_REQUEST
+                {"detail": "projectIds must be a list of integers"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if project_ids:
