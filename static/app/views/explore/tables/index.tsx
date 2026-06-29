@@ -65,7 +65,7 @@ export function ExploreTables(props: ExploreTablesProps) {
   const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
   const {data: validatedColumnsData, isFetching: isValidatingColumns} =
     useValidateSpansTab({
-      enabled: tab === Tab.SPAN,
+      enabled: tab === Tab.SPAN || tab === Mode.AGGREGATE,
     });
   const {
     validatedBooleanTags,
@@ -123,9 +123,9 @@ export function ExploreTables(props: ExploreTablesProps) {
           {...modalProps}
           columns={aggregateFields.slice()}
           onColumnsChange={setAggregateFields}
-          stringTags={stringTags}
-          numberTags={numberTags}
-          booleanTags={booleanTags}
+          stringTags={validatedStringTags}
+          numberTags={validatedNumberTags}
+          booleanTags={validatedBooleanTags}
         />
       ),
       {closeEvents: 'escape-key'}
@@ -210,7 +210,15 @@ export function ExploreTables(props: ExploreTablesProps) {
         />
       )}
       {tab === Tab.TRACE && <TracesTable {...props} />}
-      {tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
+      {tab === Mode.AGGREGATE && (
+        <AggregatesTable
+          {...props}
+          stringTags={validatedStringTags}
+          numberTags={validatedNumberTags}
+          booleanTags={validatedBooleanTags}
+          validatedFieldTypes={validatedFieldTypes}
+        />
+      )}
       {tab === Tab.ATTRIBUTE_BREAKDOWNS && <AttributeBreakdownsContent />}
     </Fragment>
   );
