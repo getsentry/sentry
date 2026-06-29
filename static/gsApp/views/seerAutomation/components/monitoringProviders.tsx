@@ -60,7 +60,10 @@ export function MonitoringProvidersSection() {
             },
           }
         ),
-        data: params.site ? {site: params.site} : undefined,
+        data: {
+          return_url: `/settings/${organization.slug}/seer/advanced/`,
+          ...(params.site ? {site: params.site} : {}),
+        },
       }),
     onSuccess: responseData => {
       testableWindowLocation.assign(responseData.redirectUrl);
