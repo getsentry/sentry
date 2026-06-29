@@ -263,6 +263,38 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["lastTriggered"] == datetime.now(UTC)
 
+    def test_issue_owners_action_returns_fallthrough_type(self) -> None:
+        # An IssueOwners email action whose stored data is missing a fallthrough_type
+        # should still return the default fallthroughType when serialized.
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[
+                {
+                    "targetType": "IssueOwners",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": "",
+                }
+            ],
+        )
+        workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
+        action = Action.objects.get(
+            dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow=workflow,
+            type=Action.Type.EMAIL,
+        )
+        action.data.pop("fallthrough_type", None)
+        action.save()
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, status_code=200
+        )
+        email_actions = [
+            action
+            for action in response.data["actions"]
+            if action["id"] == "sentry.mail.actions.NotifyEmailAction"
+        ]
+        assert len(email_actions) == 1
+        assert email_actions[0]["fallthroughType"] == "ActiveMembers"
+
 
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "PUT"
@@ -322,6 +354,50 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 **payload,
             )
         assert_serializer_results_match(response.data, workflow_response.data)
+
+    def test_issue_owners_action_returns_fallthrough_type(self) -> None:
+        # An IssueOwners email action sent without a fallthroughType should still
+        # return the default fallthroughType in the response, for both the legacy
+        # and workflow engine serializers.
+        payload = {
+            "name": "hello world",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [
+                {
+                    "targetType": "IssueOwners",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": "",
+                }
+            ],
+            "conditions": [
+                {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}
+            ],
+        }
+
+        def assert_fallthrough_type(response_data):
+            email_actions = [
+                action
+                for action in response_data["actions"]
+                if action["id"] == "sentry.mail.actions.NotifyEmailAction"
+            ]
+            assert len(email_actions) == 1
+            assert email_actions[0]["fallthroughType"] == "ActiveMembers"
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        assert_fallthrough_type(response.data)
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.rule.id,
+                status_code=200,
+                **payload,
+            )
+        assert_fallthrough_type(workflow_response.data)
 
     def test_no_owner(self) -> None:
         conditions = [{"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}]

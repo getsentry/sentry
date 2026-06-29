@@ -22,6 +22,7 @@ export enum ChartType {
   SLACK_PERFORMANCE_FUNCTION_REGRESSION = 'slack:performance.functionRegression',
   SLACK_TIMESERIES = 'slack:timeseries',
   SLACK_DASHBOARDS_WIDGET = 'slack:dashboardsWidget',
+  SLACK_HEATMAP = 'slack:heatmap',
 }
 
 /**

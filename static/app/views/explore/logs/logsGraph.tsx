@@ -61,12 +61,12 @@ import {
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 interface LogsGraphProps {
   rawLogCounts: RawCounts;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
 }
 
 export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {

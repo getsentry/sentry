@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,6 +17,8 @@ from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
     transform_query_columns_for_error_upsampling,
 )
+from sentry.api.serializers.snuba import StatsTimeSeriesResult
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
@@ -110,6 +113,14 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         )
         return has_data
 
+    @extend_schema(
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsStatsResponse",
+                StatsTimeSeriesResult | dict[str, StatsTimeSeriesResult],
+            )
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
         query_source = self.get_request_source(request)
         logger.info(
