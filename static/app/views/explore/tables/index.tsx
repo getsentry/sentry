@@ -11,7 +11,7 @@ import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {Confidence} from 'sentry/types/organization';
-import {FieldKind} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -69,6 +69,7 @@ export function ExploreTables(props: ExploreTablesProps) {
     });
   const {
     validatedBooleanTags,
+    validatedFieldTypes,
     validatedFields,
     validatedNumberTags,
     validatedStringTags,
@@ -108,6 +109,7 @@ export function ExploreTables(props: ExploreTablesProps) {
           stringTags={validatedStringTags}
           numberTags={validatedNumberTags}
           booleanTags={validatedBooleanTags}
+          validatedFieldTypes={validatedFieldTypes}
         />
       ),
       {closeEvents: 'escape-key'}
@@ -220,6 +222,7 @@ function getValidatedColumnEditorData({
   validatedColumnsData?: EventValidationData;
 }) {
   const validatedBooleanTags = {...booleanTags};
+  const validatedFieldTypes: Partial<Record<string, FieldValueType>> = {};
   const validatedNumberTags = {...numberTags};
   const validatedStringTags = {...stringTags};
   const invalidFields = new Set<string>();
@@ -235,6 +238,9 @@ function getValidatedColumnEditorData({
     }
 
     if (item.attrType === 'boolean') {
+      validatedFieldTypes[item.name] = FieldValueType.BOOLEAN;
+      delete validatedNumberTags[item.name];
+      delete validatedStringTags[item.name];
       validatedBooleanTags[item.name] ??= {
         key: item.name,
         name: prettifyAttributeName(item.name),
@@ -243,6 +249,9 @@ function getValidatedColumnEditorData({
     }
 
     if (item.attrType === 'number') {
+      validatedFieldTypes[item.name] = FieldValueType.NUMBER;
+      delete validatedBooleanTags[item.name];
+      delete validatedStringTags[item.name];
       validatedNumberTags[item.name] ??= {
         key: item.name,
         name: prettifyAttributeName(item.name),
@@ -251,6 +260,9 @@ function getValidatedColumnEditorData({
     }
 
     if (item.attrType === 'string') {
+      validatedFieldTypes[item.name] = FieldValueType.STRING;
+      delete validatedBooleanTags[item.name];
+      delete validatedNumberTags[item.name];
       validatedStringTags[item.name] ??= {
         key: item.name,
         name: prettifyAttributeName(item.name),
@@ -261,6 +273,7 @@ function getValidatedColumnEditorData({
 
   return {
     validatedBooleanTags,
+    validatedFieldTypes,
     validatedFields: fields.filter(field => !invalidFields.has(field)),
     validatedNumberTags,
     validatedStringTags,
