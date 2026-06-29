@@ -842,15 +842,15 @@ def prepare_template_context(
     if valid_user_ids and features.has(
         "organizations:weekly-report-project-exclusions", ctx.organization
     ):
-        for user_id, project_id in WeeklyReportProjectExclusion.objects.filter(
+        for exc_user_id, exc_project_id in WeeklyReportProjectExclusion.objects.filter(
             user_id__in=valid_user_ids,
             project__organization_id=ctx.organization.id,
         ).values_list("user_id", "project_id"):
-            exclusions_by_user.setdefault(user_id, set()).add(project_id)
+            exclusions_by_user.setdefault(exc_user_id, set()).add(exc_project_id)
 
     user_template_context_by_user_id_list = []
     for user_id in user_ids:
-        excluded = exclusions_by_user.get(user_id) if user_id else None
+        excluded = exclusions_by_user.get(user_id) if isinstance(user_id, int) else None
         template_ctx = render_template_context(ctx, user_id, excluded_project_ids=excluded)
         if not template_ctx:
             logger.debug(

@@ -43,7 +43,7 @@ class OrganizationWeeklyReportProjectExclusionDetailsEndpoint(OrganizationEndpoi
                 return Response(status=status.HTTP_404_NOT_FOUND)
 
         deleted, _ = WeeklyReportProjectExclusion.objects.filter(
-            user_id=request.user.id,
+            user_id=request.user.id,  # type: ignore[misc]
             project=project,
         ).delete()
 

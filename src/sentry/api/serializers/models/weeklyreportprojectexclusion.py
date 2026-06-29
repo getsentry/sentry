@@ -4,7 +4,9 @@ from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclus
 
 @register(WeeklyReportProjectExclusion)
 class WeeklyReportProjectExclusionSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self, obj: WeeklyReportProjectExclusion, attrs: object, user: object, **kwargs: object
+    ) -> dict[str, object]:
         return {
             "id": str(obj.id),
             "projectId": str(obj.project_id),

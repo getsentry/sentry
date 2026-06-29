@@ -29,7 +29,7 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         queryset = WeeklyReportProjectExclusion.objects.filter(
-            user_id=request.user.id,
+            user_id=request.user.id,  # type: ignore[misc]
             project__organization_id=organization.id,
         ).select_related("project")
 
@@ -65,7 +65,7 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
 
         with transaction.atomic(using=router.db_for_write(WeeklyReportProjectExclusion)):
             WeeklyReportProjectExclusion.objects.filter(
-                user_id=request.user.id,
+                user_id=request.user.id,  # type: ignore[misc]
                 project__organization_id=organization.id,
             ).delete()
 
@@ -74,7 +74,7 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
                     [
                         WeeklyReportProjectExclusion(
                             project_id=pid,
-                            user_id=request.user.id,
+                            user_id=request.user.id,  # type: ignore[misc]
                         )
                         for pid in validated_project_ids
                     ],
