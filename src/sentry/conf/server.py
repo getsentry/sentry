@@ -2784,6 +2784,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-limited-dlq": "default",
     "taskworker-launchpad": "default",
     "taskworker-launchpad-dlq": "default",
+    "taskworker-launchpad-push": "default",
     "taskworker-long": "default",
     "taskworker-long-dlq": "default",
     "taskworker-products": "default",
