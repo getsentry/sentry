@@ -584,6 +584,7 @@ export function SeerExplorerContent({
               <ReauthMonitoringProviderBlock
                 data={reauthData}
                 onComplete={handleReauthComplete}
+                returnUrl={runId === null ? undefined : getExplorerUrl(runId)}
               />
             )}
           </Fragment>

@@ -23,11 +23,14 @@ const PROVIDER_LABELS: Record<string, string> = {
 interface ReauthMonitoringProviderBlockProps {
   data: ReauthMonitoringProviderData;
   onComplete: () => void;
+  /** Where to send the user back after the OAuth round-trip. */
+  returnUrl?: string;
 }
 
 export function ReauthMonitoringProviderBlock({
   data,
   onComplete,
+  returnUrl,
 }: ReauthMonitoringProviderBlockProps) {
   const organization = useOrganization();
   const isPat = data.auth_method === 'pat';
@@ -46,6 +49,9 @@ export function ReauthMonitoringProviderBlock({
             },
           }
         ),
+        data: {
+          return_url: returnUrl ?? `/settings/${organization.slug}/seer/advanced/`,
+        },
       }),
     onSuccess: responseData => {
       testableWindowLocation.assign(responseData.redirectUrl);
@@ -91,15 +97,6 @@ export function ReauthMonitoringProviderBlock({
             >
               {t('Reconnect')}
             </Button>
-            {/*
-              TODO(CW-1557): land the user back in the Explorer after OAuth so the
-              run can resume without manual navigation.
-            */}
-            {!isPat && (
-              <Button size="sm" onClick={onComplete}>
-                {t('Resume')}
-              </Button>
-            )}
           </Flex>
         </Flex>
       </Container>
