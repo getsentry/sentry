@@ -56,6 +56,20 @@ function ConversationsOverviewPage() {
     });
   }, [organization]);
 
+  useEffect(() => {
+    if (!isOnboardingLoading) {
+      if (showOnboarding) {
+        trackAnalytics('conversations.onboarding.page-view', {
+          organization,
+        });
+      } else {
+        trackAnalytics('conversations.table.page-view', {
+          organization,
+        });
+      }
+    }
+  }, [showOnboarding, isOnboardingLoading, organization]);
+
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
