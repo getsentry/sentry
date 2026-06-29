@@ -7,16 +7,14 @@ from typing import Any, cast
 import jsonschema
 import orjson
 import pydantic
-import sentry_sdk
 import zstandard
-from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -32,6 +30,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
+from sentry.issues.action_log import resolve_action_source
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -252,11 +251,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         This endpoint requires a bearer token with `project:write` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         try:
             artifact = PreprodArtifact.objects.select_related("project").get(
                 id=snapshot_id, project__organization_id=organization.id
@@ -358,11 +352,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         This endpoint requires a bearer token with `project:read` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         compact = request.GET.get("compact_metadata", "0") in ("1", "true")
 
         try:
@@ -387,9 +376,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         try:
             session = get_preprod_session(organization.id, artifact.project_id)
             get_response = session.get(manifest_key)
-            with start_span(
-                op="preprod.snapshot.read_manifest", name="read_head_manifest"
-            ):
+            with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
                 raw_manifest = get_response.payload.read()
             with start_span(
                 op="preprod.snapshot.parse_manifest", name="parse_head_manifest"
@@ -462,9 +449,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             base_manifest_key = (comparison.base_snapshot_metrics.extras or {}).get("manifest_key")
             if base_manifest_key:
                 try:
-                    with start_span(
-                        op="preprod.snapshot.read_manifest", name="read_base_manifest"
-                    ):
+                    with start_span(op="preprod.snapshot.read_manifest", name="read_base_manifest"):
                         raw_base_manifest = session.get(base_manifest_key).payload.read()
                     with start_span(
                         op="preprod.snapshot.parse_manifest", name="parse_base_manifest"
@@ -485,6 +470,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                     request.user.id if request.user and request.user.is_authenticated else None
                 ),
                 artifact_id=str(artifact.id),
+                client=resolve_action_source(request),
             )
         )
 
@@ -504,9 +490,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                         app_id=artifact.app_id,
                         artifact_type=artifact.artifact_type,
                         build_configuration=artifact.build_configuration,
-                        allow_selective=features.has(
-                            "organizations:preprod-selective-base-snapshots", organization
-                        ),
                     )
                     is not None
                 )
@@ -727,11 +710,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         This endpoint requires a bearer token with `project:write` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", project.organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         request_body, decode_error = decode_preprod_snapshot_request_body(request)
         if request_body is None:
             return Response({"detail": decode_error or "Invalid request body"}, status=400)
@@ -755,9 +733,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         pr_number = data.get("pr_number")
 
         selective = data.get("selective", False)
-        allow_selective = features.has(
-            "organizations:preprod-selective-base-snapshots", project.organization
-        )
         all_image_file_names = data.get("all_image_file_names")
 
         if all_image_file_names is not None and not selective:
@@ -908,7 +883,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     app_id=artifact.app_id,
                     artifact_type=artifact.artifact_type,
                     build_configuration=artifact.build_configuration,
-                    allow_selective=allow_selective,
                 )
                 if base_artifact:
                     logger.info(
@@ -972,7 +946,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         # Trigger comparisons for any head artifacts that were uploaded before this base.
         # Handles possible out-of-order uploads where heads arrive before their base build.
-        if commit_comparison is not None and (not selective or allow_selective):
+        if commit_comparison is not None:
             try:
                 waiting_heads = find_head_snapshot_artifacts_awaiting_base(
                     organization_id=project.organization_id,
