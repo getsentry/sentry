@@ -305,7 +305,7 @@ class RecordingTestCase(TransactionTestCase):
             ).encode(),
         )[0]
 
-        process_replay_recording(msgpack.packb(message), {})
+        process_replay_recording(msgpack.packb(message))
 
         dat = self.get_recording_data(segment_id)
         assert json.loads(bytes(dat).decode("utf-8")) == data

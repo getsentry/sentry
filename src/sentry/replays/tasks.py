@@ -67,12 +67,8 @@ def delete_replay(
     retry=Retry(times=3, delay=5),
     compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.CELL,
-    pass_headers=True,
 )
-def process_replay_recording(
-    message_bytes: bytes,
-    headers: dict[str, str],
-) -> None:
+def process_replay_recording(message_bytes: bytes) -> None:
     """Process a replay recording from raw Kafka message bytes.
 
     This task is directly spawned from taskbroker in "raw mode". You won't find
@@ -81,7 +77,7 @@ def process_replay_recording(
     topic (in infra templates) and spawns a task for each message.
 
     As such, the task signature, name and namespace cannot be changed without
-    coordination. ``headers`` are currently unused but are passed by taskbroker.
+    coordination.
     """
     processed_message = process_message(message_bytes)
     if processed_message:
