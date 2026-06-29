@@ -1,5 +1,5 @@
 from sentry.options import FLAG_AUTOMATOR_MODIFIABLE, register
-from sentry.utils.types import Bool, Dict, Float, Int, Sequence
+from sentry.utils.types import Bool, Dict, Int, Sequence
 
 register(
     "outbox_replication.sentry_organizationmember.replication_version",
@@ -207,11 +207,6 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybridcloud.rpc.use_pooling_rate",
-    type=Float,
-    default=1.0,
 )
 register(
     "apigateway.proxy.cell-rollout",
