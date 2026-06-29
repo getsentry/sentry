@@ -293,6 +293,30 @@ describe('BackendJsonSubmitForm', () => {
       expect(onSubmit).not.toHaveBeenCalled();
     });
 
+    it('blocks submission when a required multi-select field is empty', async () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'labels',
+              type: 'select',
+              label: 'Labels',
+              multiple: true,
+              required: true,
+              choices: [['bug', 'Bug']],
+            },
+          ]}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
     it('blocks submission when required fields contain only whitespace', async () => {
       render(
         <BackendJsonSubmitForm
@@ -681,6 +705,49 @@ describe('BackendJsonSubmitForm', () => {
         expect(onSubmit).toHaveBeenCalledWith(
           expect.objectContaining({title: 'User title', priority: 'high'})
         );
+      });
+    });
+
+    it('resets static select values when fields change and choices become empty', async () => {
+      const firstFields: JsonFormAdapterFieldConfig[] = [
+        {
+          name: 'version',
+          type: 'select',
+          label: 'Version',
+          choices: [['v1', 'Version 1']],
+          default: 'v1',
+        },
+      ];
+      const secondFields: JsonFormAdapterFieldConfig[] = [
+        {
+          name: 'version',
+          type: 'select',
+          label: 'Version',
+          choices: [],
+        },
+      ];
+
+      const {rerender} = render(
+        <BackendJsonSubmitForm
+          fields={firstFields}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      rerender(
+        <BackendJsonSubmitForm
+          fields={secondFields}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({version: null}));
       });
     });
 

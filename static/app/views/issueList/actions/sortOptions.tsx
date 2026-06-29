@@ -34,6 +34,10 @@ function getSortTooltip(key: IssueSortOptions) {
       return t('Number of users affected.');
     case IssueSortOptions.RECOMMENDED:
       return t('Issues ranked by combined recency, severity, and impact signals.');
+    case IssueSortOptions.RECOMMENDED_EXPERIMENTAL:
+      return t(
+        'Experimental recommended sort with additional relevance and lifecycle signals.'
+      );
     case IssueSortOptions.PROGRESS:
       return t('Issues ranked by how far along they are toward a fix.');
     case IssueSortOptions.DATE:
@@ -53,7 +57,13 @@ export function IssueListSortOptions({
   const organization = useOrganization();
   const hasRecommendedSort =
     organization.features.includes('issue-stream-recommended-sort') ||
+    // If Recommended is the default sort it must also be selectable, otherwise a
+    // user with a stored non-recommended sort can't switch back to it.
+    organization.features.includes('issue-stream-recommended-sort-default') ||
     sort === IssueSortOptions.RECOMMENDED;
+  const hasExperimentalRecommendedSort =
+    organization.features.includes('issue-stream-recommended-sort-experimental') ||
+    sort === IssueSortOptions.RECOMMENDED_EXPERIMENTAL;
   const hasProgressSort =
     organization.features.includes('issue-stream-progress-sort') ||
     sort === IssueSortOptions.PROGRESS;
@@ -66,6 +76,9 @@ export function IssueListSortOptions({
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
     ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
+    ...(hasExperimentalRecommendedSort
+      ? [IssueSortOptions.RECOMMENDED_EXPERIMENTAL]
+      : []),
     ...(hasProgressSort ? [IssueSortOptions.PROGRESS] : []),
   ];
 

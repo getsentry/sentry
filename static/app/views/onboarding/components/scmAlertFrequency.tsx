@@ -3,7 +3,6 @@ import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
-import {IconClock, IconFix, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ScmAlertOptionCard} from 'sentry/views/onboarding/components/scmAlertOptionCard';
 import {
@@ -35,16 +34,12 @@ export function ScmAlertFrequency({
     <Stack gap="xl" role="radiogroup" aria-label={t('Alert frequency')}>
       <ScmAlertOptionCard
         label={t('High priority issues')}
-        icon={
-          <IconWarning size="md" variant={isDefaultSelected ? 'accent' : 'secondary'} />
-        }
         isSelected={isDefaultSelected}
         onSelect={() => onFieldChange('alertSetting', RuleAction.DEFAULT_ALERT)}
       />
 
       <ScmAlertOptionCard
         label={t('Custom')}
-        icon={<IconFix size="md" variant={isCustomSelected ? 'accent' : 'secondary'} />}
         isSelected={isCustomSelected}
         onSelect={() => onFieldChange('alertSetting', RuleAction.CUSTOMIZED_ALERTS)}
       >
@@ -99,7 +94,6 @@ export function ScmAlertFrequency({
 
       <ScmAlertOptionCard
         label={t("I'll create my own alerts later")}
-        icon={<IconClock size="md" variant={isLaterSelected ? 'accent' : 'secondary'} />}
         isSelected={isLaterSelected}
         onSelect={() => onFieldChange('alertSetting', RuleAction.CREATE_ALERT_LATER)}
       />

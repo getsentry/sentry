@@ -64,6 +64,8 @@ from sentry.plugins.providers.integration_repository import (
 )
 from sentry.pr_metrics.webhooks import handle_activity as pr_metrics_handle_activity
 from sentry.pr_metrics.webhooks import handle_attribution as pr_metrics_handle_attribution
+from sentry.pr_metrics.webhooks import handle_check_run as pr_metrics_handle_check_run
+from sentry.pr_metrics.webhooks import handle_check_suite as pr_metrics_handle_check_suite
 from sentry.pr_metrics.webhooks import handle_comment as pr_metrics_handle_comment
 from sentry.pr_metrics.webhooks import handle_emission as pr_metrics_handle_emission
 from sentry.pr_metrics.webhooks import handle_metrics as pr_metrics_handle_metrics
@@ -72,8 +74,15 @@ from sentry.pr_metrics.webhooks import handle_review_comment as pr_metrics_handl
 from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle_review_thread
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
+from sentry.seer.autofix.pr_iteration_webhook import (
+    handle_issue_comment_for_autofix_iteration,
+)
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
-from sentry.seer.code_review.contributor_seats import track_contributor_seat
+from sentry.seer.code_review.contributor_seats import (
+    record_contributor_action,
+    track_contributor_seat,
+)
+from sentry.seer.code_review.utils import get_pr_author_id
 from sentry.seer.code_review.webhooks.handlers import (
     handle_webhook_event as code_review_handle_webhook_event,
 )
@@ -147,6 +156,41 @@ def _handle_pr_webhook_for_autofix_processor(
         # Because we require that the sentry github integration be installed for autofix, we can piggyback
         # on this webhook for autofix for now. We may move to a separate autofix github integration in the future
         handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+
+
+def _track_contributor_action_processor(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    if integration is None:
+        return
+
+    pull_request = event.get("pull_request")
+    author_id = get_pr_author_id(event)
+    if not pull_request or author_id is None:
+        return
+
+    try:
+        is_private = pull_request["head"]["repo"]["private"]
+    except (KeyError, AttributeError, TypeError):
+        is_private = False
+
+    record_contributor_action(
+        organization=organization,
+        repo=repo,
+        integration_id=integration.id,
+        user_id=author_id,
+        user_username=(pull_request.get("user") or {}).get("login"),
+        pr_number=pull_request["number"],
+        is_opened=event.get("action") == "opened",
+        provider="github",
+        tags={"is_private": is_private},
+    )
 
 
 class GitHubWebhook(SCMWebhook, ABC):
@@ -974,6 +1018,7 @@ class PullRequestEventWebhook(GitHubWebhook):
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
     WEBHOOK_EVENT_PROCESSORS = (
         _handle_pr_webhook_for_autofix_processor,
+        _track_contributor_action_processor,
         code_review_handle_webhook_event,
         pr_metrics_handle_attribution,
         # Persist counters before emission reads them off the PullRequestMetrics row.
@@ -1138,6 +1183,7 @@ class CheckRunEventWebhook(GitHubWebhook):
     WEBHOOK_EVENT_PROCESSORS = (
         code_review_handle_webhook_event,
         handle_preprod_check_run_event,
+        pr_metrics_handle_check_run,
     )
 
 
@@ -1151,6 +1197,7 @@ class IssueCommentEventWebhook(GitHubWebhook):
     WEBHOOK_EVENT_PROCESSORS = (
         code_review_handle_webhook_event,
         pr_metrics_handle_comment,
+        handle_issue_comment_for_autofix_iteration,
     )
 
 
@@ -1177,7 +1224,7 @@ class PullRequestReviewThreadEventWebhook(GitHubWebhook):
 
 class CheckSuiteWebhook(GitHubWebhook):
     EVENT_TYPE = IntegrationWebhookEventType.CHECK_SUITE
-    WEBHOOK_EVENT_PROCESSORS = ()
+    WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_check_suite,)
 
 
 @all_silo_endpoint

@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 from django.core import mail
 
-from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS
+from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, ObjectStatus
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
@@ -267,3 +267,99 @@ class RepositoryCodeReviewSettingsTest(TestCase):
         # Verify the settings are correct
         settings = RepositorySettings.objects.get(repository=repo)
         assert settings.enabled_code_review is True
+
+
+class RepositoryManagerResolveActiveTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(
+            self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+
+    def _resolve(
+        self, *, name: str = "getsentry/sentry", normalized_provider: str | None = "github"
+    ):
+        return Repository.objects.resolve_active(
+            organization_id=self.organization.id,
+            name=name,
+            normalized_provider=normalized_provider,
+        )
+
+    def test_resolves_single_active_match(self) -> None:
+        repo, reason = self._resolve()
+
+        assert reason == "resolved"
+        assert repo == self.repo
+
+    def test_matches_both_provider_shapes(self) -> None:
+        # Stored as ``integrations:github``; the bare ``github`` form must still match it.
+        repo, reason = self._resolve(normalized_provider="github")
+
+        assert reason == "resolved"
+        assert repo == self.repo
+
+    def test_resolves_without_provider_when_unambiguous(self) -> None:
+        repo, reason = self._resolve(normalized_provider=None)
+
+        assert reason == "resolved"
+        assert repo == self.repo
+
+    def test_not_found(self) -> None:
+        repo, reason = self._resolve(name="getsentry/missing")
+
+        assert repo is None
+        assert reason == "not_found"
+
+    def test_ambiguous_without_provider(self) -> None:
+        self.create_repo(self.project, name="getsentry/sentry", provider="integrations:gitlab")
+
+        repo, reason = self._resolve(normalized_provider=None)
+
+        assert repo is None
+        assert reason == "ambiguous"
+
+    def test_provider_disambiguates_same_name(self) -> None:
+        gitlab_repo = self.create_repo(
+            self.project, name="getsentry/sentry", provider="integrations:gitlab"
+        )
+
+        repo, reason = self._resolve(normalized_provider="gitlab")
+
+        assert reason == "resolved"
+        assert repo == gitlab_repo
+
+    def test_ignores_inactive_repositories(self) -> None:
+        self.repo.update(status=ObjectStatus.PENDING_DELETION)
+
+        repo, reason = self._resolve()
+
+        assert repo is None
+        assert reason == "not_found"
+
+    def test_scoped_to_organization(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        self.create_repo(other_project, name="getsentry/sentry", provider="integrations:github")
+
+        repo, reason = Repository.objects.resolve_active(
+            organization_id=other_org.id, name="getsentry/sentry", normalized_provider="github"
+        )
+
+        assert reason == "resolved"
+        assert repo is not None
+        assert repo.organization_id == other_org.id
+
+
+class RepositoryManagerProviderMatchTest(TestCase):
+    def test_matches_bare_and_prefixed_only(self) -> None:
+        bare = self.create_repo(self.project, name="a/bare", provider="github")
+        prefixed = self.create_repo(self.project, name="a/prefixed", provider="integrations:github")
+        other = self.create_repo(self.project, name="a/other", provider="integrations:gitlab")
+
+        matched = set(
+            Repository.objects.filter(organization_id=self.organization.id).filter(
+                Repository.objects.provider_match("github")
+            )
+        )
+
+        assert matched == {bare, prefixed}
+        assert other not in matched
