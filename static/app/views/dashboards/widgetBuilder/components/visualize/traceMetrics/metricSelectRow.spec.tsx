@@ -500,4 +500,49 @@ describe('MetricSelectRow', () => {
       expect.anything()
     );
   });
+
+  it('disables non-distribution metrics when the display type is a heat map', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <MetricSelectRow
+          field={{
+            kind: 'function',
+            function: ['count', 'value', 'distribution_metric', 'distribution', 'none'],
+          }}
+          index={0}
+          disabled={false}
+        />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              field: ['count(value,distribution_metric,distribution,none)'],
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.HEATMAP,
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'distribution_metric'})
+    );
+
+    // Counters and gauges can't be visualized as a heat map.
+    expect(await screen.findByRole('option', {name: 'counter_metric'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'gauge_metric'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'distribution_metric'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
 });

@@ -85,9 +85,14 @@ export function MetricSelector({
   projectIds,
   environments,
   usePortal,
+  disabledMetricReason,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
+  // Returns a tooltip explaining why a metric option should be disabled, or
+  // undefined to leave it enabled. Used to constrain metric choices to those
+  // the current context supports (e.g. only distributions for heat maps).
+  disabledMetricReason?: (option: MetricSelectorOption) => string | undefined;
   environments?: string[];
   projectIds?: number[];
   usePortal?: boolean;
@@ -257,17 +262,26 @@ export function MetricSelector({
     hasMetricUnitsUI,
   ]);
 
-  // Auto-select the first metric when no metric is currently selected.
+  // Auto-select the first selectable metric when none is currently selected.
   // This handles the initial load case where the URL has no metric param.
+  // Skip options the current context disables (e.g. counters for heat maps) so
+  // we don't default into an invalid selection.
   useEffect(() => {
-    if (metricOptions.length && metricOptions[0] && !traceMetric.name) {
+    if (traceMetric.name) {
+      return;
+    }
+    const firstSelectable =
+      (disabledMetricReason
+        ? metricOptions.find(option => !disabledMetricReason(option))
+        : metricOptions[0]) ?? metricOptions[0];
+    if (firstSelectable) {
       onChange({
-        name: metricOptions[0].metricName,
-        type: metricOptions[0].metricType,
-        unit: metricOptions[0].metricUnit,
+        name: firstSelectable.metricName,
+        type: firstSelectable.metricType,
+        unit: firstSelectable.metricUnit,
       });
     }
-  }, [metricOptions, onChange, traceMetric.name, hasMetricUnitsUI]);
+  }, [metricOptions, onChange, traceMetric.name, disabledMetricReason]);
 
   // Show the previous options while a new search is loading so the list
   // doesn't flash empty during debounced re-fetches.
@@ -276,6 +290,29 @@ export function MetricSelector({
     () => (isFetching ? previousOptions : metricOptions),
     [isFetching, previousOptions, metricOptions]
   );
+
+  // Attach a tooltip to options the current context can't use, and collect
+  // their keys so the combobox renders them disabled.
+  const displayedOptionsWithDisabledState = useMemo(() => {
+    if (!disabledMetricReason) {
+      return displayedOptions;
+    }
+    return displayedOptions.map(option => {
+      const reason = disabledMetricReason(option);
+      return reason ? {...option, tooltip: reason} : option;
+    });
+  }, [displayedOptions, disabledMetricReason]);
+
+  const disabledMetricKeys = useMemo(() => {
+    if (!disabledMetricReason) {
+      return new Set<string>();
+    }
+    return new Set(
+      displayedOptions
+        .filter(option => disabledMetricReason(option))
+        .map(option => option.value)
+    );
+  }, [displayedOptions, disabledMetricReason]);
 
   // Find the option with the longest label to render as a hidden element.
   // This reserves enough width for the overlay so it doesn't resize as
@@ -295,8 +332,9 @@ export function MetricSelector({
   }, [displayedOptions]);
 
   const displayedOptionsMap = useMemo(
-    () => new Map(displayedOptions.map(option => [option.value, option])),
-    [displayedOptions]
+    () =>
+      new Map(displayedOptionsWithDisabledState.map(option => [option.value, option])),
+    [displayedOptionsWithDisabledState]
   );
 
   function handleOverlayOpenChange(open: boolean) {
@@ -329,7 +367,8 @@ export function MetricSelector({
 
   const comboBoxState = useComboBoxState<MetricSelectorOption>({
     children: (item: MetricSelectorOption) => <Item key={item.value}>{item.label}</Item>,
-    items: displayedOptions,
+    items: displayedOptionsWithDisabledState,
+    disabledKeys: disabledMetricKeys,
     allowsEmptyCollection: true,
     shouldCloseOnBlur: false,
     menuTrigger: 'manual',
