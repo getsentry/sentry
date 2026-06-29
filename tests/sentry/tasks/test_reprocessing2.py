@@ -19,11 +19,15 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
-from sentry.reprocessing2 import is_group_finished, reprocessing_store, start_group_reprocessing
+from sentry.reprocessing2 import is_group_finished, start_group_reprocessing
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
-from sentry.services.eventstore.reprocessing.redis import _get_sync_counter_key
+from sentry.services.eventstore.reprocessing import reprocessing_store
+from sentry.services.eventstore.reprocessing.redis import (
+    RedisReprocessingStore,
+    _get_sync_counter_key,
+)
 from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers.datetime import before_now
@@ -713,7 +717,9 @@ def test_reprocessing_allowed_when_previous_run_is_stale(default_project) -> Non
     new_group_id = start_group_reprocessing(default_project.id, old_group.id, "delete")
     assert "_reprocessing_old_group_id" in Group.objects.get(id=new_group_id).data
 
-    reprocessing_store.redis.expire(_get_sync_counter_key(old_group.id), 100)
+    reprocessing_store.test_only__downcast_to(RedisReprocessingStore).redis.expire(
+        _get_sync_counter_key(old_group.id), 100
+    )
 
     # This works since the reprocessing is stale
     start_group_reprocessing(default_project.id, new_group_id, "delete")
@@ -725,7 +731,7 @@ def test_reprocessing_blocked_when_previous_run_is_recent(default_project) -> No
     new_group_id = start_group_reprocessing(default_project.id, old_group.id, "delete")
     assert "_reprocessing_old_group_id" in Group.objects.get(id=new_group_id).data
 
-    reprocessing_store.redis.expire(
+    reprocessing_store.test_only__downcast_to(RedisReprocessingStore).redis.expire(
         _get_sync_counter_key(old_group.id), settings.SENTRY_REPROCESSING_SYNC_TTL
     )
 
