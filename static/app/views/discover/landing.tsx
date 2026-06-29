@@ -31,7 +31,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import QueryList from './queryList';
 import {getPrebuiltQueries} from './utils';
@@ -134,7 +133,6 @@ const RENDER_PREBUILT_KEY = 'discover-render-prebuilt';
 function DiscoverLanding() {
   const navigate = useNavigate();
   const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const location = useLocation();
   const activeSort = useActiveSort();
   const savedSearchQuery = useSavedSearchQuery();
@@ -190,51 +188,20 @@ function DiscoverLanding() {
     >
       <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
         <Stack flex={1}>
-          {hasPageFrameFeature ? (
-            <TopBar.Slot name="title">
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    label: t('Discover'),
-                    to: getDiscoverLandingUrl(organization),
-                  },
-                  {label: t('Saved Queries')},
-                ]}
-              />
-            </TopBar.Slot>
-          ) : (
-            <Layout.Header>
-              <Layout.HeaderContent>
-                <Breadcrumbs
-                  crumbs={[
-                    {
-                      label: t('Discover'),
-                      to: getDiscoverLandingUrl(organization),
-                    },
-                    {label: t('Saved Queries')},
-                  ]}
-                />
-              </Layout.HeaderContent>
-              <Layout.HeaderActions>
-                <LinkButton
-                  data-test-id="build-new-query"
-                  to={to}
-                  size="sm"
-                  variant="primary"
-                  onClick={() => {
-                    trackAnalytics('discover_v2.build_new_query', {
-                      organization,
-                    });
-                  }}
-                >
-                  {t('Build a new query')}
-                </LinkButton>
-              </Layout.HeaderActions>
-            </Layout.Header>
-          )}
+          <TopBar.Slot name="title">
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Discover'),
+                  to: getDiscoverLandingUrl(organization),
+                },
+                {label: t('Saved Queries')},
+              ]}
+            />
+          </TopBar.Slot>
           <Layout.Body>
             <Layout.Main width="full">
-              <StyledActions hasBuildButton={hasPageFrameFeature}>
+              <StyledActions>
                 <StyledSearchBar
                   defaultQuery=""
                   query={savedSearchQuery}
@@ -259,20 +226,18 @@ function DiscoverLanding() {
                   onChange={opt => handleSortChange(opt.value)}
                   position="bottom-end"
                 />
-                {hasPageFrameFeature && (
-                  <LinkButton
-                    data-test-id="build-new-query"
-                    to={to}
-                    variant="primary"
-                    onClick={() => {
-                      trackAnalytics('discover_v2.build_new_query', {
-                        organization,
-                      });
-                    }}
-                  >
-                    {t('Build a new query')}
-                  </LinkButton>
-                )}
+                <LinkButton
+                  data-test-id="build-new-query"
+                  to={to}
+                  variant="primary"
+                  onClick={() => {
+                    trackAnalytics('discover_v2.build_new_query', {
+                      organization,
+                    });
+                  }}
+                >
+                  {t('Build a new query')}
+                </LinkButton>
               </StyledActions>
               {status === 'pending' ? (
                 <LoadingIndicator />
@@ -321,13 +286,10 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
 
-const StyledActions = styled('div')<{hasBuildButton: boolean}>`
+const StyledActions = styled('div')`
   display: grid;
   gap: ${p => p.theme.space.xl};
-  grid-template-columns: ${p =>
-    p.hasBuildButton
-      ? 'auto max-content min-content max-content'
-      : 'auto max-content min-content'};
+  grid-template-columns: auto max-content min-content max-content;
   align-items: center;
   margin-bottom: ${p => p.theme.space.xl};
 

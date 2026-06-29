@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
@@ -7,11 +9,27 @@ from sentry.issue_detection.performance_detection import get_detection_settings
 from sentry.issue_detection.types import StandaloneSpan
 from sentry.models.project import Project
 from sentry.spans.consumers.process_segments.types import attribute_value
+from sentry.utils.rollout import SafeRolloutComparator
 
 # We truncate evidence values to prevent hitting Kafka's broken message size limit.
 # TODO: A better solution would be to audit the usage of `description`, `evidence_data` and
 # `evidence_display` and deduplicate those keys. Right now they are nearly identical.
 DEFAULT_MAX_EVIDENCE_VALUE_LENGTH = 10_000
+
+
+# Utility used to control sampling, metrics, comparison, and mismatch logging during rollout.
+#
+# Note: In all options relating to callsites, use `<detector_class>.grouptype.slug`. This means that
+# detectors that share a grouptype (N+1 / MN+1 and SQL / Query injection) run as a unit, which keeps
+# the parity comparison from spuriously flagging mismatches when one sibling is sampled and the
+# other isn't.
+class SpanFirstDetectorsRolloutController(SafeRolloutComparator):
+    ROLLOUT_NAME = "span_first_detectors"
+
+
+SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION = (
+    SpanFirstDetectorsRolloutController._should_run_experiment_option()
+)
 
 
 def get_settings_for_detector(

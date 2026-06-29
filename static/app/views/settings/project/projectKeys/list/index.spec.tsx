@@ -32,7 +32,7 @@ describe('ProjectKeys', () => {
       body: projectKeys,
     });
     deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'DELETE',
     });
   });
@@ -82,7 +82,7 @@ describe('ProjectKeys', () => {
     const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
 
     expect(expandButton).toBeInTheDocument();
-    expect(dsn).toHaveValue(projectKeys[0]!.dsn.public);
+    expect(dsn).toHaveValue(projectKeys[0].dsn.public);
 
     // Verify tabs are present
     expect(screen.getByRole('tab', {name: 'OpenTelemetry (OTLP)'})).toBeInTheDocument();
@@ -91,30 +91,30 @@ describe('ProjectKeys', () => {
     expect(screen.getByRole('tab', {name: 'Unreal Engine'})).toBeInTheDocument();
 
     const otlpEndpoint = screen.getByRole('textbox', {name: 'OTLP Endpoint'});
-    expect(otlpEndpoint).toHaveValue(`${projectKeys[0]!.dsn.integration}otlp`);
+    expect(otlpEndpoint).toHaveValue(`${projectKeys[0].dsn.integration}otlp`);
 
     const otlpLogsEndpoint = screen.getByRole('textbox', {
       name: 'OTLP Logs Endpoint',
     });
-    expect(otlpLogsEndpoint).toHaveValue(projectKeys[0]!.dsn.otlp_logs);
+    expect(otlpLogsEndpoint).toHaveValue(projectKeys[0].dsn.otlp_logs);
 
     const otlpTracesEndpoint = screen.getByRole('textbox', {
       name: 'OTLP Traces Endpoint',
     });
-    expect(otlpTracesEndpoint).toHaveValue(projectKeys[0]!.dsn.otlp_traces);
+    expect(otlpTracesEndpoint).toHaveValue(projectKeys[0].dsn.otlp_traces);
 
     await userEvent.click(screen.getByRole('tab', {name: 'Security Header'}));
     const securityHeaderEndpoint = screen.getByRole('textbox', {
       name: 'Security Header Endpoint URL',
     });
-    expect(securityHeaderEndpoint).toHaveValue(projectKeys[0]!.dsn.security);
+    expect(securityHeaderEndpoint).toHaveValue(projectKeys[0].dsn.security);
 
     // Click on Minidump tab and verify endpoint
     await userEvent.click(screen.getByRole('tab', {name: 'Minidump'}));
     const minidumpEndpoint = await screen.findByRole('textbox', {
       name: 'Minidump Endpoint URL',
     });
-    expect(minidumpEndpoint).toHaveValue(projectKeys[0]!.dsn.minidump);
+    expect(minidumpEndpoint).toHaveValue(projectKeys[0].dsn.minidump);
 
     // Click on Unreal Engine tab and verify endpoint
     await userEvent.click(screen.getByRole('tab', {name: 'Unreal Engine'}));
@@ -145,7 +145,7 @@ describe('ProjectKeys', () => {
     });
 
     expect(expandButton).not.toBeInTheDocument();
-    expect(dsn).toHaveValue(projectKeys[0]!.dsn.public);
+    expect(dsn).toHaveValue(projectKeys[0].dsn.public);
     expect(minidumpEndpoint).not.toBeInTheDocument();
     expect(unrealEndpoint).not.toBeInTheDocument();
     expect(securityHeaderEndpoint).not.toBeInTheDocument();
@@ -156,7 +156,7 @@ describe('ProjectKeys', () => {
       name: 'Loader Script',
     });
     expect(loaderScript).toHaveValue(
-      `<script src='${projectKeys[0]!.dsn.cdn}' crossorigin="anonymous"></script>`
+      `<script src='${projectKeys[0].dsn.cdn}' crossorigin="anonymous"></script>`
     );
   });
 
@@ -180,7 +180,7 @@ describe('ProjectKeys', () => {
     });
 
     expect(expandButton).not.toBeInTheDocument();
-    expect(dsn).toHaveValue(projectKeys[0]!.dsn.public);
+    expect(dsn).toHaveValue(projectKeys[0].dsn.public);
     expect(minidumpEndpoint).not.toBeInTheDocument();
     expect(unrealEndpoint).not.toBeInTheDocument();
     expect(securityHeaderEndpoint).not.toBeInTheDocument();
@@ -275,7 +275,7 @@ describe('ProjectKeys', () => {
     });
 
     const enableMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'PUT',
     });
 

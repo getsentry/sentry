@@ -1,5 +1,7 @@
 import re
+from typing import TypedDict
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,6 +16,7 @@ from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
@@ -23,13 +26,26 @@ from sentry.snuba.utils import RPC_DATASETS
 from sentry.utils.tracing import set_span_data, start_span
 
 
+class OrganizationEventsMetaResponse(TypedDict):
+    count: int
+
+
 @cell_silo_endpoint
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsMetaResponse", OrganizationEventsMetaResponse
+            )
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[OrganizationEventsMetaResponse]:
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:

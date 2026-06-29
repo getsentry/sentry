@@ -22,6 +22,12 @@ export const FEATURE_DISPLAY_ORDER: ProductSolution[] = [
   ProductSolution.METRICS,
 ];
 
+// Selecting or changing a platform resets the feature selection to error
+// monitoring only; the feature panel also falls back to this when nothing is
+// selected yet. Shared so both stay in lockstep. Treat as read-only; callers
+// spread it into new arrays rather than mutating it.
+export const DEFAULT_SCM_FEATURES: ProductSolution[] = [ProductSolution.ERROR_MONITORING];
+
 const platformsByKey = new Map(platforms.map(p => [p.id, p]));
 
 export const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);

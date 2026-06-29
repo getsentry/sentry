@@ -2,6 +2,7 @@ import json  # noqa: S003
 from typing import Any
 
 from sentry.utils.ai_message_normalizer import (
+    EMPTY_TEXT_CONTENT,
     extract_assistant_output,
     normalize_to_messages,
     stringify_message_content,
@@ -70,11 +71,15 @@ class TestNormalizeContentParts:
 
     def test_empty_content(self) -> None:
         messages = json_string([{"role": "user", "parts": [{"type": "text", "content": ""}]}])
-        assert normalize_to_messages(messages, "user") is None
+        assert normalize_to_messages(messages, "user") == [
+            {"role": "user", "content": EMPTY_TEXT_CONTENT}
+        ]
 
     def test_missing_content(self) -> None:
         messages = json_string([{"role": "user", "parts": [{"type": "text"}]}])
-        assert normalize_to_messages(messages, "user") is None
+        assert normalize_to_messages(messages, "user") == [
+            {"role": "user", "content": EMPTY_TEXT_CONTENT}
+        ]
 
 
 class TestNormalizeToMessages:
@@ -193,6 +198,20 @@ class TestExtractAssistantOutput:
             "assistant",
         )
         assert result["response_text"] == "New content"
+
+    def test_placeholder_for_text_part_with_no_usable_text(self) -> None:
+        result = extract_assistant_output(
+            json_string([{"role": "assistant", "content": [{"type": "text", "chars": 56}]}]),
+            "assistant",
+        )
+        assert result["response_text"] == EMPTY_TEXT_CONTENT
+
+    def test_placeholder_for_empty_text_part_in_parts_format(self) -> None:
+        result = extract_assistant_output(
+            json_string([{"role": "assistant", "parts": [{"type": "text"}]}]),
+            "assistant",
+        )
+        assert result["response_text"] == EMPTY_TEXT_CONTENT
 
     def test_ignores_empty_string_content(self) -> None:
         result = extract_assistant_output(
