@@ -137,6 +137,22 @@ class PrMetricsEmissionTest(TestCase):
             payload={},
         )
 
+    def _check_suite(
+        self,
+        *,
+        conclusion: str,
+        webhook_id: str,
+        head_sha: str = HEAD_SHA,
+        app_slug: str = "github-actions",
+    ) -> None:
+        # A completed check_suite — the aggregate CI outcome per app for a head.
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED,
+            payload={"conclusion": conclusion, "head_sha": head_sha, "app_slug": app_slug},
+        )
+
     def test_select_verdict_merged_without_later_commits_is_unchanged(self) -> None:
         # Merged with no SYNCHRONIZED activity: merge head == opened head.
         assert (
@@ -516,6 +532,97 @@ class PrMetricsEmissionTest(TestCase):
         emitted = emit_pr_metrics_row(pull_request=self.pull_request)
         assert emitted is False
         assert mock_record.call_count == 0
+
+    # --- CI summary (_ci_summary) ---
+
+    def test_build_row_ci_fields_null_when_no_check_suites(self) -> None:
+        # No completed check_suite activity leaves both fields null, so BigQuery
+        # tells "no CI seen" apart from "CI ran and was green".
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.ci_failed_at_close is None
+        assert row.ci_ever_failed is None
+
+    def test_build_row_ci_green(self) -> None:
+        self._check_suite(conclusion="success", webhook_id="cs-1")
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.ci_failed_at_close is False
+        assert row.ci_ever_failed is False
+
+    def test_build_row_ci_failed_at_close(self) -> None:
+        self._check_suite(conclusion="failure", webhook_id="cs-1")
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="closed",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.ci_failed_at_close is True
+        assert row.ci_ever_failed is True
+
+    def test_build_row_ci_cancelled_is_not_a_failure(self) -> None:
+        # cancelled is excluded from the failure set — typically a superseded run,
+        # not a red build.
+        self._check_suite(conclusion="cancelled", webhook_id="cs-1")
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.ci_failed_at_close is False
+        assert row.ci_ever_failed is False
+
+    def test_build_row_ci_ever_failed_but_green_at_close(self) -> None:
+        # An earlier head went red, a later push went green: the PR closed green,
+        # but it did break the build at some point.
+        self._check_suite(conclusion="failure", head_sha="c" * 40, webhook_id="cs-1")
+        self._check_suite(conclusion="success", webhook_id="cs-2")
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.ci_failed_at_close is False
+        assert row.ci_ever_failed is True
+
+    def test_build_row_ci_rerun_green_supersedes_failure_at_head(self) -> None:
+        # Same head, same CI app: a red suite re-run green. The latest suite per
+        # app wins, so the terminal head reads green (but it did fail once).
+        self._check_suite(conclusion="failure", webhook_id="cs-1")
+        self._check_suite(conclusion="success", webhook_id="cs-2")
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.ci_failed_at_close is False
+        assert row.ci_ever_failed is True
+
+    def test_build_row_ci_failed_at_close_when_any_app_red(self) -> None:
+        # Two CI apps on the terminal head, one green one red: a single red suite
+        # makes the close red.
+        self._check_suite(conclusion="success", app_slug="github-actions", webhook_id="cs-1")
+        self._check_suite(conclusion="failure", app_slug="codecov", webhook_id="cs-2")
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.ci_failed_at_close is True
+        assert row.ci_ever_failed is True
 
     # --- _commit_shas_from_activity ---
 

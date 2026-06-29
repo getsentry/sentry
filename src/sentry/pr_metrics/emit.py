@@ -142,6 +142,60 @@ def _merge_commit_id(pull_request: PullRequest) -> int | None:
     )
 
 
+# GitHub check-suite conclusions that count as a red build. success/neutral/
+# skipped/stale aren't failures; cancelled is excluded (usually a superseded run,
+# not a real failure); action_required is a check requesting user action (e.g. app
+# authorization), not a CI failure.
+_CI_FAILURE_CONCLUSIONS = frozenset({"failure", "timed_out", "startup_failure"})
+
+
+def _ci_summary(pull_request: PullRequest) -> dict[str, Any]:
+    """The PR's CI outcome, reduced from its completed check-suite activity rows.
+
+    Reads ``CHECK_SUITE_COMPLETED`` rows — the aggregate outcome per CI app,
+    written under the same ``pr-metrics-activity`` flag as the rest of the
+    activity feed (so this is empty when that flag is off). No SCM fetch: the rows
+    are already persisted, so this works on the Seer judge callback path too.
+    Returns ``{}`` (every field keeps its ``None`` default) when Sentry saw no
+    completed suite, so BigQuery tells that "unknown" apart from ``False``.
+
+    ``ci_failed_at_close`` reduces to the latest suite per CI app at the PR's
+    terminal ``head_commit_sha``, so a red run later re-run green at the same head
+    reads as green. ``ci_ever_failed`` is true if any suite went red over the PR's
+    whole life, counting a since-fixed failure. Both span required and optional
+    checks alike — the webhook doesn't say which gate merge.
+    """
+    head = pull_request.head_commit_sha
+    rows = (
+        PullRequestActivity.objects.filter(
+            pull_request=pull_request,
+            event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED,
+        )
+        .order_by("date_added", "id")
+        .values_list("payload", flat=True)
+    )
+
+    saw_suite = False
+    ever_failed = False
+    # app_slug -> its latest conclusion at the terminal head; ascending iteration
+    # means the last write wins, so a re-run supersedes its earlier run.
+    latest_at_head: dict[str, str] = {}
+    for payload in rows:
+        saw_suite = True
+        conclusion = payload.get("conclusion") or ""
+        if conclusion in _CI_FAILURE_CONCLUSIONS:
+            ever_failed = True
+        if head is not None and payload.get("head_sha") == head:
+            latest_at_head[payload.get("app_slug") or ""] = conclusion
+
+    if not saw_suite:
+        return {}
+    return {
+        "ci_failed_at_close": any(c in _CI_FAILURE_CONCLUSIONS for c in latest_at_head.values()),
+        "ci_ever_failed": ever_failed,
+    }
+
+
 def _conversation_analysis_fields(
     conversation_analysis: PrConversationAnalysis | None,
 ) -> dict[str, Any]:
@@ -225,6 +279,7 @@ def build_pr_metrics_row(
         attributions=json.dumps(attributions),
         verdict=metrics.verdict,
         diagnosis_labels=list(diagnosis_labels) if diagnosis_labels is not None else None,
+        **_ci_summary(pull_request),
         **_conversation_analysis_fields(conversation_analysis),
     )
 

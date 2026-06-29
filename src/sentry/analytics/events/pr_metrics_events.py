@@ -59,6 +59,20 @@ class PrCloseMetricsEvent(analytics.Event):
     # free-string column; null off the judge path. BigQuery-only.
     diagnosis_labels: list[str] | None = None
 
+    # CI outcome reduced from the PR's completed check-suite activity rows (set
+    # only under pr-metrics-activity). Both null when Sentry saw no completed
+    # suite — flag off or no CI configured — which BigQuery reads as "unknown",
+    # distinct from False ("CI ran and was green"). Both span required and
+    # optional checks alike: GitHub's check webhooks don't mark which checks gate
+    # merge (that's branch-protection/ruleset config). BigQuery-only.
+    #
+    # Was CI red at the PR's terminal head — the latest suite per CI app at
+    # head_commit_sha, so a red run later re-run green at the same head reads green.
+    ci_failed_at_close: bool | None = None
+    # Did any suite go red over the PR's whole life — counts a since-fixed failure,
+    # answering "did this PR ever break the build".
+    ci_ever_failed: bool | None = None
+
     # --- Conversation judge (set only on a judged close/merge row) ---
     # One of several judges' outputs. Columns are prefixed ``conversation_`` so a
     # future judge's columns sit alongside without collision, and to disambiguate
