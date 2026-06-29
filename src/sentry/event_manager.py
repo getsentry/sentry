@@ -150,6 +150,7 @@ from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.utils.tracing import set_span_tag, start_span
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
     ensure_association_with_detector,
@@ -1477,13 +1478,16 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
     check_for_group_creation_load_shed(project, event)
 
     with (
-        sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
+        start_span(
+            op="event_manager.create_group_transaction",
+            name="event_manager.create_group_transaction",
+        ) as span,
         metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
         transaction.atomic(router.db_for_write(GroupHash)),
     ):
         # These values will get overridden with whatever happens inside the lock if we do manage to
         # acquire it, so it should only end up with `wait-for-lock` if we don't
-        span.set_tag("outcome", "wait_for_lock")
+        set_span_tag(span, "outcome", "wait_for_lock")
         metrics_timer_tags["outcome"] = "wait_for_lock"
 
         # If we're in this branch, we checked our grouphashes and didn't find one with a group
@@ -1511,7 +1515,7 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
         # If we still haven't found a matching grouphash, we're now safe to go ahead and create
         # the group.
         if existing_grouphash is None:
-            span.set_tag("outcome", "new_group")
+            set_span_tag(span, "outcome", "new_group")
             metrics_timer_tags["outcome"] = "new_group"
             record_new_group_metrics(event)
 
@@ -2196,7 +2200,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
 
     logger_data["payload"] = payload
 
-    with sentry_sdk.start_span(op=op):
+    with start_span(op=op, name=op):
         try:
             with metrics.timer(op):
                 timeout = options.get(
@@ -2622,7 +2626,10 @@ def _record_transaction_info(
             event = job["event"]
 
             project = event.project
-            with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
+            with start_span(
+                op="event_manager.record_transaction_name_for_clustering",
+                name="event_manager.record_transaction_name_for_clustering",
+            ):
                 record_transaction_name_for_clustering(project, event.data)
 
             record_event_processed(project, event)

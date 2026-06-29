@@ -8,13 +8,13 @@ from collections.abc import Generator, Iterable, Mapping
 from typing import Any, Self
 
 import psycopg2.errors
-import sentry_sdk
 from django import db
 from django.db import DatabaseError, OperationalError, connections, models, router, transaction
 from django.db.models import Count, Max, Min
 from django.db.models.functions import Now
 from django.db.transaction import Atomic
 from django.utils import timezone
+from sentry_sdk.traces import StreamedSpan
 from sentry_sdk.tracing import Span
 
 from sentry import options
@@ -39,6 +39,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
+from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
 
@@ -287,13 +288,15 @@ class OutboxBase(Model):
                 tags=tags,
             )
 
-    def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase) -> None:
+    def _set_span_data_for_coalesced_message(
+        self, span: Span | StreamedSpan, message: OutboxBase
+    ) -> None:
         tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
-        span.set_tag(tag_for_outbox, message.shard_identifier)
-        span.set_data("outbox_id", message.id)
-        span.set_data("outbox_shard_id", message.shard_identifier)
-        span.set_tag("outbox_category", OutboxCategory(message.category).name)
-        span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
+        set_span_tag(span, tag_for_outbox, message.shard_identifier)
+        set_span_data(span, "outbox_id", message.id)
+        set_span_data(span, "outbox_shard_id", message.shard_identifier)
+        set_span_tag(span, "outbox_category", OutboxCategory(message.category).name)
+        set_span_tag(span, "outbox_scope", OutboxScope(message.shard_scope).name)
 
     def process(self, is_synchronous_flush: bool) -> bool:
         with self.process_coalesced(is_synchronous_flush=is_synchronous_flush) as coalesced:
@@ -306,7 +309,7 @@ class OutboxBase(Model):
                             "synchronous": int(is_synchronous_flush),
                         },
                     ),
-                    sentry_sdk.start_span(op="outbox.process") as span,
+                    start_span(op="outbox.process", name="outbox.process") as span,
                 ):
                     self._set_span_data_for_coalesced_message(span=span, message=coalesced)
                     try:

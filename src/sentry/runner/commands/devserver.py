@@ -11,6 +11,7 @@ import sentry_sdk
 
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
+from sentry.utils.tracing import start_span
 
 # NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
 # in `devserver()` like so:
@@ -163,7 +164,7 @@ def devserver(
         dsn=os.environ.get("SENTRY_DEVSERVICES_DSN", ""),
         traces_sample_rate=1.0,
     )
-    with sentry_sdk.start_transaction(op="command", name="sentry.devserver"):
+    with start_span(op="command", name="sentry.devserver", transaction=True):
         passed_options = {
             p.name: ctx.params[p.name]
             for p in ctx.command.params
