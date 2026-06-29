@@ -72,11 +72,9 @@ export function EmptyState({
               ))}
             </Flex>
           )}
-          {(hasSlackIntegration && !needsSlackUpgrade) ?? (
+          {hasSlackIntegration && !needsSlackUpgrade && (
             <Text>
-              {t(
-                'You can also @Sentry in Slack on any message to investigate issues more deeply.'
-              )}
+              {t('Want to chat in Slack? Just @ Sentry to debug and investigate issues.')}
             </Text>
           )}
         </Fragment>
