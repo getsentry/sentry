@@ -18,6 +18,7 @@ from sentry.replays.usecases.ingest.issue_creation import (
 )
 from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.utils import json, metrics
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger()
 
@@ -427,15 +428,15 @@ def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
         total_attr_count += c
         total_attr_size_bytes += s
 
-    with sentry_sdk.start_span(op="process", name="write_trace_items") as span:
-        span.set_data("attribute_count_total", total_attr_count)
-        span.set_data("attribute_size_total_bytes", total_attr_size_bytes)
+    with start_span(op="process", name="write_trace_items") as span:
+        set_span_data(span, "attribute_count_total", total_attr_count)
+        set_span_data(span, "attribute_size_total_bytes", total_attr_size_bytes)
 
         if largest_attribute:
             ti, name, size = largest_attribute
-            span.set_data("largest_attr_trace_id", ti.trace_id)
-            span.set_data("largest_attr_name", name)
-            span.set_data("largest_attr_size_bytes", size)
+            set_span_data(span, "largest_attr_trace_id", ti.trace_id)
+            set_span_data(span, "largest_attr_name", name)
+            set_span_data(span, "largest_attr_size_bytes", size)
         write_trace_items(trace_items)
 
 

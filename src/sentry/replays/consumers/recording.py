@@ -29,6 +29,7 @@ from sentry.replays.usecases.ingest.cache import make_has_sent_replays_cache, ma
 from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.services.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.utils import json, metrics
+from sentry.utils.tracing import start_span
 
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
@@ -90,7 +91,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 def process_and_commit_message(message: Message[KafkaPayload], context: ProcessorContext) -> None:
     isolation_scope = sentry_sdk.get_isolation_scope().fork()
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        with sentry_sdk.start_transaction(
+        with start_span(
             name="replays.consumer.recording.process_and_commit_message",
             op="replays.consumer.recording.process_and_commit_message",
             custom_sampling_context={
@@ -98,6 +99,7 @@ def process_and_commit_message(message: Message[KafkaPayload], context: Processo
                     settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
                 )
             },
+            transaction=True,
         ):
             processed_message = process_message(message.payload.value)
             if processed_message:
