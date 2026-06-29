@@ -38,29 +38,9 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 pytestmark = [requires_snuba]
 
 
-class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
+class NotifyEventServiceWebhookActionTest(RuleTestCase, BaseWorkflowTest):
     rule_cls = NotifyEventServiceAction
 
-    def test_applies_correctly_for_plugins(self) -> None:
-        event = self.get_event()
-
-        plugin = MagicMock()
-        plugin.is_enabled.return_value = True
-        plugin.should_notify.return_value = True
-
-        rule = self.get_rule(data={"service": "mail"})
-
-        with patch("sentry.plugins.base.plugins.get") as get_plugin:
-            get_plugin.return_value = plugin
-
-            results = list(rule.after(event=event))
-
-        assert len(results) == 1
-        assert plugin.should_notify.call_count == 1
-        assert results[0].callback is plugin.rule_notify
-
-
-class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
     def setUp(self) -> None:
         self.event = self.get_event()
         self.webhook = WebHooksPlugin()
@@ -175,7 +155,9 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
         assert len(responses.calls) == 0
 
 
-class NotifyEventServiceSentryAppActionTest(NotifyEventServiceActionTest):
+class NotifyEventServiceSentryAppActionTest(RuleTestCase, BaseWorkflowTest):
+    rule_cls = NotifyEventServiceAction
+
     def test_applies_correctly_for_sentry_apps(self) -> None:
         event = self.get_event()
 
@@ -189,27 +171,6 @@ class NotifyEventServiceSentryAppActionTest(NotifyEventServiceActionTest):
 
         assert len(results) == 1
         assert results[0].callback is notify_sentry_app
-
-    def test_notify_sentry_app_and_plugin_with_same_slug(self) -> None:
-        event = self.get_event()
-
-        self.create_sentry_app(organization=event.organization, name="Notify", is_alertable=True)
-
-        plugin = MagicMock()
-        plugin.is_enabled.return_value = True
-        plugin.should_notify.return_value = True
-
-        rule = self.get_rule(data={"service": "notify"})
-
-        with patch("sentry.plugins.base.plugins.get") as get_plugin:
-            get_plugin.return_value = plugin
-
-            results = list(rule.after(event=event))
-
-        assert len(results) == 2
-        assert plugin.should_notify.call_count == 1
-        assert results[0].callback is notify_sentry_app
-        assert results[1].callback is plugin.rule_notify
 
     def test_sentry_app_installed(self) -> None:
         event = self.get_event()

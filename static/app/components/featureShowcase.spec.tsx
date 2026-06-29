@@ -87,11 +87,11 @@ describe('FeatureShowcase', () => {
 
     await userEvent.click(screen.getByTestId('reveal'));
 
-    expect(screen.getByRole('heading')).toHaveTextContent('First');
+    expect(screen.getByRole('heading', {name: 'First'})).toHaveTextContent('First');
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
-    expect(screen.getByRole('heading')).toHaveTextContent('Second');
+    expect(screen.getByRole('heading', {name: 'Second'})).toHaveTextContent('Second');
     expect(onStepChange).toHaveBeenCalled();
   });
 
@@ -123,11 +123,11 @@ describe('FeatureShowcase', () => {
     await userEvent.click(screen.getByTestId('reveal'));
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-    expect(screen.getByRole('heading')).toHaveTextContent('Second');
+    expect(screen.getByRole('heading', {name: 'Second'})).toHaveTextContent('Second');
     expect(screen.getByRole('button', {name: 'Back'})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-    expect(screen.getByRole('heading')).toHaveTextContent('First');
+    expect(screen.getByRole('heading', {name: 'First'})).toHaveTextContent('First');
     expect(screen.queryByRole('button', {name: 'Back'})).not.toBeInTheDocument();
   });
 
@@ -143,7 +143,7 @@ describe('FeatureShowcase', () => {
 
     await userEvent.click(screen.getByTestId('reveal'));
 
-    expect(screen.getByRole('heading')).toHaveTextContent('First');
+    expect(screen.getByRole('heading', {name: 'First'})).toHaveTextContent('First');
     expect(screen.getByTestId('step-image')).toBeInTheDocument();
     expect(screen.getByTestId('step-action')).toBeInTheDocument();
     expect(screen.getByText('1 / 2')).toBeInTheDocument();

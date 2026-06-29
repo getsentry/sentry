@@ -14,8 +14,44 @@ import {MetricsEquationVisualize} from 'sentry/views/dashboards/widgetBuilder/co
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {
+  defaultMetricQuery,
+  type BaseMetricQuery,
+} from 'sentry/views/explore/metrics/metricQuery';
 
 jest.mock('sentry/utils/useNavigate');
+
+let parseOverride: any = null;
+jest.mock('sentry/views/explore/metrics/parseAggregateExpression', () => {
+  const actual = jest.requireActual(
+    'sentry/views/explore/metrics/parseAggregateExpression'
+  );
+  return {
+    ...actual,
+    parseAggregateExpression: (...args: any[]) =>
+      parseOverride ?? actual.parseAggregateExpression(...args),
+  };
+});
+
+// Override useStableLabels so preset query.label values are honoured on init for test setup
+jest.mock('sentry/views/explore/metrics/hooks/useStableLabels', () => {
+  const actual = jest.requireActual('sentry/views/explore/metrics/hooks/useStableLabels');
+  return {
+    ...actual,
+    useStableLabels: (queries: BaseMetricQuery[]) => {
+      const result = actual.useStableLabels(queries);
+      const hasPreset = queries.every((q: BaseMetricQuery) => q.label);
+      if (hasPreset) {
+        return {
+          ...result,
+          getLabel: (i: number) => queries[i]?.label ?? result.getLabel(i),
+        };
+      }
+      return result;
+    },
+  };
+});
+
 const mockedUseNavigate = jest.mocked(useNavigate);
 
 const EQUATION_FEATURES = [
@@ -68,6 +104,7 @@ describe('MetricsEquationVisualize', () => {
   });
 
   afterEach(() => {
+    parseOverride = null;
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
   });
@@ -182,6 +219,62 @@ describe('MetricsEquationVisualize', () => {
       within(toolbars[1]!).getByRole('button', {name: 'beta_metric'})
     ).toBeInTheDocument();
     expect(within(toolbars[1]!).getByText('sum')).toBeInTheDocument();
+  });
+
+  it('limits adding metrics past label Z and re-enables after deleting Z', async () => {
+    parseOverride = {
+      metricQueries: [
+        {...defaultMetricQuery(), label: 'A'},
+        {...defaultMetricQuery(), label: 'Y'},
+      ],
+      equationRow: {...defaultMetricQuery({type: 'equation'}), label: 'ƒ1'},
+      compactExpression: 'A + Y',
+    };
+
+    render(<MetricsEquationVisualize />, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: ['equation|A + Y'],
+          },
+        },
+      },
+    });
+
+    // 2 metric rows (A, Y) + 1 equation row (ƒ1)
+    const toolbars = await screen.findAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(3);
+    expect(within(toolbars[0]!).getByText('A')).toBeInTheDocument();
+    expect(within(toolbars[1]!).getByText('Y')).toBeInTheDocument();
+
+    // Should be able to add Z
+    const addButton = screen.getByRole('button', {name: 'Add Metric'});
+    expect(addButton).toBeEnabled();
+    await userEvent.click(addButton);
+
+    // Z is inserted before the equation row
+    await waitFor(() => {
+      expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(4);
+    });
+    expect(
+      within(screen.getAllByTestId('metric-toolbar')[2]!).getByText('Z')
+    ).toBeInTheDocument();
+
+    // Cannot add past Z
+    expect(screen.getByRole('button', {name: 'Add Metric'})).toBeDisabled();
+
+    // Deleting Z re-enables adding
+    const deleteButtons = screen.getAllByRole('button', {name: 'Delete Metric'});
+    await userEvent.click(deleteButtons[2]!);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Add Metric'})).toBeEnabled();
+    });
   });
 
   it('hydrates initial rows from a saved equation widget', async () => {

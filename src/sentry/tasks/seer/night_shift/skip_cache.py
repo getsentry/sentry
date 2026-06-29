@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from datetime import timedelta
 
 from redis.client import StrictRedis
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.utils.redis import redis_clusters
 
