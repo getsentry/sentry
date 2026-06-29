@@ -266,24 +266,14 @@ const BodyCell = memo(function BodyCell({
   );
   const listLocationState = getConversationsListLocationState(location.query);
 
-  const navigateToDetail = (source: 'table_input' | 'table_output') => {
-    trackAnalytics('conversations.table.open', {organization, source});
+  const navigateToDetail = () => {
     navigate(detailUrl, {state: listLocationState});
   };
 
   switch (column.key) {
     case 'conversationId':
       return (
-        <ConversationIdLink
-          to={detailUrl}
-          state={listLocationState}
-          onClick={() =>
-            trackAnalytics('conversations.table.open', {
-              organization,
-              source: 'table_conversation_id',
-            })
-          }
-        >
+        <ConversationIdLink to={detailUrl} state={listLocationState}>
           {isUUID(dataRow.conversationId) ? (
             dataRow.conversationId.slice(0, 8)
           ) : (
@@ -314,7 +304,7 @@ const BodyCell = memo(function BodyCell({
     case 'inputOutput': {
       return (
         <Stack width="100%">
-          <InputOutputRow type="button" onClick={() => navigateToDetail('table_input')}>
+          <InputOutputRow type="button" onClick={() => navigateToDetail()}>
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.firstInput ? (
@@ -324,7 +314,7 @@ const BodyCell = memo(function BodyCell({
               )}
             </Flex>
           </InputOutputRow>
-          <InputOutputRow type="button" onClick={() => navigateToDetail('table_output')}>
+          <InputOutputRow type="button" onClick={() => navigateToDetail()}>
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.lastOutput ? (
