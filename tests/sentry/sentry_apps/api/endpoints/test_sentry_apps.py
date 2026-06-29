@@ -798,6 +798,26 @@ class PostSentryAppsTest(SentryAppsTest):
             f"Authorization: {MASKED_VALUE}",
         ]
 
+    def test_create_integration_with_anthropic_webhook_headers(self) -> None:
+        response = self.get_success_response(
+            **self.get_data(
+                webhookHeaders=[
+                    "Anthropic-Version: 2023-06-01",
+                    "Anthropic-Beta: messages-2023-12-15",
+                ]
+            ),
+            status_code=201,
+        )
+        sentry_app = SentryApp.objects.get(slug=response.data["slug"])
+        assert sentry_app.webhook_headers == [
+            "Anthropic-Version: 2023-06-01",
+            "Anthropic-Beta: messages-2023-12-15",
+        ]
+        assert response.data["webhookHeaders"] == [
+            f"Anthropic-Version: {MASKED_VALUE}",
+            f"Anthropic-Beta: {MASKED_VALUE}",
+        ]
+
     def test_create_integration_strips_webhook_header_whitespace(self) -> None:
         # CharField children are whitespace-trimmed during validation, so a
         # leading/trailing CR/LF passes the newline check. The endpoint must

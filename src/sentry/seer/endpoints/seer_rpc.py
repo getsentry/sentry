@@ -77,6 +77,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.seer.agent.client import (
     get_monitoring_provider_connections as fetch_monitoring_provider_connections,
 )
+from sentry.seer.agent.context_engine_utils import get_instrumentation_types
 from sentry.seer.agent.custom_tool_utils import call_custom_tool
 from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS, FeatureRunStatus
 from sentry.seer.agent.index_data import (
@@ -147,7 +148,9 @@ from sentry.seer.sentry_data_models import (
     OrganizationAutofixConsentResponse,
     OrganizationFeaturesResponse,
     OrganizationProject,
+    OrganizationProjectDetail,
     OrganizationProjectIdsResponse,
+    OrganizationProjectsResponse,
     OrganizationSlugResponse,
     PrAttributionResponse,
     RefreshMonitoringProviderTokenErrorResponse,
@@ -170,6 +173,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
+from sentry.utils.tracing import start_span
 from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
 
 logger = logging.getLogger(__name__)
@@ -367,6 +371,25 @@ def get_organization_project_ids(*, org_id: int) -> OrganizationProjectIdsRespon
     return OrganizationProjectIdsResponse(projects=projects)
 
 
+def get_organization_projects(*, org_id: int) -> OrganizationProjectsResponse:
+    """Get all active projects with instrumentation types for an organization"""
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        return OrganizationProjectsResponse(projects=[])
+
+    projects = [
+        OrganizationProjectDetail(
+            id=project.id,
+            slug=project.slug,
+            instrumentation=get_instrumentation_types(project),
+        )
+        for project in Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+    ]
+
+    return OrganizationProjectsResponse(projects=projects)
+
+
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 
@@ -388,7 +411,7 @@ def get_organization_features(
 
     feature_set: set[str] = set()
 
-    with sentry_sdk.start_span(op="features.check", name="check batch features"):
+    with start_span(op="features.check", name="check batch features"):
         batch = features.batch_has(
             list(features_to_check),
             actor=actor,
@@ -402,7 +425,7 @@ def get_organization_features(
                     feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
                 features_to_check.discard(name)
 
-    with sentry_sdk.start_span(op="features.check", name="check individual features"):
+    with start_span(op="features.check", name="check individual features"):
         for name in features_to_check:
             if features.has(name, organization, actor=actor, skip_entity=True):
                 feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])

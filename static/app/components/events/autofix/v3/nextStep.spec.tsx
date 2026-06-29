@@ -552,6 +552,21 @@ describe('SeerDrawerNextStep', () => {
       expect(container).toBeEmptyDOMElement();
     });
 
+    it('keeps the feedback form visible while a run is polling', () => {
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('pull_request')]}
+          autofix={makePrIterationAutofix({isPolling: true})}
+        />,
+        {organization: prIterationOrganization}
+      );
+      expect(
+        screen.getByText('Anything else you want to see on your PR?')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+
     it('renders the feedback prompt, textarea, and submit button', () => {
       render(
         <SeerDrawerNextStep

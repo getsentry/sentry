@@ -1,7 +1,51 @@
 import {t} from 'sentry/locale';
+import type {EventOccurrence} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 
 import type {LowValueSpanEvidenceData} from './types';
+
+type LowValueSpanEvidencePayload = Partial<{
+  analysisEnd: unknown;
+  analysisStart: unknown;
+  avgDurationMs: unknown;
+  count: unknown;
+  description: unknown;
+  estimatedCostUsd: unknown;
+  extrapolatedCount: unknown;
+  op: unknown;
+  spanOrigin: unknown;
+  valueScore: unknown;
+}>;
+
+function getStringValue(value: unknown): string | null {
+  if (typeof value !== 'string' || value.length === 0) {
+    return null;
+  }
+  return value;
+}
+
+function getNumberValue(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return null;
+  }
+  return value;
+}
+
+export function getLowValueSpanEvidenceData(
+  evidenceData: EventOccurrence['evidenceData'] | null | undefined
+): LowValueSpanEvidenceData {
+  const data = evidenceData as LowValueSpanEvidencePayload | null | undefined;
+
+  return {
+    op: getStringValue(data?.op),
+    description: getStringValue(data?.description),
+    count: getNumberValue(data?.count),
+    extrapolatedCount: getNumberValue(data?.extrapolatedCount),
+    avgDurationMs: getNumberValue(data?.avgDurationMs),
+    estimatedCostUsd: getNumberValue(data?.estimatedCostUsd),
+    spanOrigin: getStringValue(data?.spanOrigin),
+  };
+}
 
 const JAVASCRIPT_SPAN_FILTERING_DOCS_URL =
   'https://docs.sentry.io/platforms/javascript/configuration/options/#ignoreSpans';
