@@ -1,29 +1,15 @@
 import {useState} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
-import {useQuery, useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Radio} from '@sentry/scraps/radio';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconCalendar,
-  IconCode,
-  IconCommit,
-  IconDownload,
-  IconMobile,
-  IconSearch,
-  IconTag,
-} from 'sentry/icons';
-import {IconBranch} from 'sentry/icons/iconBranch';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -37,7 +23,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   BuildDetailsState,
-  isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
@@ -45,11 +30,9 @@ import {
   getCompareApiUrl,
   getCompareBuildPath,
 } from 'sentry/views/preprod/utils/buildLinkUtils';
-import {
-  formattedPrimaryMetricDownloadSize,
-  formattedPrimaryMetricInstallSize,
-} from 'sentry/views/preprod/utils/labelUtils';
 
+import {BuildItem} from './buildItem';
+import {ExistingComparisons} from './existingComparisons';
 import {SizeCompareSelectedBuilds} from './sizeCompareSelectedBuilds';
 
 interface SizeCompareSelectionContentProps {
@@ -142,7 +125,7 @@ export function SizeCompareSelectionContent({
   });
 
   return (
-    <Stack gap="xl">
+    <Stack gap="2xl">
       <SizeCompareSelectedBuilds
         isComparing={isComparing}
         headBuildDetails={headBuildDetails}
@@ -170,7 +153,8 @@ export function SizeCompareSelectionContent({
           value={searchQuery}
           onChange={e => {
             setSearchQuery(e.target.value);
-            // Clear cursor when search query changes to avoid pagination issues
+            // Clear the picker's cursor when the search changes to avoid
+            // landing on a now-empty page.
             if (cursor) {
               navigate(
                 getCompareBuildPath({
@@ -184,179 +168,49 @@ export function SizeCompareSelectionContent({
         />
       </InputGroup>
 
-      {buildsQuery.isLoading && <LoadingIndicator />}
-      {buildsQuery.isError && (
-        <Alert variant="danger">{buildsQuery.error?.message}</Alert>
-      )}
-      {buildsQuery.data?.json && (
-        <Stack gap="md">
-          {buildsQuery.data.json.map(build => {
-            if (build.id === headBuildDetails.id) {
-              return null;
-            }
+      <ExistingComparisons
+        headBuildDetails={headBuildDetails}
+        searchQuery={searchQuery}
+      />
 
-            return (
-              <BuildItem
-                key={build.id}
-                build={build}
-                isSelected={selectedBaseBuild === build}
-                onSelect={() => {
-                  setSelectedBaseBuild(build);
-                  trackAnalytics('preprod.builds.compare.select_base_build', {
-                    organization,
-                    build_id: build.id,
-                    platform:
-                      build.app_info?.platform ??
-                      headBuildDetails.app_info?.platform ??
-                      null,
-                  });
-                }}
-              />
-            );
-          })}
+      <Stack gap="lg">
+        <Heading as="h2">{t('Create New Comparison')}</Heading>
 
-          {hasPagination && <Pagination pageLinks={pageLinks} />}
-        </Stack>
-      )}
+        {buildsQuery.isLoading && <LoadingIndicator />}
+        {buildsQuery.isError && (
+          <Alert variant="danger">{buildsQuery.error?.message}</Alert>
+        )}
+        {buildsQuery.data?.json && (
+          <Stack gap="md">
+            {buildsQuery.data.json.map(build => {
+              if (build.id === headBuildDetails.id) {
+                return null;
+              }
+
+              return (
+                <BuildItem
+                  key={build.id}
+                  build={build}
+                  isSelected={selectedBaseBuild === build}
+                  onSelect={() => {
+                    setSelectedBaseBuild(build);
+                    trackAnalytics('preprod.builds.compare.select_base_build', {
+                      organization,
+                      build_id: build.id,
+                      platform:
+                        build.app_info?.platform ??
+                        headBuildDetails.app_info?.platform ??
+                        null,
+                    });
+                  }}
+                />
+              );
+            })}
+
+            {hasPagination && <Pagination pageLinks={pageLinks} />}
+          </Stack>
+        )}
+      </Stack>
     </Stack>
   );
 }
-
-/**
- * Formats version and build number into a combined string.
- * Examples: "v1.2.3 (456)", "v1.2.3", "(456)", or null
- */
-function formatVersionInfo(
-  version?: string | null,
-  buildNumber?: string | null
-): string | null {
-  if (!version && !buildNumber) {
-    return null;
-  }
-
-  if (version && buildNumber) {
-    return `v${version} (${buildNumber})`;
-  }
-
-  if (version) {
-    return `v${version}`;
-  }
-
-  return `(${buildNumber})`;
-}
-
-interface BuildItemProps {
-  build: BuildDetailsApiResponse;
-  isSelected: boolean;
-  onSelect: () => void;
-}
-
-function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
-  const prNumber = build.vcs_info?.pr_number;
-  const commitHash = build.vcs_info?.head_sha?.substring(0, 7);
-  const branchName = build.vcs_info?.head_ref;
-  const dateAdded = build.app_info?.date_added;
-  const sizeInfo = build.size_info;
-  const version = build.app_info?.version;
-  const buildNumber = build.app_info?.build_number;
-
-  const hasGitInfo = Boolean(prNumber || branchName || commitHash);
-  const versionInfo = formatVersionInfo(version, buildNumber);
-
-  return (
-    <BuildItemContainer
-      onClick={onSelect}
-      isSelected={isSelected}
-      align="center"
-      gap="md"
-    >
-      <Flex direction="column" gap="sm" flex={1}>
-        {(hasGitInfo || versionInfo) && (
-          <Flex align="center" gap="md">
-            {(prNumber || branchName) && <IconBranch size="xs" variant="muted" />}
-            {prNumber && (
-              <Flex align="center" gap="sm">
-                <Text>#{prNumber}</Text>
-              </Flex>
-            )}
-            {branchName && (
-              <BuildItemBranchTag>{build.vcs_info?.head_ref}</BuildItemBranchTag>
-            )}
-            {commitHash && (
-              <Flex align="center" gap="sm">
-                <IconCommit size="xs" variant="muted" />
-                <Text>{commitHash}</Text>
-              </Flex>
-            )}
-            {versionInfo && (
-              <Flex align="center" gap="sm">
-                <IconTag size="xs" variant="muted" />
-                <Text>{versionInfo}</Text>
-              </Flex>
-            )}
-          </Flex>
-        )}
-
-        <Flex align="center" gap="md">
-          {dateAdded && (
-            <Flex align="center" gap="sm">
-              <IconCalendar size="xs" variant="muted" />
-              <TimeSince date={dateAdded} />
-            </Flex>
-          )}
-          {build.app_info?.build_configuration && (
-            <Flex align="center" gap="sm">
-              <IconMobile size="xs" variant="muted" />
-              <Tooltip title={t('Build configuration')}>
-                <Text monospace>{build.app_info.build_configuration}</Text>
-              </Tooltip>
-            </Flex>
-          )}
-          {isSizeInfoCompleted(sizeInfo) && (
-            <Flex align="center" gap="sm">
-              <IconCode size="xs" variant="muted" />
-              <Text>{formattedPrimaryMetricInstallSize(sizeInfo)}</Text>
-            </Flex>
-          )}
-          {isSizeInfoCompleted(sizeInfo) && (
-            <Flex align="center" gap="sm">
-              <IconDownload size="xs" variant="muted" />
-              <Text>{formattedPrimaryMetricDownloadSize(sizeInfo)}</Text>
-            </Flex>
-          )}
-        </Flex>
-      </Flex>
-      <Radio checked={isSelected} onChange={onSelect} />
-    </BuildItemContainer>
-  );
-}
-
-const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
-  border: 1px solid
-    ${p =>
-      p.isSelected
-        ? p.theme.tokens.border.accent.vibrant
-        : p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.md};
-  cursor: pointer;
-
-  &:hover {
-    background-color: ${p => p.theme.colors.surface200};
-  }
-
-  ${p =>
-    p.isSelected &&
-    css`
-      background-color: ${p.theme.tokens.background.tertiary};
-    `}
-`;
-
-const BuildItemBranchTag = styled('span')`
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.colors.gray100};
-  border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.tokens.content.accent};
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-`;

@@ -5,7 +5,6 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
     get_example_template,
     get_issue_description,
     get_subject,
-    get_view_in_sentry_button,
 )
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -41,7 +40,6 @@ class SeerCodingCompletedActivityTemplate(NotificationTemplate[WorkflowEngineAct
         )
         return build_template(
             data=data,
-            subject=get_subject("Seer Coding Completed", group),
+            subject=get_subject("Coding Completed", group),
             body=get_issue_description(group),
-            extra_actions=[get_view_in_sentry_button(group)],
         )
