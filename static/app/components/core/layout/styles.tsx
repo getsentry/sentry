@@ -3,7 +3,9 @@ import {
   createContext,
   useCallback,
   useContext,
+  useLayoutEffect,
   useMemo,
+  useState,
   useSyncExternalStore,
 } from 'react';
 import {useTheme} from '@emotion/react';
@@ -15,7 +17,6 @@ import type {
   SpaceSize,
   Theme,
 } from 'sentry/utils/theme';
-import {useDimensions} from 'sentry/utils/useDimensions';
 
 /**
  * Controls what a responsive prop resolves against:
@@ -394,7 +395,31 @@ const ContainerQueryContext = createContext<BreakpointSize | null>(null);
  */
 export function useContainerBreakpoint(ref: RefObject<Element | null>): BreakpointSize {
   const theme = useTheme();
-  const {width} = useDimensions({elementRef: ref});
+  const [inlineSize, setInlineSize] = useState(0);
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+
+    // Read synchronously before paint so the first resolved breakpoint is right.
+    setInlineSize(getContentBoxInlineSize(element));
+
+    const observer = new ResizeObserver(entries => {
+      const entry = entries[0];
+      if (!entry) {
+        return;
+      }
+      // `contentBoxSize` is exactly the box CSS `@container` queries against;
+      // fall back to a computed content box for engines without it.
+      const size =
+        entry.contentBoxSize?.[0]?.inlineSize ?? getContentBoxInlineSize(element);
+      setInlineSize(size);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref]);
 
   return useMemo(() => {
     // Iterate from largest to smallest and return the first breakpoint whose
@@ -405,13 +430,27 @@ export function useContainerBreakpoint(ref: RefObject<Element | null>): Breakpoi
         continue;
       }
 
-      if (width >= parseInt(theme.breakpoints[breakpoint], 10)) {
+      if (inlineSize >= parseInt(theme.breakpoints[breakpoint], 10)) {
         return breakpoint;
       }
     }
 
     return '2xs';
-  }, [width, theme.breakpoints]);
+  }, [inlineSize, theme.breakpoints]);
+}
+
+/**
+ * The content-box inline size — the box CSS `@container` resolves against. We
+ * avoid `clientWidth` (padding-box) so the JS breakpoint can't disagree with the
+ * CSS reflow at boundaries on padded containers. `clientWidth` already excludes
+ * the border and scrollbar (like `@container`), so subtracting padding yields
+ * the content box.
+ */
+function getContentBoxInlineSize(element: Element): number {
+  const style = window.getComputedStyle(element);
+  const padding =
+    (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+  return Math.max(0, element.clientWidth - padding);
 }
 
 /**
