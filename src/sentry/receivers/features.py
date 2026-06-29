@@ -36,9 +36,6 @@ from sentry.models.group import Group
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.plugins.bases.issue import IssueTrackingPlugin
-from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
-from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.services.eventstore.models import GroupEvent
 from sentry.signals import (
     advanced_search,
@@ -462,19 +459,6 @@ def record_plugin_enabled(plugin, project, user: User | None, **kwargs):
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)
-
-    if isinstance(plugin, (IssueTrackingPlugin, IssueTrackingPlugin2)):
-        FeatureAdoption.objects.record(
-            organization_id=project.organization_id,
-            feature_slug="issue_tracker_integration",
-            complete=True,
-        )
-    elif isinstance(plugin, NotificationPlugin):
-        FeatureAdoption.objects.record(
-            organization_id=project.organization_id,
-            feature_slug="notification_integration",
-            complete=True,
-        )
 
 
 @sso_enabled.connect(weak=False)

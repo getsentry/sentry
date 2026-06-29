@@ -45,7 +45,7 @@ export function DiscordPreview({
             gap="md"
           >
             <DiscordWhiteText size="md" bold>
-              {subject}
+              {subject.map(block => block.text).join(' ')}
             </DiscordWhiteText>
             <DiscordWhiteText size="sm">
               <NotificationBodyRenderer
@@ -64,7 +64,11 @@ export function DiscordPreview({
                 objectFit="contain"
               />
             )}
-            {footer && <DiscordWhiteText size="xs">{footer}</DiscordWhiteText>}
+            {footer && (
+              <DiscordWhiteText size="xs">
+                {footer.map(block => block.text).join(' ')}
+              </DiscordWhiteText>
+            )}
           </DiscordEmbedContainer>
           <Flex gap="xs">
             {actions.map(action => (

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core import mail
@@ -7,7 +7,6 @@ from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, ObjectStatus
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
-from sentry.plugins.providers.dummy import DummyRepositoryProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -23,7 +22,8 @@ class RepositoryDeleteEmailTest(TestCase):
             name="getsentry/sentry",
             provider="dummy",
         )
-        self.provider = DummyRepositoryProvider("dummy")
+        self.provider = MagicMock()
+        self.provider.name = "Example"
         self.repo.get_provider = lambda: self.provider
 
     @with_feature("organizations:notification-platform.internal-testing")

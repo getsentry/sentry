@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {DetailedProject, Project} from 'sentry/types/project';
@@ -32,18 +32,7 @@ function isDetailedProject(
   );
 }
 
-type Context =
-  | {
-      previousProject: ProjectWithOptions;
-      error?: never;
-      previousDetailedProject?: DetailedProject;
-    }
-  | {
-      error: Error;
-      previousProject?: never;
-    };
-
-export function useUpdateProject(project: Project) {
+function useUpdateProjectMutationOptions(project: Project) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
@@ -52,7 +41,14 @@ export function useUpdateProject(project: Project) {
     projectSlug: project.slug,
   });
 
-  return useMutation<DetailedProject, Error, Partial<DetailedProject>, Context>({
+  return mutationOptions({
+    mutationFn: (data: Partial<DetailedProject>) => {
+      return fetchMutation<DetailedProject>({
+        method: 'PUT',
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        data: {...data},
+      });
+    },
     onMutate: data => {
       const previousCachedDetailedProject = queryClient.getQueryData(queryKey)?.json;
       const storeProject = ProjectsStore.getById(project.id);
@@ -111,13 +107,6 @@ export function useUpdateProject(project: Project) {
 
       return {previousProject, previousDetailedProject};
     },
-    mutationFn: data => {
-      return fetchMutation<DetailedProject>({
-        method: 'PUT',
-        url: `/projects/${organization.slug}/${project.slug}/`,
-        data: {...data},
-      });
-    },
     onSuccess: updatedProject => {
       ProjectsStore.onUpdateSuccess(updatedProject);
       queryClient.setQueryData(queryKey, prev =>
@@ -142,4 +131,10 @@ export function useUpdateProject(project: Project) {
       queryClient.invalidateQueries({queryKey});
     },
   });
+}
+
+export function useUpdateProject(project: Project) {
+  const updateProjectMutationOptions = useUpdateProjectMutationOptions(project);
+
+  return useMutation(updateProjectMutationOptions);
 }

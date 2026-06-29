@@ -1252,7 +1252,7 @@ describe('conversationMessages utilities', () => {
       expect(messagesToMarkdown([])).toBe('');
     });
 
-    it('excludes reasoning from markdown output', () => {
+    it('includes reasoning as a Thinking blockquote', () => {
       const result = messagesToMarkdown([
         {
           id: 'assistant-1',
@@ -1263,8 +1263,38 @@ describe('conversationMessages utilities', () => {
           reasoning: 'Let me think step by step...',
         },
       ]);
-      expect(result).not.toContain('step by step');
+      expect(result).toContain('> Thinking:');
+      expect(result).toContain('> Let me think step by step...');
       expect(result).toContain('The answer is 42');
+    });
+
+    it('prefixes every line of multi-line reasoning with a blockquote marker', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'Done',
+          timestamp: 1000,
+          nodeId: 'n1',
+          reasoning: 'First I check the input.\nThen I compute the result.',
+        },
+      ]);
+      expect(result).toContain(
+        '> Thinking:\n> First I check the input.\n> Then I compute the result.'
+      );
+    });
+
+    it('omits the Thinking blockquote when there is no reasoning', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'The answer is 42',
+          timestamp: 1000,
+          nodeId: 'n1',
+        },
+      ]);
+      expect(result).not.toContain('Thinking:');
     });
   });
 });

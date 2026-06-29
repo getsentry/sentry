@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 
 import {IconChevron} from 'sentry/icons';
+import type {SVGIconDirection} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
 interface AccordionItemContent {
@@ -14,11 +15,15 @@ interface Props {
   expandedIndex: number;
   items: AccordionItemContent[];
   setExpandedIndex: (index: number) => void;
+  collapsedChevronDirection?: SVGIconDirection;
   collapsible?: boolean;
+  expandedChevronDirection?: SVGIconDirection;
 }
 
 export function Accordion({
+  collapsedChevronDirection = 'down',
   expandedIndex,
+  expandedChevronDirection = 'up',
   setExpandedIndex,
   items,
   collapsible = true,
@@ -32,7 +37,14 @@ export function Accordion({
           <AccordionItem key={index}>
             <AccordionHeader>
               <Button
-                icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+                icon={
+                  <IconChevron
+                    size="xs"
+                    direction={
+                      isExpanded ? expandedChevronDirection : collapsedChevronDirection
+                    }
+                  />
+                }
                 aria-label={collapsible && isExpanded ? t('Collapse') : t('Expand')}
                 aria-expanded={isExpanded}
                 size="zero"

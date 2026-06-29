@@ -86,6 +86,7 @@ export type IntegrationEventParameters = {
   'integrations.disabled': SingleIntegrationEventParams;
   'integrations.enabled': SingleIntegrationEventParams;
   'integrations.index_viewed': MultipleIntegrationsEventParams;
+  'integrations.install_modal_auto_opened': SingleIntegrationEventParams;
   'integrations.install_modal_opened': SingleIntegrationEventParams;
   'integrations.installation_complete': IntegrationInstallEventParams;
   'integrations.installation_input_value_changed': IntegrationInstallationInputValueChangeEventParams;
@@ -111,6 +112,7 @@ type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
 export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.upgrade_plan_modal_opened': 'Integrations: Upgrade Plan Modal Opened',
   'integrations.install_modal_opened': 'Integrations: Install Modal Opened',
+  'integrations.install_modal_auto_opened': 'Integrations: Install Modal Auto Opened',
   'integrations.integration_viewed': 'Integrations: Integration Viewed',
   'integrations.installation_start': 'Integrations: Installation Start',
   'integrations.installation_complete': 'Integrations: Installation Complete',
