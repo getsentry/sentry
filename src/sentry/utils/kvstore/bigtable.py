@@ -6,7 +6,6 @@ from datetime import timedelta
 from threading import Lock
 from typing import Any
 
-import sentry_sdk
 from django.utils import timezone
 from google.api_core import exceptions, retry
 from google.cloud import bigtable
@@ -18,6 +17,7 @@ from google.cloud.bigtable.table import Table
 from sentry.utils import metrics
 from sentry.utils.codecs import Codec, ZlibCodec, ZstdCodec
 from sentry.utils.kvstore.abstract import KVStorage
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             return table
 
     def get(self, key: str) -> bytes | None:
-        with sentry_sdk.start_span(op="bigtable.get"):
+        with start_span(op="bigtable.get", name="bigtable.get"):
             # Default timeout is 60 seconds, much too long for our ingestion pipeline
             # Modify retry based on https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout#configuring-retries
             modified_retry = DEFAULT_RETRY_READ_ROWS.with_timeout(5.0)
