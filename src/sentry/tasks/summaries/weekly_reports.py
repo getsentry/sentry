@@ -25,6 +25,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
 from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -835,8 +836,6 @@ def render_template_context(
 def prepare_template_context(
     ctx: OrganizationReportContext, user_ids: Sequence[int | None]
 ) -> list[Mapping[str, Any]] | list:
-    from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
-
     exclusions_by_user: dict[int, set[int]] = {}
     valid_user_ids = [uid for uid in user_ids if uid is not None]
     if valid_user_ids and features.has(
