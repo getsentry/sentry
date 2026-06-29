@@ -45,9 +45,8 @@ from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     Feedback,
     NoSeerQuotaException,
-    PrIterationNoPullRequestException,
-    PrIterationNotEnabledException,
     get_autofix_agent_state,
+    get_autofix_run_state,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
@@ -57,6 +56,10 @@ from sentry.seer.autofix.coding_agent import (
     poll_github_copilot_agents,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.feedback_queue import (
+    enqueue_autofix_feedback,
+    peek_queued_autofix_feedback,
+)
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
     AutofixPostResponse,
@@ -68,6 +71,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import SeerPermissionError
+from sentry.tasks.seer.autofix import consume_queued_autofix_feedback
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_mcp_request
@@ -253,146 +257,168 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             resolved_run_id = resolved.seer_run_state_id
             resolved_sentry_run_id = resolved.uuid
 
-        # Handle third-party coding agent handoff separately
-        if step == "coding_agent_handoff":
-            integration_id = data.get("integration_id")
-            provider = data.get("provider")
-            if resolved_run_id is None or (not integration_id and not provider):
-                return Response(
-                    {
-                        "detail": "run_id and either integration_id or provider are required for coding_agent_handoff"
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            if integration_id and provider:
-                return Response(
-                    {"detail": "Cannot specify both integration_id and provider"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            try:
-                handoff_result: AutofixHandoffResponse = trigger_coding_agent_handoff(
-                    group=group,
-                    run_id=resolved_run_id,
-                    referrer=_parse_autofix_referrer(data.get("referrer"), request),
-                    integration_id=integration_id,
-                    provider=provider,
-                    user_id=request.user.id if request.user else None,
-                    auto_create_pr=True,
-                )
-            except SeerPermissionError as e:
-                if _is_unknown_run_id_error(e):
-                    return Response(status=status.HTTP_404_NOT_FOUND)
-                raise PermissionDenied(SEER_PERMISSION_DENIED)
-            return Response(handoff_result, status=status.HTTP_202_ACCEPTED)
-
-        if step == "open_pr":
-            if resolved_run_id is None:
-                return Response(
-                    {"detail": "run_id is required for open_pr"}, status=status.HTTP_400_BAD_REQUEST
-                )
-            repo_name = data.get("repo_name")
-            try:
-                trigger_push_changes(
-                    group,
-                    resolved_run_id,
-                    referrer=_parse_autofix_referrer(data.get("referrer"), request),
-                    repo_name=repo_name,
-                )
-            except SeerPermissionError:
-                return Response(status=status.HTTP_404_NOT_FOUND)
-            open_pr_body: AutofixPostResponse = {
-                "run_id": resolved_run_id,
-                "sentry_run_id": resolved_sentry_run_id,
-            }
-            return Response(open_pr_body, status=status.HTTP_202_ACCEPTED)
-
-        if step == "pr_iteration":
-            if resolved_run_id is None:
-                return Response(
-                    {"detail": "run_id is required for pr_iteration"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-        # Handle all built-in Seer steps. A missing run_id means this call starts a new
-        # autofix run (the kickoff); a provided run_id is advancing an existing run.
         is_autofix_kickoff = resolved_run_id is None
         user_context = data.get("user_context")
-        feedback = None
-        if (
-            step == "pr_iteration"
-            and user_context is not None
-            and request.user
-            and request.user.is_authenticated
-        ):
-            # Serialize the user here on write so the read path (GET) doesn't have
-            # to hydrate it from the stored user_id on every fetch. Serialize as
-            # an anonymous viewer (no ``as_user``) so the result is the public
-            # user representation rather than the self representation, which would
-            # leak the user's full email list, options, and flags. This payload is
-            # embedded in Seer prompt metadata and readable by any org member with
-            # group-read access.
-            serialized_users = user_service.serialize_many(
-                filter={"user_ids": [request.user.id]},
-            )
-            feedback = Feedback(
-                message=user_context,
-                source={
-                    "type": "user-ui",
-                    "user_id": request.user.id,
-                    "user": serialized_users[0] if serialized_users else None,
-                },
-            )
-        try:
-            run_id = trigger_autofix_agent(
-                group=group,
-                step=AutofixStep(step),
-                referrer=_parse_autofix_referrer(data.get("referrer"), request),
-                stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
-                run_id=resolved_run_id,
-                user_context=user_context,
-                insert_index=data.get("insert_index"),
-                feedback=feedback,
-            )
-            if is_autofix_kickoff:
-                # Record the trigger action only on kickoff, not on each subsequent
-                # step advancement within the same run.
-                publish_action(
-                    TriggerAutofixAction(),
-                    source=resolve_action_source(request),
-                    group_id=group.id,
-                    project=group.project,
-                    actor=resolve_action_actor(request),
+
+        referrer = _parse_autofix_referrer(data.get("referrer"), request)
+
+        run_id: int
+        sentry_run_id: str | None
+
+        match step:
+            case "coding_agent_handoff":
+                integration_id = data.get("integration_id")
+                provider = data.get("provider")
+
+                if resolved_run_id is None or (not integration_id and not provider):
+                    return Response(
+                        {
+                            "detail": "run_id and either integration_id or provider are required for coding_agent_handoff"
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if integration_id and provider:
+                    return Response(
+                        {"detail": "Cannot specify both integration_id and provider"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                try:
+                    handoff_result: AutofixHandoffResponse = trigger_coding_agent_handoff(
+                        group=group,
+                        run_id=resolved_run_id,
+                        referrer=referrer,
+                        integration_id=integration_id,
+                        provider=provider,
+                        user_id=request.user.id if request.user else None,
+                        auto_create_pr=True,
+                    )
+                except SeerPermissionError as e:
+                    if _is_unknown_run_id_error(e):
+                        return Response(status=status.HTTP_404_NOT_FOUND)
+
+                    raise PermissionDenied(SEER_PERMISSION_DENIED)
+
+                return Response(handoff_result, status=status.HTTP_202_ACCEPTED)
+            case "open_pr":
+                if resolved_run_id is None:
+                    return Response(
+                        {"detail": "run_id is required for open_pr"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                try:
+                    trigger_push_changes(
+                        group,
+                        resolved_run_id,
+                        referrer=referrer,
+                        repo_name=data.get("repo_name"),
+                    )
+                except SeerPermissionError:
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+
+                run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id
+            case "pr_iteration":
+                if resolved_run_id is None:
+                    return Response(
+                        {"detail": "run_id is required for pr_iteration"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if not features.has("organizations:autofix-pr-iteration", group.organization):
+                    return Response(
+                        {"detail": "PR iteration is not enabled for this organization"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if not user_context:
+                    return Response(
+                        {"detail": "feedback is required for pr_iteration"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                try:
+                    run_state = get_autofix_run_state(group, resolved_run_id)
+                except SeerPermissionError:
+                    raise PermissionDenied(SEER_PERMISSION_DENIED)
+
+                if not run_state.repo_pr_states:
+                    return Response(
+                        {"detail": "Cannot iterate on a PR before one has been created"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                serialized_users = user_service.serialize_many(
+                    filter={"user_ids": [request.user.id]},
                 )
-                # Kickoff returns only the numeric id; fetch the mirror for its UUID.
-                # TODO(telkins): start_run already returns this SeerRun — have
-                # trigger_autofix_agent return it so we can drop this lookup and
-                # the branch (also lets night_shift drop its post-call lookup).
-                run = get_seer_run(run_id, group.organization)
-                sentry_run_id = str(run.uuid) if run else None
-            else:
-                sentry_run_id = resolved_sentry_run_id
-            kickoff_body: AutofixPostResponse = {
-                "run_id": run_id,
-                "sentry_run_id": sentry_run_id,
-            }
-            return Response(kickoff_body, status=status.HTTP_202_ACCEPTED)
-        except NoSeerQuotaException:
-            return Response("No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED)
-        except PrIterationNotEnabledException:
-            return Response(
-                {"detail": "PR iteration is not enabled for this organization"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        except PrIterationNoPullRequestException:
-            return Response(
-                {"detail": "Cannot iterate on a PR before one has been created"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        except SeerPermissionError as e:
-            if _is_unknown_run_id_error(e):
-                return Response(status=status.HTTP_404_NOT_FOUND)
-            raise PermissionDenied(SEER_PERMISSION_DENIED)
+                feedback = Feedback(
+                    text=user_context,
+                    source={
+                        "type": "user-ui",
+                        "user_id": request.user.id,
+                        "user": serialized_users[0] if serialized_users else None,
+                    },
+                )
+
+                enqueue_autofix_feedback(
+                    run_id=resolved_run_id,
+                    organization_id=group.organization.id,
+                    group_id=group.id,
+                    feedback=feedback,
+                    referrer=referrer,
+                )
+
+                consume_queued_autofix_feedback.apply_async(
+                    kwargs={
+                        "run_id": resolved_run_id,
+                        "organization_id": group.organization.id,
+                        "group_id": group.id,
+                    }
+                )
+
+                run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id
+
+            case _:
+                try:
+                    run_id = trigger_autofix_agent(
+                        group=group,
+                        step=AutofixStep(step),
+                        referrer=referrer,
+                        stopping_point=(
+                            AutofixStoppingPoint(stopping_point) if stopping_point else None
+                        ),
+                        run_id=resolved_run_id,
+                        user_context=user_context,
+                        insert_index=data.get("insert_index"),
+                    )
+                except NoSeerQuotaException:
+                    return Response(
+                        "No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED
+                    )
+                except SeerPermissionError as e:
+                    if _is_unknown_run_id_error(e):
+                        return Response(status=status.HTTP_404_NOT_FOUND)
+                    raise PermissionDenied(SEER_PERMISSION_DENIED)
+
+                if is_autofix_kickoff:
+                    publish_action(
+                        TriggerAutofixAction(),
+                        source=resolve_action_source(request),
+                        group_id=group.id,
+                        project=group.project,
+                        actor=resolve_action_actor(request),
+                    )
+                    run = get_seer_run(run_id, group.organization)
+                    sentry_run_id = str(run.uuid) if run else None
+                else:
+                    sentry_run_id = resolved_sentry_run_id
+
+        kickoff_body = {
+            "run_id": run_id,
+            "sentry_run_id": sentry_run_id,
+        }
+        return Response(kickoff_body, status=status.HTTP_202_ACCEPTED)
 
     @extend_schema(
         operation_id="getOrganizationIssueAutofixState",
@@ -450,6 +476,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         run = get_seer_run(state.run_id, group.organization)
         blocks = [block.dict() for block in state.blocks]
+        queued_feedback = [
+            item.feedback.dict() for item in peek_queued_autofix_feedback(state.run_id)
+        ]
         return Response(
             {
                 "autofix": {
@@ -470,6 +499,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     "pr_iteration_enabled": features.has(
                         "organizations:autofix-pr-iteration", group.organization
                     ),
+                    "queued_feedback": queued_feedback,
                 }
             }
         )

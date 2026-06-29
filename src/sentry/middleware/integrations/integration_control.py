@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 from sentry.middleware.integrations.classifications import (
     BaseClassification,
     IntegrationClassification,
-    PluginClassification,
 )
 
 ResponseHandler = Callable[[HttpRequest], HttpResponseBase]
@@ -23,7 +22,6 @@ ResponseHandler = Callable[[HttpRequest], HttpResponseBase]
 class IntegrationControlMiddleware:
     classifications: list[type[BaseClassification]] = [
         IntegrationClassification,
-        PluginClassification,
     ]
     """
     Classifications to determine whether request must be parsed, sorted in priority order.

@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db import router
 from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import options
 from sentry.models.artifactbundle import (
@@ -42,7 +42,7 @@ INDEXING_CACHE_TIMEOUT = 600
 
 def get_redis_cluster_for_artifact_bundles() -> RedisCluster:
     cluster_key = settings.SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+    return redis.redis_clusters.get(cluster_key)
 
 
 def get_refresh_key() -> str:

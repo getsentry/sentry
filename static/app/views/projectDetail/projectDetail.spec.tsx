@@ -109,8 +109,7 @@ describe('ProjectDetail', () => {
       initialRouterConfig,
     });
 
-    expect(await screen.findByText(/project details/i)).toBeInTheDocument();
-    expect(screen.getByText(project.slug)).toBeInTheDocument();
+    expect(await screen.findByText(project.slug)).toBeInTheDocument();
   });
 
   it('Sync project with slug', async () => {

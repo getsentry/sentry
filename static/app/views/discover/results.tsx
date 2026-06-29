@@ -86,7 +86,7 @@ import {
   DEFAULT_EVENT_VIEW_MAP,
 } from 'sentry/views/discover/results/data';
 import ResultsChart from 'sentry/views/discover/results/resultsChart';
-import {ResultsHeaderWrapper as ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
+import {ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
 import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
 import Tags from 'sentry/views/discover/results/tags';
@@ -110,7 +110,6 @@ import {
 } from 'sentry/views/discover/utils';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -1348,7 +1347,6 @@ function DiscoverPageFilters({
   yAxis: string[];
   isHomepage?: boolean;
 }) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {projects} = useProjects();
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
@@ -1387,53 +1385,51 @@ function DiscoverPageFilters({
         <EnvironmentPageFilter />
         <DatePageFilter />
       </PageFilterBar>
-      {hasPageFrameFeature && (
-        <Flex gap="md" align="center">
-          {!shouldHideCreateAlert && (
-            <Feature organization={organization} features="incidents">
-              {({hasFeature}) =>
-                hasFeature && (
-                  <GuideAnchor target="create_alert_from_discover">
-                    <CreateAlertFromViewButton
-                      eventView={buttonEventView}
-                      organization={organization}
-                      projects={projects}
-                      onClick={() => {
-                        trackAnalytics('discover_v2.create_alert_clicked', {
-                          organization,
-                          status: 'success',
-                        });
-                      }}
-                      referrer="discover"
-                      size="sm"
-                      data-test-id="discover2-create-from-discover"
-                      alertType={alertType}
-                    />
-                  </GuideAnchor>
-                )
-              }
-            </Feature>
-          )}
-          <DiscoverContextMenu
-            organization={organization}
-            eventView={eventView}
-            location={location}
-            savedQuery={savedQuery}
-            yAxis={yAxis}
-            isHomepage={isHomepage}
-            setSavedQuery={setSavedQuery}
-          />
-          <SaveQueryButton
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            savedQuery={savedQuery}
-            yAxis={yAxis}
-            setSavedQuery={setSavedQuery}
-            errorCode={errorCode}
-          />
-        </Flex>
-      )}
+      <Flex gap="md" align="center">
+        {!shouldHideCreateAlert && (
+          <Feature organization={organization} features="incidents">
+            {({hasFeature}) =>
+              hasFeature && (
+                <GuideAnchor target="create_alert_from_discover">
+                  <CreateAlertFromViewButton
+                    eventView={buttonEventView}
+                    organization={organization}
+                    projects={projects}
+                    onClick={() => {
+                      trackAnalytics('discover_v2.create_alert_clicked', {
+                        organization,
+                        status: 'success',
+                      });
+                    }}
+                    referrer="discover"
+                    size="sm"
+                    data-test-id="discover2-create-from-discover"
+                    alertType={alertType}
+                  />
+                </GuideAnchor>
+              )
+            }
+          </Feature>
+        )}
+        <DiscoverContextMenu
+          organization={organization}
+          eventView={eventView}
+          location={location}
+          savedQuery={savedQuery}
+          yAxis={yAxis}
+          isHomepage={isHomepage}
+          setSavedQuery={setSavedQuery}
+        />
+        <SaveQueryButton
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          savedQuery={savedQuery}
+          yAxis={yAxis}
+          setSavedQuery={setSavedQuery}
+          errorCode={errorCode}
+        />
+      </Flex>
     </Wrapper>
   );
 }
