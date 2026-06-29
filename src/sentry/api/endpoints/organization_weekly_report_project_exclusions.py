@@ -7,15 +7,23 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
 
 
+class OrganizationWeeklyReportProjectExclusionsPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
+    }
+
+
 @cell_silo_endpoint
 class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationWeeklyReportProjectExclusionsPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,

@@ -6,14 +6,21 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
 
 
+class OrganizationWeeklyReportProjectExclusionDetailsPermission(OrganizationPermission):
+    scope_map = {
+        "DELETE": ["org:read", "org:write", "org:admin"],
+    }
+
+
 @cell_silo_endpoint
 class OrganizationWeeklyReportProjectExclusionDetailsEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationWeeklyReportProjectExclusionDetailsPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
     }
