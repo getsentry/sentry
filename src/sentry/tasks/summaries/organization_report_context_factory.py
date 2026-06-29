@@ -233,7 +233,7 @@ class OrganizationReportContextFactory:
 
     @metrics.wraps("weekly_report.create_context.project_past_resolved_issues")
     def _append_project_past_resolved_issues(self, ctx: OrganizationReportContext) -> None:
-        with sentry_sdk.start_span(op="weekly_reports.project_past_resolved_issues"):
+        with start_span(op="weekly_reports.project_past_resolved_issues", name="weekly_reports.project_past_resolved_issues"):
             for project in ctx.organization.project_set.all():
                 if project.id not in ctx.projects_context_map:
                     continue
