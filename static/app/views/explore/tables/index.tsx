@@ -200,7 +200,15 @@ export function ExploreTables(props: ExploreTablesProps) {
           </Tooltip>
         )}
       </Flex>
-      {tab === Tab.SPAN && <SpansTable {...props} />}
+      {tab === Tab.SPAN && (
+        <SpansTable
+          {...props}
+          stringTags={validatedStringTags}
+          numberTags={validatedNumberTags}
+          booleanTags={validatedBooleanTags}
+          validatedFieldTypes={validatedFieldTypes}
+        />
+      )}
       {tab === Tab.TRACE && <TracesTable {...props} />}
       {tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
       {tab === Tab.ATTRIBUTE_BREAKDOWNS && <AttributeBreakdownsContent />}

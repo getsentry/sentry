@@ -798,8 +798,8 @@ export class EventView {
     return this.fields.length;
   }
 
-  getColumns(): Array<TableColumn<string>> {
-    return decodeColumnOrder(this.fields);
+  getColumns(meta?: MetaType): Array<TableColumn<string>> {
+    return decodeColumnOrder(this.fields, meta);
   }
 
   getDays(): number {

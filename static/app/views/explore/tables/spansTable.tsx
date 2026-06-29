@@ -9,9 +9,10 @@ import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {prettifyTagKey} from 'sentry/utils/fields';
+import {FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
 import {
   Table,
   TableBody,
@@ -25,7 +26,6 @@ import {
 } from 'sentry/views/explore/components/table';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
-import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsFields,
   useQueryParamsSortBys,
@@ -35,10 +35,20 @@ import {
 import {FieldRenderer} from './fieldRenderer';
 
 interface SpansTableProps {
+  booleanTags: TagCollection;
+  numberTags: TagCollection;
   spansTableResult: SpansTableResult;
+  stringTags: TagCollection;
+  validatedFieldTypes: Partial<Record<string, FieldValueType>>;
 }
 
-export function SpansTable({spansTableResult}: SpansTableProps) {
+export function SpansTable({
+  booleanTags,
+  numberTags,
+  spansTableResult,
+  stringTags,
+  validatedFieldTypes,
+}: SpansTableProps) {
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const setSortBys = useSetQueryParamsSortBys();
@@ -50,8 +60,6 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   const {result, eventView} = spansTableResult;
 
-  const columnsFromEventView = useMemo(() => eventView.getColumns(), [eventView]);
-
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(
     visibleFields,
@@ -59,11 +67,18 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
     {minimumColumnWidth: 50}
   );
 
-  const meta = result.meta ?? {};
-
-  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
-  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
-  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
+  const meta = useMemo(
+    () =>
+      addValidatedFieldTypesToMeta({
+        meta: result.meta ?? {},
+        validatedFieldTypes,
+      }),
+    [result.meta, validatedFieldTypes]
+  );
+  const columnsFromEventView = useMemo(
+    () => eventView.getColumns(meta),
+    [eventView, meta]
+  );
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'samples',
@@ -170,4 +185,14 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
       />
     </Fragment>
   );
+}
+
+export function addValidatedFieldTypesToMeta({
+  meta,
+  validatedFieldTypes,
+}: {
+  meta: SpansTableResult['result']['meta'];
+  validatedFieldTypes: Partial<Record<string, FieldValueType>>;
+}) {
+  return {...meta, fields: {...meta?.fields, ...validatedFieldTypes}};
 }
