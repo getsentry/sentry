@@ -307,7 +307,9 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             state=state,
         )
 
-    @patch("sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._consume_queued_feedback")
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._consume_queued_feedback"
+    )
     @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
     def test_pr_iteration_does_not_consume_feedback_when_pushed(
         self, mock_push_changes, mock_consume
@@ -324,7 +326,9 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         mock_push_changes.assert_called_once()
         mock_consume.assert_not_called()
 
-    @patch("sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._consume_queued_feedback")
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._consume_queued_feedback"
+    )
     @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
     def test_pr_iteration_consumes_feedback_when_nothing_pushed(
         self, mock_push_changes, mock_consume
