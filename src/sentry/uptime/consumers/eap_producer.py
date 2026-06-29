@@ -3,10 +3,10 @@ from functools import partial
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload
-from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+from taskbroker_client.state import current_task
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.options.rollout import in_random_rollout
@@ -40,7 +40,7 @@ _eap_items_taskproducer = get_task_producer(
 
 
 def _get_producer() -> TaskProducer | SingletonProducer:
-    if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout("tasks.producer.uptime.rollout"):
+    if current_task() is not None and in_random_rollout("tasks.producer.uptime.rollout"):
         return _eap_items_taskproducer
     return _eap_items_producer
 
