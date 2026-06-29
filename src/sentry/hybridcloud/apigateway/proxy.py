@@ -79,7 +79,7 @@ def _create_request_session(retry_count: int) -> Session:
             total=retry_count,
             backoff_factor=0.1,
             status_forcelist=[502, 503, 504],
-            allowed_methods=["GET", "POST", "PUT", "DELETE"],
+            allowed_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
         )
     )
     http = Session()
