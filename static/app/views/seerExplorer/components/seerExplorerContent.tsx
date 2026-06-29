@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, type ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -9,7 +10,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {integrationRequiresUpgrade} from 'sentry/utils/integrationUtil';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -29,6 +33,7 @@ import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/file
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
+import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block, SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
@@ -206,6 +211,30 @@ export function SeerExplorerContent({
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input ?? null;
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
+
+  // Whether the org has an active Slack integration installed. Slack is an
+  // org-level integration, so this reflects the organization, not the user.
+  const {data: slackIntegrations = []} = useQuery(
+    apiOptions.as<OrganizationIntegration[]>()(
+      '/organizations/$organizationIdOrSlug/integrations/',
+      {
+        path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
+        query: {providerKey: 'slack', includeConfig: 0},
+        staleTime: 5 * 60 * 1000,
+      }
+    )
+  );
+  const hasSlackIntegration = slackIntegrations.some(
+    integration =>
+      integration.status === 'active' &&
+      integration.organizationIntegrationStatus === 'active'
+  );
+  const needsSlackUpgrade = slackIntegrations.some(
+    integration =>
+      integration.status === 'active' &&
+      integration.organizationIntegrationStatus === 'active' &&
+      integrationRequiresUpgrade(integration)
+  );
 
   // Auto-submit the initial query forwarded from the command palette, but only
   // if the session is still empty (don't clobber an active run). The ref dedupes
@@ -520,6 +549,9 @@ export function SeerExplorerContent({
         <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
       )}
       {menu}
+      {needsSlackUpgrade && (
+        <UpdateSlackAlert configurations={slackIntegrations.length} />
+      )}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
         {isEmptyState ? (
           <EmptyState
@@ -527,6 +559,8 @@ export function SeerExplorerContent({
             isError={isError}
             errorStatusCode={errorStatusCode}
             runId={runId}
+            hasSlackIntegration={hasSlackIntegration}
+            needsSlackUpgrade={needsSlackUpgrade}
             onSuggestionClick={readOnly ? undefined : sendMessage}
           />
         ) : (

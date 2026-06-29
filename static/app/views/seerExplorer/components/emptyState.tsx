@@ -17,8 +17,10 @@ const SUGGESTED_QUESTIONS = [
 
 interface EmptyStateProps {
   errorStatusCode?: number | null;
+  hasSlackIntegration?: boolean;
   isError?: boolean;
   isLoading?: boolean;
+  needsSlackUpgrade?: boolean;
   onSuggestionClick?: (question: string) => void;
   runId?: SeerExplorerRunId | null;
 }
@@ -27,6 +29,8 @@ export function EmptyState({
   isLoading = false,
   isError = false,
   errorStatusCode = null,
+  hasSlackIntegration = false,
+  needsSlackUpgrade = false,
   runId,
   onSuggestionClick,
 }: EmptyStateProps) {
@@ -67,6 +71,13 @@ export function EmptyState({
                 </SuggestionButton>
               ))}
             </Flex>
+          )}
+          {(hasSlackIntegration && !needsSlackUpgrade) ?? (
+            <Text>
+              {t(
+                'You can also @Sentry in Slack on any message to investigate issues more deeply.'
+              )}
+            </Text>
           )}
         </Fragment>
       )}
