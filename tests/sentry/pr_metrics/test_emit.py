@@ -624,6 +624,21 @@ class PrMetricsEmissionTest(TestCase):
         assert row.ci_failed_at_close is False
         assert row.ci_ever_failed is True
 
+    def test_build_row_ci_slugless_suites_do_not_mask_each_other(self) -> None:
+        # Real check suites always carry an app slug; a (malformed) slug-less red
+        # then green pair at the same head must not collide on the "" key — a later
+        # success would otherwise overwrite and mask the earlier failure.
+        self._check_suite(conclusion="failure", app_slug="", webhook_id="cs-1")
+        self._check_suite(conclusion="success", app_slug="", webhook_id="cs-2")
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.ci_failed_at_close is True
+        assert row.ci_ever_failed is True
+
     def test_build_row_ci_failed_at_close_when_any_app_red(self) -> None:
         # Two CI apps on the terminal head, one green one red: a single red suite
         # makes the close red.

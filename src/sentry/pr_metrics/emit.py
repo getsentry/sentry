@@ -175,7 +175,7 @@ def _ci_summary(pull_request: PullRequest) -> dict[str, Any]:
             event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED,
         )
         .order_by("date_added", "id")
-        .values_list("payload", flat=True)
+        .values_list("id", "payload")
     )
 
     saw_suite = False
@@ -183,13 +183,18 @@ def _ci_summary(pull_request: PullRequest) -> dict[str, Any]:
     # app_slug -> its latest conclusion at the terminal head; ascending iteration
     # means the last write wins, so a re-run supersedes its earlier run.
     latest_at_head: dict[str, str] = {}
-    for payload in rows:
+    for row_id, payload in rows:
         saw_suite = True
         conclusion = payload.get("conclusion") or ""
         if conclusion in _CI_FAILURE_CONCLUSIONS:
             ever_failed = True
         if head is not None and payload.get("head_sha") == head:
-            latest_at_head[payload.get("app_slug") or ""] = conclusion
+            # Real check suites always carry an app slug, so re-runs of one app
+            # share a key and the latest wins. Fall back to the row id for a
+            # (malformed) slug-less suite, so distinct suites can't collide on ""
+            # and mask one another's failure.
+            key = payload.get("app_slug") or f"row:{row_id}"
+            latest_at_head[key] = conclusion
 
     if not saw_suite:
         return {}
