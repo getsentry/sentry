@@ -2140,7 +2140,6 @@ module = [
     "tests.sentry.synapse.*",
     "tests.sentry.tagstore.*",
     "tests.sentry.tasks",
-    "tests.sentry.tasks.conftest",
     "tests.sentry.tasks.scim.*",
     "tests.sentry.tasks.seer",
     "tests.sentry.tasks.seer.night_shift.*",

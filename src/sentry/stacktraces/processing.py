@@ -480,14 +480,6 @@ def _trim_function_name(frame: dict[str, Any], platform: str | None) -> None:
         frame["function"] = trimmed_function
 
 
-def should_process_for_stacktraces(data):
-    return False
-
-
-def get_processors_for_stacktraces(data, infos):
-    return []
-
-
 def get_processable_frames(stacktrace_info, processors) -> list[ProcessableFrame]:
     """Returns thin wrappers around the frames in a stacktrace associated
     with the processor for it.
@@ -648,14 +640,9 @@ def process_stacktraces(
 ) -> MutableMapping[str, Any] | None:
     infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
     if make_processors is None:
-        processors = get_processors_for_stacktraces(data, infos)
+        return None
     else:
         processors = make_processors(data, infos)
-
-    # Early out if we have no processors.  We don't want to record a timer
-    # in that case.
-    if not processors:
-        return None
 
     changed = False
 
