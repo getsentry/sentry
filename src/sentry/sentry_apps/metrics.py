@@ -101,6 +101,7 @@ class SentryAppEventType(StrEnum):
 
     # issue alert webhooks
     EVENT_ALERT_TRIGGERED = "event_alert.triggered"
+    ACTIVITY_ALERT_TRIGGERED = "activity_alert.triggered"
 
     # external request webhooks
     EXTERNAL_ISSUE_CREATED = "external_issue.created"
@@ -151,6 +152,8 @@ class SentryAppEventType(StrEnum):
     SEER_CODING_STARTED = "seer.coding_started"
     SEER_CODING_COMPLETED = "seer.coding_completed"
     SEER_PR_CREATED = "seer.pr_created"
+    SEER_ITERATION_STARTED = "seer.iteration_started"
+    SEER_ITERATION_COMPLETED = "seer.iteration_completed"
 
     # preprod artifact webhooks
     PREPROD_ARTIFACT_SIZE_ANALYSIS_COMPLETED = "preprod_artifact.size_analysis_completed"

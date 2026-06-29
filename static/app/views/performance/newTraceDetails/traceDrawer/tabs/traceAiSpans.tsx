@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -34,12 +34,6 @@ function useAiSpanSelection(nodes: AITraceSpanNode[]) {
     const lastSpan = path?.findLast(item => item.startsWith('span-'));
     return lastSpan?.replace('span-', '') ?? null;
   });
-
-  useEffect(() => {
-    trackAnalytics('agent-monitoring.trace.rendered', {
-      organization,
-    });
-  }, [organization]);
 
   const selectedNode = useMemo(() => {
     return (

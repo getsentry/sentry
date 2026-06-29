@@ -7,6 +7,8 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+
 import {FlagDetailsDrawerContent} from './flagDetailsDrawerContent';
 
 const mockNavigate = jest.fn();
@@ -38,7 +40,12 @@ describe('FlagDetailsDrawerContent', () => {
   });
 
   it('renders a list of tag values', async () => {
-    render(<FlagDetailsDrawerContent group={GroupFixture()} />);
+    const group = GroupFixture();
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <FlagDetailsDrawerContent group={group} />
+      </GroupDataContextProvider>
+    );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -76,7 +83,12 @@ describe('FlagDetailsDrawerContent', () => {
       statusCode: 500,
     });
 
-    render(<FlagDetailsDrawerContent group={GroupFixture()} />);
+    const group = GroupFixture();
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <FlagDetailsDrawerContent group={group} />
+      </GroupDataContextProvider>
+    );
 
     expect(
       await screen.findByText('There was an error loading feature flag details.')
@@ -89,7 +101,12 @@ describe('FlagDetailsDrawerContent', () => {
       body: {data: []},
     });
 
-    render(<FlagDetailsDrawerContent group={GroupFixture()} />);
+    const group = GroupFixture();
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <FlagDetailsDrawerContent group={group} />
+      </GroupDataContextProvider>
+    );
 
     expect(
       await screen.findByText('No audit logs were found for this feature flag.')

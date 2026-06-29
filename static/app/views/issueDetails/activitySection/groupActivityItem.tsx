@@ -22,17 +22,36 @@ import {GroupActivityType, IssueCategory as IssueCategoryEnum} from 'sentry/type
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
+
+function getAuthorName(item: GroupActivity) {
+  if (item.sentry_app) {
+    return item.sentry_app.name;
+  }
+  if (item.user) {
+    return item.user.name;
+  }
+  if (
+    (item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST ||
+      item.type === GroupActivityType.PULL_REQUEST_CLOSED) &&
+    item.data.pullRequest?.author?.name &&
+    !item.data.pullRequest.author.email?.endsWith('@localhost')
+  ) {
+    return item.data.pullRequest.author.name;
+  }
+  return 'Sentry';
+}
 
 export function getGroupActivityItem(
   activity: GroupActivity,
   organization: Organization,
   project: Project,
   issueCategory: IssueCategory,
-  author: React.ReactNode,
   teams: Team[]
 ) {
+  const author = <strong>{getAuthorName(activity)}</strong>;
   const issuesLink = `/organizations/${organization.slug}/issues/`;
   const isFeedback = issueCategory === IssueCategoryEnum.FEEDBACK;
 
@@ -287,13 +306,20 @@ export function getGroupActivityItem(
           message: resolvedMessage,
         };
       }
-      case GroupActivityType.SET_RESOLVED_BY_AGE:
+      case GroupActivityType.SET_RESOLVED_BY_AGE: {
+        const duration = formatAutoResolveAge(activity.data.age);
         return {
           title: t('Resolved'),
-          message: tct('by [author] due to inactivity', {
-            author,
-          }),
+          message: duration
+            ? tct('by [author] after [duration] of inactivity', {
+                author,
+                duration,
+              })
+            : tct('by [author] due to inactivity', {
+                author,
+              }),
         };
+      }
       case GroupActivityType.SET_RESOLVED_IN_RELEASE: {
         const hasIntegration =
           'integration_id' in activity.data && activity.data.integration_id;
@@ -476,6 +502,24 @@ export function getGroupActivityItem(
           }),
         };
       }
+      case GroupActivityType.PULL_REQUEST_CLOSED: {
+        const {data} = activity;
+        const {pullRequest} = data;
+        return {
+          title: t('Pull Request Closed'),
+          message: tct(' by [author]: [pullRequest]', {
+            author,
+            pullRequest: pullRequest ? (
+              <PullRequestLink
+                pullRequest={pullRequest}
+                repository={pullRequest.repository}
+              />
+            ) : (
+              t('PR not available')
+            ),
+          }),
+        };
+      }
       case GroupActivityType.SET_UNRESOLVED: {
         // TODO(nisanthan): Remove after migrating records to SET_ESCALATING
         const {data} = activity;
@@ -567,10 +611,8 @@ export function getGroupActivityItem(
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
-        let title = t('Created Issue');
-        if (data.new === true) {
-          title = t('Linked Issue');
-        }
+        const isLinkedIssue = data.new === false;
+        const title = isLinkedIssue ? t('Linked Issue') : t('Created Issue');
 
         return {
           title,
@@ -684,12 +726,13 @@ export function getGroupActivityItem(
         };
       }
       case GroupActivityType.AUTO_SET_ONGOING: {
+        const afterDays = activity.data?.after_days;
         return {
           title: t('Marked as Ongoing'),
-          message: activity.data?.afterDays
+          message: afterDays
             ? tct('automatically by [author] after [afterDays] days', {
                 author,
-                afterDays: activity.data.afterDays,
+                afterDays,
               })
             : tct('automatically by [author]', {
                 author,
@@ -780,11 +823,49 @@ export function getGroupActivityItem(
           message: t('Seer created a pull request'),
         };
       }
+      case GroupActivityType.SEER_ITERATION_STARTED:
+        return {
+          title: t('PR Iteration'),
+          message: t('Seer started iterating on the pull request'),
+        };
+      case GroupActivityType.SEER_ITERATION_COMPLETED: {
+        const {data: iterationData} = activity;
+        const pr = iterationData.pull_requests?.[0];
+        if (pr) {
+          return {
+            title: t('PR Iteration'),
+            message: tct('Seer updated the [link:pull request] in [repo]', {
+              link: <ExternalLink href={pr.pull_request.pr_url} />,
+              repo: pr.repo_name,
+            }),
+          };
+        }
+        return {
+          title: t('PR Iteration'),
+          message: t('Seer finished iterating on the pull request'),
+        };
+      }
       default:
         return {title: '', message: ''}; // should never hit (?)
     }
   }
   return renderContent();
+}
+
+function formatAutoResolveAge(age: number | string | undefined) {
+  const resolveAge = Number(age);
+  if (!Number.isFinite(resolveAge) || resolveAge <= 0) {
+    return null;
+  }
+
+  const precision = resolveAge > 23 && resolveAge % 24 === 0 ? 'day' : 'hour';
+  const count = Number(
+    formatDuration({duration: [resolveAge, 'hour'], precision, style: 'count'})
+  );
+
+  return precision === 'day'
+    ? tn('%s day', '%s days', count)
+    : tn('%s hour', '%s hours', count);
 }
 
 function ActivityRelease({project, version}: {project: Project; version: string}) {

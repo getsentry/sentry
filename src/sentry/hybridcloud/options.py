@@ -157,6 +157,13 @@ register(
 )
 
 register(
+    "outbox_replication.sentry_apitoken.backfill.target_cells",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "hybrid_cloud.authentication.disabled_organization_shards",
     type=Sequence,
     default=[],
@@ -202,8 +209,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "apigateway.proxy.use_gateway_address",
+    "hybridcloud.rpc.use_pooling_rate",
     type=Float,
-    default=0.0,
+    default=1.0,
+)
+register(
+    "apigateway.proxy.cell-rollout",
+    type=Dict,
+    default={
+        "us": 1.0,
+        "de": 0.0,
+        "us2": 0.0,
+        "s4s2": 0.0,
+    },
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

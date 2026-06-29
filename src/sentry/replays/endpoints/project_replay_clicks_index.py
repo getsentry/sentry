@@ -62,7 +62,8 @@ class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
     }
 
     @extend_schema(
-        operation_id="List Clicked Nodes",
+        operation_id="listProjectReplayClicks",
+        summary="List Clicked Nodes",
         parameters=[
             CursorQueryParam,
             GlobalParams.ORG_ID_OR_SLUG,

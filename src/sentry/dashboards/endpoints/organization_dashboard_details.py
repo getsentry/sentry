@@ -17,7 +17,10 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.dashboard import DashboardDetailsModelSerializer
+from sentry.api.serializers.models.dashboard import (
+    DashboardDetailsModelSerializer,
+    DashboardDetailsResponse,
+)
 from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -27,7 +30,11 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import DashboardParams, GlobalParams
-from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import (
     Dashboard,
@@ -98,7 +105,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     }
 
     @extend_schema(
-        operation_id="Retrieve an Organization's Custom Dashboard",
+        operation_id="getOrganizationDashboard",
+        summary="Retrieve an Organization's Custom Dashboard",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
         responses={
             200: DashboardDetailsModelSerializer,
@@ -107,17 +115,21 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         },
         examples=DashboardExamples.DASHBOARD_GET_RESPONSE,
     )
-    def get(self, request: Request, organization: Organization, dashboard: Dashboard) -> Response:
+    def get(
+        self, request: Request, organization: Organization, dashboard: Dashboard
+    ) -> Response[DashboardDetailsResponse] | Response[None]:
         """
         Return details about an organization's custom dashboard.
         """
         if not features.has(READ_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
-        return self.respond(serialize(dashboard, request.user))
+        body: DashboardDetailsResponse = serialize(dashboard, request.user)
+        return self.respond(body)
 
     @extend_schema(
-        operation_id="Delete an Organization's Custom Dashboard",
+        operation_id="deleteOrganizationDashboard",
+        summary="Delete an Organization's Custom Dashboard",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
         responses={
             204: RESPONSE_NO_CONTENT,
@@ -144,7 +156,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         return self.respond(status=204)
 
     @extend_schema(
-        operation_id="Edit an Organization's Custom Dashboard",
+        operation_id="updateOrganizationDashboard",
+        summary="Edit an Organization's Custom Dashboard",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
         request=DashboardDetailsSerializer,
         responses={
@@ -160,7 +173,12 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         request: Request,
         organization: Organization,
         dashboard: Dashboard,
-    ) -> Response:
+    ) -> (
+        Response[DashboardDetailsResponse]
+        | Response[None]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Edit an organization's custom dashboard as well as any bulk
         edits on widgets that may have been made. (For example, widgets
@@ -186,7 +204,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         )
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         if is_prebuilt:
             if "widgets" in serializer.validated_data:
@@ -217,7 +235,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         except IntegrityError:
             return self.respond({"detail": "Dashboard with that title already exists."}, status=409)
 
-        return self.respond(serialize(serializer.instance, request.user), status=200)
+        body: DashboardDetailsResponse = serialize(serializer.instance, request.user)
+        return self.respond(body, status=200)
 
 
 @cell_silo_endpoint

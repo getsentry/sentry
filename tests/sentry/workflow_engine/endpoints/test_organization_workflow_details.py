@@ -1,4 +1,5 @@
 from contextlib import AbstractContextManager
+from unittest import mock
 
 import responses
 
@@ -27,7 +28,11 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
-from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, ProjectAccessTestMixin
+from tests.sentry.workflow_engine.test_base import (
+    BaseWorkflowTest,
+    MockActionValidatorTranslator,
+    ProjectAccessTestMixin,
+)
 
 
 class OrganizationWorkflowDetailsBaseTest(APITestCase):
@@ -93,6 +98,33 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
+
+    def test_update_action_filter_with_string_encoded_id(self) -> None:
+        dcg = DataConditionGroup.objects.create(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        WorkflowDataConditionGroup.objects.create(
+            condition_group=dcg,
+            workflow=self.workflow,
+        )
+
+        data = {
+            **self.valid_workflow,
+            "actionFilters": [
+                {
+                    "id": str(dcg.id),
+                    "logicType": "all",
+                    "conditions": [],
+                    "actions": [],
+                }
+            ],
+        }
+
+        self.get_success_response(self.organization.slug, self.workflow.id, raw_data=data)
+
+        dcg.refresh_from_db()
+        assert dcg.logic_type == DataConditionGroup.Type.ALL
 
     def test_update__assigned_to_foreign_team(self) -> None:
         other_org = self.create_organization()
@@ -829,6 +861,58 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         # Verify the other org's condition group was not modified
         other_dcg.refresh_from_db()
         assert other_dcg.conditions.count() == original_condition_count
+
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_update_rejects_unsupported_action_when_existing_trigger_is_activity(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        when_condition_group = self.create_data_condition_group(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        self.create_data_condition(
+            condition_group=when_condition_group,
+            type=Condition.SEER_ACTIVITY_TRIGGER,
+            comparison=["rca_started"],
+            condition_result=True,
+        )
+        workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=when_condition_group,
+        )
+
+        data = {
+            "name": workflow.name,
+            "actionFilters": [
+                {
+                    "logicType": "any",
+                    "conditions": [],
+                    "actions": [
+                        {
+                            "type": Action.Type.PAGERDUTY,
+                            "config": {
+                                "targetIdentifier": "test",
+                                "targetDisplay": "Test",
+                                "targetType": "specific",
+                            },
+                            "data": {},
+                            "integrationId": self.integration.id,
+                        },
+                    ],
+                }
+            ],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+        assert "not supported for activity triggers" in str(response.data)
 
 
 @cell_silo_test

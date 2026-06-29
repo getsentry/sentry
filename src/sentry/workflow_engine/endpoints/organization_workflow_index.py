@@ -219,7 +219,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         return queryset
 
     @extend_schema(
-        operation_id="Fetch Alerts",
+        operation_id="listOrganizationWorkflows",
+        summary="Fetch Alerts",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.SORT_BY,
@@ -307,7 +308,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create an Alert for an Organization",
+        operation_id="createOrganizationWorkflow",
+        summary="Create an Alert for an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
@@ -321,7 +323,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.CREATE_WORKFLOW,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[WorkflowSerializerResponse]:
         """
         Creates an alert for an organization
         """
@@ -331,10 +335,14 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
         validator.is_valid(raise_exception=True)
         workflow = validator.create(validator.validated_data)
-        return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
+        return Response(
+            serialize(workflow, request.user, WorkflowSerializer()),
+            status=status.HTTP_201_CREATED,
+        )
 
     @extend_schema(
-        operation_id="Mutate an Organization's Alerts",
+        operation_id="updateOrganizationWorkflows",
+        summary="Mutate an Organization's Alerts",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.QUERY,
@@ -405,7 +413,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Bulk Delete Alerts",
+        operation_id="deleteOrganizationWorkflows",
+        summary="Bulk Delete Alerts",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.QUERY,

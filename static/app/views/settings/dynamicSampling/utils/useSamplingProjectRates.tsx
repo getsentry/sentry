@@ -2,9 +2,9 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {type ApiQueryKey} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';

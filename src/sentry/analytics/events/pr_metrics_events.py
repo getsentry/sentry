@@ -18,6 +18,9 @@ class PrCloseMetricsEvent(analytics.Event):
     pull_request_id: int
     # The PR number as stored on ``PullRequest.key`` (e.g. "5131" on GitHub).
     pr_key: str
+    # Group (issue) IDs this PR resolves, from the resolving GroupLink rows
+    # (parsed from the PR title/message). Empty when the PR resolves nothing.
+    group_ids: list[int]
     close_action: Literal["closed", "merged"]
     # Always present on a close/merge webhook — read fail-fast so a malformed
     # payload errors loudly instead of emitting a silent null.
@@ -28,6 +31,11 @@ class PrCloseMetricsEvent(analytics.Event):
     opened_at: str | None = None
     # Null for a closed-but-unmerged PR (no merge commit / merge time).
     merge_commit_sha: str | None = None
+    # Sentry Commit.id for the merge commit, resolved from merge_commit_sha via
+    # the (repository_id, key) unique key. Null when the PR wasn't merged or
+    # Sentry never recorded the landed commit (release tracking, not pr_metrics,
+    # populates Commit rows).
+    merge_commit_id: int | None = None
     merged_at: str | None = None
     draft: bool = False
     # Structural counters read straight from the close/merge webhook payload (no
@@ -43,6 +51,37 @@ class PrCloseMetricsEvent(analytics.Event):
     # the active (is_valid=True) attributions, each {signal_type, source,
     # signal_details}, ordered by attribution priority (highest-confidence first).
     attributions: str = "[]"
+    # The Seer judge verdict (one of ``PullRequestVerdict``). Null on the no-judge
+    # path and until the judge callback lands a result for a forwarded PR.
+    verdict: str | None = None
+    # Close-reason labels behind the verdict (e.g. out_of_scope_or_unwanted) — the
+    # "why", a vocabulary shared across judges, not specific to any one. Repeated
+    # free-string column; null off the judge path. BigQuery-only.
+    diagnosis_labels: list[str] | None = None
+
+    # --- Conversation judge (set only on a judged close/merge row) ---
+    # One of several judges' outputs. Columns are prefixed ``conversation_`` so a
+    # future judge's columns sit alongside without collision, and to disambiguate
+    # the judge's comment counts from the webhook ``comments_count`` above. Semantic
+    # outputs are promoted to columns so dashboards group/filter directly; all are
+    # null off the judge path and BigQuery-only. Enum-like values are free strings
+    # so a Seer vocabulary change can't break the schema.
+    #
+    # positive | neutral | negative | mixed. Null when there was nothing to judge
+    # (no comments) or the judge couldn't run; conversation_comments_total
+    # disambiguates (0 = no comments, >0 = judge ran but produced no sentiment).
+    conversation_sentiment: str | None = None
+    # Comments split by author class — "did bots/humans comment?"
+    conversation_comments_bot: int | None = None
+    conversation_comments_human: int | None = None
+    # conversation_comments_truncated > 0 means a chatty PR was capped before judging.
+    conversation_comments_total: int | None = None
+    conversation_comments_judged: int | None = None
+    conversation_comments_truncated: int | None = None
+    # The judge's drill-down detail (per-comment intents, reasoning, version
+    # markers), JSON-encoded like ``attributions`` and stored verbatim. A future
+    # judge gets its own ``*_metadata``.
+    conversation_metadata: str | None = None
 
 
 analytics.register(PrCloseMetricsEvent)

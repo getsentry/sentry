@@ -5,12 +5,17 @@ from unittest import mock
 
 import pytest
 
+from sentry.issue_detection.detectors.span_first.span_first_utils import (
+    SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION,
+    SpanFirstDetectorsRolloutController,
+)
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.spans.consumers.process_segments import message as message_module
 from sentry.spans.consumers.process_segments.message import _verify_compatibility, process_segment
 from sentry.spans.consumers.process_segments.shim import build_shim_event_data
+from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
@@ -28,7 +33,7 @@ class TestSpansTask(TestCase):
             is_segment=True,
             attributes={
                 "sentry.browser.name": {"value": "Google Chrome"},
-                "sentry.transaction": {
+                "sentry.segment.name": {
                     "value": "/api/0/organizations/{organization_id_or_slug}/n-plus-one/"
                 },
                 "sentry.transaction.method": {"value": "GET"},
@@ -97,7 +102,7 @@ class TestSpansTask(TestCase):
         child_attrs = child_span["attributes"] or {}
         segment_data = segment_span["attributes"] or {}
 
-        assert child_attrs["sentry.transaction"] == segment_data["sentry.transaction"]
+        assert child_attrs["sentry.segment.name"] == segment_data["sentry.segment.name"]
         assert child_attrs["sentry.transaction.method"] == segment_data["sentry.transaction.method"]
         assert child_attrs["sentry.transaction.op"] == segment_data["sentry.transaction.op"]
         assert child_attrs["sentry.user"] == segment_data["sentry.user"]
@@ -152,13 +157,18 @@ class TestSpansTask(TestCase):
             name="a" * 64,
         )
 
-    @override_options({"spans.process-segments.detect-performance-problems.enable": True})
+    @override_options({SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION: True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_n_plus_one_issue_detection(self, mock_eventstream: mock.MagicMock) -> None:
         spans = self.generate_n_plus_one_spans()
-        with mock.patch(
-            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released",
-            return_value=True,
+        with (
+            mock.patch(
+                "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released",
+                return_value=True,
+            ),
+            mock.patch.object(
+                SpanFirstDetectorsRolloutController, "should_check_experiment", return_value=True
+            ),
         ):
             process_segment(spans)
 
@@ -172,7 +182,7 @@ class TestSpansTask(TestCase):
         ]
         assert performance_problem.type == PerformanceStreamedSpansGroupTypeExperimental
 
-    @override_options({"spans.process-segments.detect-performance-problems.enable": True})
+    @override_options({SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION: True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     @pytest.mark.xfail(reason="batches without segment spans are not supported yet")
     def test_n_plus_one_issue_detection_without_segment_span(
@@ -215,10 +225,15 @@ class TestSpansTask(TestCase):
         repeating_spans = [repeating_span() for _ in range(7)]
         spans = [segment_span, child_span, cause_span] + repeating_spans
 
-        with mock.patch(
-            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
-        ) as mock_released:
-            mock_released.return_value = True
+        with (
+            mock.patch(
+                "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released",
+                return_value=True,
+            ),
+            mock.patch.object(
+                SpanFirstDetectorsRolloutController, "should_check_experiment", return_value=True
+            ),
+        ):
             process_segment(spans)
 
         performance_problem = mock_eventstream.call_args[0][1]
@@ -285,7 +300,11 @@ class TestSpansTask(TestCase):
 
     def test_segment_name_propagation(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
-        segment_span["name"] = "my segment name"
+        assert (
+            attribute_value(segment_span, "sentry.segment.name")
+            == "/api/0/organizations/{organization_id_or_slug}/n-plus-one/"
+        )
+        assert attribute_value(child_span, "sentry.segment.name") is None
 
         processed_spans = process_segment([child_span, segment_span])
 
@@ -293,18 +312,17 @@ class TestSpansTask(TestCase):
         child_span, segment_span = processed_spans
         segment_attributes = segment_span["attributes"] or {}
         assert segment_attributes["sentry.segment.name"] == {
-            "type": "string",
-            "value": "my segment name",
+            "value": "/api/0/organizations/{organization_id_or_slug}/n-plus-one/",
         }
         child_attributes = child_span["attributes"] or {}
         assert child_attributes["sentry.segment.name"] == {
-            "type": "string",
-            "value": "my segment name",
+            "value": "/api/0/organizations/{organization_id_or_slug}/n-plus-one/",
         }
 
     def test_segment_name_propagation_when_name_missing(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
         del segment_span["name"]
+        del segment_span["attributes"]["sentry.segment.name"]
 
         processed_spans = process_segment([child_span, segment_span])
 

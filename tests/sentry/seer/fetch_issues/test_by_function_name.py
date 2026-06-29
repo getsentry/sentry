@@ -4,6 +4,7 @@ from unittest.mock import patch
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.group import Group
 from sentry.models.repository import Repository
+from sentry.seer.fetch_issues import utils
 from sentry.seer.fetch_issues.by_function_name import (
     NUM_DAYS_AGO,
     STACKFRAME_COUNT,
@@ -406,14 +407,12 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
         )
 
         # Basic structure checks
-        assert "error" not in seer_response
-        assert "issues" in seer_response
-        assert "issues_full" in seer_response
-        assert len(seer_response["issues"]) > 0
-        assert len(seer_response["issues_full"]) > 0
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert len(seer_response.issues) > 0
+        assert len(seer_response.issues_full) > 0
 
         # Check the first issue's metadata and message
-        first_issue = seer_response["issues_full"][0]
+        first_issue = seer_response.issues_full[0]
         assert "metadata" in first_issue
         assert "message" in first_issue
         # Message should be present (don't check exact content since it's auto-generated)

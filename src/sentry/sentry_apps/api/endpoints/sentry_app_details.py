@@ -1,4 +1,5 @@
 import logging
+from typing import TypedDict
 
 import orjson
 import sentry_sdk
@@ -51,6 +52,13 @@ logger = logging.getLogger(__name__)
 PARTNERSHIP_RESTRICTED_ERROR_MESSAGE = "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
 
 
+class _PublishedAppErrorResponse(TypedDict):
+    """`{"detail": ["Published apps cannot be removed."]}` — list-shaped detail
+    retained for backward compat with existing API consumers."""
+
+    detail: list[str]
+
+
 class SentryAppDetailsEndpointPermission(SentryAppAndStaffPermission):
     """Allows staff to access the GET and PUT methods which are used in _admin."""
 
@@ -70,7 +78,8 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     allow_disabled_sentry_app_for_methods = {"DELETE", "PUT", "GET"}
 
     @extend_schema(
-        operation_id="Retrieve a custom integration by ID or slug.",
+        operation_id="getSentryApp",
+        summary="Retrieve a custom integration by ID or slug.",
         parameters=[
             SentryAppParams.SENTRY_APP_ID_OR_SLUG,
         ],
@@ -95,7 +104,8 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         )
 
     @extend_schema(
-        operation_id="Update an existing custom integration.",
+        operation_id="updateSentryApp",
+        summary="Update an existing custom integration.",
         parameters=[
             SentryAppParams.SENTRY_APP_ID_OR_SLUG,
         ],
@@ -178,6 +188,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 schema=result.get("schema"),
                 overview=result.get("overview"),
                 allowed_origins=result.get("allowedOrigins"),
+                webhook_headers=result.get("webhookHeaders"),
                 popularity=result.get("popularity"),
                 is_disabled=result.get("isDisabled"),
             ).run(user=request.user)
@@ -218,13 +229,16 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         return Response(as_validation_errors(serializer), status=400)
 
     @extend_schema(
-        operation_id="Delete a custom integration.",
+        operation_id="deleteSentryApp",
+        summary="Delete a custom integration.",
         parameters=[
             SentryAppParams.SENTRY_APP_ID_OR_SLUG,
         ],
         responses={204: RESPONSE_NO_CONTENT, 403: RESPONSE_FORBIDDEN},
     )
-    def delete(self, request: Request, sentry_app) -> Response:
+    def delete(
+        self, request: Request, sentry_app
+    ) -> Response[None] | Response[DetailResponse] | Response[_PublishedAppErrorResponse]:
         """
         Delete a custom integration.
         """

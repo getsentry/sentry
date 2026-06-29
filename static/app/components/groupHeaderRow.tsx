@@ -24,8 +24,7 @@ interface GroupHeaderRowProps {
   data: Group;
   eventId?: string;
   hideIcons?: boolean;
-  /** Group link clicked */
-  onClick?: () => void;
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
   query?: string;
   source?: string;
 }

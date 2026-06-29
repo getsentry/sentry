@@ -50,6 +50,11 @@ export function GroupListHeader({
           {t('Priority')}
         </PriorityLabel>
       )}
+      {withColumns.includes('progress') && (
+        <ProgressLabel breakpoint={COLUMN_BREAKPOINTS.PROGRESS} align="right">
+          {t('Progress')}
+        </ProgressLabel>
+      )}
       {withColumns.includes('assignee') && (
         <AssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE} align="right">
           {t('Assignee')}
@@ -86,6 +91,10 @@ const EventsOrUsersLabel = styled(GroupListHeaderLabel)`
 
 const PriorityLabel = styled(GroupListHeaderLabel)`
   width: 70px;
+`;
+
+const ProgressLabel = styled(GroupListHeaderLabel)`
+  width: 90px;
 `;
 
 const AssigneeLabel = styled(GroupListHeaderLabel)`

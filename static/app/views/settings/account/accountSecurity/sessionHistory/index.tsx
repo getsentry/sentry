@@ -58,23 +58,19 @@ export default function SessionHistory() {
   const routePrefix = '/settings/account/security/';
   return (
     <SentryDocumentTitle title={t('Session History')}>
-      <SettingsPageHeader
-        title={t('Security')}
-        tabs={
-          <TabsContainer>
-            <Tabs value={activeTab}>
-              <TabList>
-                <TabList.Item key="settings" to={routePrefix}>
-                  {t('Settings')}
-                </TabList.Item>
-                <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
-                  {t('Session History')}
-                </TabList.Item>
-              </TabList>
-            </Tabs>
-          </TabsContainer>
-        }
-      />
+      <SettingsPageHeader title={t('Security')} />
+      <TabsContainer>
+        <Tabs value={activeTab}>
+          <TabList>
+            <TabList.Item key="settings" to={routePrefix}>
+              {t('Settings')}
+            </TabList.Item>
+            <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
+              {t('Session History')}
+            </TabList.Item>
+          </TabList>
+        </Tabs>
+      </TabsContainer>
 
       <Panel>
         <SessionPanelHeader>

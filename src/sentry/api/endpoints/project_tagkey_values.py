@@ -40,7 +40,8 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="List a Tag's Values",
+        operation_id="listProjectTagValues",
+        summary="List a Tag's Values",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

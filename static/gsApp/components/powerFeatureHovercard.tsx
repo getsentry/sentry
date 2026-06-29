@@ -13,7 +13,6 @@ import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -87,12 +86,8 @@ function PowerFeatureHovercard({
       organization={organization}
       subscription={subscription}
     >
-      {({plan, tierChange}) => {
-        let planName = displayPlanName(plan);
-
-        if (tierChange === PlanTier.AM1) {
-          planName = `Performance ${planName}`;
-        }
+      {({plan}) => {
+        const planName = displayPlanName(plan);
 
         return (
           <LearnMoreTextBody data-test-id="power-hovercard">

@@ -4,8 +4,8 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
@@ -22,15 +22,10 @@ export enum MessagingIntegrationAnalyticsView {
 
 type Props = {
   analyticsView: MessagingIntegrationAnalyticsView;
-  projectId?: string;
   refetchConfigs?: () => void;
 };
 
-export function SetupMessagingIntegrationButton({
-  refetchConfigs,
-  analyticsView,
-  projectId,
-}: Props) {
+export function SetupMessagingIntegrationButton({refetchConfigs, analyticsView}: Props) {
   const {openModal} = useModal();
 
   const providerKeys = ['slack', 'discord', 'msteams'];
@@ -127,7 +122,6 @@ export function SetupMessagingIntegrationButton({
                     bodyContent={t('Receive alerts and digests right where you work.')}
                     providers={integrationProvidersQuery.providers}
                     onAddIntegration={onAddIntegration}
-                    {...(projectId && {modalParams: {projectId}})}
                     analyticsView={analyticsView}
                   />
                 ),

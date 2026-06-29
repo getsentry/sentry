@@ -65,7 +65,7 @@ function AccountClose() {
   const [isLoading, setIsLoading] = useState(true);
   const leaveRedirectTimeout = useRef<number | undefined>(undefined);
 
-  // Load organizations from all regions.
+  // Load all organizations the current user is an owner of.
   useEffect(() => {
     setIsLoading(true);
     fetchOrganizations(api, {owner: 1}).then((response: OwnedOrg[]) => {

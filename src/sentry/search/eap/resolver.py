@@ -67,6 +67,7 @@ from sentry.search.events import filter as event_filter
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.search.exceptions import InvalidIssueSearchQuery
+from sentry.utils.tracing import set_span_tag
 
 
 def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
@@ -149,7 +150,7 @@ class SearchResolver:
             raise Exception("An organization is required to resolve queries")
         span = sentry_sdk.get_current_span()
         if span:
-            span.set_tag("SearchResolver.params", self.params)
+            set_span_tag(span, "SearchResolver.params", self.params)
 
         projects = self.params.projects
 
@@ -189,9 +190,9 @@ class SearchResolver:
         where, having, contexts = self.__resolve_query(querystring)
         span = sentry_sdk.get_current_span()
         if span:
-            span.set_tag("SearchResolver.query_string", querystring)
-            span.set_tag("SearchResolver.resolved_query", where)
-            span.set_tag("SearchResolver.environment_query", environment_query)
+            set_span_tag(span, "SearchResolver.query_string", querystring)
+            set_span_tag(span, "SearchResolver.resolved_query", where)
+            set_span_tag(span, "SearchResolver.environment_query", environment_query)
 
         where = and_trace_item_filters(
             where,
@@ -254,7 +255,10 @@ class SearchResolver:
         try:
             groups = list(
                 Group.objects.by_qualified_short_id_bulk(
-                    organization_id=self.params.organization_id, short_ids_raw=list(collected)
+                    organization_id=self.params.organization_id,
+                    short_ids_raw=list(collected),
+                    # org-wide: the Snuba query is already scoped to the requested projects.
+                    project_ids=None,
                 )
             )
         except Group.DoesNotExist:
@@ -273,6 +277,41 @@ class SearchResolver:
                 self.qualified_short_id_to_group_id_cache[g.project.id] = {}
             self.qualified_short_id_to_group_id_cache[g.project.id][raw] = g.id
 
+    def parse_search_query(self, querystring: str) -> Sequence[event_search.QueryToken]:
+        """Helper function so this can be called by validate separately"""
+        return event_search.parse_search_query(
+            querystring,
+            config=event_search.SearchConfig.create_from(
+                event_search.default_config,
+                wildcard_free_text=True,
+            ),
+            params=self.params.filter_params,
+            get_field_type=self.get_field_type,
+            get_function_result_type=self.get_field_type,
+        )
+
+    def collect_terms(self, parsed_terms: Sequence[event_search.QueryToken]) -> list[str]:
+        """Helper function to collect all the search terms from a parsed query ignoring the actual query tree"""
+        terms = []
+        for term in parsed_terms:
+            if event_search.SearchBoolean.is_operator(term):
+                continue
+            elif isinstance(term, event_search.ParenExpression):
+                for collected_term in self.collect_terms(term.children):
+                    if collected_term not in terms:
+                        terms.append(collected_term)
+            else:
+                if isinstance(term, event_search.SearchFilter):
+                    for converted_term in self.convert_term(term):
+                        column = converted_term.key.name
+                        if column not in terms:
+                            terms.append(column)
+                else:
+                    column = term.key.name
+                    if column not in terms:
+                        terms.append(column)
+        return terms
+
     def __resolve_query(
         self, querystring: str | None
     ) -> tuple[
@@ -283,16 +322,7 @@ class SearchResolver:
         if querystring is None:
             return None, None, []
         try:
-            parsed_terms = event_search.parse_search_query(
-                querystring,
-                config=event_search.SearchConfig.create_from(
-                    event_search.default_config,
-                    wildcard_free_text=True,
-                ),
-                params=self.params.filter_params,
-                get_field_type=self.get_field_type,
-                get_function_result_type=self.get_field_type,
-            )
+            parsed_terms = self.parse_search_query(querystring)
         except ParseError as e:
             if e.expr is not None:
                 raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
@@ -972,7 +1002,7 @@ class SearchResolver:
         resolved_contexts = []
         stripped_columns = [column.strip() for column in selected_columns]
         if span:
-            span.set_tag("SearchResolver.selected_columns", stripped_columns)
+            set_span_tag(span, "SearchResolver.selected_columns", stripped_columns)
         for column in stripped_columns:
             match = fields.is_function(column)
             has_aggregates = has_aggregates or match is not None

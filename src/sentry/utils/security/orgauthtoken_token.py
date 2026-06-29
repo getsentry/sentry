@@ -1,10 +1,10 @@
 import secrets
 from base64 import b64decode, b64encode
-from datetime import datetime
 from typing import Any
 
 from sentry import options
 from sentry.utils import hashlib, json
+from sentry.utils.dates import deprecated_utcnow
 
 SENTRY_ORG_AUTH_TOKEN_PREFIX = "sntrys_"
 
@@ -21,7 +21,7 @@ def generate_token(org_slug: str, region_url: str) -> str:
         raise SystemUrlPrefixMissingException
 
     payload = {
-        "iat": datetime.utcnow().timestamp(),
+        "iat": deprecated_utcnow().timestamp(),
         "url": sentry_url,
         "region_url": region_url,
         "org": org_slug,

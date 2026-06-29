@@ -39,6 +39,7 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
     SeerOperatorCacheResult,
 )
+from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
@@ -409,6 +410,61 @@ class SeerOperatorTest(TestCase):
         assert not PullRequest.objects.filter(repository_id=repo.id).exists()
         assert not PullRequestAttribution.objects.exists()
 
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_process_autofix_updates_links_pull_requests(self, _mock_has_access):
+        repo = self.create_repo(self.project, name="getsentry/sentry")
+        seer_run = self.create_seer_run(
+            self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=MOCK_RUN_ID
+        )
+
+        with (
+            override_options({"issues.record-seer-actions-as-activities": False}),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
+                {},
+                clear=True,
+            ),
+        ):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_PR_CREATED,
+                event_payload=self._pr_created_event_payload(),
+                organization_id=self.organization.id,
+            )
+
+        pull_request = PullRequest.objects.get(repository_id=repo.id, key="99")
+        link = SeerRunPullRequest.objects.get(pull_request=pull_request)
+        assert link.seer_run_id == seer_run.id
+        assert not PullRequestAttribution.objects.exists()
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_process_autofix_updates_link_killswitch(self, _mock_has_access):
+        repo = self.create_repo(self.project, name="getsentry/sentry")
+        self.create_seer_run(
+            self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=MOCK_RUN_ID
+        )
+
+        with (
+            override_options(
+                {
+                    "issues.record-seer-actions-as-activities": False,
+                    "seer.pull-request-linking.killswitch.enabled": True,
+                }
+            ),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
+                {},
+                clear=True,
+            ),
+        ):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_PR_CREATED,
+                event_payload=self._pr_created_event_payload(),
+                organization_id=self.organization.id,
+            )
+
+        assert not SeerRunPullRequest.objects.exists()
+        assert not PullRequest.objects.filter(repository_id=repo.id).exists()
+
     def test_process_autofix_updates_no_operator_access(self) -> None:
         mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
@@ -644,7 +700,37 @@ class SeerOperatorTest(TestCase):
             == "https://github.com/owner/repo/pull/42"
         )
 
-    @patch("sentry.seer.entrypoints.operator.invoke_workflow_activity_handlers")
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_iteration_completed(self, _mock_has_access):
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "code_changes": {"owner/repo": [{"diff": "...", "path": "foo.py"}]},
+            "pull_requests": [
+                {
+                    "pull_request": {
+                        "pr_number": 42,
+                        "pr_url": "https://github.com/owner/repo/pull/42",
+                    },
+                    "repo_name": "owner/repo",
+                    "provider": "github",
+                }
+            ],
+        }
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_ITERATION_COMPLETED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_ITERATION_COMPLETED.value
+        )
+        assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
+        assert activity.data["code_changes"]["owner/repo"][0]["path"] == "foo.py"
+
+    @patch("sentry.models.activity.invoke_workflow_activity_handlers")
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_invokes_workflow_activity_handlers(
         self, _mock_has_access, mock_invoke
@@ -658,9 +744,9 @@ class SeerOperatorTest(TestCase):
         )
 
         mock_invoke.assert_called_once()
-        call_kwargs = mock_invoke.call_args[1]
-        assert call_kwargs["group"] == self.group
-        assert call_kwargs["activity"].type == ActivityType.SEER_RCA_STARTED.value
+        group, activity = mock_invoke.call_args[0][:2]
+        assert group == self.group
+        assert activity.type == ActivityType.SEER_RCA_STARTED.value
 
 
 class TestGetAutofixExplorerStatus(TestCase):

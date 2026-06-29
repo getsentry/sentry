@@ -27,7 +27,8 @@ class GroupExternalIssuesEndpoint(GroupEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve custom integration issue links for the given Sentry issue",
+        operation_id="listOrganizationIssueExternalIssues",
+        summary="Retrieve custom integration issue links for the given Sentry issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,

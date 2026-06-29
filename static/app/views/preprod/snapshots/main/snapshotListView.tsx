@@ -18,6 +18,7 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {DiffStatus, isPairSidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDiffPair,
@@ -61,6 +62,7 @@ type GroupCard =
       estimatedHeight: number;
       id: string;
       pair: SnapshotDiffPair;
+      status: DiffStatus;
       type: 'pair-card';
     }
   | {
@@ -84,6 +86,7 @@ interface GroupRow {
 // Keep in sync with SnapshotGroupHeader: lg vertical padding + md heading height.
 const SNAPSHOT_GROUP_HEADER_HEIGHT = 44;
 const CARD_CHROME_HEIGHT = 120;
+const ERRORED_BANNER_HEIGHT = 56;
 const CARD_GAP = 0;
 const GROUP_PADDING = 0;
 const ROW_PADDING_BOTTOM = 16;
@@ -108,7 +111,7 @@ function estimateCardHeight(
 }
 
 export function isItemUngrouped(item: SidebarItem): boolean {
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     return !item.pairs[0]?.head_image.group;
   }
   return !item.images[0]?.group;
@@ -118,16 +121,20 @@ function buildGroups(items: SidebarItem[], contentWidth: number): GroupRow[] {
   const groups: GroupRow[] = [];
   for (const item of items) {
     const cards: GroupCard[] = [];
-    if (item.type === 'changed') {
+    if (item.type === 'changed' || item.type === 'errored') {
+      const status = item.type === 'errored' ? DiffStatus.ERRORED : DiffStatus.CHANGED;
+      const bannerHeight = status === DiffStatus.ERRORED ? ERRORED_BANNER_HEIGHT : 0;
       for (const pair of item.pairs) {
         cards.push({
           type: 'pair-card',
           id: `c:${item.key}:${pair.head_image.image_file_name}`,
           pair,
-          estimatedHeight: Math.max(
-            estimateCardHeight(pair.head_image, true, contentWidth),
-            estimateCardHeight(pair.base_image, true, contentWidth)
-          ),
+          status,
+          estimatedHeight:
+            Math.max(
+              estimateCardHeight(pair.head_image, true, contentWidth),
+              estimateCardHeight(pair.base_image, true, contentWidth)
+            ) + bannerHeight,
         });
       }
     } else if (item.type === 'renamed') {
@@ -632,7 +639,7 @@ const GroupContainer = memo(function GroupContainer({
     const snapshotKey = snapshotKeyFor(card);
     const isSelected = snapshotKey === selectedSnapshotKey;
     const copyUrl = buildSnapshotLink(snapshotKey);
-    const diffStatus = card.type === 'pair-card' ? 'changed' : card.cardType;
+    const diffStatus = card.type === 'pair-card' ? card.status : card.cardType;
     const onCopyLink = () =>
       trackAnalytics('preprod.snapshots.details.image_link_copied', {
         organization,
@@ -647,6 +654,7 @@ const GroupContainer = memo(function GroupContainer({
       <PairCard
         key={card.id}
         pair={card.pair}
+        status={card.status}
         imageBaseUrl={imageBaseUrl}
         headBranch={headBranch}
         isSelected={isSelected}

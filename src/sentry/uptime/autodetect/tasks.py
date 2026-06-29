@@ -8,6 +8,8 @@ from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 
 from sentry import features, options
+from sentry.exceptions import RestrictedIPAddress
+from sentry.http import safe_urlopen
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -280,12 +282,22 @@ def get_failed_url_key(url: str) -> str:
 def check_url_robots_txt(url: str) -> bool:
     try:
         return get_robots_txt_parser(url).can_fetch(UPTIME_USER_AGENT, url)
+    except RestrictedIPAddress:
+        logger.warning("Blocked robots.txt fetch to restricted IP", exc_info=True)
+        return False
     except Exception:
         logger.warning("Failed to check robots.txt", exc_info=True)
         return True
 
 
 def get_robots_txt_parser(url: str) -> RobotFileParser:
-    robot_parser = RobotFileParser(url=urljoin(url, "robots.txt"))
-    robot_parser.read()
+    robots_url = urljoin(url, "robots.txt")
+    response = safe_urlopen(robots_url, timeout=10, allow_redirects=True)
+    robot_parser = RobotFileParser(url=robots_url)
+    if response.status_code in (401, 403):
+        robot_parser.parse(["User-agent: *", "Disallow: /"])
+    elif response.status_code >= 400:
+        robot_parser.parse([])
+    else:
+        robot_parser.parse(response.text.splitlines())
     return robot_parser

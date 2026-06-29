@@ -2,12 +2,23 @@ import {
   getKeyValueListData,
   keyValueListDataToMarkdownLines,
 } from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
+import {
+  formatChangingQueryParameters,
+  getSpanDuration,
+  getSpanFieldBytes,
+} from 'sentry/components/events/interfaces/performance/spanMetrics';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
-import type {Event, EventTransaction} from 'sentry/types/event';
+import {
+  EntryType,
+  type EntryRequest,
+  type Event,
+  type EventTransaction,
+} from 'sentry/types/event';
 import {
   AI_DETECTED_ISSUE_TYPES,
   type Group,
   isTransactionBased,
+  IssueType,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -71,10 +82,6 @@ function getSpanCodeLocation(span: EvidenceSpan): string | null {
   return fn ? `${location} ${fn}` : location;
 }
 
-function getSpanDurationMs(span: EvidenceSpan): number {
-  return ((span?.timestamp ?? 0) - (span?.start_timestamp ?? 0)) * 1000;
-}
-
 /**
  * Formats total time for a span group, plus its share of the transaction
  * (Duration Impact) when the transaction duration is known. Same math as
@@ -122,7 +129,7 @@ function summarizeSpanGroup(
     const distinct = Array.from(
       new Set(group.map(normalizeSpanDescription).filter(Boolean))
     );
-    const totalMs = group.reduce((sum, span) => sum + getSpanDurationMs(span), 0);
+    const totalMs = group.reduce((sum, span) => sum + getSpanDuration(span), 0);
     const timing = formatGroupTiming(totalMs, event);
     const repeat = count > 1 ? `${count}×, ` : '';
 
@@ -157,6 +164,102 @@ function summarizeSpanGroup(
   });
 
   return {lines, remaining};
+}
+
+/** Pushes a labeled value, or a bulleted list when there are multiple items. */
+function pushList(lines: string[], label: string, items: string[]): void {
+  if (items.length === 0) {
+    return;
+  }
+  if (items.length === 1) {
+    lines.push(`**${label}:** ${items[0]}`);
+    return;
+  }
+  lines.push(`**${label}:**`);
+  items.forEach(item => lines.push(`- ${item}`));
+}
+
+/**
+ * Type-specific metrics the UI's Span Evidence panel shows but the generic span
+ * summary doesn't. These are additive (no overlap with the transaction/parent/
+ * offending/pattern rows) and sourced from evidenceData or the offending span's
+ * data — the same fields the per-type components in spanEvidenceKeyValueList use.
+ */
+function formatIssueTypeMetrics(
+  issueType: IssueType,
+  event: EventTransaction,
+  offendingSpans: EvidenceSpan[],
+  evidenceData: Record<string, any>
+): string[] {
+  const lines: string[] = [];
+  const offender = offendingSpans[0] ?? null;
+
+  switch (issueType) {
+    case IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD: {
+      const size =
+        getSpanFieldBytes(offender, 'http.response_content_length') ??
+        getSpanFieldBytes(offender, 'Encoded Body Size');
+      if (size) {
+        lines.push(`**Payload Size:** ${size}`);
+      }
+      break;
+    }
+    case IssueType.PERFORMANCE_UNCOMPRESSED_ASSET: {
+      const size =
+        getSpanFieldBytes(offender, 'http.response_content_length') ??
+        getSpanFieldBytes(offender, 'Encoded Body Size');
+      if (size) {
+        lines.push(`**Asset Size:** ${size}`);
+      }
+      break;
+    }
+    case IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET: {
+      const fcp = event.measurements?.fcp?.value;
+      const duration = getSpanDuration(offender);
+      if (fcp && duration) {
+        lines.push(
+          `**FCP Delay:** ${getPerformanceDuration(duration)} (${toRoundedPercent(
+            duration / fcp
+          )} of FCP)`
+        );
+      }
+      break;
+    }
+    case IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS: {
+      // Mirror the UI: fall back to deriving changing query params from the
+      // offending HTTP spans when the backend didn't provide them.
+      const baseURL = event.entries?.find(
+        (entry): entry is EntryRequest => entry.type === EntryType.REQUEST
+      )?.data?.url;
+      pushList(
+        lines,
+        'Query Parameters',
+        evidenceData.parameters ?? formatChangingQueryParameters(offendingSpans, baseURL)
+      );
+      pushList(lines, 'Path Parameters', evidenceData.pathParameters ?? []);
+      break;
+    }
+    case IssueType.QUERY_INJECTION_VULNERABILITY: {
+      const vulnerable: Array<[string, unknown]> =
+        evidenceData.vulnerableParameters ?? [];
+      pushList(
+        lines,
+        'Vulnerable Parameters',
+        vulnerable.map(([name, value]) => {
+          const formatted = typeof value === 'string' ? value : JSON.stringify(value);
+          return `${name}: ${formatted}`;
+        })
+      );
+      if (evidenceData.requestUrl) {
+        lines.push(`**Request URL:** ${evidenceData.requestUrl}`);
+      }
+      break;
+    }
+    default:
+      break;
+  }
+
+  return lines;
 }
 
 /**
@@ -253,6 +356,11 @@ export function formatSpanEvidenceToMarkdown(
       sampleBudget
     );
     lines.push(...offending.lines);
+
+    // Type-specific metrics the UI shows beyond the generic span summary.
+    lines.push(
+      ...formatIssueTypeMetrics(issueType, eventTransaction, offendingSpans, evidenceData)
+    );
 
     // Surface the cache-miss → DB read shape when both appear (classic N+1).
     const hasCacheMiss = offendingSpans.some(span => span?.op?.startsWith('cache'));

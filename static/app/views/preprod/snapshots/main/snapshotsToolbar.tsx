@@ -208,28 +208,38 @@ export function DiffModeToggle({
   onDiffModeChange: (mode: DiffMode) => void;
   showSplit: boolean;
 }) {
+  const splitLabel = t('Split');
+  const wipeLabel = t('Wipe');
+  const onionLabel = t('Onion');
+
   return (
     <SegmentedControl size="xs" value={diffMode} onChange={onDiffModeChange}>
       {showSplit ? (
         <SegmentedControl.Item
           key="split"
           icon={<IconPause />}
-          aria-label={t('Split')}
-          tooltip={t('Split')}
-        />
+          aria-label={splitLabel}
+          tooltip={splitLabel}
+        >
+          {diffMode === 'split' ? splitLabel : undefined}
+        </SegmentedControl.Item>
       ) : null}
       <SegmentedControl.Item
         key="wipe"
         icon={<IconInput />}
-        aria-label={t('Wipe')}
-        tooltip={t('Wipe')}
-      />
+        aria-label={wipeLabel}
+        tooltip={wipeLabel}
+      >
+        {diffMode === 'wipe' ? wipeLabel : undefined}
+      </SegmentedControl.Item>
       <SegmentedControl.Item
         key="onion"
         icon={<IconStack />}
-        aria-label={t('Onion')}
-        tooltip={t('Onion')}
-      />
+        aria-label={onionLabel}
+        tooltip={onionLabel}
+      >
+        {diffMode === 'onion' ? onionLabel : undefined}
+      </SegmentedControl.Item>
     </SegmentedControl>
   );
 }
@@ -258,7 +268,8 @@ const ColorTrigger = styled('button')<{color: string}>`
   height: 24px;
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid ${p => p.theme.tokens.border.primary};
+  border: 1px solid
+    ${p => p.theme.tokens.border.onVibrant[p.theme.type === 'dark' ? 'light' : 'dark']};
   background-color: ${p => (p.color === TRANSPARENT_COLOR ? 'transparent' : p.color)};
   padding: 0;
   ${p =>

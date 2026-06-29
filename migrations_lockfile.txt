@@ -7,7 +7,7 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 discover: 0003_discover_json_field
 
-explore: 0007_update_numeric_attrs_to_bools
+explore: 0010_remove_last_received_from_attribute_context
 
 feedback: 0007_cleanup_failed_safe_deletes
 
@@ -23,15 +23,15 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0012_drop_metric_alert_cols_notificationmessage
 
-preprod: 0029_add_snapshot_comparison_chunks_columns
+preprod: 0030_add_images_errored_to_snapshot_comparison
 
 releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0017_drop_old_fk_columns
+seer: 0023_add_seer_run_pull_request
 
-sentry: 1112_pullrequest_metrics_fields
+sentry: 1123_pending_user
 
 social_auth: 0003_social_auth_json_field
 
@@ -39,4 +39,4 @@ tempest: 0001_squashed_0003_use_encrypted_char_field
 
 uptime: 0055_backfill_2xx_status_assertion
 
-workflow_engine: 0114_sanitize_dynamic_form_field_choices
+workflow_engine: 0115_add_group_index_to_wfh

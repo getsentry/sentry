@@ -1,7 +1,6 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
-import type {Theme} from '@emotion/react';
+import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
-import type {Client} from 'sentry/api';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -11,41 +10,55 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 
-type Props = {
-  api: Client;
-  organization: Organization;
-  theme: Theme;
-} & Pick<
-  RouteComponentProps<{
-    keyId: string;
-    projectId: string;
-  }>,
-  'params'
->;
-
-type State = StateLoading | StateError | StateSuccess;
-
-type StateError = {
-  status: 'error';
+type KeyStatPoint = {
+  accepted: number;
+  dropped: number;
+  total: number;
+  ts: number;
 };
 
-type StateLoading = {
-  status: 'loading';
-};
-
-type StateSuccess = {
+type DerivedStats = {
   emptyStats: boolean;
   series: Series[];
-  since: number;
-  status: 'success';
-  until: number;
 };
 
-export function KeyStats({api, organization, params, theme}: Props) {
-  const {keyId, projectId} = params;
+function deriveStats(data: KeyStatPoint[]): DerivedStats {
+  let emptyStats = true;
+  const dropped: Series['data'] = [];
+  const accepted: Series['data'] = [];
+
+  data.forEach(p => {
+    if (p.total) {
+      emptyStats = false;
+    }
+    dropped.push({name: p.ts * 1000, value: p.dropped});
+    accepted.push({name: p.ts * 1000, value: p.accepted});
+  });
+
+  const series: Series[] = [
+    {
+      seriesName: t('Accepted'),
+      data: accepted,
+    },
+    {
+      seriesName: t('Rate Limited'),
+      data: dropped,
+    },
+  ];
+
+  return {series, emptyStats};
+}
+
+export function KeyStats() {
+  const organization = useOrganization();
+  const theme = useTheme();
+  const {keyId, projectId} = useParams<{keyId: string; projectId: string}>();
+
   const queryBase = useMemo(() => {
     const until = Math.floor(Date.now() / 1000);
     return {
@@ -53,78 +66,41 @@ export function KeyStats({api, organization, params, theme}: Props) {
       until,
     };
   }, []);
-  const [state, setState] = useState<State>({
-    status: 'loading',
-  });
 
-  const fetchData = useCallback(() => {
-    if (state.status !== 'loading') {
-      return;
-    }
+  const {data, isPending, isError, refetch} = useApiQuery<KeyStatPoint[]>(
+    [
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/stats/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectId,
+          keyId,
+        },
+      }),
+      {query: {...queryBase, resolution: '1d'}},
+    ],
+    {staleTime: 0}
+  );
 
-    api.request(`/projects/${organization.slug}/${projectId}/keys/${keyId}/stats/`, {
-      query: {
-        ...queryBase,
-        resolution: '1d',
-      },
-      success: data => {
-        let emptyStats = true;
-        const dropped: Series['data'] = [];
-        const accepted: Series['data'] = [];
-        data.forEach((p: any) => {
-          if (p.total) {
-            emptyStats = false;
-          }
-          dropped.push({name: p.ts * 1000, value: p.dropped});
-          accepted.push({name: p.ts * 1000, value: p.accepted});
-        });
-        const series = [
-          {
-            seriesName: t('Accepted'),
-            data: accepted,
-          },
-          {
-            seriesName: t('Rate Limited'),
-            data: dropped,
-          },
-        ];
-        setState({
-          ...queryBase,
-          series,
-          emptyStats,
-          status: 'success',
-        });
-      },
-      error: () => {
-        setState({status: 'error'});
-      },
-    });
-  }, [api, keyId, organization.slug, projectId, queryBase, state.status]);
-
-  const retry = useCallback(() => {
-    setState({status: 'loading'});
-  }, []);
-
-  useEffect(fetchData, [fetchData]);
-
-  if (state.status === 'error') {
-    return <LoadingError onRetry={retry} />;
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
+
+  const {series, emptyStats} = data ? deriveStats(data) : {series: [], emptyStats: true};
 
   return (
     <Panel>
       <PanelHeader>{t('Key usage in the last 30 days (by day)')}</PanelHeader>
       <PanelBody withPadding>
-        {state.status === 'loading' ? (
+        {isPending ? (
           <Placeholder height="150px" />
-        ) : state.emptyStats ? (
+        ) : emptyStats ? (
           <EmptyMessage title={t('Nothing recorded in the last 30 days.')}>
             {t('Total events captured using these credentials.')}
           </EmptyMessage>
         ) : (
           <MiniBarChart
             isGroupedByDate
-            series={state.series}
+            series={series}
             height={150}
             colors={[theme.colors.gray200, theme.colors.red400]}
             stacked

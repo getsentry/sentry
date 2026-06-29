@@ -50,6 +50,10 @@ GroupId: TypeAlias = int
 WorkflowId: TypeAlias = int
 
 
+class AlertRuleNotDualWritten(Exception):
+    pass
+
+
 class DetectorException(Exception):
     pass
 
@@ -451,4 +455,4 @@ class DetectorSettings:
     filter: Q | None = None
 
 
-WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity"], None]
+WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity", DetectorId | None], None]

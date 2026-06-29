@@ -10,8 +10,8 @@ import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons/iconArrow';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -69,7 +69,7 @@ export default function OrganizationDataForwardingSetup() {
         <Flex align="center" justify="between" gap="2xl">
           <Flex direction="column" gap="sm">
             <Flex align="center" gap="lg">
-              <Heading as="h1">{t('Setup Data Forwarding')}</Heading>
+              <Heading as="h2">{t('Setup Data Forwarding')}</Heading>
             </Flex>
             <Text variant="muted">
               {t('Configure the global settings for your data forwarder.')}

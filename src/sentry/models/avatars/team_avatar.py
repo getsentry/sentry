@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+from urllib.parse import urljoin
+
 from django.db import models
+from django.urls import reverse
 
 from sentry.db.models import FlexibleForeignKey, cell_silo_model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.models.organization import Organization
+from sentry.models.team import Team
+from sentry.types.cell import get_local_locality
 
 from . import AvatarBase
 
@@ -31,3 +37,10 @@ class TeamAvatar(AvatarBase):
 
     def get_cache_key(self, size):
         return f"team_avatar:{self.team_id}:{size}"
+
+    def absolute_url(self) -> str:
+        team = Team.objects.get_from_cache(id=self.team_id)
+        organization = Organization.objects.get_from_cache(id=team.organization_id)
+        url_base = get_local_locality().to_url("")
+        path = reverse("sentry-team-avatar-url", args=[organization.slug, self.ident])
+        return urljoin(url_base, path)

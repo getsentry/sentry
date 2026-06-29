@@ -273,7 +273,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         shard_tag = ",".join(map(str, shards))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
+        sentry_sdk.set_attribute("sentry_spans_buffer_component", "flusher")
         sentry_sdk.set_tag("sentry_spans_buffer_shards", shard_tag)
+        sentry_sdk.set_attribute("sentry_spans_buffer_shards", shard_tag)
 
         logger.info("Flusher process started for shards %s", shard_tag)
 

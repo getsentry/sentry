@@ -10,9 +10,13 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {RequestOptions} from 'sentry/api';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
+import {
+  applySavedDefaultToField,
+  getSavedChoicesMap,
+  STATIC_TICKET_FIELDS,
+} from 'sentry/components/externalIssues/ticketRuleModalUtils';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
 import {getConfigName} from 'sentry/components/externalIssues/utils';
 import type {FieldValue} from 'sentry/components/forms/types';
@@ -20,13 +24,13 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
-import type {ResponseMeta} from 'sentry/types/api';
 import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -176,40 +180,35 @@ export function TicketRuleModal({
    * `useApiQuery`, and instead manually call the api, and update the cache ourselves.
    */
   const refetchWithDynamicFields = useCallback(
-    (dynamicValues: Record<string, FieldValue>) => {
+    async (dynamicValues: Record<string, FieldValue>) => {
       setIsDynamicallyRefetching(true);
-      const requestOptions: RequestOptions = {
-        method: 'GET',
-        query: {action, ...dynamicValues},
-        success: (
-          data: IntegrationIssueConfig,
-          _textStatus: string | undefined,
-          _responseMeta: ResponseMeta | undefined
-        ) => {
-          setApiQueryData(
-            queryClient,
-            makeIntegrationIssueConfigTicketRuleQueryKey({
-              orgSlug: organization.slug,
-              integrationId: instance.integration,
-              query: initialConfigQuery,
-            }),
-            (existingData: IntegrationIssueConfig | undefined) =>
-              data ? data : existingData
-          );
-          setIsDynamicallyRefetching(false);
-        },
-        error: (err: any) => {
-          if (err?.responseText) {
-            Sentry.addBreadcrumb({
-              message: err.responseText,
-              category: 'xhr',
-              level: 'error',
-            });
-          }
-          setIsDynamicallyRefetching(false);
-        },
-      };
-      return api.request(endpointString, requestOptions);
+      try {
+        const [data] = await api.requestPromise(endpointString, {
+          method: 'GET',
+          query: {action, ...dynamicValues},
+          includeAllArgs: true,
+        });
+        setApiQueryData(
+          queryClient,
+          makeIntegrationIssueConfigTicketRuleQueryKey({
+            orgSlug: organization.slug,
+            integrationId: instance.integration,
+            query: initialConfigQuery,
+          }),
+          (existingData: IntegrationIssueConfig | undefined) =>
+            data ? data : existingData
+        );
+      } catch (err: any) {
+        if (err?.responseText) {
+          Sentry.addBreadcrumb({
+            message: err.responseText,
+            category: 'xhr',
+            level: 'error',
+          });
+        }
+      } finally {
+        setIsDynamicallyRefetching(false);
+      }
     },
     [
       action,
@@ -291,90 +290,25 @@ export function TicketRuleModal({
    * disabled inputs, and use the cached dynamic choices.
    */
   const cleanFields = useMemo((): JsonFormAdapterFieldConfig[] => {
-    const staticFields: JsonFormAdapterFieldConfig[] = [
-      {
-        name: 'title',
-        label: 'Title',
-        type: 'string',
-        default: 'This will be the same as the Sentry Issue.',
-        disabled: true,
-      },
-      {
-        name: 'description',
-        label: 'Description',
-        type: 'string',
-        default: 'This will be generated from the Sentry Issue details.',
-        disabled: true,
-      },
-    ];
-
-    // Build a map of saved choices from instance.dynamic_form_fields so we can
-    // restore async select options that were previously fetched via search.
-    const savedFields = Object.values(instance?.dynamic_form_fields || {});
-    const savedChoicesMap = new Map(
-      savedFields
-        .filter(
-          (f): f is IssueConfigField =>
-            typeof f === 'object' &&
-            f !== null &&
-            'url' in f &&
-            'choices' in f &&
-            Array.isArray(f.choices) &&
-            f.choices.length > 0
-        )
-        .map(f => [f.name, f.choices as Choices])
-    );
-
+    const savedChoicesMap = getSavedChoicesMap(instance);
     const configFields = (integrationDetails?.[getConfigName(action)] ||
       []) as JsonFormAdapterFieldConfig[];
 
     const cleanedFields = configFields
       // Don't overwrite the default values for title and description.
-      .filter(field => !staticFields.some(f => f.name === field.name))
+      .filter(field => !STATIC_TICKET_FIELDS.some(f => f.name === field.name))
       .map(field => {
-        // We only need to do the below operation if the form has not been modified.
         if (!showInstanceValues) {
           return field;
         }
-        // Overwrite defaults with previously selected values if they exist.
-        const prevChoice = instance?.[field.name];
 
-        if (!prevChoice) {
-          return field;
-        }
-
-        let shouldDefaultChoice = true;
-
-        if (field.type === 'select' || field.type === 'choice') {
-          // For async select fields, always trust the saved value — choices
-          // are fetched dynamically and won't be in the static choices list.
-          if ('url' in field && field.url) {
-            shouldDefaultChoice = true;
-          } else {
-            const choices = field.choices || [];
-            shouldDefaultChoice = !!(Array.isArray(prevChoice)
-              ? prevChoice.every(value => choices.some(tuple => tuple[0] === value))
-              : choices.some(item => item[0] === prevChoice));
-          }
-        }
-
-        if (shouldDefaultChoice) {
-          // For async fields, also restore saved choices so the select can
-          // display the label for the saved value.
-          const savedChoices = savedChoicesMap.get(field.name);
-          if (savedChoices && 'url' in field && field.url) {
-            return {
-              ...field,
-              default: prevChoice,
-              choices: savedChoices as Array<[string, string]>,
-            };
-          }
-          return {...field, default: prevChoice};
-        }
-
-        return field;
+        return applySavedDefaultToField({
+          field,
+          savedValue: instance?.[field.name],
+          savedChoicesMap,
+        });
       });
-    return [...staticFields, ...cleanedFields];
+    return [...STATIC_TICKET_FIELDS, ...cleanedFields];
   }, [instance, integrationDetails, showInstanceValues]);
 
   const formErrors = useMemo(() => {

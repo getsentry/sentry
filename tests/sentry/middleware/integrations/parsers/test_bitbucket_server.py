@@ -12,14 +12,14 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.outbox import assert_webhook_payloads_for_mailbox, outbox_runner
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell
 
 
 @control_silo_test
 class BitbucketServerRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()
-    cell = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+    cell = Cell("us", 1, "https://us.testserver")
     cell_config = (cell,)
 
     @override_cells(cell_config)

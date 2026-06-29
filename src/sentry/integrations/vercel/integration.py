@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any, Self, TypedDict, cast
 from urllib.parse import urlencode
 
@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField
 from rest_framework.serializers import ValidationError
 
-from sentry import options
+from sentry import features, options
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.identity.oauth2 import OAuth2ApiStep
@@ -29,7 +29,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project_key import project_key_service
 from sentry.projects.services.project_key.model import RpcProjectKey
@@ -386,13 +386,43 @@ class VercelIntegration(IntegrationInstallation):
             )
             raise
 
-    def create_env_var(self, client, vercel_project_id, key, value, type, target):
+    def create_env_var(self, client, vercel_project_id, key, value, type, targets):
         data = {
             "key": key,
             "value": value,
-            "target": target,
+            "target": targets,
             "type": type,
         }
+
+        use_upsert = features.has(
+            "organizations:integrations-vercel-upsert-env-var",
+            self.organization,
+        )
+
+        if use_upsert:
+            # Upsert one target at a time to avoid ENV_CONFLICT errors when the
+            # existing variable's target list doesn't match ours exactly.
+            for target in targets:
+                target_data = {
+                    "key": key,
+                    "value": value,
+                    "target": [target],
+                    "type": type,
+                }
+                try:
+                    client.create_env_variable(vercel_project_id, target_data, upsert=True)
+                except ApiError as e:
+                    error_message = (
+                        (e.json or {})
+                        .get("error", {})
+                        .get(
+                            "message",
+                            f"Could not create or update environment variable {key}.",
+                        )
+                    )
+                    raise ValidationError({"project_mappings": [error_message]})
+            return
+
         try:
             return client.create_env_variable(vercel_project_id, data)
         except ApiError as e:
@@ -478,9 +508,6 @@ class VercelIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.DEPLOYMENT])
     # feature flag handler is in getsentry
     requires_feature_flag = True
-
-    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         provider = VercelIdentityProvider()

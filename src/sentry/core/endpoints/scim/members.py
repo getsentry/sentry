@@ -247,7 +247,8 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return False
 
     @extend_schema(
-        operation_id="Query an Individual Organization Member",
+        operation_id="getOrganizationScimV2User",
+        summary="Query an Individual Organization Member",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to query."),
@@ -261,20 +262,23 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         },
         examples=SCIMExamples.QUERY_ORG_MEMBER,
     )
-    def get(self, request: Request, organization, member) -> Response:
+    def get(
+        self, request: Request, organization, member
+    ) -> Response[OrganizationMemberSCIMSerializerResponse]:
         """
         Query an individual organization member with a SCIM User GET Request.
         - The `name` object will contain fields `firstName` and `lastName` with the values of `N/A`.
         Sentry's SCIM API does not currently support these fields but returns them for compatibility purposes.
         """
-        context = serialize(
+        body: OrganizationMemberSCIMSerializerResponse = serialize(
             member,
             serializer=_scim_member_serializer_with_expansion(organization),
         )
-        return Response(context)
+        return Response(body)
 
     @extend_schema(
-        operation_id="Update an Organization Member's Attributes",
+        operation_id="updateOrganizationScimV2User",
+        summary="Update an Organization Member's Attributes",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to update."),
@@ -288,7 +292,13 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         },
         examples=SCIMExamples.UPDATE_ORG_MEMBER_ATTRIBUTES,
     )
-    def patch(self, request: Request, organization, member):
+    def patch(
+        self, request: Request, organization, member
+    ) -> (
+        Response[OrganizationMemberSCIMSerializerResponse]
+        | Response[None]
+        | Response[DetailResponse]
+    ):
         """
         Update an organization member's attributes with a SCIM PATCH Request.
         """
@@ -319,14 +329,15 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             else:
                 raise SCIMApiError(detail=SCIM_400_INVALID_PATCH)
 
-        context = serialize(
+        body: OrganizationMemberSCIMSerializerResponse = serialize(
             member,
             serializer=_scim_member_serializer_with_expansion(organization),
         )
-        return Response(context)
+        return Response(body)
 
     @extend_schema(
-        operation_id="Delete an Organization Member via SCIM",
+        operation_id="deleteOrganizationScimV2User",
+        summary="Delete an Organization Member via SCIM",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to delete."),
@@ -357,7 +368,8 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(status=204)
 
     @extend_schema(
-        operation_id="Update an Organization Member's Attributes",
+        operation_id="replaceOrganizationScimV2User",
+        summary="Replace an Organization Member's Attributes",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to update."),
@@ -477,7 +489,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
     @extend_schema(
-        operation_id="List an Organization's SCIM Members",
+        operation_id="listOrganizationScimV2Users",
+        summary="List an Organization's SCIM Members",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, SCIMQueryParamSerializer],
         responses={
             200: inline_sentry_response_serializer(
@@ -536,7 +549,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         )
 
     @extend_schema(
-        operation_id="Provision a New Organization Member",
+        operation_id="provisionOrganizationScimV2User",
+        summary="Provision a New Organization Member",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=inline_serializer(
             name="SCIMMemberProvision",
@@ -561,15 +575,15 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         },
         examples=SCIMExamples.PROVISION_NEW_MEMBER,
     )
-    def post(self, request: Request, organization) -> Response:
+    def post(
+        self, request: Request, organization
+    ) -> Response[OrganizationMemberSCIMSerializerResponse]:
         """
         Create a new Organization Member via a SCIM Users POST Request.
 
         Note that this API does not support setting secondary emails.
         """
         update_role = False
-
-        scope = sentry_sdk.get_isolation_scope()
 
         if "sentryOrgRole" in request.data and request.data["sentryOrgRole"]:
             role = request.data["sentryOrgRole"].lower()
@@ -578,7 +592,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         else:
             role = organization.default_role
             idp_role_restricted = False
-        scope.set_tag("role_restricted", idp_role_restricted)
+        sentry_sdk.set_tag("role_restricted", idp_role_restricted)
+        sentry_sdk.set_attribute("role_restricted", idp_role_restricted)
 
         # Allow any role as long as it doesn't have `org:admin` permissions
         allowed_roles = {role for role in roles.get_all() if not role.has_scope("org:admin")}
@@ -586,10 +601,12 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         # Check for roles not found
         # TODO: move this to the serializer verification
         if role not in {role.id for role in allowed_roles}:
-            scope.set_tag("invalid_role_selection", True)
+            sentry_sdk.set_tag("invalid_role_selection", True)
+            sentry_sdk.set_attribute("invalid_role_selection", True)
             raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
 
-        scope.set_tag("invalid_role_selection", False)
+        sentry_sdk.set_tag("invalid_role_selection", False)
+        sentry_sdk.set_attribute("invalid_role_selection", False)
         serializer = OrganizationMemberRequestSerializer(
             data={
                 "email": request.data.get("userName"),
@@ -607,8 +624,12 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 ("is already a member" in error) for error in serializer.errors["email"]
             ):
                 # we include conflict logic in the serializer, check to see if that was
-                # our error and if so, return a 409 so the scim IDP knows how to handle
-                raise SCIMApiError(detail=SCIM_409_USER_EXISTS, status_code=409)
+                # our error and if so, return a 409 so the scim IDP knows how to handle.
+                # "uniqueness" tells a spec-compliant IdP this is a duplicate so it can
+                # fall back from POST to PATCH/PUT against the existing member.
+                raise SCIMApiError(
+                    detail=SCIM_409_USER_EXISTS, status_code=409, scim_type="uniqueness"
+                )
             if "role" in serializer.errors:
                 # TODO: Change this to an error pointing to a doc showing the workaround if they
                 # tried to provision an org admin
@@ -669,8 +690,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         if update_role:
             metrics.incr("sentry.scim.member.update_role", tags={"organization": organization})
 
-        context = serialize(
+        body: OrganizationMemberSCIMSerializerResponse = serialize(
             member,
             serializer=_scim_member_serializer_with_expansion(organization),
         )
-        return Response(context, status=201)
+        return Response(body, status=201)

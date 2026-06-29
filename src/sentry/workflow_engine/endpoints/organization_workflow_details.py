@@ -23,7 +23,10 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.organization_workflow_index import (
     OrganizationWorkflowEndpoint,
 )
-from sentry.workflow_engine.endpoints.serializers.workflow_serializer import WorkflowSerializer
+from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
+    WorkflowSerializer,
+    WorkflowSerializerResponse,
+)
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import Workflow
 
@@ -39,7 +42,8 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     owner = ApiOwner.ALERTS_MONITORS
 
     @extend_schema(
-        operation_id="Fetch an Alert",
+        operation_id="getOrganizationWorkflow",
+        summary="Fetch an Alert",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.WORKFLOW_ID,
@@ -53,7 +57,9 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         },
         examples=WorkflowEngineExamples.GET_WORKFLOW,
     )
-    def get(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
+    def get(
+        self, request: Request, organization: Organization, workflow: Workflow
+    ) -> Response[WorkflowSerializerResponse]:
         """
         Returns an alert.
         """
@@ -65,7 +71,8 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         return Response(serialized_workflow)
 
     @extend_schema(
-        operation_id="Update an Alert by ID",
+        operation_id="updateOrganizationWorkflow",
+        summary="Update an Alert by ID",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.WORKFLOW_ID,
@@ -80,7 +87,9 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         },
         examples=WorkflowEngineExamples.UPDATE_WORKFLOW,
     )
-    def put(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
+    def put(
+        self, request: Request, organization: Organization, workflow: Workflow
+    ) -> Response[WorkflowSerializerResponse]:
         """
         Updates an alert.
         """
@@ -112,7 +121,8 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         )
 
     @extend_schema(
-        operation_id="Delete an Alert",
+        operation_id="deleteOrganizationWorkflow",
+        summary="Delete an Alert",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.WORKFLOW_ID,

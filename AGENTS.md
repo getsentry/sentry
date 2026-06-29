@@ -51,6 +51,8 @@ That is all that is required to run `pytest`.
 
 `devservices serve` starts the development server.
 
+When the devserver is running, its full console output (all honcho-managed processes — `server`, `taskworker`, kafka consumers, webpack/watchers, etc.) is teed to `.artifacts/dev.log`, ANSI-stripped and gitignored. Agents can't see the devserver terminal, so `tail`/`grep` this file to inspect what's happening (startup, reloads, request logs, tracebacks). The file is truncated on each devserver process start (in-process granian reloads keep appending); override its path with `SENTRY_DEV_LOG_FILE`. Dev-only — this teeing lives in `sentry devserver` and is not used in production.
+
 #### Linting
 
 prek is the single entrypoint for all lint, format, and type-checking tools.

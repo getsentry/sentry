@@ -20,6 +20,7 @@ from sentry_sdk import Scope, capture_exception, capture_message, isolation_scop
 from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
+from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from sentry_sdk.transport import make_transport
 from sentry_sdk.types import Event, Hint, Log
 from sentry_sdk.utils import logger as sdk_logger
@@ -30,6 +31,7 @@ from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
+from sentry.utils.tracing import start_span
 from sentry.viewer_context import set_viewer_context_organization
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -70,6 +72,9 @@ SAMPLED_TASKS = {
     "sentry.tasks.process_buffer.process_incr": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
     "sentry.replays.tasks.delete_replay_recording_async": settings.SAMPLED_DEFAULT_RATE,
+    # Mirror the rate the ingest-replay-recordings consumer used for its
+    # per-message transaction, now that the work runs as a task.
+    "sentry.replays.tasks.process_replay_recording": settings.SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING,
     "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
     "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1
     * settings.SENTRY_BACKEND_APM_SAMPLING,
@@ -140,7 +145,9 @@ def set_current_event_project(project_id):
     scope = sentry_sdk.get_isolation_scope()
 
     scope.set_tag("processing_event_for_project", project_id)
+    scope.set_attribute("processing_event_for_project", project_id)
     scope.set_tag("project", project_id)
+    scope.set_attribute("project", project_id)
 
 
 def get_project_key():
@@ -694,7 +701,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     set_viewer_context_organization(organization.id)
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.start_span(op="other", name="bind_organization_context"):
+    with start_span(op="other", name="bind_organization_context"):
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 
@@ -754,11 +761,15 @@ def bind_ambiguous_org_context(
     check_tag_for_scope_bleed("organization.slug", MULTIPLE_ORGS_TAG)
 
     scope.set_tag("organization", MULTIPLE_ORGS_TAG)
+    scope.set_attribute("organization", MULTIPLE_ORGS_TAG)
     scope.set_tag("organization.slug", MULTIPLE_ORGS_TAG)
+    scope.set_attribute("organization.slug", MULTIPLE_ORGS_TAG)
 
     scope.set_context(
         "organization", {"multiple possible": org_slugs, "source": source or "unknown"}
     )
+    scope.set_attribute("organization.multiple_possible", org_slugs)
+    scope.set_attribute("organization.source", source or "unknown")
 
 
 def get_trace_id():
@@ -769,6 +780,13 @@ def get_trace_id():
 
 
 def set_span_attribute(data_name, value):
+    span_streaming = has_span_streaming_enabled(sentry_sdk.get_client().options)
+    if span_streaming:
+        streamed_span = sentry_sdk.traces.get_current_span()
+        if streamed_span is not None:
+            streamed_span.set_attribute(data_name, value)
+        return
+
     span = sentry_sdk.get_current_span()
     if span is not None:
         span.set_data(data_name, value)

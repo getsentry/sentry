@@ -1,10 +1,15 @@
 import logging
-from typing import Any, TypedDict
+from typing import Any
 
 from sentry.api.client import ApiClient, ApiError
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.seer.sentry_data_models import (
+    MetricMetadataErrorResponse,
+    MetricMetadataRow,
+    MetricMetadataSuccessResponse,
+)
 from sentry.snuba.referrer import Referrer
 
 logger = logging.getLogger(__name__)
@@ -13,13 +18,6 @@ API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
 
 # Upper bound on how many substrings a caller may pass in a single request.
 MAX_SUBSTRINGS = 8
-
-
-class MetricMetadataRow(TypedDict):
-    name: str
-    type: str
-    unit: str
-    count: int
 
 
 def _build_or_query(name_substrings: list[str]) -> str:
@@ -48,7 +46,7 @@ def get_metric_metadata(
     name_substrings: list[str],
     stats_period: str = "7d",
     limit: int = 20,
-) -> dict[str, Any]:
+) -> MetricMetadataSuccessResponse | MetricMetadataErrorResponse:
     """
     Return distinct (metric.name, metric.type, metric.unit) tuples matching any of
     the given name substrings, ordered by event count descending.
@@ -79,17 +77,19 @@ def get_metric_metadata(
     """
     substrings = [s for s in (name_substrings or []) if s][:MAX_SUBSTRINGS]
     if not substrings:
-        return {"candidates": [], "has_more": False}
+        return MetricMetadataSuccessResponse(candidates=[], has_more=False)
 
     query = _build_or_query(substrings)
     if not query:
-        return {"candidates": [], "has_more": False}
+        return MetricMetadataSuccessResponse(candidates=[], has_more=False)
 
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
         logger.warning("get_metric_metadata: organization not found", extra={"org_id": org_id})
-        return {"candidates": [], "has_more": False, "error": "organization_not_found"}
+        return MetricMetadataErrorResponse(
+            candidates=[], has_more=False, error="organization_not_found"
+        )
 
     # Over-fetch by 1 to detect has_more.
     per_page = max(1, limit) + 1
@@ -128,7 +128,9 @@ def get_metric_metadata(
                 "body_prefix": str(getattr(e, "body", None))[:500],
             },
         )
-        return {"candidates": [], "has_more": False, "error": "events_query_failed"}
+        return MetricMetadataErrorResponse(
+            candidates=[], has_more=False, error="events_query_failed"
+        )
 
     raw_rows = (resp.data or {}).get("data") or []
 
@@ -160,4 +162,4 @@ def get_metric_metadata(
             )
         )
 
-    return {"candidates": candidates[:limit], "has_more": has_more}
+    return MetricMetadataSuccessResponse(candidates=candidates[:limit], has_more=has_more)

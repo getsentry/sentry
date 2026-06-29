@@ -7,6 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconSlashForward} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -28,21 +29,23 @@ export interface Crumb {
   to?: LinkProps['to'] | null;
 }
 
-interface BreadcrumbsProps extends React.HTMLAttributes<HTMLDivElement> {
+interface BreadcrumbsProps extends React.HTMLAttributes<HTMLElement> {
   crumbs: Crumb[];
+  as?: 'nav';
 }
 
 /**
  * Page breadcrumbs used for navigation, not to be confused with sentry's event breadcrumbs
  */
-export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
+export function Breadcrumbs({crumbs, as, ...props}: BreadcrumbsProps) {
   if (crumbs.length === 0) {
     return null;
   }
 
   return (
     <Flex
-      as="nav"
+      as={as ?? 'span'}
+      aria-label={as === 'nav' ? t('Breadcrumbs') : undefined}
       gap="xs"
       align="center"
       padding="md 0"
@@ -57,7 +60,7 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
               variant={index === crumbs.length - 1 ? 'primary' : 'muted'}
             />
             {index < crumbs.length - 1 ? (
-              <Flex align="center" justify="center" flexShrink={0}>
+              <Flex as="span" align="center" justify="center" flexShrink={0}>
                 <IconSlashForward size="xs" variant="muted" />
               </Flex>
             ) : null}

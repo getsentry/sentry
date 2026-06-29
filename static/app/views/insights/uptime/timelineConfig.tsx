@@ -48,21 +48,21 @@ export const reasonToText: Record<
 
 export const tickStyle: TickStyle<CheckStatus> = theme => ({
   [CheckStatus.SUCCESS]: {
-    labelColor: theme.colors.green500,
-    tickColor: theme.colors.green400,
+    labelColor: theme.tokens.content.success,
+    tickColor: theme.tokens.dataviz.semantic.good,
   },
   [CheckStatus.FAILURE]: {
-    labelColor: theme.colors.red500,
-    tickColor: theme.colors.red400,
-    hatchTick: theme.colors.red200,
+    labelColor: theme.tokens.content.danger,
+    tickColor: theme.tokens.dataviz.semantic.bad,
+    hatchTick: theme.tokens.border.danger.muted,
   },
   [CheckStatus.FAILURE_INCIDENT]: {
-    labelColor: theme.colors.red500,
-    tickColor: theme.colors.red400,
+    labelColor: theme.tokens.content.danger,
+    tickColor: theme.tokens.dataviz.semantic.bad,
   },
   [CheckStatus.MISSED_WINDOW]: {
-    labelColor: theme.colors.gray500,
-    tickColor: theme.colors.gray400,
-    hatchTick: theme.colors.gray200,
+    labelColor: theme.tokens.content.secondary,
+    tickColor: theme.tokens.dataviz.semantic.neutral,
+    hatchTick: theme.tokens.border.neutral.muted,
   },
 });

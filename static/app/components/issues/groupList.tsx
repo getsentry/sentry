@@ -35,6 +35,7 @@ export type GroupListColumn =
   | 'event'
   | 'users'
   | 'priority'
+  | 'progress'
   | 'assignee'
   | 'lastTriggered'
   | 'firstSeen'

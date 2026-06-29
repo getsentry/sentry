@@ -17,6 +17,7 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger,
 )
 from sentry.incidents.models.alert_rule import AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.incidents.serializers.utils import validate_object_ids_belong
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger_action,
 )
@@ -85,11 +86,18 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer[AlertRuleTrigger]):
     ) -> None:
         channel_lookup_timeout_error = None
         if actions is not None:
+            action_ids = validate_object_ids_belong(
+                "actions",
+                [x["id"] for x in actions if "id" in x],
+                AlertRuleTriggerAction.objects.filter(alert_rule_trigger=alert_rule_trigger),
+                "Action IDs do not belong to this trigger",
+            )
+
             # Delete actions we don't have present in the updated data.
-            action_ids = [x["id"] for x in actions if "id" in x]
             actions_to_delete = AlertRuleTriggerAction.objects.filter(
                 alert_rule_trigger=alert_rule_trigger
             ).exclude(id__in=action_ids)
+
             for action in actions_to_delete:
                 with transaction.atomic(router.db_for_write(AlertRuleTriggerAction)):
                     dual_delete_migrated_alert_rule_trigger_action(action)

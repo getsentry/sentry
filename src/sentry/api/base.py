@@ -23,7 +23,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
-from sentry import analytics, options, tsdb
+# I don't know why, but unless we declare these loggers earlier, we run into
+# circular import errors.
+logger = logging.getLogger(__name__)
+audit_logger = logging.getLogger("sentry.audit.api")
+api_access_logger = logging.getLogger("sentry.access.api")
+
+from sentry import analytics, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -47,6 +53,7 @@ from sentry.utils.http import (
     origin_from_request,
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
+from sentry.utils.tracing import set_span_data, start_span
 
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
@@ -97,10 +104,6 @@ DEFAULT_AUTHENTICATION = (
     ViewerContextAuthentication,
     SessionAuthentication,
 )
-
-logger = logging.getLogger(__name__)
-audit_logger = logging.getLogger("sentry.audit.api")
-api_access_logger = logging.getLogger("sentry.access.api")
 
 
 def allow_cors_options(func):
@@ -175,7 +178,7 @@ def apply_cors_headers(
     # If the requesting origin is a subdomain of
     # the application's base-hostname we should allow cookies
     # to be sent.
-    basehost = options.get("system.base-hostname")
+    basehost = settings.SENTRY_BASE_HOSTNAME
     if basehost and origin:
         if "," not in origin and (
             origin.endswith(("://" + basehost, "." + basehost))
@@ -370,7 +373,7 @@ class Endpoint(APIView):
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
         """
-        with sentry_sdk.start_span(op="base.dispatch.setup", name=type(self).__name__):
+        with start_span(op="base.dispatch.setup", name=type(self).__name__):
             self.args = args
             self.kwargs = kwargs
             request = self.initialize_request(request, *args, **kwargs)
@@ -383,6 +386,9 @@ class Endpoint(APIView):
 
         if request.META.get("HTTP_REFERER"):
             sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER"))
+            sentry_sdk.get_isolation_scope().set_attribute(
+                "http.referer", request.META.get("HTTP_REFERER", "")
+            )
 
         start_time = time.time()
 
@@ -393,7 +399,7 @@ class Endpoint(APIView):
             origin = None
 
         try:
-            with sentry_sdk.start_span(op="base.dispatch.request", name=type(self).__name__):
+            with start_span(op="base.dispatch.request", name=type(self).__name__):
                 if origin:
                     if request.auth:
                         allowed_origins = request.auth.get_allowed_origins()
@@ -426,7 +432,7 @@ class Endpoint(APIView):
                 else:
                     handler = self.http_method_not_allowed
 
-            with sentry_sdk.start_span(
+            with start_span(
                 op="base.dispatch.execute",
                 name=".".join(
                     getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
@@ -446,11 +452,13 @@ class Endpoint(APIView):
             duration = time.time() - start_time
 
             if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
-                with sentry_sdk.start_span(
+                with start_span(
                     op="base.dispatch.sleep",
                     name=type(self).__name__,
                 ) as span:
-                    span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
+                    set_span_data(
+                        span, "SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY
+                    )
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
         # Only enforced in dev environment
@@ -534,7 +542,7 @@ class Endpoint(APIView):
         try:
             per_page = self.get_per_page(request, default_per_page, max_per_page)
             cursor = self.get_cursor_from_request(request, cursor_cls)
-            with sentry_sdk.start_span(
+            with start_span(
                 op="base.paginate.get_result",
                 name=type(self).__name__,
             ) as span:
@@ -554,7 +562,7 @@ class Endpoint(APIView):
 
         # map results based on callback
         if on_results:
-            with sentry_sdk.start_span(
+            with start_span(
                 op="base.paginate.on_results",
                 name=type(self).__name__,
             ):

@@ -125,7 +125,8 @@ describe('IssueListOverview (actions)', () => {
 
       render(<IssueListOverview />, {organization});
 
-      const groups = await screen.findAllByTestId('group');
+      expect(await screen.findByText('Group 1')).toBeInTheDocument();
+      const groups = screen.getAllByTestId('group');
 
       await userEvent.click(
         within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
@@ -174,6 +175,7 @@ describe('IssueListOverview (actions)', () => {
       });
       renderGlobalModal();
 
+      expect(await screen.findByText('Group 1')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('checkbox', {name: /select all/i}));
 
       expect(screen.getByText('Group 1')).toBeInTheDocument();
@@ -229,7 +231,8 @@ describe('IssueListOverview (actions)', () => {
         {organization}
       );
 
-      const groups = await screen.findAllByTestId('group');
+      expect(await screen.findByText('Group 1')).toBeInTheDocument();
+      const groups = screen.getAllByTestId('group');
 
       await userEvent.click(
         within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
@@ -323,7 +326,8 @@ describe('IssueListOverview (actions)', () => {
         },
       });
 
-      const groups = await screen.findAllByTestId('group');
+      expect(await screen.findByText('Group 1')).toBeInTheDocument();
+      const groups = screen.getAllByTestId('group');
 
       await userEvent.click(
         within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
@@ -391,7 +395,8 @@ describe('IssueListOverview (actions)', () => {
         organization,
       });
 
-      const groups = await screen.findAllByTestId('group');
+      expect(await screen.findByText('Medium priority issue')).toBeInTheDocument();
+      const groups = screen.getAllByTestId('group');
 
       await userEvent.click(
         within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
@@ -485,7 +490,8 @@ describe('IssueListOverview (actions)', () => {
         },
       });
 
-      const groups = await screen.findAllByTestId('group');
+      expect(await screen.findByText('Medium priority issue')).toBeInTheDocument();
+      const groups = screen.getAllByTestId('group');
 
       await userEvent.click(
         within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
@@ -562,7 +568,8 @@ describe('IssueListOverview (actions)', () => {
         },
       });
 
-      const groups = await screen.findAllByTestId('group');
+      expect(await screen.findByText('Group 1')).toBeInTheDocument();
+      const groups = screen.getAllByTestId('group');
 
       await userEvent.click(
         within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
@@ -613,7 +620,8 @@ describe('IssueListOverview (actions)', () => {
         },
       });
 
-      const groups = await screen.findAllByTestId('group');
+      expect(await screen.findByText('Group 1')).toBeInTheDocument();
+      const groups = screen.getAllByTestId('group');
 
       await userEvent.click(
         within(groups[0]!).getByRole('checkbox', {name: /select issue/i})

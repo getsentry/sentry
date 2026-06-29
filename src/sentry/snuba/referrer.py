@@ -424,6 +424,7 @@ class Referrer(StrEnum):
     API_INSIGHTS_MCP_TRAFFIC_BY_CLIENT_WIDGET = "api.insights.mcp.traffic-by-client-widget"
     API_INSIGHTS_MCP_TRAFFIC_WIDGET = "api.insights.mcp.traffic-widget"
     API_INSIGHTS_MCP_TRANSPORT_WIDGET = "api.insights.mcp.transport-widget"
+    API_MCP_SEARCH_EVENTS = "api.mcp.search-events"
 
     # Misc
     API_INSIGHTS_ORG_EVENT_AVERAGE_SPAN = "api.insights.org-event-average-span"
@@ -500,6 +501,7 @@ class Referrer(StrEnum):
     API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
     API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
     API_AI_CONVERSATION_DETAILS = "api.ai-conversation-details"
+    API_AI_CONVERSATION_DETAILS_ISSUES = "api.ai-conversation-details.issues"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PROFILING_ONBOARDING = "profiling-onboarding"
@@ -785,9 +787,9 @@ class Referrer(StrEnum):
     FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
     EU_DATA_EXPORT = "sentry.internal.eu-compliance-data-export"
     REPORTS_KEY_ERRORS = "reports.key_errors"
+    REPORTS_KEY_ERRORS_BATCHED = "reports.key_errors.batched"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
-    REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
-    REPORTS_KEY_TRANSACTIONS = "reports.key_transactions"
+    REPORTS_PAST_RESOLVED_ISSUES = "reports.past_resolved_issues"
     REPORTS_OUTCOME_SERIES = "reports.outcome_series"
     REPORTS_OUTCOMES = "reports.outcomes"
     REPROCESSING2_REPROCESS_GROUP = "reprocessing2.reprocess_group"
@@ -939,9 +941,6 @@ class Referrer(StrEnum):
 
     UNKNOWN = "unknown"
     UNMERGE = "unmerge"
-    WEEKLY_REPORTS_KEY_TRANSACTIONS_LAST_WEEK = "weekly_reports.key_transactions.last_week"
-    WEEKLY_REPORTS_KEY_TRANSACTIONS_THIS_WEEK = "weekly_reports.key_transactions.this_week"
-    WEEKLY_REPORTS_OUTCOMES = "weekly_reports.outcomes"
 
     # Referrers used in the migration script for alerts
     ALERTS_MIGRATION_SCRIPT = "alerts.migration_script"

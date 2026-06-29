@@ -69,7 +69,9 @@ class RegressionDetector(ABC):
     @classmethod
     def configure_tags(cls):
         sentry_sdk.set_tag("regression.source", cls.source)
+        sentry_sdk.set_attribute("regression.source", cls.source)
         sentry_sdk.set_tag("regression.kind", cls.source)
+        sentry_sdk.set_attribute("regression.kind", cls.source)
 
     @classmethod
     @abstractmethod

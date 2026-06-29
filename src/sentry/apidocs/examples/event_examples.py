@@ -626,7 +626,8 @@ class EventExamples:
                 {
                     "id": "53aa54ab27474eaab1fc1d0f7f86d2f1",
                     "latestEvent": EVENT_RESPONSE,
-                    "mergedBySeer": False,
+                    "mergedBySeer": True,
+                    "seerMatchDistance": 0.01,
                 }
             ],
             response_only=True,

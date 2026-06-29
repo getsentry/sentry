@@ -185,6 +185,14 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="*",
                     function_pattern="**SentryCoreDataTracker**",
                 ),
+                # CPPExceptionTerminate is our std::terminate handler installed by
+                # SentryCrashMonitor_CPPException. It captures crash reports for unhandled
+                # C++ exceptions but doesn't cause them. The crashes originate in system/app
+                # code (Metal GPU drivers, pthread cleanup, objc_exception_rethrow).
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**CPPExceptionTerminate**",
+                ),
             },
         )
         configs.append(cocoa_config)

@@ -16,21 +16,17 @@ def find_base_snapshot_artifact(
     artifact_type: str | None,
     build_configuration: PreprodBuildConfiguration | None,
 ) -> PreprodArtifact | None:
-    return (
-        PreprodArtifact.objects.filter(
-            commit_comparison__organization_id=organization_id,
-            commit_comparison__head_sha=base_sha,
-            commit_comparison__head_repo_name=base_repo_name,
-            project_id=project_id,
-            preprodsnapshotmetrics__isnull=False,
-            preprodsnapshotmetrics__is_selective=False,
-            app_id=app_id,
-            artifact_type=artifact_type,
-            build_configuration=build_configuration,
-        )
-        .order_by("-date_added")
-        .first()
+    qs = PreprodArtifact.objects.filter(
+        commit_comparison__organization_id=organization_id,
+        commit_comparison__head_sha=base_sha,
+        commit_comparison__head_repo_name=base_repo_name,
+        project_id=project_id,
+        preprodsnapshotmetrics__isnull=False,
+        app_id=app_id,
+        artifact_type=artifact_type,
+        build_configuration=build_configuration,
     )
+    return qs.order_by("-date_added").first()
 
 
 def find_head_snapshot_artifacts_awaiting_base(

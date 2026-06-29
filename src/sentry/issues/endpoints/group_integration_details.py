@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
@@ -15,7 +15,10 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.constants import CELL_API_DEPRECATION_DATE
-from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
+from sentry.integrations.api.serializers.models.integration import (
+    IntegrationSerializer,
+    IntegrationSerializerResponse,
+)
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -26,9 +29,8 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.issues.action_log import (
-    SYSTEM_ACTOR,
-    GroupActionActor,
     publish_action,
+    resolve_action_actor,
     resolve_action_source,
 )
 from sentry.issues.action_log.types import (
@@ -54,14 +56,15 @@ from sentry.users.services.user.model import RpcUser
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
 
+class IntegrationIssueConfigResponse(IntegrationSerializerResponse, total=False):
+    # Exactly one of these is present on a given response, selected by the `action`
+    # query param: `linkIssueConfig` for `link`, `createIssueConfig` for `create`.
+    linkIssueConfig: list[dict[str, Any]]
+    createIssueConfig: list[dict[str, Any]]
+
+
 class IntegrationIssueConfigSerializer(IntegrationSerializer):
-    def __init__(
-        self,
-        group: Group,
-        action: str,
-        config: Mapping[str, Any],
-    ) -> None:
-        self.group = group
+    def __init__(self, action: str, config: list[dict[str, Any]]) -> None:
         self.action = action
         self.config = config
 
@@ -71,15 +74,11 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> MutableMapping[str, Any]:
-        data = super().serialize(obj, attrs, user)
-
+    ) -> IntegrationIssueConfigResponse:
+        base = super().serialize(obj, attrs, user)
         if self.action == "link":
-            data["linkIssueConfig"] = self.config
-        if self.action == "create":
-            data["createIssueConfig"] = self.config
-
-        return data
+            return {**base, "linkIssueConfig": self.config}
+        return {**base, "createIssueConfig": self.config}
 
 
 @cell_silo_endpoint
@@ -142,7 +141,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             serialize(
                 integration,
                 request.user,
-                IntegrationIssueConfigSerializer(group, action, config),
+                IntegrationIssueConfigSerializer(action, config),
                 organization_id=organization_id,
             )
         )
@@ -246,13 +245,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             ),
             source=resolve_action_source(request),
             group_id=group.id,
-            organization_id=organization_id,
-            project_id=group.project_id,
-            actor=(
-                GroupActionActor.user(request.user.id)
-                if request.user.is_authenticated
-                else SYSTEM_ACTOR
-            ),
+            project=group.project,
+            actor=resolve_action_actor(request),
         )
 
         # TODO(jess): return serialized issue
@@ -365,13 +359,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             ),
             source=resolve_action_source(request),
             group_id=group.id,
-            organization_id=organization_id,
-            project_id=group.project_id,
-            actor=(
-                GroupActionActor.user(request.user.id)
-                if request.user.is_authenticated
-                else SYSTEM_ACTOR
-            ),
+            project=group.project,
+            actor=resolve_action_actor(request),
         )
 
         # TODO(jess): would be helpful to return serialized external issue
@@ -441,13 +430,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 ),
                 source=resolve_action_source(request),
                 group_id=group.id,
-                organization_id=organization_id,
-                project_id=group.project_id,
-                actor=(
-                    GroupActionActor.user(request.user.id)
-                    if request.user.is_authenticated
-                    else SYSTEM_ACTOR
-                ),
+                project=group.project,
+                actor=resolve_action_actor(request),
             )
 
         return Response(status=204)
