@@ -315,6 +315,7 @@ class SafeRolloutComparator:
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
         debug_context: dict[str, Any] | None = None,
         data_serializer: Callable[[TData], Any] | None = None,
+        metric_sample_rate: float = 0.1,
     ) -> None:
         """
         Compare control & experimental data, emit metrics, and log mismatches. Use this directly
@@ -339,6 +340,7 @@ class SafeRolloutComparator:
         * debug_context: Optional structured metadata included on mismatch logs.
         * data_serializer: Optional serializer for control/experimental payloads in logs. Defaults
             to `_default_serialize_for_log`.
+        * metric_sample_rate: Optional override for the sample rate of the comparison metric.
         """
         is_exact_match = control_data == experimental_data
         is_reasonable_match: bool | None = None
@@ -394,7 +396,7 @@ class SafeRolloutComparator:
         if getattr(cls, "use_legacy_comparison_metric_name", None):
             metrics.incr("SafeRolloutComparator.check_and_choose", tags=tags)
         else:
-            metrics.incr("SafeRolloutComparator.compare", tags=tags)
+            metrics.incr("SafeRolloutComparator.compare", sample_rate=metric_sample_rate, tags=tags)
 
     @classmethod
     def check_and_choose(
@@ -406,6 +408,7 @@ class SafeRolloutComparator:
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
         debug_context: dict[str, Any] | None = None,
         data_serializer: Callable[[TData], Any] | None = None,
+        metric_sample_rate: float = 0.1,
     ) -> TData:
         """
         Compare control & experimental data (via `compare`), then return whichever branch should be
@@ -423,6 +426,7 @@ class SafeRolloutComparator:
             reasonable_match_comparator=reasonable_match_comparator,
             debug_context=debug_context,
             data_serializer=data_serializer,
+            metric_sample_rate=metric_sample_rate,
         )
         return experimental_data if use_experimental_data else control_data
 
@@ -436,6 +440,7 @@ class SafeRolloutComparator:
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
         debug_context: dict[str, Any] | None = None,
         data_serializer: Callable[[TData], Any] | None = None,
+        metric_sample_rate: float = 0.1,
     ) -> TData:
         """
         This method is a wrapper for `check_and_choose` which also captures timing information for
@@ -451,6 +456,7 @@ class SafeRolloutComparator:
 
         with metrics.timer(
             "SafeRolloutComparator.check_and_choose_with_timings",
+            sample_rate=metric_sample_rate,
             tags={
                 "rollout_name": cls.ROLLOUT_NAME,
                 "callsite": callsite,
@@ -461,6 +467,7 @@ class SafeRolloutComparator:
 
         with metrics.timer(
             "SafeRolloutComparator.check_and_choose_with_timings",
+            sample_rate=metric_sample_rate,
             tags={
                 "rollout_name": cls.ROLLOUT_NAME,
                 "callsite": callsite,
@@ -481,4 +488,5 @@ class SafeRolloutComparator:
             reasonable_match_comparator=reasonable_match_comparator,
             debug_context=debug_context,
             data_serializer=data_serializer,
+            metric_sample_rate=metric_sample_rate,
         )

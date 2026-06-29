@@ -25,12 +25,13 @@ describe('ScmAlertFrequencySection', () => {
     renderSection({analyticsFlow: 'project-creation'});
 
     const toggle = screen.getByRole('button', {name: 'Alert frequency'});
-    expect(screen.getByText('Get notified when things go wrong')).toBeInTheDocument();
+    // Starts collapsed in project creation: the body is hidden until opened.
+    expect(
+      screen.queryByRole('radiogroup', {name: 'Alert frequency'})
+    ).not.toBeInTheDocument();
 
     await userEvent.click(toggle);
-    expect(
-      screen.queryByText('Get notified when things go wrong')
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', {name: 'Alert frequency'})).toBeInTheDocument();
   });
 
   it('keeps the alert-frequency section always expanded in onboarding', () => {

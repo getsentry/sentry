@@ -110,6 +110,12 @@ def test_quotas_to_json(obj, json) -> None:
     assert obj.to_json() == json
 
 
+def test_quota_config_repr() -> None:
+    quota = QuotaConfig(id="o", limit=4711, window=42, reason_code="not_so_fast")
+
+    assert repr(quota) == str(quota.to_json())
+
+
 def test_seat_assignable_must_have_reason() -> None:
     with pytest.raises(ValueError):
         SeatAssignmentResult(assignable=False)

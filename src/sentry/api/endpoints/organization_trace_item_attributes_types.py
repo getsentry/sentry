@@ -12,14 +12,19 @@ class TraceItemAttributeContext(TypedDict):
 
     When ``expand=context`` is requested, context is attached to every
     attribute. Today the metadata is sourced from the sentry conventions
-    (``sentry_conventions.attributes.ATTRIBUTE_METADATA``), so attributes that
-    map to a known convention carry that metadata (only the fields actually
-    present are included) while custom attributes get an empty context. Serving
-    context for custom attributes is planned (gated behind the
+    (``sentry_conventions.attributes.ATTRIBUTE_METADATA``), matched by attribute
+    name (and type when known) regardless of the attribute's source, so any
+    attribute that maps to a known convention carries that metadata (only the
+    fields actually present are included) while the rest get an empty context.
+    Serving context for custom attributes is planned (gated behind the
     ``data-browsing-attribute-context`` feature), at which point the empty
     contexts will start to be populated.
     """
 
+    # Whether this context comes from a known sentry convention. Present (and
+    # True) for a known convention. Lets clients distinguish sentry-convention
+    # context from custom (user-authored) context once the latter is served.
+    isConvention: NotRequired[bool]
     # A short, human-readable description of the attribute. Present for a known
     # convention.
     brief: NotRequired[str]

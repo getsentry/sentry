@@ -236,11 +236,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         user_query: str,
         sampling_mode: SAMPLING_MODES = "NORMAL",
     ) -> list[dict]:
-        base_filter = (
-            "has:gen_ai.conversation.id"
-            " (has:gen_ai.input.messages OR has:gen_ai.request.messages)"
-            " (has:gen_ai.output.messages OR has:gen_ai.response.text)"
-        )
+        base_filter = "has:gen_ai.conversation.id has:gen_ai.operation.type"
         query_string = _build_conversation_query(base_filter, user_query)
 
         conversation_ids_results = self._fetch_conversation_ids(

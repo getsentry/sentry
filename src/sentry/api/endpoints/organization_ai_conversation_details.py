@@ -1,3 +1,4 @@
+import logging
 from dataclasses import replace
 from datetime import datetime, timedelta
 
@@ -19,7 +20,10 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace import SpanIssueMeta, get_issues_by_span_for_traces
 from sentry.utils.dates import parse_stats_period
+
+logger = logging.getLogger(__name__)
 
 MAX_RETENTION_DAYS = 30
 
@@ -103,7 +107,9 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 )
 
             def data_fn(offset: int, limit: int) -> list:
-                return self._fetch_spans(resolved_params, conversation_id, offset, limit)
+                spans = self._fetch_spans(resolved_params, conversation_id, offset, limit)
+                self._annotate_issues(spans, resolved_params, organization)
+                return spans
 
             return self.paginate(
                 request=request,
@@ -142,6 +148,65 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 steps.append(step)
 
         return [replace(base_params, start=now - delta, end=now) for delta in steps]
+
+    @sentry_sdk.trace
+    def _annotate_issues(
+        self,
+        spans: list[dict],
+        snuba_params: SnubaParams,
+        organization: Organization,
+    ) -> None:
+        """Attach linked error/occurrence issues to each span, keyed by span id.
+
+        Best-effort: a failure to resolve issues must not break listing the conversation
+        spans, so each span always ends up with ``errors``/``occurrences`` arrays.
+        """
+        for span in spans:
+            span.setdefault("errors", [])
+            span.setdefault("occurrences", [])
+
+        if not spans:
+            return
+
+        span_meta_by_id: dict[str, SpanIssueMeta] = {}
+        trace_ids: list[str] = []
+        for span in spans:
+            span_id = span.get("span_id")
+            if not span_id:
+                continue
+            span_meta_by_id[span_id] = SpanIssueMeta(
+                start_timestamp=span.get("precise.start_ts", 0.0),
+                end_timestamp=span.get("precise.finish_ts", 0.0),
+                project_slug=span.get("project", ""),
+                transaction=span.get("transaction", ""),
+            )
+            trace = span.get("trace")
+            if trace:
+                trace_ids.append(trace)
+
+        if not trace_ids:
+            return
+
+        try:
+            issues_by_span = get_issues_by_span_for_traces(
+                snuba_params=snuba_params,
+                trace_ids=trace_ids,
+                organization=organization,
+                referrer=Referrer.API_AI_CONVERSATION_DETAILS_ISSUES.value,
+                span_meta_by_id=span_meta_by_id,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to resolve issues for AI conversation spans",
+                extra={"organization_id": organization.id},
+            )
+            return
+
+        for span in spans:
+            bucket = issues_by_span.get(span.get("span_id", ""))
+            if bucket:
+                span["errors"] = bucket["errors"]
+                span["occurrences"] = bucket["occurrences"]
 
     @sentry_sdk.trace
     def _fetch_spans(

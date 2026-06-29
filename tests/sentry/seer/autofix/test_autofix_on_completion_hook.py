@@ -402,6 +402,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         """Tests webhook sending for all artifact-based step types."""
         state = MagicMock()
         run_id = 123
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=run_id)
 
         class TestCaseDict(TypedDict):
             block: MemoryBlock
@@ -432,6 +433,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 assert call_kwargs["resource_name"] == "seer"
                 assert call_kwargs["organization_id"] == self.organization.id
                 assert call_kwargs["payload"]["run_id"] == run_id
+                assert call_kwargs["payload"]["sentry_run_id"] == str(seer_run.uuid)
             assert call_kwargs["event_name"] == test_case["expected_event"].value
             assert (
                 call_kwargs["payload"][test_case["expected_payload_key"]]

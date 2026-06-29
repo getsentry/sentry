@@ -17,7 +17,7 @@ const LEARN_MORE = 'Learn More';
 const COLORS = {
   [INSTALLED]: 'success',
   [NOT_INSTALLED]: 'secondary',
-  [DISABLED]: 'secondary',
+  [DISABLED]: 'warning',
   [PENDING_DELETION]: 'secondary',
   [PENDING]: 'promotion',
   [LEARN_MORE]: 'primary',

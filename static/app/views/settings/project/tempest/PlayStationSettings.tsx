@@ -36,7 +36,7 @@ interface Props {
 }
 
 export function PlayStationSettings({organization, project}: Props) {
-  const hasWriteAccess = useHasTempestWriteAccess();
+  const hasWriteAccess = useHasTempestWriteAccess(project);
   const navigate = useNavigate();
   const location = useLocation();
 
