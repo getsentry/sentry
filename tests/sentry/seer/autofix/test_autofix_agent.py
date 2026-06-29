@@ -20,6 +20,7 @@ from sentry.seer.autofix.autofix_agent import (
     build_step_prompt,
     generate_autofix_handoff_prompt,
     get_iteration_for_insert_index,
+    get_iterations,
     get_latest_iteration_index,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
@@ -275,6 +276,14 @@ def _iteration_block(iteration_index: int | None = None) -> MemoryBlock:
     )
 
 
+def _plain_block(id: str, role: str = "assistant") -> MemoryBlock:
+    return MemoryBlock(
+        id=id,
+        message=Message(role=role, content="content"),
+        timestamp="2024-01-01T00:00:00Z",
+    )
+
+
 def _state_with_blocks(
     blocks: list[MemoryBlock],
     group_id: int | None = None,
@@ -291,6 +300,52 @@ def _state_with_blocks(
 
 
 class TestIterationHelpers(TestCase):
+    def test_get_iterations_returns_empty_without_iterations(self) -> None:
+        state = _state_with_blocks([])
+        assert get_iterations(state) == []
+
+    def test_get_iterations_returns_index_and_start_index(self) -> None:
+        state = _state_with_blocks(
+            [
+                MemoryBlock(
+                    id="block-0",
+                    message=Message(role="assistant", content="not iteration"),
+                    timestamp="2024-01-01T00:00:00Z",
+                ),
+                _iteration_block(1),
+                _iteration_block(2),
+            ]
+        )
+
+        iterations = get_iterations(state)
+
+        assert [(it.index, it.start_index) for it in iterations] == [(1, 1), (2, 2)]
+
+    def test_get_iterations_captures_following_blocks(self) -> None:
+        state = _state_with_blocks(
+            [
+                _plain_block("before"),
+                _iteration_block(1),
+                _plain_block("a1"),
+                _plain_block("a2"),
+                _iteration_block(2),
+                _plain_block("b1"),
+            ]
+        )
+
+        iterations = get_iterations(state)
+
+        assert [it.index for it in iterations] == [1, 2]
+        assert [[b.id for b in it.blocks] for it in iterations] == [
+            ["block-1", "a1", "a2"],
+            ["block-2", "b1"],
+        ]
+
+    def test_get_iterations_missing_iteration_index_raises(self) -> None:
+        state = _state_with_blocks([_iteration_block()])
+        with pytest.raises(AssertionError):
+            get_iterations(state)
+
     def test_get_latest_iteration_index_returns_zero_without_iterations(self) -> None:
         state = _state_with_blocks([])
         assert get_latest_iteration_index(state) == 0
