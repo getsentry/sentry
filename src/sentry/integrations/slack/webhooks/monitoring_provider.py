@@ -289,6 +289,7 @@ def handle_monitoring_provider_submission(
             slack_request=slack_request,
             provider_key=provider_key,
             channel_id=channel_id,
+            thread_ts=private_metadata.get("thread_ts"),
         )
     except SlackApiError:
         logger.exception("slack.monitoring_provider.ephemeral_failed")
@@ -315,6 +316,7 @@ def _send_success_ephemeral(
     slack_request: SlackActionRequest,
     provider_key: str,
     channel_id: str | None,
+    thread_ts: str | None = None,
 ) -> None:
     """Send an ephemeral success message after connecting a provider."""
     provider_meta = MONITORING_PROVIDERS.get(provider_key, {})
@@ -324,12 +326,16 @@ def _send_success_ephemeral(
     if not channel_id or not user_id:
         return
 
+    kwargs: dict[str, Any] = {
+        "channel": channel_id,
+        "user": user_id,
+        "text": f"Connected {provider_name}. Seer can now query {provider_name} data in this org.",
+    }
+    if thread_ts:
+        kwargs["thread_ts"] = thread_ts
+
     slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
-    slack_client.chat_postEphemeral(
-        channel=channel_id,
-        user=user_id,
-        text=f"Connected {provider_name}. Seer can now query {provider_name} data in this org.",
-    )
+    slack_client.chat_postEphemeral(**kwargs)
 
 
 def _get_orgs_with_feature(user_id: int, integration_id: int) -> list[tuple[int, str]]:
