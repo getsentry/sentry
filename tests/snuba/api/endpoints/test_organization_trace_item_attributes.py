@@ -104,6 +104,10 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
             )
             return self.client.get(url, query, format="json", **kwargs)
 
+    def test_invalid_query_returns_400(self) -> None:
+        response = self.do_request(query={"query": "trace:nope", "project": self.project.id})
+        assert response.status_code == 400, response.content
+
 
 class OrganizationTraceItemAttributesEndpointLogsTest(
     OrganizationTraceItemAttributesEndpointTestBase, OurLogTestCase
