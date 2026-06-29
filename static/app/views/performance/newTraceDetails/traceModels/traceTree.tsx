@@ -173,6 +173,7 @@ export declare namespace TraceTree {
     browser_web_vital?: Record<string, number>;
     description?: string;
     measurements?: Record<string, number>;
+    mobile_app_vital?: Record<string, number>;
   };
 
   type UptimeCheck = {

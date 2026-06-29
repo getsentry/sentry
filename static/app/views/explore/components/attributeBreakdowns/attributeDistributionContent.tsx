@@ -1,6 +1,6 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {useQueryState} from 'nuqs';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
@@ -11,10 +11,10 @@ import {Panel} from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {parseCursor} from 'sentry/utils/cursor';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -23,11 +23,14 @@ import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAt
 import {useAttributeBreakdowns} from 'sentry/views/explore/hooks/useAttributeBreakdowns';
 import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParams,
+  useSetQueryParams,
+} from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
 import {Chart} from './attributeDistributionChart';
-import {CHART_SELECTION_ALERT_KEY, CHARTS_PER_PAGE} from './constants';
+import {CHART_SELECTION_ALERT_KEY} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 import {tooltipActionsHtmlRenderer} from './utils';
 
@@ -36,23 +39,12 @@ export type AttributeDistribution = Array<{
   values: Array<{label: string; value: number}>;
 }>;
 
-type PaginationState = {
-  cursor: string | undefined;
-  page: number;
-};
-
 export function AttributeDistribution() {
-  const [searchQuery, setSearchQuery] = useQueryState('attributeBreakdownsSearch');
+  const {breakdownCursor, breakdownQuery, query} = useQueryParams();
+  const setQueryParams = useSetQueryParams();
+  const searchQuery = breakdownQuery ?? '';
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 200);
 
-  // Little unconventional, but the /trace-items/stats/ endpoint but recommends fetching
-  // more data than we need to display the current page. We maintain a cursor to fetch the next page,
-  // and a page index to display the current page, from the accumulated data.
-  const [pagination, setPagination] = useState<PaginationState>({
-    cursor: undefined,
-    page: 0,
-  });
-
-  const query = useQueryParamsQuery();
   const onAction = useAttributeBreakdownsTooltipAction();
 
   const dataset = useSpansDataset();
@@ -78,30 +70,24 @@ export function AttributeDistribution() {
     isLoading: isCohortCountLoading,
     error: cohortCountError,
     refetch: refetchCohortCount,
-  } = useApiQuery<{data: Array<{'count()': number}>}>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery({
+    ...apiOptions.as<{data: Array<{'count()': number}>}>()(
+      '/organizations/$organizationIdOrSlug/events/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           ...cohortCountEventView.getEventsAPIPayload(location),
           per_page: 1,
           disableAggregateExtrapolation: '1',
           sampling: SAMPLING_MODE.NORMAL,
         },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
 
-  const cohortCount = cohortCountResponse?.data?.[0]?.['count()'] ?? 0;
-
-  // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 200);
+  const cohortCount = cohortCountResponse?.json?.data?.[0]?.['count()'] ?? 0;
 
   const {
     data: attributeBreakdownsData,
@@ -109,7 +95,7 @@ export function AttributeDistribution() {
     isLoading: isAttributeBreakdownsLoading,
     error: attributeBreakdownsError,
   } = useAttributeBreakdowns({
-    cursor: pagination.cursor,
+    cursor: breakdownCursor,
     substringMatch: debouncedSearchQuery,
   });
 
@@ -121,11 +107,6 @@ export function AttributeDistribution() {
       refetchCohortCount();
     }
   }, [attributeBreakdownsData, isAttributeBreakdownsLoading, refetchCohortCount]);
-
-  // Reset pagination on any query change
-  useEffect(() => {
-    setPagination({cursor: undefined, page: 0});
-  }, [debouncedSearchQuery, selection, query]);
 
   const parsedLinks = parseLinkHeader(attributeBreakdownsPageLinks);
 
@@ -162,10 +143,13 @@ export function AttributeDistribution() {
         <AttributeBreakdownsComponent.ControlsContainer>
           <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search keys')}
-            onChange={q => {
-              setSearchQuery(q);
+            onChange={value => {
+              setQueryParams({
+                breakdownQuery: value,
+                breakdownCursor: null,
+              });
             }}
-            query={debouncedSearchQuery}
+            query={searchQuery}
             size="sm"
           />
           <AttributeBreakdownsComponent.FeedbackButton />
@@ -177,48 +161,39 @@ export function AttributeDistribution() {
         ) : uniqueAttributeDistribution.length > 0 ? (
           <Fragment>
             <AttributeBreakdownsComponent.ChartsGrid>
-              {uniqueAttributeDistribution
-                .slice(
-                  pagination.page * CHARTS_PER_PAGE,
-                  (pagination.page + 1) * CHARTS_PER_PAGE
-                )
-                .map(distribution => (
-                  <Chart
-                    key={distribution.attributeName}
-                    attributeDistribution={distribution}
-                    cohortCount={cohortCount}
-                    theme={theme}
-                    query={query}
-                    actions={{
-                      htmlRenderer: (value: string) =>
-                        tooltipActionsHtmlRenderer(
-                          value,
-                          distribution.attributeName,
-                          theme
-                        ),
-                      onAction,
-                    }}
-                  />
-                ))}
+              {uniqueAttributeDistribution.map(distribution => (
+                <Chart
+                  key={distribution.attributeName}
+                  attributeDistribution={distribution}
+                  cohortCount={cohortCount}
+                  theme={theme}
+                  query={query}
+                  actions={{
+                    htmlRenderer: (value: string) =>
+                      tooltipActionsHtmlRenderer(
+                        value,
+                        distribution.attributeName,
+                        theme
+                      ),
+                    onAction,
+                  }}
+                />
+              ))}
             </AttributeBreakdownsComponent.ChartsGrid>
             <AttributeBreakdownsComponent.Pagination
-              isPrevDisabled={pagination.page === 0}
-              isNextDisabled={
-                pagination.page ===
-                Math.ceil(uniqueAttributeDistribution.length / CHARTS_PER_PAGE) - 1
-              }
+              isPrevDisabled={!parsedLinks.previous?.results}
+              isNextDisabled={!parsedLinks.next?.results}
               onPrevClick={() => {
-                setPagination({...pagination, page: pagination.page - 1});
+                setQueryParams({
+                  breakdownCursor: getPreviousBreakdownCursor(
+                    parsedLinks.previous?.cursor
+                  ),
+                });
               }}
               onNextClick={() => {
-                if (parsedLinks.next?.results) {
-                  setPagination({
-                    cursor: parsedLinks.next?.cursor,
-                    page: pagination.page + 1,
-                  });
-                } else {
-                  setPagination({...pagination, page: pagination.page + 1});
-                }
+                setQueryParams({
+                  breakdownCursor: parsedLinks.next?.cursor,
+                });
               }}
             />
           </Fragment>
@@ -228,6 +203,12 @@ export function AttributeDistribution() {
       </Flex>
     </Panel>
   );
+}
+
+function getPreviousBreakdownCursor(cursor: string | undefined) {
+  const parsedCursor = parseCursor(cursor);
+
+  return parsedCursor?.isPrev && parsedCursor.offset === 0 ? null : cursor;
 }
 
 function ChartSelectionAlert() {

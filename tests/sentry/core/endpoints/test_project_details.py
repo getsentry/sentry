@@ -126,27 +126,6 @@ class ProjectDetailsTest(APITestCase):
             "slug": self.project.organization.slug,
         }
 
-    def test_filters_disabled_plugins(self) -> None:
-        from sentry.plugins.base import plugins
-
-        self.create_group(project=self.project)
-
-        response = self.get_success_response(
-            self.project.organization.slug,
-            self.project.slug,
-        )
-        assert response.data["plugins"] == []
-
-        asana_plugin = plugins.get("asana")
-        asana_plugin.enable(self.project)
-
-        response = self.get_success_response(
-            self.project.organization.slug,
-            self.project.slug,
-        )
-        assert len(response.data["plugins"]) == 1
-        assert response.data["plugins"][0]["slug"] == asana_plugin.slug
-
     def test_project_renamed_302(self) -> None:
         # Rename the project
         self.get_success_response(

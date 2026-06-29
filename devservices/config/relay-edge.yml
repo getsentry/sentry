@@ -14,7 +14,10 @@
 relay:
   upstream: 'http://synapse-ingest-router:3000/'
   host: 0.0.0.0
-  port: 7901
+  # Reuse the canonical dev relay port. cell-routing mode doesn't start the plain
+  # `relay`, so :7899 is free, and relay-edge becomes a drop-in entrypoint — tools
+  # that expect the dev relay on :7899 (e.g. the webpack ingest proxy) work unchanged
+  port: 7899
 logging:
   # Verbose so the upstream forwarding (to the advertised upstream) is visible.
   # Drop back to INFO once routing is validated.

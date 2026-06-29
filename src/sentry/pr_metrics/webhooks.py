@@ -18,12 +18,15 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from dataclasses import asdict
+from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from sentry import features
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -43,15 +46,22 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.pr_metrics.activity_types import (
     AssignedPayload,
+    AutoMergeDisabledPayload,
+    AutoMergeEnabledPayload,
+    CheckRunCompletedPayload,
+    CheckSuiteCompletedPayload,
     ClosedPayload,
     CommentCreatedPayload,
     CommentEditedPayload,
     ConvertedToDraftPayload,
+    DequeuedPayload,
     EditedPayload,
+    EnqueuedPayload,
     LabeledPayload,
     OpenedPayload,
     ReadyForReviewPayload,
     ReopenedPayload,
+    ReviewDismissedPayload,
     ReviewRequestedPayload,
     ReviewRequestRemovedPayload,
     ReviewSubmittedPayload,
@@ -93,6 +103,10 @@ _ACTIVITY_ACTIONS = frozenset(
         "ready_for_review",
         "assigned",
         "unassigned",
+        "auto_merge_enabled",
+        "auto_merge_disabled",
+        "enqueued",
+        "dequeued",
     }
 )
 
@@ -111,6 +125,10 @@ _ACTION_TO_ACTIVITY_TYPE: dict[str, PullRequestActivityType] = {
     "ready_for_review": PullRequestActivityType.READY_FOR_REVIEW,
     "assigned": PullRequestActivityType.ASSIGNED,
     "unassigned": PullRequestActivityType.UNASSIGNED,
+    "auto_merge_enabled": PullRequestActivityType.AUTO_MERGE_ENABLED,
+    "auto_merge_disabled": PullRequestActivityType.AUTO_MERGE_DISABLED,
+    "enqueued": PullRequestActivityType.ENQUEUED,
+    "dequeued": PullRequestActivityType.DEQUEUED,
 }
 
 
@@ -414,24 +432,16 @@ def handle_comment(
         return
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
-    try:
-        pr = PullRequest.objects.get(
-            organization_id=organization.id,
-            repository_id=repo.id,
-            key=str(issue["number"]),
-        )
-    except PullRequest.DoesNotExist:
-        logger.warning(
-            "pr_metrics.comment.pr_not_found",
-            extra={
-                "organization_id": organization.id,
-                "repository_id": repo.id,
-                "repo_name": repo.name,
-                "pr_number": issue["number"],
-                "action": action,
-                "github_delivery_id": webhook_id,
-            },
-        )
+    issue_created_at = issue.get("created_at")
+    pr = _resolve_or_stub_pull_request(
+        organization,
+        repo,
+        pr_number=issue["number"],
+        opened_at=parse_datetime(issue_created_at) if issue_created_at else None,
+        title=issue.get("title"),
+        github_delivery_id=webhook_id,
+    )
+    if pr is None:
         return
 
     sender = event.get("sender") or {}
@@ -467,9 +477,14 @@ def handle_review(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record a submitted PR review (approved / changes_requested / commented)."""
+    """Record a PR review event.
+
+    ``submitted`` captures the review state (approved / changes_requested /
+    commented); ``dismissed`` captures an approval or changes-request being
+    undone — review signal the comment judge can use. Other actions are ignored.
+    """
     action = event.get("action")
-    if action != "submitted":
+    if action not in ("submitted", "dismissed"):
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -483,20 +498,31 @@ def handle_review(
 
     review = event.get("review") or {}
     sender = event.get("sender") or {}
-    payload = asdict(
-        ReviewSubmittedPayload(
-            action=action,
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            review_state=review.get("state", ""),
-            review_id=review.get("id", 0),
+    if action == "submitted":
+        event_type = PullRequestActivityType.REVIEW_SUBMITTED
+        payload = asdict(
+            ReviewSubmittedPayload(
+                action=action,
+                sender_login=sender.get("login", ""),
+                sender_type=sender.get("type", ""),
+                review_state=review.get("state", ""),
+                review_id=review.get("id", 0),
+            )
         )
-    )
+    else:
+        event_type = PullRequestActivityType.REVIEW_DISMISSED
+        payload = asdict(
+            ReviewDismissedPayload(
+                sender_login=sender.get("login", ""),
+                sender_type=sender.get("type", ""),
+                review_id=review.get("id", 0),
+            )
+        )
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, PullRequestActivityType.REVIEW_SUBMITTED, payload)
+    _write_activity_row(pr, webhook_id, event_type, payload)
 
 
 def handle_review_comment(
@@ -597,39 +623,224 @@ def handle_review_thread(
     _write_activity_row(pr, webhook_id, event_type, payload)
 
 
+def handle_check_suite(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Record the aggregate CI outcome from a completed check_suite event.
+
+    Only ``completed`` carries a conclusion; ``requested``/``rerequested`` are
+    ignored. One activity row is written per referenced PR that belongs to this
+    repo (``pull_requests`` can also carry other repos' PRs — see
+    ``_prs_from_check_payload``).
+    """
+    if event.get("action") != "completed":
+        return
+
+    if not is_activity_tracking_enabled(organization):
+        return
+
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
+
+    check_suite = event.get("check_suite") or {}
+    sender = event.get("sender") or {}
+    app = check_suite.get("app") or {}
+    payload = asdict(
+        CheckSuiteCompletedPayload(
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            head_sha=check_suite.get("head_sha"),
+            conclusion=check_suite.get("conclusion") or "",
+            app_slug=app.get("slug", ""),
+            check_runs_count=check_suite.get("latest_check_runs_count") or 0,
+        )
+    )
+
+    for pr in _prs_from_check_payload(organization, repo, check_suite, webhook_id):
+        _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload)
+
+
+def handle_check_run(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Record an individual CI check outcome from a completed check_run event.
+
+    Per-check granularity beneath ``check_suite``; only ``completed`` carries a
+    conclusion. ``check_run.pull_requests`` is resolved like ``check_suite`` —
+    entries from other repos are filtered in ``_prs_from_check_payload``.
+    """
+    if event.get("action") != "completed":
+        return
+
+    if not is_activity_tracking_enabled(organization):
+        return
+
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
+
+    check_run = event.get("check_run") or {}
+    sender = event.get("sender") or {}
+    app = check_run.get("app") or {}
+    payload = asdict(
+        CheckRunCompletedPayload(
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            head_sha=check_run.get("head_sha"),
+            check_name=check_run.get("name", ""),
+            conclusion=check_run.get("conclusion") or "",
+            app_slug=app.get("slug", ""),
+        )
+    )
+
+    for pr in _prs_from_check_payload(organization, repo, check_run, webhook_id):
+        _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload)
+
+
+def _prs_from_check_payload(
+    organization: Organization,
+    repo: Repository,
+    container: Mapping[str, Any],
+    webhook_id: str,
+) -> list[PullRequest]:
+    """Resolve the tracked PRs a check_suite/check_run payload references.
+
+    GitHub lists a PR on a check when they share ``head_sha`` + ``head_branch``,
+    so ``pull_requests`` can include PRs that live in *other* repositories. The
+    common case: a PR opened to merge this repo's default branch into another
+    repo (e.g. a fork syncing from upstream) has its head in this repo, so it
+    matches every default-branch check here — but the PR belongs to that other
+    repo and its ``number`` is scoped to it. Each entry carries its own
+    ``base.repo``, so an entry is only ours to resolve when its base repo is the
+    one this webhook is for. Resolving a foreign entry's number against ``repo``
+    would miss, or — on a number collision — attribute another repo's PR activity
+    to ours, so it is skipped.
+
+    Numbers are deduped before resolving each to its stored row; unknown PRs are
+    dropped by ``_get_pull_request``.
+    """
+    seen: set[str] = set()
+    prs: list[PullRequest] = []
+    for ref in container.get("pull_requests") or ():
+        number = ref.get("number")
+        if number is None or str(number) in seen:
+            continue
+        # A PR's number is scoped to its own base repo; resolve it against
+        # ``repo`` only when the PR lives here. Entries whose base is another repo
+        # (a PR merging this repo's branch elsewhere) are not ours to record.
+        base_repo_id = ((ref.get("base") or {}).get("repo") or {}).get("id")
+        if base_repo_id is None or str(base_repo_id) != repo.external_id:
+            metrics.incr("pr_metrics.check.foreign_pull_request")
+            continue
+        seen.add(str(number))
+        pr = _get_pull_request(organization, repo, {"number": number}, webhook_id)
+        if pr is not None:
+            prs.append(pr)
+    return prs
+
+
+# A comment or review webhook can be delivered before the ``pull_request``
+# (opened) webhook that writes the PullRequest row — they are separate GitHub
+# deliveries with no ordering guarantee. When the PR was opened within this
+# window we treat a miss as that race and create a minimal stub the opened/sync
+# event later enriches; an older miss predates our ingestion (no opened event
+# will re-fire to fill the stub), so we skip it. Sized well above the observed
+# seconds-to-minutes race to absorb webhook backlog.
+_PULL_REQUEST_STUB_MAX_AGE = timedelta(hours=1)
+
+
+def _resolve_or_stub_pull_request(
+    organization: Organization,
+    repo: Repository,
+    *,
+    pr_number: int,
+    opened_at: datetime | None,
+    title: str | None,
+    github_delivery_id: str | None,
+) -> PullRequest | None:
+    """Return the PullRequest row, creating a minimal stub for a recent miss.
+
+    pr_metrics piggybacks on rows written by ``PullRequestEventWebhook`` from
+    ``pull_request`` events. Comment and review events are separate deliveries
+    that can arrive before that row exists. Rather than drop the activity, create
+    a minimal stub the ``pull_request`` event enriches via its own
+    ``update_or_create`` — but only for a PR opened recently, since an older miss
+    predates ingestion and has no opened event coming to fill the stub.
+    ``get_or_create`` is race-safe on the ``(repository_id, key)`` unique
+    constraint.
+    """
+    key = str(pr_number)
+    try:
+        return PullRequest.objects.get(
+            organization_id=organization.id, repository_id=repo.id, key=key
+        )
+    except PullRequest.DoesNotExist:
+        pass
+
+    log_extra = {
+        "organization_id": organization.id,
+        "repository_id": repo.id,
+        "repo_name": repo.name,
+        "pr_number": pr_number,
+        "github_delivery_id": github_delivery_id,
+    }
+
+    if opened_at is None or opened_at < timezone.now() - _PULL_REQUEST_STUB_MAX_AGE:
+        # Expected miss: the PR predates our ingestion (or its age is unknown), so
+        # no opened event will arrive to enrich a stub. Skip it — not an error.
+        metrics.incr("pr_metrics.pull_request.unresolved", tags={"reason": "predates_ingestion"})
+        logger.info("pr_metrics.pull_request.unresolved", extra=log_extra)
+        return None
+
+    pull_request, created = PullRequest.objects.get_or_create(
+        organization_id=organization.id,
+        repository_id=repo.id,
+        key=key,
+        defaults={"opened_at": opened_at, "title": title},
+    )
+    if created:
+        metrics.incr("pr_metrics.pull_request.stub_created")
+        logger.info("pr_metrics.pull_request.stub_created", extra=log_extra)
+    return pull_request
+
+
 def _get_pull_request(
     organization: Organization,
     repo: Repository,
     pull_request: dict[str, Any] | None,
     github_delivery_id: str | None = None,
 ) -> PullRequest | None:
-    """Resolve the canonical PullRequest row for a webhook payload, or None.
+    """Resolve the PullRequest row for a ``pull_request``-shaped payload.
 
-    Returns None when the event carries no pull_request. Otherwise the row is
-    upserted by ``PullRequestEventWebhook._handle`` before processors run, so a
-    miss is unexpected — log it (with the delivery id, to pull the raw payload)
-    and let the caller bail.
+    Returns None when the event carries no pull_request. The row is normally
+    upserted by ``PullRequestEventWebhook._handle`` in the same delivery; for the
+    cross-delivery review events it may be missing, so we resolve-or-stub (see
+    ``_resolve_or_stub_pull_request``).
     """
     if not pull_request:
         return None
-    try:
-        return PullRequest.objects.get(
-            organization_id=organization.id,
-            repository_id=repo.id,
-            key=str(pull_request["number"]),
-        )
-    except PullRequest.DoesNotExist:
-        logger.warning(
-            "pr_metrics.pr_not_found",
-            extra={
-                "organization_id": organization.id,
-                "repository_id": repo.id,
-                "repo_name": repo.name,
-                "pr_number": pull_request["number"],
-                "github_delivery_id": github_delivery_id,
-            },
-        )
-        return None
+    created_at = pull_request.get("created_at")
+    return _resolve_or_stub_pull_request(
+        organization,
+        repo,
+        pr_number=pull_request["number"],
+        opened_at=parse_datetime(created_at) if created_at else None,
+        title=pull_request.get("title"),
+        github_delivery_id=github_delivery_id,
+    )
 
 
 def _metrics_counters(pull_request: Mapping[str, Any]) -> dict[str, Any]:
@@ -868,5 +1079,18 @@ def _build_activity_payload(
             return asdict(ConvertedToDraftPayload(**base_kw))
         case "ready_for_review":
             return asdict(ReadyForReviewPayload(**base_kw))
+        case "auto_merge_enabled":
+            auto_merge = pull_request.get("auto_merge") or {}
+            return asdict(
+                AutoMergeEnabledPayload(
+                    **base_kw, merge_method=auto_merge.get("merge_method") or ""
+                )
+            )
+        case "auto_merge_disabled":
+            return asdict(AutoMergeDisabledPayload(**base_kw))
+        case "enqueued":
+            return asdict(EnqueuedPayload(**base_kw))
+        case "dequeued":
+            return asdict(DequeuedPayload(**base_kw, reason=event.get("reason") or ""))
         case _:
             raise ValueError(f"No payload builder for action {action!r}")
