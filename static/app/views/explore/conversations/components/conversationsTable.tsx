@@ -25,6 +25,7 @@ import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
@@ -36,6 +37,7 @@ import {
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
+import {getConversationsListLocationState} from 'sentry/views/explore/conversations/utils/listNavigation';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
@@ -254,6 +256,7 @@ const BodyCell = memo(function BodyCell({
 }) {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const location = useLocation();
   const {selection} = usePageFilters();
 
   const detailUrl = getConversationDetailUrl(
@@ -261,10 +264,11 @@ const BodyCell = memo(function BodyCell({
     dataRow,
     selection.projects
   );
+  const listLocationState = getConversationsListLocationState(location.query);
 
   const navigateToDetail = (source: 'table_input' | 'table_output') => {
     trackAnalytics('conversations.table.open', {organization, source});
-    navigate(detailUrl);
+    navigate(detailUrl, {state: listLocationState});
   };
 
   switch (column.key) {
@@ -272,6 +276,7 @@ const BodyCell = memo(function BodyCell({
       return (
         <ConversationIdLink
           to={detailUrl}
+          state={listLocationState}
           onClick={() =>
             trackAnalytics('conversations.table.open', {
               organization,
