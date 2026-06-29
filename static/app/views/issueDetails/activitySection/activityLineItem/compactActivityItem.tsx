@@ -353,7 +353,7 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
       const pullRequest = activity.data.pullRequest;
       return {
-        title: t('Pull Request created'),
+        title: t('Pull request created'),
         details: pullRequest
           ? tct('on [provider] [pullRequest]', {
               provider: getPullRequestProvider(pullRequest),
@@ -387,7 +387,7 @@ export function getCompactGroupActivityItem({
 
       const integrationLink = getIntegrationLink({data: activity.data, organization});
       return {
-        title: t('Issue ongoing'),
+        title: t('Unresolved'),
         details: integrationLink
           ? tct('by [author] via [integration]', {
               author,
@@ -599,7 +599,7 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SEER_PR_CREATED: {
       const pullRequest = activity.data.pull_requests?.[0];
       return {
-        title: t('Pull Request created'),
+        title: t('Pull request created'),
         details: pullRequest
           ? tct('on [provider] [pullRequest]', {
               provider: getProviderName(pullRequest.provider),

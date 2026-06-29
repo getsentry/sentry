@@ -62,15 +62,8 @@ const activityLineRowStyles = (p: {theme: Theme}) => css`
   grid-template-columns: 22px 22px minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: start;
-  margin: 12px 0;
-
-  &:first-child {
-    margin-top: 0;
-  }
 
   &:last-child {
-    margin-bottom: 0;
-
     &::after {
       content: '';
       position: absolute;

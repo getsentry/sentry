@@ -397,6 +397,9 @@ const Timestamp = styled(TimeSince)`
 
 const ActivityLineList = styled('div')`
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
 
   &::before {
     content: '';
@@ -421,7 +424,6 @@ const MoreActivityRow = styled('div')`
   align-items: center;
   grid-template-columns: 22px minmax(0, 1fr);
   grid-column-gap: ${p => p.theme.space.md};
-  margin: ${p => p.theme.space.md} 0 0;
 
   &::after {
     content: '';
