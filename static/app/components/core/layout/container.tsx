@@ -293,14 +293,7 @@ export const Container = styled(
   ) => {
     // Hooks must run unconditionally, before the render-prop early return.
     const containerRef = useRef<HTMLElement>(null);
-
-    if (typeof props.children === 'function') {
-      // When using render prop, only pass className to the child function
-      return props.children({className: props.className ?? ''});
-    }
-
     const {as, containerType, ref, ...rest} = props;
-    const Component = as ?? 'div';
 
     // A query container needs its size observed in JS so descendants can resolve
     // container-mode responsive props (e.g. Stack orientation). We only attach a
@@ -312,6 +305,13 @@ export const Container = styled(
       () => (isContainer ? mergeRefs(ref as React.Ref<any>, containerRef) : ref),
       [isContainer, ref]
     );
+
+    if (typeof props.children === 'function') {
+      // When using render prop, only pass className to the child function
+      return props.children({className: props.className ?? ''});
+    }
+
+    const Component = as ?? 'div';
 
     const node = <Component {...(rest as any)} ref={containerRefs} />;
 
