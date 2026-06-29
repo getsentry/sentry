@@ -9,6 +9,8 @@ import {
 } from 'sentry/components/keyValueData';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -17,10 +19,16 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import type {LowValueSpanEvidenceData} from './types';
-import {formatDurationMs, formatEstimatedCostUsd, getSpanLabel} from './utils';
+import {
+  formatDurationMs,
+  formatEstimatedCostUsd,
+  getLowValueSpanEvidenceData,
+  getSpanLabel,
+} from './utils';
 
-interface ProblemSectionProps {
-  evidenceData: LowValueSpanEvidenceData;
+interface LowValueSpanProblemSectionProps {
+  event: Event;
+  project: Project;
 }
 
 const LOW_VALUE_SPAN_EXPLORE_REFERRER = 'low-value-span-configuration-issue';
@@ -38,9 +46,10 @@ function getAffectedSpanQuery(evidenceData: LowValueSpanEvidenceData): string | 
   }).formatString();
 }
 
-export function ProblemSection({evidenceData}: ProblemSectionProps) {
+export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const evidenceData = getLowValueSpanEvidenceData(event.occurrence?.evidenceData);
   const hasEstimatedCost =
     evidenceData.estimatedCostUsd !== null && evidenceData.estimatedCostUsd > 0;
   const spanCount = evidenceData.extrapolatedCount ?? evidenceData.count;
