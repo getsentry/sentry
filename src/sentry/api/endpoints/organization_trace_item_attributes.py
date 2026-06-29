@@ -66,7 +66,10 @@ from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.preprod_size.definitions import PREPROD_SIZE_DEFINITIONS
 from sentry.search.eap.processing_errors.definitions import PROCESSING_ERROR_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.sentry_attribute_metadata import SENTRY_ATTRIBUTE_METADATA
+from sentry.search.eap.sentry_attribute_metadata import (
+    SENTRY_ALWAYS_INCLUDED_ATTRIBUTES,
+    SENTRY_ATTRIBUTE_METADATA,
+)
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import (
@@ -687,7 +690,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     # Always include curated Sentry-defined attributes (e.g.
                     # span.description) so they aren't paged out past the RPC's
                     # attribute-name limit. They carry context and source_type=sentry.
-                    for public_alias in SENTRY_ATTRIBUTE_METADATA.get(trace_item_type, {}):
+                    for public_alias in SENTRY_ALWAYS_INCLUDED_ATTRIBUTES.get(
+                        trace_item_type, frozenset()
+                    ):
                         always_include_column = column_definitions.columns.get(public_alias)
                         if (
                             always_include_column is not None
