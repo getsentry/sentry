@@ -12,7 +12,8 @@ import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesW
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
-import {isHeatmapSupportedMetricType} from 'sentry/views/explore/metrics/constants';
+import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsHeatMap} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
@@ -54,7 +55,7 @@ import {WidgetWrapper} from './styles';
 export function getMetricsChartTypeOptions(
   organization: Organization,
   isEquation: boolean,
-  metricType?: string
+  metric?: TraceMetric
 ) {
   if (canUseMetricsHeatMap(organization)) {
     return [
@@ -62,9 +63,8 @@ export function getMetricsChartTypeOptions(
       {
         value: ChartType.HEATMAP,
         label: t('Heat Map'),
-        // Heat maps can only render distributions; equations and
-        // non-distribution metrics (counters, gauges) are not supported.
-        disabled: isEquation || !isHeatmapSupportedMetricType(metricType),
+        disabled:
+          isEquation || !metric || !doesMetricSupportHeatMapVisualization(metric),
       },
     ];
   }

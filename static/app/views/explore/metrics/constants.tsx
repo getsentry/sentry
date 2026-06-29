@@ -7,6 +7,7 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
@@ -352,8 +353,8 @@ export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
  * only make sense for `distribution` metrics. Counters (always `1`) and gauges
  * have no meaningful value distribution to visualize.
  */
-export function isHeatmapSupportedMetricType(metricType: string | undefined): boolean {
-  return metricType === 'distribution';
+export function doesMetricSupportHeatMapVisualization(metric: TraceMetric): boolean {
+  return metric.type === 'distribution';
 }
 
 export const RATE_AGGREGATES = new Set(['per_second', 'per_minute']);

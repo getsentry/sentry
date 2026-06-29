@@ -259,7 +259,7 @@ export function MetricPanel({
         options={getMetricsChartTypeOptions(
           organization,
           isVisualizeEquation(visualize),
-          traceMetric.type
+          traceMetric
         )}
         onChange={option => handleChartTypeChange(option.value)}
       />

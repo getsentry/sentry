@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_YAXIS_BY_TYPE,
-  isHeatmapSupportedMetricType,
+  doesMetricSupportHeatMapVisualization,
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
 import {syncEquationMetricQueries} from 'sentry/views/explore/metrics/equationBuilder/utils';
@@ -131,7 +131,7 @@ export function useMetricQueriesController({
 
               if (
                 visualize.chartType === ChartType.HEATMAP &&
-                !isHeatmapSupportedMetricType(newTraceMetric.type)
+                !doesMetricSupportHeatMapVisualization(newTraceMetric)
               ) {
                 updatedVisualize = updatedVisualize.replace({
                   chartType: determineDefaultChartType([updatedVisualize.yAxis]),
