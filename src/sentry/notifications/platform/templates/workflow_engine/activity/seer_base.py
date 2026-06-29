@@ -47,7 +47,8 @@ def get_issue_description(group: Group) -> list[NotificationSection]:
     blocks: list[NotificationTextBlock] = []
     title = build_attachment_title(group)
     if title:
-        blocks.append(PlainTextBlock(text=title))
+        group_link = absolute_uri(group.get_absolute_url())
+        blocks.append(LinkTextBlock(text=title, url=group_link))
     culprit = group.culprit
     if culprit:
         if blocks:
@@ -57,9 +58,10 @@ def get_issue_description(group: Group) -> list[NotificationSection]:
 
 
 def get_subject(label: str, group: Group) -> list[NotificationTextBlock]:
-    short_id = group.qualified_short_id or "unknown"
-    group_link = absolute_uri(group.get_absolute_url())
-    return [PlainTextBlock(text=f"{label} for"), LinkTextBlock(text=short_id, url=group_link)]
+    if group.qualified_short_id:
+        return [PlainTextBlock(text=f"{label} for"), CodeTextBlock(text=group.qualified_short_id)]
+    else:
+        return [PlainTextBlock(text=f"{label} for a Sentry Issue")]
 
 
 def get_view_autofix_button(group: Group) -> NotificationRenderedAction:
@@ -87,7 +89,7 @@ def build_template(
         LinkTextBlock(text="an alert", url=configuration_url),
     ]
     if settings.DEBUG and activity.data:
-        footer.append(PlainTextBlock(text=f"Run ID: {activity.data.get('run_id')}"))
+        footer.append(PlainTextBlock(text=f"· Run ID: {activity.data.get('run_id')}"))
 
     return NotificationRenderedTemplate(
         subject=subject, body=body, actions=[get_view_autofix_button(group)], footer=footer
