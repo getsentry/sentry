@@ -14,7 +14,6 @@ from sentry.notifications.notifications.organization_request.integration_request
     IntegrationRequestNotification,
 )
 from sentry.notifications.utils.tasks import async_send_notification
-from sentry.plugins.base import plugins
 from sentry.sentry_apps.services.app import app_service
 
 if TYPE_CHECKING:
@@ -36,9 +35,6 @@ def get_provider_name(provider_type: str, provider_slug: str) -> str | _StrPromi
     if provider_type == "first_party":
         if integrations.exists(provider_slug):
             return integrations.get(provider_slug).name
-    elif provider_type == "plugin":
-        if plugins.exists(provider_slug):
-            return plugins.get(provider_slug).title
     elif provider_type == "sentry_app":
         sentry_app = app_service.get_sentry_app_by_slug(slug=provider_slug)
         if sentry_app:

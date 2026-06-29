@@ -35,6 +35,7 @@ class GCPOAuth2LoginView(OAuth2LoginView):
 class GCPIdentityProvider(OAuth2Provider):
     key = IntegrationProviderSlug.GCP
     name = "Google Cloud Platform"
+    create_organization_identity = True
 
     oauth_access_token_url = "https://oauth2.googleapis.com/token"
     oauth_authorize_url = "https://accounts.google.com/o/oauth2/v2/auth"

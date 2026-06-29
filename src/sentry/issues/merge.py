@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import rest_framework
 
-from sentry import eventstream
+from sentry import eventstream, options
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -34,6 +34,12 @@ def handle_merge(
     """
     if any(group.issue_category != GroupCategory.ERROR for group in group_list):
         raise rest_framework.exceptions.ValidationError(detail="Only error issues can be merged.")
+
+    max_times_seen = options.get("issues.merge-unmerge.max-group-times-seen")
+    if max_times_seen and any(group.times_seen > max_times_seen for group in group_list):
+        raise rest_framework.exceptions.ValidationError(
+            detail="Large merges and unmerges are temporarily restricted at this time."
+        )
 
     # Sort by:
     # 1) Earliest first-seen time.

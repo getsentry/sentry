@@ -2,7 +2,6 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
-import {useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -17,6 +16,10 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useAttributeBreakdownComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFilteredRankedAttributes';
+import {
+  useQueryParams,
+  useSetQueryParams,
+} from 'sentry/views/explore/queryParams/context';
 
 import {Chart} from './cohortComparisonChart';
 import {CHARTS_PER_PAGE} from './constants';
@@ -38,7 +41,13 @@ export function CohortComparison({
   dataset,
   extrapolate,
 }: CohortComparisonProps) {
+  const theme = useTheme();
   const onAction = useAttributeBreakdownsTooltipAction();
+
+  const {breakdownQuery} = useQueryParams();
+  const setQueryParams = useSetQueryParams();
+  const searchQuery = breakdownQuery ?? '';
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 200);
 
   const {data, isLoading, error} = useAttributeBreakdownComparison({
     aggregateFunction: yAxis,
@@ -47,11 +56,6 @@ export function CohortComparison({
     dataset,
     extrapolate,
   });
-  const [searchQuery, setSearchQuery] = useQueryState('attributeBreakdownsSearch');
-  const theme = useTheme();
-
-  // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 100);
 
   const {
     filteredRankedAttributes,
@@ -61,7 +65,7 @@ export function CohortComparison({
     nextPage,
     previousPage,
   } = useFilteredRankedAttributes({
-    rankedAttributes: data?.rankedAttributes,
+    rankedAttributes: data?.json?.rankedAttributes,
     searchQuery: debouncedSearchQuery,
     pageSize: CHARTS_PER_PAGE,
   });
@@ -94,9 +98,11 @@ export function CohortComparison({
           <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search keys')}
             onChange={value => {
-              setSearchQuery(value);
+              setQueryParams({
+                breakdownQuery: value,
+              });
             }}
-            query={debouncedSearchQuery}
+            query={searchQuery}
             size="sm"
           />
           <AttributeBreakdownsComponent.FeedbackButton />
@@ -129,8 +135,8 @@ export function CohortComparison({
                       key={attribute.attributeName}
                       attribute={attribute}
                       theme={theme}
-                      cohort1Total={data?.cohort1Total ?? 0}
-                      cohort2Total={data?.cohort2Total ?? 0}
+                      cohort1Total={data?.json?.cohort1Total ?? 0}
+                      cohort2Total={data?.json?.cohort2Total ?? 0}
                       query={query}
                       actions={{
                         htmlRenderer: (value: string) =>
