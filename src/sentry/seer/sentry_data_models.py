@@ -125,6 +125,16 @@ class OrganizationProjectIdsResponse(BaseModel):
     projects: list[OrganizationProject]
 
 
+class OrganizationProjectDetail(BaseModel):
+    id: int
+    slug: str
+    instrumentation: list[str]
+
+
+class OrganizationProjectsResponse(BaseModel):
+    projects: list[OrganizationProjectDetail]
+
+
 class OrganizationFeaturesResponse(BaseModel):
     features: list[str]
 

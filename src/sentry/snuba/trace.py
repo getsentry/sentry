@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -120,6 +120,15 @@ class TraceOccurrenceEvent(TypedDict):
     event_type: Literal["occurrence"]
     event_data: TraceOccurrenceEventData
     issue_data: TraceIssueOccurrenceData
+
+
+class SpanIssueMeta(TypedDict):
+    """Span fields needed to serialize an occurrence issue attached to that span."""
+
+    start_timestamp: float
+    end_timestamp: float
+    project_slug: str
+    transaction: str
 
 
 def _serialize_rpc_issue(
@@ -290,9 +299,9 @@ def _serialize_rpc_event(
 
 
 def _errors_query(
-    snuba_params: SnubaParams, trace_id: str, error_id: str | None
+    snuba_params: SnubaParams, trace_ids: Sequence[str], error_id: str | None
 ) -> DiscoverQueryBuilder:
-    """Run an error query, getting all the errors for a given trace id"""
+    """Run an error query, getting all the errors for the given trace ids"""
     # TODO: replace this with EAP calls, this query is copied from the old trace view
     columns = [
         "id",
@@ -317,7 +326,7 @@ def _errors_query(
         Dataset.Events,
         params={},
         snuba_params=snuba_params,
-        query=f"trace:{trace_id}",
+        query=f"trace:[{','.join(trace_ids)}]",
         selected_columns=columns,
         # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
         orderby=orderby,
@@ -426,15 +435,15 @@ def _run_errors_query_eap(
 
 def _perf_issues_query(
     snuba_params: SnubaParams,
-    trace_id: str,
+    trace_ids: Sequence[str],
     organization: Organization | None = None,
 ) -> DiscoverQueryBuilder:
-    query = f"trace:{trace_id}"
+    query = f"trace:[{','.join(trace_ids)}]"
 
     if organization:
         visible_type_ids = [gt.type_id for gt in grouptype_registry.get_visible(organization)]
         if visible_type_ids:
-            query = f"trace:{trace_id} occurrence_type_id:[{','.join(map(str, visible_type_ids))}]"
+            query = f"{query} occurrence_type_id:[{','.join(map(str, visible_type_ids))}]"
 
     occurrence_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
@@ -488,6 +497,76 @@ def _run_perf_issues_query(
                 result.append({"occurrence": issue, "issue_id": issue_id})
 
     return result
+
+
+@sentry_sdk.tracing.trace
+def get_issues_by_span_for_traces(
+    snuba_params: SnubaParams,
+    trace_ids: Sequence[str],
+    organization: Organization,
+    referrer: str,
+    span_meta_by_id: Mapping[str, SpanIssueMeta],
+) -> dict[str, dict[str, list[SerializedIssue]]]:
+    """Map span ids to their linked error and occurrence issues for the given traces.
+
+    Reuses the same error/occurrence association the trace view uses (errors keyed by
+    ``trace.span``, occurrences keyed by ``offender_span_ids``) so spans can be annotated
+    with their issues outside of the full trace view (e.g. AI conversation span details).
+
+    ``span_meta_by_id`` provides the span fields required to serialize occurrence issues
+    and also acts as the allow-list of spans we attach issues to.
+
+    Returns a mapping of ``span_id -> {"errors": [...], "occurrences": [...]}``.
+    """
+    unique_trace_ids = list({trace_id for trace_id in trace_ids if trace_id})
+    if not unique_trace_ids:
+        return {}
+
+    errors_data = _run_errors_query(
+        _errors_query(snuba_params, unique_trace_ids, None), referrer=referrer
+    )
+    occurrence_data = _run_perf_issues_query(
+        _perf_issues_query(snuba_params, unique_trace_ids, organization), referrer=referrer
+    )
+
+    group_cache: dict[int, Group] = {}
+    issues_by_span: dict[str, dict[str, list[SerializedIssue]]] = {}
+
+    def _bucket(span_id: str) -> dict[str, list[SerializedIssue]]:
+        return issues_by_span.setdefault(span_id, {"errors": [], "occurrences": []})
+
+    for error in errors_data:
+        span_id = error.get("trace.span")
+        if not span_id or span_id not in span_meta_by_id:
+            continue
+        serialized = _serialize_rpc_issue(error, group_cache)
+        if serialized is not None:
+            _bucket(span_id)["errors"].append(serialized)
+
+    for occurrence_event in occurrence_data:
+        occurrence = occurrence_event["occurrence"]
+        issue_id = occurrence_event["issue_id"]
+        for span_id in occurrence.evidence_data.get("offender_span_ids", []):
+            meta = span_meta_by_id.get(span_id)
+            if meta is None:
+                continue
+            serialized = _serialize_rpc_issue(
+                {
+                    "event_type": "occurrence",
+                    "event_data": {
+                        "start_timestamp": meta["start_timestamp"],
+                        "end_timestamp": meta["end_timestamp"],
+                        "project_slug": meta["project_slug"],
+                        "transaction": meta["transaction"],
+                    },
+                    "issue_data": {"occurrence": occurrence, "issue_id": issue_id},
+                },
+                group_cache,
+            )
+            if serialized is not None:
+                _bucket(span_id)["occurrences"].append(serialized)
+
+    return issues_by_span
 
 
 def _uptime_results_query(
@@ -656,8 +735,8 @@ def query_trace_data(
     if referrer is None or referrer == "" or not is_valid_referrer(referrer):
         referrer = Referrer.API_TRACE_VIEW_GET_EVENTS.value
 
-    errors_query = _errors_query(snuba_params, trace_id, error_id)
-    occurrence_query = _perf_issues_query(snuba_params, trace_id, organization)
+    errors_query = _errors_query(snuba_params, [trace_id], error_id)
+    occurrence_query = _perf_issues_query(snuba_params, [trace_id], organization)
     uptime_query = _uptime_results_query(snuba_params, trace_id) if include_uptime else None
 
     # 1 worker each for spans, errors, performance issues, and optionally uptime

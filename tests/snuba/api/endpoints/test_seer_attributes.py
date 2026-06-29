@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from sentry.seer.assisted_query.traces_tools import (
+    _get_built_in_fields,
     get_attribute_names,
     get_attribute_values_with_substring,
 )
@@ -111,6 +112,14 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         # Built-in fields that aren't returned by the public endpoint (e.g. no
         # data for them) carry no context.
         assert built_in_by_key["span.self_time"].context is None
+
+        # Convention-backed attributes that aren't hardcoded built-ins (e.g.
+        # device.class) are still surfaced in built_in_fields with their context.
+        assert "device.class" not in {f["key"] for f in _get_built_in_fields("spans")}
+        device_class_context = built_in_by_key["device.class"].context
+        assert device_class_context is not None
+        assert device_class_context["isConvention"] is True
+        assert device_class_context["brief"]
 
         # Context is either None or populated, never an empty dict (the endpoint
         # attaches an empty context to attributes without convention metadata).
