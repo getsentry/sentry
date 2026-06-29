@@ -1116,6 +1116,15 @@ export function getExplorerUrl(runId: number | string): string {
   return url.toString();
 }
 
+/**
+ * Returns the relative URL of the current window with the run ID query param set.
+ */
+export function getRelativeExplorerUrl(runId: number | string): string {
+  const url = new URL(window.location.href);
+  url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
+  return url.pathname + url.search;
+}
+
 export function getLangfuseUrl(runId: number | string): string {
   return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
 }

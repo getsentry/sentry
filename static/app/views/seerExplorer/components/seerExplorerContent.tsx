@@ -37,6 +37,7 @@ import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
   getLangfuseUrl,
+  getRelativeExplorerUrl,
   useCopySessionDataToClipboard,
   useSeerExplorerDeepLink,
 } from 'sentry/views/seerExplorer/utils';
@@ -584,7 +585,7 @@ export function SeerExplorerContent({
               <ReauthMonitoringProviderBlock
                 data={reauthData}
                 onComplete={handleReauthComplete}
-                returnUrl={runId === null ? undefined : getExplorerUrl(runId)}
+                returnUrl={runId === null ? undefined : getRelativeExplorerUrl(runId)}
               />
             )}
           </Fragment>
