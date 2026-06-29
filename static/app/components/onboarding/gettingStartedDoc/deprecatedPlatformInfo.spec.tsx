@@ -8,7 +8,7 @@ import type {PlatformIntegration} from 'sentry/types/project';
 
 describe('DeprecatedPlatformInfo', () => {
   it('renders correctly', () => {
-    const dsn = ProjectKeysFixture()[0]!.dsn;
+    const dsn = ProjectKeysFixture()[0].dsn;
     const platform: PlatformIntegration = {
       id: 'python-pymongo',
       name: 'PyMongo',

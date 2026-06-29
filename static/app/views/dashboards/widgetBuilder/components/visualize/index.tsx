@@ -66,6 +66,7 @@ import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {canUseMetricsEquationsInDashboards} from 'sentry/views/explore/metrics/metricsFlags';
+import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 
 export const NONE = 'none';
 
@@ -632,6 +633,14 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
     tableFieldOptions,
   ]);
 
+  const hasMaxMetrics =
+    state.dataset === WidgetType.TRACEMETRICS &&
+    ((fields ?? state.yAxis)?.filter((field: QueryFieldValue) =>
+      [FieldValueKind.FUNCTION, FieldValueKind.EQUATION].includes(
+        field.kind as FieldValueKind
+      )
+    )?.length ?? 0) >= MAX_METRICS_ALLOWED;
+
   return (
     <Fragment>
       <SectionHeader
@@ -1097,7 +1106,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
             <AddButtons>
               <AddButton
                 variant="link"
-                disabled={disableTransactionWidget}
+                disabled={disableTransactionWidget || hasMaxMetrics}
                 aria-label={
                   isTimeSeriesWidget
                     ? t('Add Series')

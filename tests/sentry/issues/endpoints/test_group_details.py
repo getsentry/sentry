@@ -19,7 +19,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
-from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsnooze import GroupSnooze
@@ -27,7 +26,6 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.plugins.base import plugins
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
@@ -149,23 +147,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         assert response.data["annotations"] == [
             {"url": "https://example.com/issues/2", "displayName": "Issue#2"}
-        ]
-
-    def test_plugin_external_issue_annotation(self) -> None:
-        group = self.create_group()
-        GroupMeta.objects.create(group=group, key="trello:tid", value="134")
-
-        plugins.get("trello").enable(group.project)
-        plugins.get("trello").set_option("key", "some_value", group.project)
-        plugins.get("trello").set_option("token", "another_value", group.project)
-
-        self.login_as(user=self.user)
-
-        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
-        response = self.client.get(url, format="json")
-
-        assert response.data["annotations"] == [
-            {"url": "https://trello.com/c/134", "displayName": "Trello-134"}
         ]
 
     def test_integration_external_issue_annotation(self) -> None:

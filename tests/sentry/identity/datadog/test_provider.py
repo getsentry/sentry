@@ -729,6 +729,30 @@ class DatadogPatIdentityProviderTest(TestCase):
         mock_get_user_info.assert_not_called()
 
     @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_strips_whitespace_from_access_token(
+        self, mock_get_user_info: MagicMock
+    ) -> None:
+        mock_get_user_info.return_value = {
+            "user_uuid": "dd-user-123",
+            "org_uuid": "dd-org-456",
+        }
+
+        result = self.provider.build_identity(
+            {"access_token": "  pat-abc  ", "site": "datadoghq.com"}
+        )
+
+        assert result["data"]["access_token"] == "pat-abc"
+        mock_get_user_info.assert_called_once_with("pat-abc", "https://mcp.datadoghq.com")
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_whitespace_only_access_token(
+        self, mock_get_user_info: MagicMock
+    ) -> None:
+        with pytest.raises(ValueError, match="requires an 'access_token'"):
+            self.provider.build_identity({"access_token": "   ", "site": "datadoghq.com"})
+        mock_get_user_info.assert_not_called()
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
     def test_build_identity_missing_site(self, mock_get_user_info: MagicMock) -> None:
         with pytest.raises(ValueError, match="requires a 'site'"):
             self.provider.build_identity({"access_token": "pat-abc"})

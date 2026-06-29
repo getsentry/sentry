@@ -75,6 +75,10 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                         "browser.web_vital.inp.value": 120.0,
                         "browser.web_vital.ttfb.value": 450.0,
                         "browser.web_vital.fcp.value": 2258.06,
+                        "app.vitals.start.cold.value": 1600.0,
+                        "app.vitals.start.warm.value": 400.0,
+                        "app.vitals.ttid.value": 1200.0,
+                        "app.vitals.ttfd.value": 2400.0,
                     },
                 }
                 for i, root_span_id in enumerate(self.root_span_ids)

@@ -40,7 +40,7 @@ from sentry.issues.action_log.types import (
     UnlinkExternalIssueAction,
     ViewAction,
 )
-from sentry.issues.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase

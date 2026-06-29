@@ -452,6 +452,16 @@ export function LogsInfiniteTable({
   const logsPinning = useLogsPinning();
   const pinnedLogsQuery = usePinnedLogsQuery({allRows: data, logsPinning});
 
+  const handleTogglePinnedRow = useCallback(
+    (id: string) => {
+      if (logsPinning?.hasPinnedRow(id)) {
+        setHoveredRowId(null);
+      }
+      logsPinning?.togglePinnedRow(id);
+    },
+    [logsPinning]
+  );
+
   const renderRow = useCallback(
     (dataRow: LogTableRowItem) => {
       const rowId = dataRow[OurLogKnownFieldKey.ID];
@@ -473,7 +483,7 @@ export function LogsInfiniteTable({
           isPinned={logsPinning?.hasPinnedRow?.(rowId)}
           isHoverLinked={hoveredRowId === rowId}
           setHoveredRowId={setHoveredRowId}
-          togglePinnedRow={logsPinning?.togglePinnedRow}
+          togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
         />
       );
     },
@@ -482,6 +492,7 @@ export function LogsInfiniteTable({
       handleCollapse,
       handleExpand,
       handleExpandHeight,
+      handleTogglePinnedRow,
       highlightTerms,
       hoveredRowId,
       logEnd,
@@ -616,7 +627,7 @@ export function LogsInfiniteTable({
                   isPinned={logsPinning?.hasPinnedRow?.(rowId)}
                   isHoverLinked={hoveredRowId === rowId}
                   setHoveredRowId={setHoveredRowId}
-                  togglePinnedRow={logsPinning?.togglePinnedRow}
+                  togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
                 />
               </Fragment>
             );

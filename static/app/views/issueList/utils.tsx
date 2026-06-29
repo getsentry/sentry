@@ -32,6 +32,7 @@ export enum IssueSortOptions {
   USER = 'user',
   INBOX = 'inbox',
   RECOMMENDED = 'recommended',
+  RECOMMENDED_EXPERIMENTAL = 'recommended_v2',
   PROGRESS = 'progress',
 }
 
@@ -51,6 +52,8 @@ export function getSortLabel(key: string) {
       return t('Date Added');
     case IssueSortOptions.RECOMMENDED:
       return t('Recommended');
+    case IssueSortOptions.RECOMMENDED_EXPERIMENTAL:
+      return t('Recommended (Experimental)');
     case IssueSortOptions.PROGRESS:
       return t('Progress');
     case IssueSortOptions.DATE:
