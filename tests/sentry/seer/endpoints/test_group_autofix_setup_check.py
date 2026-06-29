@@ -141,7 +141,10 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
                 "ok": True,
                 "reason": None,
             },
-            "githubWriteIntegration": None,
+            "githubWriteIntegration": {
+                "ok": False,
+                "repos": [],
+            },
             "setupAcknowledgement": {
                 "orgHasAcknowledged": True,
                 "userHasAcknowledged": True,
@@ -178,7 +181,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/?check_write_access=true"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -363,7 +366,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
 
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/?check_write_access=true"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -402,7 +405,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
 
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/?check_write_access=true"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200

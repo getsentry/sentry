@@ -133,14 +133,12 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 organization=org, project=group.project
             )
 
-        write_integration_check = None
-        if request.query_params.get("check_write_access", False):
-            repos = get_repos_and_access(group.project, group.id)
-            write_access_ok = len(repos) > 0 and all(repo["ok"] for repo in repos)
-            write_integration_check = {
-                "ok": write_access_ok,
-                "repos": repos,
-            }
+        repos = get_repos_and_access(group.project, group.id)
+        write_access_ok = len(repos) > 0 and all(repo["ok"] for repo in repos)
+        write_integration_check = {
+            "ok": write_access_ok,
+            "repos": repos,
+        }
 
         has_autofix_quota: bool = quotas.backend.check_seer_quota(
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
