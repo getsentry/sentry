@@ -146,12 +146,20 @@ def run_project_balancing(
     for project_volume in project_volumes:
         if project_volume.project_id in project_ids and project_volume.total > 0:
             counts_by_project[project_volume.project_id] = project_volume.total
+
+    # When no project has any volume there is nothing to rebalance, and the model would
+    # divide by zero on all-zero counts. Matches the legacy pipeline, which returns early.
+    if not counts_by_project:
+        return []
+
+    # Include every project, defaulting those without volume to a count of 0. The model
+    # assigns zero-count projects a 100% sample rate, and their presence keeps the
+    # per-project ideal budget identical to the legacy calculation.
     return ProjectsRebalancingModel().run(
         ProjectsRebalancingInput(
             classes=[
-                RebalancedItem(id=project.id, count=counts_by_project[project.id])
+                RebalancedItem(id=project.id, count=counts_by_project.get(project.id, 0))
                 for project in config.projects
-                if project.id in counts_by_project
             ],
             sample_rate=sample_rate,
         )
