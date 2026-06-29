@@ -68,7 +68,11 @@ def open_monitoring_provider_modal(
     )
 
     slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
-    slack_client.views_open(trigger_id=trigger_id, view=modal)
+    try:
+        slack_client.views_open(trigger_id=trigger_id, view=modal)
+    except SlackApiError:
+        logger.exception("slack.monitoring_provider.views_open_failed")
+        return "Unable to open the connection dialog. Please try again."
     return None
 
 
