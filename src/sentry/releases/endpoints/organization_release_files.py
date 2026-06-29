@@ -50,8 +50,8 @@ _FILE_CHECKSUM_PARAM = OpenApiParameter(
 class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseFilesMixin):
     owner = ApiOwner.COMMUNITY
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
 
     rate_limits = RateLimitConfig(
@@ -70,7 +70,8 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
     )
 
     @extend_schema(
-        operation_id="List an Organization Release's Files",
+        operation_id="listOrganizationReleaseFiles",
+        summary="List an Organization's Release Files",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,

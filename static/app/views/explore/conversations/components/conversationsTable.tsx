@@ -262,23 +262,14 @@ const BodyCell = memo(function BodyCell({
     selection.projects
   );
 
-  const navigateToDetail = (source: 'table_input' | 'table_output') => {
-    trackAnalytics('conversations.table.open', {organization, source});
+  const navigateToDetail = () => {
     navigate(detailUrl);
   };
 
   switch (column.key) {
     case 'conversationId':
       return (
-        <ConversationIdLink
-          to={detailUrl}
-          onClick={() =>
-            trackAnalytics('conversations.table.open', {
-              organization,
-              source: 'table_conversation_id',
-            })
-          }
-        >
+        <ConversationIdLink to={detailUrl}>
           {isUUID(dataRow.conversationId) ? (
             dataRow.conversationId.slice(0, 8)
           ) : (
@@ -309,7 +300,7 @@ const BodyCell = memo(function BodyCell({
     case 'inputOutput': {
       return (
         <Stack width="100%">
-          <InputOutputRow type="button" onClick={() => navigateToDetail('table_input')}>
+          <InputOutputRow type="button" onClick={() => navigateToDetail()}>
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.firstInput ? (
@@ -319,7 +310,7 @@ const BodyCell = memo(function BodyCell({
               )}
             </Flex>
           </InputOutputRow>
-          <InputOutputRow type="button" onClick={() => navigateToDetail('table_output')}>
+          <InputOutputRow type="button" onClick={() => navigateToDetail()}>
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.lastOutput ? (

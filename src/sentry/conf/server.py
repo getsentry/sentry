@@ -864,11 +864,6 @@ TASKWORKER_ROUTER: str = "sentry.taskworker.adapters.SentryRouter"
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
-# If true, taskbroker-client's TaskProducer will be used to produce messages to Kafka
-# from within tasks.
-# Set to True in the worker child entrypoint in taskworker/bootstrap.py.
-TASKWORKER_USE_TASK_PRODUCER: bool = False
-
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
@@ -1538,6 +1533,9 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
+
+# sample rate for the ingest-replay-recordings processing (consumer and task)
+SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING = 0
 
 # ----
 # end APM config

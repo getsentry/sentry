@@ -1,6 +1,9 @@
+import {EventFixture} from 'sentry-fixture/event';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ProblemSection} from './problemSection';
+import {LowValueSpanProblemSection} from './lowValueSpanProblemSection';
 import type {LowValueSpanEvidenceData} from './types';
 
 const evidenceData: LowValueSpanEvidenceData = {
@@ -13,9 +16,20 @@ const evidenceData: LowValueSpanEvidenceData = {
   spanOrigin: 'auto',
 };
 
-describe('LowValueSpanIssues ProblemSection', () => {
+function makeEvent(overrides: Partial<LowValueSpanEvidenceData> = {}) {
+  return EventFixture({
+    occurrence: {
+      evidenceData: {...evidenceData, ...overrides},
+      type: 13002,
+    },
+  });
+}
+
+const project = ProjectFixture();
+
+describe('LowValueSpanProblemSection', () => {
   it('renders low-value span evidence from the occurrence', () => {
-    render(<ProblemSection evidenceData={evidenceData} />);
+    render(<LowValueSpanProblemSection event={makeEvent()} project={project} />);
 
     expect(screen.getByText(/frequently created span/)).toBeInTheDocument();
     expect(screen.getByText('Affected span')).toBeInTheDocument();
@@ -30,11 +44,9 @@ describe('LowValueSpanIssues ProblemSection', () => {
 
   it('falls back to the sampled span count when extrapolated count is unavailable', () => {
     render(
-      <ProblemSection
-        evidenceData={{
-          ...evidenceData,
-          extrapolatedCount: null,
-        }}
+      <LowValueSpanProblemSection
+        event={makeEvent({extrapolatedCount: null})}
+        project={project}
       />
     );
 
@@ -44,11 +56,9 @@ describe('LowValueSpanIssues ProblemSection', () => {
 
   it('does not render estimated cost when unavailable', () => {
     render(
-      <ProblemSection
-        evidenceData={{
-          ...evidenceData,
-          estimatedCostUsd: null,
-        }}
+      <LowValueSpanProblemSection
+        event={makeEvent({estimatedCostUsd: null})}
+        project={project}
       />
     );
 
@@ -57,11 +67,9 @@ describe('LowValueSpanIssues ProblemSection', () => {
 
   it('does not render estimated cost when zero', () => {
     render(
-      <ProblemSection
-        evidenceData={{
-          ...evidenceData,
-          estimatedCostUsd: 0,
-        }}
+      <LowValueSpanProblemSection
+        event={makeEvent({estimatedCostUsd: 0})}
+        project={project}
       />
     );
 
@@ -70,11 +78,9 @@ describe('LowValueSpanIssues ProblemSection', () => {
 
   it('links to explore filtering for missing description when description is null', () => {
     render(
-      <ProblemSection
-        evidenceData={{
-          ...evidenceData,
-          description: null,
-        }}
+      <LowValueSpanProblemSection
+        event={makeEvent({description: null})}
+        project={project}
       />
     );
 
@@ -91,12 +97,7 @@ describe('LowValueSpanIssues ProblemSection', () => {
 
   it('links to explore filtering for missing op when op is null', () => {
     render(
-      <ProblemSection
-        evidenceData={{
-          ...evidenceData,
-          op: null,
-        }}
-      />
+      <LowValueSpanProblemSection event={makeEvent({op: null})} project={project} />
     );
 
     const exploreLink = screen.getByRole('link', {name: 'compute_checksum'});
@@ -108,12 +109,9 @@ describe('LowValueSpanIssues ProblemSection', () => {
 
   it('does not link to explore when both op and description are null', () => {
     render(
-      <ProblemSection
-        evidenceData={{
-          ...evidenceData,
-          op: null,
-          description: null,
-        }}
+      <LowValueSpanProblemSection
+        event={makeEvent({op: null, description: null})}
+        project={project}
       />
     );
 

@@ -64,7 +64,7 @@ function isSettingsRoute(route: string): boolean {
 }
 
 type SettingsFieldEntry = {
-  display: {label: string};
+  display: {label: string; details?: string};
   key: string;
   keywords: string[];
   to: {hash: string; pathname: string};
@@ -119,17 +119,23 @@ function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
             (f): f is FormSearchField & {title: string} =>
               typeof f.title === 'string' && f.title.length > 0
           )
-          .map(f => ({
-            key: `${route}#${f.field.name}`,
-            display: {
-              label: f.title,
-            },
-            keywords: ['settings', title, f.field.name],
-            to: {
-              pathname: resolvedPath,
-              hash: `#${encodeURIComponent(f.field.name)}`,
-            },
-          }))
+          .map(f => {
+            const helpText =
+              typeof f.description === 'string' ? f.description : undefined;
+
+            return {
+              key: `${route}#${f.field.name}`,
+              display: {
+                label: f.title,
+                details: helpText,
+              },
+              keywords: ['settings', title, f.field.name],
+              to: {
+                pathname: resolvedPath,
+                hash: `#${encodeURIComponent(f.field.name)}`,
+              },
+            };
+          })
           .sort((a, b) => a.display.label.localeCompare(b.display.label)),
       };
     })

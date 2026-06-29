@@ -253,11 +253,13 @@ class HandleWebhookForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
                 "pr_number": 9999,
                 "github_delivery_id": None,
+                "reason": "missing_opened_at",
             },
         )
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
@@ -453,11 +455,13 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
                 "pr_number": 9999,
                 "github_delivery_id": None,
+                "reason": "missing_opened_at",
             },
         )
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
@@ -1042,11 +1046,13 @@ class HandleCommentForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.ISSUE_COMMENT,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
                 "pr_number": 9999,
                 "github_delivery_id": "delivery-unknown",
+                "reason": "missing_opened_at",
             },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
@@ -1107,6 +1113,8 @@ class HandleCommentForPrMetricsTest(TestCase):
     def test_old_missing_pr_is_not_stubbed(self) -> None:
         # A comment on a PR opened before our ingestion window: no `opened` event
         # will arrive to enrich a stub, so we skip it rather than track a partial.
+        # Reported as `predates_ingestion` — a known-but-old timestamp, distinct from
+        # the `missing_opened_at` miss of a payload with no parseable timestamp.
         event: dict[str, Any] = {
             "action": "created",
             "issue": {
@@ -1118,15 +1126,17 @@ class HandleCommentForPrMetricsTest(TestCase):
             "sender": {"id": 123, "login": "testuser", "type": "User"},
             "comment": {"id": 1, "author_association": "NONE"},
         }
-        handle_comment(
-            github_event=GithubWebhookType.ISSUE_COMMENT,
-            event=event,
-            organization=self.organization,
-            repo=self.repo,
-            github_delivery_id="delivery-old",
-        )
+        with patch(f"{MODULE}.logger") as mock_logger:
+            handle_comment(
+                github_event=GithubWebhookType.ISSUE_COMMENT,
+                event=event,
+                organization=self.organization,
+                repo=self.repo,
+                github_delivery_id="delivery-old",
+            )
 
         assert not PullRequest.objects.filter(repository_id=self.repo.id, key="9999").exists()
+        assert mock_logger.info.call_args.kwargs["extra"]["reason"] == "predates_ingestion"
 
 
 @with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
@@ -1226,11 +1236,13 @@ class HandleReviewForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST_REVIEW,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
                 "pr_number": 9999,
                 "github_delivery_id": "delivery-x",
+                "reason": "missing_opened_at",
             },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
@@ -1331,11 +1343,13 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
                 "pr_number": 9999,
                 "github_delivery_id": "delivery-x",
+                "reason": "missing_opened_at",
             },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
@@ -1429,11 +1443,13 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST_REVIEW_THREAD,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
                 "pr_number": 9999,
                 "github_delivery_id": "delivery-x",
+                "reason": "missing_opened_at",
             },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
@@ -1578,10 +1594,16 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_check_suite_unknown_pr_skipped(self) -> None:
+    def test_check_suite_missing_pr_creates_stub_and_writes_activity(self) -> None:
+        # A check can be delivered before the PR's `opened` event writes the row.
+        # Check payloads carry no PR timestamp, so we stub on a `now` proxy (rather
+        # than drop the CI status) — the same out-of-order race the stub exists for.
         self._call_suite(pr_numbers=(9999,))
 
-        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+        pr = PullRequest.objects.get(repository_id=self.repo.id, key="9999")
+        assert pr.opened_at is not None
+        activity = PullRequestActivity.objects.get(pull_request=pr)
+        assert activity.event_type == PullRequestActivityType.CHECK_SUITE_COMPLETED
 
     def test_check_suite_skips_pull_request_from_other_repo(self) -> None:
         # GitHub lists a PR on our check when their heads match (head_sha +

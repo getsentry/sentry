@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import Any
 
-import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
@@ -34,6 +33,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
+from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 __all__ = (
     "from_user",
@@ -282,14 +282,16 @@ class DbAccess(Access):
         if not teams:
             return frozenset()
 
-        with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
+        with start_span(
+            op="get_project_access_in_teams", name="get_project_access_in_teams"
+        ) as span:
             projects = frozenset(
                 Project.objects.filter(status=ObjectStatus.ACTIVE, teams__in=teams)
                 .distinct()
                 .values_list("id", flat=True)
             )
-            span.set_data("Project Count", len(projects))
-            span.set_data("Team Count", len(teams))
+            set_span_data(span, "Project Count", len(projects))
+            set_span_data(span, "Team Count", len(teams))
 
         return projects
 
@@ -360,15 +362,17 @@ class DbAccess(Access):
             return True
 
         if self._member and features.has("organizations:team-roles", self._member.organization):
-            with sentry_sdk.start_span(op="check_access_for_all_project_teams") as span:
+            with start_span(
+                op="check_access_for_all_project_teams", name="check_access_for_all_project_teams"
+            ) as span:
                 memberships = [
                     self._team_memberships[team]
                     for team in project.teams.all()
                     if team in self._team_memberships
                 ]
-                span.set_tag("organization", self._member.organization.id)
-                span.set_tag("organization.slug", self._member.organization.slug)
-                span.set_data("membership_count", len(memberships))
+                set_span_tag(span, "organization", self._member.organization.id)
+                set_span_tag(span, "organization.slug", self._member.organization.slug)
+                set_span_data(span, "membership_count", len(memberships))
 
             for membership in memberships:
                 team_scopes = membership.get_scopes()
@@ -573,14 +577,18 @@ class RpcBackedAccess(Access):
         if self.rpc_user_organization_context.member and features.has(
             "organizations:team-roles", self.rpc_user_organization_context.organization
         ):
-            with sentry_sdk.start_span(op="check_access_for_all_project_teams") as span:
+            with start_span(
+                op="check_access_for_all_project_teams", name="check_access_for_all_project_teams"
+            ) as span:
                 project_teams_id = set(project.teams.values_list("id", flat=True))
                 orgmember_teams = self.rpc_user_organization_context.member.member_teams
-                span.set_tag("organization", self.rpc_user_organization_context.organization.id)
-                span.set_tag(
-                    "organization.slug", self.rpc_user_organization_context.organization.slug
+                set_span_tag(
+                    span, "organization", self.rpc_user_organization_context.organization.id
                 )
-                span.set_data("membership_count", len(orgmember_teams))
+                set_span_tag(
+                    span, "organization.slug", self.rpc_user_organization_context.organization.slug
+                )
+                set_span_data(span, "membership_count", len(orgmember_teams))
 
             for member_team in orgmember_teams:
                 if not member_team.role:
