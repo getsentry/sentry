@@ -159,10 +159,6 @@ export function ConversationsTableNew() {
 
   const handleRowClick = useCallback(
     (dataRow: Conversation) => {
-      trackAnalytics('conversations.table.open', {
-        organization,
-        source: 'table_row',
-      });
       navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects));
     },
     [navigate, organization, selection.projects]
@@ -221,10 +217,6 @@ const BodyCell = memo(function BodyCell({
           onClick={event => {
             // Let the link handle navigation; don't also trigger the row click.
             event.stopPropagation();
-            trackAnalytics('conversations.table.open', {
-              organization,
-              source: 'table_conversation_id',
-            });
           }}
         >
           {isUUID(dataRow.conversationId) ? (
