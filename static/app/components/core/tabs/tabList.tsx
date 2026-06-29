@@ -214,11 +214,30 @@ function useOverflowTabs({
       return;
     }
 
-    const resizeObserver = new ResizeObserver(() => recompute());
+    // `recompute` is a `useEffectEvent`, which React forbids invoking while it
+    // is rendering. A ResizeObserver callback is scheduled by the browser and
+    // can fire while React is mid-render, tripping that guard (JAVASCRIPT-3AJN).
+    // Defer to an animation frame so the call always runs outside the render
+    // phase; this also coalesces bursts of resize notifications into one pass.
+    let frame: number | null = null;
+    const resizeObserver = new ResizeObserver(() => {
+      if (frame !== null) {
+        return;
+      }
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        recompute();
+      });
+    });
     resizeObserver.observe(outerWrap);
     resizeObserver.observe(tabList);
 
-    return () => resizeObserver.disconnect();
+    return () => {
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+      resizeObserver.disconnect();
+    };
   }, [disabled, outerWrapRef, tabListRef]);
 
   // Tabs with the `hidden` prop render with display: none; never surface them
