@@ -11,9 +11,8 @@ from django.db.models import Q
 
 from sentry.explore.translation.dashboards_translation import (
     restore_transaction_widget,
-    translate_dashboard_widget,
+    translate_dashboard_widget_queries,
 )
-from sentry.models.dashboard_widget import DashboardWidget
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
@@ -42,6 +41,38 @@ class TypesClass:
             if type_name == name:
                 return id
         return None
+
+
+class DashboardWidgetDisplayTypes(TypesClass):
+    LINE_CHART = 0
+    AREA_CHART = 1
+    BAR_CHART = 3
+    TABLE = 4
+    BIG_NUMBER = 6
+    DETAILS = 8
+    CATEGORICAL_BAR_CHART = 9
+    WHEEL = 10
+    RAGE_AND_DEAD_CLICKS = 11
+    SERVER_TREE = 12
+    TEXT = 13
+    AGENTS_TRACES_TABLE = 14
+    HEATMAP = 15
+    TYPES = [
+        (LINE_CHART, "line"),
+        (AREA_CHART, "area"),
+        (BAR_CHART, "bar"),
+        (TABLE, "table"),
+        (BIG_NUMBER, "big_number"),
+        (DETAILS, "details"),
+        (CATEGORICAL_BAR_CHART, "categorical_bar"),
+        (WHEEL, "wheel"),
+        (RAGE_AND_DEAD_CLICKS, "rage_and_dead_clicks"),
+        (SERVER_TREE, "server_tree"),
+        (TEXT, "text"),
+        (AGENTS_TRACES_TABLE, "agents_traces_table"),
+        (HEATMAP, "heatmap"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
 
 
 class DashboardWidgetTypes(TypesClass):
@@ -147,9 +178,138 @@ class DatasetSourcesTypes(Enum):
         return tuple((source.name.lower(), source.value) for source in cls)
 
 
+_DATASET_SOURCES = {source.value: source.name.lower() for source in DatasetSourcesTypes}
+
+
+def _convert_thresholds_to_camel_case(thresholds: dict | None) -> dict | None:
+    if thresholds is None:
+        return None
+    result: dict = {
+        "max_values": thresholds.get("max_values", {}),
+        "unit": thresholds.get("unit", ""),
+    }
+    if thresholds.get("preferred_polarity") is not None:
+        result["preferredPolarity"] = thresholds["preferred_polarity"]
+    return result
+
+
+def _serialize_widget_snapshot(widget, queries) -> dict:
+    """
+    Manually replicates DashboardWidgetSerializer.serialize + DashboardWidgetQuerySerializer.serialize
+    so the snapshot matches the format the real API serializer produces, without needing a registered
+    serializer (which doesn't work for historical model instances from apps.get_model()).
+    """
+    serialized_queries = [
+        {
+            "id": str(q.id),
+            "name": q.name,
+            "fields": q.fields,
+            "aggregates": q.aggregates or [],
+            "columns": q.columns or [],
+            "fieldAliases": q.field_aliases or [],
+            "conditions": str(q.conditions),
+            "orderby": str(q.orderby),
+            "widgetId": str(q.widget_id),
+            "onDemand": [],
+            "isHidden": q.is_hidden,
+            "selectedAggregate": q.selected_aggregate,
+            "linkedDashboards": [],
+        }
+        for q in queries
+    ]
+
+    # Mirrors DashboardWidgetSerializer.serialize widgetType logic.
+    if widget.display_type == DashboardWidgetDisplayTypes.TEXT:
+        widget_type_name = None
+    else:
+        widget_type_name = (
+            DashboardWidgetTypes.get_type_name(widget.widget_type)
+            or DashboardWidgetTypes.TYPE_NAMES[0]
+        )
+    if (
+        widget.widget_type == DashboardWidgetTypes.DISCOVER
+        and widget.discover_widget_split is not None
+    ):
+        widget_type_name = DashboardWidgetTypes.get_type_name(widget.discover_widget_split)
+
+    # snapshot_widget converts dateCreated from datetime to a float timestamp before storing.
+    date_created = widget.date_added.timestamp() if widget.date_added else None
+
+    return {
+        "id": str(widget.id),
+        "title": widget.title,
+        "description": widget.description,
+        "displayType": DashboardWidgetDisplayTypes.get_type_name(widget.display_type),
+        "thresholds": _convert_thresholds_to_camel_case(widget.thresholds),
+        "interval": str(widget.interval or "5m"),
+        "dateCreated": date_created,
+        "dashboardId": str(widget.dashboard_id),
+        "queries": serialized_queries,
+        "limit": widget.limit,
+        "widgetType": widget_type_name,
+        "layout": widget.detail.get("layout") if widget.detail else None,
+        "axisRange": widget.detail.get("axis_range") if widget.detail else None,
+        "legendType": widget.detail.get("legend_type") if widget.detail else None,
+        "datasetSource": _DATASET_SOURCES[widget.dataset_source],
+        "changedReason": widget.changed_reason,
+    }
+
+
+def _migrate_widget(widget, DashboardWidgetQuery: type) -> None:
+    queries = list(DashboardWidgetQuery.objects.filter(widget_id=widget.id).order_by("order"))
+
+    widget.widget_snapshot = _serialize_widget_snapshot(widget, queries)
+    widget.save()
+
+    new_widget_queries = []
+    dropped_fields_info = []
+    for q_index, query_data in enumerate(widget.widget_snapshot["queries"]):
+        translated_query, dropped_fields = translate_dashboard_widget_queries(
+            widget,
+            q_index,
+            query_data["name"],
+            query_data["fields"],
+            query_data["columns"],
+            query_data["aggregates"],
+            query_data["orderby"],
+            query_data["conditions"],
+            query_data["fieldAliases"],
+            query_data["isHidden"],
+            query_data["selectedAggregate"],
+        )
+        # translate_dashboard_widget_queries returns a real-model instance as a data
+        # container; copy its fields into a historical-model instance for all DB writes.
+        new_widget_queries.append(
+            DashboardWidgetQuery(
+                widget_id=widget.id,
+                order=q_index,
+                name=translated_query.name,
+                fields=translated_query.fields,
+                conditions=translated_query.conditions,
+                aggregates=translated_query.aggregates,
+                columns=translated_query.columns,
+                field_aliases=translated_query.field_aliases,
+                orderby=translated_query.orderby,
+                is_hidden=translated_query.is_hidden,
+                selected_aggregate=translated_query.selected_aggregate,
+            )
+        )
+        dropped_fields_info.append(dropped_fields)
+
+    DashboardWidgetQuery.objects.filter(widget_id=widget.id).delete()
+    DashboardWidgetQuery.objects.bulk_create(new_widget_queries)
+
+    widget.widget_type = DashboardWidgetTypes.SPANS
+    widget.dataset_source = DatasetSourcesTypes.SPAN_MIGRATION_VERSION_5.value
+    widget.changed_reason = dropped_fields_info
+    widget.save()
+
+
 def migrate_transactions_to_spans_widgets_self_hosted(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
+    DashboardWidget = apps.get_model("sentry", "DashboardWidget")
+    DashboardWidgetQuery = apps.get_model("sentry", "DashboardWidgetQuery")
     qs = DashboardWidget.objects.filter(
         Q(widget_type=DashboardWidgetTypes.TRANSACTION_LIKE)
         | Q(
@@ -160,14 +320,16 @@ def migrate_transactions_to_spans_widgets_self_hosted(
 
     for widget in RangeQuerySetWrapperWithProgressBar(qs):
         try:
-            translate_dashboard_widget(widget)
+            _migrate_widget(widget, DashboardWidgetQuery)
         except Exception as e:
             sentry_sdk.capture_exception(e)
+            raise
 
 
 def reverse_migrate_transactions_to_spans_widgets_self_hosted(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
+    DashboardWidget = apps.get_model("sentry", "DashboardWidget")
     qs = DashboardWidget.objects.filter(
         widget_type=DashboardWidgetTypes.SPANS,
         dataset_source__in=[
