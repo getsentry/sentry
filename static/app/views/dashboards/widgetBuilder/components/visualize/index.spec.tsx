@@ -1464,6 +1464,90 @@ describe('Visualize', () => {
       expect(within(listbox).getByText('span.description')).toBeInTheDocument();
     });
 
+    it('fetches additional attributes from the server while typing in the column dropdown', async () => {
+      // Mock a search-aware attributes endpoint: the cold-start attribute is only
+      // returned when the dropdown forwards a matching search term, mirroring the
+      // capped initial `/attributes` response in production.
+      jest
+        .mocked(useTraceItemDatasetAttributes)
+        .mockImplementation((_traceItemType, options, type?) => {
+          if (type === 'number') {
+            const searched =
+              options?.enabled && options?.search?.includes('cold')
+                ? {
+                    'measurements.app_start_cold': {
+                      key: 'measurements.app_start_cold',
+                      name: 'measurements.app_start_cold',
+                      kind: 'measurement',
+                    },
+                  }
+                : {};
+            return {
+              attributes: {
+                'span.duration': {
+                  key: 'span.duration',
+                  name: 'span.duration',
+                  kind: 'measurement',
+                },
+                ...searched,
+              } as TagCollection,
+              secondaryAliases: {},
+              isLoading: false,
+            };
+          }
+
+          if (type === 'boolean') {
+            return {attributes: {}, secondaryAliases: {}, isLoading: false};
+          }
+
+          return {
+            attributes: {
+              'span.description': {
+                key: 'span.description',
+                name: 'span.description',
+                kind: 'tag',
+              },
+            } as TagCollection,
+            secondaryAliases: {},
+            isLoading: false,
+          };
+        });
+
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization: OrganizationFixture({
+            features: ['performance-view', 'visibility-explore-view'],
+          }),
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                field: ['span.duration'],
+              },
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Column Selection'})
+      );
+
+      // The attribute is not part of the initial response.
+      expect(screen.queryByText('measurements.app_start_cold')).not.toBeInTheDocument();
+
+      // Typing forwards the search to the attributes endpoint and the newly
+      // fetched attribute shows up as an option.
+      await userEvent.type(screen.getByPlaceholderText('Search…'), 'cold');
+      expect(await screen.findByText('measurements.app_start_cold')).toBeInTheDocument();
+    });
+
     it('differentiates between function and column values in selection', async () => {
       jest
         .mocked(useTraceItemDatasetAttributes)
