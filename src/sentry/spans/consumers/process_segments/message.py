@@ -299,6 +299,10 @@ def _create_models(
 def _detect_performance_problems(
     segment_span: CompatibleSpan, spans: list[CompatibleSpan], project: Project
 ) -> None:
+    # Killswitch for all segment-based issue detection
+    if not options.get("spans.process-segments.detect-performance-problems.enable"):
+        return
+
     try:
         # Run the legacy detectors and, if the `_performance_issues_spans` flag is set on the
         # segment span, produce occurrences from the results
