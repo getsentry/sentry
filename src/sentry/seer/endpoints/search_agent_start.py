@@ -67,7 +67,7 @@ def send_search_agent_start_request(
     model_name: str | None = None,
     metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
-    extra_feature_flags: dict[str, Any] | None = None,
+    extra_feature_flags: dict[str, bool] | None = None,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the outbox that starts the agent in Seer."""
     body = SearchAgentStartRequest(
@@ -178,7 +178,9 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         user_org_context = collect_user_org_context(request.user, organization)
         user_email = user_org_context.get("user_email")
         timezone = user_org_context.get("user_timezone")
-        extra_feature_flags = get_extra_seer_feature_flags()
+        extra_feature_flags = get_extra_seer_feature_flags(
+            organization=organization, user=request.user
+        )
 
         try:
             viewer_context = SeerViewerContext(

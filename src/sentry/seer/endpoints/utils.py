@@ -110,13 +110,13 @@ def accept_organization_id_param(func: Callable[..., _RpcReturn]) -> Callable[..
     return wrapper
 
 
-def get_extra_seer_feature_flags() -> dict[str, Any] | None:
+def get_extra_seer_feature_flags(organization: Organization, user: Any) -> dict[str, bool]:
     feature_flag_options = {}
     feature_flags = [
         "assisted-query.cross-event-explorer-endpoint-enabled",
         "assisted-query.project-expansion-enabled",
     ]
     for ff in feature_flags:
-        if features.has(ff):
+        if features.has(ff, organization, actor=user):
             feature_flag_options[ff] = True
     return feature_flag_options

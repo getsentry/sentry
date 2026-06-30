@@ -67,7 +67,7 @@ def send_translate_agentic_request(
     model_name: str | None = None,
     metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
-    extra_seer_feature_flags: dict[str, bool] | None = None,
+    extra_feature_flags: dict[str, bool] | None = None,
 ) -> Any:
     """
     Sends a request to seer to translate a natural language query using the agentic search API.
@@ -84,8 +84,8 @@ def send_translate_agentic_request(
         options["model_name"] = model_name
     if metric_context is not None:
         options["metric_context"] = metric_context
-    extra_seer_feature_flags = extra_seer_feature_flags or {}
-    options["extra_seer_feature_flags"] = extra_seer_feature_flags
+    extra_feature_flags = extra_feature_flags or {}
+    options["extra_feature_flags"] = extra_feature_flags
     body["options"] = options
 
     response = make_translate_agentic_request(body, timeout=10, viewer_context=viewer_context)
@@ -147,7 +147,9 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
             )
 
         viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
-        extra_feature_flags = get_extra_seer_feature_flags()
+        extra_feature_flags = get_extra_seer_feature_flags(
+            organization=organization, user=request.user
+        )
         data = send_translate_agentic_request(
             organization.id,
             organization.slug,
