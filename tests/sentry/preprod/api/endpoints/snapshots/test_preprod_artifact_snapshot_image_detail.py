@@ -149,6 +149,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert head["diff_threshold"] == 0.01
         assert head["description"] == "An alert component"
         assert head["tags"] == {"dark": "dark"}
+        assert head["canvas_theme"] is None
         assert "image_url" in head
         assert (
             head["image_url"]
@@ -598,3 +599,25 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         head = response.data["head_image"]
         assert head is not None
         assert head["canvas_theme"] == "dark"
+
+    @patch(MOCK_TARGET)
+    def test_canvas_theme_invalid_value_coerced_to_null(self, mock_get_session):
+        images = {
+            "screen.png": {
+                "content_hash": "hash1",
+                "display_name": "Screen",
+                "width": 375,
+                "height": 812,
+                "canvas_theme": "sepia",
+            },
+        }
+        artifact, _, manifest_key, manifest_json = self._create_artifact_with_manifest(images)
+        mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
+
+        url = self._get_url(artifact.id, "screen.png")
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        head = response.data["head_image"]
+        assert head is not None
+        assert head["canvas_theme"] is None

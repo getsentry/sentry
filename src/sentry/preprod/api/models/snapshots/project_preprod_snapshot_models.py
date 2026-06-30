@@ -33,6 +33,7 @@ class SnapshotImageResponse(BaseModel):
     image_file_name: str
     width: int
     height: int
+    canvas_theme: Literal["light", "dark"] | None = None
 
     class Config:
         extra = "allow"
@@ -56,6 +57,7 @@ class SnapshotImageDetailImageInfo(BaseModel):
     description: str | None = None
     tags: dict[str, str] | None = None
     image_url: str
+    canvas_theme: Literal["light", "dark"] | None = None
 
     class Config:
         extra = "allow"

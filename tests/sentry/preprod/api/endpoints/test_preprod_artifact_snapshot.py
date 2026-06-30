@@ -641,6 +641,13 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
                 "height": 812,
                 "canvas_theme": "dark",
             },
+            "img2": {
+                "content_hash": "img2",
+                "display_name": "Screen2",
+                "width": 375,
+                "height": 812,
+                "canvas_theme": "light",
+            },
         }
         artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest(images)
         mock_get_session.return_value = self._create_mock_session(manifest_json)
@@ -648,7 +655,8 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         response = self.client.get(self._get_detail_url(artifact.id))
 
         assert response.status_code == 200
-        assert response.data["images"][0]["canvas_theme"] == "dark"
+        themes = {img["key"]: img["canvas_theme"] for img in response.data["images"]}
+        assert themes == {"img1": "dark", "img2": "light"}
 
     @patch("sentry.analytics.record")
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")

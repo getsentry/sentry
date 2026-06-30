@@ -88,6 +88,7 @@ def _build_image_info(
         else global_diff_threshold,
         description=metadata.description,
         tags=metadata.tags,
+        canvas_theme=metadata.canvas_theme,
         image_url=f"/api/0/projects/{org_slug}/{project_slug}/files/images/{metadata.content_hash}/",
         **extra_fields,
     )

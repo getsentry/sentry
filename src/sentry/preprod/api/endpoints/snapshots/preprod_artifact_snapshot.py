@@ -145,6 +145,7 @@ def build_snapshot_image_response(
         else global_diff_threshold,
         description=metadata.description,
         tags=metadata.tags,
+        canvas_theme=metadata.canvas_theme,
     )
 
 
@@ -704,9 +705,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         `images` (required, a mapping of filenames to image metadata objects),
         and optional VCS fields (`head_sha`, `base_sha`, `provider`,
         `head_repo_name`, `head_ref`, `base_repo_name`, `base_ref`, `pr_number`).
-
-        Each image object may include an optional `canvas_theme` (`light` or
-        `dark`) hint for the background canvas the web UI renders behind it.
 
         When VCS info with a `base_sha` is provided and a matching base snapshot
         exists, a comparison is automatically triggered.

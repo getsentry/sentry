@@ -14,14 +14,17 @@ class VcsInfoResponseDict(TypedDict, total=False):
     pr_number: int | None
 
 
-class SnapshotImageResponseDict(TypedDict, total=False):
-    key: str
+class SnapshotImageInfoBaseResponseDict(TypedDict, total=False):
     display_name: str | None
     group: str | None
     image_file_name: str
     width: int
     height: int
-    canvas_theme: str | None
+    canvas_theme: Literal["light", "dark"] | None
+
+
+class SnapshotImageResponseDict(SnapshotImageInfoBaseResponseDict, total=False):
+    key: str
 
 
 class SnapshotDiffPairResponseDict(TypedDict, total=False):
@@ -80,18 +83,12 @@ class SnapshotCreateResponseDict(TypedDict):
     snapshotUrl: str
 
 
-class SnapshotImageDetailImageInfoResponseDict(TypedDict, total=False):
+class SnapshotImageDetailImageInfoResponseDict(SnapshotImageInfoBaseResponseDict, total=False):
     content_hash: str
-    display_name: str | None
-    group: str | None
-    image_file_name: str
-    width: int
-    height: int
     diff_threshold: float | None
     description: str | None
     tags: dict[str, str] | None
     image_url: str
-    canvas_theme: str | None
 
 
 class SnapshotImageDetailResponseDict(TypedDict, total=False):
@@ -104,13 +101,8 @@ class SnapshotImageDetailResponseDict(TypedDict, total=False):
     previous_image_file_name: str | None
 
 
-class LatestBaseSnapshotImageResponseDict(TypedDict, total=False):
+class LatestBaseSnapshotImageResponseDict(SnapshotImageInfoBaseResponseDict, total=False):
     key: str
-    display_name: str | None
-    group: str | None
-    image_file_name: str
-    width: int
-    height: int
     image_url: str
 
 

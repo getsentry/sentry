@@ -549,6 +549,7 @@ class PreprodExamples:
                 "image_file_name": "home_screen_iphone15.png",
                 "width": 1170,
                 "height": 2532,
+                "canvas_theme": "dark",
                 "image_url": "/api/0/projects/org-slug/my-project/files/images/a1b2c3d4e5f6/",
             },
         ],
