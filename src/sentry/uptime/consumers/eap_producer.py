@@ -7,10 +7,11 @@ from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from taskbroker_client.state import current_task
+from taskbroker_client.worker.producer import TaskProducer
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.options.rollout import in_random_rollout
-from sentry.taskworker.producer import TaskProducer, get_task_producer
+from sentry.taskworker.producer import get_task_producer
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import metrics
