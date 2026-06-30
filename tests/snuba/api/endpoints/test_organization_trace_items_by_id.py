@@ -180,6 +180,25 @@ class OrganizationTraceItemsByIdEndpointTest(APITestCase, SnubaTestCase, OurLogT
         assert response.data["data"] == []
         assert response.data["errorIds"] == [item_id]
 
+    def test_allows_org_read_member_since_post_is_a_read(self) -> None:
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(user=member)
+        item_id = self.store_log("foo")
+
+        response = self.do_request(
+            {
+                "itemType": "logs",
+                "columns": ["id", "message"],
+                "items": [self.item(item_id)],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"id": item_id, "message": "foo"}]
+
     def test_rejects_project_the_user_cannot_access(self) -> None:
         other_organization = self.create_organization()
         other_project = self.create_project(organization=other_organization)
@@ -193,6 +212,17 @@ class OrganizationTraceItemsByIdEndpointTest(APITestCase, SnubaTestCase, OurLogT
         )
 
         assert response.status_code == 403, response.content
+
+    def test_rejects_item_type_without_a_supported_mapping(self) -> None:
+        response = self.do_request(
+            {
+                "itemType": "replays",
+                "columns": ["id"],
+                "items": [self.item(uuid.uuid4().hex)],
+            }
+        )
+
+        assert response.status_code == 400, response.content
 
     def test_rejects_request_with_no_items(self) -> None:
         response = self.do_request({"itemType": "logs", "columns": ["id"], "items": []})

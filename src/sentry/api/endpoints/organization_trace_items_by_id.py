@@ -19,11 +19,12 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.endpoints.project_trace_item_details import (
     convert_rpc_attribute_to_json,
     serialize_item_id,
 )
+from sentry.api.exceptions import BadRequest
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
@@ -59,9 +60,15 @@ class _TraceItemsByIdSerializer(serializers.Serializer[Never]):
     referrer = serializers.CharField(required=False)
 
 
+class OrganizationTraceItemsByIdPermission(OrganizationPermission):
+    # POST here is a read; only org:read is required, not the default org:write.
+    scope_map = {"POST": ["org:read", "org:write", "org:admin"]}
+
+
 @cell_silo_endpoint
 class OrganizationTraceItemsByIdEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
+    permission_classes = (OrganizationTraceItemsByIdPermission,)
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -81,7 +88,9 @@ class OrganizationTraceItemsByIdEndpoint(OrganizationEndpoint):
 
         data = serializer.validated_data
         item_type = SupportedTraceItemType(data["itemType"])
-        trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP[item_type]
+        trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(item_type)
+        if trace_item_type is None:
+            raise BadRequest(detail=f"Unsupported trace item type: {item_type.value}")
         columns = data["columns"]
         items = data["items"]
         if len(items) > _MAX_ITEMS:
