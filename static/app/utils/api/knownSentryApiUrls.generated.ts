@@ -98,7 +98,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/code-mappings/bulk/'
   | '/organizations/$organizationIdOrSlug/codeowners-associations/'
   | '/organizations/$organizationIdOrSlug/combined-rules/'
-  | '/organizations/$organizationIdOrSlug/conduit-demo/'
   | '/organizations/$organizationIdOrSlug/config/integrations/'
   | '/organizations/$organizationIdOrSlug/dashboards/'
   | '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/'

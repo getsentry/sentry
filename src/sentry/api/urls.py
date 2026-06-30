@@ -79,7 +79,6 @@ from sentry.api.endpoints.release_thresholds.release_threshold_status_index impo
 from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndpoint
 from sentry.api.endpoints.source_map_debug import SourceMapDebugEndpoint
 from sentry.auth_v2.urls import AUTH_V2_URLS
-from sentry.conduit.endpoints.organization_conduit_demo import OrganizationConduitDemoEndpoint
 from sentry.core.endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from sentry.core.endpoints.organization_avatar import OrganizationAvatarEndpoint
 from sentry.core.endpoints.organization_details import OrganizationDetailsEndpoint
@@ -2709,11 +2708,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-insights-tree",
     ),
     *workflow_urls.organization_urlpatterns,
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/conduit-demo/$",
-        OrganizationConduitDemoEndpoint.as_view(),
-        name="sentry-api-0-organization-conduit-demo",
-    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/objectstore/(?P<path>.*)$",
         ObjectstoreEndpoint.as_view(),
