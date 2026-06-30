@@ -43,7 +43,10 @@ from sentry.seer.code_review.webhooks.merge_request import (
     handle_merge_request_event,
     handle_merge_request_note_event,
 )
-from sentry.seer.code_review.webhooks.seat_tracking import track_gitlab_contributor_action_processor
+from sentry.seer.code_review.webhooks.seat_tracking import (
+    track_gitlab_contributor_action_processor,
+    track_gitlab_contributor_seat_processor,
+)
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
@@ -399,6 +402,7 @@ class MergeEventWebhook(GitlabWebhook):
     # handler runs preflight, otherwise the first MR open from a new
     # contributor would be denied with ORG_CONTRIBUTOR_NOT_FOUND.
     WEBHOOK_EVENT_PROCESSORS = (
+        track_gitlab_contributor_seat_processor,
         track_gitlab_contributor_action_processor,
         handle_merge_request_event,
     )
