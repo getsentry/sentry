@@ -1005,7 +1005,7 @@ def refresh_monitoring_provider_token(
         logger.error(
             "monitoring_provider.refresh.identity_provider_not_found",
             extra={
-                "identity_id": identity_id,
+                "identity_id": identity.id,
                 "idp_id": identity.idp_id,
                 "idp_type": idp.type if idp is not None else None,
             },
