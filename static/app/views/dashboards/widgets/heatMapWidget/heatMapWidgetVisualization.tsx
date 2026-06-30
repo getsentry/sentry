@@ -179,10 +179,6 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     const yAxisValueType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
 
     const yAxisLabel = t('value');
-
-    // Truncate the Z-axis label so a long aggregate can't blow out the tooltip
-    // width, matching the time series widget. Pass `escaped: false` — it renders
-    // through React (`<Text>`), which escapes.
     const zAxisLabel = truncationFormatter(meta.zAxis.name || t('value'), true, false);
 
     return renderToString(
