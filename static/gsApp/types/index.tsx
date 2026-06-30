@@ -158,7 +158,6 @@ export type Plan = {
    * Data categories on the plan (errors, transactions, etc.)
    */
   categories: DataCategory[];
-  checkoutCategories: DataCategory[];
   dashboardLimit: number;
   features: string[];
 
