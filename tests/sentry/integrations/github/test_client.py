@@ -25,7 +25,11 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.scm.private.rate_limit import DynamicRateLimiter
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiPaginationTruncated,
+    ApiRateLimitedError,
+)
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
@@ -314,6 +318,130 @@ class GitHubApiClientTest(TestCase):
         self.github_client._get_with_pagination(f"/repos/{self.repo.name}/assignees")
         assert len(responses.calls) == 1
         assert responses.calls[0].response.status_code == 200
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_parallel_uses_last_link(self, get_jwt) -> None:
+        # When Github advertises the last page, the remaining pages are fetched
+        # by page number (concurrently) rather than by following each page's
+        # `next` link. The later pages omit their `next` link to prove the
+        # last-page hint, not serial `next` walking, drives the fetch, and the
+        # results are concatenated in page order regardless of completion order.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}, {"id": 2}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=3>; rel="last"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=2", json=[{"id": 3}, {"id": 4}])
+        responses.add(method=responses.GET, url=f"{url}&page=3", json=[{"id": 5}, {"id": 6}])
+
+        result = self.github_client._get_with_pagination(
+            f"/repos/{self.repo.name}/assignees", parallel=True
+        )
+
+        assert [item["id"] for item in result] == [1, 2, 3, 4, 5, 6]
+        assert len(responses.calls) == 3
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_falls_back_to_serial_without_last_link(self, get_jwt) -> None:
+        # Even with parallel requested, cursor-style pagination provides `next`
+        # links but no `rel="last"`, so arbitrary page jumps are unavailable and
+        # we fall back to following the links serially.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next"'},
+        )
+        responses.add(
+            method=responses.GET,
+            url=f"{url}&page=2",
+            json=[{"id": 2}],
+            headers={"link": f'<{url}&page=3>; rel="next"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=3", json=[{"id": 3}])
+
+        result = self.github_client._get_with_pagination(
+            f"/repos/{self.repo.name}/assignees", parallel=True
+        )
+
+        assert [item["id"] for item in result] == [1, 2, 3]
+        assert len(responses.calls) == 3
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_raises_when_truncated(self, get_jwt) -> None:
+        # Github advertises five pages but the caller caps at three: only the
+        # first three pages are fetched and the partial result is attached.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=5>; rel="last"'},
+        )
+        for page in (2, 3):
+            responses.add(method=responses.GET, url=f"{url}&page={page}", json=[{"id": page}])
+
+        with pytest.raises(ApiPaginationTruncated) as excinfo:
+            self.github_client._get_with_pagination(
+                f"/repos/{self.repo.name}/assignees",
+                page_number_limit=3,
+                raise_on_page_limit=True,
+                parallel=True,
+            )
+
+        assert len(responses.calls) == 3
+        assert [item["id"] for item in excinfo.value.partial_data] == [1, 2, 3]
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_truncates_without_raising(self, get_jwt) -> None:
+        # Same cap, but without raise_on_page_limit the partial result (the
+        # pages fetched up to the cap) is returned silently.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=5>; rel="last"'},
+        )
+        for page in (2, 3):
+            responses.add(method=responses.GET, url=f"{url}&page={page}", json=[{"id": page}])
+
+        result = self.github_client._get_with_pagination(
+            f"/repos/{self.repo.name}/assignees",
+            page_number_limit=3,
+            parallel=True,
+        )
+
+        assert [item["id"] for item in result] == [1, 2, 3]
+        assert len(responses.calls) == 3
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_serial_by_default_ignores_last_link(self, get_jwt) -> None:
+        # parallel defaults to False: even though Github advertises rel="last",
+        # the serial walk follows `next` links only. Page 2 omits its `next`
+        # link, so the walk stops there and never fetches the advertised page 3.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=3>; rel="last"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=2", json=[{"id": 2}])
+        responses.add(method=responses.GET, url=f"{url}&page=3", json=[{"id": 3}])
+
+        result = self.github_client._get_with_pagination(f"/repos/{self.repo.name}/assignees")
+
+        assert [item["id"] for item in result] == [1, 2]
+        assert len(responses.calls) == 2
 
     @mock.patch(
         "sentry.integrations.github.integration.GitHubIntegration.check_file",
