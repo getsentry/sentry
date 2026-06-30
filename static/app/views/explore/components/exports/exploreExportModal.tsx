@@ -104,6 +104,7 @@ export function ExploreExportModal({
               : config.asyncQueryType,
             limit: value.limit,
           } as DataExportPayload);
+          closeModal();
         } catch {
           // The error message is surfaced by useDataExport's onError handler.
         }
