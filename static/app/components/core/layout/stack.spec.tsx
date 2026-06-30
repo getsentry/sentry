@@ -220,7 +220,7 @@ describe('Stack', () => {
     const matchMedia = setupTrackedMatchMedia(() => false);
 
     render(
-      <Stack direction={{'2xs': 'column', lg: 'row'}}>
+      <Stack direction={{'screen:2xs': 'column', 'screen:lg': 'row'}}>
         <div>Item</div>
         <Stack.Separator />
       </Stack>

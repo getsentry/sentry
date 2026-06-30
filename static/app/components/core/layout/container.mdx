@@ -214,14 +214,18 @@ The `2xs` breakpoint is a breakpoint that applies from 0 to the smallest defined
 
 ### Container Queries
 
-By default, responsive props resolve against the **viewport** (`@media`). Often
-what you actually want is to react to the **available space** a component sits
-in — a panel in a narrow sidebar and the same panel full-width have the same
-viewport but very different widths. Set `responsiveTo="container"` to resolve
-responsive props against the nearest ancestor **query container** instead.
+Responsive props come in two flavours, keyed by breakpoint:
 
-An element can never query its own size, so declare a parent as a container with
-`containerType="inline-size"`, then opt descendants into `responsiveTo="container"`:
+- **bare keys** (`{xs: …}`) resolve against the nearest **query container** —
+  the available space a component sits in. Container queries are the default, so
+  they need no prefix.
+- **`screen:`-prefixed keys** (`{'screen:xs': …}`) resolve against the
+  **viewport** (`@media`).
+
+This matters because a panel in a narrow sidebar and the same panel full-width
+have the same viewport but very different available widths. An element can never
+query its own size, so declare a parent as a container with
+`containerType="inline-size"`, then use bare breakpoint keys on its descendants:
 
 <Storybook.SizingWindow display="block">
   <Container
@@ -231,7 +235,7 @@ An element can never query its own size, so declare a parent as a container with
     radius="md"
     border="primary"
   >
-    <Flex responsiveTo="container" direction={{'2xs': 'column', xs: 'row'}} gap="md">
+    <Flex direction={{'2xs': 'column', xs: 'row'}} gap="md">
       <Container padding="sm" background="primary" border="primary" radius="md">
         In the 2xs range (container narrower than 500px) these stack...
       </Container>
@@ -243,15 +247,18 @@ An element can never query its own size, so declare a parent as a container with
   </Container>
 </Storybook.SizingWindow>
 ```jsx
-{/*The parent declares itself a query container... */}
+{/* The parent declares itself a query container... */}
 <Container containerType="inline-size">
-  {/* ...and the child resolves its responsive props against that container. */}
-  <Flex responsiveTo="container" direction={{'2xs': 'column', xs: 'row'}}>
+  {/* ...and bare breakpoint keys on descendants resolve against it. */}
+  <Flex direction={{'2xs': 'column', xs: 'row'}}>
     <div>Reflows based on the container's width, not the viewport's.</div>
     <div>Resize the container above to see it switch.</div>
   </Flex>
 </Container>
 ```
+
+The two can be combined on one prop — e.g. `direction={{xs: 'column', 'screen:lg': 'row'}}`
+is a column until its container reaches `xs`, then a row once the viewport reaches `lg`.
 
 > **Tip:** Prefer `containerType="inline-size"` — it only contains the inline
 > (width) axis, so height still flows from content. `size` also contains the

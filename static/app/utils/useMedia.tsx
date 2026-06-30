@@ -7,12 +7,12 @@ import {useEffect, useState} from 'react';
  * — e.g. `(prefers-color-scheme: ...)`, `(hover: ...)`, `(pointer: ...)`,
  * `(max-height: ...)`, `(resolution: ...)`.
  *
- * For width-based checks (`min-width`/`max-width`), prefer scraps responsive
- * props (`<Flex responsiveTo="container" direction={{...}} />`) or, when you
- * need the resolved value in JS, `useContainerBreakpoint(ref)` from
- * `@sentry/scraps/layout`. Those react to an element's available
- * space rather than the raw viewport, which is almost always what width checks
- * actually want.
+ * For width-based checks, prefer scraps responsive props — bare breakpoint
+ * keys react to the nearest container (`<Flex direction={{xs: 'column'}} />`),
+ * `screen:`-prefixed keys to the viewport — or, when you need the resolved
+ * value in JS, `useContainerBreakpoint(ref)` from `@sentry/scraps/layout`.
+ * Those react to an element's available space rather than the raw viewport,
+ * which is almost always what width checks actually want.
  */
 export function useMedia(query: string) {
   const [state, setState] = useState(() => window.matchMedia?.(query)?.matches);

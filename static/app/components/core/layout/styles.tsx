@@ -18,22 +18,15 @@ import type {
   Theme,
 } from 'sentry/utils/theme';
 
-/**
- * Controls what a responsive prop resolves against:
- * - 'viewport' (default): emits `@media` queries against the viewport.
- * - 'container': emits `@container` queries against the nearest ancestor
- *   query container (an element with `container-type` set). Note that an
- *   element can never query its own size, so 'container' resolves against an
- *   ancestor, not the element itself.
- */
-export type ResponsiveMode = 'viewport' | 'container';
+// The two axes a responsive prop can resolve against. Container is the default
+// (bare keys); viewport is opt-in via the `screen:` prefix.
+const RESPONSIVE_AXES = ['container', 'viewport'] as const;
 
 // It is unfortunate, but Emotion seems to use the fn callback name in the classname, so lets keep it short.
 export function rc<T>(
   property: string,
   value: Responsive<T> | undefined,
   theme: Theme,
-  mode: ResponsiveMode | undefined,
   // Optional resolver function to transform the value before it is applied to the CSS property.
   resolver?: (
     value: T | undefined,
@@ -54,37 +47,43 @@ export function rc<T>(
     return `${property}: ${resolvedValue as string};`;
   }
 
-  const atRule = mode === 'container' ? '@container' : '@media';
-
+  // A responsive value is keyed by breakpoint on two independent axes:
+  // - bare keys (`xs`, `md`, …) resolve against the nearest query container (@container)
+  // - `screen:`-prefixed keys (`screen:md`, …) resolve against the viewport (@media)
+  // Both can be combined on the same prop. The smallest defined breakpoint
+  // (container first within a breakpoint) is the always-applied base, emitted as
+  // a plain declaration so it applies even with no query container present; the
+  // rest override it via min-width rules of their respective axis, mobile-first.
   let first = true;
-  return BREAKPOINT_ORDER.map(breakpoint => {
-    const v = value[`screen:${breakpoint}`];
-    const resolvedValue = resolver ? resolver(v, breakpoint, theme) : v;
+  const declarations: string[] = [];
 
-    // A resolver can return undefined to indicate that the value should be omitted.
-    if (resolvedValue === undefined) {
-      return;
-    }
+  for (const breakpoint of BREAKPOINT_ORDER) {
+    for (const axis of RESPONSIVE_AXES) {
+      const key = axis === 'container' ? breakpoint : `screen:${breakpoint}`;
+      const v = (value as Partial<Record<string, T>>)[key];
+      const resolvedValue = resolver ? resolver(v, breakpoint, theme) : v;
 
-    if (first) {
-      first = false;
-      // The smallest defined breakpoint is the always-applied base. Emit it as a
-      // plain declaration (no @media/@container wrapper) so it applies even when
-      // no query container is present: container-mode props then degrade to the
-      // base value instead of the property's initial value, matching the JS
-      // resolver (which also falls back to the base). Larger breakpoints override
-      // it via min-width rules.
-      return `${property}: ${resolvedValue as string};`;
-    }
+      // A resolver can return undefined to indicate that the value should be omitted.
+      if (resolvedValue === undefined) {
+        continue;
+      }
 
-    return `
-        ${atRule} (min-width: ${theme.breakpoints[breakpoint]}) {
+      if (first) {
+        first = false;
+        declarations.push(`${property}: ${resolvedValue as string};`);
+        continue;
+      }
+
+      const atRule = axis === 'container' ? '@container' : '@media';
+      declarations.push(
+        `${atRule} (min-width: ${theme.breakpoints[breakpoint]}) {
           ${property}: ${resolvedValue as string};
-        }
-      `;
-  })
-    .filter(Boolean)
-    .join('');
+        }`
+      );
+    }
+  }
+
+  return declarations.join('');
 }
 
 const BREAKPOINT_ORDER: readonly BreakpointSize[] = [
@@ -112,15 +111,21 @@ export type Shorthand<T extends string, N extends 4 | 2> = N extends 4
     : never;
 
 /**
- * Breakpoint keys for responsive props are prefixed with `screen:` to
- * distinguish viewport-based breakpoints from (future) container query
- * breakpoints, e.g. `maxWidth={{'screen:sm': '300px', 'screen:md': 'none'}}`.
+ * Responsive prop keys come in two flavors, and may be combined on one prop:
+ * - bare keys (`xs`, `md`, ...) resolve against the nearest query container
+ *   (`@container`). Container queries are the default, so they take no prefix.
+ * - `screen:`-prefixed keys (`screen:md`, ...) resolve against the viewport
+ *   (`@media`).
+ *
+ * e.g. `direction={{xs: 'column', 'screen:lg': 'row'}}` is column until its
+ * container reaches `xs`, then a row once the viewport reaches `lg`.
  */
 type ScreenBreakpoint = `screen:${BreakpointSize}`;
+type ResponsiveBreakpoint = BreakpointSize | ScreenBreakpoint;
 
-export type Responsive<T> = T | Partial<Record<ScreenBreakpoint, T>>;
+export type Responsive<T> = T | Partial<Record<ResponsiveBreakpoint, T>>;
 
-function isResponsive(prop: unknown): prop is Partial<Record<ScreenBreakpoint, any>> {
+function isResponsive(prop: unknown): prop is Partial<Record<ResponsiveBreakpoint, any>> {
   return typeof prop === 'object' && prop !== null;
 }
 
@@ -254,19 +259,12 @@ export function getMargin(
  */
 type ResponsiveValue<T> = T extends Responsive<infer U> ? U : never;
 export function useResponsivePropValue<T extends Responsive<any>>(
-  prop: T,
-  // When mode is 'container', the value resolves against the nearest ancestor
-  // query container (via ContainerQueryContext) instead of the viewport. With no
-  // container ancestor it falls back to the base breakpoint ('2xs') — the only
-  // value CSS applies in that case (the plain base declaration), so JS and the
-  // @container rules stay in agreement.
-  opts?: {mode?: ResponsiveMode}
+  prop: T
 ): T | ResponsiveValue<T> {
   const viewportBreakpoint = useActiveBreakpoint();
-  const containerBreakpoint = useContext(ContainerQueryContext);
-
-  const activeBreakpoint =
-    opts?.mode === 'container' ? (containerBreakpoint ?? '2xs') : viewportBreakpoint;
+  // No container ancestor → '2xs', the only value CSS applies in that case (the
+  // plain base declaration), so JS and the @container rules stay in agreement.
+  const containerBreakpoint = useContext(ContainerQueryContext) ?? '2xs';
 
   // Only resolve the active breakpoint if the prop is responsive, else ignore it.
   if (!isResponsive(prop)) {
@@ -277,37 +275,39 @@ export function useResponsivePropValue<T extends Responsive<any>>(
     throw new Error('Responsive prop must contain at least one breakpoint');
   }
 
-  // If the active breakpoint exists in the prop, return it
-  if (prop[`screen:${activeBreakpoint}`] !== undefined) {
-    return prop[`screen:${activeBreakpoint}`] as T;
-  }
+  // Walk the same mobile-first cascade rc() emits and keep the value of the last
+  // rule whose condition is currently satisfied. Bare keys are matched against
+  // the nearest container's breakpoint, `screen:` keys against the viewport.
+  const containerIndex = BREAKPOINT_ORDER.indexOf(containerBreakpoint);
+  const viewportIndex = BREAKPOINT_ORDER.indexOf(viewportBreakpoint);
 
-  let value: ResponsiveValue<T> | undefined;
+  let resolved: ResponsiveValue<T> | undefined;
+  let first = true;
 
-  const activeIndex = BREAKPOINT_ORDER.indexOf(activeBreakpoint);
-
-  // If we don't have an exact match, find the next smallest breakpoint
-  for (let i = activeIndex - 1; i >= 0; i--) {
-    const smallerBreakpoint = BREAKPOINT_ORDER[i];
-    if (smallerBreakpoint && prop[`screen:${smallerBreakpoint}`] !== undefined) {
-      value = prop[`screen:${smallerBreakpoint}`];
-      break;
+  for (let i = 0; i < BREAKPOINT_ORDER.length; i++) {
+    const breakpoint = BREAKPOINT_ORDER[i];
+    if (breakpoint === undefined) {
+      continue;
     }
-  }
-
-  // If no smaller breakpoint found, then window < smallest breakpoint, so we need to find the first larger breakpoint
-  if (value === undefined) {
-    for (let i = activeIndex + 1; i < BREAKPOINT_ORDER.length; i++) {
-      const largerBreakpoint = BREAKPOINT_ORDER[i];
-      if (largerBreakpoint && prop[`screen:${largerBreakpoint}`] !== undefined) {
-        value = prop[`screen:${largerBreakpoint}`];
-        break;
+    for (const axis of RESPONSIVE_AXES) {
+      const key = axis === 'container' ? breakpoint : `screen:${breakpoint}`;
+      const value = (prop as Partial<Record<string, ResponsiveValue<T>>>)[key];
+      if (value === undefined) {
+        continue;
       }
+
+      const activeIndex = axis === 'container' ? containerIndex : viewportIndex;
+      // The first defined breakpoint is the always-applied base; later ones only
+      // apply once their axis is at least that wide.
+      if (first || activeIndex >= i) {
+        resolved = value;
+      }
+      first = false;
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  return value!;
+  return resolved!;
 }
 
 export function useActiveBreakpoint(): BreakpointSize {
@@ -398,9 +398,10 @@ const ContainerQueryContext = createContext<BreakpointSize | null>(null);
  * min-width threshold is satisfied by the element's inline-size, mirroring the
  * mobile-first behavior of rc()/useActiveBreakpoint.
  *
- * Prefer CSS responsive props (`responsiveTo="container"`) when possible; reach
- * for this hook only when you genuinely need the resolved breakpoint in JS
- * (e.g. to branch rendering). It replaces width-based `useMedia` usage.
+ * Prefer CSS responsive props (bare breakpoint keys like `{xs: …}`) when
+ * possible; reach for this hook only when you genuinely need the resolved
+ * breakpoint in JS (e.g. to branch rendering). It replaces width-based
+ * `useMedia` usage.
  */
 export function useContainerBreakpoint(ref: RefObject<Element | null>): BreakpointSize {
   const theme = useTheme();

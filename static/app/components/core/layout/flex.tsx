@@ -67,41 +67,35 @@ export const Flex = styled(Container, {
     return !omitFlexProps.has(prop as keyof FlexLayoutProps | 'as');
   },
 })<FlexProps<any> | FlexPropsWithRenderFunction<any>>`
-  ${p => rc('display', p.display ?? 'flex', p.theme, p.responsiveTo, v => v ?? 'flex')};
-  ${p => rc('order', p.order, p.theme, p.responsiveTo)};
-  ${p => rc('gap', p.gap, p.theme, p.responsiveTo, getSpacing)};
+  ${p => rc('display', p.display ?? 'flex', p.theme, v => v ?? 'flex')};
+  ${p => rc('order', p.order, p.theme)};
+  ${p => rc('gap', p.gap, p.theme, getSpacing)};
 
-  ${p => rc('flex-direction', p.direction, p.theme, p.responsiveTo)};
-  ${p => rc('flex-wrap', p.wrap, p.theme, p.responsiveTo)};
-  ${p => rc('flex', p.flex, p.theme, p.responsiveTo)};
+  ${p => rc('flex-direction', p.direction, p.theme)};
+  ${p => rc('flex-wrap', p.wrap, p.theme)};
+  ${p => rc('flex', p.flex, p.theme)};
   ${p =>
-    rc(
-      'justify-content',
-      p.justify,
-      p.theme,
-      p.responsiveTo,
-      (value, _breakpoint, _theme) => {
-        switch (value) {
-          case 'start':
-            return 'flex-start';
-          case 'end':
-            return 'flex-end';
-          case 'center':
-            return 'center';
-          case 'between':
-            return 'space-between';
-          case 'around':
-            return 'space-around';
-          case 'evenly':
-            return 'space-evenly';
-          default:
-            return value;
-        }
+    rc('justify-content', p.justify, p.theme, (value, _breakpoint, _theme) => {
+      switch (value) {
+        case 'start':
+          return 'flex-start';
+        case 'end':
+          return 'flex-end';
+        case 'center':
+          return 'center';
+        case 'between':
+          return 'space-between';
+        case 'around':
+          return 'space-around';
+        case 'evenly':
+          return 'space-evenly';
+        default:
+          return value;
       }
-    )};
+    })};
 
   ${p =>
-    rc('align-items', p.align, p.theme, p.responsiveTo, (value, _breakpoint, _theme) => {
+    rc('align-items', p.align, p.theme, (value, _breakpoint, _theme) => {
       switch (value) {
         case 'start':
           return 'flex-start';

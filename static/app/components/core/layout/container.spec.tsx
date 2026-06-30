@@ -97,12 +97,7 @@ describe('Container', () => {
   it('declares a query container without leaking props to the DOM', () => {
     const ref = createRef<HTMLDivElement>();
     render(
-      <Container
-        ref={ref}
-        containerType="inline-size"
-        containerName="panel"
-        responsiveTo="container"
-      >
+      <Container ref={ref} containerType="inline-size" containerName="panel">
         Hello
       </Container>
     );
@@ -110,7 +105,6 @@ describe('Container', () => {
     const element = screen.getByText('Hello');
     expect(element).not.toHaveAttribute('containertype');
     expect(element).not.toHaveAttribute('containername');
-    expect(element).not.toHaveAttribute('responsiveto');
     // The ref still resolves to the element even though it is now wrapped in a
     // ContainerQueryProvider (merged with the internal observer ref).
     expect(ref.current).toBe(element);
@@ -148,20 +142,14 @@ describe('Container', () => {
       >();
     });
 
-    it('forbids container-query props with a render prop', () => {
+    it('forbids declaring a query container with a render prop', () => {
       const withContainerType: ContainerPropsWithRenderFunction<any> = {
         children: () => null,
         // @ts-expect-error - containerType is not allowed with a render prop
         containerType: 'inline-size',
       };
-      const withResponsiveTo: ContainerPropsWithRenderFunction<any> = {
-        children: () => null,
-        // @ts-expect-error - responsiveTo is not allowed with a render prop
-        responsiveTo: 'container',
-      };
 
       expectTypeOf(withContainerType).toBeObject();
-      expectTypeOf(withResponsiveTo).toBeObject();
     });
   });
 });

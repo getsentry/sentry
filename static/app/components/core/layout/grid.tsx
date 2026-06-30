@@ -100,75 +100,63 @@ export const Grid = styled(Container, {
     return !omitGridProps.has(prop as keyof GridLayoutProps | 'as');
   },
 })<GridProps<any> | GridPropsWithRenderFunction<any>>`
-  ${p => rc('display', p.display ?? 'grid', p.theme, p.responsiveTo, v => v ?? 'grid')}
+  ${p => rc('display', p.display ?? 'grid', p.theme, v => v ?? 'grid')}
 
-  ${p => rc('gap', p.gap, p.theme, p.responsiveTo, getSpacing)};
+  ${p => rc('gap', p.gap, p.theme, getSpacing)};
 
-  ${p => rc('grid-template-columns', p.columns, p.theme, p.responsiveTo)};
-  ${p => rc('grid-template-rows', p.rows, p.theme, p.responsiveTo)};
-  ${p => rc('grid-template-areas', p.areas, p.theme, p.responsiveTo)};
-  ${p => rc('grid-auto-columns', p.autoColumns, p.theme, p.responsiveTo)};
-  ${p => rc('grid-auto-rows', p.autoRows, p.theme, p.responsiveTo)};
-  ${p => rc('grid-auto-flow', p.flow, p.theme, p.responsiveTo)};
-
-  ${p =>
-    rc(
-      'justify-content',
-      p.justify,
-      p.theme,
-      p.responsiveTo,
-      (value, _breakpoint, _theme) => {
-        switch (value) {
-          case 'start':
-            return 'start';
-          case 'end':
-            return 'end';
-          case 'center':
-            return 'center';
-          case 'between':
-            return 'space-between';
-          case 'around':
-            return 'space-around';
-          case 'evenly':
-            return 'space-evenly';
-          case 'stretch':
-            return 'stretch';
-          default:
-            return value;
-        }
-      }
-    )};
+  ${p => rc('grid-template-columns', p.columns, p.theme)};
+  ${p => rc('grid-template-rows', p.rows, p.theme)};
+  ${p => rc('grid-template-areas', p.areas, p.theme)};
+  ${p => rc('grid-auto-columns', p.autoColumns, p.theme)};
+  ${p => rc('grid-auto-rows', p.autoRows, p.theme)};
+  ${p => rc('grid-auto-flow', p.flow, p.theme)};
 
   ${p =>
-    rc(
-      'align-content',
-      p.alignContent,
-      p.theme,
-      p.responsiveTo,
-      (value, _breakpoint, _theme) => {
-        switch (value) {
-          case 'start':
-            return 'start';
-          case 'end':
-            return 'end';
-          case 'center':
-            return 'center';
-          case 'between':
-            return 'space-between';
-          case 'around':
-            return 'space-around';
-          case 'evenly':
-            return 'space-evenly';
-          case 'stretch':
-            return 'stretch';
-          default:
-            return value;
-        }
+    rc('justify-content', p.justify, p.theme, (value, _breakpoint, _theme) => {
+      switch (value) {
+        case 'start':
+          return 'start';
+        case 'end':
+          return 'end';
+        case 'center':
+          return 'center';
+        case 'between':
+          return 'space-between';
+        case 'around':
+          return 'space-around';
+        case 'evenly':
+          return 'space-evenly';
+        case 'stretch':
+          return 'stretch';
+        default:
+          return value;
       }
-    )};
+    })};
 
-  ${p => rc('align-items', p.align, p.theme, p.responsiveTo)};
-  ${p => rc('justify-items', p.justifyItems, p.theme, p.responsiveTo)};
+  ${p =>
+    rc('align-content', p.alignContent, p.theme, (value, _breakpoint, _theme) => {
+      switch (value) {
+        case 'start':
+          return 'start';
+        case 'end':
+          return 'end';
+        case 'center':
+          return 'center';
+        case 'between':
+          return 'space-between';
+        case 'around':
+          return 'space-around';
+        case 'evenly':
+          return 'space-evenly';
+        case 'stretch':
+          return 'stretch';
+        default:
+          return value;
+      }
+    })};
+
+  ${p => rc('align-items', p.align, p.theme)};
+  ${p => rc('justify-items', p.justifyItems, p.theme)};
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.

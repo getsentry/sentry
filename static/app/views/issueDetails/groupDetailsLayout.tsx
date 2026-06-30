@@ -36,7 +36,6 @@ function GroupLayoutBody({children}: {children: React.ReactNode}) {
     <Container
       data-test-id="group-event-details"
       background="primary"
-      responsiveTo="container"
       display={{'2xs': 'flex', lg: 'grid'}}
       flexGrow={{'2xs': 1, lg: 0}}
       style={{
@@ -113,7 +112,6 @@ export function GroupDetailsLayout({
                     as="section"
                     direction="column"
                     background="secondary"
-                    responsiveTo="container"
                     borderRight={{'2xs': 'none', lg: 'primary'}}
                     borderBottom={{'2xs': 'primary', lg: 'none'}}
                   >

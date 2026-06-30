@@ -15,7 +15,6 @@ export {
   ContainerQueryProvider,
   rc,
   type Responsive,
-  type ResponsiveMode,
   useContainerBreakpoint,
   useResponsivePropValue,
 } from './styles';

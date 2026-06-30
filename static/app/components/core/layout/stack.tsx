@@ -5,7 +5,7 @@ import {Separator, type SeparatorProps} from '@sentry/scraps/separator';
 
 import type {ContainerElement} from './container';
 import {Flex, type FlexProps, type FlexPropsWithRenderFunction} from './flex';
-import {type ResponsiveMode, useResponsivePropValue} from './styles';
+import {useResponsivePropValue} from './styles';
 
 /**
  * Stack is just a super set of Flex props with a default direction initializer to 'column'.
@@ -21,8 +21,8 @@ const StackComponent = styled(
     ...props
   }: StackProps<T>) => {
     const directionContext = useMemo<StackDirectionContextValue>(
-      () => ({direction, mode: props.responsiveTo}),
-      [direction, props.responsiveTo]
+      () => ({direction}),
+      [direction]
     );
 
     return (
@@ -58,19 +58,17 @@ function getOrientationFromDirection(
 
 interface StackDirectionContextValue {
   direction: NonNullable<StackProps['direction']>;
-  mode: ResponsiveMode | undefined;
 }
 
 const StackDirectionContext = createContext<StackDirectionContextValue>({
   direction: 'row',
-  mode: undefined,
 });
 
 type StackSeparatorProps = Omit<SeparatorProps, 'orientation'>;
 
 const StackSeparator = styled((props: StackSeparatorProps) => {
-  const {direction, mode} = useContext(StackDirectionContext);
-  const responsiveDirection = useResponsivePropValue(direction, {mode});
+  const {direction} = useContext(StackDirectionContext);
+  const responsiveDirection = useResponsivePropValue(direction);
   const orientation = getOrientationFromDirection(responsiveDirection);
 
   return (

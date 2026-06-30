@@ -390,22 +390,26 @@ const Component = styled('div')`
   }
 `;
 
-// ✅ Use responsive prop signature
-<Flex direction={{xs: 'column', md: 'row'}}>
+// ✅ Use responsive prop signature. `screen:` keys match the viewport, like the
+// @media query above.
+<Flex direction={{'screen:xs': 'column', 'screen:md': 'row'}}>
 ```
 
-Responsive props resolve against the **viewport** by default. To resolve against
-the **available space** instead (a container query), declare a parent as a query
-container with `containerType="inline-size"` and opt the child into
-`responsiveTo="container"`. An element can never query its own size, so the
-container must be an ancestor.
+Responsive prop keys come in two flavors, and may be combined on one prop:
+
+- **bare keys** (`{xs: …}`) resolve against the nearest **query container** —
+  container queries are the default, so they need no prefix.
+- **`screen:`-prefixed keys** (`{'screen:md': …}`) resolve against the
+  **viewport**.
+
+To react to a component's available space, declare a parent as a query container
+with `containerType="inline-size"` and use bare keys on the child (an element can
+never query its own size, so the container must be an ancestor).
 
 ```tsx
 // ✅ Reflow based on the parent's width, not the viewport's
 <Container containerType="inline-size">
-  <Flex responsiveTo="container" direction={{'2xs': 'column', md: 'row'}}>
-    {/* ... */}
-  </Flex>
+  <Flex direction={{'2xs': 'column', md: 'row'}}>{/* ... */}</Flex>
 </Container>
 ```
 
