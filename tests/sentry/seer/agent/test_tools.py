@@ -44,6 +44,7 @@ from sentry.seer.agent.tools import (
     get_metric_attributes_for_trace,
     get_replay_metadata,
     get_repository_definition,
+    get_team_members,
     get_trace_waterfall,
     rpc_get_profile_flamegraph,
 )
@@ -2268,7 +2269,7 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
     """Tests for get_issue_ownership — the configured code owners (Ownership Rules /
     CODEOWNERS) of the files in an issue's stacktrace.
 
-    Resolves ``ProjectOwnership.get_owners`` against the issue's latest event and
+    Resolves ``ProjectOwnership.get_issue_owners`` against the issue's latest event and
     reports the owning users/teams, the matched rule patterns, and whether Sentry
     already auto-assigns from those rules.
     """
@@ -2409,6 +2410,75 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
         result = get_issue_ownership(
             organization_id=self.organization.id,
             issue_id="123456789",
+        )
+        assert result is None
+
+
+class TestGetTeamMembers(APITestCase):
+    """Tests for get_team_members — expands a team into its active member users so the
+    agent can drill from a team-level owner (from get_issue_ownership) down to people."""
+
+    def test_returns_active_members(self):
+        dev = self.create_user(email="dev@example.com")
+        lead = self.create_user(email="lead@example.com")
+        team = self.create_team(organization=self.organization, members=[dev, lead])
+
+        result = get_team_members(
+            organization_id=self.organization.id,
+            team_slug=team.slug,
+        )
+
+        assert result is not None
+        assert result["team_id"] == team.id
+        assert result["team_slug"] == team.slug
+        assert result["team_name"] == team.name
+        members = result["members"]
+        assert {m["email"] for m in members} == {"dev@example.com", "lead@example.com"}
+        assert all(m["type"] == "user" for m in members)
+        assert all(m["slug"] is None for m in members)
+        assert all(m["name"] for m in members)
+
+    def test_empty_team_returns_no_members(self):
+        team = self.create_team(organization=self.organization, members=[])
+
+        result = get_team_members(
+            organization_id=self.organization.id,
+            team_slug=team.slug,
+        )
+
+        assert result is not None
+        assert result["team_slug"] == team.slug
+        assert result["members"] == []
+
+    def test_returns_none_for_unknown_team(self):
+        result = get_team_members(
+            organization_id=self.organization.id,
+            team_slug="no-such-team",
+        )
+        assert result is None
+
+    def test_does_not_leak_team_from_other_org(self):
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org, members=[self.create_user()])
+
+        result = get_team_members(
+            organization_id=self.organization.id,
+            team_slug=other_team.slug,
+        )
+        assert result is None
+
+    def test_excludes_non_active_team(self):
+        from sentry.models.team import TeamStatus
+
+        team = self.create_team(
+            organization=self.organization,
+            members=[self.create_user()],
+            status=TeamStatus.PENDING_DELETION,
+        )
+
+        result = get_team_members(
+            organization_id=self.organization.id,
+            team_slug=team.slug,
         )
         assert result is None
 

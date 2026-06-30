@@ -36,8 +36,10 @@ from sentry.models.group import EventOrdering, Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.release import Release
 from sentry.models.repository import Repository
+from sentry.models.team import Team, TeamStatus
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import (
@@ -85,6 +87,7 @@ from sentry.seer.sentry_data_models import (
     ProfileFlamegraphSuccessResponse,
     ReplayMetadataResponse,
     RepositoryDefinitionResponse,
+    TeamMembersResponse,
     TraceItemAttributesResponse,
     TraceItemEventsResponse,
 )
@@ -97,6 +100,7 @@ from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.committers import (
     get_event_file_committers,
@@ -1782,6 +1786,11 @@ def get_issue_ownership(
     return ownership.get()
 
 
+# ``ProjectOwnership.get_issue_owners`` defaults to 2 (suggested-assignee sizing); the
+# ownership tool wants the full set of responsible owners, so we cap higher.
+_OWNERSHIP_RULE_LIMIT = 25
+
+
 class _IssueOwnership:
     """Resolves the configured code owners for an issue.
 
@@ -1819,17 +1828,22 @@ class _IssueOwnership:
         return {"organization_id": self.organization_id, "issue_id": self.issue_id}
 
     def _resolve_owners(self) -> tuple[list[IssueOwner], list[str]]:
-        """Match the issue's stacktrace files against the project ownership schema."""
-        from sentry.models.projectownership import ProjectOwnership
-        from sentry.models.team import Team
-        from sentry.types.actor import ActorType
-        from sentry.users.services.user.service import user_service
+        """Match the issue's stacktrace files against the project ownership schema.
 
+        Delegates to ``ProjectOwnership.get_issue_owners`` — the same resolution Sentry
+        runs in post-processing to populate ``GroupOwner`` — so owners come back already
+        resolved to teams/users (control-silo user lookups included) and grouped under the
+        rule that matched. ``get_issue_owners`` caps its result at ``limit`` rules that
+        resolved to at least one owner (default 2, tuned for suggested assignees); we raise
+        it so the agent gets a fuller picture of who's responsible.
+        """
         try:
             event = self.group.get_latest_event()
             if event is None:
                 return [], []
-            actors, rules = ProjectOwnership.get_owners(self.group.project_id, event.data)
+            issue_owners = ProjectOwnership.get_issue_owners(
+                self.group.project_id, event.data, limit=_OWNERSHIP_RULE_LIMIT
+            )
         except Exception:
             metrics.incr("seer.get_issue_ownership.error", tags={"step": "get_owners"})
             logger.exception(
@@ -1838,44 +1852,30 @@ class _IssueOwnership:
             )
             return [], []
 
-        # ``get_owners`` returns ``[]`` (not a sentinel) when no rule matched.
-        if not actors:
-            return [], []
-
-        user_ids = [a.id for a in actors if a.actor_type == ActorType.USER]
-        team_ids = [a.id for a in actors if a.actor_type == ActorType.TEAM]
-        # ``User`` lives in the control silo; resolve via the user service so this works
-        # from the region where the RPC runs. ``Team`` is a region model, so query it
-        # directly.
-        users = (
-            {u.id: u for u in user_service.get_many(filter={"user_ids": user_ids})}
-            if user_ids
-            else {}
-        )
-        teams = {t.id: t for t in Team.objects.filter(id__in=team_ids)}
-
         owners: list[IssueOwner] = []
-        for actor in actors:  # preserve ownership precedence order
-            if actor.actor_type == ActorType.USER:
-                user = users.get(actor.id)
-                if user is not None:
+        seen: set[tuple[str, int]] = set()  # the same owner can match multiple rules
+        matched_rules: set[str] = set()
+        for rule, rule_owners, _rule_type in issue_owners:
+            if rule.matcher:
+                matched_rules.add(str(rule.matcher.pattern))
+            for owner in rule_owners:
+                if isinstance(owner, Team):
+                    if ("team", owner.id) in seen:
+                        continue
+                    seen.add(("team", owner.id))
+                    owners.append(IssueOwner(type="team", slug=owner.slug, name=owner.name))
+                else:  # RpcUser
+                    if ("user", owner.id) in seen:
+                        continue
+                    seen.add(("user", owner.id))
                     owners.append(
-                        IssueOwner(type="user", email=user.email, name=user.get_display_name())
+                        IssueOwner(type="user", email=owner.email, name=owner.get_display_name())
                     )
-            elif actor.actor_type == ActorType.TEAM:
-                team = teams.get(actor.id)
-                if team is not None:
-                    owners.append(IssueOwner(type="team", slug=team.slug, name=team.name))
 
-        matched_rules = sorted(
-            {str(rule.matcher.pattern) for rule in (rules or []) if rule.matcher}
-        )
-        return owners, matched_rules
+        return owners, sorted(matched_rules)
 
     def _auto_assignment_enabled(self) -> bool:
         """Whether Sentry already auto-assigns issues from these ownership rules."""
-        from sentry.models.projectownership import ProjectOwnership
-
         try:
             ownership = ProjectOwnership.get_ownership_cached(self.group.project_id)
         except Exception:
@@ -1886,6 +1886,59 @@ class _IssueOwnership:
             )
             return False
         return bool(ownership and ownership.auto_assignment)
+
+
+def get_team_members(
+    *,
+    organization_id: int,
+    team_slug: str,
+) -> TeamMembersResponse | None:
+    """
+    Get the active users on a team.
+
+    Pairs with ``get_issue_ownership``: that tool may resolve an issue's owner to a
+    *team*, which on its own isn't an actionable assignee. Call this with the team's slug
+    to expand it into the individual users on it, so the agent can get down to a specific
+    person to suggest.
+
+    Args:
+        organization_id: The ID of the organization.
+        team_slug: The slug of the team (e.g. the ``slug`` of a ``team`` owner returned by
+            ``get_issue_ownership``).
+
+    Returns:
+        A ``TeamMembersResponse`` with ``team_id``/``team_slug``/``team_name`` and
+        ``members`` (each an ``IssueOwner`` with ``type="user"``, ``email``, ``name``).
+        ``members`` is empty when the team has no active members. Returns ``None`` if the
+        team cannot be found in the organization.
+    """
+    try:
+        team = Team.objects.get(
+            organization_id=organization_id,
+            slug=team_slug,
+            status=TeamStatus.ACTIVE,
+        )
+    except Team.DoesNotExist:
+        return None
+
+    # ``User`` lives in the control silo, so resolve the team's member ids (a region
+    # query) through the user service to get emails/display names from the region the RPC
+    # runs in.
+    user_ids = list(team.get_member_user_ids())
+    members = (
+        [
+            IssueOwner(type="user", email=user.email, name=user.get_display_name())
+            for user in user_service.get_many(filter={"user_ids": user_ids})
+        ]
+        if user_ids
+        else []
+    )
+    return TeamMembersResponse(
+        team_id=team.id,
+        team_slug=team.slug,
+        team_name=team.name,
+        members=members,
+    )
 
 
 def get_event_details(

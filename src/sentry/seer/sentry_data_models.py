@@ -562,6 +562,19 @@ class IssueOwnershipResponse(_DictProxyMixin):
     project_slug: str
 
 
+class TeamMembersResponse(_DictProxyMixin):
+    """`get_team_members` returns the active users on a team, letting the agent drill from
+    a team-level owner (e.g. one returned by `get_issue_ownership`) down to individual
+    users — the eventual target when suggesting an assignee. `members` reuses `IssueOwner`
+    (always `type="user"`, with `email`/`name`); it is empty when the team has no active
+    members. Returns `None` (not this model) when the team can't be found."""
+
+    team_id: int
+    team_slug: str
+    team_name: str
+    members: list[IssueOwner]
+
+
 class TransactionsForProjectResponse(BaseModel):
     """`get_transactions_for_project` returns `{"transactions": [...]}` over the
     project-scoped registry. Wraps the existing `Transaction` model so the SDK
