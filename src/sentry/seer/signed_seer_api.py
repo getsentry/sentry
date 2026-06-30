@@ -242,6 +242,14 @@ class LlmGenerateRequest(TypedDict):
     reasoning: NotRequired[Literal["off", "low", "med", "high"] | None]
 
 
+class OneShotRunRequest(TypedDict):
+    # The registered one-shot to dispatch to on the Seer side (see the ONESHOTS
+    # registry in seer/automation/oneshots/). The `payload` shape is defined by
+    # that one-shot and parsed against its contract.
+    oneshot_id: str
+    payload: dict[str, Any]
+
+
 class RepoDetails(TypedDict):
     project_ids: list[int]
     provider: str
@@ -394,6 +402,21 @@ def make_llm_generate_request(
         body=orjson.dumps(body),
         timeout=timeout,
         metric_tags={"referrer": body["referrer"]},
+        viewer_context=viewer_context,
+    )
+
+
+def make_oneshot_request(
+    body: OneShotRunRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/agent/oneshot/run",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        timeout=timeout,
+        metric_tags={"oneshot_id": body["oneshot_id"]},
         viewer_context=viewer_context,
     )
 

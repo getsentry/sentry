@@ -6251,7 +6251,26 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             }
         )
         assert response.status_code == 400, response.content
-        assert response.data["detail"] == "test% is an invalid value for trace"
+        assert (
+            response.data["detail"]
+            == "`test%` must be a valid UUID hex (32-36 characters long, containing only digits, dashes, or a-f characters)"
+        )
+
+    def test_invalid_span_id(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["trace"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "query": "id:test",
+                "orderby": "trace",
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"]
+            == "`test` must be a valid 16 character hex (containing only digits, or a-f characters)"
+        )
 
     def test_short_trace_id_filter(self) -> None:
         trace_ids = [

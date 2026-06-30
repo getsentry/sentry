@@ -11,7 +11,6 @@ import sentry_sdk
 from sentry import analytics
 from sentry.db.models import Model
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.environment import Environment
 from sentry.notifications.types import FineTuningAPIKey, NotificationSettingEnum, UnsubscribeContext
 from sentry.notifications.utils.actions import MessageAction
@@ -178,6 +177,7 @@ class BaseNotification(abc.ABC):
         from sentry.integrations.opsgenie.analytics import OpsgenieIntegrationNotificationSent
         from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotificationSent
         from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
+        from sentry.mail.analytics import EmailNotificationSent
 
         with start_span(op="notification.send", name="record_notification_sent"):
             project: Project | None = getattr(self, "project", None)

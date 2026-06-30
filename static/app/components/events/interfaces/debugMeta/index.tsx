@@ -238,9 +238,9 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
           <Header
             columns={{
-              '2xs': '0.6fr 1.5fr 0.6fr',
-              xs: '0.6fr 2fr 0.6fr',
-              sm: '0.6fr 2fr 1fr 0.4fr',
+              'screen:2xs': '0.6fr 1.5fr 0.6fr',
+              'screen:xs': '0.6fr 2fr 0.6fr',
+              'screen:sm': '0.6fr 2fr 1fr 0.4fr',
             }}
             background="secondary"
             borderBottom="primary"
@@ -253,7 +253,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             </Flex>
             <Flex
               align="center"
-              display={{'2xs': 'none', xs: 'none'}}
+              display={{'screen:2xs': 'none', 'screen:xs': 'none'}}
               minWidth="0"
               paddingTop="md"
               paddingBottom="md"

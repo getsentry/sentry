@@ -13,14 +13,16 @@ import {TableBody} from 'sentry/views/explore/components/table';
 import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import type {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {LOGS_GRID_BODY_ROW_HEIGHT} from 'sentry/views/explore/logs/styles';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 
 interface Props {
-  allRows: LogTableRowItem[];
+  allRows: OurLogsResponseItem[];
   logsPinning: LogsPinning;
   pinnedLogsQuery: ReturnType<typeof usePinnedLogsQuery>;
-  renderRow: (dataRow: LogTableRowItem) => React.ReactNode;
+  renderRow: (dataRow: OurLogsResponseItem) => React.ReactNode;
 }
 
 export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: Props) {
@@ -38,7 +40,7 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
   }, []);
 
   const rowById = useMemo(() => {
-    const map = new Map<string, LogTableRowItem>();
+    const map = new Map<string, OurLogsResponseItem>();
     for (const row of fetchedPinnedRows) {
       map.set(row[OurLogKnownFieldKey.ID], row);
     }

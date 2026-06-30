@@ -54,13 +54,13 @@ function TopBarContent() {
     <Flex
       as="header"
       height={{
-        sm: `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
-        md: `${PRIMARY_HEADER_HEIGHT}px`,
+        'screen:sm': `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
+        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       justify="between"
       background="secondary"
       align="center"
-      padding={{sm: 'sm lg', md: 'md xl'}}
+      padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
       borderBottom="primary"
       top={barTop}

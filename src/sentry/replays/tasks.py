@@ -8,7 +8,7 @@ from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
 
 from sentry.replays.consumers.recording import commit_message, process_message
-from sentry.replays.lib.kafka import publish_replay_event
+from sentry.replays.lib.kafka import PROCESS_REPLAY_RECORDING_TASK_NAME, publish_replay_event
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     filestore,
@@ -61,7 +61,7 @@ def delete_replay(
 
 
 @instrumented_task(
-    name="sentry.replays.tasks.process_replay_recording",
+    name=PROCESS_REPLAY_RECORDING_TASK_NAME,
     namespace=replays_raw_tasks,
     processing_deadline_duration=90,
     retry=Retry(times=3, delay=5),

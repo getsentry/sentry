@@ -11,6 +11,7 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Message, Value
 from confluent_kafka import KafkaException
 from django.conf import settings
+from taskbroker_client.state import current_task
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.hybridcloud.rpc import ValueEqualityEnum
@@ -88,9 +89,7 @@ def produce_occurrence_to_kafka(
 
     try:
         topic = get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"]
-        if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
-            "tasks.producer.occurrences.rollout"
-        ):
+        if current_task() is not None and in_random_rollout("tasks.producer.occurrences.rollout"):
             _occurrence_task_producer.produce(ArroyoTopic(topic), payload)
         else:
             _occurrence_producer.produce(ArroyoTopic(topic), payload)
