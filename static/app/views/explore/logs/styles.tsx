@@ -568,6 +568,14 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   ${p => (p.position === 'top' ? 'top: 0px;' : 'bottom: 0px;')}
 `;
 
+export const HoveringRowLoadingRow = styled('tr')`
+  display: contents;
+`;
+
+export const HoveringRowLoadingCell = styled('td')`
+  display: contents;
+`;
+
 export const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
 `;

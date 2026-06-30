@@ -7,7 +7,9 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type Dispatch,
   type RefObject,
+  type SetStateAction,
 } from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -54,7 +56,9 @@ import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
   FloatingBottomContainer,
+  HoveringRowLoadingCell,
   HoveringRowLoadingRendererContainer,
+  HoveringRowLoadingRow,
   LOGS_GRID_BODY_ROW_HEIGHT,
   LogTable,
   LogTableBody,
@@ -147,6 +151,7 @@ export function LogsInfiniteTable({
     fetchNextPage,
     fetchPreviousPage,
     seekToTimestamp,
+    isSeekSettled,
     isFetchingNextPage,
     isFetchingPreviousPage,
     lastPageLength,
@@ -243,7 +248,6 @@ export function LogsInfiniteTable({
   >({});
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
-  const [pendingSeekRowId, setPendingSeekRowId] = useState<string | null>(null);
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
@@ -472,37 +476,12 @@ export function LogsInfiniteTable({
     return map;
   }, [data]);
 
-  // After a "View in table" seek re-anchors the query, the target row loads at
-  // the top of a window of older rows. Pull in one previous page so the newer
-  // rows above it aren't lost, then center the target and briefly highlight it.
-  const seekScrolledRef = useRef<string | null>(null);
-  const rowIndexByIdRef = useRef(rowIndexById);
-  rowIndexByIdRef.current = rowIndexById;
-  useEffect(() => {
-    if (!pendingSeekRowId || seekScrolledRef.current === pendingSeekRowId) {
-      return;
-    }
-    if (rowIndexById.get(pendingSeekRowId) === undefined) {
-      // Anchored page hasn't loaded yet; wait for the next data update.
-      return;
-    }
-    const id = pendingSeekRowId;
-    seekScrolledRef.current = id;
-    setPendingSeekRowId(null);
-    Promise.resolve(fetchPreviousPage()).finally(() => {
-      setTimeout(() => {
-        const index = rowIndexByIdRef.current.get(id);
-        if (index === undefined) {
-          return;
-        }
-        virtualizer.scrollToIndex(index, {align: 'center'});
-        setHoveredRowId(id);
-        setTimeout(() => {
-          setHoveredRowId(current => (current === id ? null : current));
-        }, 2500);
-      }, 100);
-    });
-  }, [pendingSeekRowId, rowIndexById, fetchPreviousPage, virtualizer]);
+  const {requestSeekScroll, isAwaitingSeekWindow} = useScrollToSeekTarget({
+    isSeekSettled,
+    rowIndexById,
+    virtualizer,
+    setHoveredRowId,
+  });
 
   const renderRow = useCallback(
     (dataRow: LogTableRowItem) => {
@@ -534,7 +513,7 @@ export function LogsInfiniteTable({
             }
             const timestampPrecise = dataRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
             if (defined(timestampPrecise)) {
-              setPendingSeekRowId(rowId);
+              requestSeekScroll(rowId);
               seekToTimestamp(timestampPrecise);
             }
           }}
@@ -554,6 +533,7 @@ export function LogsInfiniteTable({
       logStart,
       logsPinning,
       meta,
+      requestSeekScroll,
       rowIndexById,
       seekToTimestamp,
     ]
@@ -619,7 +599,7 @@ export function LogsInfiniteTable({
           ref={tableBodyRef}
           disableBodyPadding={embeddedStyling?.disableBodyPadding}
         >
-          {paddingTop > 0 && (
+          {!isAwaitingSeekWindow && paddingTop > 0 && (
             <TableRow>
               {fields.map(field => (
                 <TableBodyCell key={field} style={{height: paddingTop}} />
@@ -627,7 +607,9 @@ export function LogsInfiniteTable({
             </TableRow>
           )}
           {/* Only render these in table for non-replay contexts */}
-          {!hasReplay && isPending && (
+          {/* While a seek's centered window is still loading, keep showing the loader
+              so the target is revealed already centered instead of flashing at top. */}
+          {!hasReplay && (isPending || isAwaitingSeekWindow) && (
             <LoadingRenderer
               bytesScanned={bytesScanned}
               totalPayloadBytes={totalPayloadBytes}
@@ -647,56 +629,60 @@ export function LogsInfiniteTable({
                 resumeAutoFetch={resumeAutoFetch}
               />
             ))}
-          {!autoRefresh && !isPending && isFetchingPreviousPage && (
+          {!autoRefresh &&
+            !isPending &&
+            !isAwaitingSeekWindow &&
+            isFetchingPreviousPage && (
+              <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
+            )}
+          {isRefetching && !hasReplay && !isAwaitingSeekWindow && (
             <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
           )}
-          {isRefetching && !hasReplay && (
-            <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
-          )}
-          {virtualItems.map(virtualRow => {
-            const dataRow = data?.[virtualRow.index];
+          {!isAwaitingSeekWindow &&
+            virtualItems.map(virtualRow => {
+              const dataRow = data?.[virtualRow.index];
 
-            if (!dataRow) {
-              return null;
-            }
+              if (!dataRow) {
+                return null;
+              }
 
-            const rowId = dataRow[OurLogKnownFieldKey.ID];
+              const rowId = dataRow[OurLogKnownFieldKey.ID];
 
-            return (
-              <Fragment key={virtualRow.key}>
-                <LogRowContent
-                  dataRow={dataRow}
-                  meta={meta}
-                  highlightTerms={highlightTerms}
-                  embedded={embedded}
-                  embeddedOptions={embeddedOptions}
-                  sharedHoverTimeoutRef={sharedHoverTimeoutRef}
-                  expansionKey={rowId}
-                  key={virtualRow.key}
-                  onExpand={handleExpand}
-                  onCollapse={handleCollapse}
-                  logStart={logStart}
-                  logEnd={logEnd}
-                  isExpanded={expandedLogRows.has(rowId)}
-                  onExpandHeight={handleExpandHeight}
-                  showCellActions={showCellActions}
-                  showExploreSimilarSpansLink={showExploreSimilarSpansLink}
-                  isPinned={logsPinning?.hasPinnedRow?.(rowId)}
-                  isHoverLinked={hoveredRowId === rowId}
-                  setHoveredRowId={setHoveredRowId}
-                  togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
-                />
-              </Fragment>
-            );
-          })}
-          {paddingBottom > 0 && (
+              return (
+                <Fragment key={virtualRow.key}>
+                  <LogRowContent
+                    dataRow={dataRow}
+                    meta={meta}
+                    highlightTerms={highlightTerms}
+                    embedded={embedded}
+                    embeddedOptions={embeddedOptions}
+                    sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+                    expansionKey={rowId}
+                    key={virtualRow.key}
+                    onExpand={handleExpand}
+                    onCollapse={handleCollapse}
+                    logStart={logStart}
+                    logEnd={logEnd}
+                    isExpanded={expandedLogRows.has(rowId)}
+                    onExpandHeight={handleExpandHeight}
+                    showCellActions={showCellActions}
+                    showExploreSimilarSpansLink={showExploreSimilarSpansLink}
+                    isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+                    isHoverLinked={hoveredRowId === rowId}
+                    setHoveredRowId={setHoveredRowId}
+                    togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
+                  />
+                </Fragment>
+              );
+            })}
+          {!isAwaitingSeekWindow && paddingBottom > 0 && (
             <TableRow>
               {fields.map(field => (
                 <TableBodyCell key={field} style={{height: paddingBottom}} />
               ))}
             </TableRow>
           )}
-          {!autoRefresh && !isPending && isFetchingNextPage && (
+          {!autoRefresh && !isPending && !isAwaitingSeekWindow && isFetchingNextPage && (
             <HoveringRowLoadingRenderer position="bottom" isEmbedded={embedded} />
           )}
         </LogTableBody>
@@ -889,17 +875,25 @@ function HoveringRowLoadingRenderer({
   position: 'top' | 'bottom';
 }) {
   return (
-    <HoveringRowLoadingRendererContainer
-      position={position}
-      headerHeight={isEmbedded ? 0 : 45}
-      height={isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 1 : LOGS_GRID_BODY_ROW_HEIGHT * 3}
-    >
-      <LoadingIndicator
-        size={
-          isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 0.8 : LOGS_GRID_BODY_ROW_HEIGHT * 1.5
-        }
-      />
-    </HoveringRowLoadingRendererContainer>
+    <HoveringRowLoadingRow>
+      <HoveringRowLoadingCell>
+        <HoveringRowLoadingRendererContainer
+          position={position}
+          headerHeight={isEmbedded ? 0 : 45}
+          height={
+            isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 1 : LOGS_GRID_BODY_ROW_HEIGHT * 3
+          }
+        >
+          <LoadingIndicator
+            size={
+              isEmbedded
+                ? LOGS_GRID_BODY_ROW_HEIGHT * 0.8
+                : LOGS_GRID_BODY_ROW_HEIGHT * 1.5
+            }
+          />
+        </HoveringRowLoadingRendererContainer>
+      </HoveringRowLoadingCell>
+    </HoveringRowLoadingRow>
   );
 }
 
@@ -934,4 +928,103 @@ function useBox<T>(value: T): RefObject<T> {
   const box = useRef(value);
   box.current = value;
   return box;
+}
+
+const SEEK_HIGHLIGHT_DURATION_MS = 2500;
+// Re-assert the scroll across a few frames so it lands once the virtualizer has
+// measured the freshly re-anchored window (and any dynamic row heights).
+const SEEK_SCROLL_FRAMES = 8;
+
+/**
+ * Drives the "View in table" centering for a pinned row outside the loaded window.
+ * Call the returned `requestSeekScroll(rowId)` alongside re-anchoring the query. Once
+ * the query reports the window is ready (`isSeekSettled` — older and newer rows around
+ * the target loaded) this centers the target and briefly highlights it. If the row
+ * never appears (e.g. many logs share its timestamp), nothing happens until the seek
+ * is superseded.
+ */
+function useScrollToSeekTarget({
+  isSeekSettled,
+  rowIndexById,
+  virtualizer,
+  setHoveredRowId,
+}: {
+  isSeekSettled: boolean;
+  rowIndexById: Map<string, number>;
+  setHoveredRowId: Dispatch<SetStateAction<string | null>>;
+  virtualizer: Virtualizer<HTMLElement, Element>;
+}) {
+  const [pendingSeekRowId, setPendingSeekRowId] = useState<string | null>(null);
+  const rafRef = useRef(0);
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
+
+  // Layout effect so the scroll lands before paint — the target is in place on the
+  // first frame the centered window renders, rather than visibly jumping.
+  useLayoutEffect(() => {
+    if (!pendingSeekRowId || !isSeekSettled) {
+      return;
+    }
+    const id = pendingSeekRowId;
+    const index = rowIndexById.get(id);
+    if (index === undefined) {
+      // Window is ready but the target hasn't been merged into the loaded data yet;
+      // wait for the next data update rather than giving up.
+      return;
+    }
+    // Consume the request now so re-renders (highlight, further data) don't re-run.
+    setPendingSeekRowId(null);
+
+    // These rAFs are intentionally not cancelled on re-render (only on unmount) so a
+    // highlight/data re-render can't abort an in-progress scroll.
+    let framesRemaining = SEEK_SCROLL_FRAMES;
+    const scrollToTarget = () => {
+      // The virtualizer positions rows from an estimated height, so for a target far
+      // below many off-screen (unmeasured) rows, `scrollToIndex` lands close but below
+      // center. Once the row is actually rendered, finish centering from its real DOM
+      // position, which doesn't depend on the estimate.
+      const scrollEl = virtualizer.scrollElement;
+      const rowEl = scrollEl?.querySelector(`[data-log-row-id="${CSS.escape(id)}"]`);
+      if (scrollEl && rowEl) {
+        const containerRect = scrollEl.getBoundingClientRect();
+        const rowRect = rowEl.getBoundingClientRect();
+        const delta =
+          rowRect.top +
+          rowRect.height / 2 -
+          (containerRect.top + containerRect.height / 2);
+        scrollEl.scrollTop += delta;
+      } else {
+        virtualizer.scrollToIndex(index, {align: 'center'});
+      }
+      framesRemaining -= 1;
+      if (framesRemaining > 0) {
+        rafRef.current = requestAnimationFrame(scrollToTarget);
+      }
+    };
+    scrollToTarget();
+
+    setHoveredRowId(id);
+    clearTimeout(highlightTimeoutRef.current);
+    highlightTimeoutRef.current = setTimeout(
+      () => setHoveredRowId(current => (current === id ? null : current)),
+      SEEK_HIGHLIGHT_DURATION_MS
+    );
+  }, [pendingSeekRowId, isSeekSettled, rowIndexById, virtualizer, setHoveredRowId]);
+
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(rafRef.current);
+      clearTimeout(highlightTimeoutRef.current);
+    },
+    []
+  );
+
+  return {
+    requestSeekScroll: setPendingSeekRowId,
+    // A seek is requested but its centered window isn't ready yet. The table shows a
+    // loading state until this clears so the target is revealed already centered,
+    // rather than flashing at the top of the half-loaded window first.
+    isAwaitingSeekWindow: pendingSeekRowId !== null && !isSeekSettled,
+  };
 }

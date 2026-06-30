@@ -424,6 +424,7 @@ export const LogRowContent = memo(function LogRowContent({
     <Fragment>
       <LogTableRow
         data-test-id="log-table-row"
+        data-log-row-id={rowId}
         data-row-hover-linked={isHoverLinked}
         highlighted={isPseudoRow}
         pinned={isPinned}

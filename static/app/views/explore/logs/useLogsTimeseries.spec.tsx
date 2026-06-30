@@ -93,6 +93,7 @@ describe('useLogsTimeseries', () => {
             fetchNextPage: () => Promise.resolve({} as any),
             fetchPreviousPage: () => Promise.resolve({} as any),
             seekToTimestamp: () => {},
+            isSeekSettled: false,
             refetch: () => Promise.resolve({} as any),
             hasNextPage: false,
             queryKey: [] as any,

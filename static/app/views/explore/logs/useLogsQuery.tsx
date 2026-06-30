@@ -83,8 +83,10 @@ function useLogsApiOptions({
   limit,
   referrer,
   highFidelity,
+  highAccuracy,
 }: {
   referrer: string;
+  highAccuracy?: boolean;
   highFidelity?: boolean;
   limit?: number;
 }) {
@@ -141,7 +143,11 @@ function useLogsApiOptions({
     orderby,
     per_page: limit ? limit : undefined,
     referrer,
-    sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
+    sampling: highFidelity
+      ? SAMPLING_MODE.FLEX_TIME
+      : highAccuracy
+        ? SAMPLING_MODE.HIGH_ACCURACY
+        : SAMPLING_MODE.NORMAL,
     caseInsensitive: caseInsensitive ? '1' : undefined,
     truncate,
   };
@@ -166,15 +172,18 @@ function useLogsApiOptions({
 export function useLogsApiOptionsWithInfinite({
   referrer,
   autoRefresh,
+  highAccuracy,
   highFidelity,
 }: {
   autoRefresh: boolean;
   referrer: string;
+  highAccuracy?: boolean;
   highFidelity?: boolean;
 }) {
   const {infiniteApiOptions, eventView, pageFiltersReady} = useLogsApiOptions({
     limit: autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT,
     referrer,
+    highAccuracy,
     highFidelity,
   });
   return {
@@ -283,6 +292,12 @@ function getPageParam(
   };
 }
 
+// `timestamp_precise` round-trips through a JS number, so a nanosecond timestamp
+// loses precision (its float ULP is ~256ns near the current epoch). 1µs comfortably
+// exceeds that rounding error while staying far below typical log spacing, so a seek
+// anchor padded by this includes the target without pulling in unrelated rows.
+const SEEK_ANCHOR_TOLERANCE_NS = 1000n;
+
 /**
  * Creates an initial page param for autoRefresh mode that enforces the MAX_LOG_INGEST_DELAY condition.
  * This ensures the first page query filters for logs older than Date.now() - MAX_LOG_INGEST_DELAY
@@ -303,9 +318,18 @@ function getInitialPageParam(
       // Only sort by timestamp precise is supported for infinite queries.
       return null;
     }
+    // `timestamp_precise` is serialized as a JS number, so a nanosecond value loses
+    // its low digits when parsed and the anchor can land just past the target —
+    // which the boundary then excludes (`>=` for asc, `<=` for desc), so the target
+    // never enters the window. Nudge the boundary outward (the side the comparison
+    // keeps) by more than the float rounding error so the target is always inside.
+    const anchorWithTolerance =
+      sortBy.kind === 'asc'
+        ? anchorTimestampPrecise - SEEK_ANCHOR_TOLERANCE_NS
+        : anchorTimestampPrecise + SEEK_ANCHOR_TOLERANCE_NS;
     return {
       logId: '',
-      timestampPrecise: anchorTimestampPrecise,
+      timestampPrecise: anchorWithTolerance,
       sortByDirection: sortBy.kind,
       indexFromInitialPage: 0,
       querySortDirection: undefined,
@@ -463,10 +487,14 @@ export function useInfiniteLogsQuery({
   const anchorTimestampPrecise = seekAnchor?.timestampPrecise ?? null;
   const effectiveHighFidelity = anchorTimestampPrecise === null ? highFidelity : false;
 
+  // While seeking we query with high accuracy so the specific target row is returned
+  // rather than sampled out — in high-volume views default sampling can drop it, and
+  // the empty-result retry below never fires because neighbor rows still come back.
   const {infiniteApiOptions, other} = useLogsApiOptionsWithInfinite({
     referrer: _referrer,
     autoRefresh,
     highFidelity: effectiveHighFidelity,
+    highAccuracy: anchorTimestampPrecise !== null,
   });
   const queryKeyWithInfinite = infiniteApiOptions.queryKey;
   const queryClient = useQueryClient();
@@ -483,32 +511,19 @@ export function useInfiniteLogsQuery({
     return JSON.stringify([url, restQuery]);
   }, [queryKeyWithInfinite]);
 
+  // The user changed search/sort/time, so a previously set anchor no longer
+  // applies; drop it and return the table to its normal (live) window.
   useEffect(() => {
     if (seekAnchor && seekAnchor.baseQuerySignature !== baseQuerySignature) {
       setSeekAnchor(null);
     }
   }, [seekAnchor, baseQuerySignature]);
 
-  // initialPageParam is not part of the query key, so when toggling high fidelity
-  // doesn't change the key (e.g. high fidelity was already off), a new anchor
-  // wouldn't refetch on its own. Remove the cached query so the observer
-  // re-creates it fresh and reads the current (anchored) initialPageParam. We
-  // only do this when there is cached data to replace; a key change from the
-  // high-fidelity toggle already fetches fresh.
-  const lastSeekResetRef = useRef<bigint | null>(null);
-  useEffect(() => {
-    if (anchorTimestampPrecise === null) {
-      lastSeekResetRef.current = null;
-      return;
-    }
-    if (lastSeekResetRef.current === anchorTimestampPrecise) {
-      return;
-    }
-    lastSeekResetRef.current = anchorTimestampPrecise;
-    if (queryClient.getQueryData(queryKeyWithInfinite)) {
-      queryClient.removeQueries({queryKey: queryKeyWithInfinite});
-    }
-  }, [anchorTimestampPrecise, queryClient, queryKeyWithInfinite]);
+  useRefetchQueryOnAnchorChange({
+    anchorTimestampPrecise,
+    queryClient,
+    queryKey: queryKeyWithInfinite,
+  });
 
   const seekToTimestamp = useCallback(
     (timestampPrecise: string | number | bigint) => {
@@ -750,6 +765,17 @@ export function useInfiniteLogsQuery({
     return Promise.resolve();
   }, [hasPreviousPage, fetchPreviousPage, isFetchingPreviousPage, isError, autoRefresh]);
 
+  // Once the anchored page has loaded with rows and isn't mid-fetch, pull in the page
+  // of newer rows above the target so the seek window has context on both sides — this
+  // both centers the target and gives scroll-up something to page from.
+  const isAnchoredPageReady = !queryResult.isPending && !isFetching && _data.length > 0;
+  const isSeekSettled = useCenteredSeekWindow({
+    anchorTimestampPrecise,
+    isAnchoredPageReady,
+    hasPreviousPage,
+    fetchPreviousPage: _fetchPreviousPage,
+  });
+
   const nextPageLink = parseLinkHeader(
     data?.pages?.[data.pages.length - 1]?.headers.Link ?? null
   )?.next;
@@ -809,6 +835,7 @@ export function useInfiniteLogsQuery({
     fetchNextPage: _fetchNextPage,
     fetchPreviousPage: _fetchPreviousPage,
     seekToTimestamp,
+    isSeekSettled,
     refetch,
     hasNextPage,
     queryKey: queryKeyWithInfinite,
@@ -824,6 +851,84 @@ export function useInfiniteLogsQuery({
 }
 
 export type UseInfiniteLogsQueryResult = ReturnType<typeof useInfiniteLogsQuery>;
+
+/**
+ * `initialPageParam` is not part of the query key, so setting a seek anchor alone
+ * won't refetch when the key is otherwise unchanged (e.g. high fidelity was already
+ * off). Drop the cached query once per anchor so the observer re-creates it and reads
+ * the now-anchored `initialPageParam`. No-op when there's nothing cached to replace —
+ * a key change from the high-fidelity toggle already fetches fresh.
+ */
+function useRefetchQueryOnAnchorChange({
+  anchorTimestampPrecise,
+  queryClient,
+  queryKey,
+}: {
+  anchorTimestampPrecise: bigint | null;
+  queryClient: QueryClient;
+  queryKey: QueryKey;
+}) {
+  const lastResetAnchorRef = useRef<bigint | null>(null);
+  useEffect(() => {
+    if (anchorTimestampPrecise === null) {
+      lastResetAnchorRef.current = null;
+      return;
+    }
+    if (lastResetAnchorRef.current === anchorTimestampPrecise) {
+      return;
+    }
+    lastResetAnchorRef.current = anchorTimestampPrecise;
+    if (queryClient.getQueryData(queryKey)) {
+      queryClient.removeQueries({queryKey});
+    }
+  }, [anchorTimestampPrecise, queryClient, queryKey]);
+}
+
+/**
+ * Loads the page of newer rows above a "View in table" seek target so the anchored
+ * window has context on both sides (the anchored initial page is `timestamp_precise:<=T`,
+ * the target plus older rows). Runs once per anchor. Returns whether the window is
+ * settled — true once the newer page resolves, or immediately when there are none. The
+ * table waits on this before centering so it doesn't settle on a half-loaded window,
+ * and the loaded newer rows are what scroll-up then pages from.
+ */
+function useCenteredSeekWindow({
+  anchorTimestampPrecise,
+  isAnchoredPageReady,
+  hasPreviousPage,
+  fetchPreviousPage,
+}: {
+  anchorTimestampPrecise: bigint | null;
+  fetchPreviousPage: () => void | Promise<unknown> | false;
+  hasPreviousPage: boolean;
+  isAnchoredPageReady: boolean;
+}) {
+  const [isSeekSettled, setIsSeekSettled] = useState(false);
+  const balancedAnchorRef = useRef<bigint | null>(null);
+
+  // A new anchor (or a cleared one) starts a fresh, not-yet-settled window.
+  useEffect(() => {
+    balancedAnchorRef.current = null;
+    setIsSeekSettled(false);
+  }, [anchorTimestampPrecise]);
+
+  useEffect(() => {
+    if (anchorTimestampPrecise === null || !isAnchoredPageReady) {
+      return;
+    }
+    if (balancedAnchorRef.current === anchorTimestampPrecise) {
+      return;
+    }
+    balancedAnchorRef.current = anchorTimestampPrecise;
+    if (hasPreviousPage) {
+      Promise.resolve(fetchPreviousPage()).finally(() => setIsSeekSettled(true));
+    } else {
+      setIsSeekSettled(true);
+    }
+  }, [anchorTimestampPrecise, isAnchoredPageReady, hasPreviousPage, fetchPreviousPage]);
+
+  return isSeekSettled;
+}
 
 interface AutoFetchWindowOptions {
   canAutoFetchNextPage: boolean;

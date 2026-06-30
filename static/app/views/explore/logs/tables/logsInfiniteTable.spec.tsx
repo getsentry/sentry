@@ -592,6 +592,118 @@ describe('LogsInfiniteTable', () => {
     expect(mockScrollToIndex).toHaveBeenCalledWith(0, expect.anything());
   });
 
+  it('seeks to and centers a pinned row that is outside the loaded window when "View in table" is selected', async () => {
+    mockScrollToIndex.mockClear();
+
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+    const meta = {
+      fields: {
+        [OurLogKnownFieldKey.ID]: 'string',
+        [OurLogKnownFieldKey.PROJECT_ID]: 'string',
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: 'integer',
+        [OurLogKnownFieldKey.MESSAGE]: 'string',
+        [OurLogKnownFieldKey.SEVERITY_NUMBER]: 'integer',
+        [OurLogKnownFieldKey.SEVERITY]: 'string',
+        [OurLogKnownFieldKey.TIMESTAMP]: 'string',
+        [OurLogKnownFieldKey.TRACE_ID]: 'string',
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
+      },
+      units: {},
+    };
+    const makeLog = (id: string, timestampPrecise: number) =>
+      LogFixture({
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+        [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+        [OurLogKnownFieldKey.ID]: id,
+        [OurLogKnownFieldKey.MESSAGE]: `test log body ${id}`,
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: timestampPrecise,
+      });
+
+    // The pinned row (999) is not in the main loaded window; the pinned section
+    // fetches it by id so it can still render.
+    MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      match: [(_, options) => (options?.query?.query ?? '').includes('id:[999]')],
+      body: {data: [makeLog('999', 500)], meta},
+    });
+
+    // Re-anchored page: the target plus an older row below it. The boundary is padded
+    // outward (anchor 500 + 1000ns tolerance) so timestamp precision loss can't
+    // exclude the target.
+    const anchoredMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      match: [
+        (_, options) =>
+          (options?.query?.query ?? '').includes(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=1500`
+          ),
+      ],
+      body: {data: [makeLog('999', 500), makeLog('998', 400)], meta},
+    });
+
+    // Newer page (`>=500`): a row above the target, so the window centers on 999 and
+    // scroll-up has rows to page from.
+    MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      match: [
+        (_, options) =>
+          (options?.query?.query ?? '').includes(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=500`
+          ),
+      ],
+      body: {data: [makeLog('1000', 600)], meta},
+    });
+
+    for (const id of ['998', '999', '1000']) {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${id}/`,
+        method: 'GET',
+        body: {
+          itemId: id,
+          links: null,
+          meta: {},
+          timestamp: '2025-04-03T15:50:10+00:00',
+          attributes: [],
+        },
+      });
+    }
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: '-timestamp',
+              [LOGS_QUERY_KEY]: 'severity:error',
+              logsPinning: 'true',
+              logsPinned: '999',
+            },
+          },
+        },
+      }
+    );
+
+    const pinnedTableBody = await screen.findByTestId('pinned-logs-table-body');
+    const rows = await screen.findAllByTestId('log-table-row');
+    const pinnedRow = rows.find(row => pinnedTableBody.contains(row))!;
+
+    const [actionsButton] = within(pinnedRow).getAllByRole('button', {name: 'Actions'});
+    await userEvent.click(actionsButton!);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'View in table'}));
+
+    // The seek re-anchored the main query at the target's timestamp...
+    await waitFor(() => expect(anchoredMock).toHaveBeenCalled());
+
+    // ...and once the window settled (newer row above the target) it centered the
+    // target — now at index 1, below the newer row.
+    await waitFor(() =>
+      expect(mockScrollToIndex).toHaveBeenCalledWith(1, {align: 'center'})
+    );
+  });
+
   it('does not show "View in table" on a non-pinned row', async () => {
     renderWithProviders(
       <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,

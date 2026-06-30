@@ -185,6 +185,8 @@ describe('useInfiniteLogsQuery', () => {
       headers: linkHeaders,
     });
 
+    // Descending: the boundary is padded outward (anchor 100 + 1000ns tolerance) so
+    // float precision loss in `timestamp_precise` can't exclude the target.
     const anchoredMock = MockApiClient.addMockResponse({
       url: eventsEndpoint,
       body: createMockLogsData([
@@ -194,7 +196,7 @@ describe('useInfiniteLogsQuery', () => {
       match: [
         (_, options) =>
           (options?.query?.query ?? '').includes(
-            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=100`
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=1100`
           ),
       ],
       headers: linkHeaders,
@@ -229,16 +231,11 @@ describe('useInfiniteLogsQuery', () => {
 
     act(() => result.current.seekToTimestamp('100'));
 
+    // The anchored page (`<=1100`) loads the target plus older rows below it, then the
+    // page of newer rows (`>=100`) is pulled in automatically so the window has context
+    // on both sides (and scroll-up has rows to page from). Paging toward newer rows
+    // only succeeds in timestamp-window mode (high fidelity forced off).
     await waitFor(() => expect(anchoredMock).toHaveBeenCalled());
-    await waitFor(() =>
-      expect(result.current.data.map(r => r[OurLogKnownFieldKey.ID])).toEqual([
-        '99',
-        '98',
-      ])
-    );
-
-    await result.current.fetchPreviousPage();
-
     await waitFor(() => expect(newerMock).toHaveBeenCalled());
     await waitFor(() =>
       expect(result.current.data.map(r => r[OurLogKnownFieldKey.ID])).toEqual([
@@ -247,6 +244,78 @@ describe('useInfiniteLogsQuery', () => {
         '99',
         '98',
       ])
+    );
+
+    // The window is loaded once per anchor and reported ready for centering.
+    expect(newerMock).toHaveBeenCalledTimes(1);
+    expect(result.current.isSeekSettled).toBe(true);
+
+    // The anchored query runs with high accuracy so the specific target row isn't
+    // sampled out in high-volume views.
+    expect(anchoredMock).toHaveBeenCalledWith(
+      eventsEndpoint,
+      expect.objectContaining({
+        query: expect.objectContaining({sampling: SAMPLING_MODE.HIGH_ACCURACY}),
+      })
+    );
+  });
+
+  it('pads the seek anchor below the target in ascending sort so precision loss cannot exclude it', async () => {
+    mockLocation.mockReturnValue(
+      LocationFixture({query: {[LOGS_SORT_BYS_KEY]: 'timestamp'}})
+    );
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+
+    // Fallback so the balancing newer-page fetch doesn't go unmatched. Added first so
+    // it is checked last (addMockResponse unshifts; findMockResponse takes first).
+    MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([]),
+      headers: linkHeaders,
+    });
+
+    const initialMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([
+        {id: '1', timestamp_precise: '10', timestamp: '10'},
+        {id: '2', timestamp_precise: '20', timestamp: '20'},
+      ]),
+      match: [(_, options) => (options?.query?.query ?? '').length === 0],
+      headers: linkHeaders,
+    });
+
+    // Ascending keeps the `>=` side, so the boundary is padded *down* (anchor 5000 -
+    // 1000ns tolerance) to keep the target inside the window despite precision loss.
+    const anchoredMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([
+        {id: '50', timestamp_precise: '5000', timestamp: '5000'},
+        {id: '51', timestamp_precise: '5010', timestamp: '5010'},
+      ]),
+      match: [
+        (_, options) =>
+          (options?.query?.query ?? '').includes(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=4000`
+          ),
+      ],
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper(),
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(initialMock).toHaveBeenCalled();
+
+    act(() => result.current.seekToTimestamp('5000'));
+
+    await waitFor(() => expect(anchoredMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(result.current.data.map(r => r[OurLogKnownFieldKey.ID])).toEqual(
+        expect.arrayContaining(['50'])
+      )
     );
   });
 
