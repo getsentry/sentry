@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar
 from rest_framework import status
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
 
@@ -107,3 +108,15 @@ def accept_organization_id_param(func: Callable[..., _RpcReturn]) -> Callable[..
         return func(**kwargs)
 
     return wrapper
+
+
+def get_extra_seer_feature_flags() -> dict[str, Any] | None:
+    feature_flag_options = {}
+    feature_flags = [
+        "assisted-query.cross-event-explorer-endpoint-enabled",
+        "assisted-query.project-expansion-enabled",
+    ]
+    for ff in feature_flags:
+        if features.has(ff):
+            feature_flag_options[ff] = True
+    return feature_flag_options
