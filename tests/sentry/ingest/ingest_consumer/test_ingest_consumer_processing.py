@@ -41,6 +41,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
+from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_objectstore, requires_snuba, requires_symbolicator
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
@@ -516,24 +517,27 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
         assert not persisted_attachments
 
 
-@django_db_all
-@requires_symbolicator
-@thread_leak_allowlist(reason="django dev server", issue=97036)
-def test_deobfuscate_view_hierarchy(default_project, task_runner, live_server) -> None:
-    with override_options({"system.url-prefix": live_server.url}):
-        do_process_view_hierarchy(default_project, task_runner)
+@debug_files_test_both_backends
+class TestDeobfuscateViewHierarchy:
+    @django_db_all
+    @requires_symbolicator
+    @thread_leak_allowlist(reason="django dev server", issue=97036)
+    def test_deobfuscate_view_hierarchy(self, default_project, task_runner, live_server) -> None:
+        with override_options({"system.url-prefix": live_server.url}):
+            do_process_view_hierarchy(default_project, task_runner)
 
-
-@django_db_all
-@requires_objectstore
-@requires_symbolicator
-@thread_leak_allowlist(reason="django dev server", issue=97036)
-def test_deobfuscate_view_hierarchy_objectstore(default_project, task_runner, live_server) -> None:
-    with override_options({"system.url-prefix": live_server.url}):
-        # this stores the attachment during processing in objectstore:
-        do_process_view_hierarchy(default_project, task_runner)
-        # this passes an already stored attachment to the ingest consumer:
-        do_process_view_hierarchy(default_project, task_runner, use_objectstore=True)
+    @django_db_all
+    @requires_objectstore
+    @requires_symbolicator
+    @thread_leak_allowlist(reason="django dev server", issue=97036)
+    def test_deobfuscate_view_hierarchy_with_objectstore_attachment(
+        self, default_project, task_runner, live_server
+    ) -> None:
+        with override_options({"system.url-prefix": live_server.url}):
+            # this stores the attachment during processing in objectstore:
+            do_process_view_hierarchy(default_project, task_runner)
+            # this passes an already stored attachment to the ingest consumer:
+            do_process_view_hierarchy(default_project, task_runner, use_objectstore=True)
 
 
 def do_process_view_hierarchy(project, task_runner, use_objectstore=False):

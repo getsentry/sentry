@@ -27,7 +27,6 @@ const commonFields = {
 export const MM2_PLANS = {
   mm2_a_100k: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_a_100k',
     isEnterprise: false,
@@ -44,7 +43,6 @@ export const MM2_PLANS = {
     },
     totalPrice: 8900,
     userSelectable: true,
-    contractInterval: MONTHLY,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     retentionDays: 90,
@@ -73,7 +71,6 @@ export const MM2_PLANS = {
   },
   mm2_a_100k_ac: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_a_100k_ac',
     isEnterprise: false,
@@ -90,7 +87,6 @@ export const MM2_PLANS = {
     },
     totalPrice: 8000,
     userSelectable: true,
-    contractInterval: ANNUAL,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     retentionDays: 90,
@@ -119,7 +115,6 @@ export const MM2_PLANS = {
   },
   mm2_a_100k_auf: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_a_100k_auf',
     isEnterprise: false,
@@ -136,7 +131,6 @@ export const MM2_PLANS = {
     },
     totalPrice: 96000,
     userSelectable: true,
-    contractInterval: ANNUAL,
     billingInterval: ANNUAL,
     allowOnDemand: true,
     retentionDays: 90,
@@ -165,7 +159,6 @@ export const MM2_PLANS = {
   },
   mm2_a_500k: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_a_500k',
     isEnterprise: false,
@@ -182,7 +175,6 @@ export const MM2_PLANS = {
     },
     totalPrice: 28900,
     userSelectable: true,
-    contractInterval: MONTHLY,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     retentionDays: 90,
@@ -211,7 +203,6 @@ export const MM2_PLANS = {
   },
   mm2_a_500k_ac: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_a_500k_ac',
     isEnterprise: false,
@@ -228,7 +219,6 @@ export const MM2_PLANS = {
     },
     totalPrice: 26000,
     userSelectable: true,
-    contractInterval: ANNUAL,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     retentionDays: 90,
@@ -257,7 +247,6 @@ export const MM2_PLANS = {
   },
   mm2_a_500k_auf: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_a_500k_auf',
     isEnterprise: false,
@@ -274,7 +263,6 @@ export const MM2_PLANS = {
     },
     totalPrice: 312000,
     userSelectable: true,
-    contractInterval: ANNUAL,
     billingInterval: ANNUAL,
     allowOnDemand: true,
     retentionDays: 90,
@@ -303,7 +291,6 @@ export const MM2_PLANS = {
   },
   mm2_b_100k: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_b_100k',
     isEnterprise: false,
@@ -320,7 +307,6 @@ export const MM2_PLANS = {
     },
     totalPrice: 2900,
     userSelectable: true,
-    contractInterval: MONTHLY,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     retentionDays: 90,
@@ -339,7 +325,6 @@ export const MM2_PLANS = {
   },
   mm2_b_100k_ac: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_b_100k_ac',
     isEnterprise: false,
@@ -356,7 +341,6 @@ export const MM2_PLANS = {
     },
     totalPrice: 2600,
     userSelectable: true,
-    contractInterval: ANNUAL,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     retentionDays: 90,
@@ -375,7 +359,6 @@ export const MM2_PLANS = {
   },
   mm2_b_100k_auf: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_b_100k_auf',
     isEnterprise: false,
@@ -392,7 +375,6 @@ export const MM2_PLANS = {
     },
     totalPrice: 31200,
     userSelectable: true,
-    contractInterval: ANNUAL,
     billingInterval: ANNUAL,
     allowOnDemand: true,
     retentionDays: 90,
@@ -411,7 +393,6 @@ export const MM2_PLANS = {
   },
   mm2_b_500k: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_b_500k',
     isEnterprise: false,
@@ -428,7 +409,6 @@ export const MM2_PLANS = {
     },
     totalPrice: 9900,
     userSelectable: true,
-    contractInterval: MONTHLY,
     billingInterval: MONTHLY,
     allowOnDemand: true,
 
@@ -448,7 +428,6 @@ export const MM2_PLANS = {
   },
   mm2_b_500k_ac: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_b_500k_ac',
     isEnterprise: false,
@@ -465,7 +444,6 @@ export const MM2_PLANS = {
     },
     totalPrice: 8900,
     userSelectable: true,
-    contractInterval: ANNUAL,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     retentionDays: 90,
@@ -484,7 +462,6 @@ export const MM2_PLANS = {
   },
   mm2_b_500k_auf: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_b_500k_auf',
     isEnterprise: false,
@@ -501,7 +478,6 @@ export const MM2_PLANS = {
     },
     totalPrice: 106800,
     userSelectable: true,
-    contractInterval: ANNUAL,
     billingInterval: ANNUAL,
     allowOnDemand: true,
     retentionDays: 90,
@@ -520,7 +496,6 @@ export const MM2_PLANS = {
   },
   mm2_f: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_f',
     isEnterprise: false,
@@ -537,7 +512,6 @@ export const MM2_PLANS = {
     },
     totalPrice: 0,
     userSelectable: true,
-    contractInterval: MONTHLY,
     billingInterval: MONTHLY,
     allowOnDemand: false,
     retentionDays: 30,
@@ -553,7 +527,6 @@ export const MM2_PLANS = {
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am2_business',
-    isTestPlan: false,
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
@@ -582,7 +555,6 @@ export const MM2_PLANS = {
       'extended-data-retention',
     ],
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [

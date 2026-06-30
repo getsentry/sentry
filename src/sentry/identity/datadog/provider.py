@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import secrets
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import orjson
 import sentry_sdk
@@ -23,7 +23,6 @@ from sentry.identity.oauth2 import (
     _redirect_url,
     record_event,
 )
-from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationPipelineViewType
@@ -31,18 +30,19 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
-DATADOG_VALID_SITES = frozenset(
-    {
-        "datadoghq.com",
-        "us3.datadoghq.com",
-        "us5.datadoghq.com",
-        "datadoghq.eu",
-        "ddog-gov.com",
-        "us2.ddog-gov.com",
-        "ap1.datadoghq.com",
-        "ap2.datadoghq.com",
-    }
-)
+if TYPE_CHECKING:
+    from sentry.identity.pipeline import IdentityPipeline
+
+DATADOG_VALID_SITES: dict[str, str] = {
+    "datadoghq.com": "US1",
+    "us3.datadoghq.com": "US3",
+    "us5.datadoghq.com": "US5",
+    "datadoghq.eu": "EU",
+    "ap1.datadoghq.com": "AP1",
+    "ap2.datadoghq.com": "AP2",
+    "ddog-gov.com": "US1-FED",
+    "us2.ddog-gov.com": "US2-FED",
+}
 
 MCP_REGISTER_PATH = "/api/unstable/mcp-server/register"
 MCP_AUTHORIZE_PATH = "/api/unstable/mcp-server/authorize"
@@ -274,6 +274,7 @@ class DatadogIdentityProvider(McpIdentityProvider, OAuth2Provider):
     key = IntegrationProviderSlug.DATADOG
     name = "Datadog"
     auto_create_provider_model = True
+    create_organization_identity = True
 
     oauth_scopes: tuple[str, ...] = (
         "mcp_read",
@@ -303,11 +304,9 @@ class DatadogIdentityProvider(McpIdentityProvider, OAuth2Provider):
             raise ValueError(f"Invalid Datadog site: {site}")
         return base
 
-    def build_mcp_url(self, identity_data: dict[str, Any]) -> str | None:
-        """Full MCP endpoint URL for a stored Datadog identity.
-        Returns None when the site is missing or invalid."""
+    def build_mcp_urls(self, identity_data: dict[str, Any]) -> list[str]:
         base = _mcp_base_url_for_site(identity_data.get("site"))
-        return f"{base}{MCP_ENDPOINT_PATH}" if base else None
+        return [f"{base}{MCP_ENDPOINT_PATH}"] if base else []
 
     def get_oauth_authorize_url(self) -> str:
         return self._build_mcp_base_url() + MCP_AUTHORIZE_PATH
@@ -419,18 +418,17 @@ class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
 
     key = IntegrationProviderSlug.DATADOG_PAT
     name = "Datadog (Personal Access Token)"
+    create_organization_identity = True
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return []
 
-    def build_mcp_url(self, identity_data: dict[str, Any]) -> str | None:
-        """Full MCP endpoint URL for a stored Datadog identity.
-        Returns None when the site is missing or invalid."""
+    def build_mcp_urls(self, identity_data: dict[str, Any]) -> list[str]:
         base = _mcp_base_url_for_site(identity_data.get("site"))
-        return f"{base}{MCP_ENDPOINT_PATH}" if base else None
+        return [f"{base}{MCP_ENDPOINT_PATH}"] if base else []
 
     def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
-        access_token = data.get("access_token")
+        access_token = (data.get("access_token") or "").strip()
         if not access_token:
             raise ValueError("Datadog requires an 'access_token' parameter.")
 

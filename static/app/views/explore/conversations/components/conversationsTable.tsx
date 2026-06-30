@@ -42,7 +42,7 @@ import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceD
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
-function getConversationDetailUrl(
+export function getConversationDetailUrl(
   orgSlug: string,
   conversation: Conversation,
   projects: number[]
@@ -166,8 +166,20 @@ function ConversationsTableInner() {
   );
 }
 
-function getUserDisplayName(user: ConversationUser): string {
-  return user.email || user.username || user.ip_address || t('Unknown');
+export function normalizeUserField(value: string | null | undefined): string | null {
+  if (!value || value.toLowerCase() === 'none') {
+    return null;
+  }
+  return value;
+}
+
+export function getUserDisplayName(user: ConversationUser): string | null {
+  return (
+    normalizeUserField(user.email) ||
+    normalizeUserField(user.username) ||
+    normalizeUserField(user.ip_address) ||
+    null
+  );
 }
 
 const TOOLTIP_MAX_CHARS = 2048;
@@ -175,7 +187,7 @@ const CELL_MAX_CHARS = 256;
 
 function TooltipContent({text}: {text: string}) {
   return (
-    <TooltipTextContainer>
+    <TooltipTextContainer onClick={e => e.stopPropagation()}>
       <AIContentRenderer text={ellipsize(text, TOOLTIP_MAX_CHARS)} inline />
     </TooltipTextContainer>
   );
@@ -217,7 +229,7 @@ export function InputOutputTooltipCell({text}: {text: string}) {
   );
 }
 
-function UserNotInstrumentedTooltip() {
+export function UserNotInstrumentedTooltip() {
   return (
     <Text>
       {tct(
@@ -250,23 +262,14 @@ const BodyCell = memo(function BodyCell({
     selection.projects
   );
 
-  const navigateToDetail = (source: 'table_input' | 'table_output') => {
-    trackAnalytics('conversations.table.open', {organization, source});
+  const navigateToDetail = () => {
     navigate(detailUrl);
   };
 
   switch (column.key) {
     case 'conversationId':
       return (
-        <ConversationIdLink
-          to={detailUrl}
-          onClick={() =>
-            trackAnalytics('conversations.table.open', {
-              organization,
-              source: 'table_conversation_id',
-            })
-          }
-        >
+        <ConversationIdLink to={detailUrl}>
           {isUUID(dataRow.conversationId) ? (
             dataRow.conversationId.slice(0, 8)
           ) : (
@@ -284,7 +287,7 @@ const BodyCell = memo(function BodyCell({
           </InfoText>
         );
       }
-      const displayName = getUserDisplayName(dataRow.user);
+      const displayName = getUserDisplayName(dataRow.user) ?? t('Unknown');
       return (
         <Tooltip title={displayName} showOnlyOnOverflow>
           <Flex align="center" gap="xs" minWidth={0}>
@@ -297,7 +300,7 @@ const BodyCell = memo(function BodyCell({
     case 'inputOutput': {
       return (
         <Stack width="100%">
-          <InputOutputRow type="button" onClick={() => navigateToDetail('table_input')}>
+          <InputOutputRow type="button" onClick={() => navigateToDetail()}>
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.firstInput ? (
@@ -307,7 +310,7 @@ const BodyCell = memo(function BodyCell({
               )}
             </Flex>
           </InputOutputRow>
-          <InputOutputRow type="button" onClick={() => navigateToDetail('table_output')}>
+          <InputOutputRow type="button" onClick={() => navigateToDetail()}>
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.lastOutput ? (

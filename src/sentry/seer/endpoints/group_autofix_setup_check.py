@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import orjson
 import sentry_sdk
 from django.conf import settings
 from rest_framework.request import Request
@@ -20,15 +19,9 @@ from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
-    get_autofix_repos_from_project_code_mappings,
     has_project_connected_repos,
 )
-from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import get_supported_scm_providers
-from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
-)
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -58,42 +51,6 @@ def get_autofix_integration_setup_problems(
                 return None
 
     return "integration_missing"
-
-
-def get_repos_and_access(project: Project, group_id: int) -> list[dict]:
-    """
-    Gets the repos that would be indexed for the given project from the code mappings, and checks if we have write access to them.
-
-    Returns a list of repos with the "ok" key set to True if we have write access, False otherwise.
-    """
-    repos = get_autofix_repos_from_project_code_mappings(project)
-
-    repos_and_access: list[dict] = []
-    path = "/v1/automation/codebase/repo/check-access"
-    for repo in repos:
-        provider = repo.get("provider")
-        if provider not in get_supported_scm_providers(project.organization):
-            continue
-
-        body = orjson.dumps(
-            {
-                "repo": repo,
-                "group_id": group_id,
-            }
-        )
-
-        response = make_signed_seer_api_request(
-            seer_autofix_default_connection_pool,
-            path,
-            body,
-        )
-
-        if response.status >= 400:
-            raise SeerApiError("Seer request failed", response.status)
-
-        repos_and_access.append({**repo, "ok": response.json().get("has_access", False)})
-
-    return repos_and_access
 
 
 @cell_silo_endpoint
@@ -133,15 +90,6 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 organization=org, project=group.project
             )
 
-        write_integration_check = None
-        if request.query_params.get("check_write_access", False):
-            repos = get_repos_and_access(group.project, group.id)
-            write_access_ok = len(repos) > 0 and all(repo["ok"] for repo in repos)
-            write_integration_check = {
-                "ok": write_access_ok,
-                "repos": repos,
-            }
-
         has_autofix_quota: bool = quotas.backend.check_seer_quota(
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
         )
@@ -168,7 +116,6 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                     "ok": integration_check is None,
                     "reason": integration_check,
                 },
-                "githubWriteIntegration": write_integration_check,
                 "setupAcknowledgement": {
                     "orgHasAcknowledged": True,
                     "userHasAcknowledged": True,

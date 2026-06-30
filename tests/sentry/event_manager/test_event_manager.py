@@ -2906,216 +2906,208 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self) -> None:
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
+        event = self.create_performance_issue(
+            event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
+        )
+        data = event.data
+        assert event.get_event_type() == "transaction"
+        assert event.transaction == "/books/"
+        assert data["span_grouping_config"]["id"] == "default:2022-10-27"
+        span_hashes = [span["hash"] for span in data["spans"]]
+        assert span_hashes == [
+            "0f43fb6f6e01ca52",
+            "3dc5dd68b38e1730",
+            "424c6ae1641f0f0e",
+            "d5da18d7274b34a1",
+            "ac72fc0a4f5fe381",
+            "ac1468d8e11a0553",
+            "d8681423cab4275f",
+            "e853d2eb7fb9ebb0",
+            "6a992d5529f459a4",
+            "b640a0ce465fa2a4",
+            "a3605e201eaf6c45",
+            "061710eb39a66089",
+            "c031296784b22ea9",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+            "d74ed7012596c3fb",
+        ]
+        assert event.group
+        group = event.group
+        assert group is not None
+        assert group.title == "N+1 Query"
+        assert (
+            group.message
+            == "/books/ N+1 Query SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
+        assert group.culprit == "/books/"
+        assert group.get_event_type() == "transaction"
+        description = "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        assert group.get_event_metadata() == {
+            "location": "/books/",
+            "title": "N+1 Query",
+            "value": description,
+            "initial_priority": PriorityLevel.LOW,
+        }
+        assert (
+            event.search_message
+            == "/books/ N+1 Query SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
+        assert group.location() == "/books/"
+        assert group.level == 40
+        assert group.issue_category == GroupCategory.DB_QUERY
+        assert group.issue_type == PerformanceNPlusOneGroupType
+        assert isinstance(event, GroupEvent)
+        assert event.occurrence
+        assert event.occurrence.evidence_display == [
+            IssueEvidence(
+                name="Offending Spans",
+                value="db - SELECT `books_author`.`id`, `books_author`.`name` "
+                "FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                important=True,
             )
-            data = event.data
-            assert event.get_event_type() == "transaction"
-            assert event.transaction == "/books/"
-            assert data["span_grouping_config"]["id"] == "default:2022-10-27"
-            span_hashes = [span["hash"] for span in data["spans"]]
-            assert span_hashes == [
-                "0f43fb6f6e01ca52",
-                "3dc5dd68b38e1730",
-                "424c6ae1641f0f0e",
-                "d5da18d7274b34a1",
-                "ac72fc0a4f5fe381",
-                "ac1468d8e11a0553",
-                "d8681423cab4275f",
-                "e853d2eb7fb9ebb0",
-                "6a992d5529f459a4",
-                "b640a0ce465fa2a4",
-                "a3605e201eaf6c45",
-                "061710eb39a66089",
-                "c031296784b22ea9",
-                "d74ed7012596c3fb",
-                "d74ed7012596c3fb",
-                "d74ed7012596c3fb",
-                "d74ed7012596c3fb",
-                "d74ed7012596c3fb",
-                "d74ed7012596c3fb",
-                "d74ed7012596c3fb",
-                "d74ed7012596c3fb",
-                "d74ed7012596c3fb",
-                "d74ed7012596c3fb",
-            ]
-            assert event.group
-            group = event.group
-            assert group is not None
-            assert group.title == "N+1 Query"
-            assert (
-                group.message
-                == "/books/ N+1 Query SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            )
-            assert group.culprit == "/books/"
-            assert group.get_event_type() == "transaction"
-            description = "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            assert group.get_event_metadata() == {
-                "location": "/books/",
-                "title": "N+1 Query",
-                "value": description,
-                "initial_priority": PriorityLevel.LOW,
-            }
-            assert (
-                event.search_message
-                == "/books/ N+1 Query SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            )
-            assert group.location() == "/books/"
-            assert group.level == 40
-            assert group.issue_category == GroupCategory.DB_QUERY
-            assert group.issue_type == PerformanceNPlusOneGroupType
-            assert isinstance(event, GroupEvent)
-            assert event.occurrence
-            assert event.occurrence.evidence_display == [
-                IssueEvidence(
-                    name="Offending Spans",
-                    value="db - SELECT `books_author`.`id`, `books_author`.`name` "
-                    "FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                    important=True,
-                )
-            ]
-            assert event.occurrence.evidence_data == {
-                "transaction_name": "/books/",
-                "op": "db",
-                "parent_span_ids": ["8dd7a5869a4f4583"],
-                "parent_span": "django.view - index",
-                "cause_span_ids": ["9179e43ae844b174"],
-                "offender_span_ids": [
-                    "b8be6138369491dd",
-                    "b2d4826e7b618f1b",
-                    "b3fdeea42536dbf1",
-                    "b409e78a092e642f",
-                    "86d2ede57bbf48d4",
-                    "8e554c84cdc9731e",
-                    "94d6230f3f910e12",
-                    "a210b87a2191ceb6",
-                    "88a5ccaf25b9bd8f",
-                    "bb32cf50fc56b296",
-                ],
-                "repeating_spans": "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                "repeating_spans_compact": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                "num_repeating_spans": "10",
-            }
+        ]
+        assert event.occurrence.evidence_data == {
+            "transaction_name": "/books/",
+            "op": "db",
+            "parent_span_ids": ["8dd7a5869a4f4583"],
+            "parent_span": "django.view - index",
+            "cause_span_ids": ["9179e43ae844b174"],
+            "offender_span_ids": [
+                "b8be6138369491dd",
+                "b2d4826e7b618f1b",
+                "b3fdeea42536dbf1",
+                "b409e78a092e642f",
+                "86d2ede57bbf48d4",
+                "8e554c84cdc9731e",
+                "94d6230f3f910e12",
+                "a210b87a2191ceb6",
+                "88a5ccaf25b9bd8f",
+                "bb32cf50fc56b296",
+            ],
+            "repeating_spans": "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+            "repeating_spans_compact": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+            "num_repeating_spans": "10",
+        }
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_update(self) -> None:
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            event = self.create_performance_issue(
+        event = self.create_performance_issue(
+            event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
+        )
+        group = event.group
+        assert group is not None
+        assert group.issue_category == GroupCategory.DB_QUERY
+        assert group.issue_type == PerformanceNPlusOneGroupType
+        group.data["metadata"] = {
+            "location": "hi",
+            "title": "lol",
+        }
+        group.culprit = "wat"
+        group.message = "nope"
+        group.save()
+        assert group.location() == "hi"
+        assert group.title == "lol"
+
+        with self.tasks():
+            self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
             )
-            group = event.group
-            assert group is not None
-            assert group.issue_category == GroupCategory.DB_QUERY
-            assert group.issue_type == PerformanceNPlusOneGroupType
-            group.data["metadata"] = {
-                "location": "hi",
-                "title": "lol",
-            }
-            group.culprit = "wat"
-            group.message = "nope"
-            group.save()
-            assert group.location() == "hi"
-            assert group.title == "lol"
 
-            with self.tasks():
-                self.create_performance_issue(
-                    event_data=make_event(
-                        **get_event("n-plus-one-db/n-plus-one-in-django-index-view")
-                    )
-                )
+        # Make sure the original group is updated via buffers
+        group.refresh_from_db()
+        assert group.title == "N+1 Query"
 
-            # Make sure the original group is updated via buffers
-            group.refresh_from_db()
-            assert group.title == "N+1 Query"
-
-            assert group.get_event_metadata() == {
-                "location": "/books/",
-                "title": "N+1 Query",
-                "value": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                "initial_priority": PriorityLevel.LOW,
-            }
-            assert group.location() == "/books/"
-            assert group.message == "nope"
-            assert group.culprit == "/books/"
+        assert group.get_event_metadata() == {
+            "location": "/books/",
+            "title": "N+1 Query",
+            "value": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+            "initial_priority": PriorityLevel.LOW,
+        }
+        assert group.location() == "/books/"
+        assert group.message == "nope"
+        assert group.culprit == "/books/"
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_error_issue_no_associate_perf_event(self) -> None:
         """Test that you can't associate a performance event with an error issue"""
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
-            )
-            assert event.group is not None
+        event = self.create_performance_issue(
+            event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
+        )
+        assert event.group is not None
 
-            # sneakily make the group type wrong
-            group = event.group
-            assert group is not None
-            group.type = ErrorGroupType.type_id
-            group.save()
-            event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
-            )
+        # sneakily make the group type wrong
+        group = event.group
+        assert group is not None
+        group.type = ErrorGroupType.type_id
+        group.save()
+        event = self.create_performance_issue(
+            event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
+        )
 
-            assert event.group is None
+        assert event.group is None
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_no_associate_error_event(self) -> None:
         """Test that you can't associate an error event with a performance issue"""
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            manager = EventManager(make_event())
-            manager.normalize()
-            event = manager.save(self.project.id)
-            assert len(event.groups) == 1
+        manager = EventManager(make_event())
+        manager.normalize()
+        event = manager.save(self.project.id)
+        assert len(event.groups) == 1
 
-            # sneakily make the group type wrong
-            group = event.group
-            assert group is not None
-            group.type = PerformanceNPlusOneGroupType.type_id
-            group.save()
-            manager = EventManager(make_event())
-            manager.normalize()
-            event = manager.save(self.project.id)
+        # sneakily make the group type wrong
+        group = event.group
+        assert group is not None
+        group.type = PerformanceNPlusOneGroupType.type_id
+        group.save()
+        manager = EventManager(make_event())
+        manager.normalize()
+        event = manager.save(self.project.id)
 
-            assert not event.group
+        assert not event.group
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation_ignored(self) -> None:
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
-                noise_limit=2,
-            )
-            assert event.get_event_type() == "transaction"
-            assert event.group is None
+        event = self.create_performance_issue(
+            event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
+            noise_limit=2,
+        )
+        assert event.get_event_type() == "transaction"
+        assert event.group is None
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation_over_ignored_threshold(self) -> None:
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            event_1 = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
-                noise_limit=3,
-            )
-            event_2 = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
-                noise_limit=3,
-            )
-            event_3 = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
-                noise_limit=3,
-            )
-            assert event_1.get_event_type() == "transaction"
-            assert event_2.get_event_type() == "transaction"
-            assert event_3.get_event_type() == "transaction"
-            # only the third occurrence of the hash should create the group
-            assert event_1.group is None
-            assert event_2.group is None
-            assert event_3.group is not None
+        event_1 = self.create_performance_issue(
+            event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
+            noise_limit=3,
+        )
+        event_2 = self.create_performance_issue(
+            event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
+            noise_limit=3,
+        )
+        event_3 = self.create_performance_issue(
+            event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
+            noise_limit=3,
+        )
+        assert event_1.get_event_type() == "transaction"
+        assert event_2.get_event_type() == "transaction"
+        assert event_3.get_event_type() == "transaction"
+        # only the third occurrence of the hash should create the group
+        assert event_1.group is None
+        assert event_2.group is None
+        assert event_3.group is not None
 
     @override_options(
         {

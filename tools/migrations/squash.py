@@ -125,12 +125,13 @@ def _dependencies(app: App, tree: ast.AST) -> Generator[tuple[ast.Tuple, str]]:
                         yield elt, cand
 
 
-def _target_line(target: str, squashed: dict[str, App]) -> str:
-    return f'        ("{target}", "{squashed[target].squash_name}"),'
+def _target_line(target: str, all_apps: dict[str, App]) -> str:
+    return f'        ("{target}", "{all_apps[target].squash_name}"),'
 
 
 @contextlib.contextmanager
 def _cleared_deps(already_squashed: list[App], squash: dict[str, App]) -> Generator[None]:
+    all_apps = {app.name: app for app in already_squashed} | squash
     all_fixups = []
     for app in already_squashed:
         with open(app.squash_fname, encoding="UTF-8") as f:
@@ -157,7 +158,7 @@ def _cleared_deps(already_squashed: list[App], squash: dict[str, App]) -> Genera
             with open(fname, "w", encoding="UTF-8") as f:
                 f.writelines(
                     (
-                        _target_line(fixups[i], squash) if i in fixups else line
+                        _target_line(fixups[i], all_apps) if i in fixups else line
                         for i, line in enumerate(lines, start=1)
                     )
                 )

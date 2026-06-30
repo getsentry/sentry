@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
-from django.db import IntegrityError
+from django.db import IntegrityError, router, transaction
 from django.http import HttpResponseRedirect
 from requests.exceptions import RequestException
 from rest_framework.request import Request
@@ -21,9 +22,14 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.base import Provider
 from sentry.identity.oauth2 import OAuth2Provider
-from sentry.identity.pipeline import MonitoringIdentityPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.users.models.identity import Identity, IdentityProvider, OrganizationIdentity
+from sentry.users.models.identity import (
+    Identity,
+    IdentityProvider,
+    OrganizationIdentity,
+    link_provider_identity,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +39,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
     owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
         "DELETE": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (MonitoringProviderPermission,)
@@ -40,6 +47,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
     def post(
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
     ) -> Response:
+        """Connect a monitoring provider."""
         if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
             return Response(status=404)
 
@@ -48,13 +56,56 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
 
         provider_type = identity_manager.get(provider_key)
 
-        # For token-based providers without OAuth flow, verify the submitted token
-        # and link the identity directly instead of redirecting.
-        if not isinstance(provider_type, OAuth2Provider):
-            return self._link_submitted_token(request, provider_type, organization)
+        if isinstance(provider_type, OAuth2Provider):
+            return self._link_by_oauth(
+                provider_type, organization, provider_key, request, request.data
+            )
+        return self._link_by_token(provider_type, organization, request.user, request.data)
 
+    def put(
+        self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
+    ) -> Response:
+        """Reauthenticate an existing monitoring provider connection."""
+        if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
+            return Response(status=404)
+
+        if provider_key not in MONITORING_PROVIDERS:
+            return Response({"detail": "Unknown monitoring provider."}, status=400)
+
+        provider_type = identity_manager.get(provider_key)
+
+        # Reuse the stored site from the existing connection.
+        org_identity = (
+            OrganizationIdentity.objects.filter(
+                organization_id=organization.id,
+                identity__user_id=request.user.id,  # type: ignore[misc]
+                identity__idp__type=provider_key,
+            )
+            .select_related("identity")
+            .first()
+        )
+        if org_identity is None:
+            return Response({"detail": "Not connected to this provider."}, status=404)
+        data = {**request.data}
+        site = org_identity.identity.data.get("site")
+        if site is not None:
+            data["site"] = site
+
+        if isinstance(provider_type, OAuth2Provider):
+            return self._link_by_oauth(provider_type, organization, provider_key, request, data)
+        return self._link_by_token(provider_type, organization, request.user, data)
+
+    def _link_by_oauth(
+        self,
+        provider_type: OAuth2Provider,
+        organization: RpcOrganization,
+        provider_key: str,
+        request: Request,
+        data: dict[str, Any],
+    ) -> Response:
+        """Initiate the OAuth pipeline for a provider and return its redirect URL."""
         try:
-            config = provider_type.get_pipeline_config(request.data)
+            config = provider_type.get_pipeline_config(data)
         except ValueError as e:
             return Response({"detail": str(e)}, status=400)
 
@@ -62,7 +113,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if not provider_type.auto_create_provider_model:
             idp, _ = IdentityProvider.objects.get_or_create(type=provider_key, external_id="")
 
-        pipeline = MonitoringIdentityPipeline(
+        pipeline = IdentityPipeline(
             request=request._request,
             provider_key=provider_key,
             organization=organization,
@@ -82,42 +133,27 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         )
         return Response({"detail": "Failed to start OAuth flow."}, status=500)
 
-    def _link_submitted_token(
-        self, request: Request, provider_type: Provider, organization: RpcOrganization
+    def _link_by_token(
+        self,
+        provider_type: Provider,
+        organization: RpcOrganization,
+        user: Any,
+        data: dict[str, Any],
     ) -> Response:
-        """Verify a user-submitted token and link the identity (no OAuth flow)."""
+        """Verify a user-submitted token and link the identity."""
         try:
-            identity = provider_type.build_identity(request.data)
+            identity_data = provider_type.build_identity(data)
         except (ValueError, IdentityNotValid) as e:
             return Response({"detail": str(e)}, status=400)
         except RequestException:
             return Response({"detail": "Failed to verify token with provider."}, status=400)
 
-        idp, _ = IdentityProvider.objects.get_or_create(
-            type=identity["type"],
-            external_id=identity["idp_external_id"],
-            defaults={"config": identity.get("idp_config", {})},
-        )
-
         try:
-            linked_identity = Identity.objects.link_identity(
-                user=request.user,  # type: ignore[arg-type]
-                idp=idp,
-                external_id=identity["id"],
-                should_reattach=False,
-                defaults={
-                    "scopes": identity.get("scopes", []),
-                    "data": identity.get("data", {}),
-                },
+            link_provider_identity(
+                user=user, identity_data=identity_data, organization_id=organization.id
             )
         except IntegrityError:
             return Response({"detail": "This account is already connected."}, status=409)
-
-        if linked_identity:
-            OrganizationIdentity.objects.get_or_create(
-                organization_id=organization.id,
-                identity=linked_identity,
-            )
 
         return Response(status=204)
 
@@ -130,7 +166,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if provider_key not in MONITORING_PROVIDERS:
             return Response({"detail": "Unknown monitoring provider."}, status=400)
 
-        org_identities = list(
+        org_identities: list[OrganizationIdentity] = list(
             OrganizationIdentity.objects.filter(
                 organization_id=organization.id,
                 identity__user_id=request.user.id,  # type: ignore[misc]
@@ -142,9 +178,10 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
             return Response({"detail": "Not connected to this provider."}, status=404)
 
         for org_identity in org_identities:
-            identity = org_identity.identity
-            org_identity.delete()
-            if not OrganizationIdentity.objects.filter(identity=identity).exists():
-                identity.delete()
+            with transaction.atomic(router.db_for_write(OrganizationIdentity)):
+                identity: Identity = org_identity.identity
+                org_identity.delete()
+                if not OrganizationIdentity.objects.filter(identity=identity).exists():
+                    identity.delete()
 
         return Response(status=204)

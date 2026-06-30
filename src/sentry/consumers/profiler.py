@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import sentry_sdk
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, TStrategyPayload
+
+from sentry.utils.tracing import start_span
 
 
 class JoinProfiler(ProcessingStrategy[TStrategyPayload]):
@@ -17,8 +18,11 @@ class JoinProfiler(ProcessingStrategy[TStrategyPayload]):
         self.__next_step = next_step
 
     def join(self, timeout: float | None = None):
-        with sentry_sdk.start_transaction(
-            op="consumer_join", name="consumer.join", custom_sampling_context={"sample_rate": 1.0}
+        with start_span(
+            op="consumer_join",
+            name="consumer.join",
+            custom_sampling_context={"sample_rate": 1.0},
+            transaction=True,
         ):
             self.__next_step.join(timeout)
 

@@ -159,7 +159,6 @@ export type Plan = {
    */
   categories: DataCategory[];
   checkoutCategories: DataCategory[];
-  contractInterval: 'monthly' | 'annual';
   dashboardLimit: number;
   features: string[];
 
@@ -170,7 +169,6 @@ export type Plan = {
    * upsell suppression, provisioning).
    */
   isEnterprise: boolean;
-  isTestPlan: boolean;
   maxMembers: number | null;
   metricDetectorLimit: number;
   name: string;
@@ -294,7 +292,6 @@ export type Subscription = {
    * Current history per data category
    */
   categories: Partial<Record<DataCategory, BillingMetricHistory>>;
-  contractInterval: 'monthly' | 'annual';
   customPrice: number | null;
   customPricePcss: number | null;
   // Event details

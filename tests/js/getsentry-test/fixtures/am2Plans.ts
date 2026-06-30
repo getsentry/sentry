@@ -141,11 +141,9 @@ export const AM2_PLANS = {
     trialPlan: null,
     maxMembers: null,
     retentionDays: 90,
-    isTestPlan: false,
     userSelectable: true,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -875,11 +873,9 @@ export const AM2_PLANS = {
     trialPlan: 'am2_t',
     maxMembers: 1,
     retentionDays: 30,
-    isTestPlan: false,
     userSelectable: true,
     features: AM2_FREE_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
       errors: [
@@ -977,11 +973,9 @@ export const AM2_PLANS = {
     trialPlan: 'am2_business',
     maxMembers: null,
     retentionDays: 90,
-    isTestPlan: false,
     userSelectable: true,
     features: AM2_TEAM_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -1711,11 +1705,9 @@ export const AM2_PLANS = {
     trialPlan: null,
     maxMembers: 20,
     retentionDays: 90,
-    isTestPlan: false,
     userSelectable: false,
     features: AM2_TRIAL_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
       errors: [
@@ -1813,11 +1805,9 @@ export const AM2_PLANS = {
     trialPlan: 'am2_business',
     maxMembers: null,
     retentionDays: 90,
-    isTestPlan: false,
     userSelectable: true,
     features: AM2_TEAM_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -2510,11 +2500,9 @@ export const AM2_PLANS = {
     trialPlan: null,
     maxMembers: null,
     retentionDays: 90,
-    isTestPlan: false,
     userSelectable: true,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -3208,11 +3196,9 @@ export const AM2_PLANS = {
     trialPlan: null,
     maxMembers: null,
     retentionDays: 90,
-    isTestPlan: false,
     userSelectable: false,
     features: AM2_TEAM_FEATURES,
     billingInterval: 'monthly',
-    contractInterval: 'monthly',
     allowOnDemand: true,
     planCategories: {
       errors: [{events: 5000000, unitPrice: 0.015, price: 0}],
@@ -3242,11 +3228,9 @@ export const AM2_PLANS = {
     trialPlan: null,
     maxMembers: null,
     retentionDays: 90,
-    isTestPlan: false,
     userSelectable: false,
     features: AM2_TEAM_FEATURES,
     billingInterval: 'annual',
-    contractInterval: 'annual',
     allowOnDemand: true,
     planCategories: {
       errors: [{events: 50_000, unitPrice: 0.015, price: 0}],
@@ -3276,11 +3260,9 @@ export const AM2_PLANS = {
     trialPlan: null,
     maxMembers: null,
     retentionDays: 90,
-    isTestPlan: false,
     userSelectable: false,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -3783,11 +3765,9 @@ export const AM2_PLANS = {
     trialPlan: null,
     maxMembers: null,
     retentionDays: 90,
-    isTestPlan: false,
     userSelectable: false,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -4340,11 +4320,9 @@ export const AM2_PLANS = {
     trialPlan: 'am2_business',
     maxMembers: null,
     retentionDays: 90,
-    isTestPlan: false,
     userSelectable: false,
     features: AM2_TEAM_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -4912,11 +4890,9 @@ export const AM2_PLANS = {
     trialPlan: 'am2_business',
     maxMembers: null,
     retentionDays: 90,
-    isTestPlan: false,
     userSelectable: false,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
       errors: [
@@ -5011,13 +4987,11 @@ export const AM2_PLANS = {
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am2_business',
-    isTestPlan: false,
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
     features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [

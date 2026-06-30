@@ -135,7 +135,8 @@ describe('SpansConfig', () => {
   });
 
   it('renders internal error count as a link to explore with error filter', () => {
-    const field = 'count_if(span.status,equals,internal_error)';
+    const field =
+      'count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)';
     const location = LocationFixture();
 
     const baseEventViewOptions: EventViewOptions = {
@@ -201,6 +202,6 @@ describe('SpansConfig', () => {
     const href = link.getAttribute('href')!;
     expect(href).toContain('gen_ai.tool.name%3A%22Web%20Search%22');
     expect(href).toContain('gen_ai.operation.type%3Atool');
-    expect(href).toContain('span.status%3Ainternal_error');
+    expect(href).toContain('span.status%3A%5Binternal_error%2Cerror%5D');
   });
 });

@@ -147,21 +147,23 @@ def get_monitoring_provider_connections(
             access_token = identity.data.get("access_token")
             if not access_token:
                 continue
-            url = provider.build_mcp_url(identity.data)
-            if not url:
+            urls = provider.build_mcp_urls(identity.data)
+            if not urls:
                 continue
             encrypted_access_token = encrypt_access_token_for_seer(access_token)
             if not encrypted_access_token:
                 continue
-            connections.append(
-                {
-                    "provider_key": provider_type,
-                    "url": url,
-                    "encrypted_access_token": encrypted_access_token,
-                    "identity_id": identity.id,
-                    "auth_method": "oauth" if is_oauth_provider else "pat",
-                }
-            )
+            auth_method = "oauth" if is_oauth_provider else "pat"
+            for url in urls:
+                connections.append(
+                    {
+                        "provider_key": provider_type,
+                        "url": url,
+                        "encrypted_access_token": encrypted_access_token,
+                        "identity_id": identity.id,
+                        "auth_method": auth_method,
+                    }
+                )
 
     return connections
 
@@ -960,6 +962,7 @@ class SeerAgentClient:
         provider: str | None = None,
         user_id: int | None = None,
         issue_short_id: str | None = None,
+        issue_url: str | None = None,
     ) -> dict[str, list]:
         """
         Launch coding agents for an agent run.
@@ -977,6 +980,7 @@ class SeerAgentClient:
             provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
             user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
             issue_short_id: Optional Sentry issue short ID for coding agent session naming
+            issue_url: Optional full URL to the Sentry issue for linking in PRs
 
         Returns:
             Dictionary with 'successes' and 'failures' lists
@@ -992,4 +996,5 @@ class SeerAgentClient:
             provider=provider,
             user_id=user_id,
             issue_short_id=issue_short_id,
+            issue_url=issue_url,
         )

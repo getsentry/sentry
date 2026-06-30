@@ -1,12 +1,12 @@
 import {useId, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
+import {ScmCollapsibleReveal} from 'sentry/views/onboarding/components/scmCollapsibleReveal';
 
 interface ScmCollapsibleSectionProps {
   children: React.ReactNode;
@@ -46,7 +46,7 @@ export function ScmCollapsibleSection({
 
   return (
     <Stack gap="0" width="100%">
-      <Flex justify="between" align="center" width="100%">
+      <Flex justify="between" align="center" width="100%" gap="md">
         <ToggleButton
           variant="transparent"
           size="md"
@@ -64,21 +64,9 @@ export function ScmCollapsibleSection({
         </ToggleButton>
         {trailing}
       </Flex>
-      <AnimatePresence initial={false}>
-        {expanded && (
-          <motion.div
-            id={contentId}
-            key="content"
-            initial={{height: 0, opacity: 0}}
-            animate={{height: 'auto', opacity: 1}}
-            exit={{height: 0, opacity: 0}}
-            transition={{duration: 0.2, ease: 'easeOut'}}
-            style={{overflow: 'hidden', width: '100%'}}
-          >
-            <Content width="100%">{children}</Content>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ScmCollapsibleReveal open={expanded} id={contentId}>
+        <Content width="100%">{children}</Content>
+      </ScmCollapsibleReveal>
     </Stack>
   );
 }

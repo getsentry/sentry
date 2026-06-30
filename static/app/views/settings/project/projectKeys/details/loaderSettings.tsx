@@ -166,7 +166,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
           >
             {field => (
               <field.Layout.Row
-                label={t('Enable Performance Monitoring')}
+                label={t('Enable Tracing')}
                 hintText={
                   supportsPerformance
                     ? data.dynamicSdkLoaderOptions.hasPerformance

@@ -130,11 +130,9 @@ export const AM1_PLANS = {
     basePrice: 0,
     maxMembers: 1,
     allowOnDemand: false,
-    isTestPlan: false,
     userSelectable: true,
     retentionDays: 30,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     planCategories: {
       errors: [
         {
@@ -211,11 +209,9 @@ export const AM1_PLANS = {
     basePrice: 0,
     maxMembers: 20,
     allowOnDemand: false,
-    isTestPlan: false,
     userSelectable: false,
     retentionDays: 90,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     planCategories: {
       errors: [
         {
@@ -292,11 +288,9 @@ export const AM1_PLANS = {
     basePrice: 2900,
     maxMembers: null,
     allowOnDemand: true,
-    isTestPlan: false,
     userSelectable: true,
     retentionDays: 90,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     planCategories: {
       errors: [
         {
@@ -883,11 +877,9 @@ export const AM1_PLANS = {
     basePrice: 31200,
     maxMembers: null,
     allowOnDemand: true,
-    isTestPlan: false,
     userSelectable: true,
     retentionDays: 90,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     planCategories: {
       errors: [
         {
@@ -1474,11 +1466,9 @@ export const AM1_PLANS = {
     maxMembers: null,
     basePrice: 8900,
     allowOnDemand: true,
-    isTestPlan: false,
     userSelectable: true,
     retentionDays: 90,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     planCategories: {
       errors: [
         {
@@ -2065,11 +2055,9 @@ export const AM1_PLANS = {
     basePrice: 96000,
     maxMembers: null,
     allowOnDemand: true,
-    isTestPlan: false,
     userSelectable: true,
     retentionDays: 90,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     planCategories: {
       errors: [
         {
@@ -2654,13 +2642,11 @@ export const AM1_PLANS = {
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am1_business',
-    isTestPlan: false,
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
     features: AM1_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [

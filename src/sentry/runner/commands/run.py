@@ -10,6 +10,7 @@ from typing import Any
 import click
 import taskbroker_client.constants as taskworker_constants
 
+from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
@@ -209,6 +210,13 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     default=5.0,
     type=float,
 )
+@click.option(
+    "--future-checking-frequency",
+    help="How long the future checking thread in each worker child sleeps between iterations"
+    "to take pressure off the GIL",
+    default=0.1,
+    type=float,
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -238,6 +246,7 @@ def run_taskworker(
     health_check_file_path: str | None,
     health_check_sec_per_touch: float,
     push_timeout_sec: float,
+    future_checking_frequency: float,
     **options: Any,
 ) -> None:
     """
@@ -246,6 +255,7 @@ def run_taskworker(
     from taskbroker_client.worker import BatchPushTaskWorker, PushTaskWorker, TaskWorker
     from taskbroker_client.worker.client import make_broker_hosts
 
+    skip_awaiting_futures = sentry_options.get("taskworker.skip.awaiting.futures")
     with managed_bgtasks(role="taskworker"):
         if push_mode:
             worker: PushTaskWorker | TaskWorker = PushTaskWorker(
@@ -263,6 +273,8 @@ def run_taskworker(
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 grpc_port=worker_rpc_port,
                 push_task_timeout=push_timeout_sec,
+                skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
             )
         elif batch_push_mode:
             worker = BatchPushTaskWorker(
@@ -280,6 +292,8 @@ def run_taskworker(
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 grpc_port=worker_rpc_port,
                 update_in_batches=True,
+                skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
             )
         else:
             worker = TaskWorker(
@@ -296,6 +310,8 @@ def run_taskworker(
                 processing_pool_name=processing_pool_name,
                 health_check_file_path=health_check_file_path,
                 health_check_sec_per_touch=health_check_sec_per_touch,
+                skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
             )
         exitcode = worker.start()
         raise SystemExit(exitcode)

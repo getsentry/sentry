@@ -86,6 +86,10 @@ describe('AwaitingInputPage', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
       body: {
         integration: {ok: false, reason: null},
