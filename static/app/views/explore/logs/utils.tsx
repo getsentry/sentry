@@ -59,7 +59,7 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {generateTargetQuery} from 'sentry/views/explore/utils';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 const {warn, fmt} = Sentry.logger;
 
 export function getLogSeverityLevel(
@@ -284,7 +284,7 @@ export function getLogTimestampBucketIndex(
 
 // Null indicates the data is not available yet.
 export function calculateAverageLogsPerSecond(
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>
+  timeseriesResult: SortedTimeSeries
 ): number | null {
   if (timeseriesResult.isLoading) {
     return null;

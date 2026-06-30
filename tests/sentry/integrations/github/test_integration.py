@@ -38,10 +38,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
 from sentry.integrations.types import ExternalProviders
-from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.plugins.base import plugins
-from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
@@ -92,12 +89,6 @@ TREE_RESPONSES = {
 }
 
 
-class GitHubPlugin(IssueTrackingPlugin2):
-    slug = "github"
-    name = "GitHub Mock Plugin"
-    conf_key = slug
-
-
 @control_silo_test
 class GitHubIntegrationTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
@@ -113,11 +104,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.expires_at = "3000-01-01T00:00:00Z"
 
         self._stub_github()
-        plugins.register(GitHubPlugin)
 
     def tearDown(self) -> None:
         responses.reset()
-        plugins.unregister(GitHubPlugin)
         super().tearDown()
 
     def _setup_assignee_sync_test(
@@ -435,41 +424,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
             assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
             # Doesn't touch Repositories not accessible by the new Integration
             assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
-
-    @responses.activate
-    def test_disable_plugin_when_fully_migrated(self) -> None:
-        self._stub_github()
-
-        with assume_test_silo_mode(SiloMode.CELL):
-            project = Project.objects.create(organization_id=self.organization.id)
-
-            plugin = plugins.get("github")
-            plugin.enable(project)
-
-            # Accessible to new Integration - mocked in _stub_github
-            Repository.objects.create(
-                organization_id=self.organization.id,
-                name="Test-Organization/foo",
-                url="https://github.com/Test-Organization/foo",
-                provider="github",
-                external_id="123",
-                config={"name": "Test-Organization/foo"},
-            )
-
-        # Enabled before
-        assert "github" in [p.slug for p in plugins.for_project(project)]
-
-        integration = self.assert_setup_flow()
-
-        with self.tasks():
-            GitHubIntegrationProvider().post_install(
-                integration=integration,
-                organization=self.organization,
-                extra={"app_id": self.app_id},
-            )
-
-        # Disabled after Integration installed
-        assert "github" not in [p.slug for p in plugins.for_project(project)]
 
     @responses.activate
     def test_get_repositories_search_param(self) -> None:

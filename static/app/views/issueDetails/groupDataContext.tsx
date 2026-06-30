@@ -33,12 +33,26 @@ export function GroupDataContextProvider({
   );
 }
 
+interface Options<AllowNull extends boolean = boolean> {
+  allowNull?: AllowNull;
+}
+
+export function useGroupData(opts?: Options<false>): GroupDataContextValue;
+export function useGroupData(opts: Options<true>): GroupDataContextValue | null;
+
 /**
  * Returns the current group and project data from context. Must be used within a `GroupDataContextProvider`.
  * Prefer `useGroupId()` for components which only need the ID.
  */
-export function useGroupData(): GroupDataContextValue {
+export function useGroupData({
+  allowNull = false,
+}: Options = {}): GroupDataContextValue | null {
   const context = useContext(GroupDataContext);
+
+  if (allowNull) {
+    return context;
+  }
+
   if (!context) {
     throw new Error('useGroupData must be used within a GroupDataContextProvider');
   }

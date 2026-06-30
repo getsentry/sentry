@@ -1,17 +1,15 @@
 from django.conf import settings
 
-from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.notifications.platform.types import (
-    BoldTextBlock,
     CodeTextBlock,
-    NotificationBodyFormattingBlock,
+    LinkTextBlock,
     NotificationData,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
+    NotificationSection,
     NotificationSource,
+    NotificationTextBlock,
     ParagraphBlock,
     PlainTextBlock,
 )
@@ -26,11 +24,12 @@ ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
     ActivityType.SEER_CODING_STARTED.value: NotificationSource.ACTIVITY_SEER_CODING_STARTED,
     ActivityType.SEER_CODING_COMPLETED.value: NotificationSource.ACTIVITY_SEER_CODING_COMPLETED,
     ActivityType.SEER_PR_CREATED.value: NotificationSource.ACTIVITY_SEER_PR_CREATED,
+    ActivityType.SEER_ITERATION_STARTED.value: NotificationSource.ACTIVITY_SEER_ITERATION_STARTED,
+    ActivityType.SEER_ITERATION_COMPLETED.value: NotificationSource.ACTIVITY_SEER_ITERATION_COMPLETED,
 }
 
 EXAMPLE_SEER_URL = "https://sentry.io/organizations/example/issues/1/?seerDrawer=true"
 EXAMPLE_ALERT_URL = "https://sentry.io/organizations/example/monitors/alerts/1/"
-EXAMPLE_FOOTER = "This notification was sent as part of an alert."
 
 
 class WorkflowEngineActivityAction(NotificationData):
@@ -42,104 +41,88 @@ class WorkflowEngineActivityAction(NotificationData):
     detector_id: int
 
 
-def extract_models(
-    data: WorkflowEngineActivityAction,
-) -> tuple[Activity, Group, Project, Organization]:
-    try:
-        activity = Activity.objects.get(id=data.activity_id)
-    except Activity.DoesNotExist:
-        raise ValueError(f"Activity not found: {data.activity_id}")
-    try:
-        group = Group.objects.get_from_cache(id=activity.group_id)
-    except Group.DoesNotExist:
-        raise ValueError(f"Group not found: {activity.group_id}")
-    try:
-        project = Project.objects.get_from_cache(id=activity.project_id)
-    except Project.DoesNotExist:
-        raise ValueError(f"Project not found: {activity.project_id}")
-    try:
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-    except Organization.DoesNotExist:
-        raise ValueError(f"Organization not found: {project.organization_id}")
+def get_issue_description(group: Group) -> list[NotificationSection]:
+    from sentry.integrations.messaging.message_builder import build_attachment_title
 
-    return activity, group, project, organization
+    blocks: list[NotificationTextBlock] = []
+    title = build_attachment_title(group)
+    if title:
+        group_link = absolute_uri(group.get_absolute_url())
+        blocks.append(LinkTextBlock(text=title, url=group_link))
+    culprit = group.culprit
+    if culprit:
+        if blocks:
+            blocks.append(PlainTextBlock(text="—"))
+        blocks.append(CodeTextBlock(text=culprit))
+    return [ParagraphBlock(blocks=blocks)]
 
 
-def get_issue_description(group: Group) -> ParagraphBlock:
-    from sentry.api.serializers.models.group import get_status_label, get_substatus_label
-
-    status_text = get_substatus_label(group) or get_status_label(group)
-    return ParagraphBlock(
-        blocks=[
-            PlainTextBlock(text="This update pertains to the"),
-            CodeTextBlock(text=group.title),
-            PlainTextBlock(text="issue"),
-            CodeTextBlock(text=group.qualified_short_id),
-            PlainTextBlock(text=f"in the '{group.project.name}' project. The issue is"),
-            BoldTextBlock(text=status_text),
-            PlainTextBlock(text=f"and has been seen {group.times_seen} time(s)."),
-        ]
-    )
+def get_subject(label: str, group: Group) -> list[NotificationTextBlock]:
+    if group.qualified_short_id:
+        return [PlainTextBlock(text=f"{label} for"), CodeTextBlock(text=group.qualified_short_id)]
+    else:
+        return [PlainTextBlock(text=f"{label} for a Sentry Issue")]
 
 
-def get_seer_link(group: Group) -> str:
-    return f"{absolute_uri(group.get_absolute_url())}?seerDrawer=true"
+def get_view_autofix_button(group: Group) -> NotificationRenderedAction:
+    link = f"{absolute_uri(group.get_absolute_url())}?seerDrawer=true"
+    return NotificationRenderedAction(label="View Autofix", link=link)
 
 
 def build_template(
     data: WorkflowEngineActivityAction,
-    subject: str,
-    body: list[NotificationBodyFormattingBlock],
-    extra_actions: list[NotificationRenderedAction],
+    subject: list[NotificationTextBlock],
+    body: list[NotificationSection],
 ) -> NotificationRenderedTemplate:
-    activity, group, project, organization = extract_models(data)
+    from sentry.notifications.notification_action.activity_registry.base import (
+        extract_notification_models_by_activity,
+    )
+
+    activity, group, project, organization = extract_notification_models_by_activity(
+        data.activity_id
+    )
     configuration_url = organization.absolute_url(
         f"organizations/{organization.slug}/monitors/alerts/{data.workflow_id}/"
     )
-    footer = EXAMPLE_FOOTER
+    footer = [
+        PlainTextBlock(text="This notification was sent as part of"),
+        LinkTextBlock(text="an alert", url=configuration_url),
+    ]
     if settings.DEBUG and activity.data:
-        footer += f" Run ID: {activity.data.get('run_id')}"
+        footer.append(PlainTextBlock(text=f"· Run ID: {activity.data.get('run_id')}"))
 
     return NotificationRenderedTemplate(
-        subject=subject,
-        body=body,
-        actions=[
-            NotificationRenderedAction(label="View Alert", link=configuration_url),
-            *extra_actions,
-        ],
-        footer=footer,
+        subject=subject, body=body, actions=[get_view_autofix_button(group)], footer=footer
     )
 
 
-def get_example_issue_description() -> ParagraphBlock:
-    return ParagraphBlock(
-        blocks=[
-            PlainTextBlock(text="This update pertains to the"),
-            CodeTextBlock(text="ExampleError: something went wrong"),
-            PlainTextBlock(text="issue"),
-            CodeTextBlock(text="EXAMPLE-1"),
-            PlainTextBlock(text="in the 'example' project. The issue is"),
-            BoldTextBlock(text="Unresolved"),
-            PlainTextBlock(text="and has been seen 42 time(s)."),
-        ]
-    )
+def get_example_issue_description() -> list[NotificationSection]:
+    return [
+        ParagraphBlock(
+            blocks=[
+                PlainTextBlock(text="ExampleError: something went wrong"),
+                PlainTextBlock(text="—"),
+                CodeTextBlock(text="example.module.function"),
+            ]
+        ),
+    ]
 
 
 def get_example_actions() -> list[NotificationRenderedAction]:
-    return [
-        NotificationRenderedAction(label="View Alert", link=EXAMPLE_ALERT_URL),
-        NotificationRenderedAction(label="View in Sentry", link=EXAMPLE_SEER_URL),
-    ]
+    return [NotificationRenderedAction(label="View Autofix", link=EXAMPLE_SEER_URL)]
 
 
 def get_example_template(
     subject: str,
-    body: list[NotificationBodyFormattingBlock] | None = None,
+    body: list[NotificationSection] | None = None,
     actions: list[NotificationRenderedAction] | None = None,
 ) -> NotificationRenderedTemplate:
     return NotificationRenderedTemplate(
         subject=subject,
-        body=body if body is not None else [get_example_issue_description()],
+        body=body if body is not None else get_example_issue_description(),
         actions=actions if actions is not None else get_example_actions(),
-        footer=EXAMPLE_FOOTER,
+        footer=[
+            PlainTextBlock(text="This notification was sent as part of"),
+            LinkTextBlock(text="an alert", url=EXAMPLE_ALERT_URL),
+        ],
     )

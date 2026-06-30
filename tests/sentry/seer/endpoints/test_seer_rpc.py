@@ -92,6 +92,18 @@ class TestSeerRpc(APITestCase):
         assert "features" in response.data
         assert isinstance(response.data["features"], list)
 
+    def test_get_organization_projects_registered_on_internal_rpc(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        path = self._get_path("get_organization_projects")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+        assert response.status_code == 200
+        assert "projects" in response.data
+        assert project.id in [p["id"] for p in response.data["projects"]]
+
     def test_validate_llm_proxy_key(self) -> None:
         path = self._get_path("validate_llm_proxy_key")
         data: dict[str, Any] = {"args": {"api_key": "test-key"}}
@@ -1710,6 +1722,10 @@ class TestGetMonitoringProviderConnections(APITestCase):
             external_id="dd-user-1",
             data={"access_token": "access-token", "site": "datadoghq.com"},
         )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
 
         result = get_monitoring_provider_connections(
             organization_id=self.organization.id, user_id=self.user.id
@@ -1720,6 +1736,7 @@ class TestGetMonitoringProviderConnections(APITestCase):
         assert connection.provider_key == "datadog"
         assert connection.url == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
         assert connection.identity_id == identity.id
+        assert connection.auth_method == "oauth"
         decrypted = Fernet(TEST_FERNET_KEY.encode("utf-8")).decrypt(
             connection.encrypted_access_token.encode("utf-8")
         )

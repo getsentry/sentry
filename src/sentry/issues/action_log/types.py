@@ -85,6 +85,7 @@ class GroupActionType(IntEnum):
     ROOT_CAUSE_IDENTIFIED = 26
     AUTOFIX_CODING_COMPLETE = 27
     SET_REGRESSED = 28
+    PULL_REQUEST_CLOSED = 29
 
 
 class GroupAction(BaseModel, abc.ABC):
@@ -317,3 +318,11 @@ class SetRegressedAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SET_REGRESSED
+
+
+class PullRequestClosedAction(GroupAction):
+    pull_request: int  # PullRequest model ID
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.PULL_REQUEST_CLOSED

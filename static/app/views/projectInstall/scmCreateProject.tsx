@@ -1,8 +1,11 @@
 import {useCallback, useState} from 'react';
 import {LayoutGroup, motion} from 'framer-motion';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -13,15 +16,18 @@ import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboard
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconProject} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
+import {ScmAlertFrequencySection} from 'sentry/views/onboarding/components/scmAlertFrequencySection';
+import {ScmFeatureSelectionPanel} from 'sentry/views/onboarding/components/scmFeatureSelectionPanel';
 import {ScmIntegrationConnect} from 'sentry/views/onboarding/components/scmIntegrationConnect';
 import {ScmPlatformFeaturesCore} from 'sentry/views/onboarding/components/scmPlatformFeaturesCore';
 import {ScmProjectDetailsCore} from 'sentry/views/onboarding/components/scmProjectDetailsCore';
@@ -33,7 +39,7 @@ import {
 import {useScmProviders} from 'sentry/views/onboarding/components/useScmProviders';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-const CREATE_PROJECT_MAX_WIDTH = '760px';
+const CREATE_PROJECT_MAX_WIDTH = '700px';
 const WIZARD_STORAGE_KEY = 'project-creation-wizard';
 
 interface WizardState {
@@ -92,6 +98,16 @@ export function ScmCreateProject() {
   const location = useLocation();
   const referrer = decodeScalar(location.query.referrer);
   const projectId = decodeScalar(location.query.project);
+
+  // Single page-viewed event for the whole flow. Unlike onboarding's discrete
+  // steps, every section renders at once here, so the per-section step_viewed
+  // events the shared cores fire in onboarding are intentionally suppressed in
+  // this flow. Uses an SCM-specific event (not the classic
+  // project_creation_page.viewed) so the SCM-first funnel stays separable.
+  useRouteAnalyticsEventNames(
+    'project_creation.scm_create_project_viewed',
+    'Project Creation: SCM Create Project Viewed'
+  );
 
   // Snapshot of the last completed wizard session, written when a project is
   // created (see handleComplete in the wizard). Restored when this mount is a
@@ -216,12 +232,21 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
         createdProjectSlug: project.slug,
         projectDetailsForm: submittedForm,
       });
-      navigate(
-        makeProjectsPathname({
+      navigate({
+        pathname: makeProjectsPathname({
           path: `/${project.slug}/getting-started/`,
           organization,
-        })
-      );
+        }),
+        // Carry the upfront product selection into the setup docs so the
+        // instructions match what was chosen here; the getting-started page
+        // seeds its selection from the `product` query. Mirrors the SCM
+        // onboarding flow (ScmProjectDetails -> goNextStep). Classic
+        // createProject selects products on that page instead, so it forwards
+        // nothing.
+        query: wizardState.selectedFeatures
+          ? {product: wizardState.selectedFeatures}
+          : undefined,
+      });
     },
     [wizardState, navigate, organization]
   );
@@ -242,103 +267,135 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
   return (
     <SentryDocumentTitle title={t('Create a new project')}>
       <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
-        <Stack
-          flexGrow={1}
-          gap="lg"
-          padding="2xl"
-          alignSelf="center"
-          maxWidth={CREATE_PROJECT_MAX_WIDTH}
-          width="100%"
-        >
+        <Stack padding="3xl" gap="2xl" align="center">
           <LayoutGroup>
-            <Layout.Title>{t('Create a new project')}</Layout.Title>
-            <Stack paddingBottom="lg" gap="md">
-              <Heading as="h1">{t('Create a new project')}</Heading>
-              <Text size="lg">
-                {t('Pick a platform, name your project, and choose what to monitor.')}
-              </Text>
-            </Stack>
-
             <MotionStack
-              gap="xl"
-              border="primary"
-              radius="lg"
-              padding="xl"
-              layout="position"
-            >
-              <Heading as="h3">{t('Connect your Git repository')}</Heading>
-
-              <ScmIntegrationConnect
-                analyticsFlow="project-creation"
-                allowIntegrationSwitching
-                selectedIntegration={selectedIntegration}
-                selectedRepository={selectedRepository}
-                onIntegrationChange={handleIntegrationChange}
-                onRepositoryChange={handleRepositoryChange}
-                onClearDerivedState={handleClearDerivedState}
-                maxWidth={CREATE_PROJECT_MAX_WIDTH}
-              />
-            </MotionStack>
-
-            <MotionStack
-              layout="position"
+              flexGrow={1}
               gap="2xl"
+              padding="2xl"
+              maxWidth={CREATE_PROJECT_MAX_WIDTH}
+              width="100%"
               border="primary"
               radius="lg"
-              padding="xl"
+              layout="size"
             >
-              <Heading as="h3">{t('Platform & features')}</Heading>
-              <ScmPlatformFeaturesCore
+              <Layout.Title>{t('Create a new project')}</Layout.Title>
+
+              <MotionStack gap="md" layout="position">
+                <Heading as="h1">{t('Create a project')}</Heading>
+                <Text variant="secondary" density="comfortable">
+                  {tct(
+                    'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
+                      ),
+                    }
+                  )}
+                </Text>
+              </MotionStack>
+
+              <MotionStack gap="md" layout="position">
+                <Flex justify="between" align="center">
+                  <Stack gap="sm">
+                    <Heading as="h4">{t('Repository')}</Heading>
+                    <Text variant="secondary" density="comfortable" size="sm">
+                      {t(
+                        'Source context in stack traces, suspect commits, and deploy tracking'
+                      )}
+                    </Text>
+                  </Stack>
+                  <Tag variant="muted">{t('Optional')}</Tag>
+                </Flex>
+
+                <ScmIntegrationConnect
+                  analyticsFlow="project-creation"
+                  allowIntegrationSwitching
+                  selectedIntegration={selectedIntegration}
+                  selectedRepository={selectedRepository}
+                  onIntegrationChange={handleIntegrationChange}
+                  onRepositoryChange={handleRepositoryChange}
+                  onClearDerivedState={handleClearDerivedState}
+                  maxWidth={CREATE_PROJECT_MAX_WIDTH}
+                />
+              </MotionStack>
+
+              <motion.div layout="position">
+                <ScmPlatformFeaturesCore
+                  analyticsFlow="project-creation"
+                  selectedRepository={selectedRepository}
+                  selectedPlatform={selectedPlatform}
+                  onPlatformChange={handlePlatformChange}
+                  onFeaturesChange={handleFeaturesChange}
+                  onClearProjectDetailsForm={handleClearProjectDetailsForm}
+                />
+              </motion.div>
+
+              <motion.div layout="position">
+                <Separator orientation="horizontal" />
+              </motion.div>
+
+              <ScmFeatureSelectionPanel
                 analyticsFlow="project-creation"
                 selectedRepository={selectedRepository}
                 selectedPlatform={selectedPlatform}
                 selectedFeatures={selectedFeatures}
-                onPlatformChange={handlePlatformChange}
                 onFeaturesChange={handleFeaturesChange}
-                onClearProjectDetailsForm={handleClearProjectDetailsForm}
+                trailing={
+                  <motion.div layout="position">
+                    <Separator orientation="horizontal" />
+                  </motion.div>
+                }
               />
-            </MotionStack>
 
+              <motion.div layout="position">
+                <ScmProjectDetailsCore
+                  analyticsFlow="project-creation"
+                  projectName={form.projectName}
+                  onProjectNameChange={form.onProjectNameChange}
+                  onProjectNameBlur={form.onProjectNameBlur}
+                  teamSlug={form.teamSlug}
+                  onTeamChange={form.onTeamChange}
+                  isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
+                />
+              </motion.div>
+
+              <motion.div layout="position">
+                <Separator orientation="horizontal" />
+              </motion.div>
+
+              <motion.div layout="position">
+                <ScmAlertFrequencySection
+                  analyticsFlow="project-creation"
+                  alertRuleConfig={form.alertRuleConfig}
+                  onAlertChange={form.onAlertChange}
+                />
+              </motion.div>
+            </MotionStack>
+            {/* Page-level CTA: disabled until a platform and project details are
+              ready. */}
             <MotionStack
+              gap="md"
+              maxWidth={CREATE_PROJECT_MAX_WIDTH}
+              width="100%"
               layout="position"
-              gap="2xl"
-              border="primary"
-              radius="lg"
-              padding="xl"
             >
-              <Heading as="h3">{t('Project details')}</Heading>
-              <ScmProjectDetailsCore
-                analyticsFlow="project-creation"
-                projectName={form.projectName}
-                onProjectNameChange={form.onProjectNameChange}
-                onProjectNameBlur={form.onProjectNameBlur}
-                teamSlug={form.teamSlug}
-                onTeamChange={form.onTeamChange}
-                alertRuleConfig={form.alertRuleConfig}
-                onAlertChange={form.onAlertChange}
-                isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
-              />
+              <ProjectCreationErrorAlert error={form.error} />
+              <Flex justify="end">
+                <Tooltip title={submitTooltipText} disabled={!submitTooltipText}>
+                  <Button
+                    variant="primary"
+                    onClick={form.submit}
+                    disabled={!form.canSubmit}
+                    busy={form.isBusy}
+                    icon={<IconProject />}
+                  >
+                    {t('Create project')}
+                  </Button>
+                </Tooltip>
+              </Flex>
             </MotionStack>
           </LayoutGroup>
-
-          {/* Page-level CTA: disabled until a platform and project details are
-              ready. */}
-          <Stack gap="md">
-            <ProjectCreationErrorAlert error={form.error} />
-            <Flex justify="end">
-              <Tooltip title={submitTooltipText} disabled={!submitTooltipText}>
-                <Button
-                  variant="primary"
-                  onClick={form.submit}
-                  disabled={!form.canSubmit}
-                  busy={form.isBusy}
-                  icon={<IconProject />}
-                >
-                  {t('Create project')}
-                </Button>
-              </Tooltip>
-            </Flex>
-          </Stack>
         </Stack>
       </Access>
     </SentryDocumentTitle>

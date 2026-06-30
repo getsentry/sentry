@@ -14,6 +14,7 @@ function SlackOAuthLoginStep({
   stepData,
   advance,
   isAdvancing,
+  description,
 }: PipelineStepProps<{oauthUrl?: string}, {code: string; state: string}>) {
   const handleOAuthCallback = useCallback(
     (data: OAuthCallbackData) => {
@@ -29,6 +30,7 @@ function SlackOAuthLoginStep({
       serviceName="Slack"
       onOAuthCallback={handleOAuthCallback}
       popup={{height: 900}}
+      description={description}
     />
   );
 }

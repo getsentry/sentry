@@ -57,6 +57,7 @@ from sentry.utils.snuba import (
     aliased_query_params,
     bulk_raw_query,
 )
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -1192,11 +1193,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         )
 
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
-        with sentry_sdk.start_span(op="search.postgres_sort.candidates") as span:
+        with start_span(
+            op="search.postgres_sort.candidates", name="search.postgres_sort.candidates"
+        ) as span:
             candidate_ids = list(
                 group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
             )
-            span.set_data("candidate_count", len(candidate_ids))
+            set_span_data(span, "candidate_count", len(candidate_ids))
 
         if not candidate_ids:
             return self.empty_result
@@ -1223,7 +1226,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 raise InvalidQueryForExecutor(
                     f"Unknown snuba aggregation {sort_field!r} in Postgres sort strategy"
                 )
-            with sentry_sdk.start_span(op="search.postgres_sort.snuba_aggregation"):
+            with start_span(
+                op="search.postgres_sort.snuba_aggregation",
+                name="search.postgres_sort.snuba_aggregation",
+            ):
                 snuba_groups, _ = self.snuba_search(
                     start=start,
                     end=end,
@@ -1247,7 +1253,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             return self.empty_result
 
         logical_names = list(postgres_fields.keys())
-        with sentry_sdk.start_span(op="search.postgres_sort.postgres_fields"):
+        with start_span(
+            op="search.postgres_sort.postgres_fields", name="search.postgres_sort.postgres_fields"
+        ):
             pg_rows = (
                 group_queryset.filter(id__in=candidate_ids)
                 .using_replica()
@@ -1260,10 +1268,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # scan) is visible on its own rather than buried in an aggregate.
         signal_data: dict[str, dict[int, Any]] = {}
         for name, resolver in strategy.signal_resolvers.items():
-            with sentry_sdk.start_span(op=f"search.postgres_sort.signal.{name}"):
+            with start_span(
+                op=f"search.postgres_sort.signal.{name}", name=f"search.postgres_sort.signal.{name}"
+            ):
                 signal_data[name] = resolver(actor, organization, candidate_ids)
 
-        with sentry_sdk.start_span(op="search.postgres_sort.scoring"):
+        with start_span(op="search.postgres_sort.scoring", name="search.postgres_sort.scoring"):
             scored_groups: list[tuple[Any, int]] = []
             for gid in candidate_ids:
                 pg_values = pg_data.get(gid)
@@ -1458,12 +1468,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # clause.
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
 
-        with sentry_sdk.start_span(op="snuba_group_query") as span:
+        with start_span(op="snuba_group_query", name="snuba_group_query") as span:
             group_ids = list(
                 group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
             )
-            span.set_data("Max Candidates", max_candidates)
-            span.set_data("Result Size", len(group_ids))
+            set_span_data(span, "Max Candidates", max_candidates)
+            set_span_data(span, "Result Size", len(group_ids))
         metrics.distribution("snuba.search.num_candidates", len(group_ids))
         too_many_candidates = False
         original_group_ids: list[int] | None = None

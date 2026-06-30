@@ -125,6 +125,16 @@ class OrganizationProjectIdsResponse(BaseModel):
     projects: list[OrganizationProject]
 
 
+class OrganizationProjectDetail(BaseModel):
+    id: int
+    slug: str
+    instrumentation: list[str]
+
+
+class OrganizationProjectsResponse(BaseModel):
+    projects: list[OrganizationProjectDetail]
+
+
 class OrganizationFeaturesResponse(BaseModel):
     features: list[str]
 
@@ -206,6 +216,13 @@ class SpanAttributesResponse(BaseModel):
 class BuiltInField(BaseModel):
     key: str
     type: str
+    # Attribute metadata (brief, examples, isDeprecated, replacementAttribute,
+    # ...) for the attribute, populated when the caller requests
+    # `expand="context"`; otherwise None. Today the metadata comes from the
+    # sentry conventions, so only attributes that map to a known convention
+    # carry it, but custom attribute context is planned and will populate this
+    # for user-defined attributes too.
+    context: dict[str, Any] | None = None
 
 
 class AttributeNamesResponse(BaseModel):
@@ -496,6 +513,22 @@ class IssueAndEventDetailsResponse(_DictProxyMixin):
     def dict(self, **kwargs: Any) -> Any:
         kwargs.setdefault("exclude_unset", True)
         return super().dict(**kwargs)
+
+
+class IssueCommittersResponse(_DictProxyMixin):
+    """`get_issue_committers` returns the likely code authors for an issue, combining
+    three commit-derived signals: `stack_commits` (frame-blame authors of the files in
+    the stacktrace), `suspect_commits` (the precomputed GroupOwner suspect commits), and
+    `release_commits` (a broader pool of commits shipped around when the issue first
+    appeared). The entries are `CommitSerializer` / committer-serializer output enriched
+    with extra keys (score, files_changed_count, is_merge_commit) — wider than
+    sentry-side can lock down — so the lists are dict passthroughs."""
+
+    stack_commits: list[dict[str, Any]]
+    suspect_commits: list[dict[str, Any]]
+    release_commits: list[dict[str, Any]]
+    project_id: int
+    project_slug: str
 
 
 class TransactionsForProjectResponse(BaseModel):
@@ -874,6 +907,7 @@ class MonitoringProviderConnectionData(BaseModel):
     url: str
     encrypted_access_token: str
     identity_id: int
+    auth_method: str
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]

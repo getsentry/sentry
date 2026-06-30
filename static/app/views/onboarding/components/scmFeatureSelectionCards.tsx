@@ -1,5 +1,5 @@
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
@@ -12,10 +12,10 @@ interface ScmFeatureSelectionCardsProps {
   availableFeatures: ProductSolution[];
   disabledProducts: DisabledProducts;
   featureMeta: Record<ProductSolution, FeatureMeta>;
+  isOnboarding: boolean;
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
   isVolumeLoading?: boolean;
-  showVolume?: boolean;
 }
 
 export function ScmFeatureSelectionCards({
@@ -25,20 +25,21 @@ export function ScmFeatureSelectionCards({
   onToggleFeature,
   featureMeta,
   isVolumeLoading,
-  showVolume = true,
+  isOnboarding,
 }: ScmFeatureSelectionCardsProps) {
   return (
     <Stack gap="xl" width="100%" justify="center">
-      <Flex justify="between" align="center">
-        <Text bold size="md" density="comfortable">
-          {t('What do you want to instrument?')}
-        </Text>
-        {availableFeatures.length > 1 ? (
-          <Text size="sm" variant="secondary">
-            {t('Choose one or more')}
-          </Text>
-        ) : null}
-      </Flex>
+      {isOnboarding ? (
+        <Flex justify="between" align="center">
+          <Heading as="h4">{t('What do you want to instrument?')}</Heading>
+          {availableFeatures.length > 1 ? (
+            <Text size="sm" variant="secondary">
+              {t('Choose one or more')}
+            </Text>
+          ) : null}
+        </Flex>
+      ) : null}
+
       <Stack gap="md">
         {availableFeatures.map(feature => {
           const meta = featureMeta[feature];
@@ -59,7 +60,7 @@ export function ScmFeatureSelectionCards({
               volume={meta.volume}
               volumeTooltip={meta.volumeTooltip}
               isVolumeLoading={isVolumeLoading}
-              showVolume={showVolume}
+              showVolume={isOnboarding}
             />
           );
         })}

@@ -24,6 +24,7 @@ import {
   IconNext,
   IconPlay,
   IconPrevious,
+  IconPullRequestClosed,
   IconRefresh,
   IconSeer,
   IconUnsubscribed,
@@ -80,6 +81,10 @@ export const groupActivityTypeIconMapping: Record<
   },
   [GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST]: {
     Component: IconCommit,
+    defaultProps: {},
+  },
+  [GroupActivityType.PULL_REQUEST_CLOSED]: {
+    Component: IconPullRequestClosed,
     defaultProps: {},
   },
   [GroupActivityType.SET_UNRESOLVED]: {Component: IconClose, defaultProps: {}},
@@ -170,6 +175,16 @@ export const groupActivityTypeIconMapping: Record<
     propsFunction: () => ({variant: 'success'}),
   },
   [GroupActivityType.SEER_PR_CREATED]: {
+    Component: IconSeer,
+    defaultProps: {},
+    propsFunction: () => ({variant: 'success'}),
+  },
+  [GroupActivityType.SEER_ITERATION_STARTED]: {
+    Component: IconSeer,
+    defaultProps: {},
+    propsFunction: () => ({animation: 'waiting'}),
+  },
+  [GroupActivityType.SEER_ITERATION_COMPLETED]: {
     Component: IconSeer,
     defaultProps: {},
     propsFunction: () => ({variant: 'success'}),

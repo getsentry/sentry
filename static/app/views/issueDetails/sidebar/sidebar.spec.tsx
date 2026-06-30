@@ -59,7 +59,6 @@ describe('IssueDetailsSidebar', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
       }),
     });
 
@@ -84,6 +83,10 @@ describe('IssueDetailsSidebar', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: [],
     });
     MockApiClient.addMockResponse({
