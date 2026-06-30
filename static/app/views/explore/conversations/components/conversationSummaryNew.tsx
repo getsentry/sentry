@@ -13,8 +13,8 @@ import {Count} from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconOpen, IconUser} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
@@ -27,6 +27,7 @@ import {
 import {
   calculateAggregates,
   getConversationUser,
+  getTraceUrl,
 } from 'sentry/views/explore/conversations/components/conversationSummary';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
@@ -37,6 +38,7 @@ interface ConversationSummaryNewProps {
   conversationId: string;
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
+  nodeTraceMap?: Map<string, string>;
 }
 
 const VISIBLE_TOOL_COUNT = 6;
@@ -45,6 +47,7 @@ export function ConversationSummaryNew({
   nodes,
   conversationId,
   isLoading,
+  nodeTraceMap,
 }: ConversationSummaryNewProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -69,6 +72,33 @@ export function ConversationSummaryNew({
     selection,
     query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" span.status:[internal_error,error]`,
   });
+
+  // Distinct traces the conversation spans, keyed by trace ID with a
+  // representative span ID to deep-link into the trace view.
+  const traces = useMemo(() => {
+    if (!nodeTraceMap) {
+      return [];
+    }
+    const seen = new Map<string, string>();
+    for (const [spanId, traceId] of nodeTraceMap) {
+      if (!seen.has(traceId)) {
+        seen.set(traceId, spanId);
+      }
+    }
+    return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
+  }, [nodeTraceMap]);
+
+  // A single trace deep-links to the trace view; multiple traces open the
+  // traces explorer filtered to this conversation.
+  const singleTrace = traces.length === 1 ? traces[0] : undefined;
+  const tracesUrl = singleTrace
+    ? getTraceUrl(organization.slug, singleTrace.traceId, singleTrace.spanId)
+    : getExploreUrl({
+        organization,
+        selection,
+        query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}"`,
+        table: 'trace',
+      });
 
   return (
     <Flex
@@ -147,6 +177,23 @@ export function ConversationSummaryNew({
                   </InfoText>
                 )}
               </Flex>
+              {traces.length > 0 && (
+                <Link
+                  to={tracesUrl}
+                  onClick={() =>
+                    trackAnalytics('conversations.detail.click-trace-link', {
+                      organization,
+                    })
+                  }
+                >
+                  <Flex align="center" gap="xs">
+                    <IconOpen size="xs" />
+                    <Text size="xs" variant="inherit" wrap="nowrap">
+                      {tn('Trace', 'Traces', traces.length)}
+                    </Text>
+                  </Flex>
+                </Link>
+              )}
               {aggregates.toolNames.length > 0 && (
                 <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
                   {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (

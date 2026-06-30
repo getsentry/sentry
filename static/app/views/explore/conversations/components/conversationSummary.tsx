@@ -17,7 +17,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -51,7 +51,7 @@ interface ConversationSummaryProps {
 const VISIBLE_TRACE_COUNT = 5;
 const VISIBLE_TOOL_COUNT = 4;
 
-function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
+export function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
   return normalizeUrl(
     `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?node=span-${spanId}`
   );
@@ -313,7 +313,7 @@ export function ConversationSummary({
         {traces.length > 0 && (
           <Flex align="baseline" gap="xs">
             <Text size="sm" variant="muted">
-              {traces.length === 1 ? t('Trace') : t('Traces')}
+              {tn('Trace', 'Traces', traces.length)}
             </Text>
             {traces.slice(0, VISIBLE_TRACE_COUNT).map((trace, i) => (
               <Flex key={trace.traceId} align="baseline" gap="xs">
