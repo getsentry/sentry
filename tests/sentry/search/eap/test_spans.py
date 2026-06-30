@@ -802,13 +802,6 @@ class SearchResolverQueryTest(TestCase):
             group2.qualified_short_id in resolver.qualified_short_id_to_group_id_cache[project_id]
         )
 
-
-class HasTraceTest(TestCase):
-    def setUp(self) -> None:
-        self.resolver = SearchResolver(
-            params=SnubaParams(), config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
-        )
-
     def test_has_trace(self) -> None:
         where, having, _ = self.resolver.resolve_query("has:trace")
         trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
