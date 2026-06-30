@@ -760,7 +760,6 @@ export class Results extends Component<Props, State> {
                   dataset={hasDatasetSelectorFeature ? eventView.dataset : undefined}
                 />
               </Layout.Main>
-              {/* {showTags ? this.renderTagsTable() : null} */}\
               {showTags ? (
                 <TagsTable
                   confirmedQuery={confirmedQuery}
