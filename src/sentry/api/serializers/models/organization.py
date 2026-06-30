@@ -670,6 +670,7 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     scrapeJavaScript: bool
     allowJoinRequests: bool
     relayPiiConfig: str | None
+    relayDsnEndpoint: str | None
     trustedRelays: list[TrustedRelaySerializerResponse]
     pendingAccessRequests: int
     hideAiFeatures: bool
@@ -827,6 +828,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                 obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
             ),
             "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
+            "relayDsnEndpoint": obj.get_option("sentry:relay_dsn_endpoint") or None,
             "hideAiFeatures": bool(
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),
