@@ -148,9 +148,7 @@ def _build_workflow_data(
         id=workflow.id,
         title=workflow.name,
         sentry_app_id=install.sentry_app.id,
-        url=organization.absolute_api_url(
-            f"organizations/{organization.slug}/workflows/{workflow.id}/"
-        ),
+        url=organization.absolute_api_url(f"workflows/{workflow.id}/"),
         web_url=organization.absolute_url(
             f"organizations/{organization.slug}/monitors/alerts/{workflow.id}/"
         ),
