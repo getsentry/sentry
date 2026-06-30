@@ -97,6 +97,7 @@ export function ConversationSummaryNew({
         organization,
         selection,
         query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}"`,
+        table: 'trace',
       });
 
   return (
