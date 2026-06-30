@@ -515,9 +515,9 @@ function IntegrationSettingsHeader({
           />
         </Container>
         <Container flex={1}>
-          {({className}) => (
+          {containerProps => (
             <SearchBar
-              className={className}
+              {...containerProps}
               query={search}
               onSearch={onChangeSearch}
               placeholder={t('Filter Integrations\u2026')}

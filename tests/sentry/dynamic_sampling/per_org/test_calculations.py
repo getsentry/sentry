@@ -77,6 +77,33 @@ class ProjectBalancingCalculationsTest(TestCase):
         ]
         assert result == rebalanced_projects
 
+    def test_run_project_balancing_full_sample_rate_returns_all_projects_at_100_percent(
+        self,
+    ) -> None:
+        org = self.create_organization()
+        busy = self.create_project(organization=org)
+        idle = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.projects = [busy, idle]
+        config.get_sample_rate.return_value = 1.0
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.calculations.ProjectsRebalancingModel.run"
+        ) as model_run:
+            result = run_project_balancing(
+                config,
+                [_project_volume(busy.id, total=1000), _project_volume(idle.id, total=0, keep=0)],
+            )
+
+        # Mirrors legacy serving: a 100% org rate gives every project 100% and the balancing
+        # model never runs.
+        model_run.assert_not_called()
+        assert {int(item.id): item.new_sample_rate for item in result} == {
+            busy.id: 1.0,
+            idle.id: 1.0,
+        }
+
     def test_run_project_balancing_assigns_full_sample_rate_to_zero_volume_projects(self) -> None:
         org = self.create_organization()
         project_with_volume = self.create_project(organization=org)

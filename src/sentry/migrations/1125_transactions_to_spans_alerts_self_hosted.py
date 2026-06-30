@@ -117,7 +117,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1123_pending_user"),
+        ("sentry", "1124_weeklyreportprojectexclusion"),
     ]
 
     operations = [

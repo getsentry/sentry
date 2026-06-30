@@ -14,8 +14,8 @@ from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 
 
 class MigrateTransactionsToSpansAlertsSelfHostedTest(TestMigrations, SnubaTestCase):
-    migrate_from = "1123_pending_user"
-    migrate_to = "1124_transactions_to_spans_alerts_self_hosted"
+    migrate_from = "1124_weeklyreportprojectexclusion"
+    migrate_to = "1125_transactions_to_spans_alerts_self_hosted"
 
     def setUp(self):
         # mock the _create_rpc_in_snuba function to return a unique subscription id for each migrated query

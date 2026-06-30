@@ -59,9 +59,6 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
       trackAnalytics('conversations.message.click', {
         organization,
       });
-      trackAnalytics('conversations.detail.select-span', {
-        organization,
-      });
       setClickedMessageId(message.id);
       const node = nodeMap.get(message.nodeId);
       if (node) {
