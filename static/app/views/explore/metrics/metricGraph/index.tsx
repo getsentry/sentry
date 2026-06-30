@@ -12,6 +12,8 @@ import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesW
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
+import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsHeatMap} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
@@ -52,12 +54,17 @@ import {WidgetWrapper} from './styles';
 
 export function getMetricsChartTypeOptions(
   organization: Organization,
-  isEquation: boolean
+  isEquation: boolean,
+  metric?: TraceMetric
 ) {
   if (canUseMetricsHeatMap(organization)) {
     return [
       ...EXPLORE_CHART_TYPE_OPTIONS,
-      {value: ChartType.HEATMAP, label: t('Heat Map'), disabled: isEquation},
+      {
+        value: ChartType.HEATMAP,
+        label: t('Heat Map'),
+        disabled: isEquation || !metric || !doesMetricSupportHeatMapVisualization(metric),
+      },
     ];
   }
   return EXPLORE_CHART_TYPE_OPTIONS;
