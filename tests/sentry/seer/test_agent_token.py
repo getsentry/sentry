@@ -12,7 +12,6 @@ from rest_framework.views import APIView
 from sentry.api.authentication import AgentTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.seer import agent_token
-from sentry.seer.agent_token import AgentWritePermissionRequired
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
@@ -59,9 +58,6 @@ class AgentTokenAuthAndGateTest(TestCase):
             scope_list=list(scopes),
             **({"expires_at": expires_at} if expires_at else {}),
         )
-
-    def _has_permission(self, drf_request) -> bool:
-        return OrganizationPermission().has_permission(drf_request, APIView())
 
     def _has_object_perm(self, drf_request) -> bool:
         return OrganizationPermission().has_object_permission(drf_request, APIView(), self.org)
@@ -114,48 +110,6 @@ class AgentTokenAuthAndGateTest(TestCase):
         # intersection in the access layer removes it -> denied at the object level.
         request = self._agent_request(self.member, ["org:read", "org:write"], method="PUT")
         assert self._has_object_perm(request) is False
-
-    # ----- challenge (stateless: signs a token, writes nothing) -----
-
-    def test_readonly_token_write_is_challenged_without_persisting(self) -> None:
-        request = self._agent_request(self.owner, ["org:read"], method="PUT", session_id="abc")
-        with pytest.raises(AgentWritePermissionRequired) as excinfo:
-            self._has_permission(request)
-
-        detail = excinfo.value.detail["detail"]
-        assert detail["code"] == "agent-write-permission-required"
-        extra = detail["extra"]
-        assert "org:write" in extra["required_scopes"]
-        assert extra["organization"] == self.org.slug
-        assert extra["approval_endpoint"].endswith("/agent/approve/")
-
-        # The challenge is a signed token bound to this user/org/session/scopes.
-        claims = agent_token.decode_challenge_token(extra["challenge"])
-        assert int(claims["sub"]) == self.owner.id
-        assert int(claims["org"]) == self.org.id
-        assert claims["sid"] == "abc"
-        assert "org:write" in claims["scopes"]
-
-        # The denial path persists nothing.
-        assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()
-
-    def test_no_challenge_when_role_lacks_scope(self) -> None:
-        # A plain member has no org:write to grant, so no approval challenge is offered: the
-        # view-level check just denies (the standard insufficient_scope 403 is surfaced by
-        # permission_denied in the real request flow, not here).
-        request = self._agent_request(self.member, ["org:read"], method="PUT")
-        assert self._has_permission(request) is False
-        assert not SeerAgentWriteGrant.objects.filter(user_id=self.member.id).exists()
-
-    def test_challenge_token_roundtrip_rejects_wrong_audience(self) -> None:
-        # A capability token must not be usable as a challenge token (distinct audiences).
-        from jwt import PyJWTError
-
-        cap, _ = agent_token.encode_agent_token(
-            user_id=self.owner.id, organization_id=self.org.id, scopes=["org:read"], session_id="s"
-        )
-        with pytest.raises(PyJWTError):
-            agent_token.decode_challenge_token(cap)
 
     # ----- scope computation (de-escalation rule) -----
 

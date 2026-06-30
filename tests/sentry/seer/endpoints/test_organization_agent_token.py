@@ -125,13 +125,13 @@ class OrganizationAgentTokenTest(APITestCase):
         )
         assert write.status_code == 403
 
-    def test_end_to_end_read_allowed_write_challenged(self) -> None:
-        # Mint via session, then use the minted token as a bearer against a real org
-        # endpoint: read passes, write returns the structured challenge.
+    def test_end_to_end_read_allowed_write_denied(self) -> None:
+        # Mint via session, then use the minted token as a bearer: read passes; an
+        # under-scoped write is denied with the RFC 6750 insufficient_scope challenge naming
+        # the required scopes, and persists nothing.
         self.login_as(self.owner)
         with self.feature(FLAG):
-            minted = self._mint(sessionId="s1")
-        token = minted.data["token"]
+            token = self._mint(sessionId="s1").data["token"]
 
         details_url = f"/api/0/organizations/{self.org.slug}/"
         read = self.client.get(details_url, HTTP_AUTHORIZATION=f"Bearer {token}")
@@ -141,10 +141,8 @@ class OrganizationAgentTokenTest(APITestCase):
             details_url, data={}, format="json", HTTP_AUTHORIZATION=f"Bearer {token}"
         )
         assert write.status_code == 403
-        assert write.data["detail"]["code"] == "agent-write-permission-required"
-        extra = write.data["detail"]["extra"]
-        # Stateless challenge: a signed token is returned and nothing is persisted on deny.
-        claims = agent_token.decode_challenge_token(extra["challenge"])
-        assert int(claims["sub"]) == self.owner.id
-        assert claims["sid"] == "s1"
+        assert (
+            write["WWW-Authenticate"]
+            == 'Bearer error="insufficient_scope", scope="org:admin org:write"'
+        )
         assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()
