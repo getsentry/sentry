@@ -32,7 +32,7 @@ function isDetailedProject(
   );
 }
 
-function useUpdateProjectMutationOptions(project: Project) {
+export function useUpdateProjectMutationOptions(project: Project) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 

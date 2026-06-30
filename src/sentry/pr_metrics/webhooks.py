@@ -52,7 +52,6 @@ from sentry.pr_metrics.activity_types import (
     CheckSuiteCompletedPayload,
     ClosedPayload,
     CommentCreatedPayload,
-    CommentEditedPayload,
     ConvertedToDraftPayload,
     DequeuedPayload,
     EditedPayload,
@@ -83,6 +82,11 @@ from sentry.pr_metrics.utils import (
     is_activity_tracking_enabled,
     resolved_group_ids,
 )
+from sentry.seer.autofix.utils import (
+    MatchDelegatedAgentPrRequest,
+    make_match_coding_agent_pr_request,
+)
+from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.seer_setup import has_seer_access
 from sentry.utils import metrics
 
@@ -166,7 +170,7 @@ def handle_attribution(
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
     if action == "opened" and pull_request is not None and has_seer_access(organization):
-        _detect_delegated_agent(pr, pull_request)
+        _detect_delegated_agent(pr, pull_request, repo)
 
 
 def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
@@ -439,7 +443,7 @@ def handle_comment(
 ) -> None:
     """Record PR comment activity from issue_comment webhook events."""
     action = event.get("action")
-    if action not in ("created", "edited"):
+    if action != "created":
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -470,25 +474,18 @@ def handle_comment(
     sender = event.get("sender") or {}
     comment = event.get("comment") or {}
 
-    if action == "created":
-        event_type = PullRequestActivityType.COMMENT_CREATED
-        payload_obj: CommentCreatedPayload | CommentEditedPayload = CommentCreatedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            author_association=comment.get("author_association", "NONE"),
-        )
-    else:
-        event_type = PullRequestActivityType.COMMENT_EDITED
-        payload_obj = CommentEditedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            author_association=comment.get("author_association", "NONE"),
-        )
+    payload_obj = CommentCreatedPayload(
+        sender_login=sender.get("login", ""),
+        sender_type=sender.get("type", ""),
+        author_association=comment.get("author_association", "NONE"),
+    )
 
     if not webhook_id:
         return
 
-    _write_activity_row(pr, webhook_id, event_type, asdict(payload_obj))
+    _write_activity_row(
+        pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
+    )
 
 
 def handle_review(
@@ -563,7 +560,7 @@ def handle_review_comment(
 ) -> None:
     """Record inline PR review comments (pull_request_review_comment events)."""
     action = event.get("action")
-    if action not in ("created", "edited"):
+    if action != "created":
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -582,29 +579,20 @@ def handle_review_comment(
     comment = event.get("comment") or {}
     sender = event.get("sender") or {}
 
-    if action == "created":
-        event_type = PullRequestActivityType.COMMENT_CREATED
-        payload_obj: CommentCreatedPayload | CommentEditedPayload = CommentCreatedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            author_association=comment.get("author_association", "NONE"),
-            is_review=True,
-            review_id=comment.get("pull_request_review_id"),
-        )
-    else:
-        event_type = PullRequestActivityType.COMMENT_EDITED
-        payload_obj = CommentEditedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            author_association=comment.get("author_association", "NONE"),
-            is_review=True,
-            review_id=comment.get("pull_request_review_id"),
-        )
+    payload_obj = CommentCreatedPayload(
+        sender_login=sender.get("login", ""),
+        sender_type=sender.get("type", ""),
+        author_association=comment.get("author_association", "NONE"),
+        is_review=True,
+        review_id=comment.get("pull_request_review_id"),
+    )
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, event_type, asdict(payload_obj))
+    _write_activity_row(
+        pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
+    )
 
 
 def handle_review_thread(
@@ -972,7 +960,9 @@ def _write_author_attribution(pr: PullRequest, github_user: dict[str, Any]) -> N
     )
 
 
-def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, Any]) -> None:
+def _detect_delegated_agent(
+    pr: PullRequest, webhook_pull_request: Mapping[str, Any], repository: Repository
+) -> None:
     """
     Filter PRs that could have been delegated by Autofix to external coding agents,
     and fire the matching request to Seer if it's a candidate.
@@ -980,16 +970,88 @@ def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, 
     Then Seer calls the RPC "record_pr_attribution" to write the attribution row async.
     """
     provider_hint = _is_delegated_agent_candidate(webhook_pull_request)
-    # Our candidates are PRs from delegated agents
-    # That explicitly address a Sentry issue
-    if provider_hint is not None and resolved_group_ids(pr):
-        # TODO: Fire-and-forget request to Seer when the match endpoint exists.
-        # We will send: provider_hint, github_login, head_ref
-        sentry_sdk.metrics.count(
-            "pr_metrics.delegated_agent.seer_match.not_implemented",
-            1,
-            attributes={"provider_hint": provider_hint},
+    group_ids = resolved_group_ids(pr)
+    if provider_hint is None or not group_ids:
+        return
+
+    repo_name_sections = repository.name.split("/")
+    if len(repo_name_sections) < 2:
+        logger.warning(
+            "pr_metrics.delegated_agent.invalid_repo_name",
+            extra={"pull_request_id": pr.id, "repo_name": repository.name},
         )
+        return
+
+    if not repository.provider or not repository.external_id:
+        logger.warning(
+            "pr_metrics.delegated_agent.missing_repo_metadata",
+            extra={
+                "pull_request_id": pr.id,
+                "has_provider": bool(repository.provider),
+                "has_external_id": bool(repository.external_id),
+            },
+        )
+        return
+
+    pr_url = webhook_pull_request.get("html_url") or ""
+    head_branch = (webhook_pull_request.get("head") or {}).get("ref") or ""
+
+    request_body = MatchDelegatedAgentPrRequest(
+        organization_id=pr.organization_id,
+        pull_request_id=pr.id,
+        pr_url=pr_url,
+        repo=SeerRepoDefinition(
+            provider=repository.provider,
+            owner=repo_name_sections[0],
+            name="/".join(repo_name_sections[1:]),
+            external_id=repository.external_id,
+        ),
+        head_branch=head_branch,
+        provider=provider_hint,
+        group_ids=group_ids,
+    )
+
+    _send_seer_delegated_agent_match(request_body, provider_hint, pr)
+
+
+def _send_seer_delegated_agent_match(
+    request_body: MatchDelegatedAgentPrRequest,
+    provider_hint: str,
+    pr: PullRequest,
+) -> None:
+    log_extra = {
+        "pull_request_id": pr.id,
+        "organization_id": pr.organization_id,
+        "provider_hint": provider_hint,
+    }
+    try:
+        response = make_match_coding_agent_pr_request(request_body, timeout=5)
+    except Exception:
+        logger.warning("pr_metrics.delegated_agent.seer_match.error", extra=log_extra)
+        sentry_sdk.metrics.count(
+            "pr_metrics.delegated_agent.seer_match.error",
+            1,
+            attributes={"reason": "exception"},
+        )
+        return
+
+    if response.status >= 400:
+        logger.warning(
+            "pr_metrics.delegated_agent.seer_match.error",
+            extra={**log_extra, "status_code": response.status},
+        )
+        sentry_sdk.metrics.count(
+            "pr_metrics.delegated_agent.seer_match.error",
+            1,
+            attributes={"reason": "bad_status"},
+        )
+        return
+
+    sentry_sdk.metrics.count(
+        "pr_metrics.delegated_agent.seer_match.sent",
+        1,
+        attributes={"provider": provider_hint},
+    )
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:

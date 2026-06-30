@@ -278,7 +278,10 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 )
                 return
 
-            delete_file = False
+            # We can delete the temporary file when either the new DIF is objectstore-backed (i.e. `dif.file is None`),
+            # or when the new DIF references an already existing underlying `File` that's not this temporary one.
+            # Only if `dif.file is file` we want to avoid the deletion, given that the new DIF will be backed by `File` that up until now we considered temporary.
+            delete_file = dif.file is not file
 
             if created:
                 record_last_upload(project)

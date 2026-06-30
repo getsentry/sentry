@@ -14,10 +14,13 @@ from sentry.notifications.platform.msteams.provider import MSTeamsRenderable, MS
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.types import (
+    LinkTextBlock,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSection,
     NotificationTemplate,
+    NotificationTextBlock,
 )
 
 
@@ -39,19 +42,28 @@ class InternalRegisteredTemplatesEndpoint(Endpoint):
         return Response(response)
 
 
+def _serialize_sections(
+    sections: list[NotificationSection],
+) -> list[dict[str, Any]]:
+    return [
+        {"type": section.type, "blocks": _serialize_blocks(section.blocks)} for section in sections
+    ]
+
+
+def _serialize_blocks(blocks: list[NotificationTextBlock]) -> list[dict[str, Any]]:
+    serialized_blocks = []
+    for block in blocks:
+        serialized_block = {"type": block.type, "text": block.text}
+        if isinstance(block, LinkTextBlock):
+            serialized_block["url"] = block.url
+        serialized_blocks.append(serialized_block)
+    return serialized_blocks
+
+
 def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) -> dict[str, Any]:
     response: dict[str, Any] = {
-        "subject": rendered_template.subject,
-        "body": [
-            {
-                "type": block.type,
-                "blocks": [
-                    {"type": text_block.type, "text": text_block.text}
-                    for text_block in block.blocks
-                ],
-            }
-            for block in rendered_template.body
-        ],
+        "subject": _serialize_blocks(rendered_template.subject_blocks),
+        "body": _serialize_sections(rendered_template.body),
         "actions": [
             {"label": action.label, "link": action.link} for action in rendered_template.actions
         ],
@@ -62,7 +74,7 @@ def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) 
             "alt_text": rendered_template.chart.alt_text,
         }
     if rendered_template.footer:
-        response["footer"] = rendered_template.footer
+        response["footer"] = _serialize_blocks(rendered_template.footer_blocks)
     return response
 
 

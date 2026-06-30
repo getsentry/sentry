@@ -11,7 +11,6 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from sentry.identity.base import Provider
-from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
@@ -54,6 +53,8 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
         return self.provider.get_pipeline_views()
 
     def finish_pipeline(self) -> HttpResponseBase:
+        from sentry.integrations.base import IntegrationDomain
+
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.IDENTITY_LINK,
             IntegrationDomain.IDENTITY,

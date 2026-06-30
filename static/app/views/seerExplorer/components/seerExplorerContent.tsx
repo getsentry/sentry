@@ -32,6 +32,7 @@ import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
+import {ReauthMonitoringProviderBlock} from 'sentry/views/seerExplorer/components/reauthMonitoringProviderBlock';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
@@ -72,8 +73,8 @@ function SidebarHeaderShell({
       align="center"
       gap="md"
       height={{
-        sm: `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
-        md: `${PRIMARY_HEADER_HEIGHT}px`,
+        'screen:sm': `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
+        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       padding="0 lg"
       background="primary"
@@ -272,6 +273,9 @@ export function SeerExplorerContent({
     handleQuestionMoveUp,
     handleQuestionMoveDown,
     handleQuestionCustomTextChange,
+    isReauthPending,
+    reauthData,
+    handleReauthComplete,
   } = usePendingUserInput({
     isAwaitingUserInput,
     pendingInput,
@@ -279,6 +283,9 @@ export function SeerExplorerContent({
     scrollContainerRef,
     userScrolledUpRef,
   });
+
+  const showReauth =
+    isReauthPending && !!organization?.features.includes('seer-infra-telemetry');
 
   // - Topbar, menu, and slash command handlers -------------------------------
   const copySessionEnabled = runId !== null && !!organization?.slug;
@@ -580,7 +587,9 @@ export function SeerExplorerContent({
                   blocks={blocks}
                   runId={runId ?? undefined}
                   getPageReferrer={getPageReferrer}
-                  interactionPending={isFileApprovalPending || isQuestionPending}
+                  interactionPending={
+                    isFileApprovalPending || isQuestionPending || showReauth
+                  }
                   readOnly={readOnly}
                   showThinking={showThinking}
                 />
@@ -603,6 +612,12 @@ export function SeerExplorerContent({
                 onSelectOption={handleQuestionSelectOption}
                 questionIndex={questionIndex}
                 selectedOption={selectedOption}
+              />
+            )}
+            {!readOnly && showReauth && reauthData && (
+              <ReauthMonitoringProviderBlock
+                data={reauthData}
+                onComplete={handleReauthComplete}
               />
             )}
           </Fragment>

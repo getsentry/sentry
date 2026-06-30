@@ -1,5 +1,7 @@
 import {useCallback, useMemo, useEffect} from 'react';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useFocusedToolSpan} from 'sentry/views/explore/conversations/hooks/useFocusedToolSpan';
 import {extractMessagesFromNodes} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
@@ -25,6 +27,8 @@ export function useConversationSelection({
   focusedTool,
   isLoading,
 }: UseConversationSelectionOptions) {
+  const organization = useOrganization();
+
   const handleSpanFound = useCallback(
     (spanId: string) => {
       onSelectSpan?.(spanId);
@@ -39,11 +43,14 @@ export function useConversationSelection({
     onSpanFound: handleSpanFound,
   });
 
+  // Fired here (the user-click funnel for both the transcript and timeline tabs)
+  // rather than in onSelectSpan, which is also invoked by programmatic selection.
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
+      trackAnalytics('conversations.detail.select-span', {organization});
       onSelectSpan?.(node.id);
     },
-    [onSelectSpan]
+    [onSelectSpan, organization]
   );
 
   const defaultNodeId = useMemo(() => {
