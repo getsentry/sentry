@@ -25,6 +25,7 @@ from sentry.models.debugfile import (
 from sentry.models.files.file import File
 from sentry.objectstore import get_debug_files_session
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.skips import requires_objectstore
 
 # This is obviously a freely generated UUID and not the checksum UUID.
@@ -476,6 +477,7 @@ class CreateDebugFileTest(APITestCase):
         assert ProjectDebugFile.objects.filter(id=dif2.id).exists()
 
 
+@debug_files_test_both_backends
 class DebugFilesClearTest(APITestCase):
     def test_simple_cache_clear(self) -> None:
         project = self.create_project(name="foo")
