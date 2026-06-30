@@ -1,6 +1,10 @@
 """
-GitLab merge_request webhook processors for seat-based Seer billing. Mirror of
-GitHub's contributor handling in ``sentry/integrations/github/webhook.py``.
+GitLab merge_request webhook processor that seeds OrganizationContributors so
+seat-based Seer billing works once an org is moved onto
+``organizations:seat-based-seer-enabled``. Same goal as GitHub's
+``_track_contributor_action_processor`` call in ``PullRequestEventWebhook`` (see
+``sentry/integrations/github/webhook.py``), but uses different idempotency
+mechanics:
 
 ``track_gitlab_contributor_action_processor`` calls ``record_contributor_action``,
 which seeds the contributor on every delivery and, for an eligible MR *open*,
@@ -9,31 +13,34 @@ creates an ``OrganizationContributorAction`` row keyed by
 constraint absorbs GitLab's redeliveries without double-counting.
 
 ``track_gitlab_contributor_seat_processor`` is the legacy seat-charging path,
-now informational only: it no longer charges (see ``track_contributor_seat``),
-it just logs what the old path *would* have charged for so we can compare it
-against the new ledger. Because ``MergeEventWebhook.__call__`` calls ``_handle``
-for every action with no ``created`` guard (unlike GitHub), it gates on
-``action == "open"`` and dedupes per ``(org, repo, MR iid)`` via a short-lived
-Redis key so the informational log/metric fire once per MR-open. GitLab
-redelivers on response timeout and dispatches once per installed organization;
-both would otherwise double-count.
+now informational logging only. GitLab's ``MergeEventWebhook.__call__`` discards the
+``created`` return and calls ``_handle`` for every action, so the processor cannot
+rely on DB state. Instead we (a) filter on ``object_attributes.action == "open"``
+(the GitLab analog of GitHub's "opened") and (b) record a short-lived Redis key per
+``(org, repo, MR iid)`` to drop re-deliveries within the TTL window. GitLab
+redelivers merge_request hooks on response timeout and the endpoint also
+dispatches each payload once per installed organization; both can otherwise
+cause actions to be logged multiple times for a single MR-open.
 
 Both processors are gated by ``organizations:seer-gitlab-support`` — the same
-cohort flag ``handle_merge_request_event`` uses. The downstream
+cohort flag ``handle_merge_request_event`` uses — so seeding only happens for orgs
+that are already opted in to GitLab code review. The downstream
 ``should_increment_contributor_seat`` check additionally requires
 ``organizations:seat-based-seer-enabled``.
 
 ``MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS`` registers these
 **before** ``handle_merge_request_event`` so the contributor row exists when
-the code-review handler's preflight billing check runs. Without that ordering,
-the first MR open from a new contributor would be denied with
+the code-review handler's preflight billing check runs. Without that
+ordering, the first MR open from a new contributor would be denied with
 ``ORG_CONTRIBUTOR_NOT_FOUND`` even though the same delivery seeds the row
 seconds later.
 
 Known gap: ``MergeEventWebhook.__call__`` short-circuits before ``_handle``
 when the payload is missing ``last_commit`` or the author's email
 (``test_merge_event_no_last_commit``). In that case these processors never
-run, so the MR author is not seeded. Tracked on SCM-99 as a follow-up.
+run, so the MR author is not seeded. Subsequent ``update`` events for the
+same MR do not fire the processor either (the action filter is ``"open"``).
+Tracked on SCM-99 as a follow-up.
 """
 
 from __future__ import annotations
