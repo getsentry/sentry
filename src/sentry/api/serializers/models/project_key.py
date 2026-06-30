@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
@@ -9,7 +9,10 @@ from sentry.loader.browsersdkversion import (
     get_selected_browser_sdk_version,
 )
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectkey import ProjectKey
+
+RELAY_DSN_ENDPOINT_OPTION = "sentry:relay_dsn_endpoint"
 
 
 class RateLimit(TypedDict):
@@ -68,6 +71,23 @@ class ProjectKeySerializerResponse(TypedDict):
 
 @register(ProjectKey)
 class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
+    def get_attrs(
+        self, item_list: Sequence[ProjectKey], user: Any, **kwargs: Any
+    ) -> dict[ProjectKey, dict[str, Any]]:
+        project_key_org_ids: dict[int, int] = dict(
+            ProjectKey.objects.filter(id__in=[item.id for item in item_list]).values_list(
+                "id", "project__organization_id"
+            )
+        )
+        relay_dsn_endpoints = OrganizationOption.objects.get_value_bulk_id(
+            list(project_key_org_ids.values()), RELAY_DSN_ENDPOINT_OPTION
+        )
+
+        return {
+            item: {"relay_dsn_endpoint": relay_dsn_endpoints.get(project_key_org_ids.get(item.id))}
+            for item in item_list
+        }
+
     def serialize(
         self, obj: ProjectKey, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> ProjectKeySerializerResponse:
@@ -76,6 +96,10 @@ class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
         # must be Optional[str] instead of str. By setting else to "" we getaround this
         name = obj.label or (obj.public_key[:14] if obj.public_key else "")
         public_key = obj.public_key or ""
+        relay_dsn_endpoint = attrs.get("relay_dsn_endpoint")
+        endpoint_urls = obj.get_endpoint_urls(base_url=relay_dsn_endpoint)
+        # The JS SDK loader is served by Sentry, not by a customer Relay — keep that URL canonical.
+        canonical_endpoint_urls = obj.get_endpoint_urls() if relay_dsn_endpoint else endpoint_urls
         data: ProjectKeySerializerResponse = {
             "id": public_key,
             "name": name,
@@ -91,19 +115,19 @@ class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
                 else None
             ),
             "dsn": {
-                "secret": obj.dsn_private,
-                "public": obj.dsn_public,
-                "csp": obj.csp_endpoint,
-                "security": obj.security_endpoint,
-                "minidump": obj.minidump_endpoint,
-                "nel": obj.nel_endpoint,
-                "unreal": obj.unreal_endpoint,
-                "crons": obj.crons_endpoint,
-                "cdn": obj.js_sdk_loader_cdn_url,
-                "playstation": obj.playstation_endpoint,
-                "integration": obj.integration_endpoint,
-                "otlp_traces": obj.otlp_traces_endpoint,
-                "otlp_logs": obj.otlp_logs_endpoint,
+                "secret": endpoint_urls.dsn_private,
+                "public": endpoint_urls.dsn_public,
+                "csp": endpoint_urls.csp_endpoint,
+                "security": endpoint_urls.security_endpoint,
+                "minidump": endpoint_urls.minidump_endpoint,
+                "nel": endpoint_urls.nel_endpoint,
+                "unreal": endpoint_urls.unreal_endpoint,
+                "crons": endpoint_urls.crons_endpoint,
+                "cdn": canonical_endpoint_urls.js_sdk_loader_cdn_url,
+                "playstation": endpoint_urls.playstation_endpoint,
+                "integration": endpoint_urls.integration_endpoint,
+                "otlp_traces": endpoint_urls.otlp_traces_endpoint,
+                "otlp_logs": endpoint_urls.otlp_logs_endpoint,
             },
             "browserSdkVersion": get_selected_browser_sdk_version(obj),
             "browserSdk": {"choices": get_browser_sdk_version_choices(obj.project)},

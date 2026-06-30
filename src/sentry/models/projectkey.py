@@ -4,6 +4,7 @@ import enum
 import re
 import secrets
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any, ClassVar
 from urllib.parse import urlparse
 
@@ -76,6 +77,110 @@ class UseCase(enum.Enum):
     TEMPEST = "tempest"
     """ An internal project key for demo mode."""
     DEMO = "demo"
+
+
+@dataclass(frozen=True)
+class ProjectKeyEndpointUrls:
+    project_key: ProjectKey
+    base_url: str
+
+    def get_dsn(self, public: bool = False) -> str:
+        urlparts = urlparse(self.base_url)
+
+        if not public:
+            key = f"{self.project_key.public_key}:{self.project_key.secret_key}"
+        else:
+            assert self.project_key.public_key is not None
+            key = self.project_key.public_key
+
+        if not urlparts.netloc or not urlparts.scheme:
+            return ""
+
+        return (
+            f"{urlparts.scheme}://{key}@"
+            f"{urlparts.netloc + urlparts.path}/{self.project_key.project_id}"
+        )
+
+    @property
+    def dsn_private(self):
+        return self.get_dsn(public=False)
+
+    @property
+    def dsn_public(self):
+        return self.get_dsn(public=True)
+
+    @property
+    def csp_endpoint(self):
+        return (
+            f"{self.base_url}/api/{self.project_key.project_id}/csp-report/"
+            f"?sentry_key={self.project_key.public_key}"
+        )
+
+    @property
+    def security_endpoint(self):
+        return (
+            f"{self.base_url}/api/{self.project_key.project_id}/security/"
+            f"?sentry_key={self.project_key.public_key}"
+        )
+
+    @property
+    def nel_endpoint(self):
+        return (
+            f"{self.base_url}/api/{self.project_key.project_id}/nel/"
+            f"?sentry_key={self.project_key.public_key}"
+        )
+
+    @property
+    def minidump_endpoint(self):
+        return (
+            f"{self.base_url}/api/{self.project_key.project_id}/minidump/"
+            f"?sentry_key={self.project_key.public_key}"
+        )
+
+    @property
+    def playstation_endpoint(self):
+        return (
+            f"{self.base_url}/api/{self.project_key.project_id}/playstation/"
+            f"?sentry_key={self.project_key.public_key}"
+        )
+
+    @property
+    def integration_endpoint(self):
+        return f"{self.base_url}/api/{self.project_key.project_id}/integration/"
+
+    def build_integration_endpoint(self, integration_name: str, postfix: str = "") -> str:
+        return f"{self.integration_endpoint}{integration_name}/{postfix}"
+
+    @property
+    def otlp_traces_endpoint(self):
+        return self.build_integration_endpoint("otlp", "v1/traces")
+
+    @property
+    def otlp_logs_endpoint(self):
+        return self.build_integration_endpoint("otlp", "v1/logs")
+
+    @property
+    def unreal_endpoint(self) -> str:
+        return (
+            f"{self.base_url}/api/{self.project_key.project_id}/unreal/"
+            f"{self.project_key.public_key}/"
+        )
+
+    @property
+    def crons_endpoint(self) -> str:
+        return (
+            f"{self.base_url}/api/{self.project_key.project_id}/cron/___MONITOR_SLUG___/"
+            f"{self.project_key.public_key}/"
+        )
+
+    @property
+    def js_sdk_loader_cdn_url(self) -> str:
+        if settings.JS_SDK_LOADER_CDN_URL:
+            return f"{settings.JS_SDK_LOADER_CDN_URL}{self.project_key.public_key}.min.js"
+        return "{}{}".format(
+            self.base_url,
+            reverse("sentry-js-sdk-loader", args=[self.project_key.public_key, ".min"]),
+        )
 
 
 @cell_silo_model
@@ -324,6 +429,9 @@ class ProjectKey(ReplicatedCellModel):
                 endpoint,
                 reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]),
             )
+
+    def get_endpoint_urls(self, base_url: str | None = None) -> ProjectKeyEndpointUrls:
+        return ProjectKeyEndpointUrls(self, base_url or self.get_endpoint())
 
     def get_endpoint(self) -> str:
         from sentry.api.utils import generate_locality_url
