@@ -70,8 +70,8 @@ export interface SearchConfig<Value extends SelectKey> {
     | ((option: SelectOptionWithKey<Value>, search: string) => SearchMatchResult)
     | false;
   /**
-   * When true, the matched substring of each option's (string) label will be
-   * visually highlighted as the user types.
+   * When true, the matched contiguous substring of each option's (string) label will be
+   * visually highlighted as the user types. Paired  best with a substring-based `filter` function.
    */
   highlight?: boolean;
   /**
