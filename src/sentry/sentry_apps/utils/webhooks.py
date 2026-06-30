@@ -124,6 +124,12 @@ EVENT_TO_RESOURCE: Final[dict[str, SentryAppResourceType]] = {
     event: resource for resource, events in EVENT_EXPANSION.items() for event in events
 }
 
+# Renamed events were never migrated in stored subscriptions, so old and new
+# names are equivalent when matching an exact subscription.
+_LEGACY_EVENT_ALIASES: Final[dict[str, str]] = {
+    SentryAppEventType.ISSUE_IGNORED: SentryAppEventType.ISSUE_ARCHIVED,
+}
+
 
 def resource_of(event: str) -> SentryAppResourceType | None:
     """The resource a subscribable event belongs to ("issue.resolved" -> ISSUE), else None."""
@@ -134,13 +140,15 @@ def is_subscribed(stored_events: Collection[str], event: str) -> bool:
     """
     Whether a stored subscription covers a fired event.
 
-    Matched at the resource level: subscribing to any event of a resource
-    subscribes to all of that resource's events.
+    Only the exact event matches (plus its legacy alias, for installs that
+    stored the pre-rename name). Subscribing to a whole resource stores every
+    event it expands to, so resource-level subscriptions match all of that
+    resource's events by construction.
     """
-    resource = resource_of(event)
-    if resource is None:
+    if resource_of(event) is None:
         return False
-    return any(e in stored_events for e in EVENT_EXPANSION[resource])
+    alias = _LEGACY_EVENT_ALIASES.get(event)
+    return event in stored_events or (alias is not None and alias in stored_events)
 
 
 def find_alert_rule_action_ui_component(
