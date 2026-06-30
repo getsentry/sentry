@@ -7,7 +7,6 @@ from typing import Any, cast
 import jsonschema
 import orjson
 import pydantic
-import sentry_sdk
 import zstandard
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
@@ -85,6 +84,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -376,15 +376,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         try:
             session = get_preprod_session(organization.id, artifact.project_id)
             get_response = session.get(manifest_key)
-            with sentry_sdk.start_span(
-                op="preprod.snapshot.read_manifest", name="read_head_manifest"
-            ):
+            with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
                 raw_manifest = get_response.payload.read()
-            with sentry_sdk.start_span(
+            with start_span(
                 op="preprod.snapshot.parse_manifest", name="parse_head_manifest"
             ) as span:
                 manifest = SnapshotManifest(**orjson.loads(raw_manifest))
-                span.set_data("image_count", len(manifest.images))
+                set_span_data(span, "image_count", len(manifest.images))
         except Exception:
             logger.exception(
                 "Failed to retrieve snapshot manifest",
@@ -427,17 +425,17 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             comparison_key = (comparison.extras or {}).get("comparison_key")
             if comparison_key:
                 try:
-                    with sentry_sdk.start_span(
+                    with start_span(
                         op="preprod.snapshot.read_manifest", name="read_comparison_manifest"
                     ):
                         raw_comparison_manifest = session.get(comparison_key).payload.read()
-                    with sentry_sdk.start_span(
+                    with start_span(
                         op="preprod.snapshot.parse_manifest", name="parse_comparison_manifest"
                     ) as span:
                         comparison_manifest = ComparisonManifest(
                             **orjson.loads(raw_comparison_manifest)
                         )
-                        span.set_data("image_count", len(comparison_manifest.images))
+                        set_span_data(span, "image_count", len(comparison_manifest.images))
                 except Exception:
                     comparison_manifest = None
                     logger.exception(
@@ -451,15 +449,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             base_manifest_key = (comparison.base_snapshot_metrics.extras or {}).get("manifest_key")
             if base_manifest_key:
                 try:
-                    with sentry_sdk.start_span(
-                        op="preprod.snapshot.read_manifest", name="read_base_manifest"
-                    ):
+                    with start_span(op="preprod.snapshot.read_manifest", name="read_base_manifest"):
                         raw_base_manifest = session.get(base_manifest_key).payload.read()
-                    with sentry_sdk.start_span(
+                    with start_span(
                         op="preprod.snapshot.parse_manifest", name="parse_base_manifest"
                     ) as span:
                         base_manifest = SnapshotManifest(**orjson.loads(raw_base_manifest))
-                        span.set_data("image_count", len(base_manifest.images))
+                        set_span_data(span, "image_count", len(base_manifest.images))
                 except Exception:
                     logger.exception(
                         "Failed to fetch base manifest",
@@ -498,10 +494,10 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                     is not None
                 )
 
-        with sentry_sdk.start_span(
+        with start_span(
             op="preprod.snapshot.serialize_images", name="serialize_head_images"
         ) as span:
-            span.set_data("image_count", len(manifest.images))
+            set_span_data(span, "image_count", len(manifest.images))
             image_list = [
                 build_snapshot_image_response(key, metadata, manifest.diff_threshold)
                 for key, metadata in sorted(manifest.images.items())
@@ -515,10 +511,10 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         if comparison_manifest is not None:
             base_artifact_id = str(comparison_manifest.base_artifact_id)
-            with sentry_sdk.start_span(
+            with start_span(
                 op="preprod.snapshot.categorize_comparison", name="categorize_comparison_images"
             ) as span:
-                span.set_data("image_count", len(comparison_manifest.images))
+                set_span_data(span, "image_count", len(comparison_manifest.images))
                 categorized = categorize_comparison_images(
                     comparison_manifest, images_by_file_name, base_manifest
                 )
@@ -616,10 +612,10 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
         )
 
-        with sentry_sdk.start_span(
+        with start_span(
             op="preprod.snapshot.serialize_response", name="serialize_response_body"
         ) as span:
-            span.set_data("image_count", len(image_list))
+            set_span_data(span, "image_count", len(image_list))
             response_data = SnapshotDetailsApiResponse(
                 head_artifact_id=str(artifact.id),
                 base_artifact_id=base_artifact_id,

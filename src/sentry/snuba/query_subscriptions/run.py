@@ -2,7 +2,6 @@ import logging
 from collections.abc import Mapping
 from functools import partial
 
-import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import (
     CommitOffsets,
@@ -29,6 +28,7 @@ from sentry.taskworker.namespaces import (
 )
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_topic_definition
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -88,10 +88,11 @@ def process_message(
     from sentry.utils import metrics
 
     with (
-        sentry_sdk.start_transaction(
+        start_span(
             op="handle_message",
             name="query_subscription_consumer_process_message",
             custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},
+            transaction=True,
         ),
         metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}),
     ):
@@ -132,10 +133,11 @@ def _process_subscription_message(message_bytes: bytes, dataset: Dataset) -> Non
     topic = get_topic_definition(Topic(logical_topic))["real_topic_name"]
 
     with (
-        sentry_sdk.start_transaction(
+        start_span(
             op="handle_message",
             name="query_subscription_consumer_process_message",
             custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},
+            transaction=True,
         ),
         metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}),
     ):

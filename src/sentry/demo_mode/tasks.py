@@ -21,6 +21,7 @@ from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import demomode_tasks
 from sentry.utils.db import atomic_transaction
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ def _sync_project_debug_files(
     if not source_org or not target_org:
         return
 
-    with sentry_sdk.start_span(name="sync-project-debug-files-get-project-ids") as span:
+    with start_span(name="sync-project-debug-files-get-project-ids") as span:
         source_project_ids = list(
             Project.objects.filter(
                 organization_id=source_org.id,
@@ -89,8 +90,8 @@ def _sync_project_debug_files(
                 organization_id=target_org.id,
             ).values_list("id", flat=True)
         )
-        span.set_data("source_project_ids", source_project_ids)
-        span.set_data("target_project_ids", target_project_ids)
+        set_span_data(span, "source_project_ids", source_project_ids)
+        set_span_data(span, "target_project_ids", target_project_ids)
 
     project_debug_files = ProjectDebugFile.objects.filter(
         Q(project_id__in=source_project_ids) | Q(project_id__in=target_project_ids),
@@ -110,8 +111,8 @@ def _sync_project_debug_files(
     )
 
     for source_project_debug_file in different_project_debug_files:
-        with sentry_sdk.start_span(name="sync-project-debug-files-sync-project-debug-file") as span:
-            span.set_data("source_project_debug_file_id", source_project_debug_file.id)
+        with start_span(name="sync-project-debug-files-sync-project-debug-file") as span:
+            set_span_data(span, "source_project_debug_file_id", source_project_debug_file.id)
             _sync_project_debug_file(source_project_debug_file, target_org)
 
 

@@ -15,14 +15,16 @@ import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParams
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
 import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 
 const organization = OrganizationFixture({
   features: ['ourlogs-enabled', 'ourlogs-pinning'],
 });
 
-const allRows: LogTableRowItem[] = [
+const allRows: OurLogsResponseItem[] = [
   LogFixture({
     [OurLogKnownFieldKey.ID]: 'log-1',
     [OurLogKnownFieldKey.PROJECT_ID]: '1',
@@ -37,7 +39,7 @@ const allRows: LogTableRowItem[] = [
   }),
 ];
 
-const renderRow = (dataRow: LogTableRowItem) => (
+const renderRow = (dataRow: OurLogsResponseItem) => (
   <tr data-test-id={`pinned-row-${dataRow[OurLogKnownFieldKey.ID]}`}>
     <td>{dataRow[OurLogKnownFieldKey.MESSAGE]}</td>
   </tr>

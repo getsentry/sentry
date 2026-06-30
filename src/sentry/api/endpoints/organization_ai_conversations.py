@@ -30,6 +30,7 @@ from sentry.utils.ai_message_normalizer import (
     normalize_to_messages,
     stringify_message_content,
 )
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
 
@@ -286,13 +287,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         ]
 
         # Execute all queries in a single bulk RPC call
-        with sentry_sdk.start_span(
-            op="ai_conversations.bulk_rpc", name="Execute bulk table queries"
-        ):
+        with start_span(op="ai_conversations.bulk_rpc", name="Execute bulk table queries"):
             results = Spans.run_bulk_table_queries(queries)
 
         # Process results
-        with sentry_sdk.start_span(op="ai_conversations.process", name="Process query results"):
+        with start_span(op="ai_conversations.process", name="Process query results"):
             conversations_map = self._build_conversations_from_aggregations(results["aggregations"])
             self._apply_enrichment(conversations_map, results["enrichment"])
             self._apply_first_last_io(conversations_map, results["first_last_io"])
@@ -381,7 +380,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _build_conversations_from_aggregations(
         self, aggregations: EAPResponse
     ) -> dict[str, dict[str, Any]]:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.build_from_aggregations",
             name="Build conversations from aggregations",
         ):
@@ -434,12 +433,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _apply_enrichment(
         self, conversations_map: dict[str, dict[str, Any]], enrichment_data: EAPResponse
     ) -> None:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.apply_enrichment",
             name="Apply enrichment data",
         ) as span:
             enrichment_rows = enrichment_data.get("data", [])
-            span.set_data("rows_count", len(enrichment_rows))
+            set_span_data(span, "rows_count", len(enrichment_rows))
 
             flows_by_conversation: dict[str, list[str]] = defaultdict(list)
             traces_by_conversation: dict[str, set[str]] = defaultdict(set)
@@ -493,12 +492,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _apply_first_last_io(
         self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: EAPResponse
     ) -> None:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.apply_first_last_io",
             name="Apply first/last IO data",
         ) as span:
             io_rows = first_last_io_data.get("data", [])
-            span.set_data("rows_count", len(io_rows))
+            set_span_data(span, "rows_count", len(io_rows))
 
             first_input_by_conv: dict[str, str] = {}
             last_output_by_conv: dict[str, tuple[float, str]] = {}

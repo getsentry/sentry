@@ -15,7 +15,6 @@ import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {ScmIntegrationSelect} from './scmIntegrationSelect';
 import {ScmProviderPills} from './scmProviderPills';
 import {ScmRepoSelector} from './scmRepoSelector';
-import {useMultiPlatformDetectionTest} from './useMultiPlatformDetectionTest';
 import {useScmPlatformDetection} from './useScmPlatformDetection';
 import {useScmProviders} from './useScmProviders';
 
@@ -78,9 +77,6 @@ export function ScmIntegrationConnect({
 
   // Pre-warm platform detection so results are cached when the user advances
   useScmPlatformDetection(selectedRepository);
-
-  // Measurement call, to judge latency (no UI impact).
-  useMultiPlatformDetectionTest(selectedRepository);
 
   // Derive integration from explicit selection, falling back to the first
   // active integration so the repo selector has something to search.

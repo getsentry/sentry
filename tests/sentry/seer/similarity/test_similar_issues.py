@@ -82,6 +82,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
                 tags={
                     "response_status": 200,
                     "outcome": expected_outcome,
+                    "seer_backend": "gpu",
                 },
             )
 
@@ -98,7 +99,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_metrics_incr.assert_any_call(
             "seer.similar_issues_request",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"response_status": 200, "outcome": "no_similar_groups"},
+            tags={"response_status": 200, "outcome": "no_similar_groups", "seer_backend": "gpu"},
         )
 
     @mock.patch("sentry.grouping.ingest.seer.CircuitBreaker.record_error")
@@ -164,7 +165,12 @@ class GetSimilarityDataFromSeerTest(TestCase):
             mock_metrics_incr.assert_any_call(
                 "seer.similar_issues_request",
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={"response_status": 200, "outcome": "error", "error": expected_error},
+                tags={
+                    "response_status": 200,
+                    "outcome": "error",
+                    "error": expected_error,
+                    "seer_backend": "gpu",
+                },
             )
             assert mock_record_circuit_breaker_error.call_count == 0
 
@@ -192,7 +198,12 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_metrics_incr.assert_any_call(
             "seer.similar_issues_request",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"response_status": 308, "outcome": "error", "error": "Redirect"},
+            tags={
+                "response_status": 308,
+                "outcome": "error",
+                "error": "Redirect",
+                "seer_backend": "gpu",
+            },
         )
         assert mock_record_circuit_breaker_error.call_count == 0
 
@@ -228,7 +239,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             mock_metrics_incr.assert_any_call(
                 "seer.similar_issues_request",
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={"outcome": "error", "error": expected_error_tag},
+                tags={"outcome": "error", "error": expected_error_tag, "seer_backend": "gpu"},
             )
             assert mock_record_circuit_breaker_error.call_count == 1
 
@@ -261,7 +272,12 @@ class GetSimilarityDataFromSeerTest(TestCase):
             mock_metrics_incr.assert_any_call(
                 "seer.similar_issues_request",
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={"response_status": status, "outcome": "error", "error": "RequestError"},
+                tags={
+                    "response_status": status,
+                    "outcome": "error",
+                    "error": "RequestError",
+                    "seer_backend": "gpu",
+                },
             )
             assert mock_record_circuit_breaker_error.call_count == (
                 1 if counts_for_circuit_breaker else 0
@@ -543,3 +559,36 @@ class GetSimilarityDataFromSeerTest(TestCase):
 
         assert model_used is None
         assert len(results) == 1
+
+    @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_summarization_default_connection_pool")
+    @mock.patch("sentry.seer.similarity.similar_issues.random", return_value=0.5)
+    def test_cpu_backend_routing(
+        self, _rng: MagicMock, mock_cpu_pool: MagicMock, mock_metrics_incr: MagicMock
+    ) -> None:
+        with self.options({"seer.similarity.cpu-backend-sample-rate": 1.0}):
+            mock_cpu_pool.urlopen.return_value = self._make_response({"responses": []})
+            get_similarity_data_from_seer(self.request_params)
+
+        mock_cpu_pool.urlopen.assert_called_once()
+        mock_metrics_incr.assert_any_call(
+            "seer.similar_issues_request",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"response_status": 200, "outcome": "no_similar_groups", "seer_backend": "cpu"},
+        )
+
+    @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool")
+    @mock.patch("sentry.seer.similarity.similar_issues.random", return_value=0.5)
+    def test_gpu_backend_routing_default(
+        self, _rng: MagicMock, mock_gpu_pool: MagicMock, mock_metrics_incr: MagicMock
+    ) -> None:
+        mock_gpu_pool.urlopen.return_value = self._make_response({"responses": []})
+        get_similarity_data_from_seer(self.request_params)
+
+        mock_gpu_pool.urlopen.assert_called_once()
+        mock_metrics_incr.assert_any_call(
+            "seer.similar_issues_request",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"response_status": 200, "outcome": "no_similar_groups", "seer_backend": "gpu"},
+        )
