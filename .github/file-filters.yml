@@ -47,6 +47,16 @@ frontend_all: &frontend_all
   - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
   - added|modified: '{vercel,tsconfig,biome,package}.json'
 
+# Like frontend_all but excludes auto-generated files (e.g. knownSentryApiUrls.generated.ts)
+# so that bot-committed codegen on backend-only PRs does not trigger the FE+BE warning.
+# frontend_all is still used for labeling and typechecking triggers.
+frontend_non_generated: &frontend_non_generated
+  - *sentry_frontend_workflow_file
+  - *sentry_frontend_snapshots_workflow_file
+  - added|modified: '**/!(*.generated).{ts,tsx,js,jsx,mjs}'
+  - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
+  - added|modified: '{vercel,tsconfig,biome,package}.json'
+
 # Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
