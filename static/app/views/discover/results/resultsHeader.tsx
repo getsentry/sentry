@@ -43,13 +43,13 @@ function ResultsHeaderBase({
 }: Props) {
   const [homepageQuery, setHomepageQuery] = useState<SavedQuery | undefined>(undefined);
   const [savedQuery, setSavedQueryState] = useState<SavedQuery | undefined>(undefined);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(() => {
     if (!isHomepage && typeof eventView.id === 'string') {
       setLoading(true);
       fetchSavedQuery(api, organization.slug, eventView.id).then(fetchedSavedQuery => {
-        setSavedQueryState(getSavedQueryWithDataset(fetchedSavedQuery)!);
+        setSavedQueryState(getSavedQueryWithDataset(fetchedSavedQuery));
         setLoading(false);
       });
     }
@@ -58,7 +58,7 @@ function ResultsHeaderBase({
   const fetchHomepageQueryData = useCallback(() => {
     setLoading(true);
     fetchHomepageQuery(api, organization.slug).then(fetchedHomepageQuery => {
-      setHomepageQuery(getSavedQueryWithDataset(fetchedHomepageQuery)!);
+      setHomepageQuery(getSavedQueryWithDataset(fetchedHomepageQuery));
       setLoading(false);
     });
   }, [api, organization.slug]);
@@ -92,7 +92,7 @@ function ResultsHeaderBase({
       yAxis={yAxis}
       isHomepage={isHomepage}
       setHomepageQuery={updatedHomepageQuery => {
-        setHomepageQuery(getSavedQueryWithDataset(updatedHomepageQuery)!);
+        setHomepageQuery(getSavedQueryWithDataset(updatedHomepageQuery));
         if (isHomepage) {
           setSavedQuery(updatedHomepageQuery);
         }
