@@ -75,7 +75,7 @@ class DiscordRendererTest(TestCase):
             embed["description"]
             == "\ntest **important** *urgent* [View Issue](https://sentry.io/issue/1)"
             "\n```raise Exception('test')```"
-            "\n> This is a quoted message"
+            "\n>>> This is a quoted message"
         )
         assert embed["footer"]["text"] == "Sent via sentry-alerts"
         assert (
