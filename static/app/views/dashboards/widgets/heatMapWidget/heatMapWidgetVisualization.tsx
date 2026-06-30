@@ -20,7 +20,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
-import {getAggregateArg} from 'sentry/utils/discover/fields';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
@@ -179,17 +178,15 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     const yAxisUnit = heatMapPlottable?.yAxisValueUnit;
     const yAxisValueType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
 
-    // The Y axis plots the metric's value distribution, so label it with the
-    // metric name pulled out of the aggregate (e.g. "sentry.storage.size" from
-    // "count(sentry.storage.size)"). Fall back to the value type, or "value" for
-    // plain numeric metrics, when there's no parseable argument.
-    const yAxisMetricName = getAggregateArg(meta.zAxis.name);
-
     // Truncate the labels so a long metric name / aggregate can't blow out the
     // tooltip width, matching the time series widget. Pass `escaped: false` —
     // these render through React (`<Text>`), which escapes.
+    //
+    // The Y axis plots the metric's value distribution, so it's labeled with the
+    // metric name supplied by the caller via `meta.yAxis.name`; fall back to the
+    // value type, or "value" for plain numeric metrics.
     const yAxisLabel = truncationFormatter(
-      yAxisMetricName ||
+      meta.yAxis.name ||
         (['number', 'integer'].includes(yAxisValueType) ? t('value') : yAxisValueType),
       true,
       false
