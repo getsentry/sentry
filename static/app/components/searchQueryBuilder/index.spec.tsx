@@ -6138,6 +6138,71 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
+      it('submits typed free text when opening ask seer from the dropdown', async () => {
+        const mockAskSeer = jest.fn((_query: string) =>
+          Promise.resolve<AskSeerTestResponse>({
+            queries: [],
+            status: 'ok',
+            unsupported_reason: null,
+          })
+        );
+        const props = {
+          ...defaultProps,
+          enableAISearch: true,
+          initialQuery: 'browser.name:firefox',
+        };
+
+        function AskSeerAutoSubmitTestComponent({children}: {children: React.ReactNode}) {
+          const {displayAskSeer} = useSearchQueryBuilderAI();
+          const initialSeerQuery = useInitialSeerQuery();
+
+          return displayAskSeer ? (
+            <AskSeerComboBox
+              initialQuery={initialSeerQuery}
+              applySeerSearchQuery={() => {}}
+              askSeerMutationOptions={mutationOptions({
+                mutationFn: mockAskSeer,
+              })}
+            />
+          ) : (
+            children
+          );
+        }
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'find slow spans');
+
+        const askSeer = await screen.findByRole('option', {
+          name: /Ask AI to build your query/,
+        });
+        await userEvent.click(askSeer);
+
+        expect(
+          await screen.findByRole('combobox', {
+            name: 'Ask Seer with Natural Language',
+          })
+        ).toHaveValue('browser.name is firefox find slow spans ');
+        await waitFor(() => {
+          expect(mockAskSeer).toHaveBeenCalledWith(
+            'browser.name is firefox find slow spans',
+            expect.anything()
+          );
+        });
+      });
+
       it('submits free text with the existing query to ask seer when defaulting to ask seer is enabled', async () => {
         const mockOnSearch = jest.fn();
         const mockAskSeer = jest.fn((_query: string) =>

@@ -277,8 +277,12 @@ function SearchQueryBuilderInputInternal({
     recentSearches,
   } = useSearchQueryBuilderConfig();
   const {currentInputValueRef} = useSearchQueryBuilderLayout();
-  const {defaultToAskSeerOnFreeTextSearch, setAutoSubmitSeer, setDisplayAskSeer} =
-    useSearchQueryBuilderAI();
+  const {
+    defaultToAskSeerOnFreeTextSearch,
+    setAutoSubmitFromCurrentQuery,
+    setAutoSubmitSeer,
+    setDisplayAskSeer,
+  } = useSearchQueryBuilderAI();
   const {consumeReopenDropdownOnQueryClear, reopenDropdownOnQueryClear} =
     useSearchQueryBuilderInteraction();
 
@@ -554,6 +558,7 @@ function SearchQueryBuilderInputInternal({
               shouldCommitQuery: false,
               skipRawSearchReplacement: true,
             });
+            setAutoSubmitFromCurrentQuery(true);
             setAutoSubmitSeer(true);
             setDisplayAskSeer(true);
             return;

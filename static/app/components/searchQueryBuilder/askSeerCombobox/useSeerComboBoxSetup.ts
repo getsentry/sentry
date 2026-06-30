@@ -24,9 +24,11 @@ import {getExpandedProjectIds} from './utils';
 
 export function useInitialSeerQuery(): string {
   const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
-  const {autoSubmitSeer, displayAskSeer} = useSearchQueryBuilderAI();
+  const {autoSubmitFromCurrentQuery, autoSubmitSeer, displayAskSeer} =
+    useSearchQueryBuilderAI();
   const {currentInputValueRef} = useSearchQueryBuilderLayout();
-  const isAutoSubmittingCurrentQuery = autoSubmitSeer && displayAskSeer;
+  const isAutoSubmittingCurrentQuery =
+    autoSubmitFromCurrentQuery && autoSubmitSeer && displayAskSeer;
 
   const queryDetails = useMemo(() => {
     const queryToUse = isAutoSubmittingCurrentQuery
@@ -36,7 +38,7 @@ export function useInitialSeerQuery(): string {
         : query;
     const parsedQuery = parseQuery(queryToUse);
     return {parsedQuery, queryToUse};
-  }, [committedQuery, isAutoSubmittingCurrentQuery, query, parseQuery]);
+  }, [committedQuery, isAutoSubmittingCurrentQuery, parseQuery, query]);
 
   const inputValue = isAutoSubmittingCurrentQuery
     ? ''

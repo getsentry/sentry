@@ -86,11 +86,13 @@ interface SearchQueryBuilderAIContextData {
   aiSearchBadgeType: 'alpha' | 'beta';
   askSeerNLQueryRef: React.RefObject<string | null>;
   askSeerSuggestedQueryRef: React.RefObject<string | null>;
+  autoSubmitFromCurrentQuery: boolean;
   autoSubmitSeer: boolean;
   defaultToAskSeerOnFreeTextSearch: boolean;
   displayAskSeer: boolean;
   displayAskSeerFeedback: boolean;
   enableAISearch: boolean;
+  setAutoSubmitFromCurrentQuery: (enabled: boolean) => void;
   setAutoSubmitSeer: (enabled: boolean) => void;
   setDisplayAskSeer: (enabled: boolean) => void;
   setDisplayAskSeerFeedback: (enabled: boolean) => void;
@@ -195,6 +197,7 @@ export function SearchQueryBuilderProvider({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
 
+  const [autoSubmitFromCurrentQuery, setAutoSubmitFromCurrentQuery] = useState(false);
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
   const [displayAskSeerFeedback, setDisplayAskSeerFeedback] = useState(false);
   const [reopenDropdownOnQueryClear, setReopenDropdownOnQueryClear] = useState(false);
@@ -456,11 +459,13 @@ export function SearchQueryBuilderProvider({
       aiSearchBadgeType,
       askSeerNLQueryRef,
       askSeerSuggestedQueryRef,
+      autoSubmitFromCurrentQuery,
       autoSubmitSeer,
       defaultToAskSeerOnFreeTextSearch,
       displayAskSeer,
       displayAskSeerFeedback,
       enableAISearch,
+      setAutoSubmitFromCurrentQuery,
       setAutoSubmitSeer,
       setDisplayAskSeer: setDisplayAskSeerState,
       setDisplayAskSeerFeedback,
@@ -469,6 +474,7 @@ export function SearchQueryBuilderProvider({
     aiSearchBadgeType,
     askSeerNLQueryRef,
     askSeerSuggestedQueryRef,
+    autoSubmitFromCurrentQuery,
     autoSubmitSeer,
     defaultToAskSeerOnFreeTextSearch,
     displayAskSeer,
