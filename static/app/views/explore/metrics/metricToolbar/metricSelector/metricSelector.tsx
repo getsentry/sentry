@@ -266,15 +266,15 @@ export function MetricSelector({
   // Auto-select the first selectable metric when no metric is currently
   // selected. This handles the initial load case where the URL has no metric
   // param. Skip options the caller disables (e.g. counters for heat maps) so we
-  // don't default into an invalid selection.
+  // don't default into an invalid selection. If every option is disabled, leave
+  // the slot empty rather than selecting a metric the caller marked invalid.
   useEffect(() => {
     if (traceMetric.name) {
       return;
     }
-    const firstSelectable =
-      (disabledMetricReason
-        ? metricOptions.find(option => !disabledMetricReason(option))
-        : metricOptions[0]) ?? metricOptions[0];
+    const firstSelectable = disabledMetricReason
+      ? metricOptions.find(option => !disabledMetricReason(option))
+      : metricOptions[0];
     if (firstSelectable) {
       onChange({
         name: firstSelectable.metricName,

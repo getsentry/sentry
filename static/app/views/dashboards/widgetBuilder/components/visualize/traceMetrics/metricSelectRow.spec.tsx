@@ -545,4 +545,65 @@ describe('MetricSelectRow', () => {
       'true'
     );
   });
+
+  it('does not auto-select a metric when every option is disabled for a heat map', async () => {
+    // A project with only non-distribution metrics: nothing is selectable for a
+    // heat map, so the picker must not fall back to selecting an invalid metric.
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            ['metric.name']: 'counter_metric',
+            ['metric.type']: 'counter',
+            ['count(metric.name)']: 1,
+          },
+          {
+            ['metric.name']: 'gauge_metric',
+            ['metric.type']: 'gauge',
+            ['count(metric.name)']: 1,
+          },
+        ],
+      },
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <MetricSelectRow
+          field={{
+            kind: 'function',
+            function: ['count', 'value', undefined, undefined],
+          }}
+          index={0}
+          disabled={false}
+        />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              field: ['count(value)'],
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.HEATMAP,
+            },
+          },
+        },
+      }
+    );
+
+    // The trigger is disabled while metrics load, then becomes enabled once the
+    // fetch settles and the auto-select effect runs. If an invalid metric had
+    // been auto-selected the trigger would be relabeled to its name; instead it
+    // stays unselected ("None").
+    const trigger = await screen.findByRole('button', {name: 'None'});
+    await waitFor(() => expect(trigger).toBeEnabled());
+    expect(screen.getByRole('button', {name: 'None'})).toBeInTheDocument();
+  });
 });
