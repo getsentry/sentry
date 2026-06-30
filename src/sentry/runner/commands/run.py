@@ -210,6 +210,13 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     default=5.0,
     type=float,
 )
+@click.option(
+    "--future-checking-frequency",
+    help="How long the future checking thread in each worker child sleeps between iterations"
+    "to take pressure off the GIL",
+    default=0.1,
+    type=float,
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -239,6 +246,7 @@ def run_taskworker(
     health_check_file_path: str | None,
     health_check_sec_per_touch: float,
     push_timeout_sec: float,
+    future_checking_frequency: float,
     **options: Any,
 ) -> None:
     """
@@ -266,6 +274,7 @@ def run_taskworker(
                 grpc_port=worker_rpc_port,
                 push_task_timeout=push_timeout_sec,
                 skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
             )
         elif batch_push_mode:
             worker = BatchPushTaskWorker(
@@ -284,6 +293,7 @@ def run_taskworker(
                 grpc_port=worker_rpc_port,
                 update_in_batches=True,
                 skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
             )
         else:
             worker = TaskWorker(
@@ -301,6 +311,7 @@ def run_taskworker(
                 health_check_file_path=health_check_file_path,
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
             )
         exitcode = worker.start()
         raise SystemExit(exitcode)

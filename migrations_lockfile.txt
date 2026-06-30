@@ -5,38 +5,40 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-discover: 0003_discover_json_field
+discover: 0001_squashed_0003_discover_json_field
 
 explore: 0010_remove_last_received_from_attribute_context
 
 feedback: 0007_cleanup_failed_safe_deletes
 
+feedback: 0007_cleanup_failed_safe_deletes
+
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-hybridcloud: 0030_remove_orgslugreservationreplica_delete
+hybridcloud: 0001_squashed_0030_remove_orgslugreservationreplica_delete
 
-insights: 0002_backfill_team_starred
+insights: 0001_squashed_0002_backfill_team_starred
 
-monitors: 0013_delete_monitor_is_muted_field
+monitors: 0001_squashed_0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0012_drop_metric_alert_cols_notificationmessage
+notifications: 0001_squashed_0012_drop_metric_alert_cols_notificationmessage
 
-preprod: 0030_add_images_errored_to_snapshot_comparison
+preprod: 0001_squashed_0030_add_images_errored_to_snapshot_comparison
 
 releases: 0004_cleanup_failed_safe_deletes
 
-replays: 0007_organizationmember_replay_access
+replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0023_add_seer_run_pull_request
 
 sentry: 1124_weeklyreportprojectexclusion
 
-social_auth: 0003_social_auth_json_field
+social_auth: 0001_squashed_0003_social_auth_json_field
 
 tempest: 0001_squashed_0003_use_encrypted_char_field
 
-uptime: 0055_backfill_2xx_status_assertion
+uptime: 0001_squashed_0055_backfill_2xx_status_assertion
 
 workflow_engine: 0115_add_group_index_to_wfh

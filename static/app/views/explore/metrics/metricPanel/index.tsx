@@ -256,7 +256,11 @@ export function MetricPanel({
         )}
         value={visualize.chartType}
         menuTitle="Type"
-        options={getMetricsChartTypeOptions(organization, isVisualizeEquation(visualize))}
+        options={getMetricsChartTypeOptions(
+          organization,
+          isVisualizeEquation(visualize),
+          traceMetric
+        )}
         onChange={option => handleChartTypeChange(option.value)}
       />
       <CompactSelect

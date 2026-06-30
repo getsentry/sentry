@@ -280,6 +280,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     "trace_id",
                     "transaction",
                     "user",
+                    "_meta",
                 ]
                 for optional_param in optional_params:
                     if optional_param in event_payload:
@@ -294,6 +295,16 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                             "trace_id": uuid4().hex,
                             "span_id": None,
                         },
+                    )
+                    set_path(
+                        event_data,
+                        "_meta",
+                        "contexts",
+                        "trace",
+                        "trace_id",
+                        "",
+                        "err",
+                        value=["trace_id.missing"],
                     )
 
                 try:

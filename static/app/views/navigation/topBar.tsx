@@ -1,5 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {mergeProps} from '@react-aria/utils';
 
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
@@ -79,8 +80,8 @@ function TopBarContent() {
         <Slot.Outlet name="title">
           {props => (
             <Flex align="center" gap="sm" minWidth="0">
-              {({className}) => (
-                <Heading as="h1" variant="inherit" className={className} {...props} />
+              {flexProps => (
+                <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
               )}
             </Flex>
           )}
