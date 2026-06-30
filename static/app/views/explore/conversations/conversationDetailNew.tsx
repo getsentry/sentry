@@ -59,7 +59,7 @@ export function ConversationDetailPageNew() {
           isLoading={isLoading}
         />
       </Container>
-      <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="md">
+      <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
         <Flex flexShrink={0}>
           <Tabs value={queryState.tab} onChange={tab => setQueryState({tab})}>
             <TabList variant="floating">
