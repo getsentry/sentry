@@ -132,7 +132,7 @@ def service_worker(request):
             return HttpResponseNotFound("", content_type="text/plain")
 
         response = HttpResponse(content, content_type="text/javascript")
-        response["ETag"] = commit_sha
+        response["ETag"] = f'"{commit_sha}"'
         response["X-Content-Type-Options"] = "nosniff"
         response["Cache-Control"] = NO_CACHE
     else:
