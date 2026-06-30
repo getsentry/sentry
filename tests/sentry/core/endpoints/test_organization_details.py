@@ -24,7 +24,11 @@ from sentry.constants import (
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
     ObjectStatus,
 )
-from sentry.core.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
+from sentry.core.endpoints.organization_details import (
+    ERR_NO_2FA,
+    ERR_RELAY_DSN_ENDPOINT_INVALID,
+    ERR_SSO_ENABLED,
+)
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.auditlogentry import AuditLogEntry
@@ -1250,6 +1254,82 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_get_ingest_through_trusted_relays_only_option(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data["ingestThroughTrustedRelaysOnly"] == "disabled"
+
+    def test_relay_dsn_endpoint_returned_when_set(self) -> None:
+        self.organization.update_option(
+            "sentry:relay_dsn_endpoint", "https://relay.example.com/ingest"
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["relayDsnEndpoint"] == "https://relay.example.com/ingest"
+
+    @with_feature("organizations:relay-dsn-endpoint-override")
+    def test_relay_dsn_endpoint_accepts_valid_write(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            relayDsnEndpoint="https://relay.example.com/ingest/",
+        )
+
+        assert self.organization.get_option("sentry:relay_dsn_endpoint") == (
+            "https://relay.example.com/ingest"
+        )
+        assert response.data["relayDsnEndpoint"] == "https://relay.example.com/ingest"
+
+    @with_feature("organizations:relay-dsn-endpoint-override")
+    def test_relay_dsn_endpoint_blank_clears_value(self) -> None:
+        self.organization.update_option(
+            "sentry:relay_dsn_endpoint", "https://relay.example.com/ingest"
+        )
+
+        response = self.get_success_response(self.organization.slug, relayDsnEndpoint="")
+
+        assert self.organization.get_option("sentry:relay_dsn_endpoint") is None
+        assert response.data["relayDsnEndpoint"] is None
+
+    @with_feature("organizations:relay-dsn-endpoint-override")
+    def test_relay_dsn_endpoint_null_clears_value(self) -> None:
+        self.organization.update_option(
+            "sentry:relay_dsn_endpoint", "https://relay.example.com/ingest"
+        )
+
+        response = self.get_success_response(self.organization.slug, relayDsnEndpoint=None)
+
+        assert self.organization.get_option("sentry:relay_dsn_endpoint") is None
+        assert response.data["relayDsnEndpoint"] is None
+
+    def test_relay_dsn_endpoint_rejects_write_without_feature(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=400,
+            relayDsnEndpoint="https://relay.example.com/ingest",
+        )
+
+        assert response.data["relayDsnEndpoint"] == [
+            "Organization does not have the Relay DSN endpoint override feature enabled."
+        ]
+        assert self.organization.get_option("sentry:relay_dsn_endpoint") is None
+
+    def test_relay_dsn_endpoint_rejects_invalid_url(self) -> None:
+        relay_dsn_endpoints = [
+            "relay.example.com",
+            "https:///relay",
+            "ftp://relay.example.com",
+            "https://user:password@relay.example.com",
+            "https://relay.example.com?foo=bar",
+            "https://relay.example.com#fragment",
+        ]
+
+        with self.feature("organizations:relay-dsn-endpoint-override"):
+            for relay_dsn_endpoint in relay_dsn_endpoints:
+                with self.subTest(relay_dsn_endpoint=relay_dsn_endpoint):
+                    response = self.get_error_response(
+                        self.organization.slug,
+                        status_code=400,
+                        relayDsnEndpoint=relay_dsn_endpoint,
+                    )
+
+                    assert response.data["relayDsnEndpoint"] == [ERR_RELAY_DSN_ENDPOINT_INVALID]
 
     @with_feature("organizations:dynamic-sampling-custom")
     def test_target_sample_rate_range(self) -> None:
