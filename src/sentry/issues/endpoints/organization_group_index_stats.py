@@ -114,8 +114,8 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
             query_kwargs = build_query_params_from_request(
                 request, organization, projects, environments
             )
-        except ValidationError as exc:
-            return Response({"detail": str(exc)}, status=400)
+        except ValidationError:
+            return Response({"detail": "Invalid query parameters."}, status=400)
         context = serialize(
             groups,
             request.user,
