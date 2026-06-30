@@ -592,13 +592,21 @@ export function CheckoutSuccess({
       align="center"
       justify="between"
       gap="3xl"
-      direction={{sm: 'column', md: 'row'}}
+      direction={{'screen:sm': 'column', 'screen:md': 'row'}}
     >
-      <Flex direction="column" align={{sm: 'center', md: 'start'}} maxWidth="500px">
+      <Flex
+        direction="column"
+        align={{'screen:sm': 'center', 'screen:md': 'start'}}
+        maxWidth="500px"
+      >
         <Title size="2xl" as="h1" align="left">
           {contentTitle}
         </Title>
-        <Flex gap="2xl" direction="column" align={{sm: 'center', md: 'start'}}>
+        <Flex
+          gap="2xl"
+          direction="column"
+          align={{'screen:sm': 'center', 'screen:md': 'start'}}
+        >
           <Description variant="muted" size="lg" align="left">
             {contentDescription}
           </Description>

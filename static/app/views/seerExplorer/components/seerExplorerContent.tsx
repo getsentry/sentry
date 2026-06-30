@@ -68,8 +68,8 @@ function SidebarHeaderShell({
       align="center"
       gap="md"
       height={{
-        sm: `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
-        md: `${PRIMARY_HEADER_HEIGHT}px`,
+        'screen:sm': `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
+        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       padding="0 lg"
       background="primary"
