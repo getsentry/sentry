@@ -4,6 +4,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
@@ -39,7 +40,17 @@ export function UpdateSlackAlert({configurations}: UpdateSlackAlertProps) {
         variant="muted"
         trailingItems={
           <Flex gap="sm" alignSelf="center">
-            <LinkButton href={href} variant="primary" size="xs">
+            <LinkButton
+              href={href}
+              variant="primary"
+              size="xs"
+              onClick={() =>
+                trackAnalytics('seer.explorer.update_slack_clicked', {
+                  organization,
+                  configurations,
+                })
+              }
+            >
               {t('Update Now')}
             </LinkButton>
             <Button
