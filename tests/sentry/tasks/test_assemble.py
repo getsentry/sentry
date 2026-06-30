@@ -35,6 +35,7 @@ from sentry.tasks.assemble import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.redis import use_redis_cluster
+from sentry.testutils.objectstore import debug_files_test_both_backends
 
 
 class BaseAssembleTest(TestCase):
@@ -46,6 +47,7 @@ class BaseAssembleTest(TestCase):
         )
 
 
+@debug_files_test_both_backends
 class AssembleDifTest(BaseAssembleTest):
     def test_wrong_dif(self) -> None:
         content1 = b"foo"
@@ -92,7 +94,7 @@ class AssembleDifTest(BaseAssembleTest):
             project_id=self.project.id, checksum=total_checksum
         ).get()
 
-        assert dif.file is not None
+        assert (dif.file or dif.storage_path) is not None
         assert dif.get_content_type() == "text/x-breakpad"
 
     def test_assemble_from_files(self) -> None:
@@ -204,7 +206,7 @@ class AssembleDifTest(BaseAssembleTest):
             project_id=self.project.id, checksum=total_checksum
         ).get()
 
-        assert dif.file is not None
+        assert (dif.file or dif.storage_path) is not None
         assert dif.get_content_type() == "text/x-breakpad"
         assert dif.debug_id == "67e9247c-814e-392b-a027-dbde6748fcbf-beef"
 

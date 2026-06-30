@@ -984,11 +984,10 @@ class HandleCommentForPrMetricsTest(TestCase):
         assert activity.event_type == PullRequestActivityType.COMMENT_CREATED
         assert activity.webhook_id == "delivery-1"
 
-    def test_comment_edited_writes_activity(self) -> None:
-        self._call(action="edited")
+    def test_comment_edited_skipped(self) -> None:
+        self._call(action="edited", webhook_id="delivery-edit")
 
-        activity = PullRequestActivity.objects.get(pull_request=self.pr)
-        assert activity.event_type == PullRequestActivityType.COMMENT_EDITED
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_bot_sender_type_stored(self) -> None:
         self._call(sender_type="Bot")
@@ -1300,12 +1299,10 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         assert activity.payload["review_id"] == 42
         assert activity.payload["sender_login"] == "reviewer"
 
-    def test_edited_writes_comment_edited_activity(self) -> None:
-        self._call(action="edited")
+    def test_edited_skipped(self) -> None:
+        self._call(action="edited", webhook_id="delivery-edit")
 
-        activity = PullRequestActivity.objects.get(pull_request=self.pr)
-        assert activity.event_type == PullRequestActivityType.COMMENT_EDITED
-        assert activity.payload["is_review"] is True
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_deleted_action_skipped(self) -> None:
         self._call(action="deleted")

@@ -111,7 +111,12 @@ describe('rc', () => {
 
   it('generates media queries for responsive values', () => {
     // First defined breakpoint gets both min-width and max-width; subsequent get min-width only.
-    const output = rc('color', {xs: 'blue', md: 'green'}, theme, 'viewport');
+    const output = rc(
+      'color',
+      {'screen:xs': 'blue', 'screen:md': 'green'},
+      theme,
+      'viewport'
+    );
     assert(output);
     expect(
       normalizeCss(
@@ -124,7 +129,12 @@ describe('rc', () => {
 
   it('skips undefined intermediate breakpoints', () => {
     // xs and md are defined; 2xs, sm, lg, xl, 2xl are absent from the output.
-    const output = rc('font-size', {xs: 'md', md: 'lg'}, theme, 'viewport');
+    const output = rc(
+      'font-size',
+      {'screen:xs': 'md', 'screen:md': 'lg'},
+      theme,
+      'viewport'
+    );
     assert(output);
     expect(
       normalizeCss(
@@ -235,9 +245,9 @@ describe('useResponsivePropValue', () => {
     });
 
     const responsiveValue: Responsive<string> = {
-      xs: 'extra-small',
-      sm: 'small',
-      md: 'medium',
+      'screen:xs': 'extra-small',
+      'screen:sm': 'small',
+      'screen:md': 'medium',
     };
 
     const {result} = renderHookWithProviders(() =>
@@ -255,9 +265,9 @@ describe('useResponsivePropValue', () => {
     });
 
     const responsiveValue: Responsive<string> = {
-      xs: 'extra-small',
-      sm: 'small',
-      md: 'medium',
+      'screen:xs': 'extra-small',
+      'screen:sm': 'small',
+      'screen:md': 'medium',
     };
 
     const {result} = renderHookWithProviders(() =>
@@ -275,7 +285,7 @@ describe('useResponsivePropValue', () => {
     });
 
     const responsiveValue: Responsive<string> = {
-      sm: 'small',
+      'screen:sm': 'small',
     };
 
     const {result} = renderHookWithProviders(() =>
@@ -295,8 +305,8 @@ describe('useResponsivePropValue', () => {
     });
 
     const responsiveValue: Responsive<string> = {
-      sm: 'small',
-      lg: 'large',
+      'screen:sm': 'small',
+      'screen:lg': 'large',
     };
 
     const {result} = renderHookWithProviders(() =>
@@ -314,10 +324,10 @@ describe('useResponsivePropValue', () => {
     });
 
     const responsiveValue: Responsive<string> = {
-      xs: 'small',
-      sm: undefined,
-      md: 'medium',
-      lg: undefined,
+      'screen:xs': 'small',
+      'screen:sm': undefined,
+      'screen:md': 'medium',
+      'screen:lg': undefined,
     };
 
     const {result} = renderHookWithProviders(() =>
@@ -436,7 +446,11 @@ describe('useActiveBreakpoint', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useResponsivePropValue({xs: 'small', md: 'medium', lg: 'large'})
+      useResponsivePropValue({
+        'screen:xs': 'small',
+        'screen:md': 'medium',
+        'screen:lg': 'large',
+      })
     );
 
     // Initially query matches 'medium'
@@ -484,7 +498,7 @@ describe('useActiveBreakpoint', () => {
     }));
 
     const {unmount} = renderHookWithProviders(() =>
-      useResponsivePropValue({xs: 'small', md: 'medium'})
+      useResponsivePropValue({'screen:xs': 'small', 'screen:md': 'medium'})
     );
 
     // Sets up listeners for all breakpoints

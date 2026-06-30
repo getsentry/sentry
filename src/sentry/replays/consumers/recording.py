@@ -95,9 +95,7 @@ def process_and_commit_message(message: Message[KafkaPayload], context: Processo
             name="replays.consumer.recording.process_and_commit_message",
             op="replays.consumer.recording.process_and_commit_message",
             custom_sampling_context={
-                "sample_rate": getattr(
-                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
-                )
+                "sample_rate": settings.SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING
             },
             transaction=True,
         ):

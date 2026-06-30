@@ -4,6 +4,7 @@ import {useQueryState} from 'nuqs';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 
@@ -54,6 +55,12 @@ export function useAutoOpenInstallModal({
     }
 
     autoOpenedForRef.current = provider.key;
+
+    trackAnalytics('integrations.install_modal_auto_opened', {
+      organization,
+      integration: provider.key,
+      integration_type: 'first_party',
+    });
 
     // NOTE: The `?showInstallModal=1` entry point is currently only used by the
     // Slack reinstall/upgrade nudge, so we override the generic install modal

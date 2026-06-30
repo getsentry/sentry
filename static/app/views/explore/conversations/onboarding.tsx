@@ -197,7 +197,7 @@ function ConversationOnboardingPanel({
                     </li>
                   </BulletList>
                 </HeaderText>
-                <Container display={{xs: 'none', sm: 'block'}}>
+                <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
                   <Image src={replayOnboardingImg} alt="" height="120px" width="auto" />
                 </Container>
               </Flex>

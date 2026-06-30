@@ -29,10 +29,19 @@ export function AssistantBlock({
   interactionPending,
   readOnly,
 }: AssistantBlockProps) {
+  const organization = useOrganization();
   const content = block.message.content ?? '';
+  const isStreamingEnabled = organization.features.includes('seer-explorer-stream');
 
   if (block.loading) {
-    return <MessagePlaceholder content={content} />;
+    if (isStreamingEnabled && hasValidContent(content)) {
+      return (
+        <Container padding="xl" minWidth={0} overflow="hidden">
+          <SeerMarkdown raw={content} variant="streaming" />
+        </Container>
+      );
+    }
+    return <MessagePlaceholder content={isStreamingEnabled ? undefined : content} />;
   }
 
   return (

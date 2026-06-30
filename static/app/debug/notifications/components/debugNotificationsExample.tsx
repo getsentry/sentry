@@ -46,10 +46,10 @@ export function DebugNotificationsExample({
           Subject
         </Text>
         {displayFormat === ExampleDataFormat.FORMATTED ? (
-          <Text>{registration.example.subject}</Text>
+          <Text>{registration.example.subject.map(block => block.text).join(' ')}</Text>
         ) : (
-          <CodeBlock language="javascript">
-            {JSON.stringify(registration.example.subject)}
+          <CodeBlock language="json">
+            {JSON.stringify(registration.example.subject, null, 2)}
           </CodeBlock>
         )}
         <Text variant="success" bold>
@@ -118,13 +118,9 @@ export function DebugNotificationsExample({
             <Text variant="success" bold>
               Footer
             </Text>
-            {displayFormat === ExampleDataFormat.FORMATTED ? (
-              <Text>{registration.example.footer}</Text>
-            ) : (
-              <CodeBlock language="javascript">
-                {JSON.stringify(registration.example.footer)}
-              </CodeBlock>
-            )}
+            <CodeBlock language="json">
+              {JSON.stringify(registration.example.footer, null, 2)}
+            </CodeBlock>
           </Fragment>
         )}
       </ExampleGrid>

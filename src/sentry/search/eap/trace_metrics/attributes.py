@@ -6,7 +6,8 @@ from sentry.search.eap.columns import (
     simple_sentry_field,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS, project_virtual_contexts
-from sentry.utils.validators import is_event_id_or_list, normalize_event_id_strict
+from sentry.search.utils import validate_event_id
+from sentry.utils.validators import normalize_event_id_strict
 
 TRACE_METRICS_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
@@ -16,14 +17,14 @@ TRACE_METRICS_ATTRIBUTE_DEFINITIONS = {
             public_alias="id",
             internal_name="sentry.item_id",
             search_type="string",
-            validator=is_event_id_or_list,
+            validator=validate_event_id,
             normalizer=normalize_event_id_strict,
         ),
         ResolvedAttribute(
             public_alias=constants.TRACE_ALIAS,
             internal_name="sentry.trace_id",
             search_type="string",
-            validator=is_event_id_or_list,
+            validator=validate_event_id,
             normalizer=normalize_event_id_strict,
         ),
         ResolvedAttribute(

@@ -231,13 +231,34 @@ class NotificationRenderedImage:
 
 @dataclass(frozen=True)
 class NotificationRenderedTemplate:
-    subject: str
+    subject: str | list[NotificationTextBlock]
     """
     The subject or title of the notification. It's expected that the receiver understand the
     expected content of the notification based on this alone, and it will be the first thing
-    they see. This string should not contain any formatting, and will be displayed as is.
+    they see.
     """
-    body: list[NotificationBodyFormattingBlock]
+
+    @staticmethod
+    def render_text_blocks(blocks: list[NotificationTextBlock]) -> str:
+        text = []
+        for block in blocks:
+            if isinstance(block, LinkTextBlock):
+                text.append(f"{block.text} ({block.url})")
+            else:
+                text.append(block.text)
+        return " ".join(text)
+
+    @property
+    def subject_blocks(self) -> list[NotificationTextBlock]:
+        if isinstance(self.subject, list):
+            return self.subject
+        return [PlainTextBlock(text=self.subject)]
+
+    @property
+    def subject_text(self) -> str:
+        return self.render_text_blocks(self.subject_blocks)
+
+    body: list[NotificationSection]
     """
     The full contents of the notification. Put the details of the notification here, but consider
     keeping it concise and useful to the receiver.
@@ -250,12 +271,23 @@ class NotificationRenderedTemplate:
     """
     The image that will be displayed in the notification.
     """
-    footer: str | None = None
+    footer: str | list[NotificationTextBlock] | None = None
     """
     Extra notification content that will appear after any actions, separate from the body. Optional,
     and consider omitting if the extra data is not necessary for your notification to be useful.
-    This string should not contain any formatting, and will be displayed as is.
     """
+
+    @property
+    def footer_blocks(self) -> list[NotificationTextBlock]:
+        if self.footer is None:
+            return []
+        if isinstance(self.footer, list):
+            return self.footer
+        return [PlainTextBlock(text=self.footer)]
+
+    @property
+    def footer_text(self) -> str:
+        return self.render_text_blocks(self.footer_blocks)
 
     # The following are optional, as omitting them will use a default email template which expects
     # the required fields above to be present instead.
@@ -275,7 +307,7 @@ class NotificationRenderedTemplate:
     """
 
 
-class NotificationBodyTextBlockType(StrEnum):
+class NotificationTextBlockType(StrEnum):
     """
     Represents a block of text to be rendered in the notification body.
     """
@@ -298,7 +330,7 @@ class NotificationBodyTextBlockType(StrEnum):
     """
 
 
-class NotificationBodyFormattingBlockType(StrEnum):
+class NotificationSectionType(StrEnum):
     """
     The type of formatting to be applied to the encapsulated blocks.
     """
@@ -313,27 +345,27 @@ class NotificationBodyFormattingBlockType(StrEnum):
     """
 
 
-class NotificationBodyFormattingBlock(Protocol):
+class NotificationSection(Protocol):
     """
     A block that applies formatting such as a newline and encapsulates other text.
     """
 
-    type: NotificationBodyFormattingBlockType
+    type: NotificationSectionType
     """
     The type of the block, such as ParagraphBlock, BoldTextBlock, etc.
     """
-    blocks: list[NotificationBodyTextBlock]
+    blocks: list[NotificationTextBlock]
     """
     Some blocks may want to contain other blocks, such as a ParagraphBlock containing a BoldTextBlock.
     """
 
 
-class NotificationBodyTextBlock(Protocol):
+class NotificationTextBlock(Protocol):
     """
     Represents a block of text to be rendered in the notification body.
     """
 
-    type: NotificationBodyTextBlockType
+    type: NotificationTextBlockType
     """
     The type of the block, such as BoldTextBlock, CodeBlock, etc.
     """
@@ -344,46 +376,40 @@ class NotificationBodyTextBlock(Protocol):
 
 
 @dataclass
-class ParagraphBlock(NotificationBodyFormattingBlock):
-    blocks: list[NotificationBodyTextBlock]
-    type: Literal[NotificationBodyFormattingBlockType.PARAGRAPH] = (
-        NotificationBodyFormattingBlockType.PARAGRAPH
-    )
+class ParagraphBlock(NotificationSection):
+    blocks: list[NotificationTextBlock]
+    type: Literal[NotificationSectionType.PARAGRAPH] = NotificationSectionType.PARAGRAPH
 
 
 @dataclass
-class CodeBlock(NotificationBodyFormattingBlock):
-    blocks: list[NotificationBodyTextBlock]
-    type: Literal[NotificationBodyFormattingBlockType.CODE_BLOCK] = (
-        NotificationBodyFormattingBlockType.CODE_BLOCK
-    )
+class CodeBlock(NotificationSection):
+    blocks: list[NotificationTextBlock]
+    type: Literal[NotificationSectionType.CODE_BLOCK] = NotificationSectionType.CODE_BLOCK
 
 
 @dataclass
-class BoldTextBlock(NotificationBodyTextBlock):
+class BoldTextBlock(NotificationTextBlock):
     text: str
-    type: Literal[NotificationBodyTextBlockType.BOLD_TEXT] = NotificationBodyTextBlockType.BOLD_TEXT
+    type: Literal[NotificationTextBlockType.BOLD_TEXT] = NotificationTextBlockType.BOLD_TEXT
 
 
 @dataclass
-class CodeTextBlock(NotificationBodyTextBlock):
+class CodeTextBlock(NotificationTextBlock):
     text: str
-    type: Literal[NotificationBodyTextBlockType.CODE] = NotificationBodyTextBlockType.CODE
+    type: Literal[NotificationTextBlockType.CODE] = NotificationTextBlockType.CODE
 
 
 @dataclass
-class PlainTextBlock(NotificationBodyTextBlock):
+class PlainTextBlock(NotificationTextBlock):
     text: str
-    type: Literal[NotificationBodyTextBlockType.PLAIN_TEXT] = (
-        NotificationBodyTextBlockType.PLAIN_TEXT
-    )
+    type: Literal[NotificationTextBlockType.PLAIN_TEXT] = NotificationTextBlockType.PLAIN_TEXT
 
 
 @dataclass
-class LinkTextBlock(NotificationBodyTextBlock):
+class LinkTextBlock(NotificationTextBlock):
     text: str
     url: str
-    type: Literal[NotificationBodyTextBlockType.LINK] = NotificationBodyTextBlockType.LINK
+    type: Literal[NotificationTextBlockType.LINK] = NotificationTextBlockType.LINK
 
 
 class NotificationTemplate[T: NotificationData](abc.ABC):
