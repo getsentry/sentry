@@ -250,7 +250,7 @@ def make_match_coding_agent_pr_request(
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
         "/v1/pr-metrics/delegated-agent-match",
-        body=orjson.dumps(body.dict()),
+        body=orjson.dumps(body.dict(exclude_none=True)),
         timeout=timeout,
         viewer_context=viewer_context,
     )

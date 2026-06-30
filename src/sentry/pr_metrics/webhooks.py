@@ -21,6 +21,7 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
@@ -1023,6 +1024,14 @@ def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, 
         group_ids=group_ids,
     )
 
+    _send_seer_delegated_agent_match(request_body, provider_hint, pr)
+
+
+def _send_seer_delegated_agent_match(
+    request_body: MatchDelegatedAgentPrRequest,
+    provider_hint: str,
+    pr: PullRequest,
+) -> None:
     log_extra = {
         "pull_request_id": pr.id,
         "organization_id": pr.organization_id,
@@ -1032,9 +1041,10 @@ def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, 
         response = make_match_coding_agent_pr_request(request_body, timeout=5)
     except Exception:
         logger.warning("pr_metrics.delegated_agent.seer_match.error", extra=log_extra)
-        metrics.incr(
+        sentry_sdk.metrics.count(
             "pr_metrics.delegated_agent.seer_match.error",
-            tags={"reason": "exception"},
+            1,
+            attributes={"reason": "exception"},
         )
         return
 
@@ -1043,13 +1053,18 @@ def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, 
             "pr_metrics.delegated_agent.seer_match.error",
             extra={**log_extra, "status_code": response.status},
         )
-        metrics.incr(
+        sentry_sdk.metrics.count(
             "pr_metrics.delegated_agent.seer_match.error",
-            tags={"reason": "bad_status"},
+            1,
+            attributes={"reason": "bad_status"},
         )
         return
 
-    metrics.incr("pr_metrics.delegated_agent.seer_match.sent")
+    sentry_sdk.metrics.count(
+        "pr_metrics.delegated_agent.seer_match.sent",
+        1,
+        attributes={"provider": provider_hint},
+    )
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:

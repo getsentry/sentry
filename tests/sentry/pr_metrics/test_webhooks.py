@@ -1915,34 +1915,35 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         assert mock_rpc.call_args.args[0].provider == "claude_code"
 
     def test_sent_metric_incremented_on_success(self) -> None:
-        with self._mock_seer(status=202), patch(f"{MODULE}.metrics.incr") as mock_incr:
+        with self._mock_seer(status=202), patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr:
             self._call(head_ref="claude/fix")
 
         assert any(
-            call.args == ("pr_metrics.delegated_agent.seer_match.sent",)
+            call.args[0] == "pr_metrics.delegated_agent.seer_match.sent"
+            and call.kwargs.get("attributes", {}).get("provider") == "claude_code"
             for call in mock_incr.call_args_list
         )
 
     # --- Error handling ---
 
     def test_seer_non_2xx_logs_warning_and_error_metric(self) -> None:
-        with self._mock_seer(status=500), patch(f"{MODULE}.metrics.incr") as mock_incr:
+        with self._mock_seer(status=500), patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr:
             self._call(head_ref="claude/fix")
 
         assert any(
-            call.kwargs.get("tags", {}).get("reason") == "bad_status"
+            call.kwargs.get("attributes", {}).get("reason") == "bad_status"
             for call in mock_incr.call_args_list
         )
 
     def test_seer_exception_logs_warning_and_error_metric(self) -> None:
         with (
             patch(MATCH_RPC, side_effect=Exception("network error")),
-            patch(f"{MODULE}.metrics.incr") as mock_incr,
+            patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr,
         ):
             self._call(head_ref="claude/fix")
 
         assert any(
-            call.kwargs.get("tags", {}).get("reason") == "exception"
+            call.kwargs.get("attributes", {}).get("reason") == "exception"
             for call in mock_incr.call_args_list
         )
 
