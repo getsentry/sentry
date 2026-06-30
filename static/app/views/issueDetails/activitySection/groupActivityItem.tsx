@@ -25,6 +25,10 @@ import type {User} from 'sentry/types/user';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
+import {
+  getAssignmentIntegrationName,
+  isAutoAssignmentIntegration,
+} from 'sentry/views/issueDetails/activitySection/assignmentIntegration';
 
 function getAuthorName(item: GroupActivity) {
   if (item.sentry_app) {
@@ -160,31 +164,17 @@ export function getGroupActivityItem(
       assignee = t('an unknown user');
     }
 
-    const isAutoAssigned = [
-      'projectOwnership',
-      'codeowners',
-      'suspectCommitter',
-    ].includes(data.integration as string);
-
-    const integrationName: Record<
-      NonNullable<GroupActivityAssigned['data']['integration']>,
-      string
-    > = {
-      msteams: t('Microsoft Teams'),
-      slack: t('Slack'),
-      projectOwnership: t('Ownership Rule'),
-      codeowners: t('Codeowners Rule'),
-      suspectCommitter: t('Suspect Commit'),
-    };
+    const isAutoAssigned = isAutoAssignmentIntegration(data.integration);
+    const integrationName = getAssignmentIntegrationName(data.integration);
 
     return {
       title: isAutoAssigned ? t('Auto-Assigned') : t('Assigned'),
       message: tct('by [author] to [assignee]. [assignedReason]', {
         author,
         assignee,
-        assignedReason: data.integration && integrationName[data.integration] && (
+        assignedReason: integrationName && (
           <CodeWrapper>
-            {t('Assigned via %s', integrationName[data.integration])}
+            {t('Assigned via %s', integrationName)}
             {data.rule && (
               <Fragment>
                 : <StyledRuleSpan>{data.rule}</StyledRuleSpan>

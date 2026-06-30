@@ -79,7 +79,6 @@ def _do_symbolicate_event(
     start_time: float | None,
     event_id: str | None,
     data: Event | None = None,
-    queue_switches: int = 0,
     has_attachments: bool = False,
     symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
 ) -> None:
@@ -243,7 +242,6 @@ def submit_symbolicate(
     cache_key: str,
     event_id: str | None,
     start_time: float | None,
-    queue_switches: int = 0,
     has_attachments: bool = False,
     symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
 ) -> None:
@@ -263,7 +261,6 @@ def submit_symbolicate(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
-        queue_switches=queue_switches,
         has_attachments=has_attachments,
         symbolicate_platforms=symbolicate_platform_names,
     )
@@ -291,7 +288,6 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         start_time: float | None = None,
         event_id: str | None = None,
         data: Event | None = None,
-        queue_switches: int = 0,
         has_attachments: bool = False,
         symbolicate_platforms: list[str] | None = None,
         **kwargs: Any,
@@ -316,7 +312,6 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
             start_time=start_time,
             event_id=event_id,
             data=data,
-            queue_switches=queue_switches,
             has_attachments=has_attachments,
             symbolicate_platforms=symbolicate_platform_values,
         )

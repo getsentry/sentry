@@ -97,11 +97,6 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
             extras["contract_id"] = contract_id
 
         try:
-            logger.info(
-                "billing.service.method.start",
-                extra=extras,
-            )
-
             with start_span(op="function", name=f"{service_name}.{method_name}") as cur_span:
                 for k, v in extras.items():
                     set_span_data(cur_span, k, v)
