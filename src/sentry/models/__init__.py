@@ -124,3 +124,4 @@ from .teamreplica import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
 from .userreport import *  # NOQA
+from .weeklyreportprojectexclusion import *  # NOQA

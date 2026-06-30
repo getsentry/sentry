@@ -60,6 +60,7 @@ export function useAutoOpenInstallModal({
       organization,
       integration: provider.key,
       integration_type: 'first_party',
+      ...analyticsParams,
     });
 
     // NOTE: The `?showInstallModal=1` entry point is currently only used by the

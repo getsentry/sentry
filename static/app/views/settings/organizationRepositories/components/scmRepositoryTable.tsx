@@ -178,7 +178,7 @@ function SingleInstallTableContent({
           <IntegrationSummary installation={merged} />
         </Flex>
         <Flex align="center" gap="sm">
-          <Flex display={{xs: 'none', sm: 'flex'}}>
+          <Flex display={{'screen:xs': 'none', 'screen:sm': 'flex'}}>
             <InstallationRepoCountTag installation={merged} />
           </Flex>
           <InstallationActions installation={merged} providerName={provider.name} />
@@ -307,7 +307,7 @@ function InstallationRow({
         <Flex align="center" gap="sm">
           <IntegrationSummary installation={merged} />
         </Flex>
-        <Flex align="center" display={{xs: 'none', sm: 'flex'}}>
+        <Flex align="center" display={{'screen:xs': 'none', 'screen:sm': 'flex'}}>
           <InstallationRepoCountTag installation={merged} />
         </Flex>
         <Flex align="center" gap="md" justifySelf="end">

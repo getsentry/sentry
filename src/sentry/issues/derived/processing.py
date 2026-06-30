@@ -109,6 +109,11 @@ def _process_batch(
     ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
     if updated:
+        # Features updated in this batch (not total; a feature appears at most once per batch)
+        for f in result.updated:
+            metrics.incr(
+                "issues.derived.feature_updated", sample_rate=1.0, tags={"feature": f.name}
+            )
         derived.cursor_date = last_date
         derived.cursor_id = last_id
         GroupDerivedDataStore.apply_to_instance(derived, state_update)
@@ -146,7 +151,7 @@ def process_group_log_batch(
     batch_size: int = INLINE_BATCH_SIZE,
     target_pipeline: Pipeline[GroupActionLogEntry] | None = None,
 ) -> ProcessResult:
-    """Process a single batch of pending entries. Schedules a task if not caught up.
+    """Process a single batch of pending entries.
 
     Raises Group.DoesNotExist if the group has been deleted.
     """

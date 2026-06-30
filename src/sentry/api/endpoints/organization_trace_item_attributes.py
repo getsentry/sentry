@@ -534,7 +534,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             config=SearchResolverConfig(),
             definitions=column_definitions,
         )
-        query_filter, _, _ = resolver.resolve_query(query_string)
+        with handle_query_errors():
+            query_filter, _, _ = resolver.resolve_query(query_string)
         meta = resolver.resolve_meta(referrer=referrer.value)
         meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
             trace_item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN

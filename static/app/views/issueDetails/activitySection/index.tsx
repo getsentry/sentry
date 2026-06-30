@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
-import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import {Timeline} from 'sentry/components/timeline';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
@@ -22,8 +21,12 @@ import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
-import {getActivityColorConfig} from 'sentry/views/issueDetails/activitySection/activityColorConfig';
-import {ActivityMarker} from 'sentry/views/issueDetails/activitySection/activityMarker';
+import {
+  ActivityLine,
+  ActivityLineNote,
+  isActivityNote,
+} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
 import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
@@ -34,6 +37,17 @@ import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
+interface TimelineItemProps {
+  group: Group;
+  handleDelete: (item: GroupActivity) => Promise<void>;
+  inputVariant: 'compact' | 'full';
+  item: GroupActivity;
+  size: 'sm' | 'md';
+  teams: Team[];
+  onCommentEdited?: (activity: GroupActivity[]) => void;
+  timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
+}
+
 function TimelineItem({
   item,
   handleDelete,
@@ -43,21 +57,79 @@ function TimelineItem({
   size,
   inputVariant,
   timestampUnitStyle,
+}: TimelineItemProps) {
+  const organization = useOrganization();
+  const useActivityLineItems = organization.features.includes('issue-activity-feed-v2');
+
+  if (useActivityLineItems) {
+    if (isActivityNote(item)) {
+      // Keep note mutations wired from ActivitySection until the v2 note API settles.
+      return (
+        <ActivityLineNote
+          activity={item}
+          group={group}
+          inputVariant={inputVariant}
+          onDelete={() => handleDelete(item)}
+          onCommentEdited={onCommentEdited}
+          timestampUnitStyle={timestampUnitStyle}
+        />
+      );
+    }
+
+    return (
+      <ActivityLine
+        item={item}
+        group={group}
+        inputVariant={inputVariant}
+        timestampUnitStyle={timestampUnitStyle}
+      />
+    );
+  }
+
+  return (
+    <LegacyTimelineItemWithEditing
+      item={item}
+      handleDelete={handleDelete}
+      onCommentEdited={onCommentEdited}
+      group={group}
+      teams={teams}
+      size={size}
+      inputVariant={inputVariant}
+      timestampUnitStyle={timestampUnitStyle}
+    />
+  );
+}
+
+function LegacyTimelineItemWithEditing(props: TimelineItemProps) {
+  const [editing, setEditing] = useState(false);
+
+  return <LegacyTimelineItem {...props} editing={editing} setEditing={setEditing} />;
+}
+
+function LegacyTimelineItem({
+  item,
+  handleDelete,
+  onCommentEdited,
+  group,
+  teams,
+  size,
+  inputVariant,
+  timestampUnitStyle,
+  editing,
+  setEditing,
 }: {
+  editing: boolean;
   group: Group;
   handleDelete: (item: GroupActivity) => Promise<void>;
   inputVariant: 'compact' | 'full';
   item: GroupActivity;
+  setEditing: (editing: boolean) => void;
   size: 'sm' | 'md';
   teams: Team[];
   onCommentEdited?: (activity: GroupActivity[]) => void;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }) {
   const organization = useOrganization();
-  const theme = useTheme();
-  const [editing, setEditing] = useState(false);
-  const useTwoColumnLayout = organization.features.includes('issue-activity-feed-v2');
-  const colorConfig = getActivityColorConfig(theme, item.type);
   const {title, message} = getGroupActivityItem(
     item,
     organization,
@@ -67,10 +139,7 @@ function TimelineItem({
   );
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
-  const componentFunction =
-    useTwoColumnLayout && item.type === GroupActivityType.NOTE
-      ? undefined
-      : iconMapping?.componentFunction;
+  const componentFunction = iconMapping?.componentFunction;
   const Icon = componentFunction
     ? componentFunction({
         data: item.data,
@@ -96,12 +165,6 @@ function TimelineItem({
         </Flex>
       }
       timestamp={<Timestamp date={item.dateCreated} unitStyle={timestampUnitStyle} />}
-      marker={
-        useTwoColumnLayout ? (
-          <ActivityMarker item={item} color={colorConfig.icon} />
-        ) : undefined
-      }
-      colorConfig={useTwoColumnLayout ? colorConfig : undefined}
       icon={
         Icon && (
           <Icon
@@ -135,14 +198,6 @@ function TimelineItem({
         </Text>
       )}
     </ActivityTimelineItem>
-  );
-}
-
-function ActivityNoteInput(props: React.ComponentProps<typeof NoteInputWithStorage>) {
-  return (
-    <ActivityInputFrame data-test-id="activity-input-frame">
-      <NoteInputWithStorage {...props} />
-    </ActivityInputFrame>
   );
 }
 
@@ -206,7 +261,7 @@ export function ActivitySection({
         },
       });
     },
-    [group.activity, mutators, organization, onCommentDeleted]
+    [group.activity, mutators, onCommentDeleted, organization]
   );
 
   const activityLink = {
@@ -220,8 +275,11 @@ export function ActivitySection({
   const showSeerActivities = organization.features.includes(
     'display-seer-actions-as-issue-activities'
   );
+  const useActivityLineItems = organization.features.includes('issue-activity-feed-v2');
   const visibleActivities = showSeerActivities
-    ? group.activity.filter(item => item.type !== GroupActivityType.SEER_PR_CREATED)
+    ? group.activity.filter(
+        item => useActivityLineItems || item.type !== GroupActivityType.SEER_PR_CREATED
+      )
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
   const filteredActivities = visibleActivities.filter(
@@ -243,6 +301,12 @@ export function ActivitySection({
       timestampUnitStyle={timestampUnitStyle}
     />
   );
+  const renderActivityList = (children: React.ReactNode) =>
+    useActivityLineItems ? (
+      <ActivityLineList data-test-id="activity-timeline">{children}</ActivityLineList>
+    ) : (
+      <Timeline.Container data-test-id="activity-timeline">{children}</Timeline.Container>
+    );
 
   const noteInput = (
     <ActivityNoteInput
@@ -258,11 +322,36 @@ export function ActivitySection({
     />
   );
 
-  const timeline = (
-    <Timeline.Container data-test-id="activity-timeline">
-      {filteredActivities.map(renderActivityItem)}
-    </Timeline.Container>
-  );
+  const timeline = renderActivityList(filteredActivities.map(renderActivityItem));
+  const sidebarActivityItems =
+    filteredActivities.length < 5 ? (
+      filteredActivities.map(renderActivityItem)
+    ) : (
+      <Fragment>
+        {filteredActivities.slice(0, 3).map(renderActivityItem)}
+        <MoreActivityRow>
+          <MoreActivityIcon>
+            <RotatedEllipsisIcon direction="up" />
+          </MoreActivityIcon>
+          <Container marginTop="xs">
+            <LinkButton
+              aria-label={t('View all activity')}
+              to={activityLink}
+              size="xs"
+              replace
+              preventScrollReset
+              analyticsEventKey="issue_details.activity_expanded"
+              analyticsEventName="Issue Details: Activity Expanded"
+              analyticsParams={{
+                num_activities_hidden: filteredActivities.length - 3,
+              }}
+            >
+              {t('View %s more', filteredActivities.length - 3)}
+            </LinkButton>
+          </Container>
+        </MoreActivityRow>
+      </Fragment>
+    );
 
   if (variant === 'standalone') {
     return (
@@ -284,36 +373,7 @@ export function ActivitySection({
     >
       <Grid gap="lg">
         {noteInput}
-        <Timeline.Container data-test-id="activity-timeline">
-          {filteredActivities.length < 5 ? (
-            filteredActivities.map(renderActivityItem)
-          ) : (
-            <Fragment>
-              {filteredActivities.slice(0, 3).map(renderActivityItem)}
-              <MoreActivityRow>
-                <MoreActivityIcon>
-                  <RotatedEllipsisIcon direction="up" />
-                </MoreActivityIcon>
-                <Container marginTop="xs">
-                  <LinkButton
-                    aria-label={t('View all activity')}
-                    to={activityLink}
-                    size="xs"
-                    replace
-                    preventScrollReset
-                    analyticsEventKey="issue_details.activity_expanded"
-                    analyticsEventName="Issue Details: Activity Expanded"
-                    analyticsParams={{
-                      num_activities_hidden: filteredActivities.length - 3,
-                    }}
-                  >
-                    {t('View %s more', filteredActivities.length - 3)}
-                  </LinkButton>
-                </Container>
-              </MoreActivityRow>
-            </Fragment>
-          )}
-        </Timeline.Container>
+        {renderActivityList(sidebarActivityItems)}
       </Grid>
     </SidebarFoldSection>
   );
@@ -327,12 +387,29 @@ const TitleTooltip = styled(Tooltip)`
 `;
 
 const ActivityTimelineItem = styled(Timeline.Item)`
-  align-items: center;
+  align-items: start;
 `;
 
 const Timestamp = styled(TimeSince)`
   font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
+`;
+
+const ActivityLineList = styled('div')`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    top: 11px;
+    bottom: 0;
+    width: 0;
+    border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
+  }
 `;
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`
@@ -347,7 +424,6 @@ const MoreActivityRow = styled('div')`
   align-items: center;
   grid-template-columns: 22px minmax(0, 1fr);
   grid-column-gap: ${p => p.theme.space.md};
-  margin: ${p => p.theme.space.md} 0 0;
 
   &::after {
     content: '';
@@ -369,9 +445,4 @@ const MoreActivityIcon = styled('div')`
   min-height: 22px;
   color: ${p => p.theme.tokens.content.secondary};
   background: ${p => p.theme.tokens.background.primary};
-`;
-
-const ActivityInputFrame = styled('div')`
-  color: ${p => p.theme.tokens.content.primary};
-  min-width: 0;
 `;
