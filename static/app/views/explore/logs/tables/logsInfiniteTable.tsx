@@ -512,9 +512,8 @@ export function LogsInfiniteTable({
               return;
             }
             const timestampPrecise = dataRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
-            if (defined(timestampPrecise)) {
+            if (timestampPrecise && seekToTimestamp(timestampPrecise)) {
               requestSeekScroll(rowId);
-              seekToTimestamp(timestampPrecise);
             }
           }}
         />
@@ -591,7 +590,7 @@ export function LogsInfiniteTable({
             the main table reloads. */}
         {logsPinning && (!isPending || isAwaitingSeekWindow) && (
           <PinnedLogs
-            allRows={data as OurLogsResponseItem[]}
+            allRows={data}
             logsPinning={logsPinning}
             pinnedLogsQuery={pinnedLogsQuery}
             renderRow={renderRow}
@@ -654,7 +653,7 @@ export function LogsInfiniteTable({
               return (
                 <Fragment key={virtualRow.key}>
                   <LogRowContent
-                    dataRow={dataRow as OurLogsResponseItem}
+                    dataRow={dataRow}
                     meta={meta}
                     highlightTerms={highlightTerms}
                     embedded={embedded}

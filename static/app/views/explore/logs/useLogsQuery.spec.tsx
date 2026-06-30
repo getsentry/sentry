@@ -260,6 +260,48 @@ describe('useInfiniteLogsQuery', () => {
     );
   });
 
+  it('settles the seek when the anchored page is empty so the table can show its empty state', async () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+
+    const initialMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([
+        {id: '6', timestamp_precise: '600', timestamp: '600'},
+        {id: '5', timestamp_precise: '500', timestamp: '500'},
+      ]),
+      match: [(_, options) => (options?.query?.query ?? '').length === 0],
+      headers: linkHeaders,
+    });
+
+    // The re-anchored page comes back empty — the target couldn't be surfaced.
+    const anchoredMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([]),
+      match: [
+        (_, options) =>
+          (options?.query?.query ?? '').includes(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=1100`
+          ),
+      ],
+    });
+
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper(),
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(initialMock).toHaveBeenCalled();
+
+    act(() => result.current.seekToTimestamp('100'));
+
+    await waitFor(() => expect(anchoredMock).toHaveBeenCalled());
+
+    // No window to center, but the seek settles so the table stops awaiting it.
+    await waitFor(() => expect(result.current.isSeekSettled).toBe(true));
+    expect(result.current.isEmpty).toBe(true);
+  });
+
   it('pads the seek anchor below the target in ascending sort so precision loss cannot exclude it', async () => {
     mockLocation.mockReturnValue(
       LocationFixture({query: {[LOGS_SORT_BYS_KEY]: 'timestamp'}})

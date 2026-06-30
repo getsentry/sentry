@@ -526,14 +526,15 @@ export function useInfiniteLogsQuery({
   });
 
   const seekToTimestamp = useCallback(
-    (timestampPrecise: string | number | bigint) => {
+    (timestampPrecise: string | number) => {
       let value: bigint;
       try {
         value = BigInt(timestampPrecise);
       } catch {
-        return;
+        return false;
       }
       setSeekAnchor({baseQuerySignature, timestampPrecise: value});
+      return true;
     },
     [baseQuerySignature]
   );
@@ -765,13 +766,13 @@ export function useInfiniteLogsQuery({
     return Promise.resolve();
   }, [hasPreviousPage, fetchPreviousPage, isFetchingPreviousPage, isError, autoRefresh]);
 
-  // Once the anchored page has loaded with rows and isn't mid-fetch, pull in the page
-  // of newer rows above the target so the seek window has context on both sides — this
-  // both centers the target and gives scroll-up something to page from.
-  const isAnchoredPageReady = !queryResult.isPending && !isFetching && _data.length > 0;
+  // Settled whether or not the anchored page found anything, so an empty result can
+  // still release the seek.
+  const isAnchoredPageSettled = !queryResult.isPending && !isFetching;
   const isSeekSettled = useCenteredSeekWindow({
     anchorTimestampPrecise,
-    isAnchoredPageReady,
+    isAnchoredPageSettled,
+    hasAnchoredRows: _data.length > 0,
     hasPreviousPage,
     fetchPreviousPage: _fetchPreviousPage,
   });
@@ -891,17 +892,23 @@ function useRefetchQueryOnAnchorChange({
  * settled — true once the newer page resolves, or immediately when there are none. The
  * table waits on this before centering so it doesn't settle on a half-loaded window,
  * and the loaded newer rows are what scroll-up then pages from.
+ *
+ * When the anchored page comes back empty (the target was a needle in a haystack the
+ * query couldn't surface) or errors, it settles immediately so the table falls through
+ * to its normal empty/error state instead of holding the seek loader forever.
  */
 function useCenteredSeekWindow({
   anchorTimestampPrecise,
-  isAnchoredPageReady,
+  isAnchoredPageSettled,
+  hasAnchoredRows,
   hasPreviousPage,
   fetchPreviousPage,
 }: {
   anchorTimestampPrecise: bigint | null;
   fetchPreviousPage: () => void | Promise<unknown> | false;
+  hasAnchoredRows: boolean;
   hasPreviousPage: boolean;
-  isAnchoredPageReady: boolean;
+  isAnchoredPageSettled: boolean;
 }) {
   const [isSeekSettled, setIsSeekSettled] = useState(false);
   const balancedAnchorRef = useRef<bigint | null>(null);
@@ -913,19 +920,25 @@ function useCenteredSeekWindow({
   }, [anchorTimestampPrecise]);
 
   useEffect(() => {
-    if (anchorTimestampPrecise === null || !isAnchoredPageReady) {
+    if (anchorTimestampPrecise === null || !isAnchoredPageSettled) {
       return;
     }
     if (balancedAnchorRef.current === anchorTimestampPrecise) {
       return;
     }
     balancedAnchorRef.current = anchorTimestampPrecise;
-    if (hasPreviousPage) {
+    if (hasAnchoredRows && hasPreviousPage) {
       Promise.resolve(fetchPreviousPage()).finally(() => setIsSeekSettled(true));
     } else {
       setIsSeekSettled(true);
     }
-  }, [anchorTimestampPrecise, isAnchoredPageReady, hasPreviousPage, fetchPreviousPage]);
+  }, [
+    anchorTimestampPrecise,
+    isAnchoredPageSettled,
+    hasAnchoredRows,
+    hasPreviousPage,
+    fetchPreviousPage,
+  ]);
 
   return isSeekSettled;
 }

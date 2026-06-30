@@ -704,6 +704,96 @@ describe('LogsInfiniteTable', () => {
     );
   });
 
+  it('shows the normal empty state when a "View in table" seek target cannot be found', async () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+    const meta = {
+      fields: {
+        [OurLogKnownFieldKey.ID]: 'string',
+        [OurLogKnownFieldKey.PROJECT_ID]: 'string',
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: 'integer',
+        [OurLogKnownFieldKey.MESSAGE]: 'string',
+        [OurLogKnownFieldKey.SEVERITY_NUMBER]: 'integer',
+        [OurLogKnownFieldKey.SEVERITY]: 'string',
+        [OurLogKnownFieldKey.TIMESTAMP]: 'string',
+        [OurLogKnownFieldKey.TRACE_ID]: 'string',
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
+      },
+      units: {},
+    };
+    const makeLog = (id: string, timestampPrecise: number) =>
+      LogFixture({
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+        [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+        [OurLogKnownFieldKey.ID]: id,
+        [OurLogKnownFieldKey.MESSAGE]: `test log body ${id}`,
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: timestampPrecise,
+      });
+
+    // The pinned row (999) is fetched by id so the pinned section still renders.
+    MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      match: [(_, options) => (options?.query?.query ?? '').includes('id:[999]')],
+      body: {data: [makeLog('999', 500)], meta},
+    });
+
+    // The re-anchored page comes back empty — the target was a needle in a haystack
+    // the query couldn't surface.
+    const anchoredMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      match: [
+        (_, options) =>
+          (options?.query?.query ?? '').includes(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=1500`
+          ),
+      ],
+      body: {data: [], meta},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/999/`,
+      method: 'GET',
+      body: {
+        itemId: '999',
+        links: null,
+        meta: {},
+        timestamp: '2025-04-03T15:50:10+00:00',
+        attributes: [],
+      },
+    });
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: '-timestamp',
+              [LOGS_QUERY_KEY]: 'severity:error',
+              logsPinning: 'true',
+              logsPinned: '999',
+            },
+          },
+        },
+      }
+    );
+
+    const pinnedTableBody = await screen.findByTestId('pinned-logs-table-body');
+    const rows = await screen.findAllByTestId('log-table-row');
+    const pinnedRow = rows.find(row => pinnedTableBody.contains(row))!;
+
+    const [actionsButton] = within(pinnedRow).getAllByRole('button', {name: 'Actions'});
+    await userEvent.click(actionsButton!);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'View in table'}));
+
+    await waitFor(() => expect(anchoredMock).toHaveBeenCalled());
+
+    // The seek settles instead of holding the loader, so the table falls through to
+    // its normal empty state.
+    expect(await screen.findByText(/No logs found/)).toBeInTheDocument();
+  });
+
   it('does not show "View in table" on a non-pinned row', async () => {
     renderWithProviders(
       <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
