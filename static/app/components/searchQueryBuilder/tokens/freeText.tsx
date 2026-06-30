@@ -6,6 +6,7 @@ import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
 
 import {
+  useSearchQueryBuilderAI,
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderInteraction,
   useSearchQueryBuilderLayout,
@@ -276,6 +277,8 @@ function SearchQueryBuilderInputInternal({
     recentSearches,
   } = useSearchQueryBuilderConfig();
   const {currentInputValueRef} = useSearchQueryBuilderLayout();
+  const {defaultToAskSeerOnFreeTextSearch, setAutoSubmitSeer, setDisplayAskSeer} =
+    useSearchQueryBuilderAI();
   const {consumeReopenDropdownOnQueryClear, reopenDropdownOnQueryClear} =
     useSearchQueryBuilderInteraction();
 
@@ -543,6 +546,19 @@ function SearchQueryBuilderInputInternal({
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
+          if (defaultToAskSeerOnFreeTextSearch && value.trim()) {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT_ON_COMMIT',
+              tokens: [token],
+              text: value,
+              shouldCommitQuery: false,
+              skipRawSearchReplacement: true,
+            });
+            setAutoSubmitSeer(true);
+            setDisplayAskSeer(true);
+            return;
+          }
+
           // if we haven't changed anything, just search
           if (value.trim() === trimmedTokenValue) {
             handleSearch(query);

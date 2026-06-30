@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
+  useSearchQueryBuilderAI,
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
@@ -23,15 +24,23 @@ import {getExpandedProjectIds} from './utils';
 
 export function useInitialSeerQuery(): string {
   const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
+  const {autoSubmitSeer, displayAskSeer} = useSearchQueryBuilderAI();
   const {currentInputValueRef} = useSearchQueryBuilderLayout();
+  const isAutoSubmittingCurrentQuery = autoSubmitSeer && displayAskSeer;
 
   const queryDetails = useMemo(() => {
-    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
+    const queryToUse = isAutoSubmittingCurrentQuery
+      ? query
+      : committedQuery.length > 0
+        ? committedQuery
+        : query;
     const parsedQuery = parseQuery(queryToUse);
     return {parsedQuery, queryToUse};
-  }, [committedQuery, query, parseQuery]);
+  }, [committedQuery, isAutoSubmittingCurrentQuery, query, parseQuery]);
 
-  const inputValue = currentInputValueRef.current.trim();
+  const inputValue = isAutoSubmittingCurrentQuery
+    ? ''
+    : currentInputValueRef.current.trim();
 
   // Only filter out FREE_TEXT tokens if there's actual input value to filter by
   const filteredCommittedQuery = queryDetails?.parsedQuery

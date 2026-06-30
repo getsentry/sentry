@@ -87,6 +87,7 @@ interface SearchQueryBuilderAIContextData {
   askSeerNLQueryRef: React.RefObject<string | null>;
   askSeerSuggestedQueryRef: React.RefObject<string | null>;
   autoSubmitSeer: boolean;
+  defaultToAskSeerOnFreeTextSearch: boolean;
   displayAskSeer: boolean;
   displayAskSeerFeedback: boolean;
   enableAISearch: boolean;
@@ -165,6 +166,7 @@ export function SearchQueryBuilderProvider({
   disallowFreeText,
   disallowUnsupportedFilters,
   disallowWildcard,
+  defaultToAskSeerOnFreeTextSearch: defaultToAskSeerOnFreeTextSearchProp,
   enableAISearch: enableAISearchProp,
   invalidMessages,
   initialQuery,
@@ -205,6 +207,10 @@ export function SearchQueryBuilderProvider({
     Boolean(enableAISearchProp) &&
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
+  const defaultToAskSeerOnFreeTextSearch =
+    enableAISearch &&
+    Boolean(defaultToAskSeerOnFreeTextSearchProp) &&
+    organization.features.includes('gen-ai-default-to-ask-seer');
 
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
@@ -451,6 +457,7 @@ export function SearchQueryBuilderProvider({
       askSeerNLQueryRef,
       askSeerSuggestedQueryRef,
       autoSubmitSeer,
+      defaultToAskSeerOnFreeTextSearch,
       displayAskSeer,
       displayAskSeerFeedback,
       enableAISearch,
@@ -463,6 +470,7 @@ export function SearchQueryBuilderProvider({
     askSeerNLQueryRef,
     askSeerSuggestedQueryRef,
     autoSubmitSeer,
+    defaultToAskSeerOnFreeTextSearch,
     displayAskSeer,
     displayAskSeerFeedback,
     enableAISearch,
