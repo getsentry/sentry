@@ -78,12 +78,6 @@ interface ContainerLayoutProps {
    * the prop.
    */
   containerType?: 'inline-size' | 'size' | 'normal';
-  /**
-   * Optional name for this query container (CSS `container-name`), allowing
-   * descendants to target it specifically. Usually unnecessary — unnamed
-   * `@container` queries resolve to the nearest ancestor container.
-   */
-  containerName?: string;
 
   radius?: Responsive<Shorthand<RadiusSize, 4>>;
 
@@ -231,7 +225,6 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'bottom',
   'column',
   'contain',
-  'containerName',
   'cursor',
   'display',
   'flex',
@@ -325,7 +318,6 @@ export const Container = styled(
   }
 )<ContainerProps<any> | ContainerPropsWithRenderFunction<any>>`
   ${p => rc('container-type', p.containerType, p.theme)};
-  ${p => rc('container-name', p.containerName, p.theme)};
 
   ${p => rc('display', p.display, p.theme)};
   ${p => rc('position', p.position, p.theme)};
