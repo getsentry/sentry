@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timezone
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 import sqlparse
@@ -18,10 +18,11 @@ from sentry.api.serializers.models.userreport import UserReportSerializerRespons
 from sentry.api.serializers.types import GroupEventReleaseSerializerResponse
 from sentry.eventtypes import EventTypeStr
 from sentry.grouping.api import GroupingConfig
+from sentry.interfaces.sdk import EventSdkApiContext
 from sentry.interfaces.user import EventUserApiContext
 from sentry.issues.issue_occurrence import IssueOccurrenceResponse
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventError, EventErrorApiContext
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
@@ -52,6 +53,11 @@ class EventTagOptional(TypedDict, total=False):
 class EventTag(EventTagOptional):
     key: str
     value: str
+
+
+class MeasurementValue(TypedDict):
+    value: float
+    unit: NotRequired[str | None]
 
 
 def get_crash_files(events):
@@ -161,12 +167,12 @@ class BaseEventSerializerResponse(TypedDict):
     size: int | None
     entries: list[Any]
     dist: str | None
-    sdk: dict[str, str]
+    sdk: EventSdkApiContext | None
     context: dict[str, Any] | None
     packages: dict[str, Any]
     type: EventTypeStr
-    metadata: Any
-    errors: list[Any]
+    metadata: dict[str, Any]
+    errors: list[EventErrorApiContext]
     occurrence: IssueOccurrenceResponse | None
     _meta: dict[str, Any]
 
@@ -180,10 +186,10 @@ class ErrorEventFields(TypedDict, total=False):
 
 
 class TransactionEventFields(TypedDict, total=False):
-    startTimestamp: datetime
-    endTimestamp: datetime
-    measurements: Any
-    breakdowns: Any
+    startTimestamp: float
+    endTimestamp: float
+    measurements: dict[str, MeasurementValue] | None
+    breakdowns: dict[str, dict[str, MeasurementValue]] | None
 
 
 class EventSerializerResponse(
@@ -600,7 +606,7 @@ SimpleEventSerializerResponse = TypedDict(
         "platform": str | None,
         "dateCreated": datetime,
         "crashFile": str | None,
-        "metadata": dict[str, Any] | None,
+        "metadata": dict[str, Any],
     },
 )
 
