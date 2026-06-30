@@ -21,6 +21,10 @@ def _cdn_response(
     return response
 
 
+def _etag_with_quotes(sha: str) -> str:
+    return f'"{sha}"'
+
+
 @override_settings(STATIC_FRONTEND_APP_URL=CDN, DEBUG=False)
 class ServiceWorkerProxyTest(TestCase):
     url = "/service-worker.js"
@@ -45,7 +49,7 @@ class ServiceWorkerProxyTest(TestCase):
         assert response.status_code == 200, response
         assert response.content == b"// service worker bundle"
         assert response["Content-Type"] == "text/javascript"
-        assert response["ETag"] == SHA
+        assert response["ETag"] == _etag_with_quotes(SHA)
         assert response["Service-Worker-Allowed"] == "/"
         assert response["Cache-Control"] == NO_CACHE
         assert response["X-Content-Type-Options"] == "nosniff"
@@ -79,7 +83,7 @@ class ServiceWorkerProxyTest(TestCase):
         response = self.client.get(self.url, HTTP_IF_NONE_MATCH="some-stale-sha")
 
         assert response.status_code == 200, response
-        assert response["ETag"] == SHA
+        assert response["ETag"] == _etag_with_quotes(SHA)
         assert mock_urlopen.call_count == 1
 
     @mock.patch("sentry.web.frontend.generic.get_frontend_commit_sha", return_value=SHA)
@@ -108,7 +112,7 @@ class ServiceWorkerProxyTest(TestCase):
         first = self.client.get(self.url)
         assert first.status_code == 200, first
         assert first.content == b"// old"
-        assert first["ETag"] == SHA
+        assert first["ETag"] == _etag_with_quotes(SHA)
 
         # A new frontend deploy bumps the SHA -> cache key changes -> refetch.
         new_sha = "ffffffffffffffffffffffffffffffffffffffff"
@@ -118,7 +122,7 @@ class ServiceWorkerProxyTest(TestCase):
         second = self.client.get(self.url)
         assert second.status_code == 200, second
         assert second.content == b"// new"
-        assert second["ETag"] == new_sha
+        assert second["ETag"] == _etag_with_quotes(new_sha)
         assert mock_urlopen.call_count == 2
 
     @mock.patch("sentry.web.frontend.generic.get_frontend_commit_sha", return_value=SHA)
