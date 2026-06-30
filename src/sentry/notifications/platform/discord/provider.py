@@ -107,6 +107,8 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
                 description.append(f"\n{cls.render_text_blocks(block.blocks)}")
             elif block.type == NotificationSectionType.CODE_BLOCK:
                 description.append(f"\n```{cls.render_text_blocks(block.blocks)}```")
+            elif block.type == NotificationSectionType.BLOCK_QUOTE:
+                description.append(f"\n>>> {cls.render_text_blocks(block.blocks)}")
         return "".join(description)
 
     @classmethod
@@ -123,6 +125,8 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
                 texts.append(block.text)
             elif block.type == NotificationTextBlockType.BOLD_TEXT:
                 texts.append(f"**{block.text}**")
+            elif block.type == NotificationTextBlockType.ITALIC_TEXT:
+                texts.append(f"*{block.text}*")
             elif block.type == NotificationTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
             elif block.type == NotificationTextBlockType.LINK and isinstance(block, LinkTextBlock):

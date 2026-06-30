@@ -11,18 +11,14 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.msteams.provider import (
     MSTeamsNotificationProvider,
     MSTeamsRenderable,
-    MSTeamsRenderer,
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
-    LinkTextBlock,
     NotificationCategory,
     NotificationProviderKey,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationTargetResourceType,
-    ParagraphBlock,
-    PlainTextBlock,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
@@ -30,33 +26,6 @@ from tests.sentry.integrations.msteams.test_message_builder import _is_open_url_
 
 
 class MSTeamsRendererTest(TestCase):
-    def test_link_text_block_rendering(self) -> None:
-        rendered_template = NotificationRenderedTemplate(
-            subject="Test Link",
-            body=[
-                ParagraphBlock(
-                    blocks=[
-                        PlainTextBlock(text="PR:"),
-                        LinkTextBlock(
-                            text="getsentry/sentry (#1234)",
-                            url="https://github.com/getsentry/sentry/pull/1234",
-                        ),
-                    ],
-                )
-            ],
-        )
-
-        data = MockNotification(message="test")
-        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
-
-        body_blocks = renderable["body"]
-        body_text_block = body_blocks[1]
-        assert body_text_block["type"] == "TextBlock"
-        assert (
-            "[getsentry/sentry (#1234)](https://github.com/getsentry/sentry/pull/1234)"
-            in body_text_block["text"]
-        )
-
     def test_default_renderer(self) -> None:
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
@@ -74,22 +43,35 @@ class MSTeamsRendererTest(TestCase):
         assert "body" in renderable
 
         body_blocks = renderable["body"]
-        assert len(body_blocks) == 5  # title, body, actions, chart, footer
+        assert len(body_blocks) == 7  # title, 3 body blocks, actions, chart, footer
 
         # Verify title block
         title_block = body_blocks[0]
         assert title_block["type"] == "TextBlock"
-        assert title_block["text"] == "Mock Notification"
+        assert title_block["text"] == "Alert: _Mock Notification_"
         assert title_block["size"] == TextSize.LARGE
         assert title_block["weight"] == TextWeight.BOLDER
 
-        # Verify body block
-        body_block = body_blocks[1]
-        assert body_block["type"] == "TextBlock"
-        assert body_block["text"] == "test"
+        # Verify body block 1 (ParagraphBlock)
+        body_block_1 = body_blocks[1]
+        assert body_block_1["type"] == "TextBlock"
+        assert (
+            body_block_1["text"]
+            == "test **important** _urgent_ [View Issue](https://sentry.io/issue/1)"
+        )
+
+        # Verify body block 2 (CodeBlock)
+        body_block_2 = body_blocks[2]
+        assert body_block_2["type"] == "CodeBlock"
+        assert body_block_2["codeSnippet"] == "raise Exception('test')"
+
+        # Verify body block 3 (BlockQuoteSection)
+        body_block_3 = body_blocks[3]
+        assert body_block_3["type"] == "TextBlock"
+        assert "This is a quoted message" in body_block_3["text"]
 
         # Verify actions block
-        actions_block = body_blocks[2]
+        actions_block = body_blocks[4]
         assert actions_block["type"] == "ActionSet"
         assert len(actions_block["actions"]) == 1
         action = actions_block["actions"][0]
@@ -98,7 +80,7 @@ class MSTeamsRendererTest(TestCase):
         assert action["url"] == "https://www.sentry.io"
 
         # Verify chart image block
-        chart_block = body_blocks[3]
+        chart_block = body_blocks[5]
         assert chart_block["type"] == "Image"
         assert (
             chart_block["url"]
@@ -107,9 +89,9 @@ class MSTeamsRendererTest(TestCase):
         assert chart_block["altText"] == "Bufo Pog"
 
         # Verify footer block
-        footer_block = body_blocks[4]
+        footer_block = body_blocks[6]
         assert footer_block["type"] == "TextBlock"
-        assert footer_block["text"] == "This is a mock footer"
+        assert footer_block["text"] == "Sent via `sentry-alerts`"
         assert footer_block["size"] == TextSize.SMALL
 
     def test_renderer_without_chart(self) -> None:
@@ -131,7 +113,7 @@ class MSTeamsRendererTest(TestCase):
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 
         body_blocks = renderable["body"]
-        assert len(body_blocks) == 4  # title, body, actions, footer (no chart)
+        assert len(body_blocks) == 6  # title, 3 body blocks, actions, footer (no chart)
 
         # Verify no chart block is present
         block_types = [block["type"] for block in body_blocks]
@@ -156,7 +138,7 @@ class MSTeamsRendererTest(TestCase):
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 
         body_blocks = renderable["body"]
-        assert len(body_blocks) == 4  # title, body, actions, chart (no footer)
+        assert len(body_blocks) == 6  # title, 3 body blocks, actions, chart (no footer)
 
         # Verify no footer block with size="small" is present
         small_text_blocks = [
@@ -185,7 +167,7 @@ class MSTeamsRendererTest(TestCase):
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 
         body_blocks = renderable["body"]
-        assert len(body_blocks) == 4  # title, body,  chart, footer
+        assert len(body_blocks) == 6  # title, 3 body blocks, chart, footer (no actions)
 
         # Verify no footer block with size="small" is present
         action_blocks = [block for block in body_blocks if block.get("type") == "ActionSet"]
@@ -223,7 +205,7 @@ class MSTeamsRendererTest(TestCase):
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 
         body_blocks = renderable["body"]
-        actions_block = body_blocks[2]
+        actions_block = body_blocks[4]
         assert actions_block["type"] == "ActionSet"
         assert len(actions_block["actions"]) == 3
 

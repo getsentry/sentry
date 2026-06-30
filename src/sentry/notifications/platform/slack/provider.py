@@ -105,6 +105,9 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
             elif block.type == NotificationSectionType.CODE_BLOCK:
                 text = cls._render_text_blocks(block.blocks)
                 blocks.append(SectionBlock(text=MarkdownTextObject(text=f"```{text}```")))
+            elif block.type == NotificationSectionType.BLOCK_QUOTE:
+                text = cls._render_text_blocks(block.blocks)
+                blocks.append(SectionBlock(text=MarkdownTextObject(text=f">{text}")))
         return blocks
 
     @classmethod
@@ -115,6 +118,8 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
                 texts.append(block.text)
             elif block.type == NotificationTextBlockType.BOLD_TEXT:
                 texts.append(f"*{block.text}*")
+            elif block.type == NotificationTextBlockType.ITALIC_TEXT:
+                texts.append(f"_{block.text}_")
             elif block.type == NotificationTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
             elif block.type == NotificationTextBlockType.LINK and isinstance(block, LinkTextBlock):
