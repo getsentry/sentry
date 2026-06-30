@@ -30,6 +30,7 @@ const DATADOG_SITES = [
 interface DatadogPatConnectModalProps extends ModalRenderProps {
   onSuccess: () => void;
   orgSlug: string;
+  isReauth?: boolean;
 }
 
 export function DatadogPatConnectModal({
@@ -39,6 +40,7 @@ export function DatadogPatConnectModal({
   closeModal,
   onSuccess,
   orgSlug,
+  isReauth = false,
 }: DatadogPatConnectModalProps) {
   const [accessToken, setAccessToken] = useState('');
   const [site, setSite] = useState('datadoghq.com');
@@ -47,7 +49,7 @@ export function DatadogPatConnectModal({
   const connectMutation = useMutation({
     mutationFn: () =>
       fetchMutation<void>({
-        method: 'POST',
+        method: isReauth ? 'PUT' : 'POST',
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/',
           {
@@ -57,7 +59,7 @@ export function DatadogPatConnectModal({
             },
           }
         ),
-        data: {access_token: accessToken, site},
+        data: isReauth ? {access_token: accessToken} : {access_token: accessToken, site},
       }),
     onSuccess: () => {
       closeModal();
@@ -82,7 +84,11 @@ export function DatadogPatConnectModal({
   return (
     <form onSubmit={handleSubmit}>
       <Header>
-        <h4>{t('Connect Datadog (Personal Access Token)')}</h4>
+        <h4>
+          {isReauth
+            ? t('Reconnect Datadog (Personal Access Token)')
+            : t('Connect Datadog (Personal Access Token)')}
+        </h4>
       </Header>
       <Body>
         <Flex direction="column" gap="md">
@@ -99,17 +105,22 @@ export function DatadogPatConnectModal({
               aria-label={t('Access Token')}
             />
           </Flex>
-          <Flex direction="column" gap="xs">
-            <Text as="label">{t('Datadog Site')}</Text>
-            <StyledCompactSelect
-              value={site}
-              options={DATADOG_SITES}
-              onChange={option => setSite(String(option.value))}
-              trigger={triggerProps => (
-                <OverlayTrigger.Button {...triggerProps} aria-label={t('Datadog Site')} />
-              )}
-            />
-          </Flex>
+          {!isReauth && (
+            <Flex direction="column" gap="xs">
+              <Text as="label">{t('Datadog Site')}</Text>
+              <StyledCompactSelect
+                value={site}
+                options={DATADOG_SITES}
+                onChange={option => setSite(String(option.value))}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button
+                    {...triggerProps}
+                    aria-label={t('Datadog Site')}
+                  />
+                )}
+              />
+            </Flex>
+          )}
           {formError ? <ErrorText role="alert">{formError}</ErrorText> : null}
         </Flex>
       </Body>

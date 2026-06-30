@@ -776,8 +776,8 @@ export default function SnapshotsPage() {
           flexShrink={0}
           overflow="auto"
           borderRight="primary"
-          display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
-          maxWidth={{sm: '300px', md: 'none'}}
+          display={{'screen:2xs': 'none', 'screen:xs': 'none', 'screen:sm': 'flex'}}
+          maxWidth={{'screen:sm': '300px', 'screen:md': 'none'}}
           style={{
             width: sidebarWidth,
             height: 'calc(100dvh - var(--top-bar-height, 53px))',

@@ -826,7 +826,7 @@ function AMCheckout(props: Props) {
       </CheckoutHeader>
 
       <Flex
-        direction={{xs: 'column', md: 'row'}}
+        direction={{'screen:xs': 'column', 'screen:md': 'row'}}
         gap="md 3xl"
         justify="between"
         width="100%"

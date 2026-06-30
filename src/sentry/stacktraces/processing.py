@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urlparse
@@ -15,7 +15,7 @@ from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
-from sentry.utils.safe import get_path, safe_execute, set_path, setdefault_path
+from sentry.utils.safe import get_path, set_path, setdefault_path
 from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
@@ -481,48 +481,6 @@ def _trim_function_name(frame: dict[str, Any], platform: str | None) -> None:
         frame["function"] = trimmed_function
 
 
-def should_process_for_stacktraces(data):
-    from sentry.plugins.base import plugins
-
-    infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
-    platforms: set[str] = set()
-    for info in infos:
-        platforms.update(info.platforms or ())
-    for plugin in plugins.all(version=2):
-        processors = safe_execute(
-            plugin.get_stacktrace_processors, data=data, stacktrace_infos=infos, platforms=platforms
-        )
-        if processors:
-            return True
-    return False
-
-
-def get_processors_for_stacktraces(data, infos):
-    from sentry.plugins.base import plugins
-
-    platforms: set[str] = set()
-    for info in infos:
-        platforms.update(info.platforms or ())
-
-    processors: list[Callable] = []
-    for plugin in plugins.all(version=2):
-        processors.extend(
-            safe_execute(
-                plugin.get_stacktrace_processors,
-                data=data,
-                stacktrace_infos=infos,
-                platforms=platforms,
-            )
-            or ()
-        )
-
-    if processors:
-        project = Project.objects.get_from_cache(id=data["project"])
-        processors = [x(data, infos, project) for x in processors]
-
-    return processors
-
-
 def get_processable_frames(stacktrace_info, processors) -> list[ProcessableFrame]:
     """Returns thin wrappers around the frames in a stacktrace associated
     with the processor for it.
@@ -683,14 +641,9 @@ def process_stacktraces(
 ) -> MutableMapping[str, Any] | None:
     infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
     if make_processors is None:
-        processors = get_processors_for_stacktraces(data, infos)
+        return None
     else:
         processors = make_processors(data, infos)
-
-    # Early out if we have no processors.  We don't want to record a timer
-    # in that case.
-    if not processors:
-        return None
 
     changed = False
 

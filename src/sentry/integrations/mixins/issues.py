@@ -25,7 +25,6 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.notifications.utils import get_notification_group_title
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import all_silo_function, cell_silo_function
@@ -75,6 +74,10 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         return False
 
     def get_group_title(self, group, event, **kwargs):
+        # Imported lazily to avoid a circular import: sentry.notifications.utils
+        # imports sentry.utils.committers -> sentry.api.serializers -> this module.
+        from sentry.notifications.utils import get_notification_group_title
+
         return get_notification_group_title(group, event, **kwargs)
 
     @abstractmethod

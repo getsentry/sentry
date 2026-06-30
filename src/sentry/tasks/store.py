@@ -25,7 +25,7 @@ from sentry.models.project import Project
 from sentry.relay.datascrubbing import scrub_data
 from sentry.services.eventstore import processing
 from sentry.silo.base import SiloMode
-from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
+from sentry.stacktraces.processing import process_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import (
     ingest_attachments_tasks,
@@ -54,9 +54,6 @@ def should_process(data: Mapping[str, Any]) -> bool:
         return False
 
     if get_event_preprocessors(data):
-        return True
-
-    if should_process_for_stacktraces(data):
         return True
 
     return False
