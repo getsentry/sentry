@@ -76,8 +76,6 @@ SAMPLED_TASKS = {
     # per-message transaction, now that the work runs as a task.
     "sentry.replays.tasks.process_replay_recording": settings.SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING,
     "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
-    "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
@@ -196,18 +194,15 @@ def traces_sampler(sampling_context):
     if custom_sample_rate is not None:
         return float(custom_sample_rate)
 
-    # Taskworker tasks with explicit sample rates should always use their
-    # configured rate, regardless of parent sampling decisions. This prevents
-    # a negatively-sampled parent trace from suppressing all child task spans.
+    # If there's already a sampling decision, just use that
+    if sampling_context["parent_sampled"] is not None:
+        return sampling_context["parent_sampled"]
+
     if "taskworker" in sampling_context:
         task_name = sampling_context["taskworker"].get("task")
 
         if task_name in SAMPLED_TASKS:
             return SAMPLED_TASKS[task_name]
-
-    # If there's already a sampling decision, just use that
-    if sampling_context.get("parent_sampled") is not None:
-        return sampling_context["parent_sampled"]
 
     # Default to the sampling rate in settings
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
