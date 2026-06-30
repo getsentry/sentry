@@ -185,7 +185,7 @@ def prepare_organization_report(
         name="weekly_reports.prepare_organization_report",
         op="weekly_reports.prepare_organization_report",
         transaction=True,
-        custom_sampling_context={"sample_rate": 0.1},
+        custom_sampling_context={"sample_rate": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING},
     ) as span:
         batch_id = str(batch_id)
         if email_override and not isinstance(target_user, int):
