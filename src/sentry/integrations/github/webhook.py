@@ -78,10 +78,7 @@ from sentry.seer.autofix.pr_iteration_webhook import (
     handle_issue_comment_for_autofix_iteration,
 )
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
-from sentry.seer.code_review.contributor_seats import (
-    record_contributor_action,
-    track_contributor_seat,
-)
+from sentry.seer.code_review.contributor_seats import record_contributor_action
 from sentry.seer.code_review.utils import get_pr_author_id
 from sentry.seer.code_review.webhooks.handlers import (
     handle_webhook_event as code_review_handle_webhook_event,
@@ -175,11 +172,6 @@ def _track_contributor_action_processor(
     if not pull_request or author_id is None:
         return
 
-    try:
-        is_private = pull_request["head"]["repo"]["private"]
-    except (KeyError, AttributeError, TypeError):
-        is_private = False
-
     record_contributor_action(
         organization=organization,
         repo=repo,
@@ -189,7 +181,6 @@ def _track_contributor_action_processor(
         pr_number=pull_request["number"],
         is_opened=event.get("action") == "opened",
         provider="github",
-        tags={"is_private": is_private},
     )
 
 
@@ -1149,15 +1140,6 @@ class PullRequestEventWebhook(GitHubWebhook):
                     tags={
                         "is_private": pr_repo_private,
                     },
-                )
-
-                track_contributor_seat(
-                    organization=organization,
-                    repo=repo,
-                    integration_id=integration.id,
-                    user_id=user["id"],
-                    user_username=user["login"],
-                    provider="github",
                 )
 
         except IntegrityError:
