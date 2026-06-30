@@ -56,7 +56,7 @@ export function ConversationDetailPageNew() {
         flexShrink={0}
         background="primary"
         borderBottom="primary"
-        padding={{sm: 'md lg', md: 'md xl'}}
+        padding={{'screen:sm': 'md lg', 'screen:md': 'md xl'}}
       >
         <ConversationSummaryNew
           nodes={nodes}
@@ -68,7 +68,7 @@ export function ConversationDetailPageNew() {
         flex={1}
         minHeight="0"
         overflow="hidden"
-        padding={{sm: 'md lg', md: 'md xl'}}
+        padding={{'screen:sm': 'md lg', 'screen:md': 'md xl'}}
         gap="md"
       >
         <Flex flexShrink={0}>

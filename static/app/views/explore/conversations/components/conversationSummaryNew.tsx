@@ -72,9 +72,9 @@ export function ConversationSummaryNew({
 
   return (
     <Flex
-      direction={{xs: 'column', md: 'row'}}
+      direction={{'screen:xs': 'column', 'screen:md': 'row'}}
       justify="between"
-      align={{xs: 'stretch', md: 'center'}}
+      align={{'screen:xs': 'stretch', 'screen:md': 'center'}}
       gap="xl"
       flex={1}
       minWidth={0}
