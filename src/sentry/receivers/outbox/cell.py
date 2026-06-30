@@ -28,8 +28,7 @@ from sentry.hybridcloud.services.organization_mapping.serial import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.action_log.types import GroupActionLogPayload
-from sentry.issues.derived.processing import process_group_log_batch
-from sentry.issues.derived.tasks import process_group_log_task
+from sentry.issues.derived.processing import ProcessingStrategy, trigger_group_log_processing
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
@@ -354,11 +353,15 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
         # This receiver runs inside the outbox drain transaction
         # (process_shard → transaction.atomic), so the GALE is not yet committed.
         # Defer to on_commit so the GALE is visible to readers on other connections.
+        strategy = (
+            ProcessingStrategy.ASYNC
+            if payload["force_async_derived"]
+            else ProcessingStrategy.INLINE
+        )
         using = router.db_for_write(GroupActionLogEntry)
-        if payload["force_async_derived"]:
-            transaction.on_commit(lambda: process_group_log_task.delay(group_id), using=using)
-        else:
-            transaction.on_commit(lambda: _process_derived_data(group_id), using=using)
+        transaction.on_commit(
+            lambda: trigger_group_log_processing(group_id, strategy=strategy), using=using
+        )
     except KeyError:
         # Payload schema mismatches (e.g. deploy skew) must not raise —
         # the outbox would retry forever.  Surface in tests so producer bugs
@@ -369,16 +372,3 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
             "process_group_action_log_event.permanent_failure",
             extra={"payload": payload},
         )
-
-
-def _process_derived_data(group_id: int) -> None:
-    """Process derived data after a GALE has been committed."""
-    # Avoid a circular import; cell.py is loaded early.
-    from sentry.models.group import Group
-
-    try:
-        result = process_group_log_batch(group_id)
-    except Group.DoesNotExist:
-        return
-    if not result.caught_up:
-        process_group_log_task.delay(group_id)
