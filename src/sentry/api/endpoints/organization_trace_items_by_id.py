@@ -108,7 +108,13 @@ class OrganizationTraceItemsByIdEndpoint(OrganizationEndpoint):
             for item in items
         }
 
-        outcomes = self._fetch(requests_by_id)
+        outcomes = self._fetch(
+            requests_by_id,
+            item_type=item_type,
+            columns=columns,
+            include_internal=include_internal,
+            include_arrays=include_arrays,
+        )
 
         rows = []
         not_found_ids = []
@@ -116,11 +122,7 @@ class OrganizationTraceItemsByIdEndpoint(OrganizationEndpoint):
         sample_error: Exception | None = None
         for item_id, (status, payload) in outcomes.items():
             if status == "found" and isinstance(payload, dict):
-                rows.append(
-                    self._serialize_row(
-                        payload, item_type, columns, include_internal, include_arrays
-                    )
-                )
+                rows.append(payload)
             elif status == "not_found":
                 not_found_ids.append(item_id)
             else:
@@ -172,11 +174,23 @@ class OrganizationTraceItemsByIdEndpoint(OrganizationEndpoint):
         )
 
     def _fetch(
-        self, requests_by_id: Mapping[str, TraceItemDetailsRequest]
+        self,
+        requests_by_id: Mapping[str, TraceItemDetailsRequest],
+        *,
+        item_type: SupportedTraceItemType,
+        columns: Sequence[str],
+        include_internal: bool,
+        include_arrays: bool,
     ) -> dict[str, _ItemOutcome]:
         def run(req: TraceItemDetailsRequest) -> _ItemOutcome:
             try:
-                return ("found", MessageToDict(trace_item_details_rpc(req)))
+                response = MessageToDict(trace_item_details_rpc(req))
+                return (
+                    "found",
+                    self._serialize_row(
+                        response, item_type, columns, include_internal, include_arrays
+                    ),
+                )
             except NotFound:
                 return ("not_found", None)
             except Exception as error:

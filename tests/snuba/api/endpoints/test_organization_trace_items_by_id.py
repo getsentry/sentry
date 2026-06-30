@@ -161,6 +161,25 @@ class OrganizationTraceItemsByIdEndpointTest(APITestCase, SnubaTestCase, OurLogT
         assert response.data["notFoundIds"] == []
         assert response.data["errorIds"] == [bad_id]
 
+    @mock.patch(
+        "sentry.api.endpoints.organization_trace_items_by_id.convert_rpc_attribute_to_json",
+        side_effect=Exception("malformed attribute"),
+    )
+    def test_routes_serialization_failures_to_error_ids(self, _mock: mock.MagicMock) -> None:
+        item_id = self.store_log("foo")
+
+        response = self.do_request(
+            {
+                "itemType": "logs",
+                "columns": ["id", "message"],
+                "items": [self.item(item_id)],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == []
+        assert response.data["errorIds"] == [item_id]
+
     def test_rejects_project_the_user_cannot_access(self) -> None:
         other_organization = self.create_organization()
         other_project = self.create_project(organization=other_organization)
