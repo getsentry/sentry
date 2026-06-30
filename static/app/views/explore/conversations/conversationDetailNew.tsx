@@ -1,0 +1,94 @@
+import {useCallback, useEffect, useMemo} from 'react';
+import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
+
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
+import {ConversationSummaryNew} from 'sentry/views/explore/conversations/components/conversationSummaryNew';
+import {
+  CONVERSATION_VIEW_TABS,
+  ConversationViewContentNew,
+} from 'sentry/views/explore/conversations/components/conversationViewNew';
+import {ConversationViewContainer} from 'sentry/views/explore/conversations/conversationDetail';
+import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
+
+function useConversationDetailQueryState() {
+  return useQueryStates(
+    {
+      spanId: parseAsString,
+      focusedTool: parseAsString,
+      tab: parseAsStringLiteral(CONVERSATION_VIEW_TABS).withDefault('transcript'),
+    },
+    {history: 'replace'}
+  );
+}
+
+export function ConversationDetailPageNew() {
+  const organization = useOrganization();
+  const {conversationId} = useParams<{conversationId: string}>();
+  const [queryState, setQueryState] = useConversationDetailQueryState();
+
+  const conversation = useMemo(() => ({conversationId}), [conversationId]);
+
+  const {nodes, isLoading} = useConversation(conversation);
+
+  useEffect(() => {
+    trackAnalytics('conversations.detail.page-view', {
+      organization,
+    });
+  }, [organization, conversationId]);
+
+  const handleSelectSpan = useCallback(
+    (spanId: string) => {
+      setQueryState({spanId, focusedTool: null});
+    },
+    [setQueryState]
+  );
+
+  return (
+    <ViewportConstrainedPage background="secondary">
+      <Container
+        flexShrink={0}
+        background="primary"
+        borderBottom="primary"
+        padding={{'screen:sm': 'md lg', 'screen:md': 'md xl'}}
+      >
+        <ConversationSummaryNew
+          nodes={nodes}
+          conversationId={conversationId}
+          isLoading={isLoading}
+        />
+      </Container>
+      <Stack
+        flex={1}
+        minHeight="0"
+        overflow="hidden"
+        padding={{'screen:sm': 'md lg', 'screen:md': 'md xl'}}
+        gap="md"
+      >
+        <Flex flexShrink={0}>
+          <Tabs value={queryState.tab} onChange={tab => setQueryState({tab})}>
+            <TabList variant="floating">
+              <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
+              <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
+            </TabList>
+          </Tabs>
+        </Flex>
+        <ConversationViewContainer>
+          <ConversationViewContentNew
+            conversation={conversation}
+            activeTab={queryState.tab}
+            selectedSpanId={queryState.spanId}
+            onSelectSpan={handleSelectSpan}
+            focusedTool={queryState.focusedTool}
+          />
+        </ConversationViewContainer>
+      </Stack>
+    </ViewportConstrainedPage>
+  );
+}
