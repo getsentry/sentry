@@ -24,7 +24,7 @@ class InternalLlmProxyKeyTest(APITestCase):
         sig = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
         return self.client.post(
             self.url,
-            data=data,
+            data=body,
             content_type="application/json",
             HTTP_AUTHORIZATION=f"Rpcsignature rpc0:{sig}",
         )

@@ -4,6 +4,7 @@ import time
 
 import jwt as pyjwt
 from django.conf import settings
+from pydantic import BaseModel
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,7 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.models.organization import Organization, OrganizationStatus
-from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
+from sentry.seer.auth import SeerRpcSignatureAuthentication
 from sentry.seer.seer_setup import has_seer_access
 
 logger = logging.getLogger(__name__)
@@ -41,12 +42,17 @@ def _key_id(key: str) -> str:
     return hashlib.sha256(key.encode("utf-8")).hexdigest()[:8]
 
 
+class MakeLlmProxyKeyResponse(BaseModel):
+    token: str | None = None
+    error: str | None = None
+
+
 def make_llm_proxy_key(
     *,
     org_id: int,
     project_id: int | None = None,
     feature: str,
-) -> dict:
+) -> MakeLlmProxyKeyResponse:
     """Generate a short-lived HS256 JWT for authenticating to the LLM proxy.
 
     Signed with the first SEER_RPC_SHARED_SECRET. The proxy verifies locally
@@ -54,23 +60,23 @@ def make_llm_proxy_key(
     """
     secrets = settings.SEER_RPC_SHARED_SECRET
     if not secrets:
-        return {"error": "signing_secret_not_configured"}
+        return MakeLlmProxyKeyResponse(error="signing_secret_not_configured")
 
     try:
         organization = Organization.objects.get(id=org_id, status=OrganizationStatus.ACTIVE)
     except Organization.DoesNotExist:
-        return {"error": "organization_not_found"}
+        return MakeLlmProxyKeyResponse(error="organization_not_found")
 
     extra_flags = FEATURE_FLAGS.get(feature)
     if extra_flags is None:
-        return {"error": "unknown_feature"}
+        return MakeLlmProxyKeyResponse(error="unknown_feature")
 
     if not has_seer_access(organization):
-        return {"error": "feature_not_enabled"}
+        return MakeLlmProxyKeyResponse(error="feature_not_enabled")
 
     for flag in extra_flags:
         if not features.has(flag, organization):
-            return {"error": "feature_not_enabled"}
+            return MakeLlmProxyKeyResponse(error="feature_not_enabled")
 
     now = time.time()
     payload = {
@@ -85,7 +91,7 @@ def make_llm_proxy_key(
 
     secret = secrets[0]
     token = pyjwt.encode(payload, secret, algorithm="HS256", headers={"kid": _key_id(secret)})
-    return {"token": token}
+    return MakeLlmProxyKeyResponse(token=token)
 
 
 @internal_cell_silo_endpoint
@@ -112,7 +118,7 @@ class InternalLlmProxyKeyEndpoint(Endpoint):
             feature=feature,
         )
 
-        if "error" in result:
-            return Response({"detail": result["error"]}, status=400)
+        if result.error:
+            return Response({"detail": result.error}, status=400)
 
-        return Response({"token": result["token"]})
+        return Response({"token": result.token})

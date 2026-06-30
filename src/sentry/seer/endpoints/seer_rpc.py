@@ -7,7 +7,6 @@ from typing import Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from google.protobuf.json_format import MessageToDict
@@ -16,7 +15,6 @@ from pydantic import BaseModel
 from requests.exceptions import RequestException
 from rest_framework.exceptions import (
     APIException,
-    AuthenticationFailed,
     NotFound,
     ParseError,
     PermissionDenied,
@@ -38,8 +36,8 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, Trace
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
+from sentry.api.endpoints.internal.llm_proxy_key import make_llm_proxy_key
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
 from sentry.auth.exceptions import IdentityNotValid
@@ -122,6 +120,7 @@ from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
 )
+from sentry.seer.auth import SeerRpcSignatureAuthentication
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.autofix.utils import (
     bulk_read_preferences_from_sentry_db,
@@ -167,7 +166,6 @@ from sentry.seer.utils import encrypt_access_token_for_seer, filter_repo_by_prov
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
 from sentry.utils import snuba_rpc
@@ -193,69 +191,6 @@ class SortDict(TypedDict):
 class SpansResponse(TypedDict):
     data: list[dict[str, Any]]
     meta: dict[str, Any]
-
-
-def compare_signature(url: str, body: bytes, signature: str) -> bool:
-    """
-    Compare request data + signature signed by one of the shared secrets.
-
-    Once a key has been able to validate the signature other keys will
-    not be attempted. We should only have multiple keys during key rotations.
-    """
-    if not settings.SEER_RPC_SHARED_SECRET:
-        raise RpcAuthenticationSetupException(
-            "Cannot validate RPC request signatures without SEER_RPC_SHARED_SECRET"
-        )
-
-    if not signature.startswith("rpc0:"):
-        logger.error("Seer RPC signature validation failed: invalid signature prefix")
-        return False
-
-    if not body:
-        logger.error("Seer RPC signature validation failed: no body")
-        return False
-
-    try:
-        # We aren't using the version bits currently.
-        _, signature_data = signature.split(":", 2)
-
-        signature_input = body
-
-        for key in settings.SEER_RPC_SHARED_SECRET:
-            computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
-            is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
-            if is_valid:
-                return True
-    except Exception:
-        logger.exception("Seer RPC signature validation failed")
-        return False
-
-    logger.error("Seer RPC signature validation failed")
-
-    return False
-
-
-@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
-class SeerRpcSignatureAuthentication(StandardAuthentication):
-    """
-    Authentication for seer RPC requests.
-    Requests are sent with an HMAC signed by a shared private key.
-    """
-
-    token_name = b"rpcsignature"
-
-    def accepts_auth(self, auth: list[bytes]) -> bool:
-        if not auth or len(auth) < 2:
-            return False
-        return auth[0].lower() == self.token_name
-
-    def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
-        if not compare_signature(request.path_info, request.body, token):
-            raise AuthenticationFailed("Invalid signature")
-
-        sentry_sdk.get_isolation_scope().set_tag("seer_rpc_auth", True)
-
-        return (AnonymousUser(), token)
 
 
 @internal_cell_silo_endpoint
@@ -1104,14 +1039,6 @@ def record_pr_attribution(
     return PrAttributionResponse(attribution_id=attribution.id)
 
 
-class ValidateLlmProxyKeyResponse(BaseModel):
-    valid: bool
-
-
-def validate_llm_proxy_key(api_key: str) -> ValidateLlmProxyKeyResponse:
-    return ValidateLlmProxyKeyResponse(valid=True)
-
-
 # Every value below MUST be a function returning a `pydantic.BaseModel` (or
 # a union of `BaseModel` subclasses, optionally with `None`). Two complementary
 # guards enforce this:
@@ -1206,7 +1133,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "refresh_monitoring_provider_token": seer_rpc(refresh_monitoring_provider_token),
     #
     # LLM Proxy
-    "validate_llm_proxy_key": seer_rpc(validate_llm_proxy_key),
+    "make_llm_proxy_key": seer_rpc(make_llm_proxy_key),
 }
 
 
