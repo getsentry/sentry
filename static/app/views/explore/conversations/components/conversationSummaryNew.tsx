@@ -20,7 +20,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {getUserDisplayName} from 'sentry/views/explore/conversations/components/conversationsTable';
+import {
+  getUserDisplayName,
+  UserNotInstrumentedTooltip,
+} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {
   calculateAggregates,
   getConversationUser,
@@ -126,16 +129,24 @@ export function ConversationSummaryNew({
                   hideOverflow
                 />
               )}
-              {userDisplayName && (
-                <Flex align="center" gap="xs" minWidth={0}>
-                  <IconUser size="md" />
+              <Flex align="center" gap="xs" minWidth={0}>
+                <IconUser size="md" />
+                {userDisplayName ? (
                   <Tooltip title={userDisplayName} showOnlyOnOverflow skipWrapper>
                     <Text size="xs" variant="muted" ellipsis>
                       {userDisplayName}
                     </Text>
                   </Tooltip>
-                </Flex>
-              )}
+                ) : (
+                  <InfoText
+                    size="xs"
+                    variant="muted"
+                    title={<UserNotInstrumentedTooltip />}
+                  >
+                    &mdash;
+                  </InfoText>
+                )}
+              </Flex>
               {aggregates.toolNames.length > 0 && (
                 <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
                   {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
