@@ -586,7 +586,10 @@ export function LogsInfiniteTable({
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
-        {!isPending && logsPinning && (
+        {/* Keep the pinned section mounted through a seek's refetch — its rows come
+            from a separate query we still have, so there's no reason to hide it while
+            the main table reloads. */}
+        {logsPinning && (!isPending || isAwaitingSeekWindow) && (
           <PinnedLogs
             allRows={data}
             logsPinning={logsPinning}
@@ -611,8 +614,8 @@ export function LogsInfiniteTable({
               so the target is revealed already centered instead of flashing at top. */}
           {!hasReplay && (isPending || isAwaitingSeekWindow) && (
             <LoadingRenderer
-              bytesScanned={bytesScanned}
-              totalPayloadBytes={totalPayloadBytes}
+              bytesScanned={isAwaitingSeekWindow ? undefined : bytesScanned}
+              totalPayloadBytes={isAwaitingSeekWindow ? undefined : totalPayloadBytes}
             />
           )}
           {!hasReplay && isError && <ErrorRenderer />}
