@@ -486,6 +486,7 @@ export function CellAction({
               <DropdownMenu
                 items={cellActions}
                 usePortal
+                disableTextSelection
                 size="sm"
                 offset={4}
                 position="bottom"

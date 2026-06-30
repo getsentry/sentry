@@ -9,7 +9,7 @@ describe('RevealOnHover', () => {
       <RevealOnHover>
         <span>Label</span>
         <RevealOnHover.Action>
-          <Button aria-label="Copy">Copy</Button>
+          <Button>Copy</Button>
         </RevealOnHover.Action>
       </RevealOnHover>
     );
@@ -23,7 +23,7 @@ describe('RevealOnHover', () => {
       <RevealOnHover>
         <span>Label</span>
         <RevealOnHover.Action>
-          <Button aria-label="Copy">Copy</Button>
+          <Button>Copy</Button>
         </RevealOnHover.Action>
       </RevealOnHover>
     );
@@ -37,7 +37,7 @@ describe('RevealOnHover', () => {
       <RevealOnHover>
         <span>Label</span>
         <RevealOnHover.Action visible>
-          <Button aria-label="Copy">Copy</Button>
+          <Button>Copy</Button>
         </RevealOnHover.Action>
       </RevealOnHover>
     );
@@ -51,7 +51,7 @@ describe('RevealOnHover', () => {
       <RevealOnHover data-test-id="hover-root" gap="md" justify="between">
         <span>Label</span>
         <RevealOnHover.Action>
-          <Button aria-label="Copy">Copy</Button>
+          <Button>Copy</Button>
         </RevealOnHover.Action>
       </RevealOnHover>
     );
@@ -82,10 +82,10 @@ describe('RevealOnHover', () => {
       <RevealOnHover>
         <span>Label</span>
         <RevealOnHover.Action>
-          <Button aria-label="Copy">Copy</Button>
+          <Button>Copy</Button>
         </RevealOnHover.Action>
         <RevealOnHover.Action>
-          <Button aria-label="Delete">Delete</Button>
+          <Button>Delete</Button>
         </RevealOnHover.Action>
       </RevealOnHover>
     );
@@ -101,7 +101,7 @@ describe('RevealOnHover', () => {
       <RevealOnHover>
         <span>Label</span>
         <RevealOnHover.Action>
-          <Button aria-label="Copy">Copy</Button>
+          <Button>Copy</Button>
         </RevealOnHover.Action>
       </RevealOnHover>
     );
@@ -117,7 +117,7 @@ describe('RevealOnHover', () => {
           <div data-test-id="custom-root" className={className}>
             <span>Grid content</span>
             <RevealOnHover.Action>
-              <Button aria-label="Copy">Copy</Button>
+              <Button>Copy</Button>
             </RevealOnHover.Action>
           </div>
         )}

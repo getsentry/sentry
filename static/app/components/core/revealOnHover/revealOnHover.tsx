@@ -36,7 +36,8 @@ const revealStyles = (p: {theme: import('@emotion/react').Theme}) => `
     }
 
     &:hover [data-reveal-on-hover],
-    &:focus-within [data-reveal-on-hover] {
+    &:focus-within [data-reveal-on-hover],
+    [data-reveal-on-hover]:has([aria-expanded='true']) {
       opacity: 1;
       pointer-events: auto;
       transition: opacity ${p.theme.motion.enter.moderate};
