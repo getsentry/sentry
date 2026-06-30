@@ -217,6 +217,12 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     default=0.1,
     type=float,
 )
+@click.option(
+    "--prometheus-port",
+    help="Expose worker occupancy on this port for Prometheus scraping. Unset = disabled.",
+    default=None,
+    type=int,
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -247,6 +253,7 @@ def run_taskworker(
     health_check_sec_per_touch: float,
     push_timeout_sec: float,
     future_checking_frequency: float,
+    prometheus_port: int | None,
     **options: Any,
 ) -> None:
     """
@@ -275,6 +282,7 @@ def run_taskworker(
                 push_task_timeout=push_timeout_sec,
                 skip_awaiting_futures=skip_awaiting_futures,
                 future_checking_frequency=future_checking_frequency,
+                prometheus_port=prometheus_port,
             )
         elif batch_push_mode:
             worker = BatchPushTaskWorker(
@@ -294,6 +302,7 @@ def run_taskworker(
                 update_in_batches=True,
                 skip_awaiting_futures=skip_awaiting_futures,
                 future_checking_frequency=future_checking_frequency,
+                prometheus_port=prometheus_port,
             )
         else:
             worker = TaskWorker(
