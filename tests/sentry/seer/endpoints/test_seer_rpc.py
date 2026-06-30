@@ -92,6 +92,18 @@ class TestSeerRpc(APITestCase):
         assert "features" in response.data
         assert isinstance(response.data["features"], list)
 
+    def test_get_organization_projects_registered_on_internal_rpc(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        path = self._get_path("get_organization_projects")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+        assert response.status_code == 200
+        assert "projects" in response.data
+        assert project.id in [p["id"] for p in response.data["projects"]]
+
     def test_validate_llm_proxy_key(self) -> None:
         path = self._get_path("validate_llm_proxy_key")
         data: dict[str, Any] = {"args": {"api_key": "test-key"}}
