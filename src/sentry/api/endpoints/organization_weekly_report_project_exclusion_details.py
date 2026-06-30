@@ -29,7 +29,7 @@ class OrganizationWeeklyReportProjectExclusionDetailsEndpoint(OrganizationEndpoi
     def delete(
         self, request: Request, organization: Organization, project_id_or_slug: str
     ) -> Response:
-        assert request.user
+        assert request.user and request.user.id
 
         if not features.has(
             "organizations:weekly-report-project-exclusions", organization, actor=request.user

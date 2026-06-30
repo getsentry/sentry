@@ -31,7 +31,7 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUE_DETECTION_BACKEND
 
     def get(self, request: Request, organization: Organization) -> Response:
-        assert request.user
+        assert request.user and request.user.id
 
         if not features.has(
             "organizations:weekly-report-project-exclusions", organization, actor=request.user
@@ -52,7 +52,7 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
         )
 
     def put(self, request: Request, organization: Organization) -> Response:
-        assert request.user
+        assert request.user and request.user.id
 
         if not features.has(
             "organizations:weekly-report-project-exclusions", organization, actor=request.user
