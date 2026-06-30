@@ -21,7 +21,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {PlanList} from 'admin/components/planList';
 import {ANNUAL, BillingConfigTier, MONTHLY} from 'getsentry/constants';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
-import {isReservedBudgetCategory} from 'getsentry/utils/dataCategory';
+import {isCheckoutCategory} from 'getsentry/utils/dataCategory';
 
 type Props = {
   onSuccess: () => void;
@@ -132,11 +132,7 @@ function ChangePlanAction({
     }
 
     Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
-      if (
-        metricHistory.reserved &&
-        (plan.planCategories[category as DataCategory]?.length ?? 0) > 1 &&
-        !isReservedBudgetCategory(category as DataCategory, plan)
-      ) {
+      if (metricHistory.reserved && isCheckoutCategory(category as DataCategory, plan)) {
         const closestTier = findClosestTier(
           plan,
           category as DataCategory,

@@ -145,9 +145,20 @@ describe('ChangePlanAction', () => {
     await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
     await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
     await selectEvent.select(screen.getByRole('textbox', {name: 'Spans'}), '10,000,000');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Uptime monitors'}), '1');
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Attachments (GB)'}),
       '1'
+    );
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Size analysis builds'}),
+      '100'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Build distribution installs'}),
+      '-1'
     );
 
     expect(screen.getByText('Available Products')).toBeInTheDocument(); // will always show if any product is launched and available for an org
@@ -175,9 +186,20 @@ describe('ChangePlanAction', () => {
     await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
     await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
     await selectEvent.select(screen.getByRole('textbox', {name: 'Spans'}), '10,000,000');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Uptime monitors'}), '1');
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Attachments (GB)'}),
       '1'
+    );
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Size analysis builds'}),
+      '100'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Build distribution installs'}),
+      '-1'
     );
 
     // XXX: irl we would not have both versions of Seer available, but doing this for testing multiple addons
@@ -300,9 +322,23 @@ describe('ChangePlanAction', () => {
         screen.getByRole('textbox', {name: 'Spans'}),
         '10,000,000'
       );
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Uptime monitors'}),
+        '1'
+      );
       await selectEvent.select(
         screen.getByRole('textbox', {name: 'Attachments (GB)'}),
         '1'
+      );
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Size analysis builds'}),
+        '100'
+      );
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Build distribution installs'}),
+        '-1'
       );
 
       // Submit the form
@@ -341,9 +377,23 @@ describe('ChangePlanAction', () => {
         screen.getByRole('textbox', {name: 'Spans'}),
         '10,000,000'
       );
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Uptime monitors'}),
+        '1'
+      );
       await selectEvent.select(
         screen.getByRole('textbox', {name: 'Attachments (GB)'}),
         '1'
+      );
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Size analysis builds'}),
+        '100'
+      );
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Build distribution installs'}),
+        '-1'
       );
 
       // Submit the form

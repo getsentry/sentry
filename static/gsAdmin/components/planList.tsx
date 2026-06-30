@@ -24,7 +24,7 @@ import {
 import {
   getPlanCategoryName,
   isByteCategory,
-  isReservedBudgetCategory,
+  isCheckoutCategory,
 } from 'getsentry/utils/dataCategory';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
@@ -140,11 +140,7 @@ export function PlanList({
           <StyledFormSection>
             <h4>Reserved Volumes</h4>
             {activePlan.categories
-              .filter(
-                category =>
-                  (activePlan.planCategories[category]?.length ?? 0) > 1 &&
-                  !isReservedBudgetCategory(category, activePlan)
-              )
+              .filter(category => isCheckoutCategory(category, activePlan))
               .map(category => {
                 const titleCategory = getPlanCategoryName({
                   plan: activePlan,
