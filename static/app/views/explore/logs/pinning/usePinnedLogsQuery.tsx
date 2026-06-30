@@ -1,5 +1,6 @@
-import {useCallback, useEffect, useMemo} from 'react';
-import type {QueryClient} from '@tanstack/react-query';
+import {useCallback, useMemo} from 'react';
+import {AsyncBatcher} from '@tanstack/react-pacer';
+import type {QueryClient, UseQueryResult} from '@tanstack/react-query';
 import {useQueries, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
@@ -48,12 +49,6 @@ interface QueryContext {
   organizationSlug: string;
 }
 
-interface PinnedLogEntry {
-  /** True only when a complete (non-partial) scan proved the id absent. */
-  definitivelyAbsent: boolean;
-  row: OurLogsResponseItem | null;
-}
-
 export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
   const organization = useOrganization();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
@@ -65,7 +60,10 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
     [userFields]
   );
 
-  const missingIds = useMissingPinnedLogIds(allRows, logsPinning);
+  const allRowIds = new Set(allRows.map(row => row[OurLogKnownFieldKey.ID]));
+  const missingIds = (logsPinning?.getPinnedRowIds() ?? []).filter(
+    id => !allRowIds.has(id)
+  );
 
   const baseQuery = useMemo(
     () => ({
@@ -89,43 +87,15 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
   );
 
   const enabled = pageFiltersReady && !!logsPinning;
-  const {fetchedRows, absentIds, isPending, isError} = useQueries({
+  const {fetchedRows, isPending, isError} = useQueries({
     queries: missingIds.map(id => ({
       queryKey: [PINNED_LOG_ROW_QUERY_KEY, id, queryContext],
       queryFn: ({client}) => loadPinnedLog(client, queryContext, id),
       enabled,
       staleTime: Infinity,
     })),
-    combine: results => {
-      const rows: OurLogsResponseItem[] = [];
-      const absent: string[] = [];
-      let pending = false;
-      let error = false;
-      results.forEach((result, index) => {
-        if (result.isLoading) {
-          pending = true;
-        }
-        if (result.isError) {
-          error = true;
-        }
-        const entry = result.data;
-        if (entry?.row) {
-          rows.push(entry.row);
-        } else if (entry?.definitivelyAbsent) {
-          absent.push(missingIds[index]!);
-        }
-      });
-      return {fetchedRows: rows, absentIds: absent, isPending: pending, isError: error};
-    },
+    combine: combineResults,
   });
-
-  const removePinnedRows = logsPinning?.removePinnedRows;
-  const absentSignature = absentIds.join(' ');
-  useEffect(() => {
-    if (removePinnedRows && absentSignature) {
-      removePinnedRows(absentSignature.split(' '));
-    }
-  }, [removePinnedRows, absentSignature]);
 
   const refetch = useCallback(() => {
     queryClient.refetchQueries({queryKey: [PINNED_LOG_ROW_QUERY_KEY], type: 'active'});
@@ -134,55 +104,72 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
   return {fetchedRows, isPending, isError, refetch};
 }
 
-function useMissingPinnedLogIds(
-  allRows: LogTableRowItem[],
-  logsPinning: LogsPinning | undefined
-) {
-  return useMemo(() => {
-    const allRowIds = new Set(allRows.map(row => row[OurLogKnownFieldKey.ID]));
-    const pinnedIds = logsPinning?.getPinnedRowIds() ?? [];
-    return pinnedIds.filter(id => !allRowIds.has(id));
-  }, [logsPinning, allRows]);
+function combineResults(results: Array<UseQueryResult<OurLogsResponseItem | null>>) {
+  const fetchedRows: OurLogsResponseItem[] = [];
+  let isPending = false;
+  let isError = false;
+  for (const result of results) {
+    if (result.isLoading) {
+      isPending = true;
+    } else if (result.isError) {
+      isError = true;
+    } else if (result.data) {
+      fetchedRows.push(result.data);
+    }
+  }
+  return {fetchedRows, isPending, isError};
 }
 
-const pinnedLogBatches = new Map<
-  string,
-  {ids: string[]; result: Promise<Map<string, PinnedLogEntry>>}
->();
+interface PinnedLogRequest {
+  client: QueryClient;
+  context: QueryContext;
+  deferred: PromiseWithResolvers<OurLogsResponseItem | null>;
+  id: string;
+}
+
+/**
+ * Coalesces every pinned-log query that fires in the same tick into a single
+ * `/events/` request, so N pins cost one fetch instead of N. Each pin still has
+ * its own per-id query key, so unpinning one never refetches the rest. All
+ * requests in a tick share the same context (org, filters, time range), so we
+ * fetch with the first one's.
+ */
+const pinnedLogBatcher = new AsyncBatcher<PinnedLogRequest>(
+  requests => {
+    const {client, context} = requests[0]!;
+    const ids = [...new Set(requests.map(request => request.id))];
+    return fetchPinnedLogBatch(client, context, ids);
+  },
+  {
+    wait: 0,
+    onSuccess: (rowsById: Map<string, OurLogsResponseItem>, requests) => {
+      for (const {deferred, id} of requests) {
+        deferred.resolve(rowsById.get(id) ?? null);
+      }
+    },
+    onError: (error, requests) => {
+      for (const {deferred} of requests) {
+        deferred.reject(error);
+      }
+    },
+  }
+);
 
 function loadPinnedLog(
   client: QueryClient,
   context: QueryContext,
   id: string
-): Promise<PinnedLogEntry> {
-  const batchKey = JSON.stringify([
-    context.organizationSlug,
-    context.baseQuery,
-    context.dateParams,
-  ]);
-
-  let batch = pinnedLogBatches.get(batchKey);
-  if (!batch) {
-    const ids: string[] = [];
-    const result = Promise.resolve().then(() => {
-      pinnedLogBatches.delete(batchKey);
-      return fetchPinnedLogBatch(client, context, ids);
-    });
-    batch = {ids, result};
-    pinnedLogBatches.set(batchKey, batch);
-  }
-
-  batch.ids.push(id);
-  return batch.result.then(
-    entries => entries.get(id) ?? {row: null, definitivelyAbsent: false}
-  );
+): Promise<OurLogsResponseItem | null> {
+  const deferred = Promise.withResolvers<OurLogsResponseItem | null>();
+  pinnedLogBatcher.addItem({client, context, deferred, id});
+  return deferred.promise;
 }
 
 async function fetchPinnedLogBatch(
   client: QueryClient,
   {organizationSlug, baseQuery, dateParams}: QueryContext,
   ids: string[]
-): Promise<Map<string, PinnedLogEntry>> {
+): Promise<Map<string, OurLogsResponseItem>> {
   const url = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
     path: {organizationIdOrSlug: organizationSlug},
   });
@@ -225,21 +212,14 @@ async function fetchPinnedLogBatch(
   }
 
   // Step 2: Any IDs not found in the parent selected range escalate to a wider window.
+  // Anything still unfound stays pinned and surfaces as an unavailable row in the UI.
   const stillMissing = ids.filter(id => !foundInRange.has(id));
-  let partialScan = false;
   if (stillMissing.length > 0) {
     const wide = await fetchByIds(stillMissing, wideDateParams(stillMissing));
     collect(wide.json);
-    // A partial scan didn't prove the unfound ids absent, so don't unpin them.
-    partialScan = wide.json.meta?.dataScanned === 'partial';
   }
 
-  const entries = new Map<string, PinnedLogEntry>();
-  for (const id of ids) {
-    const row = rowsById.get(id) ?? null;
-    entries.set(id, {row, definitivelyAbsent: !row && !partialScan});
-  }
-  return entries;
+  return rowsById;
 }
 
 /**
