@@ -1009,8 +1009,20 @@ def refresh_monitoring_provider_token(
     try:
         provider.refresh_identity(identity)
     except IdentityNotValid:
+        logger.warning(
+            "monitoring_provider.refresh.identity_not_valid",
+            extra={
+                "identity_id": identity_id,
+                "provider": idp.type,
+                "has_refresh_token": "refresh_token" in identity.data,
+            },
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
     except (ApiError, KeyError, RequestException):
+        logger.exception(
+            "monitoring_provider.refresh.failed",
+            extra={"identity_id": identity_id, "provider": idp.type},
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="refresh_failed")
 
     access_token = identity.data.get("access_token")
@@ -1129,6 +1141,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     # Common to Seer features
     "get_github_enterprise_integration_config": seer_rpc(get_github_enterprise_integration_config),
     "get_organization_project_ids": seer_rpc(get_organization_project_ids),
+    "get_organization_projects": seer_rpc(get_organization_projects),
     "get_organization_features": seer_rpc(get_organization_features),
     "check_repository_integrations_status": seer_rpc(check_repository_integrations_status),
     "validate_repo": seer_rpc(validate_repo),

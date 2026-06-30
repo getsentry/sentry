@@ -320,6 +320,10 @@ class NotificationTextBlockType(StrEnum):
     """
     A bolded section of text.
     """
+    ITALIC_TEXT = "italic_text"
+    """
+    An italicized section of text.
+    """
     CODE = "code"
     """
     Inline block of code.
@@ -342,6 +346,10 @@ class NotificationSectionType(StrEnum):
     CODE_BLOCK = "code_block"
     """
     A new section of code with a line break before.
+    """
+    BLOCK_QUOTE = "block_quote"
+    """
+    A quoted block of text, rendered as a blockquote.
     """
 
 
@@ -388,9 +396,21 @@ class CodeBlock(NotificationSection):
 
 
 @dataclass
+class BlockQuoteSection(NotificationSection):
+    blocks: list[NotificationTextBlock]
+    type: Literal[NotificationSectionType.BLOCK_QUOTE] = NotificationSectionType.BLOCK_QUOTE
+
+
+@dataclass
 class BoldTextBlock(NotificationTextBlock):
     text: str
     type: Literal[NotificationTextBlockType.BOLD_TEXT] = NotificationTextBlockType.BOLD_TEXT
+
+
+@dataclass
+class ItalicTextBlock(NotificationTextBlock):
+    text: str
+    type: Literal[NotificationTextBlockType.ITALIC_TEXT] = NotificationTextBlockType.ITALIC_TEXT
 
 
 @dataclass

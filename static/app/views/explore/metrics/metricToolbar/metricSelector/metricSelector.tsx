@@ -527,8 +527,8 @@ export function MetricSelector({
                 <Flex
                   minHeight="0"
                   direction={{
-                    xs: isOverlayAboveTrigger ? 'column-reverse' : 'column',
-                    md: 'row',
+                    'screen:xs': isOverlayAboveTrigger ? 'column-reverse' : 'column',
+                    'screen:md': 'row',
                   }}
                 >
                   <Stack
@@ -536,10 +536,14 @@ export function MetricSelector({
                     minHeight={`${METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT}px`}
                     maxHeight={`${METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT}px`}
                     borderBottom={
-                      isOverlayAboveTrigger ? undefined : {xs: 'primary', md: undefined}
+                      isOverlayAboveTrigger
+                        ? undefined
+                        : {'screen:xs': 'primary', 'screen:md': undefined}
                     }
                     borderTop={
-                      isOverlayAboveTrigger ? {xs: 'primary', md: undefined} : undefined
+                      isOverlayAboveTrigger
+                        ? {'screen:xs': 'primary', 'screen:md': undefined}
+                        : undefined
                     }
                     width="100%"
                   >
@@ -665,14 +669,14 @@ export function MetricSelector({
                       top={
                         isOverlayAboveTrigger
                           ? undefined
-                          : {xs: 'auto', md: sidePanelAnchorPosition}
+                          : {'screen:xs': 'auto', 'screen:md': sidePanelAnchorPosition}
                       }
                       bottom={
                         isOverlayAboveTrigger
-                          ? {xs: 'auto', md: sidePanelAnchorPosition}
+                          ? {'screen:xs': 'auto', 'screen:md': sidePanelAnchorPosition}
                           : undefined
                       }
-                      width={{xs: '100%', md: '280px'}}
+                      width={{'screen:xs': '100%', 'screen:md': '280px'}}
                       padding="lg"
                       minHeight="0"
                     >

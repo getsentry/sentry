@@ -6,7 +6,6 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
     get_example_template,
     get_issue_description,
     get_subject,
-    get_view_in_sentry_button,
 )
 from sentry.notifications.platform.types import (
     CodeBlock,
@@ -61,8 +60,5 @@ class SeerRcaCompletedActivityTemplate(NotificationTemplate[WorkflowEngineActivi
             summary_block = PlainTextBlock(text=activity.data.get("summary", fallback))
             body.append(CodeBlock(blocks=[summary_block]))
         return build_template(
-            data=data,
-            subject=get_subject("Seer RCA Completed", group),
-            body=body,
-            extra_actions=[get_view_in_sentry_button(group)],
+            data=data, subject=get_subject("Root Cause Analysis Completed", group), body=body
         )

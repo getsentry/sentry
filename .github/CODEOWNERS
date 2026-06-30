@@ -364,6 +364,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/insights/                                               @getsentry/dashboards
 
 /static/app/views/dashboards/                                             @getsentry/dashboards
+/static/app/utils/dashboards/                                             @getsentry/dashboards
 /static/app/components/modals/widgetViewerModal*                          @getsentry/dashboards
 
 /static/app/views/discover/                                               @getsentry/explore
